@@ -18063,6 +18063,51 @@ static int test_facts_v2_inline_return_string_call_skips_payload(void) {
   return 0;
 }
 
+static int test_facts_v2_inline_word_return_rewrite_skips_payload(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[46] = {
+    0x61u, 0x00u, 0x00u, 0x1eu,
+    0xffu, 0x0du,
+    0x70u, 0x01u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x20u, 0x6fu, 0x00u, 0x04u,
+    0x30u, 0x18u,
+    0x2fu, 0x48u, 0x00u, 0x04u,
+    0x4eu, 0x75u,
+    0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "bsr.w loc_0_00000020") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $FF,$0D") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $70,$01,$4E,$75") == NULL);
+  M68K_C_ASSERT_U32(1U, profile.code_start_inline_resumes);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.required_instruction_failures);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id(void) {
   M68kObject object;
   M68kSection section;
@@ -18931,6 +18976,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_call_input_domain_immediate},
     {"facts_v2_inline_return_string_call_skips_payload",
       test_facts_v2_inline_return_string_call_skips_payload},
+    {"facts_v2_inline_word_return_rewrite_skips_payload",
+      test_facts_v2_inline_word_return_rewrite_skips_payload},
     {"facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id",
       test_facts_v2_render_asm_source_scopes_external_fpu_coprocessor_id},
     {"facts_v2_render_asm_source_uses_default_fpu_mnemonic",

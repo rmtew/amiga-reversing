@@ -1343,6 +1343,16 @@ static int operand_is_stack_displacement(const M68kAsmOperandValue *operand, uin
     operand->ea_mode == 5U && operand->ea_reg == 7U && operand->value == displacement;
 }
 
+static int operand_stack_displacement_value(const M68kAsmOperandValue *operand, uint32_t *out_displacement) {
+  if (out_displacement != NULL) *out_displacement = 0U;
+  if (operand == NULL || operand->kind != M68K_ASM_OPERAND_EA ||
+      operand->ea_mode != 5U || operand->ea_reg != 7U) {
+    return 0;
+  }
+  if (out_displacement != NULL) *out_displacement = operand->value;
+  return 1;
+}
+
 static int operand_is_postincrement_address_register(uint8_t kind, const M68kAsmOperandValue *operand,
     uint8_t *out_reg) {
   if (operand == NULL) return 0;
@@ -3568,6 +3578,38 @@ static int candidate_stores_address_reg_to_return_slot(const M68kDecodeCandidate
     operand_is_stack_displacement(&candidate->operands[1], 4U);
 }
 
+static int candidate_loads_stack_slot_to_address_reg(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
+    uint32_t *out_displacement) {
+  uint8_t dest_reg = 0U;
+  uint32_t displacement = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA ||
+      candidate->size_suffix != 'l' || candidate->operand_count != 2U ||
+      !operand_stack_displacement_value(&candidate->operands[0], &displacement) ||
+      !operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) {
+    return 0;
+  }
+  if (out_reg != NULL) *out_reg = dest_reg;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return 1;
+}
+
+static int candidate_reads_inline_word_from_address_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  uint8_t source_reg = 0U;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+    candidate->size_suffix == 'w' && candidate->operand_count >= 1U &&
+    operand_is_postincrement_address_register(candidate->operand_kinds[0], &candidate->operands[0],
+      &source_reg) && source_reg == reg;
+}
+
+static int candidate_stores_address_reg_to_stack_slot(const M68kDecodeCandidate *candidate, uint8_t reg,
+    uint32_t displacement) {
+  uint8_t source_reg = 0U;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+    candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
+    operand_is_address_register_direct(&candidate->operands[0], &source_reg) && source_reg == reg &&
+    operand_is_stack_displacement(&candidate->operands[1], displacement);
+}
+
 static int candidate_pops_address_reg_from_stack(const M68kDecodeCandidate *candidate, uint8_t reg) {
   uint8_t dest_reg = 0U;
   return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
@@ -3599,6 +3641,42 @@ static int callee_rewrites_return_address_from_string_cursor(M68kDecodeIR *decod
     if (candidate_stores_address_reg_to_return_slot(candidate, reg)) saw_store = 1;
     else if (candidate_pops_address_reg_from_stack(candidate, reg)) saw_pop = 1;
     else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_RTS) return saw_store && saw_pop;
+    offset = candidate->offset + candidate->byte_count;
+  }
+  return 0;
+}
+
+static int callee_rewrites_return_address_after_inline_word(M68kDecodeIR *decode,
+    const M68kDecodeSectionIR *section, uint32_t target_offset, uint8_t max_cpu) {
+  const M68kDecodeCandidate *candidate;
+  uint8_t reg = 0U;
+  uint32_t displacement = 0U;
+  uint32_t offset;
+  uint32_t scan_end;
+  int saw_load = 0;
+  int saw_read = 0;
+  if (section == NULL || target_offset >= section->size || (target_offset & 1U) != 0U) return 0;
+  offset = target_offset;
+  scan_end = target_offset + 96U;
+  if (scan_end < target_offset || scan_end > section->size) scan_end = section->size;
+  while (offset < scan_end) {
+    candidate = ensure_candidate_at_offset(decode, section, offset, max_cpu);
+    if (candidate == NULL || candidate->byte_count == 0U) return 0;
+    if (!saw_load) {
+      if (candidate_loads_stack_slot_to_address_reg(candidate, &reg, &displacement)) saw_load = 1;
+    } else if (!saw_read) {
+      if (candidate_reads_inline_word_from_address_reg(candidate, reg)) {
+        saw_read = 1;
+      } else if (candidate_clobbers_address_register(candidate, reg)) {
+        return 0;
+      }
+    } else if (candidate_stores_address_reg_to_stack_slot(candidate, reg, displacement)) {
+      return 1;
+    } else if (candidate_clobbers_address_register(candidate, reg)) {
+      return 0;
+    }
+    if (candidate_is_rts(candidate)) return 0;
+    if (candidate->offset > UINT32_MAX - candidate->byte_count) return 0;
     offset = candidate->offset + candidate->byte_count;
   }
   return 0;
@@ -3646,6 +3724,27 @@ static int call_consumes_inline_string_payload(M68kDecodeIR *decode, const M68kD
     }
     if (!callee_rewrites_return_address_from_string_cursor(decode, section, target->offset, max_cpu)) continue;
     if (find_inline_string_payload_end(section, fallthrough, out_resume_offset)) return 1;
+  }
+  return 0;
+}
+
+static int call_consumes_inline_word_payload(M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint32_t fallthrough, uint32_t *out_resume_offset, uint8_t max_cpu) {
+  size_t target_index;
+  if (section == NULL || candidate == NULL || out_resume_offset == NULL ||
+      fallthrough > section->size || section->size - fallthrough < 2U) {
+    return 0;
+  }
+  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_BSR && candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind != M68K_DECODE_TARGET_CALL || !target->has_section ||
+        target->section_index != section->section_index) {
+      continue;
+    }
+    if (!callee_rewrites_return_address_after_inline_word(decode, section, target->offset, max_cpu)) continue;
+    *out_resume_offset = fallthrough + 2U;
+    return 1;
   }
   return 0;
 }
@@ -8216,6 +8315,25 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
           fallthrough_has_runtime = 1U;
         }
         if (call_consumes_inline_string_payload(decode, section, candidate, fallthrough, &inline_resume, max_cpu)) {
+          if (inline_resume < section->size) {
+            if (fallthrough_has_runtime) {
+              uint32_t inline_runtime = fallthrough_runtime;
+              if (inline_resume >= fallthrough && inline_runtime <= UINT32_MAX - (inline_resume - fallthrough))
+                inline_runtime += inline_resume - fallthrough;
+              if (enqueue_code_start_runtime(facts, queue, profile, item.section_index, inline_resume,
+                  M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_INLINE_RESUME,
+                  item.section_index, item.offset, 1U, inline_runtime, &next_trace_state) != 0) return -1;
+            } else {
+              if (enqueue_code_start_runtime(facts, queue, profile, item.section_index, inline_resume,
+                  M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_INLINE_RESUME,
+                  item.section_index, item.offset, 0U, 0U, &next_trace_state) != 0) return -1;
+            }
+          }
+          profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_fallthrough_seconds,
+            phase_start);
+          continue;
+        }
+        if (call_consumes_inline_word_payload(decode, section, candidate, fallthrough, &inline_resume, max_cpu)) {
           if (inline_resume < section->size) {
             if (fallthrough_has_runtime) {
               uint32_t inline_runtime = fallthrough_runtime;

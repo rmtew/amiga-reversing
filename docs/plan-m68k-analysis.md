@@ -1327,6 +1327,32 @@ Renderable-label orphan provenance evidence:
   `amiga_hunk_genam`, `amiga_hunk_monam302`, and
   `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
 
+Inline word return-address resume evidence:
+
+- C analysis now recognizes a local call target that loads the saved return
+  address from the stack, consumes one inline word through address-register
+  postincrement, and stores the advanced return address back to the same stack
+  slot. The caller resumes after that word through the existing
+  `inline_resume` code-start reason. This is generic return-address analysis,
+  not an fptrap or target-name special case.
+- Isolated regression: `facts_v2_inline_word_return_rewrite_skips_payload`.
+- Real target evidence: Starglider `libs/mathieeedoubbas.library` now renders
+  `DPCmp` as `dc.b $FF,$0D` followed by `movem.l (a7)+,d2`, conditional
+  branches, and the `dcmp_1`/`dcmp_2` terminal helper code. Previously those
+  bytes after `jsr fptrap.l` stayed as `dc.b` and the object-symbol helpers
+  appeared as metadata orphan signals.
+- Corpus rebuild:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_inline_word_resume.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_inline_word_resume.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_inline_word_resume.jsonl --variants-output src\build\tmp_target_variant_index_after_inline_word_resume.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_inline_word_resume.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_inline_word_resume.jsonl --workers 8`
+  produced 493 entries, 517198 xrefs, 481593 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows.
+- Compared with `tmp_target_usage_after_orphan_label_provenance`,
+  `orphan-code:signal` drops 911 -> 907 and
+  `orphan-code:missing_inbound:metadata` drops 10 -> 6. Target-row counts stay
+  stable because the remaining 3D Construction Kit and Starglider inline cases
+  are still valid unresolved work items. Indirect-site/table counts are
+  unchanged. Type-flow check passed with `ok: true`, 4 applied refinements, and
+  zero violations.
+
 Relocation-backed boundary API entry corpus evidence:
 
 - C analysis now seeds code starts at accepted-code boundaries only when the
