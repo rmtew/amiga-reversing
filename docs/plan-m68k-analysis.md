@@ -153,6 +153,11 @@ measurements and test names here, not in the index table.
   immediately only when the access size exactly matches the field start and
   size. Non-exact wider/narrower probes remain numeric while still refining
   later flow.
+- Untyped app-slot API argument records now distinguish generated NDK semantic
+  pointer facts from true metadata gaps. `STRPTR` inputs with generated
+  `string_ptr` semantics report `string_ptr`; generated non-struct pointer
+  types such as `WORD *` report `typed_pointer`; only address inputs without
+  type or semantic metadata report `missing_pointer_metadata`.
 - Temporary full usage rebuilds found 231 resolved and 248 unresolved typed
   memory-layout records, 2,163 owner-range examples, 3,584 owner-range xrefs,
   no current corpus `conflicted` typed owner-range rows, 36,989 xrefs with kind
@@ -1102,6 +1107,18 @@ Exact prefix-evidence rendering corpus evidence:
   discovery plus exact prefix-field rendering such as `pr_WindowPtr(a0)`.
   Direct rebuild compare reported `direct_compare_status: full_file_exact`,
   `direct_compare_payload_exact: true`, and relocation semantics exact.
+
+App-slot API argument classification evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_manifest_after_app_arg_reason.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_app_arg_reason.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_app_arg_reason.jsonl --type-flow-report-output src\build\tmp_type_flow_report_after_app_arg_reason.json --workers 8`
+- Scope: 493 entries, 493736 xrefs, 464193 snippet rows, 320 type-flow rows.
+- Compared with `tmp_target_usage_xrefs_after_exact_prefix_evidence_render`,
+  app-slot API arg count stayed 3; `missing_struct_metadata` dropped 3 -> 0;
+  generated NDK semantic reasons are now `string_ptr` 2 and `typed_pointer` 1.
+- Real comparator evidence is MonAm302: `RawKeyConvert A1` and `Text A0`
+  classify as `string_ptr`; `PolyDraw A0` classifies as `typed_pointer`.
+- Type-flow check on `tmp_type_flow_report_after_app_arg_reason.json` reported
+  `ok: true`, `violation_count: 0`, and no metric regressions.
 
 ## Design Update Rule
 

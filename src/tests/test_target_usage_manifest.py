@@ -857,7 +857,8 @@ class TargetUsageManifestTests(unittest.TestCase):
                                 "input_name": "buffer",
                                 "register": "A1",
                                 "type_name": "STRPTR",
-                                "reason": "missing_struct_metadata",
+                                "semantic_kind": "string_ptr",
+                                "reason": "string_ptr",
                             }
                         ],
                     },
@@ -927,7 +928,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["app_slot:suggested_region"], 1)
         self.assertEqual(counts["app_slot:untyped_api_arg"], 1)
         self.assertEqual(counts["app_slot_api_arg:RawKeyConvert"], 1)
-        self.assertEqual(counts["app_slot_api_arg_reason:missing_struct_metadata"], 1)
+        self.assertEqual(counts["app_slot_api_arg_reason:string_ptr"], 1)
         self.assertEqual(counts["runtime:view"], 1)
         self.assertEqual(counts["runtime:copied_code"], 1)
         self.assertEqual(counts["runtime:view_kind:2"], 1)
@@ -2106,7 +2107,7 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "displacement": 0x200,
                         "function": "RawKeyConvert",
                         "register": "A1",
-                        "reason": "missing_struct_metadata",
+                        "reason": "string_ptr",
                         "hunk_index": 0,
                         "addr": 4,
                         "row_index": 1,

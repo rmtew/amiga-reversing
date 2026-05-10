@@ -4178,6 +4178,7 @@ typedef struct ListingAppSlotApiArgCandidate {
   uint8_t base_reg;
   ListingAppSlotEvidence evidence;
   char type_name[64];
+  char semantic_kind[64];
   char reason[64];
 } ListingAppSlotApiArgCandidate;
 
@@ -4440,6 +4441,7 @@ static int listing_app_slot_analysis_append_untyped_api_arg(ListingAppSlotAnalys
   ListingAppSlotApiArgCandidate *candidate;
   ListingAppSlotApiArgCandidate *grown;
   const char *type_name = NULL;
+  const char *semantic_kind = NULL;
   size_t index, next_capacity;
   if (analysis == NULL || source == NULL || evidence == NULL || input == NULL || !analysis->enabled) return 0;
   for (index = 0U; index < analysis->untyped_api_arg_count; ++index) {
@@ -4466,12 +4468,29 @@ static int listing_app_slot_analysis_append_untyped_api_arg(ListingAppSlotAnalys
   candidate->base_displacement = source->symbol_displacement;
   candidate->base_reg = source->base_reg;
   candidate->evidence = *evidence;
-  type_name = amiga_os_name(6U, input->type_id);
+  if (input->type_id != AMIGA_OS_TYPE_ID_NONE) type_name = amiga_os_name(6U, input->type_id);
+  if (input->semantic_kind_id != AMIGA_OS_SEMANTIC_KIND_ID_NONE)
+    semantic_kind = amiga_os_name(9U, input->semantic_kind_id);
   listing_copy_text(candidate->type_name, sizeof(candidate->type_name), type_name);
+  listing_copy_text(candidate->semantic_kind, sizeof(candidate->semantic_kind), semantic_kind);
   listing_copy_text(candidate->reason, sizeof(candidate->reason), reason);
   snprintf(candidate->id, sizeof(candidate->id), "app_slot_api_arg_%04X_%s_%s",
     (unsigned)(uint16_t)candidate->displacement, evidence->function, evidence->reg);
   return 0;
+}
+
+static const char *listing_app_slot_untyped_api_arg_reason(const AmigaOsCallInputInfo *input) {
+  const char *type_name;
+  const char *semantic_kind;
+  if (input == NULL) return "missing_pointer_metadata";
+  if (input->semantic_kind_id != AMIGA_OS_SEMANTIC_KIND_ID_NONE) {
+    semantic_kind = amiga_os_name(9U, input->semantic_kind_id);
+    if (semantic_kind != NULL && semantic_kind[0] != '\0') return semantic_kind;
+  }
+  if (input->type_id == AMIGA_OS_TYPE_ID_NONE) return "missing_pointer_metadata";
+  type_name = amiga_os_name(6U, input->type_id);
+  if (type_name != NULL && type_name[0] != '\0') return "typed_pointer";
+  return "missing_pointer_metadata";
 }
 
 static int listing_app_slot_address_target_register(const M68kStatementIR *stmt, uint8_t ref_operand_index,
@@ -4691,7 +4710,7 @@ static int listing_app_slot_analysis_add_api_regions(ListingAppSlotAnalysisBuild
         sizeof(evidence.source_via_register), source->via_reg);
       if (input->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
         if (listing_app_slot_analysis_append_untyped_api_arg(analysis, source, &evidence, input,
-            "missing_struct_metadata") != 0)
+            listing_app_slot_untyped_api_arg_reason(input)) != 0)
           return -1;
         continue;
       }
@@ -5679,6 +5698,10 @@ static int append_listing_app_slot_untyped_api_args_json(JsonBuilder *builder,
     }
     if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, candidate->type_name[0] != '\0' ? candidate->type_name : NULL) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"semantic_kind\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder,
+          candidate->semantic_kind[0] != '\0' ? candidate->semantic_kind : NULL) != 0)
       return -1;
     if (json_builder_append(builder, ",\"reason\":") != 0) return -1;
     if (json_builder_append_json_string(builder, candidate->reason) != 0) return -1;
@@ -7669,6 +7692,9 @@ static int append_listing_app_slot_api_arg_navigation_json(JsonBuilder *builder,
         json_builder_append_json_string(builder, candidate->reason) != 0 ||
         json_builder_append(builder, ",\"type_name\":") != 0 ||
         json_builder_append_nullable_string(builder, candidate->type_name[0] != '\0' ? candidate->type_name : NULL) != 0 ||
+        json_builder_append(builder, ",\"semantic_kind\":") != 0 ||
+        json_builder_append_nullable_string(builder,
+          candidate->semantic_kind[0] != '\0' ? candidate->semantic_kind : NULL) != 0 ||
         json_builder_appendf(builder,
           ",\"row_index\":%u,\"addr\":%u,\"hunk_index\":%d,\"source_row_index\":%u,"
           "\"source_flow_row_index\":%u,\"stable_key\":",

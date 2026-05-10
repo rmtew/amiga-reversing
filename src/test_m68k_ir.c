@@ -10579,14 +10579,18 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   source_analysis.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
   section.kind = M68K_SECTION_CODE;
-  section.size = 8U;
+  section.size = 18U;
   section_analysis.section_index = 0U;
   section_analysis.section_kind = M68K_SECTION_CODE;
-  section_analysis.section_size = 8U;
+  section_analysis.section_size = 18U;
 
   M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "lea.l $0200(a6),a1", 0U,
     "app_key_buffer"));
   M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 4U, "jsr $FFD0(a6)", 0U, NULL));
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 8U, "movea.l d0,a1", 0U, NULL));
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 10U, "lea.l $0240(a6),a0", 0U,
+    "app_poly_table"));
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 14U, "jsr $FEB0(a6)", 0U, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
 
   memset(&ref, 0, sizeof(ref));
@@ -10596,9 +10600,20 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
   ref.operand_index = 0U;
   ref.access_kind = M68K_APP_SLOT_ACCESS_ADDRESS;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_app_slot_ref(&section_analysis, &ref));
+  memset(&ref, 0, sizeof(ref));
+  ref.offset = 10U;
+  ref.displacement = 0x0240;
+  ref.base_reg = 6U;
+  ref.operand_index = 0U;
+  ref.access_kind = M68K_APP_SLOT_ACCESS_ADDRESS;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_app_slot_ref(&section_analysis, &ref));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section_analysis,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 4U, PLATFORM_RESOLVED_INDIRECT_AMIGA_LIBRARY_VECTOR_CALL,
     "_LVORawKeyConvert", M68K_PLATFORM_CALL_NOTE_NONE, NULL, NULL, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
+    NULL, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section_analysis,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 14U, PLATFORM_RESOLVED_INDIRECT_AMIGA_LIBRARY_VECTOR_CALL,
+    "_LVOPolyDraw", M68K_PLATFORM_CALL_NOTE_NONE, NULL, NULL, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
     NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
@@ -10608,20 +10623,34 @@ static int test_listing_json_reports_untyped_app_slot_api_args(void) {
     "\tlea.l app_key_buffer(a6),a1\n", 0U, 0U, 4U));
   M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
     "\tjsr _LVORawKeyConvert(a6)\n", 0U, 4U, 4U));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
+    "\tmovea.l d0,a1\n", 0U, 8U, 2U));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
+    "\tlea.l app_poly_table(a6),a0\n", 0U, 10U, 4U));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
+    "\tjsr _LVOPolyDraw(a6)\n", 0U, 14U, 4U));
   M68K_C_ASSERT_INT(0, test_listing_navigation_from_render_plan_to_json(&source_file, &render_plan,
     source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(rows_json != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"typed_region_count\":0") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_arg_count\":2") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"untyped_api_args\":[") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"symbol\":\"app_key_buffer\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"function\":\"RawKeyConvert\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"register\":\"A1\"") != NULL);
-  M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"missing_struct_metadata\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"type_name\":\"STRPTR\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"semantic_kind\":\"string_ptr\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"string_ptr\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"symbol\":\"app_poly_table\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"function\":\"PolyDraw\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"type_name\":\"WORD *\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"reason\":\"typed_pointer\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"stable_key\":\"s0:00000004:instruction:2\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json, "\"source_stable_key\":\"s0:00000000:instruction:1\"") != NULL);
   M68K_C_ASSERT(strstr(rows_json,
-    "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (missing_struct_metadata)\"") != NULL);
+    "\"app-slot-api-args\":[{\"summary\":\"app_key_buffer -> RawKeyConvert buffer A1 (string_ptr)\"") != NULL);
+  M68K_C_ASSERT(strstr(rows_json,
+    "\"summary\":\"app_poly_table -> PolyDraw polyTable A0 (typed_pointer)\"") != NULL);
 
   free(rows_json);
   m68k_render_plan_destroy(&render_plan);
