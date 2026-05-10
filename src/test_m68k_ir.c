@@ -2389,8 +2389,18 @@ static int test_facts_v2_atari_bss_image_relocation_renders_symbolic_instruction
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
+  uint8_t target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_NONE;
+  uint32_t target_offset = 99U;
   uint8_t code_bytes[8] = {0x49u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x10u, 0x4eu, 0x75u};
   uint8_t data_bytes[8] = {0};
+  M68K_C_ASSERT(platform_facts_v2_image_offset_target(M68K_PLATFORM_BACKEND_ATARI_ST,
+    M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 4U, 0x10U, 8U, 8U, 1U, 4U, &target_kind,
+    &target_offset));
+  M68K_C_ASSERT_U32(PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_BSS, target_kind);
+  M68K_C_ASSERT_U32(0U, target_offset);
+  M68K_C_ASSERT(!platform_facts_v2_image_offset_target(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 4U, 0x10U, 8U, 8U, 1U, 4U, &target_kind,
+    &target_offset));
   memset(&code_section, 0, sizeof(code_section));
   memset(&data_section, 0, sizeof(data_section));
   memset(&bss_section, 0, sizeof(bss_section));

@@ -533,6 +533,40 @@ int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, u
   }
 }
 
+int platform_facts_v2_image_offset_target(uint8_t platform_kind, uint8_t platform_file_kind, uint8_t fixup_kind,
+    uint32_t width, uint32_t raw_value, uint32_t code_size, uint32_t data_size, uint8_t has_bss,
+    uint32_t bss_size, uint8_t *out_target_kind, uint32_t *out_offset) {
+  uint32_t remaining;
+  if (out_target_kind != NULL) *out_target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_NONE;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (out_target_kind == NULL || out_offset == NULL) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_ATARI_ST:
+    if (platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE || fixup_kind != M68K_FIXUP_ABS || width != 4U)
+      return 0;
+    if (raw_value < code_size) {
+      *out_target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_CODE;
+      *out_offset = raw_value;
+      return 1;
+    }
+    remaining = raw_value - code_size;
+    if (remaining < data_size) {
+      *out_target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_DATA;
+      *out_offset = remaining;
+      return 1;
+    }
+    remaining -= data_size;
+    if (has_bss && remaining <= bss_size) {
+      *out_target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_BSS;
+      *out_offset = remaining;
+      return 1;
+    }
+    return 0;
+  default:
+    return 0;
+  }
+}
+
 int platform_facts_v2_supports_linkage_api_entry_labels(uint8_t platform_kind) {
   return platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK;
 }

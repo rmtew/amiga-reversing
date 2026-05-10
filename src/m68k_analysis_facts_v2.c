@@ -943,7 +943,7 @@ static int facts_v2_first_section_of_kind(const M68kObject *object, M68kSectionK
   return 0;
 }
 
-static int facts_v2_atari_image_offset_target(const M68kObject *object, const M68kFixup *fixup,
+static int facts_v2_platform_image_offset_target(const M68kObject *object, const M68kFixup *fixup,
     uint32_t raw_value, size_t *out_section_index, uint32_t *out_offset) {
   size_t text_index = 0U;
   size_t data_index = 0U;
@@ -951,39 +951,36 @@ static int facts_v2_atari_image_offset_target(const M68kObject *object, const M6
   const M68kSection *text_section = NULL;
   const M68kSection *data_section = NULL;
   const M68kSection *bss_section = NULL;
-  uint32_t text_size;
-  uint32_t data_size;
-  uint32_t bss_size;
+  uint8_t target_kind = PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_NONE;
+  uint32_t target_offset = 0U;
   if (object == NULL || fixup == NULL || out_section_index == NULL || out_offset == NULL) return 0;
-  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST ||
-      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE ||
-      fixup->kind != M68K_FIXUP_ABS || fixup_width_bytes_local(fixup) != 4U) {
-    return 0;
-  }
   if (!facts_v2_first_section_of_kind(object, M68K_SECTION_CODE, &text_index, &text_section) ||
       !facts_v2_first_section_of_kind(object, M68K_SECTION_DATA, &data_index, &data_section)) {
     return 0;
   }
-  text_size = text_section->size;
-  data_size = data_section->size;
-  bss_size = facts_v2_first_section_of_kind(object, M68K_SECTION_BSS, &bss_index, &bss_section)
-    ? bss_section->size : 0U;
-  if (raw_value < text_size) {
+  (void)facts_v2_first_section_of_kind(object, M68K_SECTION_BSS, &bss_index, &bss_section);
+  if (!platform_facts_v2_image_offset_target(object->platform_backend_kind, object->platform_file_kind,
+      fixup->kind, fixup_width_bytes_local(fixup), raw_value, text_section->size, data_section->size,
+      bss_section != NULL, bss_section != NULL ? bss_section->size : 0U, &target_kind, &target_offset)) {
+    return 0;
+  }
+  switch (target_kind) {
+  case PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_CODE:
     *out_section_index = text_index;
-    *out_offset = raw_value;
+    *out_offset = target_offset;
     return 1;
-  }
-  if (raw_value - text_size < data_size) {
+  case PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_DATA:
     *out_section_index = data_index;
-    *out_offset = raw_value - text_size;
+    *out_offset = target_offset;
     return 1;
-  }
-  if (bss_section != NULL && raw_value - text_size - data_size <= bss_size) {
+  case PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_BSS:
+    if (bss_section == NULL) return 0;
     *out_section_index = bss_index;
-    *out_offset = raw_value - text_size - data_size;
+    *out_offset = target_offset;
     return 1;
+  default:
+    return 0;
   }
-  return 0;
 }
 
 static int seed_runtime_address_space_from_policy(const M68kObject *object, const M68kAnalysisPolicy *policy,
@@ -1194,7 +1191,7 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
       continue;
     }
     if (!has_target_section && has_raw_value &&
-        facts_v2_atari_image_offset_target(object, fixup, raw_value, &target_section_index, &target_offset)) {
+        facts_v2_platform_image_offset_target(object, fixup, raw_value, &target_section_index, &target_offset)) {
       has_target_section = 1;
     }
     if (!has_target_section) {

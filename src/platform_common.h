@@ -35,6 +35,13 @@ typedef enum PlatformFactsV2RelocationAnchorKind {
   PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE = 2
 } PlatformFactsV2RelocationAnchorKind;
 
+typedef enum PlatformFactsV2ImageOffsetTargetKind {
+  PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_NONE = 0,
+  PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_CODE = 1,
+  PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_DATA = 2,
+  PLATFORM_FACTS_V2_IMAGE_OFFSET_TARGET_BSS = 3
+} PlatformFactsV2ImageOffsetTargetKind;
+
 typedef struct PlatformFactsV2ResolvedCall {
   uint8_t platform_kind;
   uint8_t kind;
@@ -73,6 +80,9 @@ uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t
 int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,
   uint8_t fixup_kind, uint8_t has_target_section, int64_t addend, uint32_t width, uint32_t target_extent,
   uint32_t *out_offset);
+int platform_facts_v2_image_offset_target(uint8_t platform_kind, uint8_t platform_file_kind, uint8_t fixup_kind,
+  uint32_t width, uint32_t raw_value, uint32_t code_size, uint32_t data_size, uint8_t has_bss, uint32_t bss_size,
+  uint8_t *out_target_kind, uint32_t *out_offset);
 int platform_facts_v2_supports_linkage_api_entry_labels(uint8_t platform_kind);
 int platform_facts_v2_lvo_is_api(uint8_t platform_kind, int16_t lvo);
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
