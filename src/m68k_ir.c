@@ -182,6 +182,10 @@ void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStruc
     ? (item->has_target ? M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL :
         M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL)
     : M68K_ANALYSIS_TABLE_BASE_EXPRESSION_UNKNOWN;
+  if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+    item->table_conflicted = 0U;
+    item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+  }
 }
 
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
@@ -1931,6 +1935,39 @@ void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis) {
   }
   arena_destroy(source_analysis->arena);
   memset(source_analysis, 0, sizeof(*source_analysis));
+}
+
+static int source_analysis_structured_item_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  const M68kSectionAnalysisIR *section;
+  uint32_t cursor;
+  if (source_analysis == NULL || item == NULL || !item->has_section_index ||
+      item->section_index >= source_analysis->section_count || item->size == 0U) {
+    return 0;
+  }
+  section = &source_analysis->sections[item->section_index];
+  if (section->certain_code_byte == NULL || item->offset >= section->certain_code_size) return 0;
+  for (cursor = 0U; cursor < item->size && cursor < section->certain_code_size - item->offset; ++cursor) {
+    if (section->certain_code_byte[item->offset + cursor] != 0U) return 1;
+  }
+  return 0;
+}
+
+void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *source_analysis) {
+  uint16_t index;
+  if (source_analysis == NULL) return;
+  for (index = 0U; index < source_analysis->policy.structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    M68kAnalysisStructuredDataItem *item = &source_analysis->policy.structured_data_items[index];
+    if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) continue;
+    if (source_analysis_structured_item_range_overlaps_accepted_code(source_analysis, item)) {
+      item->table_conflicted = 1U;
+      item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP;
+    } else {
+      item->table_conflicted = 0U;
+      item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+    }
+  }
 }
 
 static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,

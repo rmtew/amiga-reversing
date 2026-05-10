@@ -1833,13 +1833,6 @@ static int source_analysis_section_range_overlaps_accepted_code(const M68kSource
   return 0;
 }
 
-static int source_analysis_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
-    const M68kAnalysisStructuredDataItem *item) {
-  if (item == NULL || !item->has_section_index) return 0;
-  return source_analysis_section_range_overlaps_accepted_code(source_analysis, item->section_index,
-    item->offset, item->size);
-}
-
 static int append_source_analysis_table_candidate_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
@@ -1942,7 +1935,6 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
     const char *table_kind = m68k_analysis_table_kind_name(table_kind_id);
     const char *base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
     const char *role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
-    int code_overlap = source_analysis_range_overlaps_accepted_code(source_analysis, item);
     uint32_t entry_size = structured_data_item_entry_size(item);
     uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
     if (table_kind == NULL || base_expression == NULL || role_name == NULL) continue;
@@ -1991,12 +1983,10 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
       if (json_builder_appendf(builder, "%u", (unsigned)item->consumer_offset) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     {
-      uint8_t conflict_state = code_overlap ? M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP :
-        M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (json_builder_appendf(builder,
           ",\"confidence\":\"tool_inferred\",\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
-          code_overlap ? "true" : "false", (unsigned)conflict_state,
-          analysis_conflict_state_name(conflict_state)) != 0)
+          item->table_conflicted ? "true" : "false", (unsigned)item->table_conflict_state,
+          analysis_conflict_state_name(item->table_conflict_state)) != 0)
         return -1;
     }
   }

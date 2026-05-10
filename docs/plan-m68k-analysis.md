@@ -494,7 +494,8 @@ proves a distinct base id.
    - entry target range and null/sentinel rules: target base recorded when
      known
    - confidence and conflict state: implemented for clean/code-overlap table
-     records with numeric C enum ids
+     records with numeric C enum ids on the C structured-data item; JSON exports
+     those fields and no longer checks accepted-code overlap for table records
    - rejected table bounds on unresolved candidates: implemented for proven
      direct-stub spans rejected for insufficient entries; corpus consumers use
      C enum ids for recovered indirect flow, shape, status, source pattern, and
@@ -987,6 +988,10 @@ undocumented renderer heuristics.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.
+- Voodoo Nightmare `run` uses the Amiga segment base/linkage address to compute
+  and jump to code in another loaded segment. The current model must learn this
+  as a platform-backed entrypoint relationship, not leave the destination as
+  unregistered orphan code and not paper over it with target-local seeds.
 
 ## Regression and Acceptance Checklist
 

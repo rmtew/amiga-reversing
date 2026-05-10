@@ -151,6 +151,8 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t source_pattern_id;
   uint8_t table_kind_id;
   uint8_t table_base_expression_id;
+  uint8_t table_conflicted;
+  uint8_t table_conflict_state;
   uint16_t platform_kind_id;
   uint16_t platform_field_id;
   uint16_t struct_id;
@@ -1240,5 +1242,6 @@ void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *source_analysis,
   const M68kBaseLayoutFieldIR *field);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);
+void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *source_analysis);
 
 #endif

@@ -5927,6 +5927,10 @@ static int test_source_analysis_table_record_marks_code_overlap_conflict(void) {
   source_analysis.policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
   m68k_analysis_structured_data_item_set_semantic_role_flags(&source_analysis.policy.structured_data_items[0],
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
+  m68k_ir_source_analysis_finalize_table_conflicts(&source_analysis);
+  M68K_C_ASSERT_U32(1U, source_analysis.policy.structured_data_items[0].table_conflicted);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP,
+    source_analysis.policy.structured_data_items[0].table_conflict_state);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,

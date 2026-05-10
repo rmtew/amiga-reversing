@@ -7522,6 +7522,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       "facts_v2 absolute memory ref append failed");
     goto fail;
   }
+  if (out_source_analysis != NULL) m68k_ir_source_analysis_finalize_table_conflicts(out_source_analysis);
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
   out_profile->render_ir_lookup_seconds = render_preview->lookup_seconds;

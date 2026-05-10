@@ -827,6 +827,8 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("source_pattern_id", ctypes.c_uint8),
         ("table_kind_id", ctypes.c_uint8),
         ("table_base_expression_id", ctypes.c_uint8),
+        ("table_conflicted", ctypes.c_uint8),
+        ("table_conflict_state", ctypes.c_uint8),
         ("platform_kind_id", ctypes.c_uint16),
         ("platform_field_id", ctypes.c_uint16),
         ("struct_id", ctypes.c_uint16),
