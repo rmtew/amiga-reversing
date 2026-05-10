@@ -203,6 +203,10 @@ measurements and test names here, not in the index table.
 - LoadSeg pre-segment references are platform facts: Voodoo Nightmare `run`
   proves a PC-relative section-start-minus-four operand that must render as a
   section-start expression rather than as a freestanding negative `EQU`.
+- Direct rebuild now trusts rendered HUNK anchor expressions instead of refusing
+  only because analysis recorded an out-of-payload data relocation diagnostic.
+  Carrier Command `ramdrive.device` proves this with
+  `__section_0_base-$00000004` and exact direct rebuild.
 - Generated Amiga hardware ids, symbol ids, vector/function ids, and runtime
   target/access enums drive hardware/platform decisions; strings are source and
   JSON display text only.

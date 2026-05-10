@@ -6776,9 +6776,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
     }
     return 0;
   }
-  if (source_profile.asm_source_lossy_numeric_hunk_relocations != 0U ||
-      source_profile.unassemblable_hunk_data_relocations != 0U ||
-      source_profile.unassemblable_hunk_base_register_relocations != 0U) {
+  if (source_profile.asm_source_lossy_numeric_hunk_relocations != 0U) {
     *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name,
       source_profile.asm_source_bytes, 0U, 1, "lossy_numeric_hunk_relocations", 0.0, 0.0, 0,
       not_compared, 0.0, 0.0, diagnostics);

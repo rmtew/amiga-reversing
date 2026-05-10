@@ -5640,6 +5640,18 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
     assert "loc_0_00000718:\n\tmovea.l $0004.w,a0\n" in source_text
     assert "\tdc.b $20,$78,$00,$04,$52,$28,$01,$27\n" not in source_text
     assert "    ORG $4\n" not in source_text
+    rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+    assert len(rebuilt) == len(paths.binary_source.read_bytes())
+    assert direct_source_profile["facts_v2"]["asm_source_refused"] is False
+    assert direct_source_profile["facts_v2"]["unassemblable_hunk_data_relocations"] == 1
+    assert direct_source_profile["facts_v2"]["asm_source_lossy_numeric_hunk_relocations"] == 0
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_monam_keeps_unrelocated_jump_bytes_as_data() -> None:
