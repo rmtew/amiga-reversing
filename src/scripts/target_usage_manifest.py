@@ -2049,7 +2049,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "owner_range_start", "owner_range_size", "owner_range_end",
             "range_space_kind", "range_start", "range_size", "range_end", "effect_kind",
             "target_section_index", "displacement", "field_disp", "field_count", "layout_kind",
-            "type_provenance_kind_id",
+            "type_provenance_kind_id", "entry_point_count", "entry_source_offset", "entry_runtime_address",
+            "entry_reason", "entry_confidence",
         ):
             value = _int_value(record.get(key))
             if value is not None:
@@ -2058,7 +2059,7 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             "layout_name", "base_symbol", "symbol", "root_struct_name", "owner_struct_name",
             "field_name", "field_expr", "classification", "type_provenance_kind",
             "access", "owner_kind", "owner_symbol", "owner_base_symbol",
-            "effect_kind_name", "base_name", "symbol_name", "type_name", "sizeof_symbol",
+            "effect_kind_name", "base_name", "symbol_name", "type_name", "sizeof_symbol", "entry_reason_name",
         ):
             value = _string_value(record.get(key))
             if value:
@@ -2083,6 +2084,11 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add(f"memory-layout:storage_effect:{_safe_part(effect_kind_name)}", example=example)
         if _int_value(record.get("sink_address")) is not None:
             bag.add("memory-layout:sink_address", example=example)
+        entry_count = _int_value(record.get("entry_point_count"))
+        if entry_count is not None and entry_count > 0:
+            bag.add("memory-layout:runtime_view_entry", example=example)
+            entry_reason_name = _string_value(record.get("entry_reason_name")) or "unknown"
+            bag.add(f"memory-layout:runtime_view_entry:{_safe_part(entry_reason_name)}", example=example)
         range_space_kind = _int_value(record.get("range_space_kind"))
         if range_space_kind is not None:
             bag.add("memory-layout:range", example=example)
@@ -2853,6 +2859,7 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
     range_space_counts: dict[int, int] = {}
     conflict_state_counts: dict[int, int] = {}
     absolute_owner_counts: dict[int, int] = {}
+    runtime_view_entry_counts: dict[str, int] = {}
     for record in records:
         range_space_kind = _int_value(record.get("range_space_kind"))
         if range_space_kind is not None:
@@ -2863,6 +2870,11 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
         owner_kind_id = _absolute_memory_owner_kind_id(record)
         if owner_kind_id is not None:
             absolute_owner_counts[owner_kind_id] = absolute_owner_counts.get(owner_kind_id, 0) + 1
+        if _memory_layout_record_kind_id(record) == 6:
+            entry_count = _int_value(record.get("entry_point_count"))
+            if entry_count is not None and entry_count > 0:
+                reason = _string_value(record.get("entry_reason_name")) or "unknown"
+                runtime_view_entry_counts[reason] = runtime_view_entry_counts.get(reason, 0) + entry_count
     summary: dict[str, object] = {"record_count": len(records)}
     if range_space_counts:
         summary["range_spaces"] = {str(key): range_space_counts[key] for key in sorted(range_space_counts)}
@@ -2870,6 +2882,8 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
         summary["conflict_count"] = sum(conflict_state_counts.values())
     if absolute_owner_counts:
         summary["absolute_ref_count"] = sum(absolute_owner_counts.values())
+    if runtime_view_entry_counts:
+        summary["runtime_view_entry_count"] = sum(runtime_view_entry_counts.values())
     bag.add("memory-layout-view:any", example=summary)
     for range_space_kind, count in sorted(range_space_counts.items()):
         bag.add(
@@ -2891,6 +2905,13 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
             bag.add(
                 f"memory-layout-view:absolute_owner:{_safe_part(owner_name)}",
                 example={"owner_kind_id": owner_kind_id, "absolute_ref_count": count},
+            )
+    if runtime_view_entry_counts:
+        bag.add("memory-layout-view:runtime_view_entry", example=summary)
+        for reason, count in sorted(runtime_view_entry_counts.items()):
+            bag.add(
+                f"memory-layout-view:runtime_view_entry:{_safe_part(reason)}",
+                example={"entry_reason_name": reason, "entry_point_count": count},
             )
 
 

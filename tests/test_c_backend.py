@@ -2282,6 +2282,16 @@ def test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range(tm
         {"section_index": 0, "offset": 0, "size": len(original), "runtime_address": 0x4000, "name": "raw_load"}
     ]
     assert policy["runtime_entry_points"] == [{"section_index": 0, "runtime_address": 0x4000}]
+    analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
+    assert any(
+        record.get("record_kind") == "runtime_view"
+        and record.get("source_offset") == 0
+        and record.get("source_size") == len(original)
+        and record.get("runtime_address") == 0x4000
+        and record.get("entry_runtime_address") == 0x4000
+        and record.get("entry_reason_name") == "policy_entry_point"
+        for record in analysis["memory_layout_records"]
+    )
 
     rendered = render_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
     assert "ORG $4000" in rendered
@@ -3461,6 +3471,21 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
     assert "loc_0_00000078:\n\tori.b #0,d0\n" not in source_text
     assert not any(ref.get("offset") == 0x78 for ref in section["code_start_refs"])
     assert not any(site.get("target") == 0x78 for site in section["recovered_indirect_sites"])
+    assert any(
+        record.get("record_kind") == "runtime_view"
+        and record.get("source_offset") == 0
+        and record.get("runtime_address") == 0x20000
+        and record.get("entry_runtime_address") == 0x20000
+        and record.get("entry_reason_name") == "policy_entry_point"
+        for record in combined["analysis"]["memory_layout_records"]
+    )
+    assert any(
+        record.get("record_kind") == "runtime_view"
+        and record.get("source_offset") == 0
+        and record.get("runtime_address") == 0x10000
+        and record.get("entry_point_count", 0) == 0
+        for record in combined["analysis"]["memory_layout_records"]
+    )
 
 
 def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> None:

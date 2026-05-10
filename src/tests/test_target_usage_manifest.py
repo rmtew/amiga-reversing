@@ -414,6 +414,12 @@ class TargetUsageManifestTests(unittest.TestCase):
                             "source_size": 0x20,
                             "runtime_address": 0x400,
                             "runtime_size": 0x20,
+                            "entry_point_count": 1,
+                            "entry_source_offset": 0x40,
+                            "entry_runtime_address": 0x400,
+                            "entry_reason": 3,
+                            "entry_reason_name": "policy_entry_point",
+                            "entry_confidence": 3,
                             "range_space_kind": 2,
                             "range_start": 0x400,
                             "range_size": 0x20,
@@ -1035,6 +1041,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout:storage_effect"], 1)
         self.assertEqual(counts["memory-layout:storage_effect:write_typed_global_slot"], 1)
         self.assertEqual(counts["memory-layout:sink_address"], 1)
+        self.assertEqual(counts["memory-layout:runtime_view_entry"], 1)
+        self.assertEqual(counts["memory-layout:runtime_view_entry:policy_entry_point"], 1)
         self.assertEqual(counts["memory-layout:range"], 9)
         self.assertEqual(counts["memory-layout:range_space:1"], 4)
         self.assertEqual(counts["memory-layout:range_space:2"], 2)
@@ -1057,6 +1065,8 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(counts["memory-layout-view:absolute_refs"], 1)
         self.assertEqual(counts["memory-layout-view:absolute_owner:hardware_register"], 1)
         self.assertEqual(counts["memory-layout-view:absolute_owner:unknown"], 1)
+        self.assertEqual(counts["memory-layout-view:runtime_view_entry"], 1)
+        self.assertEqual(counts["memory-layout-view:runtime_view_entry:policy_entry_point"], 1)
         self.assertEqual(counts["data:copper_list"], 1)
         self.assertEqual(counts["hardware:custom"], 2)
         self.assertEqual(counts["hardware:custom/audio"], 1)
@@ -1116,6 +1126,7 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(examples["memory-layout-view:any"][0]["record_count"], 9)
         self.assertEqual(examples["memory-layout-view:any"][0]["absolute_ref_count"], 2)
         self.assertEqual(examples["memory-layout-view:any"][0]["conflict_count"], 2)
+        self.assertEqual(examples["memory-layout-view:any"][0]["runtime_view_entry_count"], 1)
         self.assertEqual(examples["memory-layout-view:any"][0]["range_spaces"]["1"], 4)
         self.assertEqual(examples["memory-layout-view:any"][0]["range_spaces"]["3"], 2)
         self.assertEqual(
@@ -1123,6 +1134,14 @@ class TargetUsageManifestTests(unittest.TestCase):
             3,
         )
         self.assertEqual(examples["memory-layout-view:absolute_owner:unknown"][0]["owner_kind_id"], 0)
+        self.assertEqual(
+            examples["memory-layout:runtime_view_entry:policy_entry_point"][0]["entry_runtime_address"],
+            0x400,
+        )
+        self.assertEqual(
+            examples["memory-layout-view:runtime_view_entry:policy_entry_point"][0]["entry_point_count"],
+            1,
+        )
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_offset"], 0x86)
         self.assertEqual(examples["orphan-code:signal"][0]["terminal_flow"], "return")
         self.assertEqual(examples["orphan-code:signal"][0]["required_cpu"], 0)
@@ -1625,6 +1644,12 @@ class TargetUsageManifestTests(unittest.TestCase):
                         "source_size": 0x20,
                         "runtime_address": 0x400,
                         "runtime_size": 0x20,
+                        "entry_point_count": 1,
+                        "entry_source_offset": 0x40,
+                        "entry_runtime_address": 0x400,
+                        "entry_reason": 3,
+                        "entry_reason_name": "policy_entry_point",
+                        "entry_confidence": 3,
                         "range_space_kind": 2,
                         "range_start": 0x400,
                         "range_size": 0x20,

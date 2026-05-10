@@ -318,12 +318,15 @@ Pandora, bootloader, and decrunched payloads navigable as loaded code without
 target-specific ORG metadata.
 
 Runtime-view analysis state should stay compact. Each runtime view row records
-the storage range, runtime range, materialization decision, reason, and only
+the storage range, runtime range, materialization decision, reason, exact
+entrypoint match count, the best matching entrypoint reason/confidence, and only
 when proven a related runtime view. Relationship kinds are enum facts such as
 `exits_to_larger_runtime_range`, `contained_by_runtime_range`, and
-`overlaid_by_runtime_copy`. The C row does not store narrative annotations; UI
-and corpus tooling extrapolate those row-level facts into wrapper/helper/final
-image navigation.
+`overlaid_by_runtime_copy`. Entrypoints attach to a view only when the
+entrypoint runtime address matches that view's source-to-runtime mapping; a raw
+load entry inside the numeric span of an overlaid copied image is not enough.
+The C row does not store narrative annotations; UI and corpus tooling extrapolate
+those row-level facts into wrapper/helper/final image navigation.
 
 ## Bootstraps and In-Memory Relocation
 
@@ -675,7 +678,9 @@ values when no owner is proven.
 
 Packed or transformed payloads need a grouped relationship fact in corpus/UI
 views: source section range, absolute load address, and entrypoint must be
-queryable together. Separate `source_range`, `output_load_address`, and
+queryable together. Runtime-view memory-layout records carry that grouped
+relationship through `source_offset`/`source_size`, runtime range fields, and
+entrypoint fields. Separate `source_range`, `output_load_address`, and
 `entrypoint` features remain useful, but the grouped relationship is the proof
 that a raw/decompressed child has a coherent runtime image.
 

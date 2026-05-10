@@ -16,6 +16,8 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason);
 static const char *runtime_view_relationship_kind_name(uint8_t kind);
 static int append_runtime_view_relationship_json(JsonBuilder *builder,
   const M68kRuntimeViewRelationshipIR *relationship);
+static int append_runtime_view_entry_json(JsonBuilder *builder, const M68kRuntimeViewIR *view);
+static const char *m68k_code_start_reason_name(uint32_t reason);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static const char *analysis_conflict_state_name(uint8_t conflict_state);
 static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
@@ -132,6 +134,31 @@ static int append_runtime_view_relationship_json(JsonBuilder *builder,
     (unsigned)relationship->kind, runtime_view_relationship_kind_name(relationship->kind),
     (unsigned)relationship->runtime_view_id, (unsigned)relationship->storage_offset,
     (unsigned)relationship->runtime_address, (unsigned)relationship->size);
+}
+
+static int append_runtime_view_entry_json(JsonBuilder *builder, const M68kRuntimeViewIR *view) {
+  if (builder == NULL || view == NULL) return -1;
+  if (json_builder_appendf(builder, ",\"entry_point_count\":%u,\"entry_source_offset\":",
+      (unsigned)view->entry_point_count) != 0) return -1;
+  if (view->has_entry_point) {
+    if (json_builder_appendf(builder, "%u", (unsigned)view->entry_source_offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"entry_runtime_address\":") != 0) return -1;
+  if (view->has_entry_point) {
+    if (json_builder_appendf(builder, "%u", (unsigned)view->entry_runtime_address) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"entry_reason\":") != 0) return -1;
+  if (view->has_entry_point) {
+    if (json_builder_appendf(builder, "%u", (unsigned)view->entry_reason) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"entry_reason_name\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder,
+      view->has_entry_point ? m68k_code_start_reason_name(view->entry_reason) : NULL) != 0) return -1;
+  if (json_builder_append(builder, ",\"entry_confidence\":") != 0) return -1;
+  if (view->has_entry_point) {
+    return json_builder_appendf(builder, "%u", (unsigned)view->entry_confidence);
+  }
+  return json_builder_append(builder, "null");
 }
 
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind) {
@@ -2561,6 +2588,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       }
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE,
           (int64_t)view->runtime_address, view->size) != 0) return -1;
+      if (append_runtime_view_entry_json(builder, view) != 0) return -1;
       if (append_runtime_view_relationship_json(builder, &view->relationship) != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
@@ -2818,6 +2846,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       }
       if (append_runtime_view_relationship_json(&builder, &view->relationship) != 0) goto oom;
+      if (append_runtime_view_entry_json(&builder, view) != 0) goto oom;
       if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"runtime_address_ref_count\":%u,\"runtime_address_refs\":[",

@@ -889,6 +889,12 @@ typedef struct M68kRuntimeViewIR {
   uint8_t confidence;
   uint8_t materialized;
   uint8_t materialization_reason;
+  uint8_t has_entry_point;
+  uint8_t entry_confidence;
+  uint16_t entry_point_count;
+  uint32_t entry_source_offset;
+  uint32_t entry_runtime_address;
+  uint32_t entry_reason;
   M68kRuntimeViewRelationshipIR relationship;
 } M68kRuntimeViewIR;
 

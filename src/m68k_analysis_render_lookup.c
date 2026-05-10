@@ -5395,6 +5395,50 @@ static int append_render_lookup_runtime_views_for_section(const M68kRenderLookup
         &view.materialization_reason, &view.relationship) != 0) {
       return -1;
     }
+    {
+      size_t ref_index;
+      uint32_t view_end = view.size <= UINT32_MAX - view.storage_offset
+        ? view.storage_offset + view.size
+        : UINT32_MAX;
+      for (ref_index = 0U; ref_index < lookup->code_start_ref_count; ++ref_index) {
+        const M68kFact *code_start = lookup->code_start_refs[ref_index].fact;
+        int strong_entry_reason = 0;
+        if (code_start == NULL || code_start->section_index != section_analysis->section_index ||
+            code_start->offset < view.storage_offset || code_start->offset >= view_end) {
+          continue;
+        }
+        switch (code_start->reason) {
+        case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
+        case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
+        case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
+        case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
+        case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+          strong_entry_reason = 1;
+          break;
+        default:
+          strong_entry_reason = 0;
+          break;
+        }
+        if (!strong_entry_reason || code_start->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED ||
+            !code_start->has_runtime_address) {
+          continue;
+        }
+        if (code_start->offset - view.storage_offset > UINT32_MAX - view.runtime_address) continue;
+        if (code_start->runtime_address != view.runtime_address + (code_start->offset - view.storage_offset))
+          continue;
+        if (view.entry_point_count != UINT16_MAX) ++view.entry_point_count;
+        if (!view.has_entry_point ||
+            code_start->confidence > view.entry_confidence ||
+            (code_start->confidence == view.entry_confidence &&
+             code_start->reason == M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT)) {
+          view.has_entry_point = 1U;
+          view.entry_confidence = code_start->confidence;
+          view.entry_source_offset = code_start->offset;
+          view.entry_runtime_address = code_start->runtime_address;
+          view.entry_reason = code_start->reason;
+        }
+      }
+    }
     if (m68k_ir_section_analysis_append_runtime_view(section_analysis, &view) != 0) return -1;
   }
   return 0;

@@ -190,6 +190,10 @@ measurements and test names here, not in the index table.
   at their loaded address without target-local ORG metadata.
 - Runtime-view materialization reason, relationship, and role decisions are
   numeric ids; names remain display text.
+- Runtime-view entry provenance is part of the same compact C record: count,
+  best source offset, runtime address, reason, and confidence. The match is
+  source-to-runtime exact, so a raw load entry is not attached to an overlaid
+  copied-image view merely because the numeric address falls inside its range.
 - Relationship ids derive target-pattern tags for entry wrappers, contained
   helpers, overlaid helpers, and final-image-related runtime views.
 - A temporary full usage rebuild found 2 entry-wrapper views, 4 contained-helper
@@ -1593,9 +1597,11 @@ undocumented renderer heuristics.
   no longer produce flat duplicate app fields. Base-layout ownership conflicts
   are now finalized in C source-analysis IR; JSON/export layers do not recompute
   those conflicts.
-- Absolute raw/decompressed targets have accepted operand and orphan-candidate
-  memory-layout records; they still need load address, source extent, and entry
-  range merged into the same higher-level target/load relationship model.
+- Absolute raw/decompressed targets now merge load address, source extent, and
+  exact entrypoint provenance into runtime-view memory-layout records. Raw
+  operand/orphan records remain separate evidence; the grouped load relationship
+  is exposed through `memory-layout:runtime_view_entry` and
+  `memory-layout-view:runtime_view_entry:*` target-usage features.
 - Runtime-copy facts now record compact relationships when suppression is caused
   by a larger range, contained range, or runtime-copy overlay. Corpus target
   rows tag entry-wrapper, contained-helper, and final-image-related runtime
@@ -1667,6 +1673,23 @@ undocumented renderer heuristics.
   the comparable Starglider `mathtrans.library` rows also dropped 2 signals.
   Type-flow check passed with `ok: true`, 4 applied refinements, and 0
   violations.
+- Runtime-view entry provenance evidence: C `M68kRuntimeViewIR` records now
+  expose exact entrypoint provenance fields, and JSON/memory-layout export
+  surfaces them without a Python-side join. Isolated coverage:
+  `facts_v2_policy_runtime_entrypoint_maps_absolute_load`. Real target
+  coverage:
+  `test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range`
+  checks a synthetic raw absolute payload and
+  `test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code`
+  checks Pandora's raw `$20000` load entry separately from the copied `$10000`
+  ORG image. Corpus manifest
+  `src\build\tmp_target_usage_after_runtime_view_entry_provenance.jsonl`
+  produced 493 entries, 528717 xrefs, 485079 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows.
+  `memory-layout:runtime_view_entry` is now indexed on 10 runtime views while
+  `memory-layout:record:runtime_view` remains 73 and `orphan-code:signal`
+  remains 899. Type-flow check passed with `ok: true`, 4 applied refinements,
+  and 0 violations.
 
 ## Regression and Acceptance Checklist
 
