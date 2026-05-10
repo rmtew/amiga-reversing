@@ -6732,6 +6732,39 @@ static const M68kFact *render_operand_relocation_ref(const M68kRenderLookup *loo
   return NULL;
 }
 
+static void render_analysis_classify_orphan_absolute_memory_ref(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint8_t platform_kind, uint32_t address,
+    M68kAbsoluteMemoryRefIR *ref) {
+  uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  uint32_t platform_owner_offset = 0U;
+  uint32_t source_offset = 0U;
+  if (ref == NULL) return;
+  ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  ref->owner_offset = address;
+  if (platform_facts_v2_absolute_memory_owner(platform_kind, address, &platform_owner_kind,
+      &platform_owner_offset)) {
+    ref->owner_kind = platform_owner_kind;
+    ref->owner_offset = platform_owner_offset;
+    return;
+  }
+  if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+      platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+    ref->owner_offset = 0U;
+    return;
+  }
+  if (section != NULL &&
+      lookup_materialized_runtime_address_source_offset(lookup, section->section_index, address, &source_offset)) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
+    ref->owner_offset = source_offset;
+    return;
+  }
+  if (section != NULL && address < section->size) {
+    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+    ref->owner_offset = address;
+  }
+}
+
 static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
     M68kSectionAnalysisIR *section_analysis) {
@@ -6774,19 +6807,15 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
       ref.source_size = candidate->byte_count;
       ref.access_width = render_instruction_access_width(&instruction, access_kind);
       ref.address = address;
-      ref.owner_offset = address;
       ref.access_kind = access_kind;
-      ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
       ref.confidence = signal->confidence;
       ref.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
       relocation = render_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
       if (relocation != NULL) {
         ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
         ref.owner_offset = relocation->target_offset;
-      } else if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
-          platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
-        ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
-        ref.owner_offset = 0U;
+      } else {
+        render_analysis_classify_orphan_absolute_memory_ref(lookup, section, platform_kind, address, &ref);
       }
       if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
     }

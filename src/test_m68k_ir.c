@@ -16570,18 +16570,71 @@ static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layou
   ref = &source_analysis.sections[0].absolute_memory_refs[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
   M68K_C_ASSERT_U32(0x00070000U, ref->address);
-  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN, ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, ref->owner_kind);
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, ref->access_kind);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED, ref->conflict_state);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"unknown\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":0,\"owner_kind\":\"unknown\"") != NULL);
+    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":7,\"owner_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
     "\"range_end\":458752") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *ref;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[10] = {
+    0x4Eu, 0x75u,
+    0x41u, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x9Au,
+    0x4Eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(2U, ref->offset);
+  M68K_C_ASSERT_U32(0x00DFF09AU, ref->address);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, ref->owner_kind);
+  M68K_C_ASSERT_U32(0x09AU, ref->owner_offset);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, ref->access_kind);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED, ref->conflict_state);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":3,\"owner_kind\":\"hardware_register\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -18259,6 +18312,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_records_absolute_memory_refs},
     {"facts_v2_orphan_absolute_operand_records_unresolved_memory_layout",
       test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout},
+    {"facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner",
+      test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner},
     {"amiga_runtime_address_sinks_are_generated_from_hardware_metadata",
       test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata},
     {"amiga_runtime_struct_id_none_is_zero_safe",

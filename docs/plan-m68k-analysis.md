@@ -1444,6 +1444,21 @@ undocumented renderer heuristics.
   `target-pattern:platform_loadseg_entry`. A corpus manifest run found this in
   Voodoo Nightmare `run` platform/project targets; broader helper variants still
   need comparator coverage.
+- Orphan absolute memory references now use the same C/platform owner
+  classification as accepted code while staying unresolved orphan evidence:
+  Amiga hardware, ExecBase, CPU/callback vector slots, materialized runtime
+  ranges, section storage, then plain absolute memory. This makes terminal
+  decode islands actionable without silently promoting them. Isolated C coverage
+  checks both unresolved plain absolute memory and an unresolved Amiga hardware
+  owner. Corpus manifest after the change:
+  `src\build\tmp_target_usage_after_orphan_absolute_owner_classification.jsonl`
+  produced 493 entries, 517309 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows. Type-flow check passed
+  with `ok: true`, 4 applied refinements, and 0 violations. Ownership impact:
+  `memory-layout:kind:unknown` fell 73 -> 0 corpus-wide and 3 -> 0 in
+  Bloodwych; Bloodwych hardware owners rose 86 -> 88 and runtime-range owners
+  rose 1125 -> 1126. Orphan signal counts stayed 913 corpus-wide and 6 in
+  Bloodwych, proving this is classification, not hidden code promotion.
 
 ## Regression and Acceptance Checklist
 
