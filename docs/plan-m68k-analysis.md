@@ -483,12 +483,14 @@ proves a distinct base id.
      class strings are ignored
    - entry size, signedness, stride, count, and bounds
    - table kind: scalar, pointer, relative pointer, code dispatch, data offset,
-     hardware setup, mixed: implemented as C `table_kind_id` for scalar,
-     pointer, relative-code-dispatch, and absolute-code-dispatch structured
-     tables
+     hardware setup, mixed: implemented as explicit C structured-data table
+     metadata for scalar, pointer, relative-code-dispatch, and
+     absolute-code-dispatch structured tables; JSON exports these ids and no
+     longer reclassifies table kind from display fields
    - base expression: table label, section base, runtime base, PC, or explicit
-     data label: implemented as C `base_expression_id` target-label/table-label
-     classification
+     data label: implemented as explicit C structured-data table metadata for
+     target-label/table-label classification; JSON exports these ids and no
+     longer derives the base expression at export time
    - entry target range and null/sentinel rules: target base recorded when
      known
    - confidence and conflict state: implemented for clean/code-overlap table
@@ -963,8 +965,9 @@ undocumented renderer heuristics.
 - Existing alias emission is backed by explicit pre-render layout alias facts:
   sorted slot overlap is classified before emission, exported through
   `base_layout_field` records, and covered by the RSSET alias C tests.
-- Lookup-table rendering still needs a single table fact model instead of
-  scattered case-specific render behavior for unresolved/rejected candidates.
+- Accepted lookup/pointer table records now use explicit C table metadata on the
+  structured-data item; unresolved/rejected candidates still need the same
+  single table fact model instead of scattered case-specific reporting.
 - Orphaned code signals have a first-class fact model for unresolved
   terminal-decode islands at accepted-code boundaries or data labels, plus
   suppressed structured-data overlap signals; target-level missing-inbound

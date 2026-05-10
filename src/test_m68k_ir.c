@@ -272,9 +272,22 @@ static int test_structured_data_role_flags_setter_owns_display_text(void) {
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
     item.semantic_role_flags);
   M68K_C_ASSERT_STR("length_prefixed_string", item.semantic_role);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_UNKNOWN, item.table_kind_id);
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  item.has_target = 1U;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
+  M68K_C_ASSERT_U32(
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
+    item.semantic_role_flags);
+  M68K_C_ASSERT_STR("lookup_table", item.semantic_role);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH, item.table_kind_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL, item.table_base_expression_id);
   m68k_analysis_structured_data_item_set_semantic_role_flags(&item, 0U);
   M68K_C_ASSERT_U32(0U, item.semantic_role_flags);
   M68K_C_ASSERT_STR("", item.semantic_role);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_UNKNOWN, item.table_kind_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_BASE_EXPRESSION_UNKNOWN, item.table_base_expression_id);
   return 0;
 }
 
@@ -6017,9 +6030,11 @@ static int test_table_records_use_role_flags_not_text(void) {
   item->offset = 0U;
   item->size = 4U;
   item->kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
-  item->semantic_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   item->source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH;
   snprintf(item->source_pattern, sizeof(item->source_pattern), "%s", "stale_source_pattern");
+  m68k_analysis_structured_data_item_refresh_table_metadata(item);
 
   item = &source_analysis.policy.structured_data_items[1];
   item->has_section_index = 1U;

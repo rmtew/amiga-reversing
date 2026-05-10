@@ -3328,6 +3328,7 @@ static int policy_set_structured_data_item_target_local(M68kAnalysisPolicy *poli
   item->has_target = 1U;
   item->target_section = target_section;
   item->target_offset = target_offset;
+  m68k_analysis_structured_data_item_refresh_table_metadata(item);
   return 1;
 }
 
@@ -3855,6 +3856,7 @@ static void policy_update_resident_vector_item_target_local(M68kAnalysisPolicy *
       item->has_target = 1U;
       item->target_section = entry->hunk;
       item->target_offset = entry->offset;
+      m68k_analysis_structured_data_item_refresh_table_metadata(item);
     }
   }
 }
@@ -4867,6 +4869,7 @@ static void enrich_policy_pointer_targets_from_object_local(M68kAnalysisPolicy *
       item->has_target = 1U;
       item->target_section = section_index;
       item->target_offset = target_offset;
+      m68k_analysis_structured_data_item_refresh_table_metadata(item);
       target_label = resident_pointer_target_label_local(item);
       if (target_label != NULL && target_label[0] != '\0') {
         uint32_t string_size = nul_terminated_string_size_local(section, target_offset);
@@ -5086,6 +5089,17 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         return -1;
       if (append_nullable_text_json_local(builder, source_pattern) != 0) return -1;
     }
+    if (json_builder_appendf(builder, ",\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)item->table_kind_id) != 0)
+      return -1;
+    if (append_nullable_text_json_local(builder, m68k_analysis_table_kind_name(item->table_kind_id)) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"table_base_expression_id\":%u,\"table_base_expression\":",
+          (unsigned)item->table_base_expression_id) != 0)
+      return -1;
+    if (append_nullable_text_json_local(builder,
+          m68k_analysis_table_base_expression_name(item->table_base_expression_id)) != 0)
+      return -1;
     if (json_builder_appendf(builder, ",\"is_pointer\":%s,\"target_section\":",
           item->is_pointer ? "true" : "false") != 0)
       return -1;

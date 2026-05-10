@@ -1735,6 +1735,17 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
         return -1;
       }
     }
+    if (json_builder_appendf(builder, ",\"table_kind_id\":%u,\"table_kind\":",
+        (unsigned)item->table_kind_id) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder, m68k_analysis_table_kind_name(item->table_kind_id)) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"table_base_expression_id\":%u,\"table_base_expression\":",
+        (unsigned)item->table_base_expression_id) != 0)
+      return -1;
+    if (json_builder_append_nullable_string(builder,
+        m68k_analysis_table_base_expression_name(item->table_base_expression_id)) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
     if (json_builder_append_nullable_string(builder, item->label[0] != '\0' ? item->label : NULL) != 0)
       return -1;
@@ -1779,25 +1790,6 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
   return 0U;
 }
 
-static uint8_t structured_data_item_table_kind_id(const M68kAnalysisStructuredDataItem *item) {
-  uint32_t role_flags;
-  if (item == NULL) return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
-  role_flags = structured_data_item_role_flags_json(item);
-  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U)
-    return M68K_ANALYSIS_TABLE_KIND_POINTER;
-  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target)
-      return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
-        item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH)
-      return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)
-      return M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH;
-    return M68K_ANALYSIS_TABLE_KIND_SCALAR;
-  }
-  return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
-}
-
 static int recovered_indirect_site_is_unresolved_table_candidate(const M68kRecoveredIndirectSiteIR *site) {
   if (site == NULL) return 0;
   if (site->status == M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE ||
@@ -1824,8 +1816,7 @@ static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *polic
   if (policy == NULL) return 0U;
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    if (structured_data_item_table_kind_id(&policy->structured_data_items[index]) !=
-        M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+    if (policy->structured_data_items[index].table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
       ++count;
     }
   }
@@ -1969,9 +1960,8 @@ static int append_source_analysis_table_records_json(JsonBuilder *builder,
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
     uint32_t role_flags = structured_data_item_role_flags_json(item);
-    uint8_t table_kind_id = structured_data_item_table_kind_id(item);
-    uint8_t base_expression_id = item->has_target ? M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL :
-      M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL;
+    uint8_t table_kind_id = item->table_kind_id;
+    uint8_t base_expression_id = item->table_base_expression_id;
     const char *table_kind = m68k_analysis_table_kind_name(table_kind_id);
     const char *base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
     const char *role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);

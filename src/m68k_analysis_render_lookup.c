@@ -4278,6 +4278,7 @@ static void render_lookup_set_auto_structured_data_item_target(M68kRenderLookup 
       item->has_target = 1U;
       item->target_section = (uint32_t)target_section_index;
       item->target_offset = target_offset;
+      m68k_analysis_structured_data_item_refresh_table_metadata(item);
     }
   }
 }
@@ -4308,6 +4309,7 @@ static void render_lookup_set_auto_structured_data_item_source_pattern(M68kRende
         item->offset == offset) {
       item->source_pattern_id = source_pattern_id;
       snprintf(item->source_pattern, sizeof(item->source_pattern), "%s", source_pattern);
+      m68k_analysis_structured_data_item_refresh_table_metadata(item);
     }
   }
 }

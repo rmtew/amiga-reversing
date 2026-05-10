@@ -149,12 +149,13 @@ typedef struct M68kAnalysisStructuredDataItem {
   int32_t constant_value;
   uint8_t has_consumer;
   uint8_t source_pattern_id;
+  uint8_t table_kind_id;
+  uint8_t table_base_expression_id;
   uint16_t platform_kind_id;
   uint16_t platform_field_id;
   uint16_t struct_id;
   uint16_t field_id;
   uint16_t pointer_struct_id;
-  uint16_t reserved2;
   uint32_t consumer_section;
   uint32_t consumer_offset;
   uint32_t semantic_role_flags;
@@ -1130,6 +1131,7 @@ const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_i
 int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
+void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStructuredDataItem *item);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
 void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);

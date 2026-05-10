@@ -157,6 +157,33 @@ const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id)
   }
 }
 
+static uint8_t structured_data_item_infer_table_kind_id(const M68kAnalysisStructuredDataItem *item) {
+  uint32_t role_flags;
+  if (item == NULL) return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
+  role_flags = item->semantic_role_flags;
+  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U)
+    return M68K_ANALYSIS_TABLE_KIND_POINTER;
+  if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) == 0U)
+    return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target)
+    return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
+      item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH)
+    return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)
+    return M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH;
+  return M68K_ANALYSIS_TABLE_KIND_SCALAR;
+}
+
+void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return;
+  item->table_kind_id = structured_data_item_infer_table_kind_id(item);
+  item->table_base_expression_id = item->table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN
+    ? (item->has_target ? M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL :
+        M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL)
+    : M68K_ANALYSIS_TABLE_BASE_EXPRESSION_UNKNOWN;
+}
+
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
     uint32_t semantic_role_flags) {
   const char *semantic_role;
@@ -164,6 +191,7 @@ void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStru
   item->semantic_role_flags = semantic_role_flags;
   semantic_role = m68k_analysis_structured_data_role_name_for_flags(semantic_role_flags);
   snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", semantic_role != NULL ? semantic_role : "");
+  m68k_analysis_structured_data_item_refresh_table_metadata(item);
 }
 
 static void m68k_ir_section_init_shared(M68kSectionIR *section, Arena *arena) {
