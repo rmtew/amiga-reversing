@@ -3895,6 +3895,84 @@ static int test_facts_v2_materialized_runtime_compare_labels_only_existing_targe
   return 0;
 }
 
+static int test_facts_v2_analysis_records_address_domain_immediate_absolute_refs(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *movea_runtime_ref = NULL;
+  const M68kAbsoluteMemoryRefIR *compare_runtime_ref = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[0x118];
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x20u;
+  bytes[1] = 0x7Cu;
+  bytes[4] = 0x02u;
+  bytes[5] = 0x10u;
+  bytes[6] = 0xB3u;
+  bytes[7] = 0xFCu;
+  bytes[10] = 0x02u;
+  bytes[11] = 0x14u;
+  bytes[12] = 0x4Eu;
+  bytes[13] = 0x75u;
+  bytes[0x110] = 0xAAu;
+  bytes[0x111] = 0xBBu;
+  bytes[0x112] = 0xCCu;
+  bytes[0x113] = 0xDDu;
+  bytes[0x114] = 0x11u;
+  bytes[0x115] = 0x22u;
+  bytes[0x116] = 0x33u;
+  bytes[0x117] = 0x44u;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
+    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+    if (ref->offset == 0U && ref->address == 0x210U) movea_runtime_ref = ref;
+    if (ref->offset == 6U && ref->address == 0x214U) compare_runtime_ref = ref;
+  }
+  M68K_C_ASSERT(movea_runtime_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE, movea_runtime_ref->owner_kind);
+  M68K_C_ASSERT_U32(0x110U, movea_runtime_ref->owner_offset);
+  M68K_C_ASSERT_U32(0U, movea_runtime_ref->access_width);
+  M68K_C_ASSERT(compare_runtime_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE, compare_runtime_ref->owner_kind);
+  M68K_C_ASSERT_U32(0x114U, compare_runtime_ref->owner_offset);
+  M68K_C_ASSERT_U32(0U, compare_runtime_ref->access_width);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #$210,a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #abs_0_00000210,a0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tcmpa.l #$214,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tcmpa.l #abs_0_00000214,a1\n") == NULL);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_traced_indirect_call_promotes_known_target(void) {
   M68kObject object;
   M68kSection section;
@@ -18484,6 +18562,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_materialized_runtime_pointer_store_uses_existing_label},
     {"facts_v2_materialized_runtime_compare_labels_only_existing_target",
       test_facts_v2_materialized_runtime_compare_labels_only_existing_target},
+    {"facts_v2_analysis_records_address_domain_immediate_absolute_refs",
+      test_facts_v2_analysis_records_address_domain_immediate_absolute_refs},
     {"facts_v2_traced_indirect_call_promotes_known_target",
       test_facts_v2_traced_indirect_call_promotes_known_target},
     {"facts_v2_callback_field_store_promotes_indirect_call_target",

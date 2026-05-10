@@ -1438,6 +1438,36 @@ static int candidate_operand_runtime_address_value(const M68kDecodeCandidate *ca
   return 0;
 }
 
+static int candidate_immediate_operand_is_address_domain(const M68kDecodeCandidate *candidate, size_t operand_index) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t other_index;
+  if (candidate == NULL || operand_index >= candidate->operand_count ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || operand_index >= instruction.operand_count || operand_index >= 4U) return 0;
+  if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET ||
+      metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
+    return 1;
+  }
+  if (metadata->operation_type != M68K_SIM_OP_COMPARE ||
+      metadata->source_operand_index != operand_index) {
+    return 0;
+  }
+  for (other_index = 0U; other_index < candidate->operand_count && other_index < 4U &&
+       other_index < instruction.operand_count; ++other_index) {
+    uint8_t reg = 0U;
+    if (other_index == operand_index) continue;
+    if (metadata->operand_access_kinds[other_index] != M68K_SIM_ACCESS_REGISTER_READ) continue;
+    if (operand_is_address_register_direct(&candidate->operands[other_index], &reg)) return 1;
+  }
+  return 0;
+}
+
 static int candidate_operand_feeds_runtime_address_sink(const M68kDecodeCandidate *candidate,
     size_t operand_index, uint8_t platform_kind) {
   uint32_t dest_address = 0U;
@@ -4272,19 +4302,28 @@ static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, 
            operand_index < instruction.operand_count; ++operand_index) {
         uint32_t address = 0U;
         uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+        int has_absolute_operand;
+        int has_address_immediate;
         const M68kFact *relocation;
         size_t owner_section_index = section_index;
         M68kAbsoluteMemoryRefIR ref;
-        if (!facts_v2_absolute_ref_access_kind(access_kind)) continue;
-        if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
-            &address)) {
+        has_absolute_operand = m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
+          &candidate->operands[operand_index], &address);
+        has_address_immediate = !has_absolute_operand &&
+          candidate_immediate_operand_is_address_domain(candidate, operand_index) &&
+          operand_immediate_value(candidate->operand_kinds[operand_index], &candidate->operands[operand_index],
+            &address);
+        if ((!has_absolute_operand || !facts_v2_absolute_ref_access_kind(access_kind)) &&
+            !has_address_immediate) {
           continue;
         }
         memset(&ref, 0, sizeof(ref));
         ref.offset = candidate->offset;
         ref.operand_index = (uint32_t)operand_index;
         ref.source_size = candidate->byte_count;
-        ref.access_width = facts_v2_instruction_access_width(&instruction, access_kind);
+        ref.access_width = has_absolute_operand && facts_v2_absolute_ref_access_kind(access_kind)
+          ? facts_v2_instruction_access_width(&instruction, access_kind)
+          : 0U;
         ref.address = address;
         ref.access_kind = access_kind;
         ref.confidence = (uint8_t)M68K_FACT_CONFIDENCE_TOOL_INFERRED;

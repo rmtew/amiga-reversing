@@ -284,6 +284,19 @@ measurements and test names here, not in the index table.
 - C JSON exposes base-layout fields, runtime views, runtime-address refs,
   normalized ranges, accepted absolute operands, owner ids, conflict-state ids,
   and record-kind ids.
+- C analysis records address-domain immediate constants as absolute-memory
+  evidence when generated simulator metadata proves the operand produces or
+  compares an address, for example `movea.l #runtime_addr,a0` and
+  `cmpa.l #runtime_addr,a1`. This is analysis evidence only; rendering still
+  keeps the immediate numeric unless existing label policy proves a safe
+  source symbol. Coverage:
+  `facts_v2_analysis_records_address_domain_immediate_absolute_refs`.
+- Full usage rebuild after this change kept 493 manifest entries and raised
+  `memory-layout:record:absolute_memory_ref` 184 -> 187. Comparator evidence
+  included Bloodwych (`memory-layout:kind:section_storage` +1), MonAm
+  (`memory-layout:kind:absolute_memory` +1), Atari imported rows (+3 absolute
+  refs), and multiple Amiga imported rows with CPU-vector/absolute-owner
+  evidence. Type-flow check stayed clean with 0 violations.
 - Decompression rows expose grouped source/load/entry facts and id-backed
   derived-target metadata. A temporary full usage rebuild found 19 grouped
   source/load/entry facts across 9 rows and 2 checked-in decompressed child
