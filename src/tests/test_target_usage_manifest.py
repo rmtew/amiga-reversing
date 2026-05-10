@@ -1342,6 +1342,48 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("decompression:child_reproduction_exact", {xref["feature"] for xref in xrefs})
         self.assertIn("decompression:payload_role:primary_program", {xref["feature"] for xref in xrefs})
 
+    def test_project_target_metadata_features_use_text_decompressed_child_classifiers(self) -> None:
+        entry = {
+            "id": "child",
+            "platform": "raw-binary",
+            "status": "ok",
+            "origin": {},
+            "project_origin_kind": "derived_decompressed_payload",
+            "target_role": "decompressed_payload",
+            "target_type": "raw_binary",
+            "reproduction": {"status": "exact_file", "exact": True},
+            "decompression": {
+                "compressor": {"id": "rnc1-old", "name": "RNC1"},
+                "packed": {"section_offset": 0x4C40, "file_offset": 0x4C60, "size": 168391},
+                "decompressed": {"size": 359600, "load_address": 0x4000, "entrypoint": 0x4000},
+            },
+        }
+        bag = usage.FeatureBag()
+
+        usage._add_project_target_metadata_features(entry, bag)
+        counts, examples, _tags = bag.row_features()
+        xrefs = usage._project_target_metadata_xrefs(
+            {
+                "id": "project_target:child",
+                "source_id": "child",
+                "platform": "raw-binary",
+                "origin": {},
+            },
+            entry,
+        )
+
+        self.assertEqual(counts["project_origin:derived_decompressed_payload"], 1)
+        self.assertEqual(counts["project_target_role:decompressed_payload"], 1)
+        self.assertEqual(counts["derived-decompressed-target"], 1)
+        self.assertEqual(counts["decompression:child"], 1)
+        self.assertEqual(counts["decompression:codec:rnc1-old"], 1)
+        self.assertEqual(counts["decompression:source_load_entry"], 1)
+        self.assertEqual(counts["decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000"], 1)
+        self.assertTrue(examples["derived-decompressed-target"][0]["reproduction_exact"])
+        self.assertIn("derived-decompressed-target", {xref["feature"] for xref in xrefs})
+        self.assertIn("decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000",
+            {xref["feature"] for xref in xrefs})
+
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()
         usage._add_listing_features(

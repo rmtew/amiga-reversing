@@ -445,6 +445,29 @@ Latest temporary target-usage rebuild after runtime-view role indexing:
 - Real API examples include Workbench `c/SetPatch`, MonAm302, and Starglider
   extracted libraries, so the classifier is not Bloodwych-specific.
 
+Text-classified decompressed child target indexing:
+
+- Project target metadata may arrive with generated numeric classifier ids or
+  text classifier names from `.project.json`. Manifest indexing must treat both
+  as authoritative for decompressed children; otherwise real extracted payloads
+  are invisible to decompression corpus navigation even though their target
+  metadata and reproduction records are present.
+- Isolated coverage:
+  `test_project_target_metadata_features_use_text_decompressed_child_classifiers`.
+- Corpus evidence:
+  `src\build\tmp_target_usage_after_text_decompressed_child_tags.jsonl`
+  produced 493 entries, 517271 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows.
+- Compared with
+  `src\build\tmp_target_usage_xrefs_after_base_layout_ir_conflicts.jsonl`,
+  `decompression:child` rises 2 -> 4 and
+  `decompression:source_load_entry` rises 17 -> 19. The recovered child rows
+  are Carrier Command's RNC payload and Pandora's BK payload; Damocles'
+  Tetragon children were already indexed.
+- Type-flow check
+  `src\build\tmp_type_flow_check_after_text_decompressed_child_tags.json`
+  passed with `ok: true`, 4 applied refinements, and zero violations.
+
 ## RSSET Survey
 
 | Target source | Ranges | Origin and review |
