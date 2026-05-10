@@ -310,6 +310,7 @@ ORPHAN_CODE_SIGNAL_STATUS_NAMES = {
     4: "linked",
     5: "promoted",
 }
+ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED = 1
 ORPHAN_CODE_SIGNAL_CONTEXT_NAMES = {
     1: "accepted_code_boundary",
     2: "renderable_label",
@@ -1709,6 +1710,7 @@ def _orphan_code_signal_example(section_index: int, signal: dict[str, Any]) -> d
 def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal: dict[str, Any]) -> None:
     reason = _orphan_code_signal_reason_name(signal)
     status = _orphan_code_signal_status_name(signal)
+    status_id = _int_value(signal.get("status_id"), 0) or 0
     terminal_flow = _orphan_code_signal_terminal_flow_name(signal)
     required_cpu = _int_value(signal.get("required_cpu"))
     instruction_count = _int_value(signal.get("instruction_count"))
@@ -1735,7 +1737,7 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
         bag.add("orphan-code:decode_conflict", example=example)
     if context:
         bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
-    if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status):
+    if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id):
         bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
     if nearby_data_class:
         bag.add(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}", example=example)
@@ -1781,8 +1783,8 @@ def _orphan_code_signal_status_name(signal: dict[str, Any]) -> str:
     return ORPHAN_CODE_SIGNAL_STATUS_NAMES.get(_int_value(signal.get("status_id"), 0) or 0, "unknown")
 
 
-def _orphan_code_signal_has_actionable_missing_inbound(status: str) -> bool:
-    return status == "unresolved"
+def _orphan_code_signal_has_actionable_missing_inbound(status_id: int) -> bool:
+    return status_id == ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED
 
 
 def _orphan_code_signal_terminal_flow_name(signal: dict[str, Any]) -> str | None:

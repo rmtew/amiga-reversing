@@ -2,6 +2,7 @@ from src.scripts.target_usage_manifest import (
     CODE_START_REASON_CONTROL_TARGET,
     CODE_START_REASON_PLATFORM_LOADSEG_ENTRY,
     FeatureBag,
+    ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED,
     _add_analysis_features,
     _add_listing_features,
     _analysis_xrefs,
@@ -311,6 +312,42 @@ def test_labelized_table_shape_features_and_xrefs() -> None:
     assert "analysis:lookup_table:long_label_entries" in features
     assert "analysis:pointer_table:long_label_entries" in features
     assert "data:string" not in features
+
+
+def test_orphan_missing_inbound_uses_status_id_for_actionable_queue() -> None:
+    analysis = {
+        "sections": [
+            {
+                "section_index": 0,
+                "orphan_code_signals": [
+                    {
+                        "offset": 0x40,
+                        "size": 6,
+                        "reason_id": 1,
+                        "status_id": ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED,
+                        "missing_inbound_id": 6,
+                        "terminal_flow_kind": 5,
+                    },
+                    {
+                        "offset": 0x80,
+                        "size": 6,
+                        "reason_id": 1,
+                        "status_id": 3,
+                        "status": "unresolved",
+                        "missing_inbound_id": 6,
+                        "terminal_flow_kind": 5,
+                    },
+                ],
+            }
+        ],
+        "orphan_code_signal_count": 2,
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, _examples, tags = bag.row_features()
+
+    assert counts["orphan-code:missing_inbound:api"] == 1
+    assert "target-pattern:orphan_missing_api" in tags
 
 
 def test_direct_control_stub_table_feature_and_xref() -> None:

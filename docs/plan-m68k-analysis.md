@@ -87,7 +87,8 @@ and propagation-chain kind ids; report branching for app-slot substructure and
 API-output storage gaps uses those ids, while cause/chain strings remain display
 and grouping names. Corpus indexing for code-start-derived direct control stubs
 and Amiga LoadSeg entries now uses numeric code-start reason ids rather than
-`reason_name` display strings.
+`reason_name` display strings. Orphan missing-inbound work-item gating uses the
+numeric orphan status id rather than status display text.
 
 Round-trip source reproduction is a quality gate for retained rendered-source
 updates. When regenerated target `.s` files are committed as evidence, the same
