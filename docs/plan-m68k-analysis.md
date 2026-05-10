@@ -257,6 +257,13 @@ measurements and test names here, not in the index table.
 - `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm` is
   comparison material for locating Bloodwych data/source-reference opportunities
   only. It is not an oracle and must not drive target-specific logic.
+- Bloodwych runtime-view orphan comparison points from that hand source:
+  `adrEA003E0B` and `adrEA003E7B` are message/data bytes despite plausible
+  terminal decodes, while `adrCd006D3C` and the disk routine near `adrCd0086DE`
+  are real code. The work item is therefore evidence separation: suppress or
+  downgrade candidates backed by data/table/string provenance, and promote only
+  candidates with a real inbound edge or reusable runtime-copy/control-flow
+  proof.
 
 ### Recent Topic Notes
 
@@ -282,6 +289,17 @@ measurements and test names here, not in the index table.
   address-register destination, even code-section target, decodability, and no
   accepted-code interior overlap. The isolated regression is
   `facts_v2_relocated_indirect_call_promotes_cross_section_target`.
+- Runtime-copy entry discovery: runtime-address references to a copied range
+  start now seed code only when the source operand is a generated control
+  target. Non-control address loads can still create labels and diagnostics, but
+  they do not prove an entrypoint. Coverage:
+  `facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref`.
+  Bloodwych runtime-copy orphan diagnostics now separate the hand-source mixed
+  cases: `adrEA003E0B`, `adrEA003E7B`, `adrEA007C6F`, and `adrB_00EEDF`
+  suppress as metadata/data-address labels, while the real code-boundary
+  candidates at source offsets `0x6998`, `0x833A`, and `0x83F6` remain
+  unresolved runtime-copy work items. Magicland Dizzy drops its two unresolved
+  runtime-copy orphan signals to zero under the same control-target gate.
 - Orphan/code discovery: required linkage labels that start short terminal
   Amiga API wrapper sequences now seed code with `linkage_api_entry`
   provenance. Generic analysis asks platform facts whether linkage API entry

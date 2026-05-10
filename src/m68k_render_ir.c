@@ -6697,6 +6697,37 @@ static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *
   }
 }
 
+static int render_orphan_start_has_non_control_runtime_address_ref(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  size_t index;
+  int saw_ref = 0;
+  if (lookup == NULL || section == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    const M68kFact *ref = lookup->runtime_address_refs[index].fact;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    const M68kDecodeCandidate *candidate;
+    size_t operand_index;
+    if (ref == NULL || ref->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
+        ref->target_section_index != section->section_index || ref->target_offset != offset ||
+        ref->section_index != section->section_index) {
+      continue;
+    }
+    if (ref->reason == UINT32_MAX) continue;
+    operand_index = (size_t)ref->reason;
+    candidate = find_candidate_at_offset_local(section, ref->offset);
+    if (candidate == NULL || operand_index >= candidate->operand_count) continue;
+    metadata = render_cfg_candidate_metadata(candidate, &instruction);
+    if (metadata == NULL || operand_index >= instruction.operand_count) continue;
+    saw_ref = 1;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET &&
+        metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
+      return 0;
+    }
+  }
+  return saw_ref;
+}
+
 static int render_analysis_append_orphan_code_signals_for_section(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
     M68kSectionAnalysisIR *section_analysis) {
@@ -6721,6 +6752,8 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
     uint32_t runtime_address = 0U;
     int has_runtime_view = lookup_source_runtime_address(lookup, section->section_index, offset,
       &runtime_address);
+    int has_non_control_runtime_address_ref = !has_accepted_code_boundary &&
+      render_orphan_start_has_non_control_runtime_address_ref(lookup, section, offset);
     if (!(has_accepted_code_boundary || has_renderable_label) ||
         accepted_start_at(section, accepted_start, offset) ||
         accepted_byte_at(section, accepted_bytes, offset)) {
@@ -6763,13 +6796,18 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.terminal_offset = terminal_offset;
       signal.terminal_flow_kind = terminal_flow_kind;
       signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
-      signal.status = structured_item_at_start != NULL
+      signal.status = structured_item_at_start != NULL || has_non_control_runtime_address_ref
         ? M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED
         : M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
       signal.confidence = instruction_count >= 4U ? 90U : 70U;
       signal.required_cpu = required_cpu;
       signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
-      if (has_runtime_view) {
+      if (has_renderable_label && has_non_control_runtime_address_ref) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
+        signal.missing_inbound = lookup_has_policy_label(lookup, section->section_index, offset)
+          ? M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED
+          : M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+      } else if (has_runtime_view) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY;
       } else if (has_renderable_label) {
@@ -6785,6 +6823,8 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       render_orphan_signal_refine_missing_inbound(lookup, section, &signal);
       signal.detail = structured_item_at_start != NULL
         ? "decoded terminal island suppressed by accepted structured data"
+        : has_non_control_runtime_address_ref
+        ? "decoded terminal island suppressed by non-control runtime address reference"
         : "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
       if (render_analysis_append_orphan_absolute_memory_refs_for_signal(lookup, section, &signal,

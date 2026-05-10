@@ -4342,18 +4342,38 @@ static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactI
   return 0;
 }
 
-static int facts_runtime_ref_targets_range_start(const M68kFactIR *facts,
+static int facts_runtime_ref_targets_range_start(const M68kDecodeIR *decode, const M68kFactIR *facts,
     const M68kRuntimeAddressRange *range, size_t *out_source_section_index, uint32_t *out_source_offset) {
   size_t fact_index;
-  if (facts == NULL || range == NULL) return 0;
+  if (decode == NULL || facts == NULL || range == NULL) return 0;
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
     const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *source_section;
+    const M68kDecodeCandidate *source_candidate;
+    M68kInstructionIR source_instruction;
+    const M68kSimFormMetadata *source_metadata;
+    size_t operand_index;
     if (fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
         fact->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED ||
         fact->target_section_index != range->section_index ||
         fact->target_offset != range->source_offset ||
         !fact->has_runtime_address ||
         fact->runtime_address != range->runtime_address) {
+      continue;
+    }
+    if (fact->section_index >= decode->section_count || fact->reason == M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND)
+      continue;
+    source_section = &decode->sections[fact->section_index];
+    source_candidate = m68k_decode_ir_find_candidate_at_offset(source_section, fact->offset);
+    operand_index = (size_t)fact->reason;
+    if (source_candidate == NULL || operand_index >= source_candidate->operand_count ||
+        m68k_decode_candidate_to_instruction(source_candidate, &source_instruction) != 0) {
+      continue;
+    }
+    source_metadata = m68k_sim_metadata_for_instruction(&source_instruction);
+    if (source_metadata == NULL || operand_index >= source_instruction.operand_count ||
+        source_metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        source_metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
       continue;
     }
     if (out_source_section_index != NULL) *out_source_section_index = fact->section_index;
@@ -4391,7 +4411,7 @@ static int seed_runtime_ref_target_discovered_copy_entries(M68kDecodeIR *decode,
         accepted_start[range->section_index][range->source_offset] ||
         accepted_offset_is_interior(section, accepted_start[range->section_index],
           accepted_bytes[range->section_index], range->source_offset) ||
-        !facts_runtime_ref_targets_range_start(facts, range, &source_section_index, &source_offset)) {
+        !facts_runtime_ref_targets_range_start(decode, facts, range, &source_section_index, &source_offset)) {
       continue;
     }
     if (m68k_decode_ir_ensure_candidate_at(decode, range->section_index, range->source_offset, max_cpu,
