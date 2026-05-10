@@ -400,6 +400,27 @@ Runtime copied code should be discovered from value-flow and control-flow facts:
 copy source, destination, and length; vector stores; trap/interrupt dispatch;
 indirect jumps; and explicit metadata/policy seeds. Rendering should not guess.
 
+The copy length is part of the analysis fact, not a renderer detail. For DBCC
+loops, C should identify the loop counter from generated instruction metadata
+and use traced register values for the count. Do not assume the counter is D0
+or that the branch is immediately adjacent to the copied instruction.
+
+Example:
+
+```asm
+    lea.l copied_stub(pc),a0
+    lea.l $c0.w,a1
+    moveq #13,d7
+copy_loop:
+    move.b (a0)+,(a1)+
+    dbf d7,copy_loop
+```
+
+This proves a 14 byte copied range at `$c0`. It should not become "copy to end
+of section" just because D0 is not the counter. Carrier Command demonstrates
+this shape in the corpus; Starglider and Voodoo demonstrate larger false ranges
+that collapse when the real DBCC counter is used.
+
 ## Orphaned Code Signals
 
 Sometimes bytes left as data decode cleanly as code and contain terminal

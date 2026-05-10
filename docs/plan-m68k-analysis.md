@@ -873,6 +873,32 @@ Linkage API entry corpus evidence:
   renders the required labelled wrapper at `$14` as instructions instead of
   `dc.b`; direct source rebuild remains exact.
 
+Runtime-copy DBCC counter evidence:
+
+- C analysis now looks forward from postincrement copy instructions for a DBCC
+  loop whose generated metadata identifies the counter register and whose branch
+  target covers the copy instruction. The traced value of that register defines
+  the copied range length; this removes the old D0-only assumption for DBCC
+  loops.
+- Isolated regression:
+  `facts_v2_runtime_copy_size_uses_following_dbcc_register` uses a D3 DBCC copy
+  loop and verifies the runtime view size is 4 bytes, not the remaining section
+  size.
+- Corpus command:
+  `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_dbcc_copy_counter.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_dbcc_copy_counter.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_dbcc_copy_counter.jsonl --variants-output src\build\tmp_target_variant_index_after_dbcc_copy_counter.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_dbcc_copy_counter.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_dbcc_copy_counter.jsonl --workers 8`
+- Scope: 493 entries, 515815 xrefs, 476678 snippet rows, 322 type-flow rows.
+- Compared with `tmp_target_usage_after_linkage_api_entry.jsonl`,
+  `runtime:copied_code` increased 68 -> 70 and `runtime:view` increased
+  68 -> 70. The unresolved runtime-copy orphan queue stayed 6 rows / 6 target
+  patterns, so this is a range-quality improvement rather than an orphan queue
+  reduction.
+- Real affected targets: Carrier Command gains one copied-code runtime view and
+  renders the `$c0` copied helper bytes as instructions; Starglider collapses a
+  huge fallback copied range from 313744 bytes to 32 bytes; Voodoo Nightmare
+  tightens a copied range from 5290 bytes to 5195 bytes.
+- Regenerated checked-in source/benchmarks for Carrier Command and Starglider,
+  plus the Pandora extracted raw target benchmark after the accepted change.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 

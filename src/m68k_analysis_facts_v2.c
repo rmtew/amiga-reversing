@@ -1983,12 +1983,76 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
   }
 }
 
+static int candidate_dbcc_counter_register_for_loop(const M68kDecodeCandidate *candidate,
+    size_t section_index, uint32_t loop_member_offset, uint8_t *out_reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t target_index;
+  uint8_t reg = 0U;
+  if (candidate == NULL || out_reg == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_DBCC ||
+      metadata->source_operand_index >= candidate->operand_count ||
+      !operand_is_data_register_direct(&candidate->operands[metadata->source_operand_index], &reg)) {
+    return 0;
+  }
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH && target->has_section &&
+        target->section_index == section_index && target->offset <= loop_member_offset) {
+      *out_reg = reg;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int following_dbcc_loop_counter_register(M68kDecodeIR *decode, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, uint8_t max_cpu,
+    uint8_t *out_reg) {
+  uint32_t cursor;
+  uint32_t step;
+  if (decode == NULL || section == NULL || candidate == NULL || out_reg == NULL ||
+      candidate->byte_count == 0U || candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  cursor = candidate->offset + candidate->byte_count;
+  for (step = 0U; step < 6U && cursor < section->size && cursor - candidate->offset <= 24U; ++step) {
+    const M68kDecodeCandidate *next = NULL;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &next,
+        m68k_diag_sink(NULL)) != 0 || next == NULL || next->byte_count == 0U) {
+      return 0;
+    }
+    if (candidate_dbcc_counter_register_for_loop(next, section_index, candidate->offset, out_reg)) return 1;
+    if (!candidate_has_normal_fallthrough(next) || next->offset > UINT32_MAX - next->byte_count) return 0;
+    cursor = next->offset + next->byte_count;
+  }
+  return 0;
+}
+
+static uint32_t trace_copy_size_from_counter_register(const M68kFactsV2TraceState *state, uint8_t reg,
+    uint32_t width, uint32_t fallback_size) {
+  uint32_t count;
+  uint32_t size;
+  if (state == NULL || reg >= 8U || width == 0U || !state->d_low16_known[reg]) return fallback_size;
+  count = (uint32_t)state->d_low16[reg] + 1U;
+  if (count != 0U && count <= UINT32_MAX / width) {
+    size = count * width;
+    if (size != 0U && size < fallback_size) return size;
+  }
+  return fallback_size;
+}
+
 static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, uint32_t width,
-    uint32_t candidate_offset,
+    uint32_t candidate_offset, uint8_t has_loop_counter_reg, uint8_t loop_counter_reg,
     uint32_t fallback_size) {
   uint32_t count;
   uint32_t size;
   if (state == NULL || width == 0U) return fallback_size;
+  if (has_loop_counter_reg) return trace_copy_size_from_counter_register(state, loop_counter_reg, width, fallback_size);
   if (state->d_low16_known[0] && state->d_low16_has_origin[0] &&
       state->d_low16_origin_offset[0] < candidate_offset &&
       candidate_offset - state->d_low16_origin_offset[0] <= 8U) {
@@ -2007,14 +2071,11 @@ static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, u
   return fallback_size;
 }
 
-static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kFactIR *facts,
+static int trace_state_record_runtime_copy(M68kDecodeIR *decode, M68kRuntimeAddressSpace *space, M68kFactIR *facts,
     M68kFactsV2Profile *profile, size_t section_index, const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *state) {
-  uint8_t source_reg = 0U;
-  uint8_t dest_reg = 0U;
-  uint32_t width = 0U;
-  uint32_t fallback_size;
-  uint32_t copy_size;
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *state, uint8_t max_cpu) {
+  uint8_t source_reg = 0U, dest_reg = 0U, loop_counter_reg = 0U, has_loop_counter_reg = 0U;
+  uint32_t width = 0U, fallback_size, copy_size;
   if (space == NULL || section == NULL || candidate == NULL || state == NULL) return 0;
   if (trace_state_record_reglist_runtime_copy(space, facts, profile, section_index, section, candidate,
       state) != 0) {
@@ -2039,7 +2100,10 @@ static int trace_state_record_runtime_copy(M68kRuntimeAddressSpace *space, M68kF
     return 0;
   }
   fallback_size = section->size - state->a[source_reg].value;
-  copy_size = trace_copy_size_from_state(state, width, candidate->offset, fallback_size);
+  has_loop_counter_reg = following_dbcc_loop_counter_register(decode, section_index, section, candidate, max_cpu,
+    &loop_counter_reg) ? 1U : 0U;
+  copy_size = trace_copy_size_from_state(state, width, candidate->offset, has_loop_counter_reg, loop_counter_reg,
+    fallback_size);
   if (copy_size > fallback_size) copy_size = fallback_size;
   return runtime_address_space_add(space, section_index, state->a[source_reg].value,
     state->a[dest_reg].value, copy_size, M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY,
@@ -6754,8 +6818,8 @@ static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, 
     if (candidate == NULL) return 0;
     candidate_copy = *candidate;
     candidate = &candidate_copy;
-    if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, section_index, section, candidate,
-        &state) != 0) {
+    if (trace_state_record_runtime_copy(decode, runtime_addresses, facts, profile, section_index, section, candidate,
+        &state, max_cpu) != 0) {
       return -1;
     }
     if (trace_state_record_runtime_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
@@ -6893,8 +6957,8 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     ++accepted_count;
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_accept_seconds,
       phase_start);
-    if (trace_state_record_runtime_copy(runtime_addresses, facts, profile, item.section_index, section, candidate,
-        &item.trace_state) != 0)
+    if (trace_state_record_runtime_copy(decode, runtime_addresses, facts, profile, item.section_index, section,
+        candidate, &item.trace_state, max_cpu) != 0)
     {
       m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "reachable fixed point runtime-copy recording failed at %u:%08X", (unsigned)item.section_index,
