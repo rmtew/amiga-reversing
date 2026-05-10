@@ -319,6 +319,14 @@ measurements and test names here, not in the index table.
   classified from ids/flags.
 - Corpus missing-inbound work queues are emitted only from status-gated
   unresolved signal records.
+- Missing-inbound work queues are emitted only for actionable inbound classes:
+  jump table, callback, vector, runtime copy, API, and metadata. Unknown or
+  policy-seed inbound ids remain orphan-signal context and do not create
+  target-pattern queues.
+- Corpus manifest `tmp_target_usage_after_orphan_actionable_inbound_gate.jsonl`
+  changed `orphan-code:missing_inbound:unknown` 875 -> 0 while preserving
+  `orphan-code:signal` at 899 and `table:candidate_unresolved` at 0. Type-flow
+  check stayed clean with `ok: true` and 0 violations.
 - Current target-pattern queues remain API and metadata. Callback,
   runtime-copy, jump-table, and vector examples are either promoted from real
   flow evidence or kept as context without becoming missing-inbound work items.

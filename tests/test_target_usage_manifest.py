@@ -337,17 +337,43 @@ def test_orphan_missing_inbound_uses_status_id_for_actionable_queue() -> None:
                         "missing_inbound_id": 6,
                         "terminal_flow_kind": 5,
                     },
+                    {
+                        "offset": 0xC0,
+                        "size": 6,
+                        "reason_id": 1,
+                        "status_id": ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED,
+                        "missing_inbound_id": 1,
+                        "terminal_flow_kind": 5,
+                    },
+                    {
+                        "offset": 0x100,
+                        "size": 6,
+                        "reason_id": 1,
+                        "status_id": ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED,
+                        "missing_inbound_id": 8,
+                        "terminal_flow_kind": 5,
+                    },
                 ],
             }
         ],
-        "orphan_code_signal_count": 2,
+        "orphan_code_signal_count": 4,
     }
     bag = FeatureBag()
     _add_analysis_features(analysis, bag)
     counts, _examples, tags = bag.row_features()
 
     assert counts["orphan-code:missing_inbound:api"] == 1
+    assert "orphan-code:missing_inbound:unknown" not in counts
+    assert "orphan-code:missing_inbound:policy_seed" not in counts
     assert "target-pattern:orphan_missing_api" in tags
+    assert "target-pattern:orphan_missing_unknown" not in tags
+    assert "target-pattern:orphan_missing_policy_seed" not in tags
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    features = {xref["feature"] for xref in _analysis_xrefs(row, analysis, {})}
+    assert "orphan-code:missing_inbound:api" in features
+    assert "orphan-code:missing_inbound:unknown" not in features
+    assert "orphan-code:missing_inbound:policy_seed" not in features
 
 
 def test_direct_control_stub_table_feature_and_xref() -> None:

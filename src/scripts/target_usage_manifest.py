@@ -1746,6 +1746,7 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
     instruction_count = _int_value(signal.get("instruction_count"))
     decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
     context = _orphan_code_signal_context_name(signal)
+    missing_inbound_id = _int_value(signal.get("missing_inbound_id"), 0) or 0
     missing_inbound = _orphan_code_signal_inbound_name(signal)
     nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
     nearby_data_relation = _orphan_code_signal_nearby_data_relation_name(signal)
@@ -1767,7 +1768,7 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
         bag.add("orphan-code:decode_conflict", example=example)
     if context:
         bag.add(f"orphan-code:context:{_safe_part(context)}", example=example)
-    if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id):
+    if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id, missing_inbound_id):
         bag.add(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}", example=example)
     if nearby_data_class:
         bag.add(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}", example=example)
@@ -1813,8 +1814,14 @@ def _orphan_code_signal_status_name(signal: dict[str, Any]) -> str:
     return ORPHAN_CODE_SIGNAL_STATUS_NAMES.get(_int_value(signal.get("status_id"), 0) or 0, "unknown")
 
 
-def _orphan_code_signal_has_actionable_missing_inbound(status_id: int) -> bool:
-    return status_id == ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED
+ORPHAN_CODE_SIGNAL_ACTIONABLE_INBOUND_IDS = frozenset({2, 3, 4, 5, 6, 7})
+
+
+def _orphan_code_signal_has_actionable_missing_inbound(status_id: int, missing_inbound_id: int) -> bool:
+    return (
+        status_id == ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED
+        and missing_inbound_id in ORPHAN_CODE_SIGNAL_ACTIONABLE_INBOUND_IDS
+    )
 
 
 def _orphan_code_signal_terminal_flow_name(signal: dict[str, Any]) -> str | None:
@@ -4388,6 +4395,7 @@ def _analysis_xrefs(
             instruction_count = _int_value(signal.get("instruction_count"))
             decode_conflict_count = _int_value(signal.get("decode_conflict_count"))
             context = _orphan_code_signal_context_name(signal)
+            missing_inbound_id = _int_value(signal.get("missing_inbound_id"), 0) or 0
             missing_inbound = _orphan_code_signal_inbound_name(signal)
             nearby_data_class = _orphan_code_signal_nearby_data_name(signal)
             nearby_data_relation = _orphan_code_signal_nearby_data_relation_name(signal)
@@ -4412,7 +4420,7 @@ def _analysis_xrefs(
                 features.append("orphan-code:decode_conflict")
             if context:
                 features.append(f"orphan-code:context:{_safe_part(context)}")
-            if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id):
+            if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id, missing_inbound_id):
                 features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
             if nearby_data_class:
                 features.append(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}")
