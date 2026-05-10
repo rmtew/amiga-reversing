@@ -4104,6 +4104,99 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertEqual(gate["ok"], True)
         self.assertEqual(gate["correctness"]["applied_refinement_count"], 2)
 
+    def test_type_flow_gate_accepts_many_refinements_to_one_typed_access(self) -> None:
+        type_flow_rows = [
+            {
+                "target_id": "demo",
+                "counts": {
+                    "resolved_typed_access": 1,
+                    "type_refinement_applied": 2,
+                    "resolved_after_type_refinement": 2,
+                },
+            }
+        ]
+        xrefs = [
+            {
+                "target_id": "demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "classification_id": 1,
+                "classification": "prefix_extension",
+                "container_field_expr": "pr_CLI",
+                "refined_struct_name": "Process",
+                "row_index": 10,
+            },
+            {
+                "target_id": "demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "classification_id": 1,
+                "classification": "prefix_extension",
+                "container_field_expr": "pr_WindowPtr",
+                "refined_struct_name": "Process",
+                "row_index": 20,
+            },
+            {
+                "target_id": "demo",
+                "feature": "platform_typed_access:any",
+                "kind": "platform_typed_access",
+                "symbol": "pr_WindowPtr",
+                "row_index": 30,
+            },
+            {
+                "target_id": "demo",
+                "feature": "platform_typed_access_struct:Process",
+                "kind": "platform_typed_access",
+                "symbol": "Process",
+                "row_index": 30,
+            },
+        ]
+
+        xrefs = _with_generated_xref_ids(xrefs)
+        gate = usage.build_type_flow_gate_report(type_flow_rows, [], xrefs)
+
+        self.assertEqual(gate["ok"], True)
+
+    def test_type_flow_gate_rejects_refinement_resolution_without_typed_access_row(self) -> None:
+        type_flow_rows = [
+            {
+                "target_id": "demo",
+                "counts": {
+                    "resolved_typed_access": 0,
+                    "type_refinement_applied": 1,
+                    "resolved_after_type_refinement": 1,
+                },
+            }
+        ]
+        xrefs = [
+            {
+                "target_id": "demo",
+                "feature": "platform_type_refinement:applied",
+                "kind": "platform_type_refinement",
+                "classification_id": 1,
+                "classification": "prefix_extension",
+                "container_field_expr": "pr_CLI",
+                "refined_struct_name": "Process",
+                "row_index": 10,
+            },
+            {
+                "target_id": "demo",
+                "feature": "platform_typed_access_struct:Process",
+                "kind": "platform_typed_access",
+                "symbol": "Process",
+                "row_index": 30,
+            },
+        ]
+
+        xrefs = _with_generated_xref_ids(xrefs)
+        gate = usage.build_type_flow_gate_report(type_flow_rows, [], xrefs)
+
+        self.assertEqual(gate["ok"], False)
+        self.assertEqual(
+            gate["correctness"]["violations"][0]["kind"],
+            "resolved_after_refinement_without_resolved_typed_access",
+        )
+
     def test_type_flow_check_cli_fails_on_correctness_violation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmpdir = Path(tmp)

@@ -139,6 +139,16 @@ measurements and test names here, not in the index table.
   argument reasons.
 - Coverage includes `test_source_analysis_platform_typed_access_conflicts_with_non_app_layout`
   and manifest fixture coverage for id-backed type-flow report/gate paths.
+- Generated zero-offset embedded struct fields now participate in prefix
+  refinement when generated base-table evidence has no candidate. This keeps
+  C analysis authoritative for cases such as `FindTask` returning `TC_Struct`
+  while later `Process` tail fields prove the wider container. Coverage:
+  `facts_v2_analysis_refines_zero_offset_embedded_struct_prefix`.
+- The type-flow gate accepts many prior refinements resolving to one later typed
+  access, but still rejects a resolved-after-refinement claim when the later row
+  lacks a concrete `platform_typed_access:any` xref. Coverage:
+  `test_type_flow_gate_accepts_many_refinements_to_one_typed_access` and
+  `test_type_flow_gate_rejects_refinement_resolution_without_typed_access_row`.
 - Temporary full usage rebuilds found 231 resolved and 248 unresolved typed
   memory-layout records, 2,163 owner-range examples, 3,584 owner-range xrefs,
   no current corpus `conflicted` typed owner-range rows, 36,989 xrefs with kind
@@ -1052,6 +1062,25 @@ Runtime-view orphan-context corpus evidence:
 - Type-flow check:
   `python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_runtime_view_orphan_context.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_runtime_view_orphan_context.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_runtime_view_orphan_context.jsonl --output src\build\tmp_type_flow_check_after_runtime_view_orphan_context.json`
   reported `ok: true` and `violation_count: 0`.
+
+Zero-offset embedded struct prefix-refinement corpus evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_zero_offset_prefix_struct.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_zero_offset_prefix_struct.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_zero_offset_prefix_struct.jsonl --variants-output src\build\tmp_target_variant_index_after_zero_offset_prefix_struct.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_zero_offset_prefix_struct.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_zero_offset_prefix_struct.jsonl --workers 8`
+- Scope: 493 entries, 491480 xrefs, 464176 snippet rows, 320 type-flow rows,
+  39 unresolved typed-field rows.
+- Compared with `tmp_target_usage_after_runtime_view_orphan_context`, Process
+  prefix refinements rose 0 -> 126, Process prefix candidates rose 0 -> 126,
+  typed accesses rose 1742 -> 2045, unresolved typed-field report rows dropped
+  43 -> 39, and orphan/table counts stayed unchanged
+  (`orphan-code:signal` 902 -> 902,
+  `analysis:pointer_table:long_label_entries` 6908 -> 6908).
+- Real comparator evidence includes Carrier Command `c/More`, Search for the
+  King, and matching platform-file manifest rows. These show `TC_Struct`
+  pointers refined to `Process` and later rendered as fields such as `pr_CLI`
+  and `pr_WindowPtr`.
+- Type-flow check:
+  `python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_zero_offset_prefix_struct.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_zero_offset_prefix_struct.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_zero_offset_prefix_struct.jsonl --output src\build\tmp_type_flow_check_after_zero_offset_prefix_struct.json`
+  reported `ok: true`, `violation_count: 0`, and 145 applied refinements.
 
 ## Design Update Rule
 

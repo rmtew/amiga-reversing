@@ -8557,19 +8557,49 @@ def build_type_flow_correctness_report(
                             "text": xref.get("text"),
                         }
                 )
-    for row in type_flow_rows:
-        counts = row.get("counts") if isinstance(row.get("counts"), dict) else {}
-        resolved_after = _int_value(counts.get("resolved_after_type_refinement"), 0) or 0
-        resolved = _int_value(counts.get("resolved_typed_access"), 0) or 0
-        if resolved_after > resolved:
-            violations.append(
-                {
-                    "kind": "resolved_after_refinement_exceeds_resolved_typed_access",
-                    "target_id": row.get("target_id"),
-                    "resolved_after_type_refinement": resolved_after,
-                    "resolved_typed_access": resolved,
-                }
-            )
+    typed_any_rows: set[tuple[str, int]] = set()
+    typed_structs_by_target: dict[str, list[dict[str, Any]]] = {}
+    refinements_by_target: dict[str, list[dict[str, Any]]] = {}
+    for xref in xrefs:
+        target_id = _string_value(xref.get("target_id"))
+        row_index = _int_value(xref.get("row_index"))
+        if target_id is None or row_index is None:
+            continue
+        kind_id = _xref_kind_id(xref)
+        feature_id = _xref_feature_id(xref)
+        if kind_id == XREF_KIND_PLATFORM_TYPED_ACCESS and feature_id == XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY:
+            typed_any_rows.add((target_id, row_index))
+        if _xref_feature_class_id(xref) == XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT:
+            typed_structs_by_target.setdefault(target_id, []).append(xref)
+        elif (
+            kind_id == XREF_KIND_PLATFORM_TYPE_REFINEMENT
+            and feature_id == XREF_FEATURE_PLATFORM_TYPE_REFINEMENT_APPLIED
+        ):
+            refinements_by_target.setdefault(target_id, []).append(xref)
+    for target_id, refinements in refinements_by_target.items():
+        typed_structs = typed_structs_by_target.get(target_id, [])
+        for refinement in refinements:
+            refined_struct = _string_value(refinement.get("refined_struct_name")) or _string_value(refinement.get("symbol"))
+            refinement_row = _int_value(refinement.get("row_index"))
+            if refined_struct is None or refinement_row is None:
+                continue
+            for access in typed_structs:
+                access_row = _int_value(access.get("row_index"))
+                if access_row is None or access_row <= refinement_row or _string_value(access.get("symbol")) != refined_struct:
+                    continue
+                if (target_id, access_row) not in typed_any_rows:
+                    violations.append(
+                        {
+                            "kind": "resolved_after_refinement_without_resolved_typed_access",
+                            "target_id": target_id,
+                            "refinement_row_index": refinement_row,
+                            "row_index": access_row,
+                            "refined_struct_name": refined_struct,
+                            "refinement_text": refinement.get("text"),
+                            "text": access.get("text"),
+                        }
+                    )
+                break
     return {
         "schema_version": 1,
         "ok": not violations,

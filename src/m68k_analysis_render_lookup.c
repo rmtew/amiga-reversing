@@ -1259,16 +1259,39 @@ static uint16_t amiga_struct_size_for_struct_id(uint16_t struct_id) {
   return max_end > UINT16_MAX ? UINT16_MAX : (uint16_t)max_end;
 }
 
-static int amiga_struct_base_chain_contains(uint16_t struct_id, uint16_t base_struct_id) {
+static uint16_t amiga_struct_zero_offset_prefix_field_struct_id(uint16_t struct_id) {
+  size_t index;
+  if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return AMIGA_OS_STRUCT_ID_NONE;
+  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
+    const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
+    uint16_t nested_struct_id;
+    if (field == NULL || field->struct_id != struct_id || field->offset != 0 || field->size == 0U)
+      continue;
+    nested_struct_id = amiga_os_struct_id_from_type_id(field->nested_type_id);
+    if (nested_struct_id == AMIGA_OS_STRUCT_ID_NONE)
+      nested_struct_id = amiga_os_struct_id_from_type_id(field->field_type_id);
+    if (nested_struct_id != AMIGA_OS_STRUCT_ID_NONE && nested_struct_id != struct_id)
+      return nested_struct_id;
+  }
+  return AMIGA_OS_STRUCT_ID_NONE;
+}
+
+static int amiga_struct_prefix_chain_contains(uint16_t struct_id, uint16_t prefix_struct_id) {
   uint16_t current_struct_id = struct_id;
   size_t guard;
-  if (struct_id == AMIGA_OS_STRUCT_ID_NONE || base_struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
-  if (struct_id == base_struct_id) return 0;
-  for (guard = 0U; guard < AMIGA_OS_STRUCT_BASE_COUNT + 1U; ++guard) {
+  if (struct_id == AMIGA_OS_STRUCT_ID_NONE || prefix_struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
+  if (struct_id == prefix_struct_id) return 0;
+  for (guard = 0U; guard < AMIGA_OS_STRUCT_BASE_COUNT + AMIGA_OS_STRUCT_FIELD_COUNT + 1U; ++guard) {
     const AmigaOsStructBaseInfo *base = amiga_os_find_struct_base_by_struct_id(current_struct_id);
-    if (base == NULL || base->base_struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
-    if (base->base_struct_id == base_struct_id) return 1;
-    current_struct_id = base->base_struct_id;
+    uint16_t next_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+    if (base != NULL && base->base_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+      next_struct_id = base->base_struct_id;
+    } else {
+      next_struct_id = amiga_struct_zero_offset_prefix_field_struct_id(current_struct_id);
+    }
+    if (next_struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
+    if (next_struct_id == prefix_struct_id) return 1;
+    current_struct_id = next_struct_id;
   }
   return 0;
 }
@@ -1277,8 +1300,8 @@ static uint16_t typed_struct_id_common_merge(uint16_t left_struct_id, uint16_t r
   if (left_struct_id == right_struct_id) return left_struct_id;
   if (left_struct_id == AMIGA_OS_STRUCT_ID_NONE || right_struct_id == AMIGA_OS_STRUCT_ID_NONE)
     return AMIGA_OS_STRUCT_ID_NONE;
-  if (amiga_struct_base_chain_contains(left_struct_id, right_struct_id)) return right_struct_id;
-  if (amiga_struct_base_chain_contains(right_struct_id, left_struct_id)) return left_struct_id;
+  if (amiga_struct_prefix_chain_contains(left_struct_id, right_struct_id)) return right_struct_id;
+  if (amiga_struct_prefix_chain_contains(right_struct_id, left_struct_id)) return left_struct_id;
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
@@ -1288,8 +1311,8 @@ static uint16_t typed_struct_id_refined_merge(uint16_t existing_struct_id, uint1
   if (existing_struct_id == AMIGA_OS_STRUCT_ID_NONE) return candidate_struct_id;
   if (candidate_struct_id == AMIGA_OS_STRUCT_ID_NONE || existing_struct_id == candidate_struct_id)
     return existing_struct_id;
-  if (amiga_struct_base_chain_contains(candidate_struct_id, existing_struct_id)) return candidate_struct_id;
-  if (amiga_struct_base_chain_contains(existing_struct_id, candidate_struct_id)) return existing_struct_id;
+  if (amiga_struct_prefix_chain_contains(candidate_struct_id, existing_struct_id)) return candidate_struct_id;
+  if (amiga_struct_prefix_chain_contains(existing_struct_id, candidate_struct_id)) return existing_struct_id;
   if (out_conflict != NULL) *out_conflict = 1;
   return AMIGA_OS_STRUCT_ID_NONE;
 }
@@ -1316,12 +1339,49 @@ static uint16_t typed_struct_id_common_nonroot_merge(uint16_t current_struct_id,
   return merged;
 }
 
+static void classify_unresolved_typed_access_add_prefix_candidate(uint16_t root_struct_id,
+    uint16_t candidate_struct_id, int16_t displacement, uint8_t access_size, uint16_t *candidate_ids,
+    size_t *io_candidate_id_count, uint32_t *io_candidate_count, uint32_t *io_exact_size_candidate_count,
+    uint16_t *io_unique_container_struct_id, uint16_t *io_exact_size_common_struct_id,
+    uint8_t *io_exact_size_conflicted) {
+  AmigaOsResolvedStructFieldInfo resolved;
+  uint16_t candidate_size;
+  size_t index;
+  if (candidate_struct_id == AMIGA_OS_STRUCT_ID_NONE || candidate_struct_id == root_struct_id ||
+      !amiga_struct_prefix_chain_contains(candidate_struct_id, root_struct_id)) {
+    return;
+  }
+  candidate_size = amiga_struct_size_for_struct_id(candidate_struct_id);
+  if (candidate_size == 0U || (int32_t)displacement >= (int32_t)candidate_size) return;
+  for (index = 0U; index < *io_candidate_id_count; ++index) {
+    if (candidate_ids[index] == candidate_struct_id) return;
+  }
+  if (*io_candidate_id_count < 64U) candidate_ids[(*io_candidate_id_count)++] = candidate_struct_id;
+  ++*io_candidate_count;
+  *io_unique_container_struct_id =
+    *io_candidate_count == 1U ? candidate_struct_id : AMIGA_OS_STRUCT_ID_NONE;
+  if (access_size != 0U &&
+      amiga_os_resolve_struct_field_by_struct_id(candidate_struct_id, displacement, 0, &resolved) &&
+      resolved.offset == displacement && resolved.size == access_size) {
+    char exact_field_expr[96];
+    if (!amiga_os_resolve_struct_field_symbol_expr_by_struct_id(candidate_struct_id, displacement, 0,
+        exact_field_expr, sizeof(exact_field_expr))) {
+      return;
+    }
+    ++*io_exact_size_candidate_count;
+    *io_exact_size_common_struct_id = typed_struct_id_common_nonroot_merge(*io_exact_size_common_struct_id,
+      candidate_struct_id, root_struct_id, io_exact_size_conflicted);
+  }
+}
+
 static void classify_unresolved_typed_access(uint16_t root_struct_id, int16_t displacement, uint16_t struct_size,
     uint8_t access_size, uint8_t *out_classification, uint16_t *out_candidate_count, char *out_container_struct_name,
     size_t container_struct_name_size, char *out_container_field_expr, size_t container_field_expr_size,
     uint16_t *out_container_struct_id) {
   uint32_t candidate_count = 0U, exact_size_candidate_count = 0U;
   uint16_t unique_container_struct_id = AMIGA_OS_STRUCT_ID_NONE, exact_size_common_struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  uint16_t candidate_ids[64];
+  size_t candidate_id_count = 0U;
   uint8_t exact_size_conflicted = 0U;
   int32_t displacement32 = (int32_t)displacement;
   size_t index;
@@ -1339,25 +1399,26 @@ static void classify_unresolved_typed_access(uint16_t root_struct_id, int16_t di
   if (struct_size == 0U || displacement32 < (int32_t)struct_size || displacement32 < 0) return;
   for (index = 0U; index < AMIGA_OS_STRUCT_BASE_COUNT; ++index) {
     const AmigaOsStructBaseInfo *base = amiga_os_struct_base_at(index);
-    AmigaOsResolvedStructFieldInfo resolved;
-    uint16_t candidate_size;
     if (base == NULL || base->struct_id == root_struct_id) continue;
-    if (!amiga_struct_base_chain_contains(base->struct_id, root_struct_id)) continue;
-    candidate_size = amiga_struct_size_for_struct_id(base->struct_id);
-    if (candidate_size == 0U || displacement32 >= (int32_t)candidate_size) continue;
-    ++candidate_count;
-    unique_container_struct_id = candidate_count == 1U ? base->struct_id : AMIGA_OS_STRUCT_ID_NONE;
-    if (access_size != 0U &&
-        amiga_os_resolve_struct_field_by_struct_id(base->struct_id, displacement, 0, &resolved) &&
-        resolved.offset == displacement && resolved.size == access_size) {
-      char exact_field_expr[96];
-      if (!amiga_os_resolve_struct_field_symbol_expr_by_struct_id(base->struct_id, displacement, 0,
-          exact_field_expr, sizeof(exact_field_expr))) {
+    classify_unresolved_typed_access_add_prefix_candidate(root_struct_id, base->struct_id, displacement,
+      access_size, candidate_ids, &candidate_id_count, &candidate_count, &exact_size_candidate_count,
+      &unique_container_struct_id, &exact_size_common_struct_id, &exact_size_conflicted);
+  }
+  if (candidate_count == 0U) {
+    for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
+      const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
+      uint16_t nested_struct_id;
+      if (field == NULL || field->offset != 0 || field->size == 0U || field->struct_id == root_struct_id)
         continue;
-      }
-      ++exact_size_candidate_count;
-      exact_size_common_struct_id = typed_struct_id_common_nonroot_merge(exact_size_common_struct_id,
-        base->struct_id, root_struct_id, &exact_size_conflicted);
+      nested_struct_id = amiga_os_struct_id_from_type_id(field->nested_type_id);
+      if (nested_struct_id == AMIGA_OS_STRUCT_ID_NONE)
+        nested_struct_id = amiga_os_struct_id_from_type_id(field->field_type_id);
+      if (nested_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+      if (nested_struct_id != root_struct_id && !amiga_struct_prefix_chain_contains(nested_struct_id, root_struct_id))
+        continue;
+      classify_unresolved_typed_access_add_prefix_candidate(root_struct_id, field->struct_id, displacement,
+        access_size, candidate_ids, &candidate_id_count, &candidate_count, &exact_size_candidate_count,
+        &unique_container_struct_id, &exact_size_common_struct_id, &exact_size_conflicted);
     }
   }
   if (candidate_count == 0U) return;
@@ -1454,7 +1515,7 @@ static int typed_stored_value_promote_struct(M68kRenderTypedStoredValue *value, 
     uint16_t refined_struct_id) {
   if (value == NULL || root_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
       refined_struct_id == AMIGA_OS_STRUCT_ID_NONE || value->struct_id != root_struct_id ||
-      !amiga_struct_base_chain_contains(refined_struct_id, root_struct_id)) {
+      !amiga_struct_prefix_chain_contains(refined_struct_id, root_struct_id)) {
     return 0;
   }
   value->struct_id = refined_struct_id;
@@ -1536,7 +1597,7 @@ static int typed_state_refine_address_reg_from_prefix(M68kRenderLookup *lookup, 
   if (state == NULL || reg_index >= 8U || root_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
       refined_struct_id == AMIGA_OS_STRUCT_ID_NONE || !state->addr_regs[reg_index].known ||
       state->addr_regs[reg_index].struct_id != root_struct_id ||
-      !amiga_struct_base_chain_contains(refined_struct_id, root_struct_id)) {
+      !amiga_struct_prefix_chain_contains(refined_struct_id, root_struct_id)) {
     return 0;
   }
   if (typed_state_promote_origin_struct(lookup, state, &state->addr_regs[reg_index].origin, root_struct_id,
@@ -1725,7 +1786,7 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_
     }
     if (state->addr_regs[input->reg_index].known &&
         state->addr_regs[input->reg_index].struct_id != input->struct_id &&
-        amiga_struct_base_chain_contains(input->struct_id, state->addr_regs[input->reg_index].struct_id)) {
+        amiga_struct_prefix_chain_contains(input->struct_id, state->addr_regs[input->reg_index].struct_id)) {
       int refined = 0;
       uint16_t root_struct_id = state->addr_regs[input->reg_index].struct_id;
       M68kRenderTypedRegValue input_value = state->addr_regs[input->reg_index];
