@@ -3463,6 +3463,32 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
     assert not any(site.get("target") == 0x78 for site in section["recovered_indirect_sites"])
 
 
+def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> None:
+    _requires_c_backend_dlls()
+    target_name = "amiga_disk_starglider-1987-rainbird__amiga_hunk_libs__mathieeedoubbas.library_3d4e4903"
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    combined = _facts_v2_listing_analysis_for_project(target_name)
+    section = combined["analysis"]["sections"][0]
+
+    assert source_profile["facts_v2"]["asm_source_refused"] is False
+    assert "DPTst:\n\tmove.l d0,d1\n\tclr.l d0\n\tjsr fptrap.l" in source_text
+    assert "dtst_1:\n\tsubq.l #1,d0\n\trts\n" in source_text
+    assert "dtst_2:\n\taddq.l #1,d0\n\trts\n" in source_text
+    assert "\tdc.b $22,$00,$42,$80,$4E,$B9" not in source_text
+    assert any(
+        ref.get("offset") == 0x236
+        and ref.get("reason_name") == "control_target"
+        and ref.get("source_offset") == 0x2D0
+        for ref in section["code_start_refs"]
+    )
+    assert not any(0x230 <= signal.get("offset", 0) <= 0x250 for signal in section["orphan_code_signals"])
+
+
 def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT, require_entities=False)

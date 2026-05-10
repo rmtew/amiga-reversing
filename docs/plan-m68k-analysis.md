@@ -1650,6 +1650,23 @@ undocumented renderer heuristics.
   Bloodwych; Bloodwych hardware owners rose 86 -> 88 and runtime-range owners
   rose 1125 -> 1126. Orphan signal counts stayed 913 corpus-wide and 6 in
   Bloodwych, proving this is classification, not hidden code promotion.
+- Shared indirect-control stubs now keep provenance-distinct trace variants
+  through the accepted stub body. This covers wrappers that load different
+  address-register targets and branch to one common helper that later performs
+  `jsr (aN)` or `jmp (aN)`. C analysis owns the variant queueing and replay;
+  rendering only consumes the resulting code-start facts. Isolated coverage:
+  `facts_v2_replays_common_indirect_stub_trace_variants`. Real coverage:
+  `test_real_dll_starglider_replays_common_indirect_stub_trace_variants`.
+  Corpus manifest after the change:
+  `src\build\tmp_target_usage_after_trace_variant_replay.jsonl` produced 493
+  entries, 528717 xrefs, 485079 snippet rows, 3 variants, 322 type-flow rows,
+  and 23 unresolved typed-field rows. Compared with
+  `tmp_target_usage_after_trace_variants`, `orphan-code:signal` dropped
+  907 -> 899 and `orphan-code:missing_inbound:metadata` dropped 6 -> 2.
+  Starglider `libs/mathieeedoubbas.library` dropped orphan signals 2 -> 0;
+  the comparable Starglider `mathtrans.library` rows also dropped 2 signals.
+  Type-flow check passed with `ok: true`, 4 applied refinements, and 0
+  violations.
 
 ## Regression and Acceptance Checklist
 
