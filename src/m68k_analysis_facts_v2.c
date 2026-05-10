@@ -4875,13 +4875,21 @@ static void recovered_indirect_site_apply_direct_stub_table_bounds(M68kDecodeIR 
     }
     if (candidate == NULL) {
       if (entry_count == 0U) {
+        site->has_table_bounds = 1U;
         site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNDECODED_ENTRY;
+        site->table_entry_size = 0U;
+        site->table_entry_count = 0U;
+        site->table_size = 0U;
       }
       break;
     }
     if (!candidate_is_nonfallthrough_stub_entry(section, candidate, &target_kind, &target_offset)) {
       if (entry_count == 0U) {
+        site->has_table_bounds = 1U;
         site->table_bounds_status = M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE;
+        site->table_entry_size = candidate->byte_count;
+        site->table_entry_count = 1U;
+        site->table_size = candidate->byte_count;
       }
       break;
     }

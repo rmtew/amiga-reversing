@@ -3864,13 +3864,17 @@ static int test_facts_v2_records_unsupported_indirect_table_entry_shape(void) {
   M68K_C_ASSERT_U32(1U, site->has_expression_base);
   M68K_C_ASSERT_U32(6U, site->expression_base_offset);
   M68K_C_ASSERT_U32(1U, site->has_table_base);
-  M68K_C_ASSERT_U32(0U, site->has_table_bounds);
+  M68K_C_ASSERT_U32(1U, site->has_table_bounds);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_REJECTED_UNSUPPORTED_ENTRY_SHAPE,
     site->table_bounds_status);
   M68K_C_ASSERT_U32(6U, site->table_offset);
+  M68K_C_ASSERT_U32(2U, site->table_size);
+  M68K_C_ASSERT_U32(2U, site->table_entry_size);
+  M68K_C_ASSERT_U32(1U, site->table_entry_count);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"has_table_base\":true,\"table_offset\":6,\"table_size\":null") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_offset\":6,\"table_size\":2,\"table_entry_size\":2,\"table_entry_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_bounds_status_id\":4,\"table_bounds_status\":\"rejected_unsupported_entry_shape\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);

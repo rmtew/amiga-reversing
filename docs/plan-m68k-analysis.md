@@ -987,7 +987,9 @@ undocumented renderer heuristics.
   them.
 - Table candidate records now include rejected direct-stub bounds when the
   control operand proves the table base and the bounded scan is too weak to
-  promote. Broader rejected-bound classes remain open.
+  promote. First-entry unsupported/undecoded direct-stub candidates now also
+  carry explicit rejected bounds, so rejected-bound classes feed one candidate
+  model instead of relying on status-only partial records.
 - Bloodwych contains many already-rendered relative lookup tables; those are a
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.
