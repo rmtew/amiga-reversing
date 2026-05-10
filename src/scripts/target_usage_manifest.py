@@ -108,6 +108,8 @@ LISTING_ROW_KIND_INSTRUCTION = 3
 LISTING_ROW_KIND_DATA = 4
 LISTING_ROW_KIND_BLANK = 5
 LISTING_ROW_KIND_COMMENT = 6
+CODE_START_REASON_CONTROL_TARGET = 4
+CODE_START_REASON_PLATFORM_LOADSEG_ENTRY = 9
 CONFLICT_STATE_CLEAN = 0
 CONFLICT_STATE_CODE_OVERLAP = 1
 CONFLICT_STATE_UNRESOLVED = 2
@@ -2895,7 +2897,7 @@ def _listing_row_direct_control_stub_features(row: dict[str, object]) -> tuple[s
     refs = row.get("code_start_refs")
     if not isinstance(refs, list):
         return ()
-    if not any(isinstance(ref, dict) and ref.get("reason_name") == "control_target" for ref in refs):
+    if not any(isinstance(ref, dict) and ref.get("reason") == CODE_START_REASON_CONTROL_TARGET for ref in refs):
         return ()
     if mnemonic == "bra":
         return ("analysis:direct_control_stub_table",)
@@ -2916,8 +2918,8 @@ def _listing_code_start_reason_features(row: dict[str, object]) -> tuple[str, ..
     for ref in refs:
         if not isinstance(ref, dict):
             continue
-        reason = _string_value(ref.get("reason_name"))
-        if reason == "platform_loadseg_entry":
+        reason = _int_value(ref.get("reason"), 0) or 0
+        if reason == CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
             features.append("analysis:platform_loadseg_entry")
             features.append("target-pattern:platform_loadseg_entry")
     return tuple(dict.fromkeys(features))

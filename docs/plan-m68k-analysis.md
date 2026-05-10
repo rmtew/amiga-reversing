@@ -85,7 +85,9 @@ concrete OS API features, so stale kind display text does not affect API-output
 provenance. Type-flow numeric-access reports now also carry compact cause ids
 and propagation-chain kind ids; report branching for app-slot substructure and
 API-output storage gaps uses those ids, while cause/chain strings remain display
-and grouping names.
+and grouping names. Corpus indexing for code-start-derived direct control stubs
+and Amiga LoadSeg entries now uses numeric code-start reason ids rather than
+`reason_name` display strings.
 
 Round-trip source reproduction is a quality gate for retained rendered-source
 updates. When regenerated target `.s` files are committed as evidence, the same

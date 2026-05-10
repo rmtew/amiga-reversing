@@ -1,4 +1,6 @@
 from src.scripts.target_usage_manifest import (
+    CODE_START_REASON_CONTROL_TARGET,
+    CODE_START_REASON_PLATFORM_LOADSEG_ENTRY,
     FeatureBag,
     _add_analysis_features,
     _add_listing_features,
@@ -326,7 +328,7 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
                 "opcode_or_directive": "bra.w",
                 "operand_accesses": ["branch_target"],
                 "operand_parts": [{"kind": "symbol", "text": "loc_0_0000021E"}],
-                "code_start_refs": [{"reason_name": "control_target"}],
+                "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
             },
             {"kind": "label", "kind_id": 2, "section_index": 0, "start_offset": 0x16E, "end_offset": 0x16E, "text": "loc:\n"},
             {
@@ -340,7 +342,7 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
                 "opcode_or_directive": "bra.w",
                 "operand_accesses": ["branch_target"],
                 "operand_parts": [{"kind": "symbol", "text": "loc_0_00000254"}],
-                "code_start_refs": [{"reason_name": "control_target"}],
+                "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
             },
         ]
     }
@@ -368,7 +370,7 @@ def test_platform_loadseg_code_start_feature_and_xref() -> None:
                 "end_offset": 2,
                 "stable_key": "loadseg-entry",
                 "text": "\tmoveq.l #0,d5\n",
-                "code_start_refs": [{"reason_name": "platform_loadseg_entry"}],
+                "code_start_refs": [{"reason": CODE_START_REASON_PLATFORM_LOADSEG_ENTRY}],
             }
         ]
     }
@@ -402,7 +404,7 @@ def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
                 "opcode_or_directive": "jmp",
                 "operand_accesses": ["branch_target"],
                 "operand_parts": [{"kind": "symbol", "text": "loc_4_0000002C"}],
-                "code_start_refs": [{"reason_name": "control_target"}],
+                "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
             },
             {"kind": "label", "kind_id": 2, "section_index": 1, "start_offset": 0x1FEE, "end_offset": 0x1FEE, "text": "loc:\n"},
             {
@@ -416,7 +418,7 @@ def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
                 "opcode_or_directive": "jmp",
                 "operand_accesses": ["branch_target"],
                 "operand_parts": [{"kind": "symbol", "text": "loc_4_00000058"}],
-                "code_start_refs": [{"reason_name": "control_target"}],
+                "code_start_refs": [{"reason": CODE_START_REASON_CONTROL_TARGET}],
             },
         ]
     }
