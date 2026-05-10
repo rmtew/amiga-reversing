@@ -268,9 +268,9 @@ measurements and test names here, not in the index table.
   classified from ids/flags.
 - Corpus missing-inbound work queues are emitted only from status-gated
   unresolved signal records.
-- Current target-pattern queues remain callback, vector, API, runtime-copy, and
-  metadata. Jump-table examples are suppressed structured-data overlaps and are
-  no longer work items.
+- Current target-pattern queues remain API and metadata. Callback,
+  runtime-copy, jump-table, and vector examples are either promoted from real
+  flow evidence or kept as context without becoming missing-inbound work items.
 - Relocation-backed function pointer tables now seed callback/function targets
   in C after the first reachable pass, gated by accepted-code overlap, code
   target validity, contiguous long relocations, and at least two entries. This
@@ -293,6 +293,11 @@ measurements and test names here, not in the index table.
   Coverage:
   `facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown` and
   `facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown`.
+- Runtime-view membership alone is no longer classified as runtime-copy inbound
+  evidence for orphaned code. Runtime views describe address-space context; they
+  prove missing runtime-copy flow only when a real control/reference edge proves
+  the island is entered. Coverage:
+  `facts_v2_orphan_signal_keeps_runtime_view_inbound_unknown_without_control_ref`.
 
 #### Targets
 
@@ -1013,13 +1018,14 @@ suppressed signals out of work-item tags:
 | `target-pattern:orphan_missing_callback` | 0 | 0 |
 | `target-pattern:orphan_missing_jump_table` | 0 | 0 |
 | `target-pattern:orphan_missing_metadata` | 208 | 208 |
-| `target-pattern:orphan_missing_runtime_copy` | 6 | 6 |
+| `target-pattern:orphan_missing_runtime_copy` | 0 | 0 |
 | `target-pattern:orphan_missing_vector` | 0 | 0 |
 
-Examples include unlabelled MonAm/Starglider API candidates and runtime-copy
-orphan islands in Bloodwych variants. The former Midwinter II callback row is
-kept as nearby pointer-table context, not a callback work item, because no table
-entry or control edge proves inbound flow.
+Examples include unlabelled MonAm/Starglider API candidates. Bloodwych
+runtime-view orphan islands remain navigable as runtime-view context, but no
+longer become runtime-copy work items without control-flow proof. The former
+Midwinter II callback row is kept as nearby pointer-table context, not a
+callback work item, because no table entry or control edge proves inbound flow.
 The previous jump-table-adjacent examples were suppressed hex-character lookup
 table overlaps and are no longer work items.
 
@@ -1031,6 +1037,21 @@ Pointer-table orphan-context corpus evidence:
   `orphan-code:missing_inbound:callback` dropped 1 -> 0, while
   `orphan-code:nearby_data:pointer_table` stayed 1 -> 1 and
   `orphan-code:signal` stayed 902 -> 902.
+
+Runtime-view orphan-context corpus evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_runtime_view_orphan_context.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_runtime_view_orphan_context.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_runtime_view_orphan_context.jsonl --variants-output src\build\tmp_target_variant_index_after_runtime_view_orphan_context.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_runtime_view_orphan_context.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_runtime_view_orphan_context.jsonl --workers 8`
+- Scope: 493 entries, 490676 xrefs, 464170 snippet rows, 320 type-flow rows,
+  43 unresolved typed-field rows.
+- Compared with `tmp_target_usage_after_pointer_table_orphan_context.jsonl`,
+  `orphan-code:missing_inbound:runtime_copy` dropped 10 -> 0 and
+  `target-pattern:orphan_missing_runtime_copy` dropped 4 rows / 4 signals -> 0,
+  while `orphan-code:context:runtime_view` stayed 10 -> 10,
+  `orphan-code:signal` stayed 902 -> 902, and
+  `analysis:pointer_table:long_label_entries` stayed 6908 -> 6908.
+- Type-flow check:
+  `python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_runtime_view_orphan_context.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_runtime_view_orphan_context.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_runtime_view_orphan_context.jsonl --output src\build\tmp_type_flow_check_after_runtime_view_orphan_context.json`
+  reported `ok: true` and `violation_count: 0`.
 
 ## Design Update Rule
 

@@ -6812,7 +6812,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
           : M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
       } else if (has_runtime_view) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
-        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_RUNTIME_COPY;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
       } else if (has_renderable_label) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
         signal.missing_inbound = lookup_has_policy_label(lookup, section->section_index, offset)

@@ -4447,6 +4447,58 @@ static int test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_re
   return 0;
 }
 
+static int test_facts_v2_orphan_signal_keeps_runtime_view_inbound_unknown_without_control_ref(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[6] = {
+    0x4eu, 0x75u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = (uint32_t)sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x1000U;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].offset);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW,
+    source_analysis.sections[0].orphan_code_signals[0].context);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
+    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"context_id\":3,\"context\":\"runtime_view\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":1,\"missing_inbound\":\"unknown\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":5,\"missing_inbound\":\"runtime_copy\"") == NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown(void) {
   M68kObject object;
   M68kSection section;
@@ -17681,6 +17733,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_orphan_signal_suppresses_structured_data_overlap},
     {"facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref",
       test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref},
+    {"facts_v2_orphan_signal_keeps_runtime_view_inbound_unknown_without_control_ref",
+      test_facts_v2_orphan_signal_keeps_runtime_view_inbound_unknown_without_control_ref},
     {"facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown",
       test_facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown},
     {"facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown",
