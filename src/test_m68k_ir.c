@@ -12744,7 +12744,7 @@ static int test_facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size(
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w $00CE(a0),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w gb_DisplayFlags(a0),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.w gb_DisplayFlags(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -13016,7 +13016,7 @@ static int test_facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size(voi
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l $001C(a0),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l rm_Action(a0),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.l rm_Action(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -13090,7 +13090,7 @@ static int test_facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.w $0018(a0),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w tf_XSize(a0),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.w tf_XSize(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -13169,7 +13169,7 @@ static int test_facts_v2_analysis_refines_zero_offset_embedded_struct_prefix(voi
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOFindTask(a6)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l $00AC(a0),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l pr_CLI(a0),d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\ttst.l pr_CLI(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);

@@ -1689,6 +1689,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     uint8_t base_reg = 0U, classification = M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP;
     int16_t displacement = 0;
     uint16_t struct_id, struct_size, container_struct_id = AMIGA_OS_STRUCT_ID_NONE, container_candidate_count = 0U;
+    uint8_t access_size;
     char container_struct_name[64], container_field_expr[96], field_expr[96];
     int refinement_applied = 0;
     AmigaOsResolvedStructFieldInfo field;
@@ -1717,9 +1718,10 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     }
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     struct_size = amiga_struct_size_for_struct_id(struct_id);
+    access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
     if (!amiga_os_resolve_struct_field_by_struct_id(struct_id, displacement, 0, &field)) {
-      classify_unresolved_typed_access(struct_id, displacement, struct_size,
-        instruction_size_suffix_bytes_local(instruction->size_suffix), &classification, &container_candidate_count,
+      classify_unresolved_typed_access(struct_id, displacement, struct_size, access_size,
+        &classification, &container_candidate_count,
         container_struct_name, sizeof(container_struct_name), container_field_expr, sizeof(container_field_expr),
         &container_struct_id);
       if (classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION &&
@@ -1736,6 +1738,18 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
             refinement_applied ? container_struct_id : AMIGA_OS_STRUCT_ID_NONE,
             provenance) != 0) {
           return -1;
+        }
+        if (refinement_applied && container_struct_id != AMIGA_OS_STRUCT_ID_NONE && access_size != 0U &&
+            amiga_os_resolve_struct_field_by_struct_id(container_struct_id, displacement, 0, &field) &&
+            field.offset == displacement && field.size == access_size &&
+            amiga_os_resolve_struct_field_symbol_expr_by_struct_id(container_struct_id, displacement, 0,
+              field_expr, sizeof(field_expr))) {
+          M68kRenderTypedProvenance prefix_provenance =
+            typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_PREFIX_REFINEMENT, section_index, offset);
+          if (render_lookup_add_typed_access(lookup, section_index, offset, (uint8_t)operand_index, base_reg,
+              displacement, container_struct_id, &field, field_expr, &prefix_provenance) != 0) {
+            return -1;
+          }
         }
       }
       continue;

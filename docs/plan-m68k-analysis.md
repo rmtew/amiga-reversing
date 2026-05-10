@@ -149,6 +149,10 @@ measurements and test names here, not in the index table.
   lacks a concrete `platform_typed_access:any` xref. Coverage:
   `test_type_flow_gate_accepts_many_refinements_to_one_typed_access` and
   `test_type_flow_gate_rejects_refinement_resolution_without_typed_access_row`.
+- Prefix-refinement evidence instructions render their generated container field
+  immediately only when the access size exactly matches the field start and
+  size. Non-exact wider/narrower probes remain numeric while still refining
+  later flow.
 - Temporary full usage rebuilds found 231 resolved and 248 unresolved typed
   memory-layout records, 2,163 owner-range examples, 3,584 owner-range xrefs,
   no current corpus `conflicted` typed owner-range rows, 36,989 xrefs with kind
@@ -1081,6 +1085,23 @@ Zero-offset embedded struct prefix-refinement corpus evidence:
 - Type-flow check:
   `python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_zero_offset_prefix_struct.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_zero_offset_prefix_struct.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_zero_offset_prefix_struct.jsonl --output src\build\tmp_type_flow_check_after_zero_offset_prefix_struct.json`
   reported `ok: true`, `violation_count: 0`, and 145 applied refinements.
+
+Exact prefix-evidence rendering corpus evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_exact_prefix_evidence_render.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_exact_prefix_evidence_render.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_exact_prefix_evidence_render.jsonl --variants-output src\build\tmp_target_variant_index_after_exact_prefix_evidence_render.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_exact_prefix_evidence_render.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_exact_prefix_evidence_render.jsonl --workers 8`
+- Scope: 493 entries, 493736 xrefs, 464193 snippet rows, 320 type-flow rows,
+  39 unresolved typed-field rows.
+- Compared with `tmp_target_usage_after_zero_offset_prefix_struct`, typed
+  accesses rose 2045 -> 3032 and prefix-refinement typed-access provenance rose
+  138 -> 279. Refinement counts, unresolved typed-access counts, orphan-code
+  signals, and pointer-table label counts stayed stable.
+- Type-flow check:
+  `python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_exact_prefix_evidence_render.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_exact_prefix_evidence_render.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_exact_prefix_evidence_render.jsonl --output src\build\tmp_type_flow_check_after_exact_prefix_evidence_render.json`
+  reported `ok: true`, `violation_count: 0`, and 145 applied refinements.
+- Regenerated Search for the King `king_481902ec.s` now reflects current code
+  discovery plus exact prefix-field rendering such as `pr_WindowPtr(a0)`.
+  Direct rebuild compare reported `direct_compare_status: full_file_exact`,
+  `direct_compare_payload_exact: true`, and relocation semantics exact.
 
 ## Design Update Rule
 
