@@ -7390,13 +7390,16 @@ static int amiga_abs_exec_base_load_should_stay_absolute(const M68kRenderLookup 
     const M68kFact *fact) {
   uint32_t absolute = 0U;
   if (lookup == NULL || lookup->object == NULL || instruction == NULL || operand == NULL || fact == NULL) return 0;
-  if (lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
-  if (fact->runtime_address != 4U || operand_index != 0U || instruction->operand_count < 2U) return 0;
+  if (!platform_facts_v2_absolute_memory_owner_stays_literal(lookup->object->platform_backend_kind,
+      fact->runtime_address)) {
+    return 0;
+  }
+  if (operand_index != 0U || instruction->operand_count < 2U) return 0;
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) {
     return 0;
   }
-  return operand_absolute_offset_local(operand, &absolute) && absolute == 4U;
+  return operand_absolute_offset_local(operand, &absolute) && absolute == fact->runtime_address;
 }
 
 static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,

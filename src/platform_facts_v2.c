@@ -461,6 +461,45 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
   }
 }
 
+int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t address,
+    uint8_t *out_owner_kind, uint32_t *out_owner_offset) {
+  if (out_owner_kind != NULL) *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  if (out_owner_offset != NULL) *out_owner_offset = 0U;
+  if (out_owner_kind == NULL || out_owner_offset == NULL) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK: {
+    const AmigaOsHardwareRegisterInfo *hardware_register;
+    const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+    if (address == 4U) {
+      *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
+      return 1;
+    }
+    hardware_register = amiga_os_find_hardware_register_by_cpu_address(address);
+    if (hardware_register != NULL) {
+      *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
+      *out_owner_offset = hardware_register->offset;
+      return 1;
+    }
+    hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
+    if (hardware_range != NULL) {
+      *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE;
+      *out_owner_offset = address - hardware_range->base_address;
+      return 1;
+    }
+    return 0;
+  }
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind, uint32_t address) {
+  uint8_t owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  uint32_t owner_offset = 0U;
+  return platform_facts_v2_absolute_memory_owner(platform_kind, address, &owner_kind, &owner_offset) &&
+    owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
+}
+
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
     uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance) {
   if (out_base_offset != NULL) *out_base_offset = 0U;

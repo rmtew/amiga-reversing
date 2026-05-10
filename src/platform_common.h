@@ -59,6 +59,9 @@ const char *platform_facts_v2_runtime_address_storage_sink_data_class(uint8_t pl
   const uint8_t *data, uint32_t size, uint32_t value_offset);
 uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t platform_kind,
   const uint8_t *data, uint32_t size, uint32_t value_offset);
+int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t address,
+  uint8_t *out_owner_kind, uint32_t *out_owner_offset);
+int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind, uint32_t address);
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
   uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance);
 int platform_facts_v2_supports_loadseg_segment_chain(uint8_t platform_kind);

@@ -3811,34 +3811,21 @@ static void facts_v2_classify_absolute_memory_ref(uint8_t platform_kind,
     const M68kRuntimeAddressSpace *runtime_addresses, size_t section_index, uint32_t section_size,
     uint32_t address, M68kAbsoluteMemoryRefIR *ref) {
   const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(address);
+  uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  uint32_t platform_owner_offset = 0U;
   if (ref == NULL) return;
   ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
   ref->owner_offset = address;
-  if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK && address == 4U) {
-    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
-    ref->owner_offset = 0U;
+  if (platform_facts_v2_absolute_memory_owner(platform_kind, address, &platform_owner_kind,
+      &platform_owner_offset)) {
+    ref->owner_kind = platform_owner_kind;
+    ref->owner_offset = platform_owner_offset;
     return;
   }
   if (vector != NULL) {
     ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
     ref->owner_offset = 0U;
     return;
-  }
-  if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
-    const AmigaOsHardwareRegisterInfo *hardware_register =
-      amiga_os_find_hardware_register_by_cpu_address(address);
-    const AmigaOsHardwareRegisterRangeInfo *hardware_range =
-      amiga_os_find_hardware_register_range_by_cpu_address(address);
-    if (hardware_register != NULL) {
-      ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
-      ref->owner_offset = hardware_register->offset;
-      return;
-    }
-    if (hardware_range != NULL) {
-      ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE;
-      ref->owner_offset = address - hardware_range->base_address;
-      return;
-    }
   }
   if (runtime_address_space_translate(runtime_addresses, section_index, address, section_size,
       &ref->owner_offset)) {

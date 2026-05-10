@@ -15293,6 +15293,8 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   char *source = NULL;
   char *analysis_json = NULL;
   size_t index;
+  uint8_t owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  uint32_t owner_offset = 99U;
   uint8_t bytes[28] = {
     0x2Cu, 0x78u, 0x00u, 0x04u,
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0x9Au,
@@ -15300,6 +15302,17 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0x00u, 0x00u, 0x00u,
     0x4Eu, 0x75u
   };
+  M68K_C_ASSERT(platform_facts_v2_absolute_memory_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 4U,
+    &owner_kind, &owner_offset));
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL, owner_kind);
+  M68K_C_ASSERT_U32(0U, owner_offset);
+  M68K_C_ASSERT(platform_facts_v2_absolute_memory_owner_stays_literal(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 4U));
+  M68K_C_ASSERT(platform_facts_v2_absolute_memory_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF09AU,
+    &owner_kind, &owner_offset));
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, owner_kind);
+  M68K_C_ASSERT_U32(0x09AU, owner_offset);
+  M68K_C_ASSERT(!platform_facts_v2_absolute_memory_owner(M68K_PLATFORM_BACKEND_ATARI_ST, 4U,
+    &owner_kind, &owner_offset));
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;

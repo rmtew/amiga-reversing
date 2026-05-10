@@ -118,6 +118,12 @@ Keep direct ExecBase loads literal. Do not render them as `ExecBase`,
 expression. Runtime copied code at address `$4` is a different fact and needs
 separate runtime-copy evidence before it can use a runtime-code symbol.
 
+This is an Amiga platform ownership fact. Generic M68K analysis should ask the
+platform layer whether an absolute address is ExecBase, hardware, or another
+platform-owned range before falling back to CPU vectors, runtime ranges, section
+storage, or unresolved absolute memory. Other platforms must not inherit the
+Amiga `$4` rule.
+
 ## Runtime ORG Views And Decompressed Children
 
 Some Amiga programs copy bytes from their loaded hunk into absolute memory and

@@ -210,6 +210,9 @@ measurements and test names here, not in the index table.
   only because analysis recorded an out-of-payload data relocation diagnostic.
   Carrier Command `ramdrive.device` proves this with
   `__section_0_base-$00000004` and exact direct rebuild.
+- ExecBase and Amiga hardware absolute-address ownership is resolved through
+  `platform_facts_v2`, so generic M68K analysis does not apply Amiga `$4` or
+  custom-chip ownership to other platforms.
 - Generated Amiga hardware ids, symbol ids, vector/function ids, and runtime
   target/access enums drive hardware/platform decisions; strings are source and
   JSON display text only.
