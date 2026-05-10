@@ -958,6 +958,20 @@ visible beside app slots and runtime ranges rather than only in type-flow report
 Unresolved typed accesses should remain unresolved records with classification
 such as field gap, prefix extension, or mistyped base.
 
+A prefix extension stops being unresolved once C analysis refines the base to a
+container struct and resolves the exact field used by the operand:
+
+```asm
+jsr    _LVOFindTask(a6)       ; D0/A0 is Task/TC_Struct
+movea.l d0,a0
+move.l pr_CLI(a0),d0          ; resolved Process extension, not unresolved
+```
+
+The retained fact is the resolved typed access with `prefix_refinement`
+provenance. The unresolved record is kept only when the container is ambiguous,
+the field cannot be resolved exactly for the operand width, or the refinement is
+not applied.
+
 Runtime address references should preserve both sides of a hardware sink:
 
 ```

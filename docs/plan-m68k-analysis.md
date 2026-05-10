@@ -1250,6 +1250,32 @@ Exact prefix-evidence rendering corpus evidence:
   Direct rebuild compare reported `direct_compare_status: full_file_exact`,
   `direct_compare_payload_exact: true`, and relocation semantics exact.
 
+Resolved prefix-refinement reporting cleanup:
+
+- C analysis no longer records a duplicate unresolved typed-access fact when a
+  prefix extension is refined to a container struct and the operand resolves to
+  an exact field of the correct width. The retained fact is the resolved typed
+  access with `prefix_refinement` provenance; unresolved records remain for
+  ambiguous containers, width mismatches, and unrefined bases.
+- Isolated C coverage now checks resolved typed-access IR for the exact
+  refinement cases: `GfxBase.gb_DisplayFlags`, `RexxMsg.rm_Action`,
+  `TextFont.tf_XSize`, and zero-offset embedded `Process.pr_CLI`. Existing
+  unresolved tests still cover mismatched or ambiguous prefix extensions.
+- Command:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_resolved_prefix_access_cleanup.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_resolved_prefix_access_cleanup.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_resolved_prefix_access_cleanup.jsonl --variants-output src\build\tmp_target_variant_index_after_resolved_prefix_access_cleanup.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_resolved_prefix_access_cleanup.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_resolved_prefix_access_cleanup.jsonl --workers 8`
+- Scope: 493 entries, 516991 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, 23 unresolved typed-field rows.
+- Compared with
+  `tmp_target_usage_after_source_zero_runtime_org_continuation.jsonl`,
+  unresolved typed-field report rows dropped 42 -> 23. Removed rows were
+  already-rendered, high-confidence prefix refinements such as `pr_CLI(a0)`,
+  `tf_XSize(a0)`, `rm_Action(a0)`, and `gb_DisplayFlags(a0)`. Remaining rows
+  are still ambiguous or unrefined, for example `MN+$0024` with IO/RexxMsg-style
+  candidates.
+- Type-flow check:
+  `uv run python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_resolved_prefix_access_cleanup.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_resolved_prefix_access_cleanup.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_resolved_prefix_access_cleanup.jsonl --output src\build\tmp_type_flow_check_after_resolved_prefix_access_cleanup.json`
+  reported `ok: true`, `violation_count: 0`, and 4 applied refinements.
+
 App-slot API argument classification evidence:
 
 - Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_manifest_after_app_arg_reason.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_app_arg_reason.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_app_arg_reason.jsonl --type-flow-report-output src\build\tmp_type_flow_report_after_app_arg_reason.json --workers 8`

@@ -13147,9 +13147,8 @@ static int test_facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size(
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   const M68kSectionAnalysisIR *analysis_section;
-  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
-  const char *container_struct_name;
-  const char *refined_struct_name;
+  const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  const char *owner_struct_name;
   char *source = NULL;
   size_t index;
   uint8_t bytes[16] = {
@@ -13184,30 +13183,22 @@ static int test_facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size(
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.section_count);
   analysis_section = &analysis.sections[0];
-  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
-    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
-      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
-      access->root_struct_name);
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x00CE && root_struct_name != NULL && strcmp(root_struct_name, "LIB") == 0) {
-      unresolved = access;
+        access->displacement == 0x00CE && access->field_expr != NULL &&
+        strcmp(access->field_expr, "gb_DisplayFlags") == 0) {
+      typed = access;
       break;
     }
   }
-  M68K_C_ASSERT(unresolved != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
-  M68K_C_ASSERT(unresolved->container_candidate_count > 1U);
-  container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->container_struct_ref,
-    unresolved->container_struct_name);
-  M68K_C_ASSERT_STR("GfxBase", container_struct_name);
-  M68K_C_ASSERT_STR("gb_DisplayFlags", unresolved->container_field_expr);
-  M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
-    unresolved->refined_struct_name);
-  M68K_C_ASSERT_STR("GfxBase", refined_struct_name);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, unresolved->type_provenance_kind);
-  M68K_C_ASSERT_U32(6U, unresolved->type_provenance_offset);
+  M68K_C_ASSERT(typed != NULL);
+  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+    typed->owner_struct_name);
+  M68K_C_ASSERT_STR("GfxBase", owner_struct_name);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
+  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
@@ -13427,8 +13418,8 @@ static int test_facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size(voi
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   const M68kSectionAnalysisIR *analysis_section;
-  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
-  const char *refined_struct_name;
+  const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  const char *owner_struct_name;
   char *source = NULL;
   size_t index;
   uint8_t bytes[16] = {
@@ -13462,24 +13453,22 @@ static int test_facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size(voi
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   analysis_section = &analysis.sections[0];
-  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
-    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
-      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
-      access->root_struct_name);
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x001C && root_struct_name != NULL && strcmp(root_struct_name, "MN") == 0) {
-      unresolved = access;
+        access->displacement == 0x001C && access->field_expr != NULL &&
+        strcmp(access->field_expr, "rm_Action") == 0) {
+      typed = access;
       break;
     }
   }
-  M68K_C_ASSERT(unresolved != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
-  M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
-    unresolved->refined_struct_name);
-  M68K_C_ASSERT_STR("RexxMsg", refined_struct_name);
-  M68K_C_ASSERT_STR("rm_Action", unresolved->container_field_expr);
+  M68K_C_ASSERT(typed != NULL);
+  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+    typed->owner_struct_name);
+  M68K_C_ASSERT_STR("RexxMsg", owner_struct_name);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
+  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
@@ -13500,8 +13489,8 @@ static int test_facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   const M68kSectionAnalysisIR *analysis_section;
-  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
-  const char *refined_struct_name;
+  const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  const char *owner_struct_name;
   char *source = NULL;
   size_t index;
   uint8_t bytes[16] = {
@@ -13535,25 +13524,22 @@ static int test_facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   analysis_section = &analysis.sections[0];
-  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
-    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
-      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
-      access->root_struct_name);
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x0018 && root_struct_name != NULL && strcmp(root_struct_name, "MN") == 0) {
-      unresolved = access;
+        access->displacement == 0x0018 && access->field_expr != NULL &&
+        strcmp(access->field_expr, "tf_XSize") == 0) {
+      typed = access;
       break;
     }
   }
-  M68K_C_ASSERT(unresolved != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
-  M68K_C_ASSERT(unresolved->container_candidate_count > 1U);
-  M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
-    unresolved->refined_struct_name);
-  M68K_C_ASSERT_STR("TextFont", refined_struct_name);
-  M68K_C_ASSERT_STR("tf_XSize", unresolved->container_field_expr);
+  M68K_C_ASSERT(typed != NULL);
+  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+    typed->owner_struct_name);
+  M68K_C_ASSERT_STR("TextFont", owner_struct_name);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
+  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
@@ -13574,9 +13560,8 @@ static int test_facts_v2_analysis_refines_zero_offset_embedded_struct_prefix(voi
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR analysis;
   const M68kSectionAnalysisIR *analysis_section;
-  const M68kRecoveredPlatformUnresolvedTypedAccessIR *unresolved = NULL;
-  const char *container_struct_name;
-  const char *refined_struct_name;
+  const M68kRecoveredPlatformTypedAccessIR *typed = NULL;
+  const char *owner_struct_name;
   char *source = NULL;
   size_t index;
   uint8_t bytes[16] = {
@@ -13610,28 +13595,22 @@ static int test_facts_v2_analysis_refines_zero_offset_embedded_struct_prefix(voi
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   analysis_section = &analysis.sections[0];
-  for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
-    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
-      &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
-      access->root_struct_name);
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
-        access->displacement == 0x00AC && root_struct_name != NULL && strcmp(root_struct_name, "TC_Struct") == 0) {
-      unresolved = access;
+        access->displacement == 0x00AC && access->field_expr != NULL &&
+        strcmp(access->field_expr, "pr_CLI") == 0) {
+      typed = access;
       break;
     }
   }
-  M68K_C_ASSERT(unresolved != NULL);
-  M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
-  M68K_C_ASSERT_U32(1U, unresolved->container_candidate_count);
-  container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->container_struct_ref,
-    unresolved->container_struct_name);
-  M68K_C_ASSERT_STR("Process", container_struct_name);
-  M68K_C_ASSERT_STR("pr_CLI", unresolved->container_field_expr);
-  M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
-    unresolved->refined_struct_name);
-  M68K_C_ASSERT_STR("Process", refined_struct_name);
+  M68K_C_ASSERT(typed != NULL);
+  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+    typed->owner_struct_name);
+  M68K_C_ASSERT_STR("Process", owner_struct_name);
+  M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
+  M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
