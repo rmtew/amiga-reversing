@@ -93,6 +93,10 @@ static const char *runtime_view_materialization_reason_name(uint8_t reason) {
     return "no_materializing_evidence";
   case M68K_RUNTIME_VIEW_SUPPRESSED_OVERLAID_BY_RUNTIME_COPY:
     return "overlaid_by_runtime_copy";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_INCOMPLETE_SOURCE_RANGE:
+    return "incomplete_source_range";
+  case M68K_RUNTIME_VIEW_SUPPRESSED_CONTAINS_NESTED_RUNTIME_RANGE:
+    return "contains_nested_runtime_range";
   case M68K_RUNTIME_VIEW_MATERIALIZATION_REASON_NONE:
   default:
     return "none";

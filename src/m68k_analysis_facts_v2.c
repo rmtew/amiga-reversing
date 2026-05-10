@@ -4613,6 +4613,48 @@ static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactI
   return 0;
 }
 
+static int facts_runtime_ref_source_inside_discovered_copy_range(const M68kFactIR *facts, const M68kFact *ref,
+    const M68kRuntimeAddressRange *target_range) {
+  size_t fact_index;
+  if (facts == NULL || ref == NULL) return 1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *range = &facts->facts[fact_index];
+    uint64_t range_end;
+    if (range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        range->runtime_kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
+        range->section_index != ref->section_index || range->size == 0U) {
+      continue;
+    }
+    if (target_range != NULL && range->section_index == target_range->section_index &&
+        range->offset == target_range->source_offset && range->runtime_address == target_range->runtime_address) {
+      continue;
+    }
+    range_end = (uint64_t)range->offset + range->size;
+    if (ref->offset >= range->offset && (uint64_t)ref->offset < range_end) return 1;
+  }
+  return 0;
+}
+
+static int facts_runtime_range_has_internal_control_entry(const M68kFactIR *facts,
+    const M68kRuntimeAddressRange *range) {
+  size_t fact_index;
+  uint64_t range_start, range_end;
+  if (facts == NULL || range == NULL || range->size == 0U) return 0;
+  range_start = range->runtime_address;
+  range_end = range_start + range->size;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if (fact->kind != M68K_FACT_CODE_START ||
+        fact->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET ||
+        fact->section_index != range->section_index || !fact->has_runtime_address ||
+        fact->runtime_address < range_start || (uint64_t)fact->runtime_address >= range_end) {
+      continue;
+    }
+    if (fact->offset != range->source_offset || fact->runtime_address != range->runtime_address) return 1;
+  }
+  return 0;
+}
+
 static int facts_runtime_ref_targets_range_start(const M68kDecodeIR *decode, const M68kFactIR *facts,
     const M68kRuntimeAddressRange *range, size_t *out_source_section_index, uint32_t *out_source_offset) {
   size_t fact_index;
@@ -4624,6 +4666,7 @@ static int facts_runtime_ref_targets_range_start(const M68kDecodeIR *decode, con
     M68kInstructionIR source_instruction;
     const M68kSimFormMetadata *source_metadata;
     size_t operand_index;
+    int is_control_target = 0;
     if (fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
         fact->confidence < M68K_FACT_CONFIDENCE_TOOL_INFERRED ||
         fact->target_section_index != range->section_index ||
@@ -4637,14 +4680,19 @@ static int facts_runtime_ref_targets_range_start(const M68kDecodeIR *decode, con
     source_section = &decode->sections[fact->section_index];
     source_candidate = m68k_decode_ir_find_candidate_at_offset(source_section, fact->offset);
     operand_index = (size_t)fact->reason;
-    if (source_candidate == NULL || operand_index >= source_candidate->operand_count ||
-        m68k_decode_candidate_to_instruction(source_candidate, &source_instruction) != 0) {
+    if (source_candidate == NULL || operand_index >= source_candidate->operand_count) {
       continue;
     }
-    source_metadata = m68k_sim_metadata_for_instruction(&source_instruction);
-    if (source_metadata == NULL || operand_index >= source_instruction.operand_count ||
-        source_metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
-        source_metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+    if (m68k_decode_candidate_to_instruction(source_candidate, &source_instruction) == 0 &&
+        operand_index < source_instruction.operand_count) {
+      source_metadata = m68k_sim_metadata_for_instruction(&source_instruction);
+      is_control_target = source_metadata != NULL &&
+        source_metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET &&
+        source_metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET;
+    }
+    if (!is_control_target &&
+        (facts_runtime_ref_source_inside_discovered_copy_range(facts, fact, range) ||
+         facts_runtime_range_has_internal_control_entry(facts, range))) {
       continue;
     }
     if (out_source_section_index != NULL) *out_source_section_index = fact->section_index;

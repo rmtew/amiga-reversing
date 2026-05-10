@@ -4756,12 +4756,12 @@ def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_sta
     assert facts_v2["unsupported_instruction_demotes"] == 0
     assert facts_v2["interior_conflicts_unresolved"] == 0
     assert facts_v2["unresolved_labels"] == 0
-    assert "\tjmp loc_6_00000F3A(pc,d1.w)\n" in source_text
-    assert "loc_6_00000F2C:\n\tmove.b (a1)+,(a0)+\n" in source_text
-    assert "loc_6_00000F3A:\n\tdbf.w d0,loc_6_00000F2A\n" in source_text
-    assert "\tjmp loc_6_0000130E(pc,d1.w)\n" in source_text
-    assert "loc_6_00001300:\n\tmove.b (a1)+,(a0)+\n" in source_text
-    assert "loc_6_0000130E:\n\tdbf.w d0,loc_6_000012FE\n" in source_text
+    assert "\tjmp abs_6_00078DD0(pc,d1.w)\n" in source_text
+    assert "abs_6_00078DC0:\n\tmove.b (a1)+,(a0)+\n" in source_text
+    assert "abs_6_00078DD0:\n\tdbf.w d0,abs_6_00078DC0\n" in source_text
+    assert "\tjmp abs_6_000791A4(pc,d1.w)\n" in source_text
+    assert "abs_6_00079194:\n\tmove.b (a1)+,(a0)+\n" in source_text
+    assert "abs_6_000791A4:\n\tdbf.w d0,abs_6_00079194\n" in source_text
 
     for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
         paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
@@ -5063,19 +5063,20 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "runtime_code_00000100\tEQU\t$100\n" in source_text
     assert "stack_top_00000800\tEQU\t$800\n" in source_text
     assert "\tlea.l stack_top_00000800.l,a7\n" in source_text
-    assert "\tlea.l runtime_code_00000100.l,a1\n" in source_text
+    assert "\tlea.l abs_2_00000100.l,a1\n" in source_text
     assert (
         "loc_2_0000006A:\n"
+        "    ORG $100\n"
+        "abs_2_00000100:\n"
         "\tmoveq.l #-83,d7\n"
         "\tlea.l $00001000.l,a0\n"
         "\tlea.l $0007FFFF.l,a2\n"
     ) in source_text
     assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
     assert (
-        "loc_2_000000AA:\n"
+        "abs_2_00000140:\n"
         "\tadda.l #$47368,a0\n"
         "\tlea.l $000130B6.l,a1\n"
     ) in source_text
@@ -5194,15 +5195,26 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     suggestions_by_offset = {suggestion["source_section_offset"]: suggestion for suggestion in suggestions}
     events_by_offset = {event["source_section_offset"]: event for event in events}
 
-    assert set(payloads_by_offset) == {0x4C40}
+    assert set(payloads_by_offset) == {0x05E4, 0x4C40}
+    assert payloads_by_offset[0x05E4]["provider_id"] == "ancient-cli"
+    assert payloads_by_offset[0x05E4]["codec_id"] == "rnc1-old"
+    assert payloads_by_offset[0x05E4]["source_section"] == 0
+    assert payloads_by_offset[0x05E4]["decompressed_size"] == 32032
     assert payloads_by_offset[0x4C40]["provider_id"] == "ancient-cli"
     assert payloads_by_offset[0x4C40]["codec_id"] == "rnc1-old"
     assert payloads_by_offset[0x4C40]["source_section"] == 0
     assert payloads_by_offset[0x4C40]["decompressed_size"] == 359600
-    assert set(suggestions_by_offset) == {0x4C40}
-    assert set(events_by_offset) == {0x4C40}
+    assert set(suggestions_by_offset) == {0x05E4, 0x4C40}
+    assert set(events_by_offset) == {0x05E4, 0x4C40}
+    assert suggestions_by_offset[0x05E4]["runtime_copy_address"] == 0x77400
+    assert suggestions_by_offset[0x05E4]["runtime_copy_size"] == 18012
+    assert suggestions_by_offset[0x05E4]["runtime_copy_kind"] == 2
+    assert suggestions_by_offset[0x05E4]["runtime_copy_conflicting"] is False
+    assert suggestions_by_offset[0x05E4]["reason"] == "missing_decompressed_load_entry"
+    assert suggestions_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
+    assert suggestions_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
     assert suggestions_by_offset[0x4C40]["runtime_copy_address"] == 0x4000
-    assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168396
+    assert suggestions_by_offset[0x4C40]["runtime_copy_size"] == 168392
     assert suggestions_by_offset[0x4C40]["runtime_copy_kind"] == 3
     assert suggestions_by_offset[0x4C40]["runtime_copy_conflicting"] is True
     assert suggestions_by_offset[0x4C40]["reason"] == "initial_control_target_validated_runtime_copy"
@@ -5222,9 +5234,9 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     assert events_by_offset[0x4C40]["provider_id"] == "ancient-cli"
     assert events_by_offset[0x4C40]["codec_support"] == "external_provider"
     assert events_by_offset[0x4C40]["load_address"] == 0x4000
-    assert 0x05E4 not in payloads_by_offset
-    assert 0x05E4 not in suggestions_by_offset
-    assert 0x05E4 not in events_by_offset
+    assert events_by_offset[0x05E4]["status"] == "needs_runtime_metadata"
+    assert events_by_offset[0x05E4]["reason"] == "missing_decompressed_load_entry"
+    assert events_by_offset[0x05E4]["payload_role"] == "unknown_runtime_payload"
 
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5579,11 +5591,13 @@ def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
     assert "    SECTION section_3,code\n\tdc.b $7A,$00,$52,$46" not in source_text
     assert (
         "loc_6_0000016A:\n"
-        "\tbra.w loc_6_0000021E\n"
-        "loc_6_0000016E:\n"
-        "\tbra.w loc_6_00000254\n"
+        "    ORG $78000\n"
+        "abs_6_00078000:\n"
+        "\tbra.w abs_6_000780B4\n"
+        "abs_6_00078004:\n"
+        "\tbra.w abs_6_000780EA\n"
     ) in source_text
-    assert "loc_6_0000021E:\n\tmovem.l d1-d7/a0-a6,-(a7)\n" in source_text
+    assert "abs_6_000780B4:\n\tmovem.l d1-d7/a0-a6,-(a7)\n" in source_text
     assert "\tdc.b $60,$00,$00,$B2\nloc_6_0000016E:" not in source_text
 
 
@@ -5709,6 +5723,9 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     assert "loc_0_00000004:" not in source_text
     assert "abs_0_00000004:" not in source_text
     assert "loc_0_00000154:\n    ORG $40\nabs_0_00000040:\n" in source_text
+    assert "abs_0_00000040:\n\tori.b" not in source_text
+    assert "abs_0_00000040:\n\tdc.b $00,$00,$03,$F3" in source_text
+    assert "abs_0_00000064:\n\tlea.l abs_0_0000014C(pc),a0\n" in source_text
     assert "\tclr.l spr1+sd_dataa(a6)\n" in source_text
     assert "\tclr.l app_014C(a6)\n" not in source_text
     assert "app_014C" not in source_text.split("    SECTION section_0,code\n", 1)[0]

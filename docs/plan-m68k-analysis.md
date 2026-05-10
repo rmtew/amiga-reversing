@@ -1065,6 +1065,46 @@ Runtime-copy decrement/branch and runtime-address label evidence:
   `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
   in 0.82s with exact direct/source reproduction retained.
 
+Runtime-copy base versus entrypoint evidence:
+
+- C analysis now treats the copied runtime range base and the copied runtime
+  entrypoint as separate evidence. A non-control reference to a copied range
+  start can seed storage code only when there is no stronger internal control
+  entry and the reference is not coming from inside another copied range.
+- Runtime-view materialization now preserves three distinct cases:
+  weak low trampoline suppressed by a larger range, final image with a copied
+  range start entry, and copied range whose first real entry is inside the
+  range. Nested copied ranges suppress parent materialization unless the parent
+  has independent start-entry evidence. Odd-address nested starts are ignored as
+  invalid M68K code-entry evidence, which prevents Bloodwych's `$401` shadow
+  from suppressing the valid copied `$400` image.
+- Isolated C coverage:
+  `facts_v2_runtime_ref_to_copied_range_start_seeds_storage_code_without_stronger_entry`
+  and `facts_v2_copied_range_base_keeps_data_before_internal_entry`.
+- Real target coverage: Bloodwych materializes `ORG $400` and treats the odd
+  `$401` copy candidate as a redundant contained view. Conqueror keeps the
+  useful `ORG $40` range but leaves
+  the bytes before the real `$64` entry as data, keeps weak `$4` as
+  `runtime_code_00000004`, Carrier still suppresses `ORG $5000`/`ORG $77400`,
+  Magicland still materializes the final `ORG $5BFF0`, and Pandora still
+  materializes the final `ORG $10000` with `movea.l #abs_0_0001C3A8,a0`.
+  Damocles and Voodoo copied runtime code now render as absolute ORG regions
+  (`abs_2_00000100`, `abs_6_00078000`) and their table/handler assertions use
+  the restored runtime labels; their checked-in `.s` and benchmark artifacts
+  were regenerated for review. Bloodwych was verified from fresh generated
+  source, but its checked-in `.s` was not updated in this increment because the
+  fresh whole-file diff also includes unrelated absolute constant relabeling
+  that needs a separate quality pass.
+- Verification: `cmd /c src\build.bat`, `src\build\m68k_c_unit_tests.exe`,
+  `uv run pytest tests\test_c_backend.py -q`, corpus manifest build to
+  `src\build\tmp_target_usage_after_runtime_copy_base_entry.jsonl` (493
+  entries, 518947 xrefs, 480380 snippet rows, 3 variants), and
+  `target_usage_manifest type-flow-check` all passed. Direct C rebuild compare
+  for the regenerated Voodoo and Damocles sources is `full_file_exact`.
+  `cmd /c src\precommit.bat` passed. Fresh source comparison showed no
+  high-confidence Conqueror source file update: the checked-in source already
+  keeps the pre-entry `$40..$63` bytes as data.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
