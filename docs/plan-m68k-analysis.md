@@ -88,7 +88,10 @@ API-output storage gaps uses those ids, while cause/chain strings remain display
 and grouping names. Corpus indexing for code-start-derived direct control stubs
 and Amiga LoadSeg entries now uses numeric code-start reason ids rather than
 `reason_name` display strings. Orphan missing-inbound work-item gating uses the
-numeric orphan status id rather than status display text.
+numeric orphan status id rather than status display text. Amiga hardware field
+addresses are now owned by generated hardware-field metadata in C absolute-memory
+analysis, so rendered accesses such as `_custom+aud0+ac_len.l` index as hardware
+register memory-layout facts rather than plain absolute memory.
 
 Round-trip source reproduction is a quality gate for retained rendered-source
 updates. When regenerated target `.s` files are committed as evidence, the same
@@ -912,6 +915,11 @@ Required data analysis:
 - track absolute writes, reads, address loads, calls, and jumps; accepted
   absolute operands are now exposed as C `absolute_memory_ref` records
 - attach each absolute address to a memory owner or leave it numeric
+- generated Amiga hardware register fields participate in absolute-memory
+  ownership, not only exact register bases and coarse ranges. This lets
+  `_custom+aud0+ac_len.l`, `_custom+aud1+ac_per.l`, sprite fields, and similar
+  generated field addresses index as `hardware_register` memory-layout facts
+  with field symbols rather than as plain `absolute_memory`.
 - merge copy/decompression outputs with runtime entrypoint discovery
 - propagate hardware/display/audio sink types back to source data; implemented
   runtime-sink, palette-range, bootloader setup, and display/audio decisions use
@@ -953,6 +961,19 @@ Platform storage conflict evidence from the temporary full manifest rebuild:
 This validates that base-relative app slots are not compared to source-code
 offsets, while section-relative global storage is conflict-marked when its
 mapped target range overlaps accepted code.
+
+Hardware field ownership update:
+
+- C coverage extends `facts_v2_analysis_records_absolute_memory_refs` so
+  `$DFF0A4` is owned as generated Amiga hardware field `aud0+ac_len`, while
+  exact `$DFF0A0` remains the `aud0` hardware register.
+- Corpus rebuild after this change: `memory-layout:kind:absolute_memory`
+  975 -> 815, `memory-layout:kind:hardware_register` 1,416 -> 1,576. Bloodwych
+  and comparators now index audio length/period/volume/data field writes as
+  hardware-owned memory-layout records; rendered source text and reproduction
+  are unchanged.
+- Type-flow check stayed clean: 322 targets, 4 applied refinements, 0
+  violations, no type-flow metric regressions.
 
 Comparator target evidence:
 

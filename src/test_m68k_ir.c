@@ -16916,6 +16916,7 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68kSourceAnalysisIR source_analysis;
   const M68kAbsoluteMemoryRefIR *exec_ref = NULL;
   const M68kAbsoluteMemoryRefIR *custom_ref = NULL;
+  const M68kAbsoluteMemoryRefIR *custom_field_ref = NULL;
   const M68kAbsoluteMemoryRefIR *absolute_ref = NULL;
   const M68kAbsoluteMemoryRefIR *code_ref = NULL;
   char *source = NULL;
@@ -16923,9 +16924,10 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   size_t index;
   uint8_t owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
   uint32_t owner_offset = 99U;
-  uint8_t bytes[28] = {
+  uint8_t bytes[36] = {
     0x2Cu, 0x78u, 0x00u, 0x04u,
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0x9Au,
+    0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0xDFu, 0xF0u, 0xA4u,
     0x41u, 0xF9u, 0x00u, 0x07u, 0x00u, 0x00u,
     0x33u, 0xFCu, 0x12u, 0x34u, 0x00u, 0x00u, 0x00u, 0x00u,
     0x4Eu, 0x75u
@@ -16939,6 +16941,10 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
     &owner_kind, &owner_offset));
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, owner_kind);
   M68K_C_ASSERT_U32(0x09AU, owner_offset);
+  M68K_C_ASSERT(platform_facts_v2_absolute_memory_owner(M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x00DFF0A4U,
+    &owner_kind, &owner_offset));
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, owner_kind);
+  M68K_C_ASSERT_U32(0x0A4U, owner_offset);
   M68K_C_ASSERT(!platform_facts_v2_absolute_memory_owner(M68K_PLATFORM_BACKEND_ATARI_ST, 4U,
     &owner_kind, &owner_offset));
   memset(&section, 0, sizeof(section));
@@ -16954,11 +16960,12 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT_U32(4U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
+  M68K_C_ASSERT_U32(5U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
   for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
     const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
     if (ref->address == 4U) exec_ref = ref;
     else if (ref->address == 0x00DFF09AU) custom_ref = ref;
+    else if (ref->address == 0x00DFF0A4U) custom_field_ref = ref;
     else if (ref->address == 0x00070000U) absolute_ref = ref;
     else if (ref->address == 0U) code_ref = ref;
   }
@@ -16970,6 +16977,11 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, custom_ref->owner_kind);
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_WRITE, custom_ref->access_kind);
   M68K_C_ASSERT_U32(2U, custom_ref->access_width);
+  M68K_C_ASSERT(custom_field_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, custom_field_ref->owner_kind);
+  M68K_C_ASSERT_U32(0x0A4U, custom_field_ref->owner_offset);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_WRITE, custom_field_ref->access_kind);
+  M68K_C_ASSERT_U32(2U, custom_field_ref->access_width);
   M68K_C_ASSERT(absolute_ref != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, absolute_ref->owner_kind);
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, absolute_ref->access_kind);
@@ -16979,13 +16991,15 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_U32(1U, code_ref->conflicted);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":4") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":5") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":3,\"owner_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"aud0+ac_len\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_offset\":164") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":14676122,\"range_size\":2,"
     "\"range_end\":14676124") != NULL);

@@ -20,6 +20,8 @@ static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static const char *analysis_conflict_state_name(uint8_t conflict_state);
 static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
   const char **out_symbol, const char **out_base_symbol);
+static int absolute_memory_ref_owner_symbol_expr(const M68kAbsoluteMemoryRefIR *ref,
+  char *buf, size_t buf_size);
 static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
@@ -182,8 +184,16 @@ static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref
     } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
       const AmigaOsHardwareRegisterInfo *hardware_register =
         amiga_os_find_hardware_register_by_cpu_address(ref->address);
+      const AmigaOsHardwareRegisterFieldInfo *hardware_field =
+        hardware_register == NULL ? amiga_os_find_hardware_register_field_by_cpu_address(ref->address) : NULL;
       symbol = hardware_register != NULL ? hardware_register->symbol_name : NULL;
       base_symbol = hardware_register != NULL ? hardware_register->base_symbol : NULL;
+      if (hardware_field != NULL) {
+        symbol = hardware_field->instance_symbol != NULL && hardware_field->instance_symbol[0] != '\0'
+          ? hardware_field->instance_symbol
+          : hardware_field->register_symbol;
+        base_symbol = hardware_field->base_symbol;
+      }
     } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
       const AmigaOsHardwareRegisterRangeInfo *hardware_range =
         amiga_os_find_hardware_register_range_by_cpu_address(ref->address);
@@ -193,6 +203,27 @@ static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref
   }
   if (out_symbol != NULL) *out_symbol = symbol;
   if (out_base_symbol != NULL) *out_base_symbol = base_symbol;
+}
+
+static int absolute_memory_ref_owner_symbol_expr(const M68kAbsoluteMemoryRefIR *ref,
+    char *buf, size_t buf_size) {
+  const AmigaOsHardwareRegisterFieldInfo *hardware_field;
+  const char *instance_symbol;
+  int written;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (ref == NULL || ref->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) return 0;
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(ref->address);
+  if (hardware_field == NULL || hardware_field->field_symbol == NULL ||
+      hardware_field->field_symbol[0] == '\0') {
+    return 0;
+  }
+  instance_symbol = hardware_field->instance_symbol != NULL && hardware_field->instance_symbol[0] != '\0'
+    ? hardware_field->instance_symbol
+    : hardware_field->register_symbol;
+  if (instance_symbol == NULL || instance_symbol[0] == '\0') return 0;
+  written = snprintf(buf, buf_size, "%s+%s", instance_symbol, hardware_field->field_symbol);
+  return written > 0 && (size_t)written < buf_size;
 }
 
 static uint16_t read_u16be_local(const uint8_t *data, size_t size, uint32_t offset, int *ok) {
@@ -2586,7 +2617,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       const char *memory_kind = absolute_memory_owner_kind_name(ref->owner_kind);
       const char *owner_symbol = NULL;
       const char *owner_base_symbol = NULL;
+      char owner_symbol_expr[64];
       absolute_memory_ref_owner_symbols(ref, &owner_symbol, &owner_base_symbol);
+      if (absolute_memory_ref_owner_symbol_expr(ref, owner_symbol_expr, sizeof(owner_symbol_expr)))
+        owner_symbol = owner_symbol_expr;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"record_kind_id\":%u,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":",

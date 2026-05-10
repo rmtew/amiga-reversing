@@ -469,6 +469,7 @@ int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t addr
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK: {
     const AmigaOsHardwareRegisterInfo *hardware_register;
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field;
     const AmigaOsHardwareRegisterRangeInfo *hardware_range;
     if (address == 4U) {
       *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
@@ -478,6 +479,12 @@ int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t addr
     if (hardware_register != NULL) {
       *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
       *out_owner_offset = hardware_register->offset;
+      return 1;
+    }
+    hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(address);
+    if (hardware_field != NULL) {
+      *out_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER;
+      *out_owner_offset = hardware_field->register_offset + hardware_field->field_offset;
       return 1;
     }
     hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(address);
