@@ -5948,6 +5948,8 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "loc_0_0000005C:\n    ORG $400\nabs_0_00000400:" in source_text
     assert "ORG $5C" not in source_text
     assert "loc_0_0000005C\tEQU" not in source_text
+    assert "\tmove.w #$400,(a0)\n" in source_text
+    assert "\tmove.w #abs_0_00000400,(a0)\n" not in source_text
     assert "\tmove.l #abs_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
     assert (
         "\tmove.l a0,_custom+aud0+ac_ptr.l\t"

@@ -7749,6 +7749,31 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
   return 1;
 }
 
+static int instruction_immediate_operand_is_address_like(const M68kInstructionIR *instruction,
+    size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint8_t dest_reg = 0U;
+  if (instruction == NULL || operand_index >= instruction->operand_count) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || operand_index >= 4U) return 0;
+  if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET ||
+      metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
+    return 1;
+  }
+  if (metadata->source_operand_index != operand_index ||
+      metadata->dest_operand_index >= instruction->operand_count ||
+      metadata->dest_operand_index >= 4U) {
+    return 0;
+  }
+  dest_index = metadata->dest_operand_index;
+  return metadata->operand_result_kinds[dest_index] == M68K_SIM_RESULT_ADDRESS ||
+    metadata->operand_result_kinds[dest_index] == M68K_SIM_RESULT_CONTROL_TARGET ||
+    operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg);
+}
+
 static int attach_existing_materialized_runtime_immediate_symbols(const M68kRenderLookup *lookup,
     size_t section_index, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -7758,6 +7783,7 @@ static int attach_existing_materialized_runtime_immediate_symbols(const M68kRend
     uint32_t runtime_address = 0U;
     uint32_t source_offset = 0U;
     if (operand->symbol_ref.has_name ||
+        !instruction_immediate_operand_is_address_like(instruction, operand_index) ||
         !operand_is_immediate_value_local(operand, &runtime_address) ||
         !lookup_materialized_runtime_address_source_offset(lookup, section_index, runtime_address, &source_offset) ||
         !lookup_has_renderable_label(lookup, section_index, source_offset)) {

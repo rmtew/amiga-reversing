@@ -3638,6 +3638,57 @@ static int test_facts_v2_runtime_movea_pointer_use_labels_materialized_target(vo
   return 0;
 }
 
+static int test_facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[14] = {
+    0x4eu, 0x75u,
+    0x30u, 0x3cu, 0x04u, 0x00u,
+    0x20u, 0x7cu, 0x00u, 0x00u, 0x04u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 3U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 2U;
+  policy.entry_points[2].has_section_index = 1U;
+  policy.entry_points[2].section_index = 0U;
+  policy.entry_points[2].offset = 6U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x400U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "abs_0_00000402:\n\tmove.w #$400,d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #abs_0_00000400,d0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #abs_0_00000400,a0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_traced_indirect_call_promotes_known_target(void) {
   M68kObject object;
   M68kSection section;
@@ -17825,6 +17876,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_copied_range_base_keeps_data_before_internal_entry},
     {"facts_v2_runtime_movea_pointer_use_labels_materialized_target",
       test_facts_v2_runtime_movea_pointer_use_labels_materialized_target},
+    {"facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric",
+      test_facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric},
     {"facts_v2_traced_indirect_call_promotes_known_target",
       test_facts_v2_traced_indirect_call_promotes_known_target},
     {"facts_v2_relocated_indirect_call_promotes_cross_section_target",

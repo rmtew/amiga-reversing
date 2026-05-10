@@ -1078,9 +1078,15 @@ Runtime-copy base versus entrypoint evidence:
   has independent start-entry evidence. Odd-address nested starts are ignored as
   invalid M68K code-entry evidence, which prevents Bloodwych's `$401` shadow
   from suppressing the valid copied `$400` image.
+- Existing materialized runtime labels are now reused only for address-like
+  immediates according to generated simulator metadata. Address loads such as
+  Pandora's `movea.l #$1C3A8,a0` still render as copied-image labels, while
+  scalar immediates that merely equal a copied runtime address, such as
+  Bloodwych's color value `move.w #$400,(a0)`, stay numeric.
 - Isolated C coverage:
   `facts_v2_runtime_ref_to_copied_range_start_seeds_storage_code_without_stronger_entry`
-  and `facts_v2_copied_range_base_keeps_data_before_internal_entry`.
+  `facts_v2_copied_range_base_keeps_data_before_internal_entry`, and
+  `facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric`.
 - Real target coverage: Bloodwych materializes `ORG $400` and treats the odd
   `$401` copy candidate as a redundant contained view. Conqueror keeps the
   useful `ORG $40` range but leaves
