@@ -467,6 +467,21 @@ Text-classified decompressed child target indexing:
 - Type-flow check
   `src\build\tmp_type_flow_check_after_text_decompressed_child_tags.json`
   passed with `ok: true`, 4 applied refinements, and zero violations.
+- Decompressed child source/load/entry indexing now consumes retained
+  `decompression.source` and `decompression.relationship` records instead of
+  assuming every child has a `packed` record in parent section 0. This fixes
+  recognized-unpacker children such as Damocles Tetragon: the checked-in child
+  rows now expose
+  `decompression:source_load_entry:1:00000100-00000428:00040000:00040000` and
+  `decompression:source_load_entry:2:0000014C-000474B4:00001000:00059484`.
+  Carrier RNC and Pandora BK keep their existing section-0 relationships.
+- Isolated coverage:
+  `test_project_target_metadata_features_use_recognized_unpacker_source_relationship`.
+  Corpus evidence:
+  `src\build\tmp_target_usage_after_child_source_relationship.jsonl` produced
+  493 entries, 517309 xrefs, 481556 snippet rows, 3 variants, 322 type-flow
+  rows, and 23 unresolved typed-field rows. Type-flow check passed with
+  `ok: true`, 4 applied refinements, and 0 violations.
 
 ## RSSET Survey
 

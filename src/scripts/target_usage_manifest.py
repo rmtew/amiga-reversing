@@ -1246,13 +1246,42 @@ def _project_decompression_example(entry: dict[str, Any]) -> dict[str, object]:
         return {}
     packed = decompression.get("packed")
     decompressed = decompression.get("decompressed")
+    source = decompression.get("source")
+    relationship = decompression.get("relationship")
     example: dict[str, object] = {}
+    if isinstance(relationship, dict):
+        source_section = _int_value(relationship.get("source_section"))
+        if source_section is not None:
+            example["source_section"] = source_section
+    if isinstance(source, dict):
+        source_section = _int_value(source.get("source_section"))
+        if source_section is not None:
+            example["source_section"] = source_section
+        source_offset = _int_value(source.get("source_section_offset"))
+        compressed_source_offset = _int_value(source.get("compressed_source_section_offset"))
+        compressed_source_end = _int_value(source.get("compressed_source_section_end_offset"))
+        if source_offset is None:
+            source_offset = compressed_source_offset
+        if source_offset is not None:
+            example["offset"] = source_offset
+            example["source_section_offset"] = source_offset
+        if compressed_source_offset is not None:
+            example["compressed_source_section_offset"] = compressed_source_offset
+        if compressed_source_end is not None:
+            example["compressed_source_section_end_offset"] = compressed_source_end
+            example["source_section_end_offset"] = compressed_source_end
     if isinstance(packed, dict):
+        source_section = _int_value(packed.get("source_section"))
+        if source_section is not None:
+            example["source_section"] = source_section
+        elif "source_section" not in example:
+            example["source_section"] = 0
         section_offset = _int_value(packed.get("section_offset"))
         file_offset = _int_value(packed.get("file_offset"))
         packed_size = _int_value(packed.get("size"))
         if section_offset is not None:
             example["offset"] = section_offset
+            example["source_section_offset"] = section_offset
         if file_offset is not None:
             example["file_offset"] = file_offset
         if packed_size is not None:
@@ -1354,30 +1383,11 @@ def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag
         codec = _project_decompression_codec(entry)
         if codec:
             bag.add(f"decompression:codec:{_safe_part(codec)}", example=example)
-        section_offset = _int_value(example.get("offset"))
-        packed_size = _int_value(example.get("packed_size"))
-        if section_offset is not None:
-            bag.add("decompression:source_offset", example=example)
-            bag.add(f"decompression:source_offset:0:{section_offset:08X}", example=example)
-        if section_offset is not None and packed_size is not None:
-            bag.add("decompression:source_range", example=example)
-            bag.add(
-                f"decompression:source_range:0:{section_offset:08X}-{section_offset + packed_size:08X}",
-                example=example,
-            )
-            bag.add("decompression:packed_size", example=example)
-        if _int_value(example.get("load_address")) is not None:
-            bag.add("absolute-depack-dest", example=example)
-        if _int_value(example.get("entrypoint")) is not None:
-            bag.add("decompressed-entrypoint", example=example)
-        source_load_entry = {
-            "source_section": 0,
-            "source_section_offset": section_offset,
-            "source_section_end_offset": _int_value(example.get("source_section_end_offset")),
-            "load_address": _int_value(example.get("load_address")),
-            "entrypoint": _int_value(example.get("entrypoint")),
-        }
-        for feature in _decompression_source_load_entry_features(source_load_entry):
+        for feature in _decompression_source_range_features(example):
+            bag.add(feature, example=example)
+        for feature in _decompression_output_address_features(example):
+            bag.add(feature, example=example)
+        for feature in _decompression_source_load_entry_features(example):
             bag.add(feature, example=example)
 
 
@@ -3102,10 +3112,8 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
             )
         if isinstance(reproduction, dict) and reproduction.get("exact") is True:
             xrefs.append(_xref(row, "decompression:child_reproduction_exact", "derived_target", offset=offset, symbol=codec, text=text))
-        if _int_value(example.get("load_address")) is not None:
-            xrefs.append(_xref(row, "absolute-depack-dest", "derived_target", offset=offset, symbol=codec, text=text))
-        if _int_value(example.get("entrypoint")) is not None:
-            xrefs.append(_xref(row, "decompressed-entrypoint", "derived_target", offset=offset, symbol=codec, text=text))
+        for feature in _decompression_output_address_features(example):
+            xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
         if codec:
             xrefs.append(
                 _xref(
@@ -3117,35 +3125,12 @@ def _project_target_metadata_xrefs(row: dict[str, object], entry: dict[str, Any]
                     text=text,
                 )
             )
-        packed_size = _int_value(example.get("packed_size"))
-        if offset is not None:
-            xrefs.append(_xref(row, "decompression:source_offset", "derived_target", offset=offset, symbol=codec, text=text))
-            xrefs.append(
-                _xref(
-                    row,
-                    f"decompression:source_offset:0:{offset:08X}",
-                    "derived_target",
-                    offset=offset,
-                    symbol=codec,
-                    text=text,
-                )
-            )
-        if offset is not None and packed_size is not None:
-            end_offset = offset + packed_size
-            for feature in (
-                "decompression:source_range",
-                f"decompression:source_range:0:{offset:08X}-{end_offset:08X}",
-                "decompression:packed_size",
-            ):
-                xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, value=packed_size, text=text))
-        source_load_entry = {
-            "source_section": 0,
-            "source_section_offset": offset,
-            "source_section_end_offset": _int_value(example.get("source_section_end_offset")),
-            "load_address": _int_value(example.get("load_address")),
-            "entrypoint": _int_value(example.get("entrypoint")),
-        }
-        for feature in _decompression_source_load_entry_features(source_load_entry):
+        value = _int_value(example.get("packed_size"))
+        if value is None:
+            value = _int_value(example.get("decompressed_size"))
+        for feature in _decompression_source_range_features(example):
+            xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, value=value, text=text))
+        for feature in _decompression_source_load_entry_features(example):
             xrefs.append(_xref(row, feature, "derived_target", offset=offset, symbol=codec, text=text))
         for value, feature_prefix in (
             (payload_role, "decompression:payload_role"),

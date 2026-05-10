@@ -1384,6 +1384,64 @@ class TargetUsageManifestTests(unittest.TestCase):
         self.assertIn("decompression:source_load_entry:0:00004C40-0002DE07:00004000:00004000",
             {xref["feature"] for xref in xrefs})
 
+    def test_project_target_metadata_features_use_recognized_unpacker_source_relationship(self) -> None:
+        entry = {
+            "id": "child",
+            "platform": "raw-binary",
+            "status": "ok",
+            "origin": {},
+            "project_origin_kind_id": 1,
+            "target_role_id": 1,
+            "target_type": "raw_binary",
+            "decompression": {
+                "compressor": {"id": "tetragon", "name": "Tetragon"},
+                "source": {
+                    "kind_id": 2,
+                    "source_section": 1,
+                    "compressed_source_section_offset": 0x100,
+                    "compressed_source_section_end_offset": 0x428,
+                    "unpacker_marker_offset": 0xC4,
+                },
+                "relationship": {
+                    "kind_id": 1,
+                    "source_section": 1,
+                    "load_address": 0x40000,
+                    "entrypoint": 0x40000,
+                },
+                "decompressed": {"size": 0x10000, "load_address": 0x40000, "entrypoint": 0x40000},
+            },
+        }
+        bag = usage.FeatureBag()
+
+        usage._add_project_target_metadata_features(entry, bag)
+        counts, examples, _tags = bag.row_features()
+        xrefs = usage._project_target_metadata_xrefs(
+            {
+                "id": "project_target:child",
+                "source_id": "child",
+                "platform": "raw-binary",
+                "origin": {},
+            },
+            entry,
+        )
+        features = {xref["feature"] for xref in xrefs}
+
+        self.assertEqual(counts["decompression:child"], 1)
+        self.assertEqual(counts["decompression:source_section:1"], 1)
+        self.assertEqual(counts["decompression:source_offset:1:00000100"], 1)
+        self.assertEqual(counts["decompression:source_range:1:00000100-00000428"], 1)
+        self.assertEqual(counts["decompression:compressed_source_range:1:00000100-00000428"], 1)
+        self.assertEqual(counts["decompression:source_load_entry:1:00000100-00000428:00040000:00040000"], 1)
+        self.assertEqual(counts["decompression:output_load_address:00040000"], 1)
+        self.assertEqual(counts["decompression:entrypoint:00040000"], 1)
+        self.assertEqual(examples["derived-decompressed-target"][0]["source_section"], 1)
+        self.assertEqual(examples["derived-decompressed-target"][0]["source_section_offset"], 0x100)
+        self.assertIn("decompression:source_load_entry:1:00000100-00000428:00040000:00040000", features)
+        self.assertIn("decompression:source_range:1:00000100-00000428", features)
+        self.assertIn("decompression:output_load_address:00040000", features)
+        self.assertIn("decompression:entrypoint:00040000", features)
+        self.assertNotIn("decompression:source_load_entry:0:00000100-00000428:00040000:00040000", features)
+
     def test_numeric_copper_register_rows_use_hardware_metadata(self) -> None:
         bag = usage.FeatureBag()
         usage._add_listing_features(
