@@ -717,6 +717,22 @@ Do not scan table bytes that overlap accepted code. If leading candidate words
 before the control base overlap accepted code, ignore them and fall back to the
 proven table at the control base.
 
+The same separation is required when the base is held in an address register:
+
+```asm
+    lea     table_base(pc),a1
+    add.w   d1,d1
+    move.w  -8(a1,d1.w),d1
+    jsr     0(a1,d1.w)
+```
+
+Here the storage range starts before `table_base`, while the control expression
+is relative to `table_base`. The indexed displacement is signed. Analysis must
+backtrack `a1`, keep the storage base and control base as separate facts, and
+render entries as `target_label-table_base`. This pattern is observed in the
+GenAm/MonAm corpus targets and must remain generic C analysis, not target
+metadata.
+
 Keyed relative dispatch is the same source-restoration problem with a wider
 entry. One observed shape loads a longword from `(aN)+`, swaps the words, then
 uses the new low word as a PC-relative control offset. The high word should

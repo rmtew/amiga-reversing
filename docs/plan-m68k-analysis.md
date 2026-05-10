@@ -171,11 +171,12 @@ measurements and test names here, not in the index table.
 - Table role/conflict/status data is carried as compact ids/flags; corpus
   indexing does not infer table classes from rendered comments or display text.
 - Implemented recovery patterns include PC-indexed word dispatch, biased
-  PC-indexed word dispatch, direct indexed stub tables, interleaved key/stub
-  tables, post-instruction variable branch stubs from intra-instruction
-  expression bases, backward and forward inline-tail dispatch, keyed long
-  relative dispatch, branch-terminated inline stubs, and PC-indexed absolute
-  long dispatch rendering.
+  PC-indexed word dispatch, address-register indexed word dispatch with signed
+  table displacement, direct indexed stub tables, interleaved key/stub tables,
+  post-instruction variable branch stubs from intra-instruction expression
+  bases, backward and forward inline-tail dispatch, keyed long relative
+  dispatch, branch-terminated inline stubs, and PC-indexed absolute long
+  dispatch rendering.
 - `table_candidate_records` are now a strict subset of recovered indirect sites.
   Generic unresolved `jsr (aN)` / `jmp (aN)` remains in
   `recovered_indirect_sites` and `analysis:indirect_site` tags, but no longer
@@ -184,6 +185,7 @@ measurements and test names here, not in the index table.
 - Isolated coverage includes:
   `test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets`,
   `test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets`,
+  `test_facts_v2_address_indexed_word_load_uses_signed_table_displacement`,
   `test_facts_v2_direct_indexed_stub_table_promotes_entries`,
   `test_facts_v2_intra_instruction_index_base_promotes_post_instruction_variable_stubs`,
   `test_facts_v2_indexed_backward_inline_tail_promotes_entries`,
@@ -197,6 +199,16 @@ measurements and test names here, not in the index table.
   lookup-table missing-inbound work items, and kept suppressed structured-data
   overlaps out of work queues. Next table work must start from newly observed
   unresolved C statuses, not suppressed data overlaps.
+- Address-register indexed word dispatch was proven from GenAm/MonAm-style
+  evidence (`lea table_base(pc),a1`; `move.w -disp(a1,dN.w),dN`;
+  `jmp/jsr 0(a1,dN.w)`). Temporary full usage rebuild
+  `tmp_target_usage_after_address_indexed_word_dispatch.jsonl` changed
+  `table:candidate_unresolved` 13 -> 6 and
+  `analysis:lookup_table:word_relative_labels` 32 -> 39. The accepted tables
+  expose five follow-up orphan-code `jump_table` missing-inbound signals where
+  adjacent code still lacks a proven flow edge. Regenerated `GenAm` and
+  `MonAm302` source now renders large formerly raw byte spans as code while
+  keeping exact source reproduction.
 
 #### Absolute memory
 
