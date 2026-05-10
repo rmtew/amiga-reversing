@@ -31,6 +31,7 @@
 #define M68K_FACTS_V2_CODE_START_REASON_INLINE_RESUME 6U
 #define M68K_FACTS_V2_CODE_START_REASON_RUNTIME_VIEW_ENTRY 7U
 #define M68K_FACTS_V2_CODE_START_REASON_LINKAGE_API_ENTRY 8U
+#define M68K_FACTS_V2_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY 9U
 
 typedef struct M68kFactsV2Profile {
   double decode_seconds;
@@ -109,6 +110,7 @@ typedef struct M68kFactsV2Profile {
   uint32_t code_start_fallthroughs;
   uint32_t code_start_inline_resumes;
   uint32_t code_start_linkage_api_entries;
+  uint32_t code_start_platform_loadseg_entries;
   uint32_t runtime_address_ranges;
   uint32_t runtime_address_range_conflicts;
   uint32_t runtime_address_view_starts;

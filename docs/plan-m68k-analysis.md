@@ -991,8 +991,13 @@ undocumented renderer heuristics.
 - Voodoo Nightmare `run` uses the Amiga segment base/linkage address to compute
   and jump to code in another loaded segment. The current model recognizes the
   standard local LoadSeg-link helper through Amiga platform logic and promotes
-  the resolved segment body as a C-owned code entrypoint. Broader variants still
-  need corpus indexing and comparator coverage.
+  the resolved segment body as a C-owned code entrypoint. The generic trace
+  engine now only asks whether the active platform supports LoadSeg segment
+  chains; the Amiga platform layer owns that answer. Target usage indexing tags
+  these entries as `analysis:platform_loadseg_entry` and
+  `target-pattern:platform_loadseg_entry`. A corpus manifest run found this in
+  Voodoo Nightmare `run` platform/project targets; broader helper variants still
+  need comparator coverage.
 
 ## Regression and Acceptance Checklist
 

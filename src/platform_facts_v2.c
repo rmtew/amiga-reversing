@@ -477,11 +477,15 @@ int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kin
   }
 }
 
+int platform_facts_v2_supports_loadseg_segment_chain(uint8_t platform_kind) {
+  return platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+}
+
 int platform_facts_v2_loadseg_segment_body_for_hops(uint8_t platform_kind, size_t section_count,
     size_t anchor_section_index, uint32_t link_hops, size_t *out_section_index) {
   size_t target_section;
   if (out_section_index != NULL) *out_section_index = 0U;
-  if (out_section_index == NULL || platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+  if (out_section_index == NULL || !platform_facts_v2_supports_loadseg_segment_chain(platform_kind) ||
       link_hops == 0U || anchor_section_index >= section_count) {
     return 0;
   }

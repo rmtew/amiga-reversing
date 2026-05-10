@@ -5272,6 +5272,8 @@ static const char *render_lookup_code_start_reason_name(uint32_t reason) {
     return "runtime_view_entry";
   case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
     return "linkage_api_entry";
+  case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+    return "platform_loadseg_entry";
   default:
     return "unknown";
   }

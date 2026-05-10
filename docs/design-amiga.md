@@ -80,7 +80,10 @@ Voodoo Nightmare `run` then calls through the returned register. The Amiga
 platform layer owns the fact that this is a LoadSeg segment-list traversal. The
 generic M68K flow engine may use the resolved section body as a normal
 entrypoint, but it must not infer this behavior for Atari ST, raw binaries, or
-ordinary M68K code without Amiga HUNK platform ownership.
+ordinary M68K code without Amiga HUNK platform ownership. Shared analysis code
+must query platform facts for LoadSeg segment-chain support and section-body
+resolution; it may carry the resulting entrypoint provenance, but it must not
+encode Amiga ownership as a generic M68K rule.
 
 ## HUNK Relocation Anchors
 

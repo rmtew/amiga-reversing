@@ -61,6 +61,7 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
   const uint8_t *data, uint32_t size, uint32_t value_offset);
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
   uint32_t *out_base_offset, int32_t *out_addend);
+int platform_facts_v2_supports_loadseg_segment_chain(uint8_t platform_kind);
 int platform_facts_v2_loadseg_segment_body_for_hops(uint8_t platform_kind, size_t section_count,
   size_t anchor_section_index, uint32_t link_hops, size_t *out_section_index);
 

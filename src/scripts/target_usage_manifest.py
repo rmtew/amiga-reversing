@@ -2613,6 +2613,8 @@ def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
         _add_runtime_table_base_addend_features(bag, text, example)
         for feature in sorted(direct_control_stub_rows.get(row_index, ())):
             bag.add(feature, example=example)
+        for feature in _listing_code_start_reason_features(row):
+            bag.add(feature, example=example)
         if _listing_row_label_symbol(row):
             bag.add("label:any", example=example)
             bag.add("label:definition", example=example)
@@ -2904,6 +2906,21 @@ def _listing_row_direct_control_stub_features(row: dict[str, object]) -> tuple[s
             if match is not None and section is not None and int(match.group(1)) != section:
                 return ("analysis:direct_control_stub_table", "analysis:relocated_absolute_jmp_stub_table")
     return ()
+
+
+def _listing_code_start_reason_features(row: dict[str, object]) -> tuple[str, ...]:
+    refs = row.get("code_start_refs")
+    features: list[str] = []
+    if not isinstance(refs, list):
+        return ()
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        reason = _string_value(ref.get("reason_name"))
+        if reason == "platform_loadseg_entry":
+            features.append("analysis:platform_loadseg_entry")
+            features.append("target-pattern:platform_loadseg_entry")
+    return tuple(dict.fromkeys(features))
 
 
 def _listing_direct_control_stub_table_row_features(listing: dict[str, Any]) -> dict[int, set[str]]:
@@ -4486,6 +4503,7 @@ def _listing_xrefs(
                 feature_bag.add("label:any", example=example)
                 feature_bag.add("label:definition", example=example)
         direct_control_features = sorted(direct_control_stub_rows.get(row_index, ()))
+        code_start_reason_features = _listing_code_start_reason_features(listing_row)
         if direct_control_features:
             if feature_bag is not None:
                 for feature in direct_control_features:
@@ -4503,6 +4521,21 @@ def _listing_xrefs(
                         text=stripped_text,
                     )
                 )
+        for feature in code_start_reason_features:
+            if feature_bag is not None:
+                feature_bag.add(feature, example=example)
+            xrefs.append(
+                _xref(
+                    row,
+                    feature,
+                    "analysis_ref",
+                    section=section_index,
+                    offset=offset,
+                    row_index=row_index,
+                    stable_key=stable_key,
+                    text=stripped_text,
+                )
+            )
         if _listing_row_is_kind(listing_row, LISTING_ROW_KIND_DIRECTIVE) and opcode_or_directive == "ORG":
             org_address = _org_directive_address(listing_row, text)
             org_example = dict(example)

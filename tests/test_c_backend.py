@@ -5569,6 +5569,7 @@ def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
+    assert source_text_profile["facts_v2"]["code_start_platform_loadseg_entries"] == 1
     assert "loc_3_00000000:\n\tmoveq.l #0,d5\n\taddq.w #1,d6\n" in source_text
     assert "    SECTION section_3,code\n\tdc.b $7A,$00,$52,$46" not in source_text
     assert (

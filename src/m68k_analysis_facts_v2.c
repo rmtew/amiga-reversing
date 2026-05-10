@@ -43,6 +43,7 @@ typedef struct M68kFactsV2TraceValue {
   uint32_t value;
   size_t origin_section_index;
   uint32_t origin_offset;
+  uint32_t code_start_reason;
   uint32_t target_count;
   uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
 } M68kFactsV2TraceValue;
@@ -187,6 +188,8 @@ static void trace_value_set_unknown(M68kFactsV2TraceValue *value);
 static void trace_value_set_constant(M68kFactsV2TraceValue *value, uint32_t constant);
 static void trace_value_set_constant_with_origin(M68kFactsV2TraceValue *value, uint32_t constant,
   size_t section_index, uint32_t offset, size_t operand_index);
+static void trace_value_set_source_offset_with_reason(M68kFactsV2TraceValue *value, size_t section_index,
+  uint32_t offset, uint32_t code_start_reason);
 static int trace_value_from_candidate_source(size_t section_index, const M68kDecodeSectionIR *section,
   const M68kDecodeCandidate *candidate, size_t operand_index, const M68kFactsV2TraceState *state,
   M68kFactsV2TraceValue *out_value);
@@ -775,6 +778,9 @@ static void profile_record_code_start(M68kFactsV2Profile *profile, uint32_t reas
       break;
     case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
       ++profile->code_start_linkage_api_entries;
+      break;
+    case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+      ++profile->code_start_platform_loadseg_entries;
       break;
     default:
       break;
@@ -1483,6 +1489,12 @@ static void trace_value_set_source_offset(M68kFactsV2TraceValue *value, size_t s
   value->kind = M68K_FACTS_V2_TRACE_SOURCE_OFFSET;
   value->section_index = section_index;
   value->value = offset;
+}
+
+static void trace_value_set_source_offset_with_reason(M68kFactsV2TraceValue *value, size_t section_index,
+    uint32_t offset, uint32_t code_start_reason) {
+  trace_value_set_source_offset(value, section_index, offset);
+  if (value != NULL) value->code_start_reason = code_start_reason;
 }
 
 static void trace_value_set_runtime_address(M68kFactsV2TraceValue *value, uint32_t address) {
@@ -3194,6 +3206,7 @@ static int trace_state_apply_platform_loadseg_helper_call(M68kDecodeIR *decode, 
       (candidate->mnemonic_id != M68K_ASM_MNEMONIC_BSR && candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR)) {
     return 0;
   }
+  if (!platform_facts_v2_supports_loadseg_segment_chain(platform_kind)) return 0;
   for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
     const M68kDecodeTarget *target = &candidate->targets[target_index];
     uint8_t count_reg = 0U;
@@ -3218,7 +3231,8 @@ static int trace_state_apply_platform_loadseg_helper_call(M68kDecodeIR *decode, 
         decode->sections[body_section_index].size == 0U) {
       continue;
     }
-    trace_value_set_source_offset(&after->a[result_reg], body_section_index, 0U);
+    trace_value_set_source_offset_with_reason(&after->a[result_reg], body_section_index, 0U,
+      M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY);
     return 1;
   }
   return 0;
@@ -4178,7 +4192,8 @@ static int enqueue_same_section_control_resolved_target_from_offset(M68kDecodeIR
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
     uint32_t source_offset, uint32_t target_offset, uint8_t target_has_runtime_address,
-    uint32_t runtime_address, uint8_t confidence, const M68kFactsV2TraceState *trace_state) {
+    uint32_t runtime_address, uint8_t confidence, uint32_t code_start_reason,
+    const M68kFactsV2TraceState *trace_state) {
   const M68kDecodeSectionIR *section;
   const M68kDecodeCandidate *target_candidate = NULL;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
@@ -4202,7 +4217,7 @@ static int enqueue_same_section_control_resolved_target_from_offset(M68kDecodeIR
     return -1;
   if (accepted_start[section_index][target_offset] && trace_state == NULL && !target_has_runtime_address) return 0;
   return enqueue_code_start_runtime(facts, queue, profile, section_index, target_offset,
-    confidence, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+    confidence, code_start_reason != 0U ? code_start_reason : M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
     section_index, source_offset, target_has_runtime_address, runtime_address, trace_state);
 }
 
@@ -4214,7 +4229,8 @@ static int enqueue_same_section_control_resolved_target(M68kDecodeIR *decode, M6
   if (candidate == NULL) return 0;
   return enqueue_same_section_control_resolved_target_from_offset(decode, facts, queue, accepted_start,
     accepted_bytes, profile, max_cpu, section_index, candidate->offset, target_offset,
-    target_has_runtime_address, runtime_address, confidence, trace_state);
+    target_has_runtime_address, runtime_address, confidence, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+    trace_state);
 }
 
 static int enqueue_same_section_control_target_from_offset(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -4239,7 +4255,7 @@ static int enqueue_same_section_control_target_from_offset(M68kDecodeIR *decode,
   }
   return enqueue_same_section_control_resolved_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
     profile, max_cpu, section_index, source_offset, target_offset, target_has_runtime_address, target_address,
-    confidence, trace_state);
+    confidence, M68K_FACT_CODE_START_REASON_CONTROL_TARGET, trace_state);
 }
 
 static int enqueue_same_section_control_target(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -4256,7 +4272,7 @@ static int enqueue_same_section_control_target(M68kDecodeIR *decode, M68kFactIR 
 static int enqueue_cross_section_control_resolved_target_from_offset(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, size_t source_section_index, uint32_t source_offset,
-    size_t target_section_index, uint32_t target_offset, uint8_t confidence) {
+    size_t target_section_index, uint32_t target_offset, uint8_t confidence, uint32_t code_start_reason) {
   const M68kDecodeSectionIR *target_section;
   const M68kDecodeCandidate *target_candidate = NULL;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
@@ -4290,7 +4306,8 @@ static int enqueue_cross_section_control_resolved_target_from_offset(M68kDecodeI
   if (m68k_fact_ir_require_label(facts, target_section_index, target_offset, confidence) != 0) return -1;
   if (accepted_start[target_section_index][target_offset]) return 0;
   return enqueue_code_start(facts, queue, profile, target_section_index, target_offset, confidence,
-    M68K_FACT_CODE_START_REASON_CONTROL_TARGET, source_section_index, source_offset);
+    code_start_reason != 0U ? code_start_reason : M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
+    source_section_index, source_offset);
 }
 
 static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -4306,7 +4323,7 @@ static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kF
       if (candidate == NULL) return 0;
       return enqueue_cross_section_control_resolved_target_from_offset(decode, facts, queue, accepted_start,
         accepted_bytes, profile, max_cpu, section_index, candidate->offset, target_value->section_index,
-        target_value->value, confidence);
+        target_value->value, confidence, target_value->code_start_reason);
     }
     if (target_value->value >= section->size) return 0;
     return enqueue_same_section_control_resolved_target(decode, facts, queue, accepted_start, accepted_bytes,

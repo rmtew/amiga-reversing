@@ -357,6 +357,36 @@ def test_direct_control_stub_table_feature_and_xref() -> None:
     assert [xref["stable_key"] for xref in direct_xrefs] == ["stub-a", "stub-b"]
 
 
+def test_platform_loadseg_code_start_feature_and_xref() -> None:
+    listing = {
+        "rows": [
+            {
+                "kind": "instruction",
+                "kind_id": 3,
+                "section_index": 3,
+                "start_offset": 0,
+                "end_offset": 2,
+                "stable_key": "loadseg-entry",
+                "text": "\tmoveq.l #0,d5\n",
+                "code_start_refs": [{"reason_name": "platform_loadseg_entry"}],
+            }
+        ]
+    }
+    bag = FeatureBag()
+    _add_listing_features(listing, bag)
+    counts, _examples, tags = bag.row_features()
+
+    assert counts["analysis:platform_loadseg_entry"] == 1
+    assert counts["target-pattern:platform_loadseg_entry"] == 1
+    assert "target-pattern:platform_loadseg_entry" in tags
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    xrefs = _listing_xrefs(row, listing, feature_bag=FeatureBag())
+    features = {xref["feature"] for xref in xrefs}
+    assert "analysis:platform_loadseg_entry" in features
+    assert "target-pattern:platform_loadseg_entry" in features
+
+
 def test_relocated_absolute_jmp_stub_table_feature_and_xref() -> None:
     listing = {
         "rows": [
