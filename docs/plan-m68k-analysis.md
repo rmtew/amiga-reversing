@@ -989,9 +989,10 @@ undocumented renderer heuristics.
   useful proving target, but GenAm/MonAm and imported disk targets should remain
   comparators so Bloodwych does not become the hidden spec.
 - Voodoo Nightmare `run` uses the Amiga segment base/linkage address to compute
-  and jump to code in another loaded segment. The current model must learn this
-  as a platform-backed entrypoint relationship, not leave the destination as
-  unregistered orphan code and not paper over it with target-local seeds.
+  and jump to code in another loaded segment. The current model recognizes the
+  standard local LoadSeg-link helper through Amiga platform logic and promotes
+  the resolved segment body as a C-owned code entrypoint. Broader variants still
+  need corpus indexing and comparator coverage.
 
 ## Regression and Acceptance Checklist
 

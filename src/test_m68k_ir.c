@@ -8246,6 +8246,71 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   return 0;
 }
 
+static int test_facts_v2_amiga_loadseg_helper_promotes_linked_segment_entry(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t section0_bytes[2] = {0x4eU, 0x75U};
+  uint8_t section1_bytes[80] = {
+    0x48U,0xe7U,0xffU,0xffU,0x49U,0xfaU,0x00U,0x36U,0x3cU,0x3cU,0x00U,0x01U,0x61U,0x2eU,0x4eU,0x91U,
+    0x3cU,0x3cU,0x00U,0x03U,0x61U,0x26U,0x51U,0x89U,0x20U,0x11U,0x2cU,0x78U,0x00U,0x04U,0x4eU,0xaeU,
+    0xffU,0x2eU,0x53U,0x46U,0x0cU,0x46U,0x00U,0x00U,0x66U,0xeaU,0x61U,0x10U,0x42U,0xa1U,0x7cU,0x00U,
+    0x61U,0x0aU,0x2fU,0x49U,0x00U,0x3cU,0x4cU,0xdfU,0x7fU,0xffU,0x4eU,0x75U,0x3eU,0x06U,0x43U,0xfaU,
+    0xffU,0xbcU,0x22U,0x51U,0xd3U,0xc9U,0xd3U,0xc9U,0x51U,0xcfU,0xffU,0xf8U,0x58U,0x89U,0x4eU,0x75U
+  };
+  uint8_t section3_bytes[4] = {0x7aU, 0x00U, 0x4eU, 0x75U};
+  size_t non_amiga_section = 99U;
+  M68K_C_ASSERT(!platform_facts_v2_loadseg_segment_body_for_hops(M68K_PLATFORM_BACKEND_ATARI_ST, 4U, 1U, 2U,
+    &non_amiga_section));
+  M68K_C_ASSERT_U32(0U, (uint32_t)non_amiga_section);
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(section0_bytes);
+  section.data_size = sizeof(section0_bytes);
+  section.data = section0_bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(section1_bytes);
+  section.data_size = sizeof(section1_bytes);
+  section.data = section1_bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_BSS;
+  section.size = 0x20U;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(section3_bytes);
+  section.data_size = sizeof(section3_bytes);
+  section.data = section3_bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.disable_implicit_entry_points = 1U;
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 1U;
+  policy.entry_points[0].offset = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_3_00000000:\n\tmoveq.l #0,d5\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    SECTION section_3,code\n\tdc.b $7A,$00,$4E,$75\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_demotes_speculative_unencodable_instruction(void) {
   M68kObject object;
   M68kSection section;
@@ -16925,6 +16990,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve},
     {"facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link",
       test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link},
+    {"facts_v2_amiga_loadseg_helper_promotes_linked_segment_entry",
+      test_facts_v2_amiga_loadseg_helper_promotes_linked_segment_entry},
     {"facts_v2_demotes_speculative_unencodable_instruction",
       test_facts_v2_demotes_speculative_unencodable_instruction},
     {"facts_v2_demotes_speculative_reserved_full_extension",

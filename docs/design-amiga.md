@@ -61,6 +61,27 @@ Rules:
   absolute-RAM reference just because the addend is a small number.
 - Keep reproduction exact after changing these expressions.
 
+Some loaders wrap this in a small local helper that walks the LoadSeg chain and
+returns another segment body in an address register:
+
+```asm
+    move.w d6,d7
+    lea.l loc_1_00000000-4(pc),a1
+next_segment:
+    movea.l (a1),a1
+    adda.l a1,a1
+    adda.l a1,a1
+    dbf.w d7,next_segment
+    addq.l #4,a1
+    rts
+```
+
+Voodoo Nightmare `run` then calls through the returned register. The Amiga
+platform layer owns the fact that this is a LoadSeg segment-list traversal. The
+generic M68K flow engine may use the resolved section body as a normal
+entrypoint, but it must not infer this behavior for Atari ST, raw binaries, or
+ordinary M68K code without Amiga HUNK platform ownership.
+
 ## HUNK Relocation Anchors
 
 HUNK `HUNK_RELOC32` entries can legally point outside the loaded payload range.
