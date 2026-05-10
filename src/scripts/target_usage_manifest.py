@@ -4364,6 +4364,7 @@ def _analysis_xrefs(
             offset = _int_value(signal.get("offset"))
             row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
             reason = _orphan_code_signal_reason_name(signal)
+            status_id = _int_value(signal.get("status_id"), 0) or 0
             status = _orphan_code_signal_status_name(signal)
             terminal_flow = _orphan_code_signal_terminal_flow_name(signal)
             required_cpu = _int_value(signal.get("required_cpu"))
@@ -4394,7 +4395,7 @@ def _analysis_xrefs(
                 features.append("orphan-code:decode_conflict")
             if context:
                 features.append(f"orphan-code:context:{_safe_part(context)}")
-            if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status):
+            if missing_inbound and _orphan_code_signal_has_actionable_missing_inbound(status_id):
                 features.append(f"orphan-code:missing_inbound:{_safe_part(missing_inbound)}")
             if nearby_data_class:
                 features.append(f"orphan-code:nearby_data:{_safe_part(nearby_data_class)}")

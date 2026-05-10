@@ -1088,10 +1088,8 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
       queue == NULL || runtime_addresses == NULL || profile == NULL)
     return -1;
   if (seed_runtime_address_space_from_policy(object, policy, runtime_addresses, facts, profile) != 0) return -1;
-  /* AmigaOS 3.1 dos/loadseg.asm links load hunks in file/table order and returns
-     the first segment; it handles CODE/DATA/BSS as load hunks but does not scan
-     forward for the next CODE hunk. A normal implicit executable entry therefore
-     exists only when section 0 is code. */
+  /* A normal implicit executable entry belongs to the first section only. Later
+     code sections need explicit policy, metadata, or analysis-discovered flow. */
   if (!policy->disable_implicit_entry_points && !policy->has_entry_offset &&
       object->section_count != 0U) {
     const M68kSection *entry_section = &object->sections[0];
@@ -4096,7 +4094,7 @@ static int candidate_lea_platform_section_anchor(const M68kDecodeCandidate *cand
     candidate->operand_count, candidate->size_suffix, 0U, 0);
   target = (int64_t)candidate->offset + (int64_t)relative_base +
     (int64_t)(int32_t)m68k_sign_extend32(candidate->operands[0].value, 16U);
-  if (!platform_facts_v2_pc_relative_section_anchor_for_target(platform_kind, target, &base_offset, &addend))
+  if (!platform_facts_v2_pc_relative_section_anchor_for_target(platform_kind, target, &base_offset, &addend, NULL))
     return 0;
   if (out_reg != NULL) *out_reg = dest_reg;
   if (out_base_offset != NULL) *out_base_offset = base_offset;

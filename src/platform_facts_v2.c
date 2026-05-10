@@ -462,15 +462,17 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
 }
 
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
-    uint32_t *out_base_offset, int32_t *out_addend) {
+    uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance) {
   if (out_base_offset != NULL) *out_base_offset = 0U;
   if (out_addend != NULL) *out_addend = 0;
+  if (out_symbol_provenance != NULL) *out_symbol_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
   if (out_base_offset == NULL || out_addend == NULL) return 0;
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
     if (target != -4) return 0;
     *out_base_offset = 0U;
     *out_addend = -4;
+    if (out_symbol_provenance != NULL) *out_symbol_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
     return 1;
   default:
     return 0;

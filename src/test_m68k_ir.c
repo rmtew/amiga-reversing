@@ -8223,7 +8223,17 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
+  uint32_t base_offset = 99U;
+  int32_t addend = 99;
+  uint8_t symbol_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
   uint8_t bytes[6] = {0x43u, 0xFAu, 0xFFu, 0xFAu, 0x4eu, 0x75u};
+  M68K_C_ASSERT(platform_facts_v2_pc_relative_section_anchor_for_target(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    -4, &base_offset, &addend, &symbol_provenance));
+  M68K_C_ASSERT_U32(0U, base_offset);
+  M68K_C_ASSERT_INT(-4, addend);
+  M68K_C_ASSERT_U32(M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA, symbol_provenance);
+  M68K_C_ASSERT(!platform_facts_v2_pc_relative_section_anchor_for_target(M68K_PLATFORM_BACKEND_ATARI_ST,
+    -4, &base_offset, &addend, &symbol_provenance));
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;

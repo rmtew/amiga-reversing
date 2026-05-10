@@ -7347,6 +7347,7 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
     M68kAsmOperandValue asm_operands[M68K_DECODE_IR_MAX_OPERANDS];
     uint32_t base_offset = 0U;
     int32_t addend = 0;
+    uint8_t symbol_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
     size_t index;
     size_t relative_base;
     int64_t target;
@@ -7366,7 +7367,7 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
       candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
     target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
     if (!platform_facts_v2_pc_relative_section_anchor_for_target(lookup->object->platform_backend_kind, target,
-        &base_offset, &addend) || lookup->label_extents == NULL ||
+        &base_offset, &addend, &symbol_provenance) || lookup->label_extents == NULL ||
         base_offset >= lookup->label_extents[section_index] ||
         !lookup_has_renderable_label(lookup, section_index, base_offset)) {
       continue;
@@ -7379,9 +7380,7 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
     operand->symbol_ref.has_section = 1;
     operand->symbol_ref.section_index = section_index;
     operand->symbol_ref.addend = addend;
-    operand->symbol_ref.name_provenance = lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK
-      ? M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA
-      : M68K_IR_SYMBOL_PROVENANCE_NONE;
+    operand->symbol_ref.name_provenance = symbol_provenance;
   }
   return 0;
 }

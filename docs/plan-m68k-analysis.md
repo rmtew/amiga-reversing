@@ -998,7 +998,8 @@ undocumented renderer heuristics.
   standard local LoadSeg-link helper through Amiga platform logic and promotes
   the resolved segment body as a C-owned code entrypoint. The generic trace
   engine now only asks whether the active platform supports LoadSeg segment
-  chains; the Amiga platform layer owns that answer. Target usage indexing tags
+  chains; the Amiga platform layer owns that answer and the symbol provenance
+  for section-start-minus-four anchor rendering. Target usage indexing tags
   these entries as `analysis:platform_loadseg_entry` and
   `target-pattern:platform_loadseg_entry`. A corpus manifest run found this in
   Voodoo Nightmare `run` platform/project targets; broader helper variants still
