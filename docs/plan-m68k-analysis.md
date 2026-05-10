@@ -1172,6 +1172,26 @@ Runtime-copy base versus entrypoint evidence:
   `test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code`.
   The regenerated Pandora extracted `.s` reassembles byte-exact to the raw
   child payload.
+- Runtime absolute memory operands now reuse existing materialized runtime
+  storage labels when the operand maps to non-code source bytes. This restores
+  Bloodwych slot references such as `movea.l abs_0_00008D36.l,a0`,
+  `movea.l abs_0_00008D3A.l,a0`, and `movea.l abs_0_0000EE78.l,a6` while
+  preserving numeric output for memory reads that would overlap accepted code.
+  Isolated C coverage:
+  `facts_v2_materialized_runtime_absolute_storage_ref_uses_existing_data_label`
+  and
+  `facts_v2_materialized_runtime_absolute_storage_ref_rejects_code_overlap`.
+  Real Bloodwych coverage:
+  `test_real_dll_bloodwych_generated_source_assembles_exact` passed, and a
+  fresh generated `bloodwych.s` matched the checked-in target source exactly.
+  Corpus manifest after the change:
+  `src\build\tmp_target_usage_after_runtime_absolute_storage_labels.jsonl`
+  produced 493 entries, 517309 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows. Type-flow check passed
+  with `ok: true`, 4 applied refinements, and 0 violations. Bloodwych generated
+  row text changed from 312 `$00008D36`, 6 `$00008D3A`, and 30 `$0000EE78`
+  absolute storage reads to zero; the equivalent symbolic label rows now cover
+  all of those references.
 - Corpus manifest after this render-boundary change:
   `src\build\tmp_target_usage_after_source_zero_runtime_org_continuation.jsonl`
   (493 entries, 519388 xrefs, 481556 snippet rows, 3 variants, 322 type-flow
