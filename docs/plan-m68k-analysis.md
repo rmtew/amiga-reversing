@@ -1111,10 +1111,27 @@ Runtime-copy base versus entrypoint evidence:
   Pandora's `movea.l #$1C3A8,a0` still render as copied-image labels, while
   scalar immediates that merely equal a copied runtime address, such as
   Bloodwych's color value `move.w #$400,(a0)`, stay numeric.
+- Long immediate stores to memory may also reuse an already-materialized runtime
+  label when generated simulator metadata proves the destination is a memory
+  write. This covers pointer-field initialization without widening scalar
+  relabeling: Pandora's two `move.l #$58588,(a0)` stores now render as
+  `move.l #abs_0_00058588,(a0)`, but register/scalar loads and the `$55370`
+  copy length remain numeric.
 - Isolated C coverage:
   `facts_v2_runtime_ref_to_copied_range_start_seeds_storage_code_without_stronger_entry`
   `facts_v2_copied_range_base_keeps_data_before_internal_entry`, and
   `facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric`.
+  Pointer-store coverage:
+  `facts_v2_materialized_runtime_pointer_store_uses_existing_label`.
+- Corpus manifest after pointer-store label reuse:
+  `src\build\tmp_target_usage_after_runtime_pointer_store_labels.jsonl`
+  produced 493 entries, 517269 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows. Type-flow check passed
+  with `ok: true`, 4 applied refinements, and 0 violations. The regenerated
+  Pandora BK child target source keeps `move.l #$55370,d0` numeric, renders
+  `movea.l #abs_0_0001C3A8,a0`, and upgrades the two pointer stores to
+  `move.l #abs_0_00058588,(a0)`. Exact direct/source reproduction remains
+  true. `cmd /c src\precommit.bat` passed in 49.5s.
 - Real target coverage: Bloodwych materializes `ORG $400` and treats the odd
   `$401` copy candidate as a redundant contained view. Conqueror keeps the
   useful `ORG $40` range but leaves

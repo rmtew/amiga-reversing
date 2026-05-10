@@ -7816,6 +7816,26 @@ static int instruction_immediate_operand_is_address_like(const M68kInstructionIR
     operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg);
 }
 
+static int instruction_immediate_operand_stores_long_to_memory(const M68kInstructionIR *instruction,
+    size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint8_t reg = 0U;
+  if (instruction == NULL || operand_index >= instruction->operand_count || instruction->size_suffix != 'l')
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->source_operand_index != operand_index ||
+      metadata->dest_operand_index >= instruction->operand_count || metadata->dest_operand_index >= 4U) {
+    return 0;
+  }
+  dest_index = metadata->dest_operand_index;
+  if (operand_is_data_register_local(&instruction->operands[dest_index], &reg) ||
+      operand_address_register_index_local(&instruction->operands[dest_index], &reg)) {
+    return 0;
+  }
+  return metadata->operand_access_kinds[dest_index] == M68K_SIM_ACCESS_MEMORY_WRITE;
+}
+
 static int attach_existing_materialized_runtime_immediate_symbols(const M68kRenderLookup *lookup,
     size_t section_index, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -7825,7 +7845,8 @@ static int attach_existing_materialized_runtime_immediate_symbols(const M68kRend
     uint32_t runtime_address = 0U;
     uint32_t source_offset = 0U;
     if (operand->symbol_ref.has_name ||
-        !instruction_immediate_operand_is_address_like(instruction, operand_index) ||
+        (!instruction_immediate_operand_is_address_like(instruction, operand_index) &&
+         !instruction_immediate_operand_stores_long_to_memory(instruction, operand_index)) ||
         !operand_is_immediate_value_local(operand, &runtime_address) ||
         !lookup_materialized_runtime_address_source_offset(lookup, section_index, runtime_address, &source_offset) ||
         !lookup_has_renderable_label(lookup, section_index, source_offset)) {

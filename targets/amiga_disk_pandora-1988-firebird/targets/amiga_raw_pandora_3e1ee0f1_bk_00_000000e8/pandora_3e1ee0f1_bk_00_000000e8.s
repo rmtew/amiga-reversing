@@ -5130,14 +5130,14 @@ abs_0_00017B3C:
 	subq.b #1,app_02B8(a6)
 	bne.b abs_0_00017B54
 	lea.l abs_0_000585B2.l,a0
-	move.l #$58588,(a0)
+	move.l #abs_0_00058588,(a0)
 abs_0_00017B54:
 	tst.b app_02B9(a6)
 	beq.b abs_0_00017B6C
 	subq.b #1,app_02B9(a6)
 	bne.b abs_0_00017B6C
 	lea.l abs_0_000585CC.l,a0
-	move.l #$58588,(a0)
+	move.l #abs_0_00058588,(a0)
 abs_0_00017B6C:
 	rts
 abs_0_00017B6E:
