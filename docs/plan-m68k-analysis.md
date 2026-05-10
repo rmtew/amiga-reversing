@@ -285,6 +285,14 @@ measurements and test names here, not in the index table.
   `adrL_008226` continuation and converting `abs_0_00008226` and the reached
   `abs_0_00006D3C` from data to code. Coverage:
   `facts_v2_terminal_indirect_jump_promotes_pushed_continuation`.
+- Pointer-table adjacency alone is no longer classified as callback inbound
+  evidence for orphaned code. Proven callback/function entries are promoted by
+  relocation-backed pointer-table analysis; an orphan island merely adjacent to
+  pointer data remains an unresolved signal with nearby-data context. This keeps
+  the work queue focused on real missing flow rather than layout proximity.
+  Coverage:
+  `facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown` and
+  `facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown`.
 
 #### Targets
 
@@ -1002,17 +1010,27 @@ suppressed signals out of work-item tags:
 | Feature | Target rows | Signals |
 | --- | ---: | ---: |
 | `target-pattern:orphan_missing_api` | 4 | 4 |
-| `target-pattern:orphan_missing_callback` | 1 | 1 |
+| `target-pattern:orphan_missing_callback` | 0 | 0 |
 | `target-pattern:orphan_missing_jump_table` | 0 | 0 |
 | `target-pattern:orphan_missing_metadata` | 208 | 208 |
 | `target-pattern:orphan_missing_runtime_copy` | 6 | 6 |
 | `target-pattern:orphan_missing_vector` | 0 | 0 |
 
-Examples include unlabelled MonAm/Starglider API candidates, one remaining
-Midwinter II callback/function-table candidate, and runtime-copy orphan islands
-in Bloodwych variants.
+Examples include unlabelled MonAm/Starglider API candidates and runtime-copy
+orphan islands in Bloodwych variants. The former Midwinter II callback row is
+kept as nearby pointer-table context, not a callback work item, because no table
+entry or control edge proves inbound flow.
 The previous jump-table-adjacent examples were suppressed hex-character lookup
 table overlaps and are no longer work items.
+
+Pointer-table orphan-context corpus evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_pointer_table_orphan_context.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_pointer_table_orphan_context.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_pointer_table_orphan_context.jsonl --variants-output src\build\tmp_target_variant_index_after_pointer_table_orphan_context.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_pointer_table_orphan_context.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_pointer_table_orphan_context.jsonl --workers 8`
+- Scope: 493 entries, 490676 xrefs, 464170 snippet rows, 320 type-flow rows.
+- Compared with `tmp_target_usage_after_strict_evidence_table_candidates.jsonl`,
+  `orphan-code:missing_inbound:callback` dropped 1 -> 0, while
+  `orphan-code:nearby_data:pointer_table` stayed 1 -> 1 and
+  `orphan-code:signal` stayed 902 -> 902.
 
 ## Design Update Rule
 

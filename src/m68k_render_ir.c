@@ -6697,8 +6697,6 @@ static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *
       (signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH ||
        signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH)) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
-  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) {
-    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK;
   }
 }
 

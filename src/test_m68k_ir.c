@@ -4447,7 +4447,65 @@ static int test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_re
   return 0;
 }
 
-static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback(void) {
+static int test_facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[10] = {
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x06u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 2U;
+  policy.structured_data_items[0].size = 4U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
+    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":1,\"missing_inbound\":\"unknown\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"pointer_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_flags\":4") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation_id\":1,\"nearby_data_relation\":\"overlap\"") !=
+    NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -4485,15 +4543,19 @@ static int test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_call
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n") == NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
-  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK,
-    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT(source_analysis.sections[0].orphan_code_signals[0].missing_inbound !=
+    M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE,
     source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":3,\"missing_inbound\":\"callback\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":3,\"missing_inbound\":\"callback\"") == NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"pointer_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_flags\":4") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation_id\":2,\"nearby_data_relation\":\"after\"") !=
+    NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -17619,8 +17681,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_orphan_signal_suppresses_structured_data_overlap},
     {"facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref",
       test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref},
-    {"facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback",
-      test_facts_v2_orphan_signal_classifies_adjacent_pointer_table_as_callback},
+    {"facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown",
+      test_facts_v2_orphan_signal_keeps_overlapping_pointer_table_inbound_unknown},
+    {"facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown",
+      test_facts_v2_orphan_signal_keeps_following_pointer_table_inbound_unknown},
     {"facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound",
       test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbound},
     {"facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector",
