@@ -120,11 +120,18 @@ measurements and test names here, not in the index table.
   overlays, typed owner metadata, and listing JSON layout fields.
 - Same-base, different-layout overlaps are conflict-marked in
   `memory_layout_records`.
+- App-slot-provenance typed ranges now conflict-mark named app-base layout
+  fields symmetrically: the typed access, named layout field, and aggregate
+  layout all report `conflicted`. Non-app typed struct offsets are not compared
+  to app layouts unless the range is proven to be app-slot based, avoiding false
+  conflicts between unrelated OS/platform struct bases and app storage.
 - Section-relative platform storage effects are marked `code_overlap` only when
   their mapped target range intersects accepted code; base-relative app offsets
   are not compared to source-code offsets.
 - Coverage: `test_source_analysis_memory_layout_marks_same_base_layout_overlap_conflicted`
-  and `test_source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage`.
+  `test_source_analysis_platform_typed_access_conflicts_with_non_app_layout`,
+  `test_source_analysis_named_layout_conflicts_with_app_typed_access`, and
+  `test_source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage`.
 
 #### Typed structs vs app slots
 
@@ -1197,9 +1204,11 @@ undocumented renderer heuristics.
   resident autoinit sizes equal to `LIB_SIZE` render directly as `LIB_SIZE`,
   and no empty app layout is emitted.
 - Large app layouts such as Carrier RNC, Starglider, and Voodoo still need
-  stricter overlap checks against accepted code and non-app typed/platform
-  struct ranges. Typed app-slot struct interiors no longer produce flat
-  duplicate app fields.
+  stricter overlap checks against accepted code. App-slot typed ranges now
+  conflict-mark overlapping named app-base layouts symmetrically; unrelated
+  non-app typed/platform struct ranges are intentionally not compared to app
+  layouts without shared app-slot provenance. Typed app-slot struct interiors
+  no longer produce flat duplicate app fields.
 - Absolute raw/decompressed targets have accepted operand and orphan-candidate
   memory-layout records; they still need load address, source extent, and entry
   range merged into the same higher-level target/load relationship model.

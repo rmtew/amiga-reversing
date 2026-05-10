@@ -2064,21 +2064,82 @@ static int source_analysis_base_layout_field_conflicts_with_other_layout(
   return 0;
 }
 
+static int source_analysis_base_layout_field_uses_app_base(const M68kBaseLayoutFieldIR *field) {
+  const char *base_symbol;
+  if (field == NULL) return 0;
+  base_symbol = field->base_symbol != NULL ? field->base_symbol : "";
+  return strcmp(base_symbol, AMIGA_APP_BASE_TAG) == 0;
+}
+
 static int source_analysis_app_slot_range_conflicts_with_non_app_layout(
     const M68kSourceAnalysisIR *source_analysis, int64_t range_start, uint32_t range_size) {
-  size_t app_index;
+  size_t index;
   if (source_analysis == NULL || range_size == 0U || range_start < 0) return 0;
-  for (app_index = 0U; app_index < source_analysis->base_layout_field_count; ++app_index) {
-    const M68kBaseLayoutFieldIR *app_field = &source_analysis->base_layout_fields[app_index];
-    const char *app_base = app_field->base_symbol != NULL ? app_field->base_symbol : "";
-    size_t other_index;
-    if (app_field->layout_kind != M68K_BASE_LAYOUT_KIND_APP || app_base[0] == '\0') continue;
-    for (other_index = 0U; other_index < source_analysis->base_layout_field_count; ++other_index) {
-      const M68kBaseLayoutFieldIR *other = &source_analysis->base_layout_fields[other_index];
-      const char *other_base = other->base_symbol != NULL ? other->base_symbol : "";
-      if (other->layout_kind == M68K_BASE_LAYOUT_KIND_APP) continue;
-      if (strcmp(app_base, other_base) != 0) continue;
-      if (memory_layout_ranges_overlap(range_start, range_size, other->offset, other->size)) return 1;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
+    if (field->layout_kind == M68K_BASE_LAYOUT_KIND_APP) continue;
+    if (!source_analysis_base_layout_field_uses_app_base(field)) continue;
+    if (memory_layout_ranges_overlap(range_start, range_size, field->offset, field->size)) return 1;
+  }
+  return 0;
+}
+
+static int platform_typed_access_owner_range(const M68kRecoveredPlatformTypedAccessIR *access,
+    int64_t *out_start, uint32_t *out_size) {
+  int64_t owner_range_start;
+  uint32_t owner_range_size;
+  if (out_start != NULL) *out_start = 0;
+  if (out_size != NULL) *out_size = 0U;
+  if (access == NULL) return 0;
+  owner_range_start = (int64_t)access->displacement;
+  owner_range_size = access->field_size;
+  if (access->struct_size != 0U && access->field_offset >= 0 && access->displacement >= access->field_offset) {
+    owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
+    owner_range_size = access->struct_size;
+  }
+  if (owner_range_size == 0U) return 0;
+  if (out_start != NULL) *out_start = owner_range_start;
+  if (out_size != NULL) *out_size = owner_range_size;
+  return 1;
+}
+
+static int source_analysis_base_layout_field_conflicts_with_platform_typed_range(
+    const M68kSourceAnalysisIR *source_analysis, const M68kBaseLayoutFieldIR *field) {
+  size_t section_index;
+  if (source_analysis == NULL || field == NULL || field->size == 0U) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t access_index;
+    for (access_index = 0U; access_index < section->recovered_platform_typed_access_count; ++access_index) {
+      const M68kRecoveredPlatformTypedAccessIR *access = &section->recovered_platform_typed_accesses[access_index];
+      int64_t owner_range_start;
+      uint32_t owner_range_size;
+      if (!platform_typed_access_owner_range(access, &owner_range_start, &owner_range_size)) continue;
+      if (owner_range_start < 0 || owner_range_start > (int64_t)UINT32_MAX) continue;
+      if (!memory_layout_ranges_overlap((int64_t)field->offset, field->size,
+          (uint32_t)owner_range_start, owner_range_size)) {
+        continue;
+      }
+      if (field->layout_kind != M68K_BASE_LAYOUT_KIND_APP &&
+          source_analysis_base_layout_field_uses_app_base(field) &&
+          access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT) {
+        return 1;
+      }
+    }
+    for (access_index = 0U; access_index < section->recovered_platform_unresolved_typed_access_count;
+        ++access_index) {
+      const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+        &section->recovered_platform_unresolved_typed_accesses[access_index];
+      if (access->displacement < 0) continue;
+      if (!memory_layout_ranges_overlap((int64_t)field->offset, field->size,
+          (uint32_t)access->displacement, access->struct_size)) {
+        continue;
+      }
+      if (field->layout_kind != M68K_BASE_LAYOUT_KIND_APP &&
+          source_analysis_base_layout_field_uses_app_base(field) &&
+          access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT) {
+        return 1;
+      }
     }
   }
   return 0;
@@ -2267,6 +2328,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         conflicted = 1U;
         conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
       }
+      if (source_analysis_base_layout_field_conflicts_with_platform_typed_range(source_analysis, field)) {
+        conflicted = 1U;
+        conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
+      }
       ++field_count;
     }
     if (range_end <= range_start || field_count == 0U) continue;
@@ -2328,7 +2393,8 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         (int64_t)field->offset, field->size) != 0) return -1;
     {
       uint8_t conflicted = field->conflicted ||
-        source_analysis_base_layout_field_conflicts_with_other_layout(source_analysis, field);
+        source_analysis_base_layout_field_conflicts_with_other_layout(source_analysis, field) ||
+        source_analysis_base_layout_field_conflicts_with_platform_typed_range(source_analysis, field);
       uint8_t conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
         M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (json_builder_appendf(builder,
@@ -2422,13 +2488,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       uint32_t owner_range_size = access->field_size;
       uint8_t conflicted;
       uint8_t conflict_state;
-      if (access->struct_size != 0U && access->field_offset >= 0 && access->displacement >= access->field_offset) {
-        owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
-        owner_range_size = access->struct_size;
-      }
-      conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT &&
-        source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis, owner_range_start,
-          owner_range_size);
+      (void)platform_typed_access_owner_range(access, &owner_range_start, &owner_range_size);
+      conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
+        ? (uint8_t)source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis,
+            owner_range_start, owner_range_size)
+        : 0U;
       conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED : M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
@@ -2482,9 +2546,10 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         &access->refined_struct_ref, access->refined_struct_name);
       int64_t owner_range_start = (int64_t)access->displacement;
       uint32_t owner_range_size = access->struct_size;
-      uint8_t conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT &&
-        source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis, owner_range_start,
-          owner_range_size);
+      uint8_t conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
+        ? (uint8_t)source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis, owner_range_start,
+            owner_range_size)
+        : 0U;
       uint8_t conflict_state = conflicted ? M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED :
         M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
