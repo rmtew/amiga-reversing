@@ -1132,12 +1132,19 @@ Runtime-copy base versus entrypoint evidence:
   relabeling: Pandora's two `move.l #$58588,(a0)` stores now render as
   `move.l #abs_0_00058588,(a0)`, but register/scalar loads and the `$55370`
   copy length remain numeric.
+- Address-like compares follow the same provenance rule: a copied-image
+  immediate such as Pandora's `cmpa.l #$5C71E,a1` may render as a runtime data
+  label only when that materialized target already has a renderable non-code
+  label; adjacent copied-image-looking constants such as `$5859A` remain numeric
+  when no target label is proven.
 - Isolated C coverage:
   `facts_v2_runtime_ref_to_copied_range_start_seeds_storage_code_without_stronger_entry`
   `facts_v2_copied_range_base_keeps_data_before_internal_entry`, and
   `facts_v2_materialized_runtime_immediate_keeps_scalar_constant_numeric`.
   Pointer-store coverage:
   `facts_v2_materialized_runtime_pointer_store_uses_existing_label`.
+  Compare-immediate coverage:
+  `facts_v2_materialized_runtime_compare_labels_only_existing_target`.
 - Corpus manifest after pointer-store label reuse:
   `src\build\tmp_target_usage_after_runtime_pointer_store_labels.jsonl`
   produced 493 entries, 517269 xrefs, 481556 snippet rows, 3 variants, 322
