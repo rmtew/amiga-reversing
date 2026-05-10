@@ -1280,21 +1280,52 @@ suppressed signals out of work-item tags:
 | `target-pattern:orphan_missing_api` | 2 | 3 |
 | `target-pattern:orphan_missing_callback` | 0 | 0 |
 | `target-pattern:orphan_missing_jump_table` | 0 | 0 |
-| `target-pattern:orphan_missing_metadata` | 208 | 208 |
+| `target-pattern:orphan_missing_metadata` | 4 | 4 |
 | `target-pattern:orphan_missing_runtime_copy` | 0 | 0 |
 | `target-pattern:orphan_missing_vector` | 0 | 0 |
 
-Remaining examples include the unlabelled MonAm API-like snippets and one
-Workbench library candidate. The prior Starglider `SGload` API wrapper is now
-accepted only because C analysis proves an accepted-code boundary, a relocation
-inside the decoded wrapper, and a terminal Amiga LVO transfer; the same resource
+Remaining examples include the unlabelled MonAm API-like snippets, one
+Workbench library candidate, and four real explicit-symbol/metadata-labelled
+terminal islands. The prior Starglider `SGload` API wrapper is now accepted
+only because C analysis proves an accepted-code boundary, a relocation inside
+the decoded wrapper, and a terminal Amiga LVO transfer; the same resource
 manifest and promoted project-target signals drop out without relying on target
 metadata. Bloodwych runtime-view orphan islands remain navigable as runtime-view
 context, but no longer become runtime-copy work items without control-flow
-proof. The former Midwinter II callback row is kept as nearby pointer-table
-context, not a callback work item, because no table entry or control edge proves
-inbound flow. The previous jump-table-adjacent examples were suppressed
-hex-character lookup table overlaps and are no longer work items.
+proof. Generated runtime/required labels no longer inflate the metadata queue:
+they remain unresolved `unknown` inbound evidence unless vector/API/table
+analysis refines them. The former Midwinter II callback row is kept as nearby
+pointer-table context, not a callback work item, because no table entry or
+control edge proves inbound flow. The previous jump-table-adjacent examples
+were suppressed hex-character lookup table overlaps and are no longer work
+items.
+
+Renderable-label orphan provenance evidence:
+
+- C source-analysis now classifies orphan terminal islands by label provenance:
+  policy/named labels report `policy_seed`, object-symbol labels report
+  `metadata`, and generated labels report `unknown` unless vector/API/table
+  evidence refines them. This keeps the signal visible while preventing
+  generated labels from masquerading as target-metadata debt.
+- Isolated regression coverage:
+  `facts_v2_orphan_signal_records_policy_seed_context`,
+  `facts_v2_orphan_signal_records_metadata_label_context`,
+  `facts_v2_orphan_signal_keeps_scalar_lookup_table_inbound_unknown`, and
+  `facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref`.
+- Corpus rebuild:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_orphan_label_provenance.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_orphan_label_provenance.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_orphan_label_provenance.jsonl --variants-output src\build\tmp_target_variant_index_after_orphan_label_provenance.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_orphan_label_provenance.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_orphan_label_provenance.jsonl --workers 8`
+  produced 493 entries, 517238 xrefs, 481575 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows.
+- Compared with `tmp_target_usage_after_boundary_api_entry`,
+  `target-pattern:orphan_missing_metadata` drops 208 rows / 208 signals -> 4
+  rows / 4 signals while `target-pattern:orphan_code_signal` remains 239 and
+  total `orphan-code:signal` remains 239. The reclassified rows move to
+  `orphan-code:missing_inbound:unknown`; no code is hidden or promoted.
+- Type-flow check passed with `ok: true`, 4 applied refinements, and zero
+  violations. `cmd /c "src\build.bat && src\build\m68k_c_unit_tests.exe"`
+  passed. Comparator/source gates passed for `amiga_hunk_bloodwych`,
+  `amiga_hunk_genam`, `amiga_hunk_monam302`, and
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
 
 Relocation-backed boundary API entry corpus evidence:
 

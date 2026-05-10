@@ -5487,6 +5487,15 @@ static int lookup_has_policy_label(const M68kRenderLookup *lookup, size_t sectio
   return name != NULL && name[0] != '\0';
 }
 
+static uint8_t orphan_missing_inbound_for_renderable_label(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  if (lookup_has_policy_label(lookup, section_index, offset))
+    return M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED;
+  if (lookup_object_symbol_label_name(lookup, section_index, offset) != NULL)
+    return M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+  return M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
+}
+
 const char *lookup_global_base_slot_library(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   size_t index;
@@ -7136,17 +7145,15 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
       if (has_renderable_label && has_non_control_runtime_address_ref) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
-        signal.missing_inbound = lookup_has_policy_label(lookup, section->section_index, offset)
-          ? M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED
-          : M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+        signal.missing_inbound = orphan_missing_inbound_for_renderable_label(lookup, section->section_index,
+          offset);
       } else if (has_runtime_view) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
       } else if (has_renderable_label) {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
-        signal.missing_inbound = lookup_has_policy_label(lookup, section->section_index, offset)
-          ? M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED
-          : M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+        signal.missing_inbound = orphan_missing_inbound_for_renderable_label(lookup, section->section_index,
+          offset);
       } else {
         signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY;
         signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;

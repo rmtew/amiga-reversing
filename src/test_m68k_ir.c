@@ -4952,7 +4952,7 @@ static int test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_re
     source_analysis.sections[0].orphan_code_signals[0].status);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL,
     source_analysis.sections[0].orphan_code_signals[0].context);
-  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA,
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
