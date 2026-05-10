@@ -4055,6 +4055,9 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   policy.structured_data_items[0].offset = 6U;
   policy.structured_data_items[0].size = 2U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  policy.structured_data_items[0].has_target = 1U;
+  policy.structured_data_items[0].target_section = 0U;
+  policy.structured_data_items[0].target_offset = 2U;
   m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
   memset(&source_analysis, 0, sizeof(source_analysis));
@@ -4083,6 +4086,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
     source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_table_kind_id);
   M68K_C_ASSERT_U32(6U, source_analysis.sections[0].orphan_code_signals[0].nearby_data_offset);
   M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[0].nearby_data_distance);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER,
@@ -4104,9 +4109,69 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":2,\"missing_inbound\":\"jump_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"lookup_table\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_flags\":8") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"nearby_data_table_kind_id\":3,\"nearby_data_table_kind\":\"relative_code_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_offset\":6,\"nearby_data_distance\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_relation_id\":2,\"nearby_data_relation\":\"after\"") !=
     NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_orphan_signal_keeps_scalar_lookup_table_inbound_unknown(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[8] = {
+    0x4eu, 0x75u,
+    0x70u, 0x01u,
+    0x4eu, 0x75u,
+    0x12u, 0x34u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 6U;
+  policy.structured_data_items[0].size = 2U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
+    source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_SCALAR,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_table_kind_id);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"missing_inbound_id\":1,\"missing_inbound\":\"unknown\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"nearby_data_table_kind_id\":1,\"nearby_data_table_kind\":\"scalar\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"nearby_data_class\":\"lookup_table\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -4248,10 +4313,12 @@ static int test_facts_v2_orphan_signal_suppresses_structured_data_overlap(void) 
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].offset);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED,
     source_analysis.sections[0].orphan_code_signals[0].status);
-  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE,
+  M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE,
     source_analysis.sections[0].orphan_code_signals[0].nearby_data_flags);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_SCALAR,
+    source_analysis.sections[0].orphan_code_signals[0].nearby_data_table_kind_id);
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].orphan_code_signals[0].nearby_data_offset);
   M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[0].nearby_data_distance);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP,
@@ -17490,6 +17557,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg},
     {"facts_v2_reports_orphan_terminal_code_signal_without_promoting",
       test_facts_v2_reports_orphan_terminal_code_signal_without_promoting},
+    {"facts_v2_orphan_signal_keeps_scalar_lookup_table_inbound_unknown",
+      test_facts_v2_orphan_signal_keeps_scalar_lookup_table_inbound_unknown},
     {"facts_v2_orphan_signal_records_policy_seed_context",
       test_facts_v2_orphan_signal_records_policy_seed_context},
     {"facts_v2_orphan_signal_records_metadata_label_context",

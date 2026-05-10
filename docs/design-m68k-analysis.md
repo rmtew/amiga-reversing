@@ -558,18 +558,21 @@ or absolute-memory analysis found real links.
 
 Cause classification should be evidence-based even when the signal stays
 unresolved. For example, an orphan terminal island immediately adjacent to a
-`lookup_table` remains data in the rendered source, but its missing inbound class
-should be `jump_table` so the next implementation pass can focus on dispatch
-recovery rather than treating it as an unknown island. A similar island adjacent
-to a `pointer_table` should be classified as callback/function-table evidence,
-not promoted until an actual inbound edge is found.
+relative or absolute code-dispatch table remains data in the rendered source,
+but its missing inbound class should be `jump_table` so the next implementation
+pass can focus on dispatch recovery rather than treating it as an unknown
+island. A scalar `lookup_table` is only nearby data context; it must not become
+`jump_table` evidence. A similar island adjacent to a `pointer_table` should be
+classified as callback/function-table evidence, not promoted until an actual
+inbound edge is found.
 
 Internal orphan facts are ids and flags, not display strings. Nearby data context
-stores semantic role flags plus a compact relation id (`overlap`, `after`,
-`before`). Missing inbound evidence stores a compact id (`unknown`, `jump_table`,
-`callback`, `vector`, `runtime_copy`, `api`, `metadata`, `policy_seed`). JSON
-may include text names for UI output, but corpus and analysis consumers must use
-the ids/flags. A policy-named label is explicit seed evidence
+stores semantic role flags, a table-kind id when the nearby data is a table, and
+a compact relation id (`overlap`, `after`, `before`). Missing inbound evidence
+stores a compact id (`unknown`, `jump_table`, `callback`, `vector`,
+`runtime_copy`, `api`, `metadata`, `policy_seed`). JSON may include text names
+for UI output, but corpus and analysis consumers must use the ids/flags. A
+policy-named label is explicit seed evidence
 (`policy_seed`); an object or metadata label is only `metadata` evidence.
 
 Relocation provenance also applies to orphan diagnostics. A relocated operand

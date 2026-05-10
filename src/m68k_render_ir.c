@@ -6643,6 +6643,7 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
   role_flags = structured_data_item_role_flags(item);
   if (role_flags != 0U) {
     signal->nearby_data_flags = role_flags;
+    signal->nearby_data_table_kind_id = item->table_kind_id;
     signal->nearby_data_offset = item->offset;
     signal->nearby_data_distance = 0U;
     signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP;
@@ -6656,6 +6657,7 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
       role_flags = structured_data_item_role_flags(item);
       if (role_flags != 0U) {
         signal->nearby_data_flags = role_flags;
+        signal->nearby_data_table_kind_id = item->table_kind_id;
         signal->nearby_data_offset = item->offset;
         signal->nearby_data_distance = item->offset > after_offset ? item->offset - after_offset : 0U;
         signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER;
@@ -6668,6 +6670,7 @@ static void render_orphan_signal_attach_nearby_data_context(const M68kRenderLook
     role_flags = structured_data_item_role_flags(item);
     if (role_flags != 0U) {
       signal->nearby_data_flags = role_flags;
+      signal->nearby_data_table_kind_id = item->table_kind_id;
       signal->nearby_data_offset = item->offset;
       signal->nearby_data_distance = signal->offset > item->offset &&
         signal->offset - item->offset > item->size
@@ -6690,7 +6693,9 @@ static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR;
   } else if (render_orphan_signal_has_api_evidence(lookup, section, signal)) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_API;
-  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U) {
+  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U &&
+      (signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH ||
+       signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH)) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
   } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE) != 0U) {
     signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_CALLBACK;

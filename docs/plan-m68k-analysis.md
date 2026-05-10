@@ -205,8 +205,15 @@ measurements and test names here, not in the index table.
   `tmp_target_usage_after_address_indexed_word_dispatch.jsonl` changed
   `table:candidate_unresolved` 13 -> 6 and
   `analysis:lookup_table:word_relative_labels` 32 -> 39. The accepted tables
-  expose five follow-up orphan-code `jump_table` missing-inbound signals where
-  adjacent code still lacks a proven flow edge. Regenerated `GenAm` and
+  initially exposed five orphan-code `jump_table` missing-inbound signals, but
+  follow-up inspection showed those were scalar lookup tables adjacent to
+  terminal decode islands, not dispatch tables. Orphan missing-inbound
+  classification now consumes table-kind ids and only relative/absolute
+  code-dispatch tables can become `jump_table` work items; scalar lookup tables
+  remain nearby-data context. `tmp_target_usage_after_orphan_table_kind_gate.jsonl`
+  changed `target-pattern:orphan_missing_jump_table` 5 -> 0 while preserving
+  `table:candidate_unresolved` at 6 and
+  `analysis:lookup_table:word_relative_labels` at 39. Regenerated `GenAm` and
   `MonAm302` source now renders large formerly raw byte spans as code while
   keeping exact source reproduction.
 
