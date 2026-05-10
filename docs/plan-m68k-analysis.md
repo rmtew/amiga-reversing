@@ -522,8 +522,8 @@ proves a distinct base id.
      runtime-copy evidence, lookup-table-adjacent jump tables, and
      pointer-table-adjacent callbacks
    - status: unresolved signal implemented; suppressed implemented for
-     terminal-decode islands that overlap accepted structured data; linked,
-     promoted, and broader rejected classes remain planned
+     terminal-decode islands that overlap accepted structured data; linked and
+     promoted classes remain planned
    - UI/navigation surfacing: implemented as an `orphan-code` listing group
    - target-level signal count: implemented in source-analysis JSON, including
      compact status and missing-inbound summary counts
@@ -975,8 +975,8 @@ undocumented renderer heuristics.
   `base_layout_field` records, and covered by the RSSET alias C tests.
 - Accepted lookup/pointer table records now use explicit C table metadata on the
   structured-data item. Unresolved/rejected table candidates now carry explicit
-  C candidate metadata on recovered indirect sites; broader rejected-bound
-  classes still need to feed the same model.
+  C candidate metadata on recovered indirect sites; direct-stub rejected-bound
+  classes feed the same model.
 - Orphaned code signals have a first-class fact model for unresolved
   terminal-decode islands at accepted-code boundaries or data labels, plus
   suppressed structured-data overlap signals; target-level missing-inbound
