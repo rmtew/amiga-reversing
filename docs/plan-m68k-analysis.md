@@ -1111,6 +1111,47 @@ Runtime-copy base versus entrypoint evidence:
   high-confidence Conqueror source file update: the checked-in source already
   keeps the pre-entry `$40..$63` bytes as data.
 
+Callback-field indirect target seeding:
+
+- C analysis now collects proven long code-pointer stores to non-stack
+  `disp(aN)` fields from accepted code, using a bounded backward slice to prove
+  the stored value. It promotes targets only when accepted code later reloads
+  the same field into the indirect control register and immediately calls or
+  jumps through it. The cross-routine pass requires at least two distinct stored
+  targets for the same field, so a single weak store/load pair does not become a
+  hidden target-specific workaround.
+- The call-site side recognizes both plain `(aN)` and zero-displacement
+  `$0000(aN)` indirect calls. This covers the MonAm pattern
+  `movea.l $003E(a3),a0` / `jsr $0000(a0)` without broadening general indirect
+  table recovery.
+- Isolated C coverage:
+  `facts_v2_callback_field_store_promotes_indirect_call_target`.
+- Real target coverage:
+  `test_real_dll_monam_callback_field_targets_decode_from_indirect_call`
+  proves MonAm's callback field resolves the five stored handlers
+  `$5F32`, `$5FE2`, `$66F6`, `$6782`, and `$682E` from the indirect call at
+  `$5F2A`. MonAm's unresolved indirect-site count drops 1 -> 0 and rendered
+  source now starts those handler ranges as code instead of raw `dc.b`.
+- Corpus evidence:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_callback_field_targets_strict.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_callback_field_targets_strict.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_callback_field_targets_strict.jsonl --variants-output src\build\tmp_target_variant_index_after_callback_field_targets_strict.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_callback_field_targets_strict.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_callback_field_targets_strict.jsonl --workers 8`
+  produced 493 entries, 519388 xrefs, 481556 snippet rows, 3 variants, 322
+  type-flow rows, and 42 unresolved typed-field rows. Compared with
+  `tmp_target_usage_after_runtime_immediate_scalar_gate.jsonl`, global
+  unresolved indirect sites dropped 4266 -> 4260, jump-table-classified
+  indirect sites rose 580 -> 586, and MonAm labels rose 1036 -> 1123. The
+  stricter two-target gate avoids the earlier broad Atari/Voodoo conflict
+  spike; global `memory-layout:conflict_state:code_overlap` changes only
+  5096 -> 5097.
+- Type-flow check:
+  `uv run python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_target_type_flow_report_after_callback_field_targets_strict.jsonl --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_callback_field_targets_strict.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_callback_field_targets_strict.jsonl --output src\build\tmp_type_flow_check_after_callback_field_targets_strict.json`
+  passed with `ok: true`, 145 applied refinements, and zero violations.
+- Verification gates: `cmd /c src\build.bat`,
+  `src\build\m68k_c_unit_tests.exe`,
+  `uv run pytest tests\test_c_backend.py -q`, and
+  `cmd /c src\precommit.bat` passed. The MonAm checked-in source was
+  regenerated from the C backend so the visible callback-handler decoding is
+  reviewable in `targets/amiga_hunk_monam302/monam302.s`.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
