@@ -1120,6 +1120,33 @@ App-slot API argument classification evidence:
 - Type-flow check on `tmp_type_flow_report_after_app_arg_reason.json` reported
   `ok: true`, `violation_count: 0`, and no metric regressions.
 
+API input preserved-alias typing evidence:
+
+- Gap: generated API input metadata typed the scratch argument register, but
+  source values kept in preserved address registers stayed numeric after calls
+  such as `movea.l a2,a1; jsr _LVOInitRastPort(a6); move.w $003A(a2),d0`.
+- C typed-flow now tracks plain address-register aliases and applies generated
+  Amiga API input struct types back to preserved alias sources only when the
+  platform calling convention says the source register survives the call.
+- Isolated tests:
+  `test_facts_v2_analysis_propagates_api_input_type_through_preserved_alias`
+  and
+  `test_facts_v2_analysis_does_not_propagate_api_input_type_through_scratch_alias`.
+- Command: `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_api_input_alias.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_api_input_alias.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_api_input_alias.jsonl --variants-output src\build\tmp_target_variant_index_after_api_input_alias.jsonl --type-flow-report-output src\build\tmp_type_flow_report_after_api_input_alias.json --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_api_input_alias.jsonl --workers 8`
+- Scope: 493 entries, 494140 xrefs, 464201 snippet rows, 320 type-flow rows,
+  42 unresolved typed-field rows.
+- Compared with `tmp_type_flow_report_after_app_arg_reason`, resolved typed
+  accesses rose 430 -> 453, numeric address-register accesses without type
+  dropped 57686 -> 57660, and `typed_access_provenance:api_input` rose 0 -> 23.
+- Comparator evidence:
+  Damocles `c/ed` now renders `rp_TxWidth(a2)`, `rp_TxHeight(a2)`,
+  `rp_TxBaseline(a1)`, and `rp_Mask(a2)` from `InitRastPort`/`InitBitMap`
+  input aliases. Workbench/FF and two platform-file hunk comparators show the
+  same generated API-input alias behavior for `RastPort` and `IO` fields.
+- Type-flow check:
+  `uv run python -m src.scripts.target_usage_manifest type-flow-check --type-flow-report src\build\tmp_type_flow_report_after_api_input_alias.json --unresolved-typed-fields src\build\tmp_target_unresolved_typed_fields_after_api_input_alias.jsonl --xrefs src\build\tmp_target_usage_xrefs_after_api_input_alias.jsonl --output src\build\tmp_type_flow_check_after_api_input_alias.json`
+  reported `ok: true`, `violation_count: 0`, and no metric regressions.
+
 ## Design Update Rule
 
 `docs/design-m68k-analysis.md` is the tutorial companion to this plan. Each time

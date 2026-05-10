@@ -31,8 +31,20 @@ def run_capture(*args: str) -> str:
 
 
 def normalize_benchmark_stats(payload: dict[str, object]) -> dict[str, object]:
-    normalized = dict(payload)
-    normalized.pop("timing", None)
+    def normalize(value: object) -> object:
+        if isinstance(value, dict):
+            return {
+                key: normalize(item)
+                for key, item in value.items()
+                if key != "timing" and not key.endswith("_seconds")
+            }
+        if isinstance(value, list):
+            return [normalize(item) for item in value]
+        return value
+
+    normalized = normalize(payload)
+    if not isinstance(normalized, dict):
+        raise TypeError("benchmark payload must be a JSON object")
     return normalized
 
 

@@ -212,7 +212,8 @@ enum {
   M68K_RENDER_TYPED_PROVENANCE_APP_SLOT = 6,
   M68K_RENDER_TYPED_PROVENANCE_FIELD_POINTER = 7,
   M68K_RENDER_TYPED_PROVENANCE_PREFIX_REFINEMENT = 8,
-  M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS = 9
+  M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS = 9,
+  M68K_RENDER_TYPED_PROVENANCE_API_INPUT = 10
 };
 
 typedef struct M68kRenderTypedStorageOrigin {
@@ -281,6 +282,8 @@ typedef struct M68kRenderTypedState {
   M68kRenderTypedAppAddressValue app_addr_regs[8];
   M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
   M68kRenderTypedMemoryBaseValue memory_base_regs[8];
+  uint8_t addr_reg_alias_known[8];
+  uint8_t addr_reg_alias_source[8];
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];

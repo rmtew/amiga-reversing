@@ -13252,6 +13252,119 @@ static int test_facts_v2_render_asm_source_propagates_api_output_type_through_le
   return 0;
 }
 
+static int test_facts_v2_analysis_propagates_api_input_type_through_preserved_alias(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  char *source = NULL;
+  size_t index;
+  int saw_typed_access = 0;
+  uint8_t bytes[12] = {
+    0x22u, 0x4au,
+    0x4eu, 0xaeu, 0xffu, 0x3au,
+    0x30u, 0x2au, 0x00u, 0x3eu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "graphics.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.section_count);
+  analysis_section = &analysis.sections[0];
+  for (index = 0U; index < analysis_section->recovered_platform_typed_access_count; ++index) {
+    const M68kRecoveredPlatformTypedAccessIR *access =
+      &analysis_section->recovered_platform_typed_accesses[index];
+    if (access->offset == 6U && access->operand_index == 0U &&
+        access->field_expr != NULL && strcmp(access->field_expr, "rp_TxBaseline") == 0) {
+      M68K_C_ASSERT_U32((uint32_t)M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT,
+        (uint32_t)access->type_provenance_kind);
+      M68K_C_ASSERT_U32(0U, (uint32_t)access->type_provenance_section_index);
+      M68K_C_ASSERT_U32(2U, access->type_provenance_offset);
+      saw_typed_access = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_typed_access);
+  m68k_ir_source_analysis_destroy(&analysis);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l a2,a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOInitRastPort(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w rp_TxBaseline(a2),d0\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_analysis_does_not_propagate_api_input_type_through_scratch_alias(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[12] = {
+    0x22u, 0x48u,
+    0x4eu, 0xaeu, 0xffu, 0x3au,
+    0x30u, 0x28u, 0x00u, 0x3eu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "graphics.library");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOInitRastPort(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w $003E(a0),d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w rp_TxBaseline(a0),d0\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot(void) {
   M68kObject object;
   M68kSection section;
@@ -17757,6 +17870,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_refines_zero_offset_embedded_struct_prefix},
     {"facts_v2_render_asm_source_propagates_api_output_type_through_lea_copy",
       test_facts_v2_render_asm_source_propagates_api_output_type_through_lea_copy},
+    {"facts_v2_analysis_propagates_api_input_type_through_preserved_alias",
+      test_facts_v2_analysis_propagates_api_input_type_through_preserved_alias},
+    {"facts_v2_analysis_does_not_propagate_api_input_type_through_scratch_alias",
+      test_facts_v2_analysis_does_not_propagate_api_input_type_through_scratch_alias},
     {"facts_v2_analysis_propagates_api_output_type_through_global_slot",
       test_facts_v2_analysis_propagates_api_output_type_through_global_slot},
     {"facts_v2_analysis_propagates_global_slot_reload_through_data_register_copy",

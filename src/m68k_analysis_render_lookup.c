@@ -642,6 +642,7 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
 static uint8_t typed_provenance_rank(uint8_t kind) {
   switch (kind) {
   case M68K_RENDER_TYPED_PROVENANCE_API_OUTPUT:
+  case M68K_RENDER_TYPED_PROVENANCE_API_INPUT:
     return 70U;
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_POINTER:
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS:
@@ -693,6 +694,25 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
     left->offset == right->offset;
 }
 
+static void typed_state_clear_addr_alias_for_reg(M68kRenderTypedState *state, uint8_t reg_index) {
+  uint8_t index;
+  if (state == NULL || reg_index >= 8U) return;
+  state->addr_reg_alias_known[reg_index] = 0U;
+  state->addr_reg_alias_source[reg_index] = 0U;
+  for (index = 0U; index < 8U; ++index) {
+    if (state->addr_reg_alias_known[index] != 0U && state->addr_reg_alias_source[index] == reg_index) {
+      state->addr_reg_alias_known[index] = 0U;
+      state->addr_reg_alias_source[index] = 0U;
+    }
+  }
+}
+
+static void typed_state_set_addr_alias(M68kRenderTypedState *state, uint8_t dest_reg, uint8_t source_reg) {
+  if (state == NULL || dest_reg >= 8U || source_reg >= 8U || dest_reg == source_reg) return;
+  state->addr_reg_alias_known[dest_reg] = 1U;
+  state->addr_reg_alias_source[dest_reg] = source_reg;
+}
+
 static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   if (reg_kind == 1U) {
@@ -705,6 +725,7 @@ static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind,
     state->app_addr_regs[reg_index].known = 0U;
     state->app_addr_regs[reg_index].displacement = 0;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
+    typed_state_clear_addr_alias_for_reg(state, reg_index);
     typed_state_clear_base_slots_for_base(state, reg_index);
   }
 }
@@ -730,6 +751,7 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->app_addr_regs[reg_index].known = 0U;
     state->app_addr_regs[reg_index].displacement = 0;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
+    typed_state_clear_addr_alias_for_reg(state, reg_index);
   }
 }
 
@@ -754,6 +776,7 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->app_addr_regs[reg_index].known = 0U;
     state->app_addr_regs[reg_index].displacement = 0;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
+    typed_state_clear_addr_alias_for_reg(state, reg_index);
   }
 }
 
@@ -791,6 +814,7 @@ static void typed_state_set_app_address(M68kRenderTypedState *state, uint8_t reg
   state->app_addr_regs[reg_index].known = 1U;
   state->app_addr_regs[reg_index].displacement = displacement;
   typed_memory_base_clear(&state->memory_base_regs[reg_index]);
+  typed_state_clear_addr_alias_for_reg(state, reg_index);
 }
 
 static void typed_state_set_data_app_address(M68kRenderTypedState *state, uint8_t reg_index, int16_t displacement) {
@@ -1775,6 +1799,38 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
   return 0;
 }
 
+static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_t offset,
+    M68kRenderTypedState *state, const AmigaOsCallInputInfo *input, int *io_changed) {
+  uint8_t source_reg;
+  uint8_t preserved_address;
+  M68kRenderTypedProvenance provenance;
+  if (state == NULL || input == NULL || input->struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+      input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U ||
+      state->addr_reg_alias_known[input->reg_index] == 0U) {
+    return;
+  }
+  source_reg = state->addr_reg_alias_source[input->reg_index];
+  if (source_reg >= 8U) return;
+  preserved_address = amiga_os_calling_convention_preserved_address_mask();
+  if ((preserved_address & (uint8_t)(1U << source_reg)) == 0U) return;
+  provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_API_INPUT, section_index, offset);
+  if (state->addr_regs[source_reg].known == 0U) {
+    typed_state_set_reg_struct_id(state, AMIGA_OS_REGISTER_ADDRESS, source_reg, input->struct_id, &provenance);
+    if (io_changed != NULL) *io_changed = 1;
+  } else if (state->addr_regs[source_reg].struct_id != input->struct_id) {
+    int conflict = 0;
+    uint16_t merged_struct_id = typed_struct_id_refined_merge(state->addr_regs[source_reg].struct_id,
+      input->struct_id, &conflict);
+    if (conflict == 0U && merged_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+        merged_struct_id != state->addr_regs[source_reg].struct_id) {
+      state->addr_regs[source_reg].struct_id = merged_struct_id;
+      state->addr_regs[source_reg].output = NULL;
+      state->addr_regs[source_reg].provenance = provenance;
+      if (io_changed != NULL) *io_changed = 1;
+    }
+  }
+}
+
 static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kRenderTypedState *state, const AmigaOsLibraryVectorInfo *vector,
     int allow_lookup_storage, int *io_changed) {
@@ -1814,6 +1870,7 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_
       }
       if (refined && io_changed != NULL) *io_changed = 1;
     }
+    typed_flow_apply_call_input_alias_type(section_index, offset, state, input, io_changed);
   }
   return 0;
 }
@@ -2023,9 +2080,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
   M68kRenderTypedMemoryBaseValue source_memory_base;
   size_t operand_index, source_index = 0U, dest_index = 0U;
   uint8_t dest_reg = 0U, bit;
+  uint8_t source_addr_reg = 0U;
+  uint8_t source_alias_reg = 0U;
   int16_t source_app_displacement = 0;
   int source_is_app_address = 0;
   int source_has_memory_base = 0;
+  int source_is_direct_addr_reg = 0;
+  int source_tracks_plain_addr_alias = 0;
   if (state == NULL || instruction == NULL) return;
   typed_origin_clear(&source_origin);
   typed_provenance_clear(&source_provenance);
@@ -2075,6 +2136,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE)
         source_provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_BASE_SLOT, section_index, offset);
     }
+    source_is_direct_addr_reg = operand_address_register_index_local(source_operand, &source_addr_reg);
+    source_alias_reg = source_addr_reg;
+    if (source_is_direct_addr_reg && source_addr_reg < 8U &&
+        state->addr_reg_alias_known[source_addr_reg] != 0U) {
+      source_alias_reg = state->addr_reg_alias_source[source_addr_reg];
+    }
+    source_tracks_plain_addr_alias =
+      source_is_direct_addr_reg && source_alias_reg < 8U && source_output == NULL &&
+      source_struct_id == AMIGA_OS_STRUCT_ID_NONE && source_is_app_address == 0 && source_has_memory_base == 0 &&
+      !state->addr_regs[source_addr_reg].known && !state->app_addr_regs[source_addr_reg].known &&
+      !state->memory_base_regs[source_addr_reg].known;
     if (operand_is_data_register_local(dest_operand, &dest_reg)) {
       typed_state_clear_reg(state, 1U, dest_reg);
       if (source_output != NULL &&
@@ -2100,6 +2172,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
       if (source_has_memory_base)
         typed_state_set_memory_base(state, 2U, dest_reg, source_memory_base.section_index, source_memory_base.offset);
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
+      if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
+        typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
     }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U) {
     if (operand_address_register_index_local(&instruction->operands[1], &dest_reg)) {
@@ -2148,6 +2222,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           typed_state_set_memory_base(state, 2U, dest_reg, state->memory_base_regs[source_base_reg].section_index,
             next_offset);
         }
+      } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
+          &source_displacement) && source_base_reg < 8U && source_displacement == 0 &&
+          !state->addr_regs[source_base_reg].known && !state->app_addr_regs[source_base_reg].known &&
+          !state->memory_base_regs[source_base_reg].known) {
+        source_alias_reg = state->addr_reg_alias_known[source_base_reg] != 0U ?
+          state->addr_reg_alias_source[source_base_reg] : source_base_reg;
+        if (source_alias_reg < 8U && dest_reg != source_alias_reg)
+          typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
       }
     }
   } else if (instruction->operand_count != 0U) {
@@ -2237,6 +2319,11 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
     if (!typed_memory_bases_equal(&left->data_memory_base_regs[index], &right->data_memory_base_regs[index]))
       return 0;
     if (!typed_memory_bases_equal(&left->memory_base_regs[index], &right->memory_base_regs[index])) return 0;
+    if (left->addr_reg_alias_known[index] != right->addr_reg_alias_known[index]) return 0;
+    if (left->addr_reg_alias_known[index] != 0U &&
+        left->addr_reg_alias_source[index] != right->addr_reg_alias_source[index]) {
+      return 0;
+    }
   }
   for (index = 0U; index < left->stack_slot_count; ++index) {
     if (!typed_stack_slots_equal(&left->stack_slots[index], &right->stack_slots[index])) return 0;
@@ -2368,6 +2455,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     M68kRenderTypedAppAddressValue old_app = dest->app_addr_regs[index];
     M68kRenderTypedMemoryBaseValue old_data_memory_base = dest->data_memory_base_regs[index];
     M68kRenderTypedMemoryBaseValue old_memory_base = dest->memory_base_regs[index];
+    uint8_t old_alias_known = dest->addr_reg_alias_known[index];
+    uint8_t old_alias_source = dest->addr_reg_alias_source[index];
     changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index]);
     changed |= typed_reg_merge(&dest->addr_regs[index], &source->addr_regs[index]);
     if (dest->data_app_addr_regs[index].known == 0U || source->data_app_addr_regs[index].known == 0U ||
@@ -2394,6 +2483,15 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       typed_memory_base_clear(&dest->memory_base_regs[index]);
     }
     if (!typed_memory_bases_equal(&old_memory_base, &dest->memory_base_regs[index])) changed = 1;
+    if (dest->addr_reg_alias_known[index] == 0U || source->addr_reg_alias_known[index] == 0U ||
+        dest->addr_reg_alias_source[index] != source->addr_reg_alias_source[index]) {
+      dest->addr_reg_alias_known[index] = 0U;
+      dest->addr_reg_alias_source[index] = 0U;
+    }
+    if (old_alias_known != dest->addr_reg_alias_known[index] ||
+        (dest->addr_reg_alias_known[index] != 0U && old_alias_source != dest->addr_reg_alias_source[index])) {
+      changed = 1;
+    }
   }
   if (typed_state_merge_stack_slots(dest, source)) changed = 1;
   if (typed_state_merge_base_slots(dest, source)) changed = 1;

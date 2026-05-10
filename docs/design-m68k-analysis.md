@@ -919,6 +919,47 @@ sink address             $00DFF0E0 BPL1PTH/BPL1PTL owner range
 This lets rendering and the web UI explain why an absolute buffer is display or
 audio memory without reparsing rendered source text.
 
+## API Input Alias Typing
+
+Generated Amiga API metadata describes which registers are input pointers and
+which struct each pointer owns. C typed-flow must use that input fact even when
+the call receives a scratch alias of a preserved source register:
+
+```
+lea.l  local_rastport(a5),a2
+movea.l a2,a1
+jsr    _LVOInitRastPort(a6)
+move.w rp_TxHeight(a2),d0
+```
+
+The useful source fact is not "A1 is a RastPort after the call"; A1 is scratch.
+The useful fact is "A1 was a plain alias of preserved A2 at the call, and the
+generated API input says A1 was a RastPort pointer". Therefore A2 can carry the
+`RastPort` type after the call.
+
+The analysis state records compact address-register alias facts:
+
+```
+A1 -> A2
+```
+
+These facts are part of the C typed-flow state, so they merge only when control
+paths agree. They are cleared when either register is overwritten with a typed
+value, app address, memory base, or unknown write. The call step may promote the
+alias source only when:
+
+- the API input type comes from generated platform metadata
+- the input register is an address register
+- the aliased source register is preserved by the generated Amiga calling
+  convention
+- no conflicting existing source type is present, except for valid prefix
+  refinement
+
+Do not type scratch sources such as `A0` just because they were copied to an API
+input register. Do not infer this from instruction names; the copy and call
+semantics come from generated instruction metadata and generated platform
+calling-convention data.
+
 Target-level memory-layout views are summaries over these C records, not a
 second classifier. They use numeric `range_space_kind`, `conflict_state_id`, and
 absolute `owner_kind_id` fields to answer broad questions such as "does this

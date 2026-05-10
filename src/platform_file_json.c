@@ -61,6 +61,8 @@ static const char *type_provenance_kind_name(uint8_t kind) {
     return "prefix_refinement";
   case M68K_PLATFORM_TYPE_PROVENANCE_FIELD_ADDRESS:
     return "field_address";
+  case M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT:
+    return "api_input";
   case M68K_PLATFORM_TYPE_PROVENANCE_NONE:
   default:
     return "unknown";
