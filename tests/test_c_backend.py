@@ -5762,6 +5762,35 @@ def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None
     assert "app_016A RS.L 1\n" not in source_text
 
 
+def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
+    _requires_c_backend_dlls()
+
+    combined = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_libs__mathtrans.library_30d0f132"
+    )
+    section = combined["analysis"]["sections"][15]
+    linkage_refs = {
+        ref["offset"]
+        for ref in section["code_start_refs"]
+        if ref.get("reason_name") == "linkage_api_entry"
+    }
+    rows_by_offset = {
+        row["start_offset"]: row
+        for row in combined["listing"]["rows"]
+        if row.get("section_index") == 15 and row.get("kind") == "instruction"
+    }
+    api_orphans = [
+        signal
+        for signal in section["orphan_code_signals"]
+        if signal.get("missing_inbound") == "api"
+    ]
+
+    assert linkage_refs == {0x14}
+    assert rows_by_offset[0x14]["text"] == "\tmove.l a6,-(a7)\n"
+    assert rows_by_offset[0x1C]["text"] == "\tjsr -$0210(a6)\n"
+    assert not api_orphans
+
+
 def test_real_dll_openlibrary_d0_to_a6_resolves_followup_calls() -> None:
     _requires_c_backend_dlls()
 

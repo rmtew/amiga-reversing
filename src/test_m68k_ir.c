@@ -828,6 +828,75 @@ static int test_generated_call_ea_metadata_marks_control_target(void) {
   return 0;
 }
 
+static int test_facts_v2_linkage_label_api_wrapper_promotes_code(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kFixup fixup;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  size_t index;
+  int found_block = 0;
+  int found_ref = 0;
+  uint8_t bytes[0x24] = {
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x08u,
+    0x00u, 0x00u,
+    0x2fu, 0x0eu,
+    0x2cu, 0x79u, 0x00u, 0x00u, 0x00u, 0x20u,
+    0x4eu, 0xaeu, 0xfdu, 0xd8u,
+    0x2cu, 0x5fu,
+    0x4eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 2U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.has_target_section = 1;
+  fixup.target_section_index = 0U;
+  fixup.addend = 8;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  fixup.offset = 12U;
+  fixup.addend = 0x20;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  for (index = 0U; index < source_analysis.sections[0].block_count; ++index) {
+    if (source_analysis.sections[0].blocks[index].start_offset == 8U) found_block = 1;
+  }
+  for (index = 0U; index < source_analysis.sections[0].code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[index];
+    if (ref->offset == 8U && ref->reason == M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY) found_ref = 1;
+  }
+  M68K_C_ASSERT(found_block);
+  M68K_C_ASSERT(found_ref);
+  M68K_C_ASSERT_U32(1U, profile.code_start_linkage_api_entries);
+  for (index = 0U; index < source_analysis.sections[0].orphan_code_signal_count; ++index) {
+    M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[index].offset == 8U);
+  }
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
   AsmSourceFile source;
   M68kDiagList diagnostics;
@@ -16525,6 +16594,8 @@ int m68k_c_ir_tests(void) {
     {"arena_rejects_overflow_allocations", test_arena_rejects_overflow_allocations},
     {"decode_ir_decodes_aligned_candidates", test_decode_ir_decodes_aligned_candidates},
     {"decode_ir_treats_cpu_policy_as_ceiling", test_decode_ir_treats_cpu_policy_as_ceiling},
+    {"facts_v2_linkage_label_api_wrapper_promotes_code",
+      test_facts_v2_linkage_label_api_wrapper_promotes_code},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
     {"source_fpu_directive_encodes_external_coprocessor_id",
       test_source_fpu_directive_encodes_external_coprocessor_id},

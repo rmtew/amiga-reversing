@@ -261,6 +261,13 @@ measurements and test names here, not in the index table.
   address-register destination, even code-section target, decodability, and no
   accepted-code interior overlap. The isolated regression is
   `facts_v2_relocated_indirect_call_promotes_cross_section_target`.
+- Orphan/code discovery: required linkage labels that start short terminal
+  Amiga API wrapper sequences now seed code with `linkage_api_entry`
+  provenance. This is gated by required label provenance, generated Amiga LVO
+  metadata, terminal decode, and no accepted-code overlap; unlabelled
+  API-looking islands remain orphan signals. Coverage:
+  `facts_v2_linkage_label_api_wrapper_promotes_code` and
+  `test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers`.
 - Memory ownership/orphan diagnostics: relocated absolute operands no longer
   become CPU-vector evidence solely because their relocation addend is a low
   number such as `$10` or `$14`. The C/render analysis keeps relocation
@@ -854,20 +861,33 @@ Table-base gate evidence after rejecting bases inside the consuming instruction:
   reassembles payload-exact and relocation-semantics exact, with only hunk
   relocation encoding shape differing.
 
+Linkage API entry corpus evidence:
+
+- Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_linkage_api_entry.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_linkage_api_entry.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_linkage_api_entry.jsonl --variants-output src\build\tmp_target_variant_index_after_linkage_api_entry.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_linkage_api_entry.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_linkage_api_entry.jsonl --workers 8`
+- Compared with `tmp_target_usage_after_post_instruction_stub_table.jsonl`,
+  `target-pattern:orphan_missing_api` dropped 11 rows / 11 signals -> 4 rows /
+  4 signals; `orphan-code:missing_inbound:api` dropped 11 rows / 18 signals ->
+  4 rows / 5 signals. Callback, runtime-copy, and table-candidate queues were
+  unchanged.
+- Real affected comparator: Starglider `libs/mathtrans.library` section 15 now
+  renders the required labelled wrapper at `$14` as instructions instead of
+  `dc.b`; direct source rebuild remains exact.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 
 | Feature | Target rows | Signals |
 | --- | ---: | ---: |
-| `target-pattern:orphan_missing_api` | 10 | 11 |
-| `target-pattern:orphan_missing_callback` | 3 | 5 |
+| `target-pattern:orphan_missing_api` | 4 | 4 |
+| `target-pattern:orphan_missing_callback` | 1 | 1 |
 | `target-pattern:orphan_missing_jump_table` | 0 | 0 |
-| `target-pattern:orphan_missing_metadata` | 219 | 740 |
-| `target-pattern:orphan_missing_runtime_copy` | 6 | 35 |
-| `target-pattern:orphan_missing_vector` | 31 | 165 |
+| `target-pattern:orphan_missing_metadata` | 208 | 208 |
+| `target-pattern:orphan_missing_runtime_copy` | 6 | 6 |
+| `target-pattern:orphan_missing_vector` | 0 | 0 |
 
-Examples include Starglider callback/function-table candidates, imported Amiga
-vector/API candidates, and runtime-copy orphan islands in Bloodwych variants.
+Examples include unlabelled MonAm/Starglider API candidates, one remaining
+Midwinter II callback/function-table candidate, and runtime-copy orphan islands
+in Bloodwych variants.
 The previous jump-table-adjacent examples were suppressed hex-character lookup
 table overlaps and are no longer work items.
 

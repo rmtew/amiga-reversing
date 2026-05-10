@@ -498,6 +498,34 @@ island even though the object relocation proves the address. With the trace,
 the visible source renders `helper` as code and orphan/vector/API signal counts
 fall for the affected target.
 
+Another valid seed is a required linkage label that starts a terminal Amiga API
+wrapper. This is narrower than "label means code": the label must be required by
+object/linkage evidence, the bytes must decode to a short terminal instruction
+sequence, the sequence must contain a generated Amiga LVO call, and the decoded
+range must not overlap accepted code. C then queues the label with
+`linkage_api_entry` provenance and reruns reachability.
+
+Example:
+
+```asm
+entry:
+    rts
+
+    dc.l api_wrapper
+
+api_wrapper:
+    move.l a6,-(sp)
+    movea.l library_base,a6
+    jsr _LVOSomeCall(a6)
+    movea.l (sp)+,a6
+    rts
+```
+
+Without the linkage/API seed, `api_wrapper` is a labelled orphan with API
+missing-inbound evidence. With the seed, the wrapper becomes accepted code. An
+unlabelled API-looking island still remains an orphan signal until another real
+inbound edge is found.
+
 The success metric is not "more auto-converted code". The success metric is that
 orphan signals decrease because better jump/lookup table, callback, vector, ORG,
 or absolute-memory analysis found real links.

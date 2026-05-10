@@ -5522,6 +5522,7 @@ static const char *facts_v2_code_start_reason_name(uint32_t reason) {
     case M68K_FACTS_V2_CODE_START_REASON_FALLTHROUGH: return "fallthrough";
     case M68K_FACTS_V2_CODE_START_REASON_INLINE_RESUME: return "inline_resume";
     case M68K_FACTS_V2_CODE_START_REASON_RUNTIME_VIEW_ENTRY: return "runtime_view_entry";
+    case M68K_FACTS_V2_CODE_START_REASON_LINKAGE_API_ENTRY: return "linkage_api_entry";
     default: return "";
   }
 }
@@ -5620,6 +5621,7 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"code_start_control_targets\":%u,"
     "\"code_start_fallthroughs\":%u,"
     "\"code_start_inline_resumes\":%u,"
+    "\"code_start_linkage_api_entries\":%u,"
     "\"runtime_address_ranges\":%u,"
     "\"runtime_address_range_conflicts\":%u,"
     "\"runtime_address_view_starts\":%u,"
@@ -5754,6 +5756,7 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->code_start_control_targets,
     (unsigned)profile->code_start_fallthroughs,
     (unsigned)profile->code_start_inline_resumes,
+    (unsigned)profile->code_start_linkage_api_entries,
     (unsigned)profile->runtime_address_ranges,
     (unsigned)profile->runtime_address_range_conflicts,
     (unsigned)profile->runtime_address_view_starts,

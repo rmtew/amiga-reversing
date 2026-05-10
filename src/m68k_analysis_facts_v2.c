@@ -771,6 +771,9 @@ static void profile_record_code_start(M68kFactsV2Profile *profile, uint32_t reas
     case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
       ++profile->code_start_inline_resumes;
       break;
+    case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
+      ++profile->code_start_linkage_api_entries;
+      break;
     default:
       break;
   }
@@ -6021,6 +6024,78 @@ static int materialize_safe_required_labels(const M68kDecodeIR *decode, uint8_t 
   return 0;
 }
 
+static int facts_v2_lvo_matches_amiga_api(int16_t lvo) {
+  size_t index;
+  for (index = 0U;; ++index) {
+    const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
+    if (vector == NULL) return 0;
+    if (vector->lvo == lvo) return 1;
+  }
+}
+
+static int labelled_entry_decodes_terminal_api_wrapper(M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
+    uint8_t **accepted_bytes, uint32_t offset, uint8_t max_cpu) {
+  uint32_t cursor = offset;
+  uint32_t instruction_count = 0U;
+  int has_api_call = 0;
+  if (decode == NULL || section == NULL || accepted_bytes == NULL || section->section_index >= decode->section_count ||
+      offset >= section->size) {
+    return 0;
+  }
+  while (cursor < section->size && instruction_count < 8U) {
+    const M68kDecodeCandidate *candidate = ensure_candidate_at_offset(decode, section, cursor, max_cpu);
+    int16_t lvo = 0;
+    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > section->size - cursor)
+      return 0;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section->section_index], section->size, cursor,
+        candidate->byte_count)) {
+      return 0;
+    }
+    ++instruction_count;
+    if (candidate_calls_a6_lvo(candidate, &lvo) && facts_v2_lvo_matches_amiga_api(lvo))
+      has_api_call = 1;
+    if (!candidate_has_normal_fallthrough(candidate))
+      return has_api_call && instruction_count >= 3U;
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static int seed_linkage_api_entry_labels(M68kDecodeIR *decode, M68kFactIR *facts,
+    const M68kFactsV2LabelLookup *label_lookup, M68kFactsV2WorkQueue *queue,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile,
+    uint8_t max_cpu, uint32_t *out_seeded) {
+  size_t fact_index;
+  uint32_t seeded = 0U;
+  if (decode == NULL || facts == NULL || label_lookup == NULL || queue == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || out_seeded == NULL) {
+    return -1;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    const M68kDecodeSectionIR *section;
+    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        fact->section_index >= decode->section_count) {
+      continue;
+    }
+    section = &decode->sections[fact->section_index];
+    if (section->kind != M68K_SECTION_CODE || fact->offset >= section->size ||
+        accepted_start[fact->section_index][fact->offset] || accepted_bytes[fact->section_index][fact->offset] ||
+        !label_lookup_has_label(label_lookup, facts, fact->section_index, fact->offset) ||
+        !labelled_entry_decodes_terminal_api_wrapper(decode, section, accepted_bytes, fact->offset, max_cpu)) {
+      continue;
+    }
+    if (enqueue_code_start_runtime(facts, queue, profile, fact->section_index, fact->offset,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED,
+        M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY, fact->section_index, fact->offset, 0U, 0U, NULL) != 0) {
+      return -1;
+    }
+    ++seeded;
+  }
+  *out_seeded = seeded;
+  return 0;
+}
+
 static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, uint8_t **accepted_start,
     uint8_t **accepted_bytes, const M68kFactIR *facts, M68kFactIR *out_facts,
     const M68kFactsV2LabelLookup *label_lookup, uint32_t *out_interior_conflicts) {
@@ -7255,6 +7330,34 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   fail_stage = "required label materialization";
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
+  if (object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    uint32_t linkage_api_entry_seeds = 0U;
+    uint32_t linkage_api_accepted = 0U;
+    fail_stage = "linkage API entry seeding";
+    if (seed_linkage_api_entry_labels(&decode, &facts, &label_lookup, &queue, accepted_start, accepted_bytes,
+        out_profile, max_cpu, &linkage_api_entry_seeds) != 0) {
+      goto fail;
+    }
+    if (linkage_api_entry_seeds != 0U) {
+      fail_stage = "linkage API entry reachable fixed point";
+      if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue,
+          &runtime_addresses, accepted_start, accepted_bytes, &linkage_api_accepted, out_profile, max_cpu,
+          diagnostics) != 0) {
+        goto fail;
+      }
+      out_profile->accepted_instructions += linkage_api_accepted;
+      fail_stage = "linkage API entry accepted byte rebuild";
+      if (rebuild_accepted_bytes_from_starts(&decode, accepted_start, accepted_bytes,
+          &out_profile->accepted_instructions) != 0) {
+        goto fail;
+      }
+      fail_stage = "linkage API entry runtime address reference append";
+      if (append_runtime_address_refs_for_accepted(&decode, object->platform_backend_kind, &runtime_addresses,
+          accepted_start, accepted_bytes, &facts) != 0) {
+        goto fail;
+      }
+    }
+  }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_required_label_materialize_seconds, start, end);
   out_profile->fixed_point_materialize_labels_seconds =

@@ -5268,6 +5268,8 @@ static const char *render_lookup_code_start_reason_name(uint32_t reason) {
     return "inline_resume";
   case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
     return "runtime_view_entry";
+  case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
+    return "linkage_api_entry";
   default:
     return "unknown";
   }
