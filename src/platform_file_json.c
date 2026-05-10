@@ -1790,26 +1790,6 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
   return 0U;
 }
 
-static int recovered_indirect_site_is_unresolved_table_candidate(const M68kRecoveredIndirectSiteIR *site) {
-  if (site == NULL) return 0;
-  if (site->status == M68K_RECOVERED_INDIRECT_STATUS_JUMP_TABLE ||
-      site->status == M68K_RECOVERED_INDIRECT_STATUS_RESOLVED_RUNTIME ||
-      site->status == M68K_RECOVERED_INDIRECT_STATUS_RUNTIME ||
-      site->status == M68K_RECOVERED_INDIRECT_STATUS_EXTERNAL) {
-    return 0;
-  }
-  if (site->has_table_base != 0U || site->has_table_bounds != 0U ||
-      site->table_bounds_status != M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE) {
-    return 1;
-  }
-  return site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF ||
-    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL ||
-    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND ||
-    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF ||
-    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL ||
-    site->shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND;
-}
-
 static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *policy) {
   uint16_t index;
   size_t count = 0U;
@@ -1831,7 +1811,7 @@ static size_t source_analysis_table_candidate_record_count(const M68kSourceAnaly
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t site_index;
     for (site_index = 0U; site_index < section->recovered_indirect_site_count; ++site_index) {
-      if (recovered_indirect_site_is_unresolved_table_candidate(&section->recovered_indirect_sites[site_index]))
+      if (section->recovered_indirect_sites[site_index].is_table_candidate != 0U)
         ++count;
     }
   }
@@ -1870,11 +1850,9 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
     size_t site_index;
     for (site_index = 0U; site_index < section->recovered_indirect_site_count; ++site_index) {
       const M68kRecoveredIndirectSiteIR *site = &section->recovered_indirect_sites[site_index];
-      uint8_t source_pattern_id;
       const char *source_pattern;
-      if (!recovered_indirect_site_is_unresolved_table_candidate(site)) continue;
-      source_pattern_id = m68k_recovered_indirect_source_pattern_id(site->shape);
-      source_pattern = m68k_recovered_indirect_source_pattern_name(source_pattern_id);
+      if (site->is_table_candidate == 0U) continue;
+      source_pattern = m68k_recovered_indirect_source_pattern_name(site->source_pattern_id);
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
           "{\"section_index\":%u,\"offset\":%u,\"source_offset\":%u,\"source_size\":%u,"
@@ -1893,7 +1871,7 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (json_builder_append_json_string(builder, recovered_indirect_status_name(site->status)) != 0)
         return -1;
       if (json_builder_appendf(builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
-          (unsigned)source_pattern_id) != 0)
+          (unsigned)site->source_pattern_id) != 0)
         return -1;
       if (json_builder_append_nullable_string(builder, source_pattern) != 0) return -1;
       if (json_builder_append(builder, ",\"target\":") != 0) return -1;
@@ -1941,8 +1919,7 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
       if (json_builder_append_nullable_string(builder, site->detail) != 0) return -1;
       if (json_builder_appendf(builder,
           ",\"confidence\":\"diagnostic\",\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
-          (unsigned)M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED,
-          analysis_conflict_state_name(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED)) != 0)
+          (unsigned)site->conflict_state, analysis_conflict_state_name(site->conflict_state)) != 0)
         return -1;
     }
   }
@@ -3308,8 +3285,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     for (indirect_site_index = 0; indirect_site_index < section->recovered_indirect_site_count; ++indirect_site_index) {
       const M68kRecoveredIndirectSiteIR *site = &section->recovered_indirect_sites[indirect_site_index];
-      uint8_t source_pattern_id = m68k_recovered_indirect_source_pattern_id(site->shape);
-      const char *source_pattern = m68k_recovered_indirect_source_pattern_name(source_pattern_id);
+      const char *source_pattern = m68k_recovered_indirect_source_pattern_name(site->source_pattern_id);
       if (indirect_site_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -3328,9 +3304,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_json_string(&builder, recovered_indirect_status_name(site->status)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"source_pattern_id\":%u,\"source_pattern\":",
-          (unsigned)source_pattern_id) != 0)
+          (unsigned)site->source_pattern_id) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder, source_pattern) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"is_table_candidate\":%s",
+          site->is_table_candidate != 0U ? "true" : "false") != 0)
         goto oom;
       if (json_builder_append(&builder, ",\"detail\":") != 0)
         goto oom;

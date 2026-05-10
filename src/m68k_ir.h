@@ -570,6 +570,10 @@ typedef struct M68kRecoveredIndirectSiteIR {
   uint8_t has_table_base;
   uint8_t has_table_bounds;
   uint8_t table_bounds_status;
+  uint8_t is_table_candidate;
+  uint8_t source_pattern_id;
+  uint8_t conflict_state;
+  uint8_t reserved0;
   uint32_t target;
   uint32_t target_count;
   uint32_t expression_base_offset;

@@ -499,6 +499,10 @@ proves a distinct base id.
      direct-stub spans rejected for insufficient entries; corpus consumers use
      C enum ids for recovered indirect flow, shape, status, source pattern, and
      table-bounds status rather than display strings
+   - unresolved table-candidate identity: implemented as C recovered-indirect
+     site metadata (`is_table_candidate`, source-pattern id, conflict-state id);
+     JSON exports those fields and no longer decides which indirect sites are
+     table candidates
 
 5. Add orphaned-code signal records:
    - candidate source range and decode start: implemented for terminal-decode
@@ -966,8 +970,9 @@ undocumented renderer heuristics.
   sorted slot overlap is classified before emission, exported through
   `base_layout_field` records, and covered by the RSSET alias C tests.
 - Accepted lookup/pointer table records now use explicit C table metadata on the
-  structured-data item; unresolved/rejected candidates still need the same
-  single table fact model instead of scattered case-specific reporting.
+  structured-data item. Unresolved/rejected table candidates now carry explicit
+  C candidate metadata on recovered indirect sites; broader rejected-bound
+  classes still need to feed the same model.
 - Orphaned code signals have a first-class fact model for unresolved
   terminal-decode islands at accepted-code boundaries or data labels, plus
   suppressed structured-data overlap signals; target-level missing-inbound

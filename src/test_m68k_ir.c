@@ -3742,6 +3742,9 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
     source_analysis.sections[0].recovered_indirect_sites[0].shape);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED,
     source_analysis.sections[0].recovered_indirect_sites[0].status);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].recovered_indirect_sites[0].is_table_candidate);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDIRECT,
+    source_analysis.sections[0].recovered_indirect_sites[0].source_pattern_id);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"recovered_indirect_site_count\":1") != NULL);
@@ -3750,6 +3753,7 @@ static int test_facts_v2_records_unresolved_indirect_jump_site(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":1,\"status\":\"unresolved\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0,\"source_size\":2,\"operand_index\":0") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":1,\"source_pattern\":\"indirect\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"is_table_candidate\":false") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"table_candidate_record_count\":0,\"table_candidate_records\":[]") != NULL);
   free(analysis_json);
@@ -3795,6 +3799,9 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT_U32(0U, site->offset);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
   M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED, site->status);
+  M68K_C_ASSERT_U32(1U, site->is_table_candidate);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SOURCE_PATTERN_INDEXED_INDIRECT, site->source_pattern_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED, site->conflict_state);
   M68K_C_ASSERT_U32(1U, site->has_expression_base);
   M68K_C_ASSERT_U32(6U, site->expression_base_offset);
   M68K_C_ASSERT_U32(1U, site->has_table_bounds);
@@ -3807,6 +3814,7 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"table_candidate_record_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"is_table_candidate\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2,\"source_pattern\":\"indexed_indirect\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"has_expression_base\":true,\"expression_base_offset\":6") != NULL);
