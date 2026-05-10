@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-04T18:33:45.799830+00:00",
+  "origin": {
+    "entry_path": "run",
+    "kind": "disk_child",
+    "parent_disk_id": "voodoo-nightmare-1990-palace-cr-angels-defjam-genesis",
+    "source_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
+    "target_role": "disk_entry",
+    "target_type": "program"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T18:33:45.807736+00:00"
+}

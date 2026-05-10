@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-04T18:33:45.734816+00:00",
+  "origin": {
+    "filename": "Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "f4e1a7f7e9f92739708189649ec9a94c3afba6aef9372ef4cbabacd8696605f4",
+    "size": 901120,
+    "source_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-04T18:33:45.828454+00:00"
+}
