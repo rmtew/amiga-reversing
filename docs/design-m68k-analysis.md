@@ -409,6 +409,9 @@ The copy length is part of the analysis fact, not a renderer detail. For DBCC
 loops, C should identify the loop counter from generated instruction metadata
 and use traced register values for the count. Do not assume the counter is D0
 or that the branch is immediately adjacent to the copied instruction.
+The same applies to explicit decrement-and-branch loops such as
+`subq.l #1,d0; bne copy_loop`: the traced register width and value define the
+range. A long decrement counter must not be truncated to the low word.
 
 Example:
 
@@ -425,6 +428,20 @@ This proves a 14 byte copied range at `$c0`. It should not become "copy to end
 of section" just because D0 is not the counter. Carrier Command demonstrates
 this shape in the corpus; Starglider and Voodoo demonstrate larger false ranges
 that collapse when the real DBCC counter is used.
+
+Pandora demonstrates the non-DBCC variant:
+
+```asm
+    move.l #$55370,d0
+copy_loop:
+    move.l (a0)+,(a1)+
+    subq.l #1,d0
+    bne copy_loop
+```
+
+This proves a `$55370` byte copied range for the final runtime image. It must
+not be truncated to `$5370`, and renderer ORG boundaries must come from that C
+range fact.
 
 ## Orphaned Code Signals
 
@@ -663,6 +680,39 @@ otherwise          absolute_memory
 
 This fact is diagnostic and navigational. It does not by itself authorize new
 labels or source rewriting.
+
+Runtime-address labels need stronger proof than "the number is inside the
+section's load address". For copied absolute images, constants in the copied
+runtime range are hints:
+
+```asm
+    movea.l #$1C3A8,a0
+    adda.l  d0,a0
+    move.b  (a0)+,(a1)+
+```
+
+If `$1C3A8` maps through a discovered copied runtime range and later accepted
+instructions use `a0` as a pointer, C analysis may require a materialized source
+label such as `abs_0_0001C3A8`. The proof is the copied runtime range plus the
+pointer use, not the numeric value alone.
+
+Plain absolute loads outside discovered copied ranges remain numeric unless
+another owner proves them. This rejects false labels from raw load-address
+translations, for example a screen buffer clear like `movea.l #$77800,a2`
+where `$77800` happens to translate to a source offset but no copied runtime
+source range owns it.
+
+Hardware pointer sinks are stronger. When generated Amiga hardware metadata
+marks a register as a runtime-address sink, a long immediate written there
+should labelize through a discovered runtime range:
+
+```asm
+    move.l  #$5D5DE,bltapt(a5)
+```
+
+If `$5D5DE` is inside the copied runtime image, render it as
+`#abs_0_0005D5DE`. This exposes the blitter source data to the user and keeps
+the source editable.
 
 ## Lookup Tables
 

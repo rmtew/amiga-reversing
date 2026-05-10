@@ -1422,6 +1422,159 @@ static int candidate_operand_feeds_runtime_address_sink(const M68kDecodeCandidat
   return 0;
 }
 
+static int candidate_operand_is_control_runtime_ref(const M68kDecodeCandidate *candidate, size_t operand_index) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  if (candidate == NULL || operand_index >= candidate->operand_count) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || operand_index >= instruction.operand_count) return 0;
+  return metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET &&
+    metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET;
+}
+
+static int operand_uses_address_register_as_address(uint8_t kind, const M68kAsmOperandValue *operand, uint8_t reg) {
+  if (operand == NULL || reg >= 8U) return 0;
+  if ((kind == M68K_ASM_OPERAND_IND || kind == M68K_ASM_OPERAND_POSTINC ||
+       kind == M68K_ASM_OPERAND_PREDEC) &&
+      operand->reg == reg) {
+    return 1;
+  }
+  if (operand->kind != M68K_ASM_OPERAND_EA) return 0;
+  if (operand->ea_mode >= 2U && operand->ea_mode <= 6U && operand->ea_reg == reg) return 1;
+  return 0;
+}
+
+static int candidate_uses_address_register_as_pointer(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    if (access != M68K_SIM_ACCESS_MEMORY_READ && access != M68K_SIM_ACCESS_MEMORY_WRITE &&
+        access != M68K_SIM_ACCESS_COMPUTE_ADDRESS && access != M68K_SIM_ACCESS_BRANCH_TARGET) {
+      continue;
+    }
+    if (operand_uses_address_register_as_address(candidate->operand_kinds[operand_index],
+        &candidate->operands[operand_index], reg)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int candidate_pointer_arithmetic_updates_address_register(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->operation_type != M68K_SIM_OP_ADD && metadata->operation_type != M68K_SIM_OP_SUB) ||
+      metadata->dest_operand_index >= candidate->operand_count) {
+    return 0;
+  }
+  dest_index = metadata->dest_operand_index;
+  return operand_is_address_register_direct(&candidate->operands[dest_index], &dest_reg) && dest_reg == reg;
+}
+
+static int candidate_clobbers_address_register(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (candidate == NULL || reg >= 8U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 1;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL) return 1;
+  if (candidate_pointer_arithmetic_updates_address_register(candidate, reg)) return 0;
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t written_reg = 0U;
+    uint8_t access = metadata->operand_access_kinds[operand_index];
+    if (access != M68K_SIM_ACCESS_REGISTER_WRITE && access != M68K_SIM_ACCESS_REGISTER_LIST_WRITE) continue;
+    if (operand_is_address_register_direct(&candidate->operands[operand_index], &written_reg) && written_reg == reg)
+      return 1;
+  }
+  return 0;
+}
+
+static const M68kDecodeCandidate *section_candidate_at_offset(const M68kDecodeSectionIR *section, uint32_t offset) {
+  size_t index;
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->candidate_count; ++index) {
+    if (section->candidates[index].offset == offset) return &section->candidates[index];
+  }
+  return NULL;
+}
+
+static int following_pointer_use_proves_runtime_address_label(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const uint8_t *accepted_start, uint8_t reg) {
+  uint32_t cursor;
+  uint32_t step;
+  if (section == NULL || candidate == NULL || accepted_start == NULL || reg >= 8U ||
+      candidate->byte_count == 0U || candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  cursor = candidate->offset + candidate->byte_count;
+  for (step = 0U; step < 16U && cursor < section->size && cursor - candidate->offset <= 96U; ++step) {
+    const M68kDecodeCandidate *next = section_candidate_at_offset(section, cursor);
+    if (next == NULL || !accepted_start[cursor] || next->byte_count == 0U) return 0;
+    if (candidate_uses_address_register_as_pointer(next, reg)) return 1;
+    if (candidate_clobbers_address_register(next, reg)) return 0;
+    if (!candidate_has_normal_fallthrough(next)) return 0;
+    if (next->offset > UINT32_MAX - next->byte_count) return 0;
+    cursor = next->offset + next->byte_count;
+  }
+  return 0;
+}
+
+static int runtime_address_space_target_is_discovered_copy(const M68kRuntimeAddressSpace *space,
+    size_t section_index, uint32_t runtime_address, uint32_t target_offset) {
+  size_t index;
+  if (space == NULL) return 0;
+  for (index = space->count; index > 0U; --index) {
+    const M68kRuntimeAddressRange *map = &space->ranges[index - 1U];
+    uint32_t delta;
+    if (map->kind != M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY ||
+        map->section_index != section_index || runtime_address < map->runtime_address) {
+      continue;
+    }
+    delta = runtime_address - map->runtime_address;
+    if (delta < map->size && map->source_offset <= UINT32_MAX - delta &&
+        map->source_offset + delta == target_offset) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int runtime_address_ref_needs_target_label(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, size_t operand_index, uint8_t platform_kind,
+    const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start, uint32_t target_offset,
+    uint32_t runtime_address) {
+  uint8_t dest_reg = 0U;
+  if (runtime_address == target_offset) return 1;
+  if (candidate_operand_is_control_runtime_ref(candidate, operand_index)) return 1;
+  if (candidate_operand_feeds_runtime_address_sink(candidate, operand_index, platform_kind)) return 1;
+  if (candidate != NULL && operand_index == 0U && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+      candidate->operand_count == 2U &&
+      operand_is_address_register_direct(&candidate->operands[1], &dest_reg)) {
+    if (section != NULL && accepted_start != NULL && target_offset < section->size &&
+        accepted_start[target_offset] != 0U) {
+      return 1;
+    }
+    return runtime_address_space_target_is_discovered_copy(runtime_addresses,
+        section != NULL ? section->section_index : 0U, runtime_address, target_offset) &&
+      following_pointer_use_proves_runtime_address_label(section, candidate, accepted_start, dest_reg);
+  }
+  return 1;
+}
+
 static int ir_operand_direct_data_register(const M68kOperandIR *operand, uint8_t *out_reg) {
   if (operand == NULL) return 0;
   if (operand->kind == M68K_ASM_OPERAND_DN) {
@@ -2052,12 +2205,99 @@ static int following_dbcc_loop_counter_register(M68kDecodeIR *decode, size_t sec
   return 0;
 }
 
+static int candidate_branches_back_to_loop_member(const M68kDecodeCandidate *candidate,
+    size_t section_index, uint32_t loop_member_offset) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH && target->has_section &&
+        target->section_index == section_index && target->offset <= loop_member_offset) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int candidate_decrements_data_register_by_one(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
+    uint32_t *out_width) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  uint8_t reg = 0U;
+  uint32_t value = 0U;
+  if (out_width != NULL) *out_width = 0U;
+  if (candidate == NULL || out_reg == NULL || out_width == NULL ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_SUB ||
+      metadata->source_operand_index >= candidate->operand_count ||
+      metadata->dest_operand_index >= candidate->operand_count ||
+      !operand_immediate_value(candidate->operand_kinds[metadata->source_operand_index],
+        &candidate->operands[metadata->source_operand_index], &value) ||
+      value != 1U ||
+      !operand_is_data_register_direct(&candidate->operands[metadata->dest_operand_index], &reg)) {
+    return 0;
+  }
+  *out_reg = reg;
+  if (candidate->size_suffix == 'b') *out_width = 1U;
+  else if (candidate->size_suffix == 'w') *out_width = 2U;
+  else if (candidate->size_suffix == 'l') *out_width = 4U;
+  else return 0;
+  return 1;
+}
+
+static int following_decrement_branch_loop_counter_register(M68kDecodeIR *decode, size_t section_index,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, uint8_t max_cpu,
+    uint8_t *out_reg, uint8_t *out_use_full_counter) {
+  uint32_t cursor;
+  uint32_t step;
+  uint8_t reg = 0U;
+  uint32_t counter_width = 0U;
+  int saw_decrement = 0;
+  if (out_use_full_counter != NULL) *out_use_full_counter = 0U;
+  if (decode == NULL || section == NULL || candidate == NULL || out_reg == NULL ||
+      out_use_full_counter == NULL || candidate->byte_count == 0U ||
+      candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  cursor = candidate->offset + candidate->byte_count;
+  for (step = 0U; step < 6U && cursor < section->size && cursor - candidate->offset <= 24U; ++step) {
+    const M68kDecodeCandidate *next = NULL;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &next,
+        m68k_diag_sink(NULL)) != 0 || next == NULL || next->byte_count == 0U) {
+      return 0;
+    }
+    if (!saw_decrement) {
+      if (candidate_decrements_data_register_by_one(next, &reg, &counter_width)) {
+        saw_decrement = 1;
+      } else if (!candidate_has_normal_fallthrough(next)) {
+        return 0;
+      }
+    } else if (candidate_branches_back_to_loop_member(next, section_index, candidate->offset)) {
+      *out_reg = reg;
+      *out_use_full_counter = counter_width == 4U ? 1U : 0U;
+      return 1;
+    } else if (!candidate_has_normal_fallthrough(next)) {
+      return 0;
+    }
+    if (next->offset > UINT32_MAX - next->byte_count) return 0;
+    cursor = next->offset + next->byte_count;
+  }
+  return 0;
+}
+
 static uint32_t trace_copy_size_from_counter_register(const M68kFactsV2TraceState *state, uint8_t reg,
-    uint32_t width, uint32_t fallback_size) {
+    uint32_t width, uint32_t fallback_size, uint8_t inclusive_counter, uint8_t use_full_counter) {
   uint32_t count;
   uint32_t size;
   if (state == NULL || reg >= 8U || width == 0U || !state->d_low16_known[reg]) return fallback_size;
-  count = (uint32_t)state->d_low16[reg] + 1U;
+  if (use_full_counter && state->d[reg].kind == M68K_FACTS_V2_TRACE_CONSTANT) {
+    count = state->d[reg].value;
+  } else {
+    count = (uint32_t)state->d_low16[reg] + (inclusive_counter ? 1U : 0U);
+  }
   if (count != 0U && count <= UINT32_MAX / width) {
     size = count * width;
     if (size != 0U && size < fallback_size) return size;
@@ -2067,11 +2307,14 @@ static uint32_t trace_copy_size_from_counter_register(const M68kFactsV2TraceStat
 
 static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, uint32_t width,
     uint32_t candidate_offset, uint8_t has_loop_counter_reg, uint8_t loop_counter_reg,
-    uint32_t fallback_size) {
+    uint8_t loop_counter_is_inclusive, uint8_t loop_counter_uses_full_value, uint32_t fallback_size) {
   uint32_t count;
   uint32_t size;
   if (state == NULL || width == 0U) return fallback_size;
-  if (has_loop_counter_reg) return trace_copy_size_from_counter_register(state, loop_counter_reg, width, fallback_size);
+  if (has_loop_counter_reg) {
+    return trace_copy_size_from_counter_register(state, loop_counter_reg, width, fallback_size,
+      loop_counter_is_inclusive, loop_counter_uses_full_value);
+  }
   if (state->d_low16_known[0] && state->d_low16_has_origin[0] &&
       state->d_low16_origin_offset[0] < candidate_offset &&
       candidate_offset - state->d_low16_origin_offset[0] <= 8U) {
@@ -2094,6 +2337,8 @@ static int trace_state_record_runtime_copy(M68kDecodeIR *decode, M68kRuntimeAddr
     M68kFactsV2Profile *profile, size_t section_index, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *state, uint8_t max_cpu) {
   uint8_t source_reg = 0U, dest_reg = 0U, loop_counter_reg = 0U, has_loop_counter_reg = 0U;
+  uint8_t loop_counter_is_inclusive = 0U;
+  uint8_t loop_counter_uses_full_value = 0U;
   uint32_t width = 0U, fallback_size, copy_size;
   if (space == NULL || section == NULL || candidate == NULL || state == NULL) return 0;
   if (trace_state_record_reglist_runtime_copy(space, facts, profile, section_index, section, candidate,
@@ -2119,10 +2364,16 @@ static int trace_state_record_runtime_copy(M68kDecodeIR *decode, M68kRuntimeAddr
     return 0;
   }
   fallback_size = section->size - state->a[source_reg].value;
-  has_loop_counter_reg = following_dbcc_loop_counter_register(decode, section_index, section, candidate, max_cpu,
-    &loop_counter_reg) ? 1U : 0U;
+  if (following_dbcc_loop_counter_register(decode, section_index, section, candidate, max_cpu, &loop_counter_reg)) {
+    has_loop_counter_reg = 1U;
+    loop_counter_is_inclusive = 1U;
+  } else if (following_decrement_branch_loop_counter_register(decode, section_index, section, candidate, max_cpu,
+      &loop_counter_reg, &loop_counter_uses_full_value)) {
+    has_loop_counter_reg = 1U;
+    loop_counter_is_inclusive = 0U;
+  }
   copy_size = trace_copy_size_from_state(state, width, candidate->offset, has_loop_counter_reg, loop_counter_reg,
-    fallback_size);
+    loop_counter_is_inclusive, loop_counter_uses_full_value, fallback_size);
   if (copy_size > fallback_size) copy_size = fallback_size;
   return runtime_address_space_add(space, section_index, state->a[source_reg].value,
     state->a[dest_reg].value, copy_size, M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY,
@@ -3729,6 +3980,10 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
         }
         if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
             target_offset)) {
+          continue;
+        }
+        if (!runtime_address_ref_needs_target_label(section, candidate, operand_index, platform_kind,
+            runtime_addresses, accepted_start[section_index], target_offset, runtime_address)) {
           continue;
         }
         {

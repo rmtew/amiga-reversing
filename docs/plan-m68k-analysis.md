@@ -1028,6 +1028,36 @@ Runtime-copy DBCC counter evidence:
 - Regenerated checked-in source/benchmarks for Carrier Command and Starglider,
   plus the Pandora extracted raw target benchmark after the accepted change.
 
+Runtime-copy decrement/branch and runtime-address label evidence:
+
+- C analysis now recognizes postincrement copy loops followed by explicit
+  decrement-and-branch control, using generated instruction metadata for the
+  decrement and branch target instead of fixed instruction adjacency. Long
+  counters use the full traced register value, not the low word.
+- Runtime-address reference labels from `movea #abs,An` are provenance-first:
+  accepted code/control/hardware sink refs still labelize, but plain address
+  loads only force labels when the target maps through a discovered copied
+  runtime range and later accepted instructions prove the loaded register is a
+  pointer. Raw load-address translations alone do not create source labels.
+- Amiga hardware runtime-address sinks now mark materialized source labels for
+  long immediates written directly to generated hardware sink registers, and
+  rendering reuses already-proven materialized labels for weaker immediate
+  loads without creating new labels.
+- Isolated C coverage:
+  `facts_v2_runtime_copy_size_uses_decrement_branch_counter` and
+  `facts_v2_runtime_movea_pointer_use_labels_materialized_target`.
+- Real target coverage: Pandora extracted BK payload now keeps only the final
+  `ORG $10000` image plus the bounded post-copy `ORG $55370`, removes the
+  spurious `ORG $5548F`, removes false raw-load labels
+  `loc_0_00057800`/`loc_0_00057D00`, renders
+  `movea.l #abs_0_0001C3A8,a0` for a copied-image table base, and renders
+  `move.l #abs_0_0005D5DE,bltapt(a5)` for a blitter source pointer.
+- Targeted pytest coverage extends
+  `test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code` to
+  guard the real Pandora rendering behavior. Regenerated benchmark:
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  in 0.82s with exact direct/source reproduction retained.
+
 Actionable unresolved orphan missing-inbound corpus evidence after gating
 suppressed signals out of work-item tags:
 

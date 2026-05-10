@@ -122,6 +122,7 @@ static int candidate_loads_runtime_address_ref_target_to_address_reg(const M68kR
     size_t *out_section_index, uint32_t *out_offset, uint8_t *out_reg);
 static int accepted_range_has_code_byte(const uint8_t *accepted_bytes, uint32_t section_size,
     uint32_t offset, uint32_t size);
+static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
@@ -4450,6 +4451,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   ++lookup->auto_structured_data_item_count;
+  (void)render_lookup_mark_label(lookup, section_index, offset);
   return 0;
 }
 
@@ -9926,6 +9928,66 @@ int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, cons
   return 0;
 }
 
+static const AmigaOsHardwareRegisterInfo *render_lookup_resolve_hardware_register_operand(
+    const M68kRenderPlatformState *state, const M68kOperandIR *operand) {
+  uint32_t absolute = 0U;
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  if (operand == NULL) return NULL;
+  if (operand_absolute_offset_local(operand, &absolute)) return amiga_os_find_hardware_register_by_cpu_address(absolute);
+  if (state != NULL && operand_is_address_memory_local(operand, &base_reg, &displacement) && base_reg < 8U &&
+      state->address_hardware_base_known[base_reg]) {
+    return amiga_os_find_hardware_register_by_base_id_offset(state->address_hardware_base_id[base_reg],
+      (uint32_t)(uint16_t)displacement);
+  }
+  return NULL;
+}
+
+static int render_lookup_infer_amiga_runtime_sink_immediate_refs(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t **accepted_bytes) {
+  M68kRenderPlatformState platform_state;
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    memset(&platform_state, 0, sizeof(platform_state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      const M68kSimFormMetadata *metadata;
+      const AmigaOsHardwareRegisterInfo *hardware_register;
+      size_t source_index = 0U, dest_index = 0U;
+      uint32_t runtime_address = 0U;
+      uint32_t source_offset = 0U;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
+      platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
+        candidate->offset);
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      if (instruction_move_operand_indices_from_metadata(&instruction, &source_index, &dest_index, &metadata) &&
+          metadata != NULL && instruction.size_suffix == 'l' &&
+          metadata->operand_access_kinds[dest_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
+          operand_is_immediate_value_local(&instruction.operands[source_index], &runtime_address)) {
+        hardware_register = render_lookup_resolve_hardware_register_operand(&platform_state,
+          &instruction.operands[dest_index]);
+        if (hardware_register != NULL &&
+            (hardware_register->flags & AMIGA_OS_HARDWARE_REGISTER_FLAG_RUNTIME_ADDRESS_SINK) != 0U &&
+            hardware_register->runtime_target_kind != AMIGA_OS_HARDWARE_RUNTIME_TARGET_KIND_NONE &&
+            lookup_runtime_address_to_source_offset_local(lookup, section_index, section->size, runtime_address,
+              &source_offset) &&
+            !accepted_range_has_code_byte(accepted_bytes[section_index], section->size, source_offset, 1U)) {
+          (void)render_lookup_mark_label(lookup, section_index, source_offset);
+        }
+      }
+      platform_state_update_after_instruction(&platform_state, lookup, &instruction);
+    }
+  }
+  return 0;
+}
+
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview) {
   clock_t start;
@@ -9951,6 +10013,8 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (preview != NULL) preview->platform_pass_typed_ref_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_infer_amiga_runtime_sink_immediate_refs(lookup, decode, accepted_start, accepted_bytes) != 0)
+    return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_call_comment_seconds = elapsed_seconds_local(start, end);
   start = clock();

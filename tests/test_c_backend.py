@@ -3452,6 +3452,11 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
     assert "\tlea.l abs_0_0001046A.l,a3\n" in source_text
     assert "abs_0_0001046A:\n\tlea.l $000039FC.l,a0\n" in source_text
     assert "runtime_code_0001046A\tEQU\t$1046A\n" not in source_text
+    assert "\tmove.l #abs_0_0005D5DE,bltapt(a5)" in source_text
+    assert "\tmovea.l #abs_0_0001C3A8,a0\n" in source_text
+    assert "    ORG $5548F\n" not in source_text
+    assert "loc_0_00057800:\n" not in source_text
+    assert "loc_0_00057D00:\n" not in source_text
     assert "loc_0_00000078:\n\tori.b #0,d0\n" not in source_text
     assert not any(ref.get("offset") == 0x78 for ref in section["code_start_refs"])
     assert not any(site.get("target") == 0x78 for site in section["recovered_indirect_sites"])
