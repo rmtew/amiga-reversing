@@ -2328,6 +2328,7 @@ static int test_facts_v2_atari_relocation_uses_platform_normalized_addend(void) 
   M68kFixup fixup;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  uint32_t normalized_offset = 99U;
   uint8_t code_bytes[8] = {0x4eu, 0x71u, 0x4eu, 0x75u, 0x00u, 0x00u, 0x00u, 0x0au};
   uint8_t data_bytes[8] = {0};
   memset(&code_section, 0, sizeof(code_section));
@@ -2355,6 +2356,13 @@ static int test_facts_v2_atari_relocation_uses_platform_normalized_addend(void) 
   fixup.addend = 2;
   fixup.target_section_index = 1U;
   fixup.has_target_section = 1;
+  M68K_C_ASSERT(platform_facts_v2_fixup_addend_is_normalized_target(M68K_PLATFORM_BACKEND_ATARI_ST,
+    M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 1U, 2, 4U, (uint32_t)sizeof(data_bytes),
+    &normalized_offset));
+  M68K_C_ASSERT_U32(2U, normalized_offset);
+  M68K_C_ASSERT(!platform_facts_v2_fixup_addend_is_normalized_target(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+    M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 1U, 2, 4U, (uint32_t)sizeof(data_bytes),
+    &normalized_offset));
   added = m68k_object_add_fixup(&object, &fixup);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
@@ -2591,6 +2599,12 @@ static int test_facts_v2_classifies_hunk_positive_relocation_anchor(void) {
   char *source = NULL;
   uint8_t code_bytes[8] = {0x49u, 0xf9u, 0x00u, 0x00u, 0x7fu, 0xfeu, 0x4eu, 0x75u};
   uint8_t data_bytes[8] = {0};
+  M68K_C_ASSERT_U32(PLATFORM_FACTS_V2_RELOCATION_ANCHOR_POSITIVE,
+    platform_facts_v2_relocation_anchor_kind(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+      M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 4U, 0x00007FFEU));
+  M68K_C_ASSERT_U32(PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NONE,
+    platform_facts_v2_relocation_anchor_kind(M68K_PLATFORM_BACKEND_ATARI_ST,
+      M68K_PLATFORM_FILE_EXECUTABLE, M68K_FIXUP_ABS, 4U, 0x00007FFEU));
   memset(&code_section, 0, sizeof(code_section));
   memset(&data_section, 0, sizeof(data_section));
   memset(&fixup, 0, sizeof(fixup));

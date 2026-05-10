@@ -104,6 +104,11 @@ pseudo-symbols only for proven HUNK relocation anchors whose target is outside
 the renderable hunk payload range. Ordinary code/data references should still
 render to labels, not to `__section_N_base+offset`.
 
+The fact that out-of-payload executable HUNK relocations may be preserved as
+section-base anchors is Amiga platform knowledge. Generic relocation analysis
+should ask the platform layer whether a fixup/raw value is a platform anchor;
+other platforms may normalize or reject equivalent-looking addends differently.
+
 ## ExecBase Absolute Address
 
 The ExecBase pointer lives at absolute address `$4`. Users expect the familiar

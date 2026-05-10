@@ -908,29 +908,26 @@ static void profile_record_relocation_anchor(M68kFactsV2Profile *profile,
 
 static uint32_t classify_out_of_range_relocation_anchor(const M68kObject *object,
     const M68kFixup *fixup, uint32_t width, uint32_t raw_value) {
-  if (object != NULL && fixup != NULL &&
-      object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
-      object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE &&
-      width == 4U &&
-      (fixup->kind == M68K_FIXUP_ABS || fixup->kind == M68K_FIXUP_SECTION_REL)) {
-    if ((int32_t)raw_value < 0)
-      return M68K_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE;
+  uint32_t platform_anchor;
+  if (object == NULL || fixup == NULL) return M68K_FACTS_V2_RELOCATION_ANCHOR_NONE;
+  platform_anchor = platform_facts_v2_relocation_anchor_kind(object->platform_backend_kind,
+    object->platform_file_kind, fixup->kind, width, raw_value);
+  switch (platform_anchor) {
+  case PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE:
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE;
+  case PLATFORM_FACTS_V2_RELOCATION_ANCHOR_POSITIVE:
     return M68K_FACTS_V2_RELOCATION_ANCHOR_POSITIVE;
+  default:
+    return M68K_FACTS_V2_RELOCATION_ANCHOR_NONE;
   }
-  return M68K_FACTS_V2_RELOCATION_ANCHOR_NONE;
 }
 
 static int facts_v2_fixup_addend_is_platform_normalized_target(const M68kObject *object,
     const M68kFixup *fixup, uint32_t width, uint32_t target_extent, uint32_t *out_offset) {
   if (object == NULL || fixup == NULL || out_offset == NULL) return 0;
-  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST ||
-      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
-    return 0;
-  }
-  if (fixup->kind != M68K_FIXUP_ABS || width != 4U || !fixup->has_target_section) return 0;
-  if (fixup->addend < 0 || (uint32_t)fixup->addend >= target_extent) return 0;
-  *out_offset = (uint32_t)fixup->addend;
-  return 1;
+  return platform_facts_v2_fixup_addend_is_normalized_target(object->platform_backend_kind,
+    object->platform_file_kind, fixup->kind, fixup->has_target_section != 0, fixup->addend, width, target_extent,
+    out_offset);
 }
 
 static int facts_v2_first_section_of_kind(const M68kObject *object, M68kSectionKind kind,

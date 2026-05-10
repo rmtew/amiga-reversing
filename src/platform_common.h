@@ -29,6 +29,12 @@ typedef enum PlatformResolvedIndirectKind {
   PLATFORM_RESOLVED_INDIRECT_AMIGA_CALLBACK_FIELD_CALL = 3
 } PlatformResolvedIndirectKind;
 
+typedef enum PlatformFactsV2RelocationAnchorKind {
+  PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NONE = 0,
+  PLATFORM_FACTS_V2_RELOCATION_ANCHOR_POSITIVE = 1,
+  PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE = 2
+} PlatformFactsV2RelocationAnchorKind;
+
 typedef struct PlatformFactsV2ResolvedCall {
   uint8_t platform_kind;
   uint8_t kind;
@@ -62,6 +68,11 @@ uint32_t platform_facts_v2_runtime_address_storage_sink_data_class_flags(uint8_t
 int platform_facts_v2_absolute_memory_owner(uint8_t platform_kind, uint32_t address,
   uint8_t *out_owner_kind, uint32_t *out_owner_offset);
 int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind, uint32_t address);
+uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
+  uint8_t fixup_kind, uint32_t width, uint32_t raw_value);
+int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,
+  uint8_t fixup_kind, uint8_t has_target_section, int64_t addend, uint32_t width, uint32_t target_extent,
+  uint32_t *out_offset);
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
   uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance);
 int platform_facts_v2_supports_loadseg_segment_chain(uint8_t platform_kind);

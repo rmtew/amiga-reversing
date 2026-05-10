@@ -500,6 +500,39 @@ int platform_facts_v2_absolute_memory_owner_stays_literal(uint8_t platform_kind,
     owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL;
 }
 
+uint32_t platform_facts_v2_relocation_anchor_kind(uint8_t platform_kind, uint8_t platform_file_kind,
+    uint8_t fixup_kind, uint32_t width, uint32_t raw_value) {
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_AMIGA_HUNK:
+    if (platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE || width != 4U ||
+        (fixup_kind != M68K_FIXUP_ABS && fixup_kind != M68K_FIXUP_SECTION_REL)) {
+      return PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NONE;
+    }
+    return (int32_t)raw_value < 0
+      ? PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NEGATIVE
+      : PLATFORM_FACTS_V2_RELOCATION_ANCHOR_POSITIVE;
+  default:
+    return PLATFORM_FACTS_V2_RELOCATION_ANCHOR_NONE;
+  }
+}
+
+int platform_facts_v2_fixup_addend_is_normalized_target(uint8_t platform_kind, uint8_t platform_file_kind,
+    uint8_t fixup_kind, uint8_t has_target_section, int64_t addend, uint32_t width, uint32_t target_extent,
+    uint32_t *out_offset) {
+  if (out_offset == NULL) return 0;
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_ATARI_ST:
+    if (platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE || fixup_kind != M68K_FIXUP_ABS || width != 4U ||
+        !has_target_section || addend < 0 || addend >= (int64_t)(uint64_t)target_extent) {
+      return 0;
+    }
+    *out_offset = (uint32_t)addend;
+    return 1;
+  default:
+    return 0;
+  }
+}
+
 int platform_facts_v2_pc_relative_section_anchor_for_target(uint8_t platform_kind, int64_t target,
     uint32_t *out_base_offset, int32_t *out_addend, uint8_t *out_symbol_provenance) {
   if (out_base_offset != NULL) *out_base_offset = 0U;
