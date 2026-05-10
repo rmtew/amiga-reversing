@@ -1,5 +1,7 @@
+; Memory map
+;   code[$00000000-$00005400] -> runtime[$00040000-$00045400] policy materialized
+
     SECTION code,code
-    ; KNOWN: base A6=exec.library:LIB; type A1=IOStdReq (open trackdisk.device):IO
 loc_0_00000000:
     ORG $40000
 abs_0_00040000:

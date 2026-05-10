@@ -1,3 +1,7 @@
+; Memory map
+;   section_0[$00000148-$00000157] -> runtime[$00000004-$00000013] discovered_copy suppressed
+;   section_0[$00000154-$00000FF8] -> runtime[$00000040-$00000EE4] discovered_copy materialized
+
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/cia.i"
@@ -38,7 +42,7 @@ loc_0_00000052:
 h0dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_0_0000005A:
-	dc.b "dos.library",$00
+	dc.b "dos.library",$00	; string
 loc_0_00000066:
 	dc.b $0A
 	dcb.b $9,$20

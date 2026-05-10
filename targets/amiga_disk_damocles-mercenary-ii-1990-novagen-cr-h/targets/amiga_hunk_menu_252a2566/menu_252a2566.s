@@ -1,3 +1,4 @@
+    INCLUDE "dos/dosextens.i"
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/memory.i"
     INCLUDE "hardware/custom.i"
@@ -33,7 +34,7 @@ loc_0_00000000:
 	jsr _LVOFindTask(a6)
 	movea.l d0,a0
 	lea.l loc_0_00000000-4(pc),a4
-	move.l $00AC(a0),d0
+	move.l pr_CLI(a0),d0
 	beq.b loc_0_0000005C
 	lsl.l #2,d0
 	movea.l d0,a0

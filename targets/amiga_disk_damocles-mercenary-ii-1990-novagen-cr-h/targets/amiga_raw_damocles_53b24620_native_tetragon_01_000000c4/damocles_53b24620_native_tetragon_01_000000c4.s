@@ -1,3 +1,8 @@
+; Memory map
+;   code[$00000000-$00010000] -> runtime[$00040000-$00050000] policy materialized
+;   code[$000002D2-$00010000] -> runtime[$00042000-$00051D2E] conflicting_discovered_copy suppressed
+;   code[$000002D3-$00010000] -> runtime[$00042001-$00051D2E] conflicting_discovered_copy suppressed
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/resident.i"
     INCLUDE "hardware/cia.i"
@@ -92,7 +97,7 @@ abs_0_00040144:
 	movea.l #abs_0_00042000,a0
 	move.l a0,_custom+cop1lc.l	; copper_list pointer
 	move.w #$45,d3
-	movea.l #abs_0_00044000,a0
+	movea.l #$44000,a0
 abs_0_0004016A:
 	bsr.w abs_0_00040278
 	move.w d0,(a0)+
@@ -103,9 +108,9 @@ abs_0_0004016A:
 	move.w d0,(a0)+
 	dbf.w d3,abs_0_0004016A
 abs_0_00040184:
-	movea.l #abs_0_00044000,a4
+	movea.l #$44000,a4
 	move.w #$45,d3
-	movea.l #abs_0_00043000,a5
+	movea.l #$43000,a5
 abs_0_00040194:
 	move.w (a4)+,d4
 	move.w (a4)+,d5
@@ -239,8 +244,4 @@ abs_0_000403D8:
 	dc.b $41,$FA,$65,$72,$20,$6F
 	dcb.b $1C10,$00
 abs_0_00042000:
-	dcb.b $1000,$00
-abs_0_00043000:
-	dcb.b $1000,$00
-abs_0_00044000:
-	dcb.b $C000,$00
+	dcb.b $E000,$00

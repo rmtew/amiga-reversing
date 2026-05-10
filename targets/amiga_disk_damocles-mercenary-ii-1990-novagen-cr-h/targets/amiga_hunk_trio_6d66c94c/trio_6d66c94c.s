@@ -67,7 +67,7 @@ loc_0_00000054:
 	jsr _LVOClose(a6)
 	lea.l loc_2_00006F00.l,a0
 loc_0_00000100:
-	eori.w #65535,(a0)+
+	eori.w #$FFFF,(a0)+
 	cmpa.l #loc_2_00008C2E,a0
 	bmi.b loc_0_00000100
 	move.l #$0,d0
@@ -690,7 +690,7 @@ loc_0_00000A0E:
 	dc.b $00,$00
     SECTION section_1,data
 loc_1_00000000:
-	dc.b "dos.library",$00
+	dc.b "dos.library",$00	; string
 h1dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_1_00000010:
@@ -698,7 +698,7 @@ loc_1_00000010:
 loc_1_0000001C:
 	dc.b $00,$00,$00,$00
 loc_1_00000020:
-	dc.b "graphics.library",$00
+	dc.b "graphics.library",$00	; string
 	dc.b $00
 loc_1_00000032:
 	dcb.b $EE,$00

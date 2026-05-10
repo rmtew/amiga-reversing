@@ -1,3 +1,6 @@
+; Memory map
+;   section_2[$0000006A-$0000014C] -> runtime[$00000100-$000001E2] discovered_copy materialized
+
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
 

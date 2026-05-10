@@ -1,3 +1,8 @@
+; Memory map
+;   code[$00000000-$00005400] -> runtime[$00040000-$00045400] policy materialized
+;   code[$00000046-$00005400] -> runtime[$00006000-$0000B3BA] discovered_copy suppressed
+;   code[$0000004A-$00005400] -> runtime[$00006004-$0000B3BA] discovered_copy suppressed
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
@@ -5,22 +10,13 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-app_0000 RS.W 1
-app_0002 RS.W 1
-app_0004 RS.W 1
-    RS.B 26
-app_0020 RS.L 1
-app_0024 RS.W 1
+    RS.B 34
+app_0022 RS.L 1
     RS.B 8
 app_002E RS.L 1
     RS.B 32
 app_0052 RS.W 1
-    RS.B 42
-app_007E RS.W 1
-    RS.B 30
-app_009E RS.W 1
 app_SIZEOF EQU __RS
-app_0022 EQU $0022
 
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
@@ -32,7 +28,6 @@ _ciab	EQU	$BFD000
 _ciaa	EQU	$BFE001
 
     SECTION code,code
-    ; KNOWN: base A6=exec.library:LIB; type A1=IOStdReq (open trackdisk.device):IO
 loc_0_00000000:
     ORG $40000
 abs_0_00040000:
@@ -104,7 +99,7 @@ abs_0_00040054:
 	lea.l abs_0_000404D8(pc),a6
 	bsr.w abs_0_0004039A
 abs_0_000400FC:
-	tst.w app_0002(a6)
+	tst.w $0002(a6)
 	bne.b abs_0_000400FC
 	jsr $00020000.l
 	lea.l _custom.l,a5
@@ -131,7 +126,7 @@ abs_0_000400FC:
 	lea.l abs_0_000404D8(pc),a6
 	bsr.w abs_0_0004039A
 abs_0_0004016E:
-	tst.w app_0002(a6)
+	tst.w $0002(a6)
 	bne.b abs_0_0004016E
 	lea.l _custom.l,a5
 	move.w #INTF_CLRALL,intena(a5)
@@ -186,7 +181,7 @@ abs_0_00040236:
 	lea.l abs_0_000404D8(pc),a6
 	bsr.w abs_0_0004039A
 abs_0_0004024A:
-	tst.w app_0002(a6)
+	tst.w $0002(a6)
 	bne.b abs_0_0004024A
 	jmp $0001E000.l
 	dc.b $4B,$F9,$00,$DF,$F0,$00,$08,$2D,$00,$0E,$00,$02,$66,$F8,$08,$39
@@ -305,20 +300,20 @@ abs_0_00040392:
 	dbf.w d1,abs_0_00040384
 	rts
 abs_0_0004039A:
-	move.w #$1,app_0002(a6)
-	move.w #$5,app_0004(a6)
+	move.w #$1,$0002(a6)
+	move.w #$5,$0004(a6)
 	rts
 abs_0_000403A8:
-	move.w #$1,app_0000(a6)
-	move.w #$5,app_0004(a6)
+	move.w #$1,$0000(a6)
+	move.w #$5,$0004(a6)
 	rts
 abs_0_000403B6:
-	tst.w app_0004(a6)
+	tst.w $0004(a6)
 	beq.b abs_0_000403C4
-	subq.w #1,app_0004(a6)
+	subq.w #1,$0004(a6)
 	bra.w abs_0_000404C2
 abs_0_000403C4:
-	move.w #$5,app_0004(a6)
+	move.w #$5,$0004(a6)
 	lea.l abs_0_000407A0(pc),a2
 	movea.l abs_0_000406C2(pc),a3
 	moveq.l #0,d6
@@ -360,15 +355,15 @@ abs_0_0004041A:
 	beq.b abs_0_0004042A
 	bra.w abs_0_000404C2
 abs_0_0004042A:
-	clr.w app_0000(a6)
+	clr.w $0000(a6)
 	bra.w abs_0_000404C2
 abs_0_00040432:
-	tst.w app_0004(a6)
+	tst.w $0004(a6)
 	beq.b abs_0_00040440
-	subq.w #1,app_0004(a6)
+	subq.w #1,$0004(a6)
 	bra.w abs_0_000404C2
 abs_0_00040440:
-	move.w #$5,app_0004(a6)
+	move.w #$5,$0004(a6)
 	moveq.l #0,d6
 	lea.l abs_0_000407A0(pc),a2
 	moveq.l #0,d0
@@ -409,14 +404,14 @@ abs_0_00040492:
 	beq.b abs_0_000404A2
 	bra.w abs_0_000404C2
 abs_0_000404A2:
-	clr.w app_0002(a6)
+	clr.w $0002(a6)
 	bra.w abs_0_000404C2
 abs_0_000404AA:
 	movem.l d0-d7/a0-a6,-(a7)
 	lea.l abs_0_000404D8(pc),a6
-	tst.w app_0002(a6)
+	tst.w $0002(a6)
 	bne.w abs_0_00040432
-	tst.w app_0000(a6)
+	tst.w $0000(a6)
 	bne.w abs_0_000403B6
 abs_0_000404C2:
 	lea.l _custom.l,a5
@@ -541,14 +536,14 @@ abs_0_0004062C:
 abs_0_00040636:
 	lea.l abs_0_00040502(pc),a1
 	clr.w (a1)
-	move.w #$4000,app_0024(a6)
+	move.w #$4000,$0024(a6)
 	lea.l $00002000.l,a0
-	move.l a0,app_0020(a6)
-	move.w #$6800,app_009E(a6)
-	move.w #$9500,app_009E(a6)
-	move.w #$4489,app_007E(a6)
-	move.w #$9B06,app_0024(a6)
-	move.w #$9B06,app_0024(a6)
+	move.l a0,$0020(a6)
+	move.w #$6800,$009E(a6)
+	move.w #$9500,$009E(a6)
+	move.w #$4489,$007E(a6)
+	move.w #$9B06,$0024(a6)
+	move.w #$9B06,$0024(a6)
 abs_0_0004066A:
 	tst.w (a1)
 	beq.b abs_0_0004066A

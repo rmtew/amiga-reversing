@@ -254,6 +254,17 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   if (preview->asm_source_row_builder.active) cancel_asm_source_plan_row(preview);
   if (preview->asm_source_plan.total_bytes != (size_t)preview->asm_source_bytes) return 0;
   m68k_render_plan_init(&final_plan);
+  for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
+    const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
+    if (row->start_byte >= (size_t)preview->asm_source_body_start_byte ||
+        row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
+      continue;
+    }
+    if (!append_asm_source_plan_row_copy(&final_plan, row)) {
+      m68k_render_plan_destroy(&final_plan);
+      return 0;
+    }
+  }
   for (index = 0U; index < preview->asm_source_include_count; ++index)
     include_paths[index] = preview->asm_source_includes[index];
   qsort(include_paths, preview->asm_source_include_count, sizeof(include_paths[0]), compare_asm_source_include_paths);
@@ -274,6 +285,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
     if (row->start_byte >= (size_t)preview->asm_source_body_start_byte) continue;
+    if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) continue;
     if (!append_asm_source_plan_row_copy(&final_plan, row)) {
       m68k_render_plan_destroy(&final_plan);
       return 0;
@@ -1051,6 +1063,14 @@ static void render_asm_comment_line(M68kRenderIRPreview *preview, const char *co
   ++preview->asm_source_lines;
 }
 
+static void render_asm_file_comment_line(M68kRenderIRPreview *preview, const char *comment) {
+  char line[512];
+  if (preview == NULL || comment == NULL || comment[0] == '\0') return;
+  snprintf(line, sizeof(line), "; %s\n", comment);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+}
+
 static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *policy, size_t section_index,
     uint32_t offset, char *message, size_t message_size) {
   size_t used = 0U;
@@ -1181,6 +1201,56 @@ static void render_asm_section_header(M68kRenderIRPreview *preview, const M68kDe
   }
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
+}
+
+static const char *render_runtime_range_kind_name(uint8_t kind) {
+  switch (kind) {
+  case M68K_FACT_RUNTIME_RANGE_KIND_POLICY: return "policy";
+  case M68K_FACT_RUNTIME_RANGE_KIND_DISCOVERED_COPY: return "discovered_copy";
+  case M68K_FACT_RUNTIME_RANGE_KIND_CONFLICTING_DISCOVERED_COPY: return "conflicting_discovered_copy";
+  default: return "unknown";
+  }
+}
+
+static void render_asm_memory_map_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode) {
+  size_t index;
+  int emitted_header = 0;
+  if (preview == NULL || lookup == NULL || decode == NULL || lookup->runtime_address_range_count == 0U) return;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
+    uint32_t storage_end;
+    uint32_t runtime_end;
+    uint8_t materialized = 0U;
+    char section_name_buffer[96];
+    char comment[384];
+    const char *section_name;
+    if (fact == NULL || fact->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        fact->section_index >= decode->section_count || fact->size == 0U || !fact->has_runtime_address) {
+      continue;
+    }
+    storage_end = fact->size <= UINT32_MAX - fact->offset ? fact->offset + fact->size : UINT32_MAX;
+    runtime_end = fact->size <= UINT32_MAX - fact->runtime_address
+      ? fact->runtime_address + fact->size
+      : UINT32_MAX;
+    if (!emitted_header) {
+      render_asm_file_comment_line(preview, "Memory map");
+      emitted_header = 1;
+    }
+    section_name = rendered_section_name(decode, fact->section_index, section_name_buffer,
+      sizeof(section_name_buffer));
+    (void)lookup_runtime_range_materialization(lookup, fact, &materialized, NULL, NULL);
+    snprintf(comment, sizeof(comment),
+      "  %s[$%08X-$%08X] -> runtime[$%08X-$%08X] %s %s",
+      section_name, (unsigned)fact->offset, (unsigned)storage_end,
+      (unsigned)fact->runtime_address, (unsigned)runtime_end,
+      render_runtime_range_kind_name(fact->runtime_kind), materialized ? "materialized" : "suppressed");
+    render_asm_file_comment_line(preview, comment);
+  }
+  if (emitted_header) {
+    hash_asm_text(preview, "\n");
+    ++preview->asm_source_lines;
+  }
 }
 
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address) {
@@ -8790,6 +8860,9 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();
   if (render_asm_source) {
+    begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U);
+    render_asm_memory_map_header(out_preview, &lookup, decode);
+    finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE, 0U);
     render_asm_platform_header(out_preview, object);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);

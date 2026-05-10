@@ -43,7 +43,7 @@ resident:	; STRUCT RT
 	dc.l resident_init	; APTR RT_INIT
 	dc.b $00,$00
 resident_name:
-	dc.b "serial.device",$00
+	dc.b "serial.device",$00	; string
 loc_0_00000046:
 	dc.b "timer.device",$00	; string
 	dc.b $00

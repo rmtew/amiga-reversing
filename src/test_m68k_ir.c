@@ -9019,6 +9019,11 @@ static int test_facts_v2_runtime_alias_refs_emit_first_class_labels(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "; Memory map\n") == source);
+  M68K_C_ASSERT(strstr(source,
+    ";   section[$00000000-$00000014] -> runtime[$00000400-$00000414] policy materialized\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    ";   section[$00000000-$00000014] -> runtime[$00000800-$00000814] policy materialized\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000410.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000810.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n") != NULL);
@@ -13020,6 +13025,90 @@ static int test_facts_v2_render_asm_source_infers_openlibrary_helper_output_glob
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tbsr.w loc_0_00000020\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOOpenLibrary(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,GfxBase.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l GfxBase.l,a6\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOWaitTOF(a6)\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_render_asm_source_infers_openlibrary_indirect_helper_output_global_base_slot(void) {
+  M68kObject object;
+  M68kSection code_section;
+  M68kSection data_section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kSymbol symbol;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t code_bytes[65] = {
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x00u, 0x30u,
+    0x47u, 0xfau, 0x00u, 0x16u,
+    0x4eu, 0x93u,
+    0x23u, 0xc0u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x2cu, 0x79u, 0x00u, 0x00u, 0x00u, 0x00u,
+    0x4eu, 0xaeu, 0xfeu, 0xf2u,
+    0x4eu, 0x75u,
+    0x2fu, 0x0eu,
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x4eu, 0xaeu, 0xfdu, 0xd8u,
+    0x2cu, 0x5fu,
+    0x4eu, 0x75u,
+    0x67u, 0x72u, 0x61u, 0x70u, 0x68u, 0x69u, 0x63u, 0x73u,
+    0x2eu, 0x6cu, 0x69u, 0x62u, 0x72u, 0x61u, 0x72u, 0x79u,
+    0x00u
+  };
+  uint8_t data_bytes[4] = {0};
+  memset(&code_section, 0, sizeof(code_section));
+  memset(&data_section, 0, sizeof(data_section));
+  memset(&fixup, 0, sizeof(fixup));
+  memset(&symbol, 0, sizeof(symbol));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  code_section.kind = M68K_SECTION_CODE;
+  code_section.size = sizeof(code_bytes);
+  code_section.data_size = sizeof(code_bytes);
+  code_section.data = code_bytes;
+  data_section.kind = M68K_SECTION_DATA;
+  data_section.size = sizeof(data_bytes);
+  data_section.data_size = sizeof(data_bytes);
+  data_section.data = data_bytes;
+  added = m68k_object_add_section(&object, &code_section);
+  M68K_C_ASSERT(added.ok);
+  added = m68k_object_add_section(&object, &data_section);
+  M68K_C_ASSERT(added.ok);
+  symbol.name = "GfxBase";
+  symbol.binding = M68K_SYMBOL_LOCAL;
+  symbol.defined = 1;
+  symbol.section_index = 1U;
+  symbol.value = 0U;
+  M68K_C_ASSERT(m68k_object_add_symbol(&object, &symbol).ok);
+  fixup.section_index = 0U;
+  fixup.offset = 0x12U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 0x18U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.target_section_index = 1U;
+  fixup.has_target_section = 1;
+  M68K_C_ASSERT(m68k_object_add_fixup(&object, &fixup).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr (a3)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOOpenLibrary(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l d0,GfxBase.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l GfxBase.l,a6\n") != NULL);
@@ -19047,6 +19136,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_infers_openlibrary_global_base_slot},
     {"facts_v2_render_asm_source_infers_openlibrary_helper_output_global_base_slot",
       test_facts_v2_render_asm_source_infers_openlibrary_helper_output_global_base_slot},
+    {"facts_v2_render_asm_source_infers_openlibrary_indirect_helper_output_global_base_slot",
+      test_facts_v2_render_asm_source_infers_openlibrary_indirect_helper_output_global_base_slot},
     {"facts_v2_render_asm_source_infers_opendevice_base_field_slot",
       test_facts_v2_render_asm_source_infers_opendevice_base_field_slot},
     {"facts_v2_render_asm_source_renders_typed_app_slot_field_region",

@@ -1,3 +1,8 @@
+; Memory map
+;   section[$00000032-$0000005B] -> runtime[$00000090-$000000B9] discovered_copy suppressed
+;   section[$0000005C-$00059040] -> runtime[$00000400-$000593E4] discovered_copy materialized
+;   section[$0000005D-$00059040] -> runtime[$00000401-$000593E4] discovered_copy suppressed
+
     INCLUDE "graphics/copper.i"
     INCLUDE "graphics/display.i"
     INCLUDE "hardware/adkbits.i"

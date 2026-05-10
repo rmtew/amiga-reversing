@@ -1,3 +1,13 @@
+; Memory map
+;   section[$00000052-$0000005C] -> runtime[$00000100-$0000010A] discovered_copy suppressed
+;   section[$0000005C-$0000B398] -> runtime[$0005BFF0-$0006732C] discovered_copy materialized
+;   section[$000095DA-$000096CA] -> runtime[$00000318-$00000408] discovered_copy suppressed
+;   section[$000095DE-$000096CE] -> runtime[$0000031C-$0000040C] discovered_copy suppressed
+;   section[$000095E2-$0000965A] -> runtime[$00000320-$00000398] discovered_copy suppressed
+;   section[$000095E4-$000096D4] -> runtime[$00000322-$00000412] discovered_copy suppressed
+;   section[$000095E8-$000096D8] -> runtime[$00000326-$00000416] discovered_copy suppressed
+;   section[$000095EC-$00009664] -> runtime[$0000032A-$000003A2] discovered_copy suppressed
+
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/dmabits.i"
@@ -20,6 +30,7 @@ m68k_vector_level_3_interrupt_autovector	EQU	$6C
 m68k_vector_trap_1_instruction_vector	EQU	$84
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
+runtime_code_00000318	EQU	$318
 _ciab	EQU	$BFD000
 
     SECTION section,code
@@ -185,7 +196,7 @@ abs_0_0005C1F4:
 	bsr.w abs_0_00060DE4
 	bsr.w abs_0_0005FD7E
 	bsr.w abs_0_00060A8A
-	move.l #$5C2F8,$0138.w
+	move.l #abs_0_0005C2F8,$0138.w
 	lea.l abs_0_000624F0(pc),a0
 	move.w $01DE.w,d0
 	add.w d0,d0
@@ -899,7 +910,7 @@ abs_0_0005CA1C:
 	bsr.w abs_0_0005D5DC
 	bsr.w abs_0_0005F436
 	bsr.w abs_0_0005D74E
-	move.l #$5C2F8,$0138.w
+	move.l #abs_0_0005C2F8,$0138.w
 	lea.l abs_0_000624F0(pc),a0
 	move.w $01DE.w,d0
 	add.w d0,d0
@@ -2509,7 +2520,7 @@ abs_0_0005E036:
 	beq.w abs_0_0005E122
 	move.w $0006(a0),d0
 	bge.b abs_0_0005E078
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	move.w $0008(a0),d0
 	mulu.w #$A,d0
 	move.w #$FFFF,$0(a1,d0.w)
@@ -2565,7 +2576,7 @@ abs_0_0005E0EE:
 	addq.w #1,$027E.w
 abs_0_0005E0FE:
 	move.w $0008(a0),(a1)
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	move.w $0008(a0),d0
 	mulu.w #$A,d0
 	move.w #$FFFF,$0(a1,d0.w)
@@ -2634,7 +2645,7 @@ abs_0_0005E1B2:
 	move.w (a0),d0
 	beq.b abs_0_0005E1FA
 	clr.w (a0)
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	mulu.w #$A,d0
 	adda.w d0,a1
 	bsr.w abs_0_0005FAA4
@@ -2907,7 +2918,7 @@ abs_0_0005E4D2:
 	bra.b abs_0_0005E4C0
 abs_0_0005E4E2:
 	lea.l abs_0_0006556E(pc),a0
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	move.w #$3B,d0
 abs_0_0005E4EE:
 	move.l (a0)+,(a1)+
@@ -2931,7 +2942,7 @@ abs_0_0005E51C:
 	move.l d1,(a0)+
 	move.w d1,(a0)+
 	dbf.w d0,abs_0_0005E51C
-	lea.l $0318.w,a0
+	lea.l runtime_code_00000318.w,a0
 	lea.l $0570.w,a1
 	move.w $01DE.w,d0
 	moveq.l #0,d1
@@ -3073,7 +3084,7 @@ abs_0_0005E68E:
 	rts
 abs_0_0005E690:
 	move.w $0008(a0),(a1)
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	move.w $0008(a0),d0
 	mulu.w #$A,d0
 	move.w #$FFFF,$0(a1,d0.w)
@@ -4416,7 +4427,7 @@ abs_0_0005F71C:
 abs_0_0005F724:
 	clr.w $01D2.w
 abs_0_0005F728:
-	move.l #$6490E,$0192.w
+	move.l #abs_0_0006490E,$0192.w
 	movea.l $0192.w,a0
 	bsr.w abs_0_0005D8A2
 	clr.w $01C0.w
@@ -5300,7 +5311,7 @@ abs_0_00060260:
 	rts
 abs_0_00060268:
 	lea.l abs_0_0005E17A(pc),a0
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 	lea.l abs_0_000624E4(pc),a2
 	moveq.l #2,d7
 abs_0_00060276:
@@ -6602,7 +6613,7 @@ abs_0_000612F6:
 	dc.b $14,$00,$14,$00,$14
 abs_0_00061350:
 	lea.l $0144.w,a0
-	lea.l $0318.w,a1
+	lea.l runtime_code_00000318.w,a1
 abs_0_00061358:
 	clr.b (a0)+
 	cmpa.l a1,a0
@@ -7895,21 +7906,19 @@ abs_0_0006278E:
 	dc.b $53,$4B,$59
 	dcb.b $A,$20
 abs_0_00062B0F:
-	dc.b $20,$20,$54,$48,$45,$20,$44,$4F,$52,$4D,$41,$4E,$54,$20,$56,$4F
-	dc.b $4C,$43,$41,$4E,$4F,$20,$20
+	dc.b "  THE DORMANT VOLCANO  "	; string
 abs_0_00062B26:
-	dc.b $20,$20,$54,$48,$45,$20,$41,$43,$54,$49,$56,$45,$20,$56,$4F,$4C
-	dc.b $43,$41,$4E,$4F,$21,$20,$20,$00
+	dc.b "  THE ACTIVE VOLCANO!  ",$00	; string
 abs_0_00062B3E:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$03,$00,$1C,$00,$0A,$00,$0C,$13,$B0
 abs_0_00062B4E:
-	dc.b $20,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$21,$20,$20
-	dc.b $20,$20,$20,$20,$00,$00,$00,$0C,$20,$D0,$20,$20,$20,$20,$20,$20
-	dc.b $4E,$4F,$54,$48,$49,$4E,$47,$21,$20,$20,$20,$20,$20,$20,$00,$00
-	dc.b $00,$0C,$2D,$F0,$20,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E
-	dc.b $47,$21,$20,$20,$20,$20,$20,$20,$00,$00,$00,$06,$3B,$10,$20,$20
-	dc.b $20,$20,$20,$45,$58,$49,$54,$20,$41,$4E,$44,$20,$44,$4F,$4E,$54
-	dc.b $20,$44,$52,$4F,$50,$20,$20,$20,$20,$20,$FF,$00
+	dc.b "      NOTHING!      ",$00	; string
+	dc.b $00,$00,$0C,$20,$D0,$20,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49
+	dc.b $4E,$47,$21,$20,$20,$20,$20,$20,$20,$00,$00,$00,$0C,$2D,$F0,$20
+	dc.b $20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$21,$20,$20,$20
+	dc.b $20,$20,$20,$00,$00,$00,$06,$3B,$10,$20,$20,$20,$20,$20,$45,$58
+	dc.b $49,$54,$20,$41,$4E,$44,$20,$44,$4F,$4E,$54,$20,$44,$52,$4F,$50
+	dc.b $20,$20,$20,$20,$20,$FF,$00
 abs_0_00062BBA:
 	dc.b $00,$00,$00,$00,$00,$0C,$00,$11,$00,$10,$00,$02,$00,$0D
 	dc.b "Y@CHOOSE ITEM TO",$00	; string

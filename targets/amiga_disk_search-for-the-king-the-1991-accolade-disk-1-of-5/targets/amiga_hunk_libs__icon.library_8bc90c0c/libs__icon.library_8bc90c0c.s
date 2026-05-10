@@ -1,4 +1,5 @@
     INCLUDE "dos/dos_lib.i"
+    INCLUDE "dos/dosextens.i"
     INCLUDE "exec/alerts.i"
     INCLUDE "exec/devices.i"
     INCLUDE "exec/exec_lib.i"
@@ -16,6 +17,7 @@ app_SIZEOF EQU __RS
     SECTION section_0,code
 	dc.b $70,$FF,$4E,$75
 resident:	; STRUCT RT
+    ; invalid overlap: decoded code at $0004 starts at structured data; emitted as data
 	dc.w RTC_MATCHWORD	; UWORD RT_MATCHWORD = RTC_MATCHWORD
 	dc.l resident	; APTR RT_MATCHTAG
 	dc.l loc_0_00000280	; APTR RT_ENDSKIP
@@ -27,9 +29,9 @@ resident:	; STRUCT RT
 	dc.l resident_idstring	; APTR RT_IDSTRING
 	dc.l resident_autoinit	; APTR RT_INIT
 resident_name:
-	dc.b "icon.library",$00
+	dc.b "icon.library",$00	; string
 resident_idstring:
-	dc.b "icon 34.2 (22 Jun 1988)",$0D,$0A,$00
+	dc.b "icon 34.2 (22 Jun 1988)",$0D,$0A,$00	; string
 	dc.b $00,$00,$00
 resident_autoinit:	; STRUCT resident_autoinit
 	dc.l app_SIZEOF	; ULONG resident_base_size
@@ -37,6 +39,7 @@ resident_autoinit:	; STRUCT resident_autoinit
 	dc.l resident_init_struct	; APTR resident_init_struct
 	dc.l resident_init	; APTR resident_init_function
 resident_vectors:
+    ; invalid overlap: decoded code at $0058 starts at structured data; emitted as data
 	dc.l icon_lib_open
 	dc.l icon_lib_close
 	dc.l icon_lib_expunge
@@ -57,6 +60,7 @@ resident_vectors:
 	dc.l bump_revision
 	dc.l $FFFFFFFF
 resident_init_struct:
+    ; invalid overlap: decoded code at $00A4 starts at structured data; emitted as data
 	dc.b $E0,$00,$00,$08,$09,$00,$C0,$00,$00,$0A
 	dc.l resident_name
 	dc.b $E0,$00,$00,$0E,$06,$00,$D0,$00,$00,$14,$00,$22,$D0,$00,$00,$16
@@ -252,11 +256,11 @@ loc_0_00000260:
 	jsr _LVOFindTask(a6)
 	movea.l (a7)+,a6
 	movea.l d0,a1
-	move.l $000C(a7),$0094(a1)
+	move.l $000C(a7),pr_Result2(a1)
 	movea.l (a7)+,a6
 	rts
 loc_0_00000280:
-	dc.b $00,$00,$00,$00
+	ori.b #0,d0
     SECTION section_1,code
 loc_1_00000000:
 	movem.l d2-d5,-(a7)
@@ -618,7 +622,6 @@ loc_3_000000A8:
 	move.l $0008(a6),d1
 	move.l $000C(a6),d2
 	movea.l $0010(a6),a0
-loc_3_000000BC:
 	move.w #$E310,-$0050(a6)
 	move.w #$1,-$004E(a6)
 	lea.l $0060(a0),a1

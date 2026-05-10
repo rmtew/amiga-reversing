@@ -6,6 +6,7 @@
     SECTION section_0,code
 	dc.b $70,$00,$4E,$75
 resident:	; STRUCT RT
+    ; invalid overlap: decoded code at $0004 starts at structured data; emitted as data
 	dc.w RTC_MATCHWORD	; UWORD RT_MATCHWORD = RTC_MATCHWORD
 	dc.l resident	; APTR RT_MATCHTAG
 	dc.l resident_name	; APTR RT_ENDSKIP
@@ -17,10 +18,12 @@ resident:	; STRUCT RT
 	dc.l resident_idstring	; APTR RT_IDSTRING
 	dc.l resident_init	; APTR RT_INIT
 resident_name:
-	dc.b "clipboard.device",$00
+    ; invalid overlap: decoded code at $001E starts at structured data; emitted as data
+	dc.b "clipboard.device",$00	; string
 	dc.b $00
 resident_idstring:
-	dc.b "clipboard 35.2 (9 May 1988)",$0D,$0A,$00
+    ; invalid overlap: decoded code at $0030 starts at structured data; emitted as data
+	dc.b "clipboard 35.2 (9 May 1988)",$0D,$0A,$00	; string
 resident_init:
 	movem.l a0/a6,-(a7)
 	jsr loc_1_00000000.l
@@ -221,79 +224,340 @@ loc_1_00000206:
 	addq.l #4,a7
 	movem.l (a7)+,d2/a2
 	rts
-	dc.b $48,$E7,$3C,$38,$26,$6F,$00,$20,$28,$6F,$00,$24,$24,$6F,$00,$28
-	dc.b $4E,$B9
-	dc.l loc_8_00000000
-	dc.b $7A,$00,$4A,$6B,$00,$7A,$67,$00,$01,$08,$4A,$AB,$00,$44,$67,$3E
-	dc.b $00,$2C,$00,$40,$00,$1E,$74,$FF,$2F,$02,$2F,$2F,$00,$34,$2F,$2B
-	dc.b $00,$44,$4E,$B9
-	dc.l loc_7_00000068
-	dc.b $72,$FF,$B2,$80,$4F,$EF,$00,$0C,$67,$00,$00,$DE,$2F,$2F,$00,$2C
-	dc.b $2F,$0A,$2F,$2B,$00,$44,$4E,$B9
-	dc.l loc_7_00000030
-	dc.b $2A,$00,$4F,$EF,$00,$0C,$60,$00,$00,$C4,$20,$2B,$00,$76,$B0,$AF
-	dc.b $00,$30,$63,$00,$00,$B8,$20,$2F,$00,$2C,$D0,$AF,$00,$30,$B0,$AB
-	dc.b $00,$76,$63,$0A,$2A,$2B,$00,$76,$9A,$AF,$00,$30,$60,$04,$2A,$2F
-	dc.b $00,$2C,$4A,$85,$67,$00,$00,$96,$22,$2F,$00,$30,$70,$09,$E0,$A9
-	dc.b $26,$2F,$00,$30,$02,$83,$00,$00,$01,$FF,$22,$6B,$00,$72,$24,$09
-	dc.b $66,$04,$22,$6B,$00,$64,$20,$01,$B0,$A9,$00,$0E,$67,$1A,$60,$04
-	dc.b $22,$69,$00,$04,$20,$01,$B0,$A9,$00,$0E,$65,$F4,$60,$02,$22,$51
-	dc.b $20,$01,$B0,$A9,$00,$0E,$62,$F6,$28,$05,$60,$48,$20,$3C,$00,$00
-	dc.b $02,$00,$90,$83,$B8,$80,$63,$22,$34,$03,$60,$08,$30,$02,$14,$F1
-	dc.b $00,$12,$52,$42,$0C,$42,$02,$00,$6D,$F2,$22,$51,$20,$3C,$00,$00
-	dc.b $02,$00,$90,$83,$98,$80,$76,$00,$60,$1A,$34,$03,$60,$08,$30,$02
-	dc.b $14,$F1,$00,$12,$52,$42,$30,$02,$48,$C0,$22,$04,$D2,$83,$B0,$81
-	dc.b $65,$EC,$78,$00,$4A,$84,$66,$B4,$27,$49,$00,$72,$4E,$B9
-	dc.l loc_8_00000010
-	dc.b $20,$05,$4C,$DF,$1C,$3C,$4E,$75,$48,$E7,$3C,$3C,$24,$6F,$00,$24
-	dc.b $28,$6F,$00,$28,$26,$6F,$00,$2C,$4E,$B9
-	dc.l loc_8_00000000
-	dc.b $7A,$00,$4A,$AA,$00,$44,$66,$00,$00,$F4,$20,$2F,$00,$30,$D0,$AF
-	dc.b $00,$34,$0C,$80,$00,$00,$07,$D0,$63,$00,$00,$E2,$4A,$6A,$00,$7A
-	dc.b $67,$00,$00,$DA,$2F,$3C,$00,$02,$00,$00,$4E,$B9
-	dc.l loc_8_00000050
-	dc.b $0C,$80,$00,$00,$40,$00,$58,$8F,$6C,$00,$00,$C2,$48,$78,$03,$EE
-	dc.b $2F,$0A,$4E,$BA,$FD,$42,$25,$40,$00,$44,$50,$8F,$67,$00,$00,$AA
-	dc.b $26,$2A,$00,$64,$60,$00,$00,$8C,$20,$2A,$00,$76,$20,$43,$22,$28
-	dc.b $00,$0E,$E1,$81,$E3,$81,$B0,$81,$63,$68,$20,$2A,$00,$76,$20,$43
-	dc.b $22,$28,$00,$0E,$52,$81,$E1,$81,$E3,$81,$B0,$81,$64,$30,$24,$2A
-	dc.b $00,$76,$02,$82,$00,$00,$01,$FF,$20,$2A,$00,$76,$02,$80,$00,$00
-	dc.b $01,$FF,$2F,$00,$2A,$43,$48,$6D,$00,$12,$2F,$2A,$00,$44,$4E,$B9
-	dc.l loc_7_0000004C
-	dc.b $B4,$80,$4F,$EF,$00,$0C,$67,$26,$60,$20,$48,$78,$02,$00,$2A,$43
-	dc.b $48,$6D,$00,$12,$2F,$2A,$00,$44,$4E,$B9
-	dc.l loc_7_0000004C
-	dc.b $0C,$80,$00,$00,$02,$00,$4F,$EF,$00,$0C,$67,$04,$42,$6A,$00,$7A
-	dc.b $48,$78,$02,$12,$2F,$03,$4E,$B9
-	dc.l loc_8_00000038
-	dc.b $26,$04,$50,$8F,$20,$43,$28,$10,$66,$00,$FF,$70,$48,$6A,$00,$64
-	dc.b $4E,$B9
-	dc.l loc_5_00000000
-	dc.b $58,$8F,$60,$04,$42,$6A,$00,$7A,$4A,$6A,$00,$7A,$67,$00,$01,$32
-	dc.b $4A,$AA,$00,$44,$67,$3E,$00,$2C,$00,$40,$00,$1E,$74,$FF,$2F,$02
-	dc.b $2F,$2F,$00,$38,$2F,$2A,$00,$44,$4E,$B9
-	dc.l loc_7_00000068
-	dc.b $72,$FF,$B2,$80,$4F,$EF,$00,$0C,$67,$00,$01,$08,$2F,$2F,$00,$30
-	dc.b $2F,$0B,$2F,$2A,$00,$44,$4E,$B9
-	dc.l loc_7_0000004C
-	dc.b $2A,$00,$4F,$EF,$00,$0C,$60,$00,$00,$EE,$24,$2F,$00,$34,$70,$09
-	dc.b $E0,$AA,$28,$2F,$00,$34,$02,$84,$00,$00,$01,$FF,$26,$2A,$00,$72
-	dc.b $66,$0A,$2F,$0A,$4E,$BA,$FB,$BC,$26,$00,$58,$8F,$4A,$83,$67,$40
-	dc.b $20,$02,$20,$43,$B0,$A8,$00,$0E,$67,$36,$60,$06,$20,$43,$26,$28
-	dc.b $00,$04,$20,$02,$20,$43,$B0,$A8,$00,$0E,$65,$F0,$60,$14,$20,$43
-	dc.b $26,$10,$20,$43,$4A,$90,$66,$0A,$2F,$0A,$4E,$BA,$FB,$86,$26,$00
-	dc.b $58,$8F,$4A,$83,$67,$0A,$20,$02,$20,$43,$B0,$A8,$00,$0E,$62,$DE
-	dc.b $60,$00,$00,$76,$20,$3C,$00,$00,$02,$00,$90,$84,$B0,$AF,$00,$30
-	dc.b $64,$42,$34,$04,$60,$0A,$30,$02,$22,$43,$13,$9B,$00,$12,$52,$42
-	dc.b $0C,$42,$02,$00,$6D,$F0,$20,$43,$26,$10,$20,$43,$4A,$90,$66,$0A
-	dc.b $2F,$0A,$4E,$BA,$FB,$3E,$26,$00,$58,$8F,$20,$3C,$00,$00,$02,$00
-	dc.b $90,$84,$DA,$80,$20,$3C,$00,$00,$02,$00,$90,$84,$91,$AF,$00,$30
-	dc.b $78,$00,$60,$24,$34,$04,$60,$0A,$30,$02,$22,$43,$13,$9B,$00,$12
-	dc.b $52,$42,$30,$02,$48,$C0,$22,$2F,$00,$30,$D2,$84,$B0,$81,$65,$E8
-	dc.b $DA,$AF,$00,$30,$42,$AF,$00,$30,$4A,$83,$67,$06,$4A,$AF,$00,$30
-	dc.b $62,$82,$25,$43,$00,$72,$4E,$B9
-	dc.l loc_8_00000010
-	dc.b $20,$05,$4C,$DF,$3C,$3C,$4E,$75
+loc_1_00000226:
+	movem.l d2-d5/a2-a4,-(a7)
+	movea.l $0020(a7),a3
+	movea.l $0024(a7),a4
+	movea.l $0028(a7),a2
+	jsr loc_8_00000000.l
+	moveq.l #0,d5
+	tst.w $007A(a3)
+	beq.w loc_1_0000034C
+	tst.l $0044(a3)
+	beq.b loc_1_0000028A
+	ori.b #64,$001E(a4)
+	moveq.l #-1,d2
+	move.l d2,-(a7)
+	move.l $0034(a7),-(a7)
+	move.l $0044(a3),-(a7)
+	jsr loc_7_00000068.l
+	moveq.l #-1,d1
+	cmp.l d0,d1
+	lea.l $000C(a7),a7
+	beq.w loc_1_0000034C
+	move.l $002C(a7),-(a7)
+	move.l a2,-(a7)
+	move.l $0044(a3),-(a7)
+	jsr loc_7_00000030.l
+	move.l d0,d5
+	lea.l $000C(a7),a7
+	bra.w loc_1_0000034C
+loc_1_0000028A:
+	move.l $0076(a3),d0
+	cmp.l $0030(a7),d0
+	bls.w loc_1_0000034C
+	move.l $002C(a7),d0
+	add.l $0030(a7),d0
+	cmp.l $0076(a3),d0
+	bls.b loc_1_000002AE
+	move.l $0076(a3),d5
+	sub.l $0030(a7),d5
+	bra.b loc_1_000002B2
+loc_1_000002AE:
+	move.l $002C(a7),d5
+loc_1_000002B2:
+	tst.l d5
+	beq.w loc_1_0000034C
+	move.l $0030(a7),d1
+	moveq.l #9,d0
+	lsr.l d0,d1
+	move.l $0030(a7),d3
+	andi.l #511,d3
+	movea.l $0072(a3),a1
+	move.l a1,d2
+	bne.b loc_1_000002D6
+	movea.l $0064(a3),a1
+loc_1_000002D6:
+	move.l d1,d0
+	cmp.l $000E(a1),d0
+	beq.b loc_1_000002F8
+	bra.b loc_1_000002E4
+loc_1_000002E0:
+	movea.l $0004(a1),a1
+loc_1_000002E4:
+	move.l d1,d0
+	cmp.l $000E(a1),d0
+	bcs.b loc_1_000002E0
+	bra.b loc_1_000002F0
+loc_1_000002EE:
+	movea.l (a1),a1
+loc_1_000002F0:
+	move.l d1,d0
+	cmp.l $000E(a1),d0
+	bhi.b loc_1_000002EE
+loc_1_000002F8:
+	move.l d5,d4
+	bra.b loc_1_00000344
+loc_1_000002FC:
+	move.l #$200,d0
+	sub.l d3,d0
+	cmp.l d0,d4
+	bls.b loc_1_0000032A
+	move.w d3,d2
+	bra.b loc_1_00000314
+loc_1_0000030C:
+	move.w d2,d0
+	move.b $12(a1,d0.w),(a2)+
+	addq.w #1,d2
+loc_1_00000314:
+	cmpi.w #512,d2
+	blt.b loc_1_0000030C
+	movea.l (a1),a1
+	move.l #$200,d0
+	sub.l d3,d0
+	sub.l d0,d4
+	moveq.l #0,d3
+	bra.b loc_1_00000344
+loc_1_0000032A:
+	move.w d3,d2
+	bra.b loc_1_00000336
+loc_1_0000032E:
+	move.w d2,d0
+	move.b $12(a1,d0.w),(a2)+
+	addq.w #1,d2
+loc_1_00000336:
+	move.w d2,d0
+	ext.l d0
+	move.l d4,d1
+	add.l d3,d1
+	cmp.l d1,d0
+	bcs.b loc_1_0000032E
+	moveq.l #0,d4
+loc_1_00000344:
+	tst.l d4
+	bne.b loc_1_000002FC
+	move.l a1,$0072(a3)
+loc_1_0000034C:
+	jsr loc_8_00000010.l
+	move.l d5,d0
+	movem.l (a7)+,d2-d5/a2-a4
+	rts
+loc_1_0000035A:
+	movem.l d2-d5/a2-a5,-(a7)
+	movea.l $0024(a7),a2
+	movea.l $0028(a7),a4
+	movea.l $002C(a7),a3
+	jsr loc_8_00000000.l
+	moveq.l #0,d5
+	tst.l $0044(a2)
+	bne.w loc_1_0000046C
+	move.l $0030(a7),d0
+	add.l $0034(a7),d0
+	cmpi.l #2000,d0
+	bls.w loc_1_0000046C
+	tst.w $007A(a2)
+	beq.w loc_1_0000046C
+	move.l #$20000,-(a7)
+	jsr loc_8_00000050.l
+	cmpi.l #16384,d0
+	addq.l #4,a7
+	bge.w loc_1_0000046C
+	pea.l $03EE.w
+	move.l a2,-(a7)
+	jsr loc_1_000000F6(pc)
+	move.l d0,$0044(a2)
+	addq.l #8,a7
+	beq.w loc_1_00000468
+	move.l $0064(a2),d3
+	bra.w loc_1_00000452
+loc_1_000003C8:
+	move.l $0076(a2),d0
+	movea.l d3,a0
+	move.l $000E(a0),d1
+	asl.l #8,d1
+	asl.l #1,d1
+	cmp.l d1,d0
+	bls.b loc_1_00000442
+	move.l $0076(a2),d0
+	movea.l d3,a0
+	move.l $000E(a0),d1
+	addq.l #1,d1
+	asl.l #8,d1
+	asl.l #1,d1
+	cmp.l d1,d0
+	bcc.b loc_1_0000041E
+	move.l $0076(a2),d2
+	andi.l #511,d2
+	move.l $0076(a2),d0
+	andi.l #511,d0
+	move.l d0,-(a7)
+	movea.l d3,a5
+	pea.l $0012(a5)
+	move.l $0044(a2),-(a7)
+	jsr loc_7_0000004C.l
+	cmp.l d0,d2
+	lea.l $000C(a7),a7
+	beq.b loc_1_00000442
+	bra.b loc_1_0000043E
+loc_1_0000041E:
+	pea.l $0200.w
+	movea.l d3,a5
+	pea.l $0012(a5)
+	move.l $0044(a2),-(a7)
+	jsr loc_7_0000004C.l
+	cmpi.l #512,d0
+	lea.l $000C(a7),a7
+	beq.b loc_1_00000442
+loc_1_0000043E:
+	clr.w $007A(a2)
+loc_1_00000442:
+	pea.l $0212.w
+	move.l d3,-(a7)
+	jsr loc_8_00000038.l
+	move.l d4,d3
+	addq.l #8,a7
+loc_1_00000452:
+	movea.l d3,a0
+	move.l (a0),d4
+	bne.w loc_1_000003C8
+	pea.l $0064(a2)
+	jsr loc_5_00000000.l
+	addq.l #4,a7
+	bra.b loc_1_0000046C
+loc_1_00000468:
+	clr.w $007A(a2)
+loc_1_0000046C:
+	tst.w $007A(a2)
+	beq.w loc_1_000005A4
+	tst.l $0044(a2)
+	beq.b loc_1_000004B8
+	ori.b #64,$001E(a4)
+	moveq.l #-1,d2
+	move.l d2,-(a7)
+	move.l $0038(a7),-(a7)
+	move.l $0044(a2),-(a7)
+	jsr loc_7_00000068.l
+	moveq.l #-1,d1
+	cmp.l d0,d1
+	lea.l $000C(a7),a7
+	beq.w loc_1_000005A4
+	move.l $0030(a7),-(a7)
+	move.l a3,-(a7)
+	move.l $0044(a2),-(a7)
+	jsr loc_7_0000004C.l
+	move.l d0,d5
+	lea.l $000C(a7),a7
+	bra.w loc_1_000005A4
+loc_1_000004B8:
+	move.l $0034(a7),d2
+	moveq.l #9,d0
+	lsr.l d0,d2
+	move.l $0034(a7),d4
+	andi.l #511,d4
+	move.l $0072(a2),d3
+	bne.b loc_1_000004DA
+	move.l a2,-(a7)
+	jsr loc_1_00000090(pc)
+	move.l d0,d3
+	addq.l #4,a7
+loc_1_000004DA:
+	tst.l d3
+	beq.b loc_1_0000051E
+	move.l d2,d0
+	movea.l d3,a0
+	cmp.l $000E(a0),d0
+	beq.b loc_1_0000051E
+	bra.b loc_1_000004F0
+loc_1_000004EA:
+	movea.l d3,a0
+	move.l $0004(a0),d3
+loc_1_000004F0:
+	move.l d2,d0
+	movea.l d3,a0
+	cmp.l $000E(a0),d0
+	bcs.b loc_1_000004EA
+	bra.b loc_1_00000510
+loc_1_000004FC:
+	movea.l d3,a0
+	move.l (a0),d3
+	movea.l d3,a0
+	tst.l (a0)
+	bne.b loc_1_00000510
+	move.l a2,-(a7)
+	jsr loc_1_00000090(pc)
+	move.l d0,d3
+	addq.l #4,a7
+loc_1_00000510:
+	tst.l d3
+	beq.b loc_1_0000051E
+	move.l d2,d0
+	movea.l d3,a0
+	cmp.l $000E(a0),d0
+	bhi.b loc_1_000004FC
+loc_1_0000051E:
+	bra.w loc_1_00000596
+loc_1_00000522:
+	move.l #$200,d0
+	sub.l d4,d0
+	cmp.l $0030(a7),d0
+	bcc.b loc_1_00000572
+	move.w d4,d2
+	bra.b loc_1_0000053E
+loc_1_00000534:
+	move.w d2,d0
+	movea.l d3,a1
+	move.b (a3)+,$12(a1,d0.w)
+	addq.w #1,d2
+loc_1_0000053E:
+	cmpi.w #512,d2
+	blt.b loc_1_00000534
+	movea.l d3,a0
+	move.l (a0),d3
+	movea.l d3,a0
+	tst.l (a0)
+	bne.b loc_1_00000558
+	move.l a2,-(a7)
+	jsr loc_1_00000090(pc)
+	move.l d0,d3
+	addq.l #4,a7
+loc_1_00000558:
+	move.l #$200,d0
+	sub.l d4,d0
+	add.l d0,d5
+	move.l #$200,d0
+	sub.l d4,d0
+	sub.l d0,$0030(a7)
+	moveq.l #0,d4
+	bra.b loc_1_00000596
+loc_1_00000572:
+	move.w d4,d2
+	bra.b loc_1_00000580
+loc_1_00000576:
+	move.w d2,d0
+	movea.l d3,a1
+	move.b (a3)+,$12(a1,d0.w)
+	addq.w #1,d2
+loc_1_00000580:
+	move.w d2,d0
+	ext.l d0
+	move.l $0030(a7),d1
+	add.l d4,d1
+	cmp.l d1,d0
+	bcs.b loc_1_00000576
+	add.l $0030(a7),d5
+	clr.l $0030(a7)
+loc_1_00000596:
+	tst.l d3
+	beq.b loc_1_000005A0
+	tst.l $0030(a7)
+	bhi.b loc_1_00000522
+loc_1_000005A0:
+	move.l d3,$0072(a2)
+loc_1_000005A4:
+	jsr loc_8_00000010.l
+	move.l d5,d0
+	movem.l (a7)+,d2-d5/a2-a5
+	rts
 loc_1_000005B2:
 	move.l a2,-(a7)
 	movea.l $0008(a7),a2
@@ -313,67 +577,321 @@ loc_1_000005E0:
 	jsr loc_8_00000010.l
 	movea.l (a7)+,a2
 	rts
-	dc.b $48,$E7,$20,$20,$24,$6F,$00,$0C,$24,$2F,$00,$10,$08,$2A,$00,$07
-	dc.b $00,$1E,$66,$0A,$2F,$0A,$4E,$B9
-	dc.l loc_8_00000098
-	dc.b $58,$8F,$B5,$C2,$67,$06,$02,$2A,$00,$FE,$00,$1E,$2F,$0A,$4E,$BA
-	dc.b $FF,$96,$02,$2A,$00,$DF,$00,$1E,$58,$8F,$4C,$DF,$04,$04,$4E,$75
-	dc.b $20,$6F,$00,$04,$22,$68,$00,$8C,$20,$68,$00,$7C,$4A,$91,$67,$16
-	dc.b $4A,$90,$67,$10,$20,$28,$00,$30,$B0,$A9,$00,$30,$6C,$02,$60,$06
-	dc.b $42,$40,$60,$04,$60,$FA,$70,$01,$48,$C0,$4E,$75,$20,$6F,$00,$04
-	dc.b $22,$6F,$00,$08,$20,$2F,$00,$0C,$21,$69,$00,$28,$00,$B4,$31,$68
-	dc.b $00,$10,$00,$AE,$21,$69,$00,$30,$00,$B0,$2F,$00,$2F,$09,$4E,$BA
-	dc.b $FF,$74,$50,$8F,$4E,$75,$48,$E7,$20,$38,$24,$6F,$00,$14,$26,$6F
-	dc.b $00,$18,$00,$2B,$00,$20,$00,$1E,$4A,$2A,$00,$42,$67,$0C,$02,$2B
-	dc.b $00,$FE,$00,$1E,$70,$00,$60,$00,$02,$78,$15,$7C,$00,$01,$00,$42
-	dc.b $74,$01,$4A,$6A,$00,$40,$66,$00,$00,$84,$2F,$0A,$4E,$BA,$FF,$72
-	dc.b $30,$00,$58,$8F,$67,$18,$28,$6A,$00,$7C,$4A,$94,$67,$0E,$25,$6C
-	dc.b $00,$30,$00,$3C,$35,$7C,$00,$02,$00,$40,$60,$60,$60,$5C,$28,$6A
-	dc.b $00,$8C,$4A,$94,$67,$54,$25,$6C,$00,$30,$00,$3C,$30,$2C,$00,$1C
-	dc.b $35,$40,$00,$40,$0C,$40,$00,$09,$66,$0E,$2F,$0B,$2F,$0C,$2F,$0A
-	dc.b $4E,$BA,$FF,$5A,$4F,$EF,$00,$0C,$4A,$AA,$00,$44,$67,$1C,$2F,$2A
-	dc.b $00,$44,$4E,$B9
-	dc.l loc_7_0000001C
-	dc.b $42,$AA,$00,$44,$48,$6A,$00,$48,$4E,$B9
-	dc.l loc_7_00000084
-	dc.b $50,$8F,$60,$08,$2F,$0A,$4E,$BA,$FA,$B8,$58,$8F,$35,$7C,$00,$01
-	dc.b $00,$7A,$60,$02,$42,$42,$0C,$6A,$00,$09,$00,$40,$66,$5C,$2F,$0A
-	dc.b $4E,$BA,$FE,$E8,$30,$00,$58,$8F,$67,$22,$28,$6A,$00,$7C,$4A,$94
-	dc.b $67,$18,$48,$6A,$00,$9A,$2F,$2A,$00,$B4,$4E,$B9
-	dc.l loc_8_0000012C
-	dc.b $35,$7C,$00,$03,$00,$40,$50,$8F,$60,$30,$60,$2C,$28,$6A,$00,$8C
-	dc.b $4A,$94,$67,$24,$25,$6C,$00,$30,$00,$3C,$30,$2C,$00,$1C,$35,$40
-	dc.b $00,$40,$0C,$40,$00,$09,$66,$12,$2F,$0B,$2F,$0C,$2F,$0A,$4E,$BA
-	dc.b $FE,$C6,$4F,$EF,$00,$0C,$60,$02,$42,$42,$0C,$6A,$00,$02,$00,$40
-	dc.b $66,$00,$00,$A2,$28,$6A,$00,$7C,$4A,$94,$67,$00,$00,$96,$08,$2C
-	dc.b $00,$04,$00,$1E,$67,$0A,$52,$6A,$00,$8A,$02,$2C,$00,$EF,$00,$1E
-	dc.b $20,$2A,$00,$76,$B0,$AC,$00,$2C,$63,$54,$4A,$AC,$00,$28,$67,$22
-	dc.b $2F,$2C,$00,$2C,$2F,$2C,$00,$24,$2F,$2C,$00,$28,$2F,$0C,$2F,$0A
-	dc.b $4E,$BA,$FA,$42,$29,$40,$00,$20,$D1,$AC,$00,$2C,$4F,$EF,$00,$14
-	dc.b $60,$3A,$20,$2C,$00,$24,$D0,$AC,$00,$2C,$B0,$AA,$00,$76,$64,$08
-	dc.b $29,$6C,$00,$24,$00,$20,$60,$0C,$20,$2A,$00,$76,$90,$AC,$00,$2C
-	dc.b $29,$40,$00,$20,$20,$2C,$00,$20,$D1,$AC,$00,$2C,$60,$0E,$42,$AC
-	dc.b $00,$20,$70,$FF,$29,$40,$00,$30,$53,$6A,$00,$8A,$2F,$0B,$2F,$0C
-	dc.b $4E,$BA,$FD,$BC,$4A,$6A,$00,$8A,$50,$8F,$66,$08,$42,$6A,$00,$40
-	dc.b $60,$02,$42,$42,$0C,$6A,$00,$03,$00,$40,$66,$00,$00,$68,$28,$6A
-	dc.b $00,$8C,$4A,$94,$67,$5C,$0C,$6C,$00,$03,$00,$1C,$66,$44,$2F,$2C
-	dc.b $00,$2C,$2F,$2C,$00,$24,$2F,$2C,$00,$28,$2F,$0C,$2F,$0A,$4E,$BA
-	dc.b $FA,$E8,$29,$40,$00,$20,$D1,$AC,$00,$2C,$20,$2C,$00,$2C,$B0,$AA
-	dc.b $00,$76,$4F,$EF,$00,$14,$64,$06,$20,$2A,$00,$76,$60,$04,$20,$2C
-	dc.b $00,$2C,$25,$40,$00,$76,$2F,$0B,$2F,$0C,$4E,$BA,$FD,$52,$50,$8F
-	dc.b $60,$12,$0C,$6C,$00,$04,$00,$1C,$66,$08,$35,$7C,$00,$04,$00,$40
-	dc.b $60,$02,$42,$42,$0C,$6A,$00,$04,$00,$40,$66,$46,$28,$6A,$00,$8C
-	dc.b $70,$08,$B0,$AA,$00,$76,$62,$24,$48,$78,$00,$04,$48,$78,$00,$04
-	dc.b $48,$6A,$00,$76,$2F,$0C,$2F,$0A,$4E,$BA,$F9,$4A,$72,$04,$B2,$80
-	dc.b $4F,$EF,$00,$14,$66,$06,$50,$AA,$00,$76,$60,$04,$42,$AA,$00,$76
-	dc.b $42,$6A,$00,$8A,$2F,$0B,$2F,$0C,$4E,$BA,$FC,$F4,$42,$6A,$00,$40
-	dc.b $50,$8F,$4A,$42,$66,$00,$FD,$A6,$08,$2B,$00,$05,$00,$1E,$67,$06
-	dc.b $02,$2B,$00,$FE,$00,$1E,$42,$2A,$00,$42,$4C,$DF,$1C,$04,$4E,$75
-	dc.b $2F,$0A,$22,$6F,$00,$08,$20,$6F,$00,$0C,$24,$51,$22,$12,$60,$10
-	dc.b $20,$2A,$00,$30,$B0,$A8,$00,$30,$6E,$04,$24,$41,$60,$EE,$72,$00
-	dc.b $4A,$81,$66,$EC,$2F,$2A,$00,$04,$2F,$08,$2F,$09,$4E,$B9
-	dc.l loc_8_00000064
-	dc.b $4F,$EF,$00,$0C,$24,$5F,$4E,$75
+loc_1_000005F0:
+	movem.l d2/a2,-(a7)
+	movea.l $000C(a7),a2
+	move.l $0010(a7),d2
+	btst.b #7,$001E(a2)
+	bne.b loc_1_0000060E
+	move.l a2,-(a7)
+	jsr loc_8_00000098.l
+	addq.l #4,a7
+loc_1_0000060E:
+	cmpa.l d2,a2
+	beq.b loc_1_00000618
+	andi.b #254,$001E(a2)
+loc_1_00000618:
+	move.l a2,-(a7)
+	jsr loc_1_000005B2(pc)
+	andi.b #223,$001E(a2)
+	addq.l #4,a7
+	movem.l (a7)+,d2/a2
+	rts
+loc_1_0000062C:
+	movea.l $0004(a7),a0
+	movea.l $008C(a0),a1
+	movea.l $007C(a0),a0
+	tst.l (a1)
+	beq.b loc_1_00000652
+	tst.l (a0)
+	beq.b loc_1_00000650
+	move.l $0030(a0),d0
+	cmp.l $0030(a1),d0
+	bge.b loc_1_0000064C
+	bra.b loc_1_00000652
+loc_1_0000064C:
+	clr.w d0
+loc_1_0000064E:
+	bra.b loc_1_00000654
+loc_1_00000650:
+	bra.b loc_1_0000064C
+loc_1_00000652:
+	moveq.l #1,d0
+loc_1_00000654:
+	ext.l d0
+	rts
+loc_1_00000658:
+	movea.l $0004(a7),a0
+	movea.l $0008(a7),a1
+	move.l $000C(a7),d0
+	move.l $0028(a1),$00B4(a0)
+	move.w $0010(a0),$00AE(a0)
+	move.l $0030(a1),$00B0(a0)
+	move.l d0,-(a7)
+	move.l a1,-(a7)
+	jsr loc_1_000005F0(pc)
+	addq.l #8,a7
+	rts
+loc_1_00000682:
+	movem.l d2/a2-a4,-(a7)
+	movea.l $0014(a7),a2
+	movea.l $0018(a7),a3
+	ori.b #32,$001E(a3)
+	tst.b $0042(a2)
+	beq.b loc_1_000006A6
+	andi.b #254,$001E(a3)
+	moveq.l #0,d0
+	bra.w loc_1_0000091C
+loc_1_000006A6:
+	move.b #$1,$0042(a2)
+	moveq.l #1,d2
+loc_1_000006AE:
+	tst.w $0040(a2)
+	bne.w loc_1_00000738
+	move.l a2,-(a7)
+	jsr loc_1_0000062C(pc)
+	move.w d0,d0
+	addq.l #4,a7
+	beq.b loc_1_000006DA
+	movea.l $007C(a2),a4
+	tst.l (a4)
+	beq.b loc_1_000006D8
+	move.l $0030(a4),$003C(a2)
+	move.w #$2,$0040(a2)
+loc_1_000006D6:
+	bra.b loc_1_00000738
+loc_1_000006D8:
+	bra.b loc_1_00000736
+loc_1_000006DA:
+	movea.l $008C(a2),a4
+	tst.l (a4)
+	beq.b loc_1_00000736
+	move.l $0030(a4),$003C(a2)
+	move.w $001C(a4),d0
+	move.w d0,$0040(a2)
+	cmpi.w #9,d0
+	bne.b loc_1_00000704
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	move.l a2,-(a7)
+	jsr loc_1_00000658(pc)
+	lea.l $000C(a7),a7
+loc_1_00000704:
+	tst.l $0044(a2)
+	beq.b loc_1_00000726
+	move.l $0044(a2),-(a7)
+	jsr loc_7_0000001C.l
+	clr.l $0044(a2)
+	pea.l $0048(a2)
+	jsr loc_7_00000084.l
+	addq.l #8,a7
+	bra.b loc_1_0000072E
+loc_1_00000726:
+	move.l a2,-(a7)
+	jsr loc_1_000001E2(pc)
+	addq.l #4,a7
+loc_1_0000072E:
+	move.w #$1,$007A(a2)
+	bra.b loc_1_00000738
+loc_1_00000736:
+	clr.w d2
+loc_1_00000738:
+	cmpi.w #9,$0040(a2)
+	bne.b loc_1_0000079C
+	move.l a2,-(a7)
+	jsr loc_1_0000062C(pc)
+	move.w d0,d0
+	addq.l #4,a7
+	beq.b loc_1_0000076E
+	movea.l $007C(a2),a4
+	tst.l (a4)
+	beq.b loc_1_0000076C
+	pea.l $009A(a2)
+	move.l $00B4(a2),-(a7)
+	jsr loc_8_0000012C.l
+	move.w #$3,$0040(a2)
+	addq.l #8,a7
+loc_1_0000076A:
+	bra.b loc_1_0000079C
+loc_1_0000076C:
+	bra.b loc_1_0000079A
+loc_1_0000076E:
+	movea.l $008C(a2),a4
+	tst.l (a4)
+	beq.b loc_1_0000079A
+	move.l $0030(a4),$003C(a2)
+	move.w $001C(a4),d0
+	move.w d0,$0040(a2)
+	cmpi.w #9,d0
+	bne.b loc_1_0000079C
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	move.l a2,-(a7)
+	jsr loc_1_00000658(pc)
+	lea.l $000C(a7),a7
+	bra.b loc_1_0000079C
+loc_1_0000079A:
+	clr.w d2
+loc_1_0000079C:
+	cmpi.w #2,$0040(a2)
+	bne.w loc_1_00000846
+	movea.l $007C(a2),a4
+	tst.l (a4)
+	beq.w loc_1_00000844
+	btst.b #4,$001E(a4)
+	beq.b loc_1_000007C2
+	addq.w #1,$008A(a2)
+	andi.b #239,$001E(a4)
+loc_1_000007C2:
+	move.l $0076(a2),d0
+	cmp.l $002C(a4),d0
+	bls.b loc_1_00000820
+	tst.l $0028(a4)
+	beq.b loc_1_000007F4
+	move.l $002C(a4),-(a7)
+	move.l $0024(a4),-(a7)
+	move.l $0028(a4),-(a7)
+	move.l a4,-(a7)
+	move.l a2,-(a7)
+	jsr loc_1_00000226(pc)
+	move.l d0,$0020(a4)
+	add.l d0,$002C(a4)
+	lea.l $0014(a7),a7
+	bra.b loc_1_0000082E
+loc_1_000007F4:
+	move.l $0024(a4),d0
+	add.l $002C(a4),d0
+	cmp.l $0076(a2),d0
+	bcc.b loc_1_0000080A
+	move.l $0024(a4),$0020(a4)
+	bra.b loc_1_00000816
+loc_1_0000080A:
+	move.l $0076(a2),d0
+	sub.l $002C(a4),d0
+	move.l d0,$0020(a4)
+loc_1_00000816:
+	move.l $0020(a4),d0
+	add.l d0,$002C(a4)
+	bra.b loc_1_0000082E
+loc_1_00000820:
+	clr.l $0020(a4)
+	moveq.l #-1,d0
+	move.l d0,$0030(a4)
+	subq.w #1,$008A(a2)
+loc_1_0000082E:
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	jsr loc_1_000005F0(pc)
+	tst.w $008A(a2)
+	addq.l #8,a7
+	bne.b loc_1_00000846
+	clr.w $0040(a2)
+	bra.b loc_1_00000846
+loc_1_00000844:
+	clr.w d2
+loc_1_00000846:
+	cmpi.w #3,$0040(a2)
+	bne.w loc_1_000008B6
+	movea.l $008C(a2),a4
+	tst.l (a4)
+	beq.b loc_1_000008B4
+	cmpi.w #3,$001C(a4)
+	bne.b loc_1_000008A4
+	move.l $002C(a4),-(a7)
+	move.l $0024(a4),-(a7)
+	move.l $0028(a4),-(a7)
+	move.l a4,-(a7)
+	move.l a2,-(a7)
+	jsr loc_1_0000035A(pc)
+	move.l d0,$0020(a4)
+	add.l d0,$002C(a4)
+	move.l $002C(a4),d0
+	cmp.l $0076(a2),d0
+	lea.l $0014(a7),a7
+	bcc.b loc_1_00000890
+	move.l $0076(a2),d0
+	bra.b loc_1_00000894
+loc_1_00000890:
+	move.l $002C(a4),d0
+loc_1_00000894:
+	move.l d0,$0076(a2)
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	jsr loc_1_000005F0(pc)
+	addq.l #8,a7
+	bra.b loc_1_000008B6
+loc_1_000008A4:
+	cmpi.w #4,$001C(a4)
+	bne.b loc_1_000008B4
+	move.w #$4,$0040(a2)
+	bra.b loc_1_000008B6
+loc_1_000008B4:
+	clr.w d2
+loc_1_000008B6:
+	cmpi.w #4,$0040(a2)
+	bne.b loc_1_00000904
+	movea.l $008C(a2),a4
+	moveq.l #8,d0
+	cmp.l $0076(a2),d0
+	bhi.b loc_1_000008EE
+	pea.l $0004.w
+	pea.l $0004.w
+	pea.l $0076(a2)
+	move.l a4,-(a7)
+	move.l a2,-(a7)
+	jsr loc_1_00000226(pc)
+	moveq.l #4,d1
+	cmp.l d0,d1
+	lea.l $0014(a7),a7
+	bne.b loc_1_000008EE
+	addq.l #8,$0076(a2)
+	bra.b loc_1_000008F2
+loc_1_000008EE:
+	clr.l $0076(a2)
+loc_1_000008F2:
+	clr.w $008A(a2)
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	jsr loc_1_000005F0(pc)
+	clr.w $0040(a2)
+	addq.l #8,a7
+loc_1_00000904:
+	tst.w d2
+	bne.w loc_1_000006AE
+	btst.b #5,$001E(a3)
+	beq.b loc_1_00000918
+	andi.b #254,$001E(a3)
+loc_1_00000918:
+	clr.b $0042(a2)
+loc_1_0000091C:
+	movem.l (a7)+,d2/a2-a4
+	rts
+loc_1_00000922:
+	move.l a2,-(a7)
+	movea.l $0008(a7),a1
+	movea.l $000C(a7),a0
+	movea.l (a1),a2
+loc_1_0000092E:
+	move.l (a2),d1
+	bra.b loc_1_00000942
+loc_1_00000932:
+	move.l $0030(a2),d0
+	cmp.l $0030(a0),d0
+	bgt.b loc_1_00000940
+	movea.l d1,a2
+	bra.b loc_1_0000092E
+loc_1_00000940:
+	moveq.l #0,d1
+loc_1_00000942:
+	tst.l d1
+	bne.b loc_1_00000932
+	move.l $0004(a2),-(a7)
+	move.l a0,-(a7)
+	move.l a1,-(a7)
+	jsr loc_8_00000064.l
+	lea.l $000C(a7),a7
+	movea.l (a7)+,a2
+	rts
 loc_1_0000095C:
 	movea.l $0004(a7),a0
 	move.b #$FD,$001F(a0)
@@ -382,36 +900,115 @@ loc_1_0000095C:
 	addq.l #4,a7
 	rts
 loc_1_00000970:
-	dc.b $20,$2F,$00,$04,$2F,$00,$4E,$BA,$FF,$E4,$58,$8F,$4E,$75
+	move.l $0004(a7),d0
+	move.l d0,-(a7)
+	jsr loc_1_0000095C(pc)
+	addq.l #4,a7
+	rts
 loc_1_0000097E:
-	dc.b $20,$2F,$00,$04,$2F,$00,$4E,$BA,$FF,$D6,$58,$8F,$4E,$75
+	move.l $0004(a7),d0
+	move.l d0,-(a7)
+	jsr loc_1_0000095C(pc)
+	addq.l #4,a7
+	rts
 loc_1_0000098C:
-	dc.b $20,$2F,$00,$04,$2F,$00,$4E,$BA,$FF,$C8,$58,$8F,$4E,$75
+	move.l $0004(a7),d0
+	move.l d0,-(a7)
+	jsr loc_1_0000095C(pc)
+	addq.l #4,a7
+	rts
 loc_1_0000099A:
-	dc.b $20,$2F,$00,$04,$2F,$00,$4E,$BA,$FF,$BA,$58,$8F,$4E,$75
+	move.l $0004(a7),d0
+	move.l d0,-(a7)
+	jsr loc_1_0000095C(pc)
+	addq.l #4,a7
+	rts
 loc_1_000009A8:
-	dc.b $2F,$02,$24,$2F,$00,$08,$2F,$02,$4E,$BA,$FF,$CC,$2F,$02,$4E,$BA
-	dc.b $FF,$E2,$2F,$02,$4E,$BA,$FF,$CE,$4F,$EF,$00,$0C,$24,$1F,$4E,$75
+	move.l d2,-(a7)
+	move.l $0008(a7),d2
+	move.l d2,-(a7)
+	jsr loc_1_0000097E(pc)
+	move.l d2,-(a7)
+	jsr loc_1_0000099A(pc)
+	move.l d2,-(a7)
+	jsr loc_1_0000098C(pc)
+	lea.l $000C(a7),a7
+	move.l (a7)+,d2
+	rts
 loc_1_000009C8:
-	dc.b $48,$E7,$00,$30,$24,$6F,$00,$0C,$26,$6A,$00,$18,$4A,$AA,$00,$30
-	dc.b $66,$0C,$25,$6B,$00,$38,$00,$30,$00,$2A,$00,$10,$00,$1E,$20,$2B
-	dc.b $00,$3C,$B0,$AA,$00,$30,$6F,$14,$42,$AA,$00,$20,$15,$7C,$00,$01
-	dc.b $00,$1F,$2F,$0A,$4E,$BA,$FB,$B4,$58,$8F,$60,$16,$2F,$0A,$48,$6B
-	dc.b $00,$7C,$4E,$BA,$FF,$16,$2F,$0A,$2F,$0B,$4E,$BA,$FC,$6E,$4F,$EF
-	dc.b $00,$10,$4C,$DF,$0C,$00,$4E,$75
+	movem.l a2-a3,-(a7)
+	movea.l $000C(a7),a2
+	movea.l $0018(a2),a3
+	tst.l $0030(a2)
+	bne.b loc_1_000009E6
+	move.l $0038(a3),$0030(a2)
+	ori.b #16,$001E(a2)
+loc_1_000009E6:
+	move.l $003C(a3),d0
+	cmp.l $0030(a2),d0
+	ble.b loc_1_00000A04
+	clr.l $0020(a2)
+	move.b #$1,$001F(a2)
+	move.l a2,-(a7)
+	jsr loc_1_000005B2(pc)
+	addq.l #4,a7
+	bra.b loc_1_00000A1A
+loc_1_00000A04:
+	move.l a2,-(a7)
+	pea.l $007C(a3)
+	jsr loc_1_00000922(pc)
+	move.l a2,-(a7)
+	move.l a3,-(a7)
+	jsr loc_1_00000682(pc)
+	lea.l $0010(a7),a7
+loc_1_00000A1A:
+	movem.l (a7)+,a2-a3
+	rts
 loc_1_00000A20:
-	dc.b $48,$E7,$00,$30,$24,$6F,$00,$0C,$26,$6A,$00,$18,$4A,$AA,$00,$30
-	dc.b $66,$0A,$52,$AB,$00,$38,$25,$6B,$00,$38,$00,$30,$20,$2B,$00,$3C
-	dc.b $B0,$AA,$00,$30,$6F,$14,$42,$AA,$00,$20,$15,$7C,$00,$01,$00,$1F
-	dc.b $2F,$0A,$4E,$BA,$FB,$5E,$58,$8F,$60,$16,$2F,$0A,$48,$6B,$00,$8C
-	dc.b $4E,$BA,$FE,$C0,$2F,$0A,$2F,$0B,$4E,$BA,$FC,$18,$4F,$EF,$00,$10
-	dc.b $4C,$DF,$0C,$00,$4E,$75
+	movem.l a2-a3,-(a7)
+	movea.l $000C(a7),a2
+	movea.l $0018(a2),a3
+	tst.l $0030(a2)
+	bne.b loc_1_00000A3C
+	addq.l #1,$0038(a3)
+	move.l $0038(a3),$0030(a2)
+loc_1_00000A3C:
+	move.l $003C(a3),d0
+	cmp.l $0030(a2),d0
+	ble.b loc_1_00000A5A
+	clr.l $0020(a2)
+	move.b #$1,$001F(a2)
+	move.l a2,-(a7)
+	jsr loc_1_000005B2(pc)
+	addq.l #4,a7
+	bra.b loc_1_00000A70
+loc_1_00000A5A:
+	move.l a2,-(a7)
+	pea.l $008C(a3)
+	jsr loc_1_00000922(pc)
+	move.l a2,-(a7)
+	move.l a3,-(a7)
+	jsr loc_1_00000682(pc)
+	lea.l $0010(a7),a7
+loc_1_00000A70:
+	movem.l (a7)+,a2-a3
+	rts
 loc_1_00000A76:
-	dc.b $20,$6F,$00,$04,$22,$68,$00,$18,$21,$69,$00,$38,$00,$30,$2F,$08
-	dc.b $4E,$BA,$FB,$2A,$58,$8F,$4E,$75
+	movea.l $0004(a7),a0
+	movea.l $0018(a0),a1
+	move.l $0038(a1),$0030(a0)
+	move.l a0,-(a7)
+	jsr loc_1_000005B2(pc)
+	addq.l #4,a7
+	rts
 loc_1_00000A8E:
-	dc.b $20,$6F,$00,$04,$22,$68,$00,$18,$21,$69,$00,$3C,$00,$30,$2F,$08
-	dc.b $4E,$BA,$FB,$12,$58,$8F,$4E,$75
+	movea.l $0004(a7),a0
+	movea.l $0018(a0),a1
+	move.l $003C(a1),$0030(a0)
+	move.l a0,-(a7)
+	jsr loc_1_000005B2(pc)
+	addq.l #4,a7
+	rts
 loc_1_00000AA6:
 	link a6,#-24
 	movem.l d2-d5/a2-a5,-(a7)
@@ -813,7 +1410,7 @@ loc_1_00000F6E:
 	rts
     SECTION section_2,data
 loc_2_00000000:
-	dc.b $64,$6F,$73,$2E,$6C,$69,$62,$72,$61,$72,$79,$00
+	dc.b "dos.library",$00	; string
 loc_2_0000000C:
 	dc.b $43,$4C,$49,$50,$53,$3A,$00,$00
 loc_2_00000014:
@@ -853,11 +1450,11 @@ loc_2_0000009A:
 loc_2_000000AC:
 	dc.b $00,$00
 loc_2_000000AE:
-	dc.b $63,$6C,$69,$70,$62,$6F,$61,$72,$64,$2E,$64,$65,$76,$69,$63,$65
-	dc.b $00,$00
+	dc.b "clipboard.device",$00	; string
+	dc.b $00
 loc_2_000000C0:
-	dc.b $63,$6C,$69,$70,$62,$6F,$61,$72,$64,$20,$33,$35,$2E,$32,$20,$28
-	dc.b $39,$20,$4D,$61,$79,$20,$31,$39,$38,$38,$29,$0A,$0D,$00
+	dc.b "clipboard 35.2 (9 May 1988)"	; string
+	dc.b $0A,$0D,$00
 loc_2_000000DE:
 	dc.l loc_1_0000095C	; pointer_table
 	dc.l loc_1_000009A8
@@ -1009,9 +1606,12 @@ loc_8_00000038:
 	movea.l (a7)+,a6
 	rts
 loc_8_00000050:
-	dc.b $2F,$0E,$2C,$79
-	dc.l loc_2_0000010E
-	dc.b $22,$2F,$00,$08,$4E,$AE,$FF,$28,$2C,$5F,$4E,$75
+	move.l a6,-(a7)
+	movea.l loc_2_0000010E.l,a6
+	move.l $0008(a7),d1
+	jsr -$00D8(a6)
+	movea.l (a7)+,a6
+	rts
 loc_8_00000064:
 	movem.l a2/a6,-(a7)
 	movea.l loc_2_0000010E.l,a6

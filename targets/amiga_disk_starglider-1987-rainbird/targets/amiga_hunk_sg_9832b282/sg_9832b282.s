@@ -1,3 +1,6 @@
+; Memory map
+;   section[$00005B04-$00005B24] -> runtime[$00DFF180-$00DFF1A0] discovered_copy suppressed
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/blit.i"
@@ -3207,6 +3210,7 @@ loc_0_00003294:
 	dc.b $00,$00,$D0,$C5,$E5,$4D,$D0,$C5,$30,$04,$E6,$48,$02,$40,$00,$FE
 	dc.b $D0,$C0,$70,$00,$46,$04,$02,$04,$00,$0F,$09,$C0,$38,$2E,$02,$3A
 	dc.b $E5,$44,$B4,$43,$62,$46,$22,$7B,$40,$04,$4E,$D1
+loc_0_00003322:
 	dc.l loc_0_000033B8	; pointer_table
 	dc.l loc_0_000033A8
 	dc.l loc_0_000033F0
@@ -3224,6 +3228,7 @@ loc_0_00003294:
 	dc.l loc_0_000037E0
 	dc.l loc_0_00003840
 	dc.b $22,$7B,$40,$04,$4E,$D1
+loc_0_00003368:
 	dc.l loc_0_000033B8	; pointer_table
 	dc.l loc_0_000033CA
 	dc.l loc_0_00003416
@@ -8063,10 +8068,13 @@ loc_0_000076AE:
 	dc.b $61,$00,$17,$26,$61,$00,$15,$F8,$4C,$DF,$7F,$FF
 	dc.b "NuD0        00000000",$00	; string
 	dc.b $00,$00,$00,$00,$00
+loc_0_000077D2:
 	dc.b "D1        00000000",$00	; string
 	dc.b $00,$00,$00,$00,$00
+loc_0_000077EA:
 	dc.b "DIV       00000000",$00	; string
 	dc.b $00,$00,$00,$00,$00
+loc_0_00007802:
 	dc.b "ATN       00000000",$00	; string
 	dc.b $00,$00,$00,$00,$00
 loc_0_0000781A:

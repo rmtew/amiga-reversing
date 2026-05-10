@@ -398,6 +398,12 @@ typedef struct M68kRenderTraceRegName {
   char name[64];
 } M68kRenderTraceRegName;
 
+typedef struct M68kRenderTraceTarget {
+  uint8_t known;
+  size_t section_index;
+  uint32_t offset;
+} M68kRenderTraceTarget;
+
 typedef struct M68kRenderTraceLocalSlot {
   uint8_t valid;
   uint8_t base_reg;
@@ -411,11 +417,19 @@ typedef struct M68kRenderTraceAppAddress {
   int16_t displacement;
 } M68kRenderTraceAppAddress;
 
+typedef struct M68kRenderTraceStackValue {
+  uint8_t has_library_name;
+  char library_name[64];
+} M68kRenderTraceStackValue;
+
 typedef struct M68kRenderBaseTraceState {
   M68kRenderTraceRegName data_regs[8];
   M68kRenderTraceRegName addr_regs[8];
+  M68kRenderTraceTarget addr_targets[8];
   M68kRenderTraceAppAddress app_addresses[8];
   M68kRenderTraceLocalSlot local_slots[32];
+  M68kRenderTraceStackValue stack_values[16];
+  size_t stack_value_count;
 } M68kRenderBaseTraceState;
 
 struct M68kRenderLookup {

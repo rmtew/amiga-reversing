@@ -1,3 +1,7 @@
+; Memory map
+;   section_6[$00000128-$0000016A] -> runtime[$00000400-$00000442] discovered_copy suppressed
+;   section_6[$0000016A-$000015B5] -> runtime[$00078000-$0007944B] discovered_copy materialized
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"

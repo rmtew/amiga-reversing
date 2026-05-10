@@ -1,3 +1,11 @@
+; Memory map
+;   code[$00000000-$00000400] -> runtime[$00070000-$00070400] policy materialized
+;   code[$000001A6-$0000020E] -> runtime[$00077A6A-$00077AD2] discovered_copy suppressed
+;   code[$0000008C-$00000400] -> runtime[$00000400-$00000774] discovered_copy suppressed
+;   code[$00000090-$00000400] -> runtime[$00000404-$00000774] discovered_copy suppressed
+;   code[$00000172-$000001A6] -> runtime[$00078C00-$00078C34] discovered_copy suppressed
+;   code[$00000174-$000001A8] -> runtime[$00078C02-$00078C36] discovered_copy suppressed
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/custom.i"
 
@@ -6,6 +14,8 @@ stack_top_0007FDF0	EQU	$7FDF0
 stack_top_0007FFF0	EQU	$7FFF0
 runtime_code_00000400	EQU	$400
 m68k_vector_trap_0_instruction_vector	EQU	$80
+runtime_code_00077A6A	EQU	$77A6A
+runtime_code_00078C00	EQU	$78C00
 _custom	EQU	$DFF000
 
     SECTION code,code
@@ -89,14 +99,14 @@ abs_0_0007011A:
 	dbf.w d0,abs_0_0007011A
 	bsr.b abs_0_00070164
 	lea.l abs_0_000701A6(pc),a0
-	lea.l $00077A6A.l,a1
+	lea.l runtime_code_00077A6A.l,a1
 	move.w #$19,d0
 abs_0_00070130:
 	move.l (a0)+,(a1)+
 	lea.l $0024(a1),a1
 	dbf.w d0,abs_0_00070130
 	lea.l abs_0_00070172(pc),a0
-	movea.l #$78C00,a1
+	movea.l #runtime_code_00078C00,a1
 	move.l a1,-(a7)
 	move.w #$19,d0
 abs_0_0007014A:

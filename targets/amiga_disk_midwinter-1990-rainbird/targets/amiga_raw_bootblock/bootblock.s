@@ -1,21 +1,10 @@
+; Memory map
+;   code[$00000000-$00000400] -> runtime[$00070000-$00070400] policy materialized
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/dmabits.i"
-
-    RSSET 0
-    RS.B 30
-app_001E RS.W 1
-app_0020 RS.L 1
-app_0024 RS.W 1
-    RS.B 88
-app_007E RS.W 1
-    RS.B 22
-app_0096 RS.W 1
-    RS.B 4
-app_009C RS.W 1
-app_009E RS.W 1
-app_SIZEOF EQU __RS
 
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
@@ -183,17 +172,17 @@ abs_0_000701F2:
 abs_0_000701F6:
 	moveq.l #10,d6
 	lea.l abs_0_00070000.l,a2
-	move.l a2,app_0020(a6)
-	move.w #$2,app_009C(a6)
-	move.w #$8210,app_0096(a6)
+	move.l a2,$0020(a6)
+	move.w #$2,$009C(a6)
+	move.w #$8210,$0096(a6)
 	move.w #$4489,d4
-	move.w d4,app_007E(a6)
-	move.w #$8500,app_009E(a6)
-	move.w #$4000,app_0024(a6)
-	move.w #$9996,app_0024(a6)
-	move.w #$9996,app_0024(a6)
+	move.w d4,$007E(a6)
+	move.w #$8500,$009E(a6)
+	move.w #$4000,$0024(a6)
+	move.w #$9996,$0024(a6)
+	move.w #$9996,$0024(a6)
 abs_0_0007022E:
-	move.w app_001E(a6),d0
+	move.w $001E(a6),d0
 	btst #1,d0
 	beq.b abs_0_0007022E
 abs_0_00070238:

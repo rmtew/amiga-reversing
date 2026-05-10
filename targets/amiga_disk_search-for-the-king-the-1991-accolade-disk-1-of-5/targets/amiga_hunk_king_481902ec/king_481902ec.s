@@ -8114,10 +8114,15 @@ loc_5_00000000:
 	dc.b "pNuThere's no mailbox here.",$00	; string
 	dc.b $00,$28,$54,$72,$79,$20,$43,$74,$72,$6C,$2D,$41,$6D,$69,$67,$61
 	dc.b $2D,$41,$6D,$69,$67,$61,$2E,$29,$00
+loc_5_00000038:
 	dc.b "Rrriing",$00	; string
+loc_5_00000040:
 	dc.b "OK, you've won.",$00	; string
+loc_5_00000050:
 	dc.b "Hey, no fair!",$00	; string
+loc_5_0000005E:
 	dc.b "This isn't the thing that needs to be pulled.",$00	; string
+loc_5_0000008C:
 	dc.b "You can't page ",$00	; string
 	dc.b $2E,$00,$25,$72,$20,$70,$72,$6F,$62,$61,$62,$6C,$79,$20,$64,$6F
 	dc.b $65,$73,$6E,$27,$74,$20,$77,$61,$6E,$74,$20,$74,$6F,$20,$62,$65
@@ -8126,27 +8131,36 @@ loc_5_00000000:
 	dc.b $00
 loc_5_000000F0:
 	dc.b "You don't have %r with you.",$00	; string
+loc_5_0000010C:
 	dc.b "Oh...one of THOSE, huh?",$00	; string
+loc_5_00000124:
 	dc.b "You blow on ",$00	; string
 	dc.b $00,$2E,$20,$00,$00
+loc_5_00000136:
 	dc.b "What do you think you're doing, running for office?",$00	; string
+loc_5_0000016A:
 	dc.b "Doesn't seem to do much good.",$00	; string
 	dc.b "You can't make that.",$00	; string
 	dc.b $00
+loc_5_0000019E:
 	dc.b "You can't make anything for ",$00	; string
 	dc.b $00,$59,$6F,$75,$00,$20,$63,$61,$6E,$27,$74,$20,$6D,$61,$6B,$65
 	dc.b $20,$74,$68,$61,$74,$2E,$00
 	dc.b "You really don't need to buy anything here.",$00	; string
+loc_5_000001FE:
 	dc.b "This isn't the right time or place.",$00	; string
 	dc.b $4F,$68,$20,$79,$65,$61,$68,$2E,$2E,$2E,$77,$65,$6C,$6C,$20,$22
 	dc.b $61,$6E,$73,$77,$65,$72,$22,$20,$54,$48,$49,$53,$21,$00
+loc_5_00000240:
 	dc.b "Use? USE???",$00	; string
 	dc.b $48,$65,$79,$2E,$2E,$2E,$74,$68,$69,$73,$20,$61,$69,$6E,$27,$74
 	dc.b $20,$6A,$75,$73,$74,$20,$61,$6E,$6F,$74,$68,$65,$72,$0A
 	dc.b "Half Dome game!",$00	; string
+loc_5_0000027A:
 	dc.b "Stay within the law.",$00	; string
 	dc.b $00
 	dc.b "You'll have to say what to turn over.",$00	; string
+loc_5_000002B6:
 	dc.b "It's not a container.",$00	; string
 	dc.b "Open it first.",$00	; string
 	dc.b $00
@@ -8156,29 +8170,38 @@ loc_5_000000F0:
 	dc.b "Its molecular state must be liquid.",$00	; string
 	dc.b "Filled.",$00	; string
 	dc.b "feels",$00	; string
+loc_5_0000033C:
 	dc.b "Careful...it's slippery when wet.",$00	; string
 	dc.b $53,$65,$61,$72,$63,$68,$69,$6E,$67,$20,$66,$6F,$72,$20,$22,$54
 	dc.b $68,$65,$20,$4B,$69,$6E,$67,$22,$20,$69,$73,$20,$74,$68,$65,$20
 	dc.b $67,$65,$6E,$65,$72,$61,$6C,$20,$69,$64,$65,$61,$2E,$00
 	dc.b "I know where it is. You search.",$00	; string
+loc_5_000003AC:
 	dc.b "Try FEED _____ TO _____.",$00	; string
 	dc.b $00
+loc_5_000003C6:
 	dc.b "You're excused.",$00	; string
 loc_5_000003D6:
 	dc.b "In the immortal words of your mother..."	; string
 	dc.b $0A
 	dc.b "you might poke someone's eye out.",$00	; string
+loc_5_00000420:
 	dc.b "Try TALK TO _____.",$00	; string
 	dc.b $00
+loc_5_00000434:
 	dc.b "OK. Consider it peeled.",$00	; string
+loc_5_0000044C:
 	dc.b "You might never get back out.",$00	; string
 	dc.b "Because I said so.",$00	; string
 	dc.b $00,$4E,$6F,$77,$2E,$00,$00,$22,$59,$6F,$75,$27,$72,$65,$20,$77
 	dc.b $65,$6C,$63,$6F,$6D,$65,$2E,$22,$00
+loc_5_00000496:
 	dc.b "Who do you think?",$00	; string
+loc_5_000004A8:
 	dc.b "Hey! What are you trying to do...Teleport!?",$00	; string
 	dc.b $59,$65,$61,$68,$3F,$20,$57,$65,$6C,$6C,$20,$22,$66,$69,$78,$22
 	dc.b $20,$54,$48,$49,$53,$21,$00,$00
+loc_5_000004EC:
 	dc.b "Try using the SPACEBAR.",$00	; string
 	dc.b "Try ASK ___ ABOUT ___.",$00	; string
 	dc.b $00
@@ -8411,7 +8434,9 @@ loc_6_00000056:
 	dc.b $48,$45,$4C,$50,$20,$53,$43,$52,$45,$45,$4E,$20,$32
 	dcb.b $F,$20
 	dc.b $00
+loc_6_0000022A:
 	dc.b "I can't. I don't remember what I was doing.",$00	; string
+loc_6_00000256:
 	dc.b "What do you think this is...a text adventure?",$00	; string
 loc_6_00000284:
 	dc.b "Restart",$00	; string
@@ -8429,10 +8454,12 @@ loc_6_00000312:
 	dc.b "Do you really want to quit playing?",$00	; string
 loc_6_00000336:
 	dc.b "I Give Up",$00	; string
+loc_6_00000340:
 	dc.b "You have stumbled through %n move",$00	; string
 	dc.b $73,$00
 loc_6_00000364:
 	dc.b $2E,$00
+loc_6_00000366:
 	dc.b "Verb VB_ERROR.",$00	; string
 	dc.b $00,$49,$4E,$56,$45,$4E,$54,$4F,$52,$59,$2E,$00,$00,$4C,$4F,$4F
 	dc.b $4B,$00,$00
@@ -8441,6 +8468,7 @@ loc_6_00000388:
 	dc.b $0A
 	dc.b "v_look",$00	; string
 	dc.b "It's too dark to see!",$00	; string
+loc_6_000003B8:
 	dc.b "read that.",$00	; string
 	dc.b $00
 	dc.b "read any ",$00	; string
@@ -8452,6 +8480,7 @@ loc_6_000003CE:
 	dc.b "There's nothing special about %r.",$00	; string
 	dc.b "File access error",$00	; string
 	dc.b "File position error",$00	; string
+loc_6_00000446:
 	dc.b "You have ",$00	; string
 loc_6_00000450:
 	dc.b "nothing.",$00	; string
@@ -8490,10 +8519,13 @@ loc_6_000004AC:
 loc_6_000004BA:
 	dc.b "I don't know how to do that to %r.",$00	; string
 	dc.b $00
+loc_6_000004DE:
 	dc.b "Just a little dirt.",$00	; string
 	dc.b "You can't see much of anything under there.",$00	; string
+loc_6_0000051E:
 	dc.b "There's nothing unusual there.",$00	; string
 	dc.b $00
+loc_6_0000053E:
 	dc.b "Try using the arrow keys.",$00	; string
 	dc.b "You got me. Try something else.",$00	; string
 loc_6_00000578:
@@ -8503,10 +8535,12 @@ loc_6_00000584:
 	dc.b "You can't go in that direction.",$00	; string
 loc_6_000005A4:
 	dc.b "Better open the %s first.",$00	; string
+loc_6_000005BE:
 	dc.b "Use the arrow keys to move Les on the screen.",$00	; string
 	dc.b "You can't get ",$00	; string
 	dc.b $00,$6F,$6E,$00,$00,$69,$6E,$00,$00,$20,$25,$72,$2E,$00,$00
 	dc.b "Try moving yourself there with the arrow keys or the mouse.",$00	; string
+loc_6_00000646:
 	dc.b "You can't do that to a direction.",$00	; string
 	dc.b "Les is already on his feet.",$00	; string
 	dc.b $28,$54,$72,$79,$20,$74,$65,$6C,$6C,$69,$6E,$67,$20,$68,$69,$6D
@@ -8517,8 +8551,10 @@ loc_6_000005A4:
 	dc.b $20,$6F,$6E,$20,$74,$68,$65,$20,$67,$72,$6F,$75,$6E,$64,$20,$66
 	dc.b $69,$72,$73,$74,$2E,$00
 	dc.b "This is no time to sit down on the job!",$00	; string
+loc_6_000006FC:
 	dc.b "Your weak arches and flat feet couldn't handle it.",$00	; string
 	dc.b $00
+loc_6_00000730:
 	dc.b "There's nowhere to climb from here.",$00	; string
 	dc.b "Les doesn't have %r.",$00	; string
 	dc.b $00
@@ -8538,32 +8574,41 @@ loc_6_000005A4:
 	dc.b "He can't ask %r for anything.",$00	; string
 	dc.b $54,$72,$79,$20,$22,$47,$69,$76,$65,$20,$5F,$5F,$5F,$20,$74,$6F
 	dc.b $20,$5F,$5F,$5F,$22,$2E,$00,$00
+loc_6_0000087C:
 	dc.b "give ",$00	; string
+loc_6_00000882:
 	dc.b "sell ",$00	; string
+loc_6_00000888:
 	dc.b "He can't pour %r on that.",$00	; string
 	dc.b "Better pick it up first.",$00	; string
 	dc.b $00,$25,$72,$20,$69,$73,$6E,$27,$74,$20,$76,$65,$72,$79,$20,$68
 	dc.b $61,$6E,$64,$79,$2E,$00,$00
+loc_6_000008D2:
 	dc.b "Eat %r? Les doesn't like to eat things of that color or texture.",$00	; string
 	dc.b $00
 	dc.b "You're not holding %r.",$00	; string
 	dc.b $00,$28,$47,$75,$6C,$70,$29,$00,$00
+loc_6_00000934:
 	dc.b "That would be a little tough for him to drink.",$00	; string
 	dc.b $00
 	dc.b "He tastes %r but think better of it.",$00	; string
 	dc.b $00
 	dc.b "Ok. Sip. Slurp. Dribble. Burp.",$00	; string
 	dc.b $00
+loc_6_000009AA:
 	dc.b "I don't think %r would enjoy %r.",$00	; string
 	dc.b $00,$46,$65,$64,$2E,$00,$00
+loc_6_000009D2:
 	dc.b "Les can't wear it if he's not holding it.",$00	; string
 	dc.b "He can't wear %r.",$00	; string
 	dc.b "Les is now wearing %r.",$00	; string
 	dc.b $00
+loc_6_00000A26:
 	dc.b "I think you've got Les confused with that other guy.",$00	; string
 	dc.b $00
 	dc.b "Naw...leave it on.",$00	; string
 	dc.b $00
+loc_6_00000A70:
 	dc.b "You can't shake it if you can't take it.",$00	; string
 	dc.b $00
 	dc.b "He shakes %r for all he's worth.",$00	; string
@@ -8579,9 +8624,11 @@ loc_6_000005A4:
 	dc.b $28,$75,$73,$69,$6E,$67,$20,$6F,$6E,$6C,$79,$20,$68,$69,$73,$20
 	dc.b $68,$61,$6E,$64,$73,$29,$0A,$00,$25,$72,$20,$69,$73,$6E,$27,$74
 	dc.b $20,$6C,$6F,$63,$6B,$65,$64,$21,$00,$00
+loc_6_00000BAC:
 	dc.b "close that.",$00	; string
 	dc.b "close a ",$00	; string
 	dc.b $00,$43,$6C,$6F,$73,$65,$64,$2E,$00
+loc_6_00000BCA:
 	dc.b "open that.",$00	; string
 	dc.b $00,$6F,$70,$65,$6E,$20,$00
 	dc.b "It's locked.",$00	; string
@@ -8589,13 +8636,18 @@ loc_6_000005A4:
 	dc.b "turn that.",$00	; string
 	dc.b $00
 	dc.b "turn a ",$00	; string
+loc_6_00000C06:
 	dc.b "You can't set %r.",$00	; string
+loc_6_00000C18:
 	dc.b "It's fine the way it is.",$00	; string
 	dc.b $00,$73,$77,$69,$6D,$00,$00,$73,$6B,$69,$00,$66,$6C,$79,$00
 	dc.b "It's not really necessary.",$00	; string
 	dc.b $00,$42,$65,$63,$61,$75,$73,$65,$2E,$00,$00
+loc_6_00000C66:
 	dc.b "Les only sleeps in his own bed.",$00	; string
+loc_6_00000C86:
 	dc.b "Hi. Nice weather we've been having.",$00	; string
+loc_6_00000CAA:
 	dc.b "Going somewhere?",$00	; string
 	dc.b $00,$45,$65,$65,$70,$21,$00,$22,$59,$6F,$75,$20,$61,$69,$6E,$27
 	dc.b $74,$20,$6E,$6F,$74,$68,$69,$6E,$27,$20,$62,$75,$74,$20,$61,$20
@@ -8607,15 +8659,18 @@ loc_6_000005A4:
 	dc.b $6E,$6F,$20,$6E,$6F,$69,$73,$65,$2E,$00,$00
 	dc.b "YOU hear what LES hears.",$00	; string
 	dc.b $00
+loc_6_00000D50:
 	dc.b "#$%&@ you, too.",$00	; string
 	dc.b $6E,$6F,$74,$2E,$00,$00
 	dc.b "OK. Put your lips up to the screen.",$00	; string
+loc_6_00000D8A:
 	dc.b "You're busy playing this game.",$00	; string
 	dc.b $00
 	dc.b "Moving %r reveals nothing.",$00	; string
 	dc.b $00,$20,$64,$6F,$65,$73,$6E,$27,$74,$20,$61,$70,$70,$65,$61,$72
 	dc.b $20,$74,$6F,$20,$77,$61,$6E,$74,$20,$74,$6F,$20,$74,$61,$6C,$6B
 	dc.b $20,$72,$69,$67,$68,$74,$20,$6E,$6F,$77,$2E,$00,$00
+loc_6_00000DF2:
 	dc.b "Ask about it yourself.",$00	; string
 	dc.b $00,$25,$72,$20,$63,$61,$6E,$27,$74,$20,$74,$61,$6C,$6B,$21,$00
 	dc.b $00
@@ -8630,8 +8685,10 @@ loc_6_000005A4:
 	dc.b $00
 	dc.b "What makes you think that ",$00	; string
 	dc.b $00,$20,$69,$73,$20,$61,$73,$6C,$65,$65,$70,$3F,$00
+loc_6_00000EC4:
 	dc.b "What are you after...Hit Points?",$00	; string
 	dc.b $00,$4B,$69,$63,$6B,$69,$6E,$67,$00
+loc_6_00000EEE:
 	dc.b "You like to go your own way, Les.",$00	; string
 	dc.b $20,$66,$6C,$61,$67,$20,$69,$73,$20,$73,$65,$74,$2E,$00,$20,$66
 	dc.b $6C,$61,$67,$20,$69,$73,$20,$63,$6C,$65,$61,$72,$2E,$00,$20,$66
@@ -13020,16 +13077,22 @@ loc_8_00000140:
 loc_8_00000142:
 	dc.b "nothing.",$00	; string
 	dc.b $00
+loc_8_0000014C:
 	dc.b "Verb V_STR1.",$00	; string
 	dc.b $00
+loc_8_0000015A:
 	dc.b "Verb V_STR2.",$00	; string
 	dc.b $00
+loc_8_00000168:
 	dc.b "Verb V_STR3.",$00	; string
 	dc.b $00
+loc_8_00000176:
 	dc.b "Verb V_STR4.",$00	; string
 	dc.b $00
+loc_8_00000184:
 	dc.b "Verb V_STR5.",$00	; string
 	dc.b $00
+loc_8_00000192:
 	dc.b "Verb V_STR6.",$00	; string
 	dc.b $00
 loc_8_000001A0:

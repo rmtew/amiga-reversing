@@ -1,3 +1,6 @@
+; Memory map
+;   code[$00000000-$00000400] -> runtime[$00070000-$00070400] policy materialized
+
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/resident.i"
 

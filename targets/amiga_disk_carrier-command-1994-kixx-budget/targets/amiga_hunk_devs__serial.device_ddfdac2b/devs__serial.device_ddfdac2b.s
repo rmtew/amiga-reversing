@@ -6,95 +6,22 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET LIB_SIZE
-app_0022 RS.L 1
-app_0026 RS.L 1
-app_002A RS.L 1
-app_002E RS.L 1
-app_0032 RS.L 1
-app_0036 RS.L 1
-app_003A RS.L 1
-app_003E RS.L 1
-app_0042 RS.L 1
-app_0046 RS.L 1
-app_004A RS.L 1
-app_004E RS.L 1
-    RS.B 4
-app_0056 RS.L 1
-    RS.B 4
-app_005E RS.L 1
-app_0062 RS.L 1
-app_0066 RS.L 1
+    RS.B 33
+app_0043 RS.B 1
+    RS.B 1
+app_0045 RS.B 1
+    RS.B 36
 app_006A RS.L 1
 app_006E RS.L 1
-app_0072 RS.L 1
-app_0076 RS.L 1
-    RS.B 18
-app_008C RS.L 1
-    RS.B 18
-app_00A2 RS.L 1
-    RS.B 10
-app_00B0 RS.L 1
-    RS.B 10
-app_00BE RS.L 1
-    RS.B 18
-app_00D4 RS.L 1
-    RS.B 18
-app_00EA RS.L 1
-    RS.B 30
-app_010C RS.L 1
-    RS.B 18
-app_0122 RS.L 1
-app_0126 RS.B 1
-    RS.B 15
-app_0136 RS.L 1
-app_013A RS.L 1
-    RS.B 12
-app_014A RS.L 1
-    RS.B 30
-app_016C RS.L 1
-    RS.B 18
-app_0182 RS.L 1
-    RS.B 16
-app_0196 RS.L 1
-app_019A RS.L 1
-    RS.B 12
-app_01AA RS.L 1
-app_01AE RS.L 1
-app_01B2 RS.L 1
-app_01B6 RS.L 1
-app_01BA RS.L 1
     RS.B 4
-app_01C2 RS.L 1
-app_01C6 RS.L 1
-app_01CA RS.L 1
-app_01CE RS.W 1
-app_01D0 RS.W 1
-app_01D2 RS.W 1
-app_01D4 RS.W 1
-app_01D6 RS.B 1
-    RS.B 1
-app_01D8 RS.B 1
+app_0076 RS.L 1
+    RS.B 68
+app_00BE RS.L 1
+    RS.B 279
 app_01D9 RS.B 1
-app_01DA RS.B 1
+    RS.B 1
 app_01DB RS.B 1
-app_01DC RS.W 1
 app_SIZEOF EQU __RS
-    RSSET $0023
-app_0023 RS.B 1
-    RSSET $0038
-app_0038 RS.W 1
-    RSSET $0043
-app_0043 RS.B 1
-    RSSET $0044
-app_0044 RS.B 1
-    RSSET $0045
-app_0045 RS.B 1
-    RSSET $0048
-app_0048 RS.W 1
-    RSSET $01BD
-app_01BD RS.B 1
-    RSSET $01C4
-app_01C4 RS.W 1
 
 _custom	EQU	$DFF000
 _ciab	EQU	$BFD000
@@ -102,9 +29,10 @@ _ciab	EQU	$BFD000
     SECTION section_0,code
 	dc.b $20,$3C,$FF,$FF,$FF,$FF,$4E,$75
 resident_idstring:
-	dc.b "serial 34.10 (27 May 1988)",$0D,$0A,$00
+	dc.b "serial 34.10 (27 May 1988)",$0D,$0A,$00	; string
 	dc.b $00
 resident:	; STRUCT RT
+    ; invalid overlap: decoded code at $0026 starts at structured data; emitted as data
 	dc.w RTC_MATCHWORD	; UWORD RT_MATCHWORD = RTC_MATCHWORD
 	dc.l resident	; APTR RT_MATCHTAG
 	dc.l loc_0_00000FE4	; APTR RT_ENDSKIP
@@ -116,14 +44,14 @@ resident:	; STRUCT RT
 	dc.l resident_idstring	; APTR RT_IDSTRING
 	dc.l resident_init	; APTR RT_INIT
 resident_name:
-	dc.b "serial.device",$00
+	dc.b "serial.device",$00	; string
 loc_0_0000004E:
-	dc.b $74,$69,$6D,$65,$72,$2E,$64,$65,$76,$69,$63,$65,$00,$00
+	dc.b "timer.device",$00	; string
+	dc.b $00
 loc_0_0000005C:
-	dc.b $69,$6E,$74,$75,$69,$74,$69,$6F,$6E,$2E,$6C,$69,$62,$72,$61,$72
-	dc.b $79,$00
+	dc.b "intuition.library",$00	; string
 loc_0_0000006E:
-	dc.b $6D,$69,$73,$63,$2E,$72,$65,$73,$6F,$75,$72,$63,$65,$00
+	dc.b "misc.resource",$00	; string
 resident_vectors:
 	dc.b $FF,$FF
 	dc.w $0012
@@ -149,15 +77,15 @@ loc_0_000000AA:
 	move.b #$1,$001F(a1)
 	bra.w loc_0_000004A4
 loc_0_000000B4:
-	clr.b app_01D8(a6)
-	clr.b app_01D6(a6)
-	move.w #$5DC,app_01DC(a6)
-	lea.l app_00A2(a6),a0
+	clr.b $01D8(a6)
+	clr.b $01D6(a6)
+	move.w #$5DC,$01DC(a6)
+	lea.l $00A2(a6),a0
 	move.l a0,(a0)
 	addq.l #4,(a0)
 	clr.l $0004(a0)
 	move.l a0,$0008(a0)
-	lea.l app_00B0(a6),a0
+	lea.l $00B0(a6),a0
 	move.l a0,(a0)
 	addq.l #4,(a0)
 	clr.l $0004(a0)
@@ -167,14 +95,14 @@ loc_0_000000B4:
 	lea.l loc_0_0000005C(pc),a1
 	moveq.l #0,d0
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$0228(a6)
 	movea.l (a7)+,a6
 	movea.l d0,a3
 	move.l #$100,d0
 	moveq.l #1,d1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00C6(a6)
 	movea.l (a7)+,a6
 	movea.l d0,a0
@@ -187,7 +115,7 @@ loc_0_000000B4:
 	movea.l (a7)+,a6
 	movea.l a3,a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$019E(a6)
 	movea.l (a7)+,a6
 	movea.l (a7)+,a1
@@ -195,8 +123,8 @@ loc_0_000000B4:
 	move.w $0002(a3),d0
 	lsl.w #1,d0
 	lea.l loc_0_000003AC(pc),a0
-	move.w $0(a0,d0.w),app_01C4(a6)
-	clr.w app_01C2(a6)
+	move.w $0(a0,d0.w),$01C4(a6)
+	clr.w $01C2(a6)
 	move.b #$8,app_0043(a6)
 	move.b $00B6(a3),d0
 	btst #0,d0
@@ -206,23 +134,23 @@ loc_0_00000164:
 	move.b #$8,d1
 	lsr.b #4,d0
 	sub.b d0,d1
-	move.b d1,app_0042(a6)
-	move.b #$1,app_0044(a6)
+	move.b d1,$0042(a6)
+	move.b #$1,$0044(a6)
 	move.b $00B7(a3),d0
 	btst #4,d0
 	beq.b loc_0_00000186
-	move.b #$2,app_0044(a6)
+	move.b #$2,$0044(a6)
 loc_0_00000186:
 	move.b app_0043(a6),$004D(a1)
-	move.b app_0042(a6),$004C(a1)
-	move.b app_0044(a6),$004E(a1)
+	move.b $0042(a6),$004C(a1)
+	move.b $0044(a6),$004E(a1)
 	bsr.w loc_0_00000CF0
 	move.b $00B7(a3),d0
 	andi.w #15,d0
 	lsl.w #1,d0
 	lea.l loc_0_000003BC(pc),a0
-	clr.l app_0036(a6)
-	move.w $0(a0,d0.w),app_0038(a6)
+	clr.l $0036(a6)
+	move.w $0(a0,d0.w),$0038(a6)
 	move.b $00B8(a3),d0
 	move.b d0,d1
 	lsr.b #4,d0
@@ -253,12 +181,12 @@ loc_0_00000206:
 	movea.l (a7)+,a1
 	movea.l #$0,a3
 loc_0_0000020E:
-	btst.b #1,app_01BD(a6)
+	btst.b #1,$01BD(a6)
 	beq.b loc_0_0000021C
 	bset.b #0,app_0045(a6)
 loc_0_0000021C:
 	bsr.w loc_0_00000D64
-	move.l app_0036(a6),d2
+	move.l $0036(a6),d2
 	clr.l d0
 	move.l a3,d1
 	beq.b loc_0_00000230
@@ -273,12 +201,12 @@ loc_0_00000230:
 	rts
 loc_0_00000246:
 	move.l a1,-(a7)
-	lea.l app_0182(a6),a1
+	lea.l $0182(a6),a1
 	lea.l loc_0_0000004E(pc),a0
 	move.l #$1,d0
 	clr.l d1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$01BC(a6)
 	movea.l (a7)+,a6
 	tst.l d0
@@ -287,9 +215,9 @@ loc_0_00000246:
 	move.b #$B,$001F(a1)
 	bra.b loc_0_00000286
 loc_0_00000272:
-	move.l $0014(a1),app_0066(a6)
-	move.l app_0196(a6),app_0136(a6)
-	move.l app_019A(a6),app_013A(a6)
+	move.l $0014(a1),$0066(a6)
+	move.l $0196(a6),$0136(a6)
+	move.l $019A(a6),$013A(a6)
 	movea.l (a7)+,a1
 loc_0_00000286:
 	movem.l (a7)+,d2/a3
@@ -307,26 +235,26 @@ loc_0_000002B8:
 	bne.b loc_0_00000312
 	addq.w #1,$0020(a6)
 	move.w #INTF_INTEN,_custom+intena.l
-	addq.b #1,app_0126(a6)
-	move.b _ciab+ciaddra.l,app_01DA(a6)
+	addq.b #1,$0126(a6)
+	move.b _ciab+ciaddra.l,$01DA(a6)
 	andi.b #7,_ciab+ciaddra.l
 	move.b _ciab+ciapra.l,app_01DB(a6)
 	ori.b #192,_ciab+ciaddra.l
 	andi.b #CIAF_COMCTS|CIAF_COMDSR|CIAF_PRTRSEL|CIAF_PRTRPOUT|CIAF_PRTRBUSY,_ciab+ciapra.l
 	andi.b #199,_ciab+ciaddra.l
-	subq.b #1,app_0126(a6)
+	subq.b #1,$0126(a6)
 	bge.b loc_0_00000312
 	move.w #INTF_SETCLR|INTF_INTEN,_custom+intena.l
 loc_0_00000312:
-	move.l app_0022(a6),$0030(a1)
-	move.l app_0036(a6),$0034(a1)
+	move.l $0022(a6),$0030(a1)
+	move.l $0036(a6),$0034(a1)
 	clr.w $0050(a1)
-	move.l app_0042(a6),$004C(a1)
-	move.l app_01C2(a6),$003C(a1)
+	move.l $0042(a6),$004C(a1)
+	move.l $01C2(a6),$003C(a1)
 	move.l app_006A(a6),$0040(a1)
-	move.l app_01BA(a6),$0038(a1)
+	move.l $01BA(a6),$0038(a1)
 	move.l app_006E(a6),$0044(a1)
-	move.l app_0072(a6),$0048(a1)
+	move.l $0072(a6),$0048(a1)
 	rts
 loc_0_00000348:
 	movem.l d2/a1/a3,-(a7)
@@ -336,7 +264,7 @@ loc_0_00000348:
 	beq.b loc_0_00000362
 	movea.l a3,a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00D2(a6)
 	movea.l (a7)+,a6
 loc_0_00000362:
@@ -344,24 +272,24 @@ loc_0_00000362:
 	beq.b loc_0_0000037C
 	moveq.l #1,d1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00C6(a6)
 	movea.l (a7)+,a6
 	tst.l d0
 	beq.b loc_0_0000037C
-	move.l d2,app_0036(a6)
+	move.l d2,$0036(a6)
 loc_0_0000037C:
-	move.l d0,app_0026(a6)
-	move.l d0,app_002E(a6)
-	move.l d0,app_002A(a6)
-	move.l d0,app_0032(a6)
-	add.l d2,app_0032(a6)
-	clr.l app_003A(a6)
-	clr.l app_003E(a6)
+	move.l d0,$0026(a6)
+	move.l d0,$002E(a6)
+	move.l d0,$002A(a6)
+	move.l d0,$0032(a6)
+	add.l d2,$0032(a6)
+	clr.l $003A(a6)
+	clr.l $003E(a6)
 	lsr.l #1,d2
-	move.l d2,app_01C6(a6)
+	move.l d2,$01C6(a6)
 	lsr.l #1,d2
-	move.l d2,app_01CA(a6)
+	move.l d2,$01CA(a6)
 	movem.l (a7)+,d2/a1/a3
 	tst.l d0
 	rts
@@ -378,11 +306,11 @@ serial_device_lib_close:
 	subq.w #1,$0020(a6)
 	bne.w loc_0_000004A4
 loc_0_000003DE:
-	clr.l app_004E(a6)
-	clr.l app_004A(a6)
-	clr.l app_0046(a6)
+	clr.l $004E(a6)
+	clr.l $004A(a6)
+	clr.l $0046(a6)
 	move.w #INTF_INTEN,_custom+intena.l
-	addq.b #1,app_0126(a6)
+	addq.b #1,$0126(a6)
 	move.b _ciab+ciaddra.l,d0
 	andi.b #7,d0
 	ori.b #248,d0
@@ -395,35 +323,35 @@ loc_0_000003DE:
 	move.b d0,_ciab+ciapra.l
 	move.b _ciab+ciaddra.l,d0
 	andi.b #7,d0
-	move.b app_01DA(a6),d1
+	move.b $01DA(a6),d1
 	andi.b #248,d1
 	or.b d1,d0
 	move.b d0,_ciab+ciaddra.l
-	subq.b #1,app_0126(a6)
+	subq.b #1,$0126(a6)
 	bge.b loc_0_0000044C
 	move.w #INTF_SETCLR|INTF_INTEN,_custom+intena.l
 loc_0_0000044C:
 	clr.w $0020(a6)
-	lea.l app_0122(a6),a0
+	lea.l $0122(a6),a0
 	bsr.w loc_0_0000060A
-	lea.l app_0182(a6),a0
+	lea.l $0182(a6),a0
 	bsr.w loc_0_0000060A
 	move.l a1,-(a7)
-	lea.l app_0182(a6),a1
+	lea.l $0182(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$01C2(a6)
 	movea.l (a7)+,a6
 	movea.l (a7)+,a1
 	bclr.b #5,app_0045(a6)
 	movem.l d2/a1/a3,-(a7)
-	move.l app_0036(a6),d0
+	move.l $0036(a6),d0
 	clr.l d2
-	movea.l app_0026(a6),a3
+	movea.l $0026(a6),a3
 	bsr.w loc_0_00000348
 	movem.l (a7)+,d2/a1/a3
 	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
-	btst.b #6,app_01D8(a6)
+	btst.b #6,$01D8(a6)
 	beq.b loc_0_000004A4
 	jsr -$0012(a6)
 loc_0_000004A4:
@@ -444,7 +372,7 @@ loc_0_000004C6:
 	and.b $001E(a1),d1
 	bne.b loc_0_000004DE
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$017A(a6)
 	movea.l (a7)+,a6
 loc_0_000004DE:
@@ -467,11 +395,11 @@ loc_0_00000510:
 	bra.b loc_0_000004C6
     ; KNOWN: base A6=serial.device:LIB
 serial_device_dev_abortio:
-	bset.b #7,app_01D8(a6)
+	bset.b #7,$01D8(a6)
 	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
 	bsr.w loc_0_0000053A
 	move.w #INTF_SETCLR|INTF_RBF|INTF_TBE,_custom+intena.l
-	bclr.b #7,app_01D8(a6)
+	bclr.b #7,$01D8(a6)
 	rts
 loc_0_0000053A:
 	clr.b $001F(a1)
@@ -483,10 +411,10 @@ loc_0_0000053A:
 	beq.w loc_0_00000590
 	bra.w loc_0_00000608
 loc_0_0000055E:
-	cmpa.l app_004A(a6),a1
+	cmpa.l $004A(a6),a1
 	bne.b loc_0_00000570
-	bclr.b #1,app_01D8(a6)
-	clr.l app_004A(a6)
+	bclr.b #1,$01D8(a6)
+	clr.l $004A(a6)
 	bra.b loc_0_000005E2
 loc_0_00000570:
 	btst.b #6,$001E(a1)
@@ -497,22 +425,22 @@ loc_0_00000570:
 	move.l a0,(a1)
 	move.l a1,$0004(a0)
 	movea.l (a7)+,a1
-	subq.w #1,app_0046(a6)
+	subq.w #1,$0046(a6)
 	bra.b loc_0_000005E2
 loc_0_00000590:
-	cmpa.l app_004E(a6),a1
+	cmpa.l $004E(a6),a1
 	bne.b loc_0_000005C4
 	cmpi.w #10,$001C(a1)
 	bne.b loc_0_000005B0
-	bclr.b #5,app_01D6(a6)
+	bclr.b #5,$01D6(a6)
 	beq.b loc_0_000005B0
 	movea.l #$DFF09E,a0
 	move.w #$800,(a0)
 loc_0_000005B0:
-	lea.l app_0122(a6),a0
+	lea.l $0122(a6),a0
 	bsr.b loc_0_0000060A
-	clr.l app_004E(a6)
-	bclr.b #4,app_01D8(a6)
+	clr.l $004E(a6)
+	bclr.b #4,$01D8(a6)
 	bra.w loc_0_000005E2
 loc_0_000005C4:
 	btst.b #6,$001E(a1)
@@ -523,7 +451,7 @@ loc_0_000005C4:
 	move.l a0,(a1)
 	move.l a1,$0004(a0)
 	movea.l (a7)+,a1
-	subq.w #1,app_0048(a6)
+	subq.w #1,$0048(a6)
 loc_0_000005E2:
 	bset.b #5,$001E(a1)
 	andi.b #175,$001E(a1)
@@ -531,7 +459,7 @@ loc_0_000005E2:
 	btst.b #0,$001E(a1)
 	bne.b loc_0_00000608
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$017A(a6)
 	movea.l (a7)+,a6
 loc_0_00000608:
@@ -540,7 +468,7 @@ loc_0_0000060A:
 	move.l a1,-(a7)
 	movea.l a0,a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$01E0(a6)
 	movea.l (a7)+,a6
 	movea.l (a7)+,a1
@@ -553,33 +481,33 @@ serial_device_lib_expunge:
 	rts
 loc_0_0000062C:
 	move.l a6,-(a7)
-	movea.l app_01B6(a6),a6
+	movea.l $01B6(a6),a6
 	move.l #$1,d0
 	jsr -$000C(a6)
 	move.l #$0,d0
 	jsr -$000C(a6)
 	movea.l (a7)+,a6
 	move.l #$B,d0
-	movea.l app_01AE(a6),a1
+	movea.l $01AE(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00A2(a6)
 	movea.l (a7)+,a6
 	move.l #$0,d0
-	movea.l app_01B2(a6),a1
+	movea.l $01B2(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00A2(a6)
 	movea.l (a7)+,a6
-	move.l app_01AA(a6),-(a7)
-	lea.l app_014A(a6),a1
+	move.l $01AA(a6),-(a7)
+	lea.l $014A(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$0168(a6)
 	movea.l (a7)+,a6
-	lea.l app_00EA(a6),a1
+	lea.l $00EA(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$0168(a6)
 	movea.l (a7)+,a6
 	movea.l a6,a1
@@ -588,7 +516,7 @@ loc_0_0000062C:
 	suba.l d0,a1
 	add.w $0012(a6),d0
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00D2(a6)
 	movea.l (a7)+,a6
 	movea.l a6,a1
@@ -603,24 +531,24 @@ loc_0_000006C4:
 	tst.l $0024(a1)
 	beq.w loc_0_000004C6
 	bclr.b #0,$001E(a1)
-	bset.b #7,app_01D8(a6)
+	bset.b #7,$01D8(a6)
 	move.w #INTF_TBE,_custom+intena.l
-	tst.w app_0048(a6)
+	tst.w $0048(a6)
 	bne.b loc_0_0000071C
-	tst.l app_004E(a6)
+	tst.l $004E(a6)
 	bne.b loc_0_0000071C
 	bset.b #4,$001E(a1)
-	clr.l app_005E(a6)
-	move.l $0028(a1),app_0056(a6)
-	move.l a1,app_004E(a6)
+	clr.l $005E(a6)
+	move.l $0028(a1),$0056(a6)
+	move.l a1,$004E(a6)
 	move.w #INTF_SETCLR|INTF_TBE,_custom+intreq.l
 	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
-	bclr.b #7,app_01D8(a6)
+	bclr.b #7,$01D8(a6)
 loc_0_0000071A:
 	rts
 loc_0_0000071C:
 	bset.b #6,$001E(a1)
-	lea.l app_00B0(a6),a0
+	lea.l $00B0(a6),a0
 	lea.l $0004(a0),a0
 	move.l $0004(a0),d0
 	move.l a1,$0004(a0)
@@ -628,9 +556,9 @@ loc_0_0000071C:
 	move.l d0,$0004(a1)
 	movea.l d0,a0
 	move.l a1,(a0)
-	addq.w #1,app_0048(a6)
+	addq.w #1,$0048(a6)
 	move.w #INTF_SETCLR|INTF_TBE,_custom+intena.l
-	bclr.b #7,app_01D8(a6)
+	bclr.b #7,$01D8(a6)
 	rts
 loc_0_00000750:
 	dc.b $4A,$29,$01,$D9,$66,$00,$01,$8E,$48,$E7,$20,$02,$2C,$49,$08,$2E
@@ -667,18 +595,18 @@ loc_0_00000918:
 	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
 	bsr.w loc_0_00000A06
 	move.l a1,-(a7)
-	move.l app_004A(a6),d0
+	move.l $004A(a6),d0
 	beq.b loc_0_00000932
 	movea.l d0,a1
 	bsr.w loc_0_0000053A
 loc_0_00000932:
-	move.l app_004E(a6),d0
+	move.l $004E(a6),d0
 	beq.b loc_0_0000093E
 	movea.l d0,a1
 	bsr.w loc_0_0000053A
 loc_0_0000093E:
 	andi.b #32,app_0045(a6)
-	clr.b app_01D8(a6)
+	clr.b $01D8(a6)
 	movea.l (a7)+,a1
 	move.l #$11130000,$0030(a1)
 	move.l #$2580,$003C(a1)
@@ -696,23 +624,23 @@ loc_0_00000996:
 	bsr.w loc_0_0000099E
 	bra.w loc_0_000004C6
 loc_0_0000099E:
-	move.l app_0026(a6),app_002A(a6)
-	move.l app_0026(a6),app_002E(a6)
-	clr.l app_003A(a6)
+	move.l $0026(a6),$002A(a6)
+	move.l $0026(a6),$002E(a6)
+	clr.l $003A(a6)
 	rts
 loc_0_000009B0:
-	move.l app_004E(a6),d0
+	move.l $004E(a6),d0
 	beq.b loc_0_000009BC
-	bset.b #2,app_01D8(a6)
+	bset.b #2,$01D8(a6)
 loc_0_000009BC:
-	move.l app_004A(a6),d0
+	move.l $004A(a6),d0
 	beq.b loc_0_000009C6
 	bsr.w loc_0_00001318
 loc_0_000009C6:
 	bra.w loc_0_000004C6
 loc_0_000009CA:
-	bclr.b #2,app_01D8(a6)
-	move.l app_004A(a6),d0
+	bclr.b #2,$01D8(a6)
+	move.l $004A(a6),d0
 	beq.b loc_0_000009DA
 	bsr.w loc_0_000012FA
 loc_0_000009DA:
@@ -726,11 +654,11 @@ loc_0_000009EE:
 	bra.w loc_0_000004C6
 loc_0_00000A06:
 	move.l a1,-(a7)
-	lea.l app_00A2(a6),a0
+	lea.l $00A2(a6),a0
 	bsr.w loc_0_00000A20
-	lea.l app_00B0(a6),a0
+	lea.l $00B0(a6),a0
 	bsr.w loc_0_00000A20
-	clr.l app_0046(a6)
+	clr.l $0046(a6)
 	movea.l (a7)+,a1
 	rts
 loc_0_00000A20:
@@ -754,7 +682,7 @@ loc_0_00000A3E:
 	btst.b #0,$001E(a1)
 	bne.b loc_0_00000A5E
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$017A(a6)
 	movea.l (a7)+,a6
 loc_0_00000A5E:
@@ -765,30 +693,30 @@ loc_0_00000A60:
 	btst.b #2,app_0045(a6)
 	beq.b loc_0_00000A80
 	andi.b #239,d0
-	btst.b #3,app_01D8(a6)
+	btst.b #3,$01D8(a6)
 	beq.b loc_0_00000A80
 	bset #4,d0
 loc_0_00000A80:
 	andi.b #252,d0
 	move.b d0,$0051(a1)
-	move.b app_01D6(a6),$0050(a1)
+	move.b $01D6(a6),$0050(a1)
 	andi.b #31,$0050(a1)
-	andi.b #249,app_01D6(a6)
-	move.l app_003A(a6),$0020(a1)
+	andi.b #249,$01D6(a6)
+	move.l $003A(a6),$0020(a1)
 	bra.w loc_0_000004C6
 loc_0_00000AA4:
 	bclr.b #0,$001E(a1)
 	btst.b #3,$004F(a1)
 	beq.b loc_0_00000AC2
-	tst.w app_0048(a6)
+	tst.w $0048(a6)
 	bne.w loc_0_0000071C
-	tst.l app_004E(a6)
+	tst.l $004E(a6)
 	bne.w loc_0_0000071C
 loc_0_00000AC2:
-	bset.b #5,app_01D6(a6)
+	bset.b #5,$01D6(a6)
 	move.l app_006A(a6),d0
 	bsr.w loc_0_00000B32
-	move.l a1,app_004E(a6)
+	move.l a1,$004E(a6)
 	movea.l #$DFF09E,a0
 	move.w #$8800,(a0)
 	rts
@@ -802,7 +730,7 @@ loc_0_00000AE0:
 loc_0_00000B32:
 	movem.l a1/a6,-(a7)
 	move.w #INTF_TBE,_custom+intena.l
-	lea.l app_0122(a6),a1
+	lea.l $0122(a6),a1
 	cmpi.b #5,$0008(a1)
 	beq.b loc_0_00000B7C
 	clr.l $0020(a1)
@@ -826,8 +754,8 @@ loc_0_00000B84:
 	btst.b #7,$004F(a1)
 	beq.b loc_0_00000BB2
 	bset.b #7,app_0045(a6)
-	bclr.b #2,app_01D8(a6)
-	btst.b #3,app_01D8(a6)
+	bclr.b #2,$01D8(a6)
+	btst.b #3,$01D8(a6)
 	beq.b loc_0_00000BB8
 	bclr.b #7,$004F(a1)
 	bsr.w loc_0_000012FA
@@ -836,13 +764,13 @@ loc_0_00000B84:
 loc_0_00000BB2:
 	bclr.b #7,app_0045(a6)
 loc_0_00000BB8:
-	btst.b #1,app_01D8(a6)
+	btst.b #1,$01D8(a6)
 	bne.b loc_0_00000BD4
-	tst.l app_004E(a6)
+	tst.l $004E(a6)
 	bne.b loc_0_00000BD4
 	btst.b #4,$001E(a1)
 	bne.b loc_0_00000BD4
-	tst.l app_0046(a6)
+	tst.l $0046(a6)
 	beq.b loc_0_00000BDE
 loc_0_00000BD4:
 	move.b #$1,$001F(a1)
@@ -872,11 +800,11 @@ loc_0_00000BF6:
 	bgt.w loc_0_00000D48
 	tst.l $0030(a1)
 	beq.w loc_0_00000D48
-	move.b $004C(a1),app_0042(a6)
+	move.b $004C(a1),$0042(a6)
 	move.b $004D(a1),app_0043(a6)
-	move.b $004E(a1),app_0044(a6)
-	move.l $0030(a1),app_0022(a6)
-	move.l $0038(a1),app_01BA(a6)
+	move.b $004E(a1),$0044(a6)
+	move.l $0030(a1),$0022(a6)
+	move.l $0038(a1),$01BA(a6)
 	btst.b #4,$004F(a1)
 	beq.b loc_0_00000C74
 	bset.b #7,$004F(a1)
@@ -890,21 +818,21 @@ loc_0_00000C82:
 	move.b $004F(a1),app_0045(a6)
 	or.b d0,app_0045(a6)
 	move.b app_0045(a6),$004F(a1)
-	move.l $003C(a1),app_01C2(a6)
+	move.l $003C(a1),$01C2(a6)
 	bsr.w loc_0_00000D64
 	move.l $0044(a1),app_006E(a6)
-	move.l $0048(a1),app_0072(a6)
+	move.l $0048(a1),$0072(a6)
 	bsr.w loc_0_00000CF0
 	tst.l $0040(a1)
 	beq.w loc_0_00000D48
 	move.l $0040(a1),app_006A(a6)
-	move.l app_0036(a6),d0
+	move.l $0036(a6),d0
 	cmp.l $0034(a1),d0
 	beq.b loc_0_00000CEA
 	move.l $0034(a1),d2
 	cmpi.l #64,d2
 	blt.b loc_0_00000CE4
-	movea.l app_0026(a6),a3
+	movea.l $0026(a6),a3
 	bsr.w loc_0_00000348
 	tst.l d0
 	bne.b loc_0_00000CEA
@@ -929,13 +857,13 @@ loc_0_00000D0C:
 	beq.b loc_0_00000D16
 	lsl.w #1,d1
 loc_0_00000D16:
-	move.w d1,app_01D4(a6)
+	move.w d1,$01D4(a6)
 	bsr.w loc_0_00000D32
-	move.w d0,app_01D2(a6)
+	move.w d0,$01D2(a6)
 	clr.w d0
 	move.b $004C(a1),d0
 	bsr.w loc_0_00000D32
-	move.w d0,app_01D0(a6)
+	move.w d0,$01D0(a6)
 	rts
 loc_0_00000D32:
 	btst.b #0,app_0045(a6)
@@ -953,12 +881,12 @@ loc_0_00000D50:
 	dc.b $00,$01,$00,$03,$00,$07,$00,$0F,$00,$1F,$00,$3F,$00,$7F,$00,$FF
 	dc.b $01,$FF,$03,$FF
 loc_0_00000D64:
-	move.l app_01C2(a6),d0
+	move.l $01C2(a6),d0
 	move.l d0,d1
 	lsl.l #3,d0
 	sub.l d1,d0
 	move.l a1,-(a7)
-	movea.l app_0062(a6),a1
+	movea.l $0062(a6),a1
 	moveq.l #0,d1
 	move.b $0213(a1),d1
 	movea.l #$17D7840,a1
@@ -978,15 +906,15 @@ loc_0_00000D8E:
 loc_0_00000DA8:
 	divu.w d0,d1
 loc_0_00000DAA:
-	move.w d1,app_01CE(a6)
-	move.w app_01CE(a6),d0
-	bclr.b #5,app_01D8(a6)
-	cmpi.b #8,app_0042(a6)
+	move.w d1,$01CE(a6)
+	move.w $01CE(a6),d0
+	bclr.b #5,$01D8(a6)
+	cmpi.b #8,$0042(a6)
 	bne.b loc_0_00000DD2
 	btst.b #0,app_0045(a6)
 	beq.b loc_0_00000DD2
 	bset #15,d0
-	bset.b #5,app_01D8(a6)
+	bset.b #5,$01D8(a6)
 loc_0_00000DD2:
 	move.w d0,_custom+serper.l
 	rts
@@ -1016,20 +944,20 @@ resident_init:
 	move.l a6,d1
 	movem.l a3/a6,-(a7)
 	movea.l d0,a6
-	move.l a0,app_01AA(a6)
-	move.l d1,app_0062(a6)
-	move.w #$5DC,app_01DC(a6)
+	move.l a0,$01AA(a6)
+	move.l d1,$0062(a6)
+	move.w #$5DC,$01DC(a6)
 	lea.l loc_0_0000006E(pc),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$01F2(a6)
 	movea.l (a7)+,a6
-	move.l d0,app_01B6(a6)
+	move.l d0,$01B6(a6)
 	beq.w loc_0_00000FE0
 	lea.l resident_name(pc),a1
 	move.l #$0,d0
 	move.l a6,-(a7)
-	movea.l app_01B6(a6),a6
+	movea.l $01B6(a6),a6
 	jsr -$0006(a6)
 	tst.l d0
 	bne.w loc_0_00000EC4
@@ -1046,7 +974,7 @@ loc_0_00000ED2:
 	lea.l app_00BE(a6),a0
 	lea.l loc_0_0000071A.l,a3
 	bsr.b loc_0_00000EF2
-	lea.l app_00D4(a6),a0
+	lea.l $00D4(a6),a0
 	lea.l loc_0_0000103E.l,a3
 	bsr.b loc_0_00000EF2
 	bra.w loc_0_00000F32
@@ -1064,44 +992,44 @@ loc_0_00000F0A:
 	move.b #$1,$000E(a1)
 	move.b #$4,$0008(a1)
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$0162(a6)
 	movea.l (a7)+,a6
 	rts
 loc_0_00000F32:
-	lea.l app_00EA(a6),a1
+	lea.l $00EA(a6),a1
 	bsr.b loc_0_00000F0A
-	lea.l app_010C(a6),a0
+	lea.l $010C(a6),a0
 	lea.l loc_0_00000AE0.l,a3
 	bsr.b loc_0_00000EEE
-	lea.l app_0122(a6),a0
+	lea.l $0122(a6),a0
 	move.b #$7,$0008(a0)
-	lea.l app_00EA(a6),a3
+	lea.l $00EA(a6),a3
 	move.l a3,$000E(a0)
-	lea.l app_014A(a6),a1
+	lea.l $014A(a6),a1
 	bsr.b loc_0_00000F0A
-	lea.l app_016C(a6),a0
+	lea.l $016C(a6),a0
 	lea.l loc_0_0000138A.l,a3
 	bsr.b loc_0_00000EEE
-	lea.l app_0182(a6),a0
+	lea.l $0182(a6),a0
 	move.b #$7,$0008(a0)
-	lea.l app_014A(a6),a3
+	lea.l $014A(a6),a3
 	move.l a3,$000E(a0)
 	movea.l a6,a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$01B0(a6)
 	movea.l (a7)+,a6
 	lea.l app_0076(a6),a1
 	moveq.l #11,d0
 	move.l #loc_0_000011EC,$0012(a1)
 	bsr.b loc_0_00000FC0
-	move.l d0,app_01AE(a6)
-	lea.l app_008C(a6),a1
+	move.l d0,$01AE(a6)
+	lea.l $008C(a6),a1
 	move.l #loc_0_00000750,$0012(a1)
 	moveq.l #0,d0
 	bsr.b loc_0_00000FC0
-	move.l d0,app_01B2(a6)
+	move.l d0,$01B2(a6)
 	move.w #INTF_RBF|INTF_TBE,_custom+intena.l
 	moveq.l #1,d0
 	movem.l (a7)+,a3/a6
@@ -1111,7 +1039,7 @@ loc_0_00000FC0:
 	move.l #resident_name,$000A(a1)
 	move.b #$2,$0008(a1)
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00A2(a6)
 	movea.l (a7)+,a6
 loc_0_00000FDE:
@@ -1123,17 +1051,17 @@ loc_0_00000FE4:
 	clr.l $0020(a1)
 	move.l $0024(a1),d1
 	beq.w loc_0_000004C6
-	tst.w app_0046(a6)
+	tst.w $0046(a6)
 	bne.b loc_0_00001002
-	tst.l app_004A(a6)
+	tst.l $004A(a6)
 	bne.b loc_0_00001002
-	cmp.l app_003A(a6),d1
+	cmp.l $003A(a6),d1
 	bls.b loc_0_00001008
 loc_0_00001002:
 	bclr.b #0,$001E(a1)
 loc_0_00001008:
 	bset.b #6,$001E(a1)
-	lea.l app_00A2(a6),a0
+	lea.l $00A2(a6),a0
 	lea.l $0004(a0),a0
 	move.l $0004(a0),d0
 	move.l a1,$0004(a0)
@@ -1141,10 +1069,10 @@ loc_0_00001008:
 	move.l d0,$0004(a1)
 	movea.l d0,a0
 	move.l a1,(a0)
-	addq.w #1,app_0046(a6)
-	lea.l app_00D4(a6),a1
+	addq.w #1,$0046(a6)
+	lea.l $00D4(a6),a1
 	move.l a6,-(a7)
-	movea.l app_0062(a6),a6
+	movea.l $0062(a6),a6
 	jsr -$00B4(a6)
 	movea.l (a7)+,a6
 	rts
@@ -1196,15 +1124,15 @@ loc_0_000011EC:
 	dc.b $00,$3E,$66,$06,$2D,$6E,$00,$2A,$00,$3E,$61,$30,$43,$EE,$00,$D4
 	dc.b $2C,$6E,$00,$62,$4E,$AE,$FF,$4C,$4C,$DF,$40,$04,$4E,$75
 loc_0_000012FA:
-	move.b app_0022(a6),app_01D9(a6)
-	bclr.b #3,app_01D8(a6)
+	move.b $0022(a6),app_01D9(a6)
+	bclr.b #3,$01D8(a6)
 	btst.b #2,app_0045(a6)
 	beq.b loc_0_00001334
 	bclr.b #CIAB_COMRTS,_ciab+ciapra.l
 	bra.b loc_0_00001334
 loc_0_00001318:
-	move.b app_0023(a6),app_01D9(a6)
-	bset.b #3,app_01D8(a6)
+	move.b $0023(a6),app_01D9(a6)
+	bset.b #3,$01D8(a6)
 	btst.b #2,app_0045(a6)
 	beq.b loc_0_00001334
 	bset.b #CIAB_COMRTS,_ciab+ciapra.l

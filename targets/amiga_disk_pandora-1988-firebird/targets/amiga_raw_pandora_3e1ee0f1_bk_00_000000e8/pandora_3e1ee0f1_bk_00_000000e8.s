@@ -1,3 +1,10 @@
+; Memory map
+;   code[$00000000-$0005C000] -> runtime[$00020000-$0007C000] policy suppressed
+;   code[$00000028-$00000052] -> runtime[$00000300-$0000032A] discovered_copy suppressed
+;   code[$00000029-$00000053] -> runtime[$00000301-$0000032B] discovered_copy suppressed
+;   code[$00000000-$00055370] -> runtime[$00010000-$00065370] discovered_copy materialized
+;   code[$00000001-$00055371] -> runtime[$00010001-$00065371] conflicting_discovered_copy suppressed
+
     INCLUDE "graphics/display.i"
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/blit.i"

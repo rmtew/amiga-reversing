@@ -205,8 +205,11 @@ loc_0_0000019E:
 	dc.l loc_1_0000000C
 	dc.b $4E,$AE,$FF,$2E,$2C,$5F,$70,$00,$60,$00,$FF
 	dc.b "Jtimer.device",$00	; string
+loc_0_0000034F:
 	dc.b "intuition.library",$00	; string
+loc_0_00000361:
 	dc.b "dos.library",$00	; string
+loc_0_0000036D:
 	dc.b "graphics.library",$00	; string
 loc_0_0000037E:
 	dc.b $E0,$00,$00,$08,$03,$00,$C0,$00,$00,$0A
@@ -809,6 +812,7 @@ loc_0_00000B4A:
 loc_0_00000B66:
 	ori.b #$100,d1
 	ori.b #3,d6
+loc_0_00000B6E:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000B8D
 	ori.b #0,d0
@@ -822,6 +826,7 @@ loc_0_00000B8D:
 loc_0_00000B9E:
 	ori.b #$100,d1
 	ori.b #15,d6
+loc_0_00000BA6:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000BB2
 	ori.b #0,d0
@@ -830,6 +835,7 @@ loc_0_00000BB2:
 loc_0_00000BC8:
 	ori.b #$100,d1
 	ori.b #15,d6
+loc_0_00000BD0:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000BDC
 	ori.b #0,d0
@@ -838,6 +844,7 @@ loc_0_00000BDC:
 loc_0_00000BEA:
 	ori.b #$100,d1
 	ori.b #15,d6
+loc_0_00000BF2:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000BFE
 	ori.b #0,d0
@@ -848,6 +855,7 @@ loc_0_00000BFE:
 loc_0_00000C1A:
 	ori.b #$100,d1
 	ori.b #15,d6
+loc_0_00000C22:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000C2E
 	ori.b #0,d0
@@ -858,6 +866,7 @@ loc_0_00000C2E:
 loc_0_00000C48:
 	ori.b #$100,d1
 	ori.b #3,d6
+loc_0_00000C50:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000C5C
 	ori.b #0,d0
@@ -868,6 +877,7 @@ loc_0_00000C64:
 	ori.b #$100,d1
 loc_0_00000C68:
 	ori.b #3,d6
+loc_0_00000C6C:
 	dc.l loc_0_00000B7A	; pointer_table
 	dc.l loc_0_00000C78
 	ori.b #0,d0

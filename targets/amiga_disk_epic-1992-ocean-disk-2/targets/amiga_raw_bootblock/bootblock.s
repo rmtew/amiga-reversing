@@ -1,3 +1,6 @@
+; Memory map
+;   code[$00000000-$00000400] -> runtime[$00070000-$00070400] policy materialized
+
     SECTION code,code
     ORG $70000
 	dc.b "DOS",$00	; NOTE: boot magic
