@@ -1395,6 +1395,31 @@ Relocation-backed boundary API entry corpus evidence:
   `orphan-code:signal` drops 913 -> 911. Type-flow check passed with
   `ok: true`, 4 applied refinements, and zero violations.
 
+Iterated boundary API entry evidence:
+
+- C analysis now repeats linkage/boundary API entry seeding with reachable
+  analysis until no more entries are exposed, bounded by the possible
+  code-section boundary offsets. This handles adjacent wrappers: accepting one
+  relocation-backed boundary wrapper can make the next wrapper the new
+  accepted-code boundary. The wrapper still needs relocation evidence, a
+  generated platform LVO, terminal decode, and no accepted-code overlap.
+- Isolated coverage:
+  `facts_v2_boundary_relocation_api_call_restore_wrapper_promotes_code`.
+- Real corpus evidence: Workbench `mathieeedoubtrans.library`
+  (`platform_file_manifest:amiga-hunk/f52fd3acabff`) no longer appears in the
+  API missing-inbound work queue; the remaining API row is MonAm, which still
+  lacks a proven inbound edge and remains an unresolved signal.
+- Corpus rebuild:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_api_entry_fixed_point.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_api_entry_fixed_point.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_api_entry_fixed_point.jsonl --variants-output src\build\tmp_target_variant_index_after_api_entry_fixed_point.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_api_entry_fixed_point.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_api_entry_fixed_point.jsonl --workers 8`
+  produced 493 entries, 528356 xrefs, 484862 snippet rows, 3 variants, 322
+  type-flow rows, and 23 unresolved typed-field rows.
+- Compared with the previous manifest after address-domain immediate refs,
+  `target-pattern:orphan_missing_api` drops 2 -> 1 and
+  `orphan-code:missing_inbound:api` drops 3 -> 1. Metadata-orphan rows remain
+  4. Type-flow check passed with `ok: true`, 4 applied refinements, and zero
+  violations. Bloodwych, GenAm, and MonAm benchmark gates passed without source
+  refusal.
+
 Pointer-table orphan-context corpus evidence:
 
 - Command: `python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_pointer_table_orphan_context.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_pointer_table_orphan_context.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_pointer_table_orphan_context.jsonl --variants-output src\build\tmp_target_variant_index_after_pointer_table_orphan_context.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_pointer_table_orphan_context.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_pointer_table_orphan_context.jsonl --workers 8`

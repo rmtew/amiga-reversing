@@ -569,6 +569,32 @@ missing-inbound evidence. With the seed, the wrapper becomes accepted code. An
 unlabelled API-looking island still remains an orphan signal until another real
 inbound edge is found.
 
+A related seed is an unlabelled API wrapper at an accepted-code boundary with
+relocation-backed base evidence. This is still not shape-only promotion: the
+wrapper must start immediately after accepted code, decode without accepted-code
+overlap, contain a relocation reference, contain a platform-known LVO call, and
+terminate. Boundary API seeding must run to a fixed point bounded by the possible
+code-section boundary offsets because accepting one wrapper may make the next
+adjacent wrapper a newly proven boundary.
+
+```asm
+accepted_wrapper:
+    movea.l library_base,a6
+    jsr _LVOSomeCall(a6)
+    rts
+
+next_wrapper:
+    move.l a6,-(sp)
+    movea.l library_base,a6   ; relocation-backed
+    jsr _LVOAnotherCall(a6)
+    movea.l (sp)+,a6
+    rts
+```
+
+The Workbench `mathieeedoubtrans.library` imported target demonstrates this
+adjacent-wrapper chain. The first wrapper was accepted; the second remained an
+API orphan until boundary seeding was repeated after the first reachable pass.
+
 The success metric is not "more auto-converted code". The success metric is that
 orphan signals decrease because better jump/lookup table, callback, vector, ORG,
 or absolute-memory analysis found real links.

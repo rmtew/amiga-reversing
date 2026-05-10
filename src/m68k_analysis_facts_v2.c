@@ -7430,6 +7430,21 @@ static int seed_boundary_api_entries(M68kDecodeIR *decode, M68kFactIR *facts,
   return 0;
 }
 
+static size_t platform_api_entry_seed_pass_limit(const M68kDecodeIR *decode) {
+  size_t section_index;
+  size_t limit = 1U;
+  if (decode == NULL) return limit;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t section_limit;
+    if (section->kind != M68K_SECTION_CODE) continue;
+    section_limit = ((size_t)section->size / 2U) + 1U;
+    if (section_limit > ((size_t)-1) - limit) return (size_t)-1;
+    limit += section_limit;
+  }
+  return limit;
+}
+
 static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, uint8_t **accepted_start,
     uint8_t **accepted_bytes, const M68kFactIR *facts, M68kFactIR *out_facts,
     const M68kFactsV2LabelLookup *label_lookup, uint32_t *out_interior_conflicts) {
@@ -8714,19 +8729,22 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
   {
-    uint32_t linkage_api_entry_seeds = 0U;
-    uint32_t boundary_api_entry_seeds = 0U;
-    uint32_t api_entry_accepted = 0U;
-    fail_stage = "platform API entry seeding";
-    if (seed_linkage_api_entry_labels(&decode, &facts, &label_lookup, &queue, object->platform_backend_kind,
-        accepted_start, accepted_bytes, out_profile, max_cpu, &linkage_api_entry_seeds) != 0) {
-      goto fail;
-    }
-    if (seed_boundary_api_entries(&decode, &facts, &relocation_lookup, &queue, object->platform_backend_kind,
-        accepted_start, accepted_bytes, out_profile, max_cpu, &boundary_api_entry_seeds) != 0) {
-      goto fail;
-    }
-    if (linkage_api_entry_seeds != 0U || boundary_api_entry_seeds != 0U) {
+    size_t api_entry_seed_pass;
+    size_t api_entry_seed_pass_limit = platform_api_entry_seed_pass_limit(&decode);
+    for (api_entry_seed_pass = 0U; api_entry_seed_pass < api_entry_seed_pass_limit; ++api_entry_seed_pass) {
+      uint32_t linkage_api_entry_seeds = 0U;
+      uint32_t boundary_api_entry_seeds = 0U;
+      uint32_t api_entry_accepted = 0U;
+      fail_stage = "platform API entry seeding";
+      if (seed_linkage_api_entry_labels(&decode, &facts, &label_lookup, &queue, object->platform_backend_kind,
+          accepted_start, accepted_bytes, out_profile, max_cpu, &linkage_api_entry_seeds) != 0) {
+        goto fail;
+      }
+      if (seed_boundary_api_entries(&decode, &facts, &relocation_lookup, &queue, object->platform_backend_kind,
+          accepted_start, accepted_bytes, out_profile, max_cpu, &boundary_api_entry_seeds) != 0) {
+        goto fail;
+      }
+      if (linkage_api_entry_seeds == 0U && boundary_api_entry_seeds == 0U) break;
       fail_stage = "platform API entry reachable fixed point";
       if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue,
           &runtime_addresses, accepted_start, accepted_bytes, &api_entry_accepted, out_profile, max_cpu,
@@ -8744,6 +8762,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
           accepted_start, accepted_bytes, &facts) != 0) {
         goto fail;
       }
+      if (api_entry_accepted == 0U) break;
     }
   }
   end = clock();

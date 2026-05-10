@@ -203,3 +203,12 @@ API-looking byte islands stay orphan signals.
 Generic M68K analysis must not know which LVOs are Amiga APIs. It should ask the
 platform facts layer whether linkage API entry labels are supported and whether
 an observed LVO belongs to the platform API set.
+
+Unlabelled API wrappers can also be promoted when they start immediately after
+accepted code and contain relocation-backed base evidence. This covers adjacent
+library stubs such as Workbench `mathieeedoubtrans.library`, where one accepted
+wrapper is followed by another wrapper that loads a relocated library base,
+calls a generated LVO, restores `a6`, and returns. Discovery must iterate with
+reachability: accepting one boundary wrapper can expose the next wrapper as the
+new accepted-code boundary. The generic engine owns the iteration; the Amiga
+platform layer owns the LVO/API decision.
