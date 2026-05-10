@@ -6,29 +6,20 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET LIB_SIZE
-app_0022 RS.W 1
-    RS.B 4
-app_0028 RS.L 1
-app_002C RS.L 1
-app_0030 RS.L 1
-    RS.B 134
-app_00BA RS.L 1
-    RS.B 104
+    RS.B 260
 app_0126 RS.B 1
-    RS.B 27
-app_0142 RS.L 1
-    RS.B 220
+    RS.B 251
 app_0222 RS.L 1
 app_0226 RS.L 1
 app_022A RS.L 1
 app_SIZEOF EQU __RS
 
-amiga_loadseg_segment_link	EQU	-4
 _custom	EQU	$DFF000
 
     SECTION section_0,code
 	dc.b $70,$FF,$4E,$75
 resident:	; STRUCT RT
+    ; invalid overlap: decoded code at $0004 starts at structured data; emitted as data
 	dc.w RTC_MATCHWORD	; UWORD RT_MATCHWORD = RTC_MATCHWORD
 	dc.l resident	; APTR RT_MATCHTAG
 	dc.l resident_init	; APTR RT_ENDSKIP
@@ -92,13 +83,21 @@ loc_0_00000106:
 	dc.l $00000000,$00000005,$00000000,$00000000	; lookup_table
 	dc.l $00000000,$00000000,$444F5300	; lookup_table
 loc_0_00000122:
-	dcb.b $20,$00
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
+	ori.b #0,d0
 resident_name:
-	dc.b "ramdrive.device",$00
+    ; invalid overlap: decoded code at $0142 starts at structured data; emitted as data
+	dc.b "ramdrive.device",$00	; string
 resident_idstring:
-	dc.b "Commodore-Amiga Ram Drive 1.0 (6 Apr 88)",$0D,$0A,$00
+	dc.b "Commodore-Amiga Ram Drive 1.0 (6 Apr 88)",$0D,$0A,$00	; string
 loc_0_0000017D:
-	dc.b "dos.library",$00
+	dc.b "dos.library",$00	; string
 	dc.b $65,$78,$70,$61,$6E,$73,$69,$6F,$6E,$2E,$6C,$69,$62,$72,$61,$72
 	dc.b $79,$00,$00,$48,$E7,$20,$22,$2C,$78,$00,$04,$22,$7A,$FE,$E6,$20
 	dc.b $3C,$00,$00,$01,$D8,$4E,$AE,$FF,$34,$4A,$80,$67,$00,$00,$8A,$22
@@ -237,7 +236,7 @@ loc_0_000003B8:
 	move.l (a0)+,(a1)+
 	dbf.w d0,loc_0_000003B8
 	move.l a4,d1
-	lea.l amiga_loadseg_segment_link(pc),a0
+	lea.l -$3C6(pc),a0
 	sub.l a0,d1
 	lea.l loc_0_0000054C(pc),a0
 loc_0_000003CA:
@@ -381,7 +380,7 @@ loc_0_0000057A:
 	movem.l d2-d3/a2-a3,-(a7)
 	move.w #INTF_INTEN,_custom+intena.l
 	addq.b #1,app_0126(a6)
-	movea.l app_0142(a6),a0
+	movea.l $0142(a6),a0
 	moveq.l #0,d3
 loc_0_00000590:
 	movea.l a0,a1
@@ -497,15 +496,15 @@ loc_0_00000660:
 	rts
 loc_0_00000668:
 	movea.l $0014(a1),a6
-	addq.w #1,app_0022(a6)
-	move.l app_0030(a6),d0
+	addq.w #1,$0022(a6)
+	move.l $0030(a6),d0
 	beq.b loc_0_00000682
 	add.l $002C(a1),d0
 	movea.l d0,a0
 	movea.l $0028(a1),a2
 	bra.b loc_0_000006AC
 loc_0_00000682:
-	subq.w #1,app_0022(a6)
+	subq.w #1,$0022(a6)
 	moveq.l #29,d0
 	rts
 loc_0_0000068A:
@@ -513,8 +512,8 @@ loc_0_0000068A:
 	bne.w loc_0_0000070A
 	movea.l $0028(a1),a0
 	movea.l $0014(a1),a6
-	addq.w #1,app_0022(a6)
-	move.l app_0030(a6),d0
+	addq.w #1,$0022(a6)
+	move.l $0030(a6),d0
 	beq.b loc_0_00000682
 	add.l $002C(a1),d0
 	movea.l d0,a2
@@ -559,7 +558,7 @@ loc_0_000006B6:
 	dbf.w d0,loc_0_000006B6
 loc_0_000006FA:
 	move.l $0024(a1),$0020(a1)
-	subq.w #1,app_0022(a6)
+	subq.w #1,$0022(a6)
 	bmi.b loc_0_0000070E
 	moveq.l #0,d0
 	rts
@@ -574,24 +573,24 @@ loc_0_00000718:
 	movea.l $0004.w,a0
 	addq.b #1,$0127(a0)
 	moveq.l #0,d0
-	subq.w #1,app_0022(a6)
+	subq.w #1,$0022(a6)
 	bpl.w loc_0_000007AA
 loc_0_0000072A:
 	moveq.l #0,d0
-	tst.l app_0030(a6)
+	tst.l $0030(a6)
 	beq.b loc_0_000007AA
 	movem.l a2-a4,-(a7)
 	lea.l -$0032(a6),a2
 	lea.l -$004A(a6),a3
-	lea.l app_00BA(a6),a4
+	lea.l $00BA(a6),a4
 	movea.l a6,a1
 	movea.l (a1),a0
 	movea.l $0004(a1),a1
 	move.l a0,(a1)
 	move.l a1,$0004(a0)
-	clr.l app_0030(a6)
-	movea.l app_0028(a6),a1
-	move.l app_002C(a6),d0
+	clr.l $0030(a6)
+	movea.l $0028(a6),a1
+	move.l $002C(a6),d0
 	movea.l $0004.w,a6
 	jsr _LVOFreeMem(a6)
 	lea.l app_0226(a6),a1

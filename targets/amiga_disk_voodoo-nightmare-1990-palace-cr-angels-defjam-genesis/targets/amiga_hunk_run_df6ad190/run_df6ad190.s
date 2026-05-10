@@ -31,7 +31,6 @@ app_586A RS.L 1
 app_5A6A RS.L 1
 app_SIZEOF EQU __RS
 
-amiga_loadseg_segment_link	EQU	-4
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
 _custom	EQU	$DFF000
@@ -75,7 +74,7 @@ loc_1_00000014:
 	rts
 loc_1_0000003C:
 	move.w d6,d7
-	lea.l amiga_loadseg_segment_link(pc),a1
+	lea.l loc_1_00000000-4(pc),a1
 loc_1_00000042:
 	movea.l (a1),a1
 	adda.l a1,a1

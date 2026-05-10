@@ -2,13 +2,12 @@
     INCLUDE "exec/memory.i"
     INCLUDE "hardware/custom.i"
 
-amiga_loadseg_segment_link	EQU	-4
 _custom	EQU	$DFF000
 
     SECTION section_0,code
 loc_0_00000000:
 	movem.l d0-d7/a0-a6,-(a7)
-	lea.l amiga_loadseg_segment_link(pc),a0
+	lea.l loc_0_00000000-4(pc),a0
 	movea.l (a0),a0
 	adda.l a0,a0
 	adda.l a0,a0
@@ -33,7 +32,7 @@ loc_0_00000000:
 	suba.l a1,a1
 	jsr _LVOFindTask(a6)
 	movea.l d0,a0
-	lea.l amiga_loadseg_segment_link(pc),a4
+	lea.l loc_0_00000000-4(pc),a4
 	move.l $00AC(a0),d0
 	beq.b loc_0_0000005C
 	lsl.l #2,d0
@@ -94,7 +93,7 @@ loc_0_000000D4:
 	subq.l #8,a1
 	move.l (a1),d0
 	jsr _LVOFreeMem(a6)
-	lea.l amiga_loadseg_segment_link(pc),a0
+	lea.l loc_0_00000000-4(pc),a0
 	tst.l (a0)
 	bne.b loc_0_000000EC
 	move.l a0,d0

@@ -4,6 +4,10 @@ This plan records the current RSSET survey and expands the design target to
 absolute memory, ORG/runtime views, bootstrapping, and lookup-table rendering.
 It should be reviewed before more renderer changes are made.
 
+Amiga-specific nuances are recorded in `docs/design-amiga.md`. In this plan,
+those notes are treated as platform requirements that plug into the generic C
+analysis model, not as target metadata or renderer-side guesses.
+
 ## Objective
 
 Build a C-owned model for persistent base-relative storage, absolute runtime
@@ -196,6 +200,9 @@ measurements and test names here, not in the index table.
 - Tests cover ExecBase literal behavior, stack top EQU, interrupt/vector target
   stores, runtime aliases, relocation anchors, hardware sinks, and
   display/copper/audio sinks.
+- LoadSeg pre-segment references are platform facts: Voodoo Nightmare `run`
+  proves a PC-relative section-start-minus-four operand that must render as a
+  section-start expression rather than as a freestanding negative `EQU`.
 - Generated Amiga hardware ids, symbol ids, vector/function ids, and runtime
   target/access enums drive hardware/platform decisions; strings are source and
   JSON display text only.
@@ -690,6 +697,7 @@ All absolute memory access should be classified by ownership before rendering:
 | Class | Examples | Render goal |
 | --- | --- | --- |
 | ExecBase literal | `$4.w`, `$00000004` | usually keep `$4`; document as Amiga rule |
+| LoadSeg segment link | `section_start-4(pc)` | section-start expression, not standalone `EQU -4` |
 | CPU/vector table | `$10,$20,$68,$70,$80` | vector symbols plus discovered code target where proven |
 | Hardware registers | `_custom`, `_ciaa`, `_ciab` ranges | generated platform field names |
 | Display memory | bitplanes, sprite pointers, copper pointers | bitmap/copper labels tied to runtime memory ranges |

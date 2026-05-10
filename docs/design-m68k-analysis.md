@@ -7,6 +7,11 @@ layouts and absolute runtime memory as the first worked example.
 The source renderer should be deterministic output from C analysis facts. Python
 or web code may display those facts, but must not invent them.
 
+Amiga platform details such as LoadSeg segment headers, HUNK relocation anchors,
+ExecBase literals, hardware registers, and device/library structure ownership
+are covered in `docs/design-amiga.md`. This document describes the generic M68K
+analysis model those platform facts plug into.
+
 The same rule covers these related topics:
 
 - RSSET layouts: base-relative storage such as app slots and resident extension
@@ -574,6 +579,12 @@ operand carries hunk relocation provenance, the memory owner is section storage
 for the relocation target. Only unrelocated absolute operands to vector slots, or
 platform callback-vector slots, may classify the orphan as `vector` missing
 inbound evidence.
+
+The same provenance rule applies to Amiga LoadSeg pre-segment references. A
+PC-relative target such as section start minus four is the segment link for that
+section. Render it as a section-start expression, not as an absolute low-memory
+address and not as a freestanding `EQU -4` symbol. See `docs/design-amiga.md`
+for the Amiga-specific details.
 
 ## Absolute Memory Access
 

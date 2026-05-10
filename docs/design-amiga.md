@@ -1,22 +1,71 @@
-# Amiga Platform Analysis
+# Amiga platform analysis design notes
 
-This document records Amiga-specific analysis and rendering rules that should
-not be hidden in target metadata or generic M68K logic.
+This document is for implementers who are adding Amiga-specific analysis without
+turning Amiga details into generic M68K rules.
+
+Generic M68K analysis should answer instruction-flow and typed-flow questions.
+Amiga platform analysis should answer questions about HUNK loading, Exec/DOS
+runtime conventions, custom-chip memory, CIA registers, devices, libraries, and
+other Amiga-specific ownership. The renderer should consume those C-owned facts;
+Python and the web UI may display them, but must not invent them.
+
+## Core Rule
+
+Before rendering an Amiga-specific symbol, analysis must know:
+
+```text
+which Amiga owner is being addressed?
+which address space owns it: hunk payload, LoadSeg metadata, runtime absolute,
+hardware, vector table, app storage, or device/library structure?
+what evidence proves that owner?
+will the rendered expression stay editable and reproduce the original object?
+```
+
+If any answer is missing, keep the source conservative.
+
+## LoadSeg Segment Headers
+
+`LoadSeg()` does not return a bare pointer to only the hunk bytes. DOS links
+loaded hunks through a segment list. For each loaded segment, the longword just
+before the hunk body is the next segment link. In source terms:
+
+```asm
+segment_alloc_base:
+    dc.l allocation_size
+segment_link:
+    dc.l next_segment_bptr      ; body_start-4
+body_start:
+    ; hunk payload starts here
+```
+
+Real programs can deliberately inspect this metadata. Voodoo Nightmare `run`
+does this with a PC-relative reference to the longword before section start:
+
+```asm
+    lea.l loc_0_00000000-4(pc),a1
+```
+
+That is not an absolute low-memory `$4` access. It is not an ORG range. It is
+also not a standalone `EQU -4` symbol, because `amiga_loadseg_segment_link(pc)`
+hides the base of the expression. The useful source relationship is "the
+LoadSeg link for this section", so the rendered operand must be anchored to the
+section-start label plus the negative addend.
+
+Rules:
+
+- Render proven pre-segment references as section-start expressions such as
+  `loc_0_00000000-4(pc)`.
+- Do not emit `amiga_loadseg_segment_link EQU -4` for these operands.
+- Do not model LoadSeg segment headers as ORG/runtime labels.
+- Do not convert a section-start prelude reference into a hardware, vector, or
+  absolute-RAM reference just because the addend is a small number.
+- Keep reproduction exact after changing these expressions.
 
 ## HUNK Relocation Anchors
 
-Amiga HUNK `HUNK_RELOC32` entries can legally point outside the loaded payload
-range of the target hunk. A common example is a longword relocated as
-`base(hunk 0)-4`, which refers to the LoadSeg segment link/header word before
-the hunk payload. Some real executables also use segment-relative references to
-reach other segment metadata or code.
-
-These references must remain relocatable when source is reassembled. Rendering
-them as plain numeric data preserves bytes but loses relocation semantics.
-Rendering them as ordinary labels plus addends is also wrong: if the label is a
-normal code/data label, user edits before that label can change the expression.
-
-The source model therefore supports generated section-base pseudo-symbols:
+HUNK `HUNK_RELOC32` entries can legally point outside the loaded payload range.
+For data relocations, the source model can preserve relocation semantics through
+generated section-base pseudo-symbols:
 
 ```asm
     dc.l __section_0_base-$00000004
@@ -24,77 +73,67 @@ The source model therefore supports generated section-base pseudo-symbols:
 
 `__section_N_base` is not a rendered location label. It resolves in the C source
 emitter to section `N`, offset `0`, so the rebuilt object receives a real
-relocation against the section base with the encoded addend. Ordinary in-range
-code/data references must still render to target labels, not to
-`__section_N_base+offset`.
+relocation against the section base with the encoded addend.
 
-Rules:
-
-- Use target labels for relocations into accepted source ranges.
-- Use section-base pseudo-symbols only for proven HUNK relocation anchors whose
-  target is outside the renderable hunk payload range.
-- Do not use `EQU` constants for these anchors; constants lose relocation
-  semantics.
-- Do not use ORG/runtime labels to model hunk headers or segment links.
-- Keep direct source/rebuild verification as the correctness gate.
+Use target labels for relocations into accepted source ranges. Use section-base
+pseudo-symbols only for proven HUNK relocation anchors whose target is outside
+the renderable hunk payload range. Ordinary code/data references should still
+render to labels, not to `__section_N_base+offset`.
 
 ## ExecBase Absolute Address
 
-The Amiga ExecBase pointer lives at absolute address `$4`. Although the
-platform metadata records this as `AbsExecBase`, rendered source should keep
-direct ExecBase loads literal:
+The ExecBase pointer lives at absolute address `$4`. Users expect the familiar
+literal form:
 
 ```asm
     movea.l $00000004.l,a6
 ```
 
-This is the familiar Amiga idiom and is more useful to users than introducing a
-symbol for the well-known low-memory vector. The renderer must still distinguish
-this from runtime copied code at address `$4`: copy targets and control
-transfers to discovered runtime code may use generated runtime-code symbols,
-but the ordinary ExecBase load itself stays numeric.
+Keep direct ExecBase loads literal. Do not render them as `ExecBase`,
+`AbsExecBase`, a runtime label, an ORG label, or a LoadSeg segment-link
+expression. Runtime copied code at address `$4` is a different fact and needs
+separate runtime-copy evidence before it can use a runtime-code symbol.
 
-Rules:
-
-- Keep direct `($4)` ExecBase loads literal.
-- Do not render ExecBase as a code/data label, an ORG label, or
-  `runtime_code_00000004`.
-- Use runtime-code symbols at `$4` only when analysis proves copied executable
-  code is materialized there.
-
-## Runtime-Copied ORG Code vs Decompression
+## Runtime ORG Views And Decompressed Children
 
 Some Amiga programs copy bytes from their loaded hunk into absolute memory and
-then execute them. This is not automatically decompression. If the copied bytes
-are already present as source bytes and analysis proves the runtime destination,
-the source model is an ORG/runtime view, not a decompressed child target.
-
-Magicland Dizzy `MD` is the current proving example: C analysis records a
-runtime view at `$5BFF0`, a runtime-address reference proves the copied range
-start, and facts-v2 queues that address as a `runtime_view_entry`. The rendered
-source should therefore decode the ORG payload in the same target. It should
-not create a decompressed child unless later analysis proves a produced
-replacement program that is not just an ORG view of shipped bytes.
+execute them. That is an ORG/runtime view when the bytes already exist in the
+source target. It is a decompressed child target only when analysis proves a new
+produced byte image with its own load range, entrypoint, and provenance.
 
 Rules:
 
-- Treat ORG/runtime views as source mappings of bytes already in the target.
-- Treat decompressed children as produced bytes with their own provenance,
-  output range, entrypoint, role, and reproduction status.
-- Do not use decompression machinery to paper over missing ORG/runtime-copy
-  analysis.
-- Do not use ORG rendering to hide a real packer that produces bytes not present
-  as a source range.
-- Keep `docs/design-m68k-analysis.md` and `docs/plan-m68k-analysis.md` as the
-  canonical ORG range evidence and rendering guide.
+- Use ORG/runtime views for copied or relocated bytes already present in the
+  target.
+- Use decompressed children for produced bytes with independent source/output
+  ranges.
+- Do not use decompression machinery to hide missing ORG/runtime-copy analysis.
+- Do not use ORG rendering to hide a real packer.
+- See `docs/design-m68k-analysis.md` and `docs/plan-m68k-analysis.md` for the
+  generic runtime-view model and current work plan.
 
-## Hardware Block Aliases
+## Hardware And Platform Structures
 
-Some custom-chip register blocks are easier to read as block aliases plus field
-offsets. These aliases belong in Amiga platform metadata or generated includes,
-not in target metadata.
+Known Amiga platform structures must render through platform metadata, not app
+slots:
 
-Useful aliases include:
+```asm
+    lea.l _custom.l,a6
+    move.w d0,intena(a6)
+```
+
+This must not become:
+
+```asm
+app_009A RS.W 1
+    move.w d0,app_009A(a6)
+```
+
+The same applies to `_ciaa`, `_ciab`, library bases, device bases, IO requests,
+audio channels, sprite definitions, copper/display structures, and any generated
+Amiga platform struct.
+
+Useful custom-chip block aliases include:
 
 ```asm
 aud   EQU $0A0
@@ -113,10 +152,7 @@ sd_dataB  EQU $06
 sd_SIZEOF EQU $08
 ```
 
-Rules:
-
-- Render audio, sprite, copper, display, CIA, and custom-chip accesses through
-  platform metadata when the base is known.
-- Do not infer app slots from offsets that belong to known hardware bases.
-- Prefer block aliases only when they match the hardware layout and keep source
-  editable without fragile addends.
+Render audio, sprite, copper, display, CIA, and custom-chip accesses through
+generated platform metadata when the base is known. Prefer block aliases only
+when they match the hardware layout and keep source editable without fragile
+addends.

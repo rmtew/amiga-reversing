@@ -8188,7 +8188,7 @@ static int test_facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve(void) 
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link(void) {
+static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -8209,8 +8209,8 @@ static int test_facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link(vo
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "amiga_loadseg_segment_link\tEQU\t-4") != NULL);
-  M68K_C_ASSERT(strstr(source, "lea.l amiga_loadseg_segment_link(pc),a1") != NULL);
+  M68K_C_ASSERT(strstr(source, "amiga_loadseg_segment_link\tEQU\t-4") == NULL);
+  M68K_C_ASSERT(strstr(source, "lea.l loc_0_00000000-4(pc),a1") != NULL);
   M68K_C_ASSERT(strstr(source, "lea.l -$6(pc),a1") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -16896,8 +16896,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_maps_bss_relocation_label},
     {"facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve",
       test_facts_v2_render_asm_source_renders_pure_bss_as_ds_reserve},
-    {"facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link",
-      test_facts_v2_render_asm_source_symbols_amiga_loadseg_segment_link},
+    {"facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link",
+      test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link},
     {"facts_v2_demotes_speculative_unencodable_instruction",
       test_facts_v2_demotes_speculative_unencodable_instruction},
     {"facts_v2_demotes_speculative_reserved_full_extension",

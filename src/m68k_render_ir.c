@@ -524,13 +524,6 @@ static int render_asm_define_m68k_vector_symbol_once(M68kRenderIRPreview *previe
   return render_asm_declare_symbol_hex_once(preview, symbol_name, vector->address);
 }
 
-static int render_asm_define_platform_symbol_once(M68kRenderIRPreview *preview, const char *symbol_name) {
-  int32_t value;
-  if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
-  if (!platform_facts_v2_synthetic_symbol_value(preview->platform_backend_kind, symbol_name, &value)) return 1;
-  return render_asm_declare_symbol_once(preview, symbol_name, value);
-}
-
 static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, const char *expr);
 
 static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPreview *preview,
@@ -579,7 +572,6 @@ static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, cons
     if (!render_asm_define_amiga_hardware_base_once(preview, token)) return 0;
     if (!render_asm_define_amiga_constant_once(preview, token)) return 0;
     if (!render_asm_define_m68k_vector_symbol_once(preview, token)) return 0;
-    if (!render_asm_define_platform_symbol_once(preview, token)) return 0;
     if (!render_asm_define_amiga_hardware_instance_alias_once(preview, token)) return 0;
   }
   return 1;
@@ -7344,16 +7336,17 @@ static int attach_absolute_word_control_symbols(const M68kRenderLookup *lookup, 
   return 0;
 }
 
-static int attach_platform_pc_relative_synthetic_symbols(const M68kRenderLookup *lookup, size_t section_index,
+static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLookup *lookup, size_t section_index,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
   size_t operand_index;
   if (lookup == NULL || lookup->object == NULL || candidate == NULL || instruction == NULL) return 0;
-  (void)section_index;
+  if (section_index >= lookup->section_count) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count &&
        operand_index < candidate->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
     M68kAsmOperandValue asm_operands[M68K_DECODE_IR_MAX_OPERANDS];
-    char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
+    uint32_t base_offset = 0U;
+    int32_t addend = 0;
     size_t index;
     size_t relative_base;
     int64_t target;
@@ -7372,17 +7365,23 @@ static int attach_platform_pc_relative_synthetic_symbols(const M68kRenderLookup 
     relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
       candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
     target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
-    if (!platform_facts_v2_pc_relative_symbol_for_target(lookup->object->platform_backend_kind, target,
-        symbol_name, sizeof(symbol_name))) {
+    if (!platform_facts_v2_pc_relative_section_anchor_for_target(lookup->object->platform_backend_kind, target,
+        &base_offset, &addend) || lookup->label_extents == NULL ||
+        base_offset >= lookup->label_extents[section_index] ||
+        !lookup_has_renderable_label(lookup, section_index, base_offset)) {
       continue;
     }
     m68k_ir_symbol_ref_init(&operand->symbol_ref);
     operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_PC_REL;
     operand->symbol_ref.has_name = 1U;
+    operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
+      operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section_index, base_offset);
+    operand->symbol_ref.has_section = 1;
+    operand->symbol_ref.section_index = section_index;
+    operand->symbol_ref.addend = addend;
     operand->symbol_ref.name_provenance = lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK
       ? M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA
       : M68K_IR_SYMBOL_PROVENANCE_NONE;
-    snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
   }
   return 0;
 }
@@ -8016,7 +8015,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     return 0;
   }
   (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
-  (void)attach_platform_pc_relative_synthetic_symbols(lookup, section->section_index, candidate, &instruction);
+  (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate, &instruction);
   if (!attach_runtime_address_ref_symbols(preview, lookup, section->section_index, candidate, &instruction)) return 0;
   if (!attach_known_external_runtime_address_symbols(preview, lookup, section->section_index, candidate,
       &instruction)) {
