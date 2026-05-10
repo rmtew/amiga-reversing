@@ -5779,6 +5779,7 @@ typedef struct M68kRenderAppRsSlot {
   uint8_t value_kind;
   uint8_t source_kind;
   uint8_t layout_kind;
+  uint8_t base_kind;
   size_t source_section_index;
   uint32_t source_offset;
   char layout_name[32];
@@ -5984,6 +5985,7 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
     field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     field.conflicted = 0U;
     field.layout_kind = slots[index].layout_kind;
+    field.base_kind = slots[index].base_kind;
     field.has_source = slots[index].has_source;
     field.source_section_index = slots[index].source_section_index;
     field.source_offset = slots[index].source_offset;
@@ -6106,6 +6108,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));
     snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), M68K_RENDER_APP_LAYOUT_NAME);
     slots[slot_count].layout_kind = (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
+    slots[slot_count].base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
     snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), M68K_RENDER_APP_BASE_SYMBOL);
     render_app_rs_default_sizeof_symbol(slots[slot_count].layout_kind, M68K_RENDER_APP_LAYOUT_NAME,
       slots[slot_count].sizeof_symbol, sizeof(slots[slot_count].sizeof_symbol));
@@ -6140,6 +6143,9 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       }
       snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "%s", layout_name);
       slots[slot_count].layout_kind = layout_kind;
+      slots[slot_count].base_kind =
+        (region->flags & (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE) != 0U ?
+        M68K_BASE_LAYOUT_BASE_KIND_APP : M68K_BASE_LAYOUT_BASE_KIND_UNKNOWN;
       snprintf(slots[slot_count].base_symbol, sizeof(slots[slot_count].base_symbol), "%s", base_symbol);
       render_app_rs_effective_sizeof_symbol(layout_kind, layout_name, region->sizeof_symbol,
         slots[slot_count].sizeof_symbol, sizeof(slots[slot_count].sizeof_symbol));

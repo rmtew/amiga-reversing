@@ -119,7 +119,12 @@ measurements and test names here, not in the index table.
 - C source analysis records rendered base-layout fields, layout-kind ids, alias
   overlays, typed owner metadata, and listing JSON layout fields.
 - Same-base, different-layout overlaps are conflict-marked in
-  `memory_layout_records`.
+  `M68kSourceAnalysisIR`; `memory_layout_records` only serialize the finalized
+  C conflict flags.
+- Base-layout fields now carry a compact base-kind id for app-base ownership, so
+  conflict checks do not classify app storage through repeated static-string
+  comparisons in JSON/export code. Policy RSSET import sets an app-base flag
+  once, and render maps that flag into source-analysis base-kind ids.
 - App-slot-provenance typed ranges now conflict-mark named app-base layout
   fields symmetrically: the typed access, named layout field, and aggregate
   layout all report `conflicted`. Non-app typed struct offsets are not compared
@@ -1339,7 +1344,9 @@ undocumented renderer heuristics.
   conflict-mark overlapping named app-base layouts symmetrically; unrelated
   non-app typed/platform struct ranges are intentionally not compared to app
   layouts without shared app-slot provenance. Typed app-slot struct interiors
-  no longer produce flat duplicate app fields.
+  no longer produce flat duplicate app fields. Base-layout ownership conflicts
+  are now finalized in C source-analysis IR; JSON/export layers do not recompute
+  those conflicts.
 - Absolute raw/decompressed targets have accepted operand and orphan-candidate
   memory-layout records; they still need load address, source extent, and entry
   range merged into the same higher-level target/load relationship model.

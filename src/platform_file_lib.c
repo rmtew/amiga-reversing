@@ -535,7 +535,10 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
   }
   if (!has_offset) return 1;
   if (has_size && (explicit_size == 0U || explicit_size > 255U)) return 0;
-  if (has_flags && (flags & ~(uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U) return 0;
+  if (has_flags && (flags & ~((uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT |
+      (uint32_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE)) != 0U) {
+    return 0;
+  }
   {
     uint8_t storage_kind_id = rsset_layout_region_storage_kind_id_from_text_local(storage_kind);
     return policy_add_rsset_layout_region_local(policy, offset,
@@ -611,7 +614,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   M68kAnalysisRssetLayoutRegion *slot;
   uint16_t index;
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
-  const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : "__amiga_app_base__";
+  const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : AMIGA_APP_BASE_TAG;
   if (policy == NULL || offset > 0x7FFFU || size == 0U ||
       policy->rsset_layout_region_count >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
     return 0;
@@ -619,7 +622,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
     const M68kAnalysisRssetLayoutRegion *existing = &policy->rsset_layout_regions[index];
     const char *existing_layout = existing->layout_name[0] != '\0' ? existing->layout_name : "app";
-    const char *existing_base = existing->base_symbol[0] != '\0' ? existing->base_symbol : "__amiga_app_base__";
+    const char *existing_base = existing->base_symbol[0] != '\0' ? existing->base_symbol : AMIGA_APP_BASE_TAG;
     if (existing->offset == offset && strcmp(existing_layout, effective_layout) == 0 &&
         strcmp(existing_base, effective_base) == 0) {
       return 1;
@@ -630,6 +633,9 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   slot->offset = offset;
   slot->size = size;
   slot->flags = flags;
+  if (strcmp(effective_base, AMIGA_APP_BASE_TAG) == 0) {
+    slot->flags |= (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE;
+  }
   slot->storage_kind_id = storage_kind_id;
   if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
       !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||

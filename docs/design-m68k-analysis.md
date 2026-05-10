@@ -1052,6 +1052,12 @@ such as `memory-layout:conflict:<state>`.
 Base-layout fields also carry a compact layout-kind id. Range and conflict
 consumers must use that id before comparing base-relative ranges; layout/base
 names remain labels, not classifiers.
+Base-layout fields also carry a compact base-kind id for known platform/app
+bases. Same-base layout conflicts are finalized into `M68kSourceAnalysisIR` in
+C; JSON, web UI, and manifest code must serialize those flags rather than
+recomputing conflict policy from strings.
+Policy RSSET metadata normalizes app-base ownership once at parse/import time
+with an app-base flag; render and export code must consume that flag.
 Base-relative conflicts are only valid inside the same proven base. App offsets
 must not be compared directly to source-code offsets; accepted-code conflicts
 need an explicit source/runtime mapping before the ranges are comparable.

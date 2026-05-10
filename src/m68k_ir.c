@@ -1970,6 +1970,132 @@ void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *sour
   }
 }
 
+static int m68k_base_layout_field_same_layout(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  if (left == NULL || right == NULL) return 0;
+  return left->layout_kind == right->layout_kind &&
+    left->base_kind == right->base_kind &&
+    text_equal_nullable(left->layout_name, right->layout_name) &&
+    text_equal_nullable(left->base_symbol, right->base_symbol) &&
+    text_equal_nullable(left->sizeof_symbol, right->sizeof_symbol);
+}
+
+static int m68k_base_layout_field_same_base(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  if (left == NULL || right == NULL) return 0;
+  if (left->base_kind != M68K_BASE_LAYOUT_BASE_KIND_UNKNOWN ||
+      right->base_kind != M68K_BASE_LAYOUT_BASE_KIND_UNKNOWN) {
+    return left->base_kind != M68K_BASE_LAYOUT_BASE_KIND_UNKNOWN &&
+      left->base_kind == right->base_kind;
+  }
+  return text_equal_nullable(left->base_symbol, right->base_symbol);
+}
+
+static int m68k_base_layout_fields_overlap(const M68kBaseLayoutFieldIR *left,
+    const M68kBaseLayoutFieldIR *right) {
+  uint32_t left_end;
+  uint32_t right_end;
+  if (left == NULL || right == NULL || left->size == 0U || right->size == 0U) return 0;
+  if (UINT32_MAX - left->offset < left->size || UINT32_MAX - right->offset < right->size) return 0;
+  left_end = left->offset + left->size;
+  right_end = right->offset + right->size;
+  return left->offset < right_end && right->offset < left_end;
+}
+
+static int m68k_layout_ranges_overlap(int64_t left_start, uint32_t left_size, uint32_t right_start,
+    uint32_t right_size) {
+  int64_t left_end;
+  uint64_t right_end;
+  if (left_size == 0U || right_size == 0U || left_start < 0) return 0;
+  left_end = left_start + (int64_t)left_size;
+  right_end = (uint64_t)right_start + (uint64_t)right_size;
+  if (right_end > (uint64_t)INT64_MAX) return 0;
+  return left_start < (int64_t)right_end && (int64_t)right_start < left_end;
+}
+
+static int m68k_platform_typed_access_owner_range(const M68kRecoveredPlatformTypedAccessIR *access,
+    int64_t *out_start, uint32_t *out_size) {
+  int64_t owner_range_start;
+  uint32_t owner_range_size;
+  if (out_start != NULL) *out_start = 0;
+  if (out_size != NULL) *out_size = 0U;
+  if (access == NULL) return 0;
+  owner_range_start = (int64_t)access->displacement;
+  owner_range_size = access->field_size;
+  if (access->struct_size != 0U && access->field_offset >= 0 && access->displacement >= access->field_offset) {
+    owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
+    owner_range_size = access->struct_size;
+  }
+  if (owner_range_size == 0U) return 0;
+  if (out_start != NULL) *out_start = owner_range_start;
+  if (out_size != NULL) *out_size = owner_range_size;
+  return 1;
+}
+
+static int m68k_base_layout_field_conflicts_with_other_layout(const M68kSourceAnalysisIR *source_analysis,
+    const M68kBaseLayoutFieldIR *field) {
+  size_t index;
+  if (source_analysis == NULL || field == NULL) return 0;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    const M68kBaseLayoutFieldIR *other = &source_analysis->base_layout_fields[index];
+    if (m68k_base_layout_field_same_layout(field, other)) continue;
+    if (!m68k_base_layout_field_same_base(field, other)) continue;
+    if (m68k_base_layout_fields_overlap(field, other)) return 1;
+  }
+  return 0;
+}
+
+static int m68k_base_layout_field_conflicts_with_platform_typed_range(
+    const M68kSourceAnalysisIR *source_analysis, const M68kBaseLayoutFieldIR *field) {
+  size_t section_index;
+  if (source_analysis == NULL || field == NULL || field->size == 0U ||
+      field->layout_kind == M68K_BASE_LAYOUT_KIND_APP ||
+      field->base_kind != M68K_BASE_LAYOUT_BASE_KIND_APP) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t access_index;
+    for (access_index = 0U; access_index < section->recovered_platform_typed_access_count; ++access_index) {
+      const M68kRecoveredPlatformTypedAccessIR *access = &section->recovered_platform_typed_accesses[access_index];
+      int64_t owner_range_start;
+      uint32_t owner_range_size;
+      if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT) continue;
+      if (!m68k_platform_typed_access_owner_range(access, &owner_range_start, &owner_range_size)) continue;
+      if (owner_range_start < 0 || owner_range_start > (int64_t)UINT32_MAX) continue;
+      if (m68k_layout_ranges_overlap((int64_t)field->offset, field->size,
+          (uint32_t)owner_range_start, owner_range_size)) {
+        return 1;
+      }
+    }
+    for (access_index = 0U; access_index < section->recovered_platform_unresolved_typed_access_count;
+        ++access_index) {
+      const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
+        &section->recovered_platform_unresolved_typed_accesses[access_index];
+      if (access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT) continue;
+      if (access->displacement < 0) continue;
+      if (m68k_layout_ranges_overlap((int64_t)field->offset, field->size,
+          (uint32_t)access->displacement, access->struct_size)) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+void m68k_ir_source_analysis_finalize_base_layout_conflicts(M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  if (source_analysis == NULL) return;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
+    if (field->conflicted) continue;
+    if (m68k_base_layout_field_conflicts_with_other_layout(source_analysis, field) ||
+        m68k_base_layout_field_conflicts_with_platform_typed_range(source_analysis, field)) {
+      field->conflicted = 1U;
+    }
+  }
+}
+
 static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,
     const M68kBaseLayoutFieldIR *right) {
   if (left == NULL || right == NULL) return 0;
@@ -1991,6 +2117,7 @@ static int m68k_base_layout_field_matches(const M68kBaseLayoutFieldIR *left,
     left->confidence == right->confidence &&
     left->conflicted == right->conflicted &&
     left->layout_kind == right->layout_kind &&
+    left->base_kind == right->base_kind &&
     left->has_source == right->has_source &&
     left->source_section_index == right->source_section_index &&
     left->source_offset == right->source_offset;
@@ -2038,6 +2165,7 @@ int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *sourc
   copy.confidence = field->confidence;
   copy.conflicted = field->conflicted;
   copy.layout_kind = field->layout_kind;
+  copy.base_kind = field->base_kind;
   copy.alias_of_offset = field->alias_of_offset;
   copy.has_source = field->has_source;
   copy.source_section_index = field->source_section_index;

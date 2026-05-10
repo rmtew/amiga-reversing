@@ -11740,6 +11740,7 @@ static int test_source_analysis_memory_layout_marks_same_base_layout_overlap_con
   layout_field.offset = 0x0100U;
   layout_field.size = 0x20U;
   layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_APP;
+  layout_field.base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
@@ -11752,10 +11753,14 @@ static int test_source_analysis_memory_layout_marks_same_base_layout_overlap_con
   layout_field.offset = 0x0110U;
   layout_field.size = 4U;
   layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_NAMED;
+  layout_field.base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
 
+  m68k_ir_source_analysis_finalize_base_layout_conflicts(&source_analysis);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[0].conflicted);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].conflicted);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"base_layout_field_count\":2") != NULL);
@@ -11798,6 +11803,7 @@ static int test_source_analysis_platform_typed_access_conflicts_with_non_app_lay
   layout_field.offset = 0x0100U;
   layout_field.size = 8U;
   layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_APP;
+  layout_field.base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
@@ -11810,6 +11816,7 @@ static int test_source_analysis_platform_typed_access_conflicts_with_non_app_lay
   layout_field.offset = 0x0104U;
   layout_field.size = 2U;
   layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_NAMED;
+  layout_field.base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
@@ -11820,6 +11827,9 @@ static int test_source_analysis_platform_typed_access_conflicts_with_non_app_lay
     0U, 0x0100U));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
+  m68k_ir_source_analysis_finalize_base_layout_conflicts(&source_analysis);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[0].conflicted);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[1].conflicted);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   typed_record = strstr(analysis_json, "\"record_kind\":\"platform_typed_access\"");
@@ -11860,6 +11870,7 @@ static int test_source_analysis_named_layout_conflicts_with_app_typed_access(voi
   layout_field.offset = 0x0104U;
   layout_field.size = 4U;
   layout_field.layout_kind = M68K_BASE_LAYOUT_KIND_NAMED;
+  layout_field.base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
   layout_field.source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
   layout_field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_base_layout_field(&source_analysis, &layout_field));
@@ -11870,6 +11881,8 @@ static int test_source_analysis_named_layout_conflicts_with_app_typed_access(voi
     0U, 0x0100U));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
+  m68k_ir_source_analysis_finalize_base_layout_conflicts(&source_analysis);
+  M68K_C_ASSERT_U32(1U, source_analysis.base_layout_fields[0].conflicted);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":3") != NULL);

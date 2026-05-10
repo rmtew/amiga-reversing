@@ -220,7 +220,8 @@ typedef struct M68kAnalysisRssetLayoutRegion {
 } M68kAnalysisRssetLayoutRegion;
 
 typedef enum M68kAnalysisRssetLayoutRegionFlag {
-  M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT = 1U
+  M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT = 1U,
+  M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE = 2U
 } M68kAnalysisRssetLayoutRegionFlag;
 
 typedef enum M68kAnalysisRssetLayoutStorageKind {
@@ -975,6 +976,11 @@ typedef enum M68kBaseLayoutKind {
   M68K_BASE_LAYOUT_KIND_NAMED = 2
 } M68kBaseLayoutKind;
 
+typedef enum M68kBaseLayoutBaseKind {
+  M68K_BASE_LAYOUT_BASE_KIND_UNKNOWN = 0,
+  M68K_BASE_LAYOUT_BASE_KIND_APP = 1
+} M68kBaseLayoutBaseKind;
+
 typedef struct M68kBaseLayoutFieldIR {
   char *layout_name;
   char *base_symbol;
@@ -991,7 +997,7 @@ typedef struct M68kBaseLayoutFieldIR {
   uint8_t confidence;
   uint8_t conflicted;
   uint8_t layout_kind;
-  uint8_t reserved0[1];
+  uint8_t base_kind;
   char *alias_of_symbol;
   char *conflict_reason;
   uint32_t alias_of_offset;
@@ -1247,5 +1253,6 @@ int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *sourc
   const M68kBaseLayoutFieldIR *field);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);
 void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *source_analysis);
+void m68k_ir_source_analysis_finalize_base_layout_conflicts(M68kSourceAnalysisIR *source_analysis);
 
 #endif
