@@ -1480,6 +1480,7 @@ static const char *m68k_code_start_reason_name(uint32_t reason) {
     case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY: return "linkage_api_entry";
     case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY: return "platform_loadseg_entry";
     case M68K_FACT_CODE_START_REASON_STACK_CONTINUATION: return "stack_continuation";
+    case M68K_FACT_CODE_START_REASON_BOUNDARY_API_ENTRY: return "boundary_api_entry";
     default: return "unknown";
   }
 }

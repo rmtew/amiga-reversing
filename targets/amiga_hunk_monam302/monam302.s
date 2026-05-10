@@ -8211,6 +8211,7 @@ loc_0_0000855F:
 loc_0_00008568:
 	dc.b $20,$00
 	dc.b "Filename to load",$00	; string
+loc_0_0000857B:
 	dc.b "Source file to load",$00	; string
 loc_0_0000858F:
 	dc.b "Executable file to load",$00	; string
@@ -8230,11 +8231,13 @@ loc_0_000085EE:
 	dc.b "Kill all breakpoints",$00	; string
 	dc.b $20,$59,$2F,$4E,$3F,$00
 	dc.b "Breakpoint address[,param n=*?-]",$00	; string
+loc_0_00008660:
 	dc.b "History",$00	; string
 	dc.b "Search for B/W/L/T/I? ",$00	; string
 	dc.b "No printer device selected",$00	; string
 	dc.b "Expression to lock",$00	; string
 	dc.b "Enter expression",$00	; string
+loc_0_000086BE:
 	dc.b "Symbols",$00	; string
 	dc.b "PREFERENCES",$00	; string
 	dc.b "Show relative offset symbols Y/N? ",$00	; string

@@ -914,6 +914,82 @@ static int test_facts_v2_linkage_label_api_wrapper_promotes_code(void) {
   return 0;
 }
 
+static int test_facts_v2_boundary_relocation_api_wrapper_promotes_code(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kFixup fixup;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const AmigaOsLibraryVectorInfo *open_library =
+    amiga_os_find_library_vector_by_symbol_id(AMIGA_OS_SYMBOL_ID_LVOOPENLIBRARY);
+  size_t index;
+  int found_block = 0;
+  int found_ref = 0;
+  int16_t lvo;
+  char *source = NULL;
+  uint8_t bytes[0x24];
+  M68K_C_ASSERT(open_library != NULL);
+  lvo = open_library->lvo;
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x4eu;
+  bytes[1] = 0x75u;
+  bytes[2] = 0x2cu;
+  bytes[3] = 0x79u;
+  bytes[7] = 0x20u;
+  bytes[8] = 0x72u;
+  bytes[9] = 0x00u;
+  bytes[10] = 0x4eu;
+  bytes[11] = 0xeeu;
+  bytes[12] = (uint8_t)(((uint16_t)lvo >> 8) & 0xffU);
+  bytes[13] = (uint8_t)((uint16_t)lvo & 0xffU);
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 4U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.has_target_section = 1;
+  fixup.target_section_index = 0U;
+  fixup.addend = 0x20;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l loc_0_00000020.l,a6\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjmp ") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $2C,$79") == NULL);
+  M68K_C_ASSERT_U32(1U, profile.code_start_boundary_api_entries);
+  for (index = 0U; index < source_analysis.sections[0].block_count; ++index) {
+    if (source_analysis.sections[0].blocks[index].start_offset == 2U) found_block = 1;
+  }
+  for (index = 0U; index < source_analysis.sections[0].code_start_ref_count; ++index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[index];
+    if (ref->offset == 2U && ref->reason == M68K_FACT_CODE_START_REASON_BOUNDARY_API_ENTRY) found_ref = 1;
+  }
+  M68K_C_ASSERT(found_block);
+  M68K_C_ASSERT(found_ref);
+  for (index = 0U; index < source_analysis.sections[0].orphan_code_signal_count; ++index) {
+    M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[index].offset == 2U);
+  }
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
   AsmSourceFile source;
   M68kDiagList diagnostics;
@@ -18247,6 +18323,8 @@ int m68k_c_ir_tests(void) {
     {"decode_ir_treats_cpu_policy_as_ceiling", test_decode_ir_treats_cpu_policy_as_ceiling},
     {"facts_v2_linkage_label_api_wrapper_promotes_code",
       test_facts_v2_linkage_label_api_wrapper_promotes_code},
+    {"facts_v2_boundary_relocation_api_wrapper_promotes_code",
+      test_facts_v2_boundary_relocation_api_wrapper_promotes_code},
     {"source_parse_treats_cpu_policy_as_ceiling", test_source_parse_treats_cpu_policy_as_ceiling},
     {"source_fpu_directive_encodes_external_coprocessor_id",
       test_source_fpu_directive_encodes_external_coprocessor_id},

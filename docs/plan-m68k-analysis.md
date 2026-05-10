@@ -1277,20 +1277,53 @@ suppressed signals out of work-item tags:
 
 | Feature | Target rows | Signals |
 | --- | ---: | ---: |
-| `target-pattern:orphan_missing_api` | 4 | 4 |
+| `target-pattern:orphan_missing_api` | 2 | 3 |
 | `target-pattern:orphan_missing_callback` | 0 | 0 |
 | `target-pattern:orphan_missing_jump_table` | 0 | 0 |
 | `target-pattern:orphan_missing_metadata` | 208 | 208 |
 | `target-pattern:orphan_missing_runtime_copy` | 0 | 0 |
 | `target-pattern:orphan_missing_vector` | 0 | 0 |
 
-Examples include unlabelled MonAm/Starglider API candidates. Bloodwych
-runtime-view orphan islands remain navigable as runtime-view context, but no
-longer become runtime-copy work items without control-flow proof. The former
-Midwinter II callback row is kept as nearby pointer-table context, not a
-callback work item, because no table entry or control edge proves inbound flow.
-The previous jump-table-adjacent examples were suppressed hex-character lookup
-table overlaps and are no longer work items.
+Remaining examples include the unlabelled MonAm API-like snippets and one
+Workbench library candidate. The prior Starglider `SGload` API wrapper is now
+accepted only because C analysis proves an accepted-code boundary, a relocation
+inside the decoded wrapper, and a terminal Amiga LVO transfer; the same resource
+manifest and promoted project-target signals drop out without relying on target
+metadata. Bloodwych runtime-view orphan islands remain navigable as runtime-view
+context, but no longer become runtime-copy work items without control-flow
+proof. The former Midwinter II callback row is kept as nearby pointer-table
+context, not a callback work item, because no table entry or control edge proves
+inbound flow. The previous jump-table-adjacent examples were suppressed
+hex-character lookup table overlaps and are no longer work items.
+
+Relocation-backed boundary API entry corpus evidence:
+
+- C analysis now seeds code starts at accepted-code boundaries only when the
+  decoded terminal wrapper contains a relocation reference and a platform-known
+  Amiga LVO call/jump. This promotes linkage-like wrappers that lack a prebuilt
+  label, but does not promote MonAm-style app-slot snippets without relocation
+  provenance.
+- Isolated regression:
+  `facts_v2_boundary_relocation_api_wrapper_promotes_code`.
+- Real target evidence: Starglider `SGload` now renders the boundary wrapper as
+  `movea.l h0dl_DOSBase.l,a6`, `moveq.l #0,d1`, `jmp _LVOExit(a6)` instead of
+  `dc.b`/`dc.l` data. `uv run amiga-benchmark-target
+  amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e` passed with
+  `asm_source_refused: false` and zero instruction byte mismatches.
+- Comparator gates: `uv run amiga-benchmark-target amiga_hunk_genam`,
+  `uv run amiga-benchmark-target amiga_hunk_monam302`, and
+  `uv run amiga-benchmark-target amiga_hunk_bloodwych` passed. All report
+  `code_start_boundary_api_entries: 0`, `asm_source_refused: false`, and zero
+  instruction byte mismatches, confirming the heuristic does not promote the
+  MonAm app-slot orphan snippets or perturb Bloodwych/GenAm.
+- Corpus rebuild:
+  `uv run python -m src.scripts.target_usage_manifest build --output src\build\tmp_target_usage_after_boundary_api_entry.jsonl --xrefs-output src\build\tmp_target_usage_xrefs_after_boundary_api_entry.jsonl --snippet-rows-output src\build\tmp_target_usage_snippets_after_boundary_api_entry.jsonl --variants-output src\build\tmp_target_variant_index_after_boundary_api_entry.jsonl --type-flow-report-output src\build\tmp_target_type_flow_report_after_boundary_api_entry.jsonl --unresolved-typed-field-report-output src\build\tmp_target_unresolved_typed_fields_after_boundary_api_entry.jsonl --workers 8`
+  produced 493 entries, 517238 xrefs, and 481575 snippet rows.
+- Compared with `tmp_target_usage_after_runtime_absolute_storage_labels`,
+  `target-pattern:orphan_missing_api` drops 4 rows / 4 signals -> 2 rows / 3
+  signals, `orphan-code:missing_inbound:api` drops 5 -> 3, and
+  `orphan-code:signal` drops 913 -> 911. Type-flow check passed with
+  `ok: true`, 4 applied refinements, and zero violations.
 
 Pointer-table orphan-context corpus evidence:
 

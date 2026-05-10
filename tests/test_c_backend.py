@@ -4004,16 +4004,16 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         "boot_entry:"
         in source_text
     )
-    assert "\tlea.l abs_0_00070026(pc),a1\n" in source_text
+    assert "\tlea.l loc_0_00000026(pc),a1\n" in source_text
     assert "\tjsr _LVOFindResident(a6)\n" in source_text
     assert "\tmovea.l RT_INIT(a0),a0\n" in source_text
     assert 'INCLUDE "exec/resident.i"' in source_text
-    assert "abs_0_00070026:" in source_text
+    assert "loc_0_00000026:" in source_text
     assert '\tdc.b "dos.library",$00\t; string\n' in source_text
     assert "facts_v2 data bytes" not in source_text
-    assert any(row["kind"] == "instruction" and "abs_0_00070026(pc)" in str(row["text"]) for row in rows)
+    assert any(row["kind"] == "instruction" and "loc_0_00000026(pc)" in str(row["text"]) for row in rows)
     assert any(
-        row["kind"] == "label" and row["addr"] == 0x26 and str(row["text"]).strip() == "abs_0_00070026:"
+        row["kind"] == "label" and row["addr"] == 0x26 and str(row["text"]).strip() == "loc_0_00000026:"
         for row in rows
     )
     assert any(row["addr"] == 0 and row["data_class"] == "string" for row in rows)

@@ -82,9 +82,9 @@ loc_0_0000013E:
 	movea.l $00000004.l,a6
 	jsr _LVOCloseLibrary(a6)
 	rts
-	dc.b $2C,$79
-	dc.l h0dl_DOSBase
-	dc.b $72,$00,$4E,$EE,$FF,$70
+	movea.l h0dl_DOSBase.l,a6
+	moveq.l #0,d1
+	jmp _LVOExit(a6)
 loc_0_00000196:
 	movem.l d0/a0,-(a7)
 	move.w _custom+intreqr.l,d0	; interrupt request state
@@ -159,7 +159,7 @@ loc_0_000002B6:
 	move.w #$FFFF,loc_0_00000626.l
 	bra.w loc_0_000001C0
 loc_0_000002EC:
-	dc.b "dos.library",$00
+	dc.b "dos.library",$00	; string
 h0dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_0_000002FC:
@@ -175,7 +175,7 @@ loc_0_0000030C:
 loc_0_00000310:
 	dc.b "CON:0/12/639/187/Argonaut Software - StarGlider.",$00	; string
 loc_0_00000341:
-	dc.b $73,$67,$6C,$69,$64,$65,$72,$2E,$73,$6E,$64,$00
+	dc.b "sglider.snd",$00	; string
 loc_0_0000034D:
 	dc.b $0D,$20,$20,$20,$53,$74,$61,$72,$47,$6C,$69,$64,$65,$72,$20,$A9
 	dc.b $20,$31,$39,$38,$36,$2C,$31,$39,$38,$37,$20,$41,$72,$67,$6F,$6E
