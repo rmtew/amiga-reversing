@@ -180,8 +180,9 @@ measurements and test names here, not in the index table.
 - `table_candidate_records` are now a strict subset of recovered indirect sites.
   Generic unresolved `jsr (aN)` / `jmp (aN)` remains in
   `recovered_indirect_sites` and `analysis:indirect_site` tags, but no longer
-  pollutes table-candidate navigation unless indexed/table-base/table-bound
-  evidence exists.
+  pollutes table-candidate navigation unless expression-base, table-base, or
+  table-bound evidence exists. Indexed indirect syntax alone remains an
+  indirect-site diagnostic, not a table work item.
 - Isolated coverage includes:
   `test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets`,
   `test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets`,
@@ -193,6 +194,7 @@ measurements and test names here, not in the index table.
   `test_facts_v2_swapped_keyed_long_table_promotes_relative_targets`,
   `test_facts_v2_branch_terminated_indexed_stubs_promote_entries`,
   `test_facts_v2_interleaved_key_stub_table_promotes_entries`,
+  `test_facts_v2_indexed_indirect_without_table_evidence_is_not_table_candidate`,
   `test_orphan_signal_features_use_status_id_for_suppressed_signal`, and
   `test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtrips`.
 - Recent full usage rebuilds reduced unsupported table shapes to zero, removed
@@ -216,6 +218,15 @@ measurements and test names here, not in the index table.
   `analysis:lookup_table:word_relative_labels` at 39. Regenerated `GenAm` and
   `MonAm302` source now renders large formerly raw byte spans as code while
   keeping exact source reproduction.
+- Follow-up inspection of the remaining six unresolved table candidates found
+  only shape-only indexed indirect calls/jumps with no expression base, table
+  base, or bounded table span: GenAm dynamic DOS vector calls, Damocles menu
+  library-vector wrappers, Midwinter II dynamic dispatch, Workbench Calculator,
+  and Atari Lattice C linker cases. C analysis now keeps those as generic
+  `recovered_indirect_sites` but removes them from `table_candidate_records`.
+  `tmp_target_usage_after_strict_evidence_table_candidates.jsonl` changed
+  `table:candidate_unresolved` 6 -> 0 while preserving
+  `analysis:indirect_site` at 302.
 
 #### Absolute memory
 

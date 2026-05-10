@@ -806,9 +806,10 @@ dispatch.
 `recovered_indirect_sites` and `table_candidate_records` are related but not the
 same queue. Every accepted indirect control site should remain navigable as an
 indirect-site diagnostic. A table candidate is stricter: it needs indexed
-control shape, a proven table base or bounds, or an explicit rejected
-table-bound status. Plain unresolved `jsr (aN)` or `jmp (aN)` stays an indirect
-site until value-flow proves table evidence. This keeps library vectors, object
+control shape plus a proven expression/table base or bounds, or an explicit
+rejected table-bound status. Indexed syntax alone is not enough. Plain
+unresolved `jsr (aN)`, `jmp (aN)`, or `jsr 0(aN,dN.w)` stays an indirect site
+until value-flow proves table evidence. This keeps library vectors, object
 method calls, and other dynamic calls out of lookup-table work queues.
 
 A PC-indexed or indexed control operand can point at bytes inside the consuming

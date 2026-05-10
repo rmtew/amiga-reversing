@@ -5114,15 +5114,6 @@ static void recovered_indirect_site_apply_code_start_refs(M68kRecoveredIndirectS
     "accepted traced indirect control target";
 }
 
-static int recovered_indirect_shape_is_table_candidate_shape(uint8_t shape) {
-  return shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF ||
-    shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_FULL ||
-    shape == M68K_RECOVERED_INDIRECT_SHAPE_INDEX_MEMIND ||
-    shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_BRIEF ||
-    shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_FULL ||
-    shape == M68K_RECOVERED_INDIRECT_SHAPE_PCINDEX_MEMIND;
-}
-
 static void recovered_indirect_site_finalize_table_candidate(M68kRecoveredIndirectSiteIR *site) {
   if (site == NULL) return;
   site->source_pattern_id = m68k_recovered_indirect_source_pattern_id(site->shape);
@@ -5135,8 +5126,7 @@ static void recovered_indirect_site_finalize_table_candidate(M68kRecoveredIndire
     return;
   }
   site->is_table_candidate = (uint8_t)(site->has_table_base != 0U || site->has_table_bounds != 0U ||
-    site->table_bounds_status != M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE ||
-    recovered_indirect_shape_is_table_candidate_shape(site->shape));
+    site->has_expression_base != 0U || site->table_bounds_status != M68K_RECOVERED_INDIRECT_TABLE_BOUNDS_NONE);
 }
 
 static int candidate_indexed_control_table_offset(const M68kDecodeCandidate *candidate, size_t section_index,

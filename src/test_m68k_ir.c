@@ -3856,6 +3856,56 @@ static int test_facts_v2_records_rejected_indirect_table_bounds(void) {
   return 0;
 }
 
+static int test_facts_v2_indexed_indirect_without_table_evidence_is_not_table_candidate(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kRecoveredIndirectSiteIR *site;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[6] = {
+    0x4eu, 0xf6u, 0x00u, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  site = &source_analysis.sections[0].recovered_indirect_sites[0];
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_SHAPE_INDEX_BRIEF, site->shape);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_INDIRECT_STATUS_UNRESOLVED, site->status);
+  M68K_C_ASSERT_U32(0U, site->is_table_candidate);
+  M68K_C_ASSERT_U32(0U, site->has_expression_base);
+  M68K_C_ASSERT_U32(0U, site->has_table_base);
+  M68K_C_ASSERT_U32(0U, site->has_table_bounds);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern_id\":2,\"source_pattern\":\"indexed_indirect\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"is_table_candidate\":false") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_candidate_record_count\":0,\"table_candidate_records\":[]") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_records_unsupported_indirect_table_entry_shape(void) {
   M68kObject object;
   M68kSection section;
@@ -17189,6 +17239,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_records_unresolved_indirect_jump_site},
     {"facts_v2_records_rejected_indirect_table_bounds",
       test_facts_v2_records_rejected_indirect_table_bounds},
+    {"facts_v2_indexed_indirect_without_table_evidence_is_not_table_candidate",
+      test_facts_v2_indexed_indirect_without_table_evidence_is_not_table_candidate},
     {"facts_v2_records_unsupported_indirect_table_entry_shape",
       test_facts_v2_records_unsupported_indirect_table_entry_shape},
     {"facts_v2_indexed_indirect_candidate_does_not_use_instruction_extension_as_table_base",
