@@ -110,6 +110,7 @@ LISTING_ROW_KIND_BLANK = 5
 LISTING_ROW_KIND_COMMENT = 6
 CODE_START_REASON_CONTROL_TARGET = 4
 CODE_START_REASON_PLATFORM_LOADSEG_ENTRY = 9
+CODE_START_REASON_STACK_CONTINUATION = 10
 CONFLICT_STATE_CLEAN = 0
 CONFLICT_STATE_CODE_OVERLAP = 1
 CONFLICT_STATE_UNRESOLVED = 2
@@ -2924,6 +2925,9 @@ def _listing_code_start_reason_features(row: dict[str, object]) -> tuple[str, ..
         if reason == CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
             features.append("analysis:platform_loadseg_entry")
             features.append("target-pattern:platform_loadseg_entry")
+        elif reason == CODE_START_REASON_STACK_CONTINUATION:
+            features.append("analysis:stack_continuation_entry")
+            features.append("target-pattern:stack_continuation_entry")
     return tuple(dict.fromkeys(features))
 
 

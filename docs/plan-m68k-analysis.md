@@ -246,6 +246,15 @@ measurements and test names here, not in the index table.
   target validity, contiguous long relocations, and at least two entries. This
   turns proven table targets into rendered code instead of orphan/data islands.
   Coverage: `test_facts_v2_relocation_pointer_table_promotes_callback_targets`.
+- Terminal indirect dispatches can now promote a pushed forward continuation
+  address when the same site also resolves at least one real indirect target.
+  The stack value must come from direct address-sized stack-push provenance, the
+  jump must be terminal, and the target must be a forward same-section code
+  candidate rather than an accepted-code interior byte. Bloodwych proves the
+  pattern with `pea abs_0_00008226; ...; jmp (a0)`, matching the hand source's
+  `adrL_008226` continuation and converting `abs_0_00008226` and the reached
+  `abs_0_00006D3C` from data to code. Coverage:
+  `facts_v2_terminal_indirect_jump_promotes_pushed_continuation`.
 
 #### Targets
 
@@ -315,6 +324,15 @@ measurements and test names here, not in the index table.
   provenance and classifies those operands as section storage; unrelocated
   vector-slot writes still classify as vectors. The isolated regression is
   `facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_vector`.
+- Orphan/code discovery: pushed forward continuations for terminal indirect
+  dispatch are now accepted as code only when stack provenance and resolved
+  dispatch targets agree. Temporary corpus rebuild against
+  `tmp_target_usage_after_control_runtime_entry.jsonl` found
+  `analysis:stack_continuation_entry` in 6 Amiga rows / 6 entries, including
+  Bloodwych and Damocles, and removed a weaker backward Devpac candidate that
+  landed inside an existing instruction. Bloodwych unresolved orphan-code
+  signals dropped from 3 to 2; exact Bloodwych render kept 0 instruction-byte
+  mismatches and 0 numeric runtime refs.
 - Targets: `resources/clone_amiga/Bloodwych-68k/asm/BLOODWYCH439_relabel.asm`
   is available as comparison material for Bloodwych data/source-reference
   investigation only. It must not drive target-specific logic.
