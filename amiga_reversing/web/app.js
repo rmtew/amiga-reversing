@@ -5624,9 +5624,10 @@ function renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName) {
   `;
 }
 
-function renderDiskTargetMetadata(target, entry) {
+function renderDiskTargetMetadata(target, entry, payloadNode = null) {
   if (target.derived_from && typeof target.derived_from === "object") {
     const origin = target.derived_from;
+    const payloadMeta = payloadNode && typeof payloadNode === "object" ? payloadNode : null;
     const details = [];
     const relationshipKind = String(origin.kind || "").toLowerCase();
     const isPayloadRelationship = relationshipKind.includes("decompressed_payload");
@@ -5652,12 +5653,18 @@ function renderDiskTargetMetadata(target, entry) {
         details.push(compressor);
       }
     }
-    const packedOffset = Number(origin.packed_file_offset ?? origin.packed_section_offset);
-    const sourceSection = Number(origin.source_section);
+    const fileOffsetValue = payloadMeta?.source_file_offset ?? origin.packed_file_offset;
+    const hunkOffset = Number(payloadMeta?.source_hunk_offset ?? origin.packed_section_offset);
+    const sourceSection = Number(origin.source_section ?? (payloadMeta && payloadMeta.source_section));
     const includeHunk = Number.isFinite(sourceSection) && Number.isInteger(sourceSection);
-    if (Number.isFinite(packedOffset)) {
-      const offsetText = `offset ${formatAddressHex(packedOffset)}`;
-      details.push(includeHunk ? `${offsetText} hunk ${sourceSection}` : offsetText);
+    const fileOffset = Number(fileOffsetValue);
+    if (Number.isFinite(fileOffset)) {
+      const offsetText = `offset ${formatAddressHex(fileOffset)}`;
+      details.push(
+        isPayloadRelationship && includeHunk && Number.isFinite(hunkOffset)
+          ? `${offsetText} hunk ${sourceSection}@${formatAddressHex(hunkOffset)}`
+          : offsetText
+      );
     }
     const loadAddress = Number(origin.load_address);
     const entryAddress = Number(origin.entrypoint);
@@ -5827,12 +5834,12 @@ function renderDiskTargetStateSummary(targetState) {
   `;
 }
 
-function renderDiskTargetItem(target, entry, targetState, indentLevel = 0, extraBadges = null) {
+function renderDiskTargetItem(target, entry, targetState, indentLevel = 0, extraBadges = null, payloadNode = null) {
   const normalizedIndentLevel = Number.isFinite(indentLevel) ? Math.max(0, Math.floor(indentLevel)) : 0;
   const stateEntry = targetState && typeof targetState.stateById?.get === "function"
     ? targetState.stateById.get(target.target_name)
     : null;
-  const metadataPayload = renderDiskTargetMetadata(target, entry);
+  const metadataPayload = renderDiskTargetMetadata(target, entry, payloadNode);
   const metadata = metadataPayload && typeof metadataPayload === "object" ? metadataPayload.metadata || "" : "";
   const metadataTooltip = metadataPayload && typeof metadataPayload === "object" ? metadataPayload.tooltip || "" : "";
   const stateBadges = [];
@@ -5908,6 +5915,7 @@ function renderDiskTargets(manifest, targetState = null) {
   const payloadNodes = Array.isArray(payloadState.payload_nodes)
     ? payloadState.payload_nodes
     : [];
+  const payloadNodeByTargetId = new Map();
   for (const node of payloadNodes) {
     if (!node || typeof node !== "object") {
       continue;
@@ -5916,6 +5924,9 @@ function renderDiskTargets(manifest, targetState = null) {
     const parentId = typeof node.parent_file_id === "string" ? node.parent_file_id : "";
     if (payloadId && parentId) {
       payloadParentByTargetId.set(payloadId, parentId);
+    }
+    if (payloadId) {
+      payloadNodeByTargetId.set(payloadId, node);
     }
   }
   for (const target of importedTargets) {
@@ -5987,7 +5998,8 @@ function renderDiskTargets(manifest, targetState = null) {
     return children.map((child) => {
       const entry = fileByPath.get(child.entry_path) || null;
       const nextLevel = childIndentLevel + 1;
-      return `${renderDiskTargetItem(child, entry, statePayload, nextLevel)}${
+      const payloadNode = payloadNodeByTargetId.get(child.target_name) || null;
+      return `${renderDiskTargetItem(child, entry, statePayload, nextLevel, null, payloadNode)}${
         renderedChildren(child.target_name, nextLevel)
       }`;
     }).join("");
@@ -6044,7 +6056,8 @@ function renderDiskTargets(manifest, targetState = null) {
         return "";
       }
       const entry = fileByPath.get(target.entry_path) || null;
-      return `${renderDiskTargetItem(target, entry, statePayload, 1)}${
+      const payloadNode = payloadNodeByTargetId.get(target.target_name) || null;
+      return `${renderDiskTargetItem(target, entry, statePayload, 1, null, payloadNode)}${
         renderedChildren(target.target_name, 1)
       }`;
     }).join("");
@@ -6064,7 +6077,14 @@ function renderDiskTargets(manifest, targetState = null) {
       ${renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
       ${groupedStartupMarkup}
       ${manualTargets.map((target) => `
-        ${renderDiskTargetItem(target, fileByPath.get(target.entry_path), statePayload, 0)}
+        ${renderDiskTargetItem(
+          target,
+          fileByPath.get(target.entry_path),
+          statePayload,
+          0,
+          null,
+          payloadNodeByTargetId.get(target.target_name) || null
+        )}
         ${renderedChildren(target.target_name, 0)}
       `).join("")}
     </div>

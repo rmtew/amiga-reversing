@@ -301,6 +301,11 @@ def _disk_target_state_payload(
                 "decoded_size": _int_field(relationship, "decompressed_size"),
                 "source_offset": _int_field(relationship, "packed_section_offset")
                 or _int_field(relationship, "source_section"),
+                "source_file_offset": _int_field(relationship, "packed_file_offset"),
+                "source_hunk_offset": (
+                    _int_field(relationship, "source_hunk_offset")
+                    or _int_field(relationship, "packed_section_offset")
+                ),
                 "source_size": _int_field(relationship, "packed_size"),
                 "source_path": source_path,
                 "crc32": None,
@@ -1143,6 +1148,31 @@ def _target_type_may_contain_packed_payload(target_type: str) -> bool:
     return target_type in {"program", "library"}
 
 
+def _hunk_file_section_payload_starts(hunk_data: bytes) -> dict[int, int]:
+    try:
+        from amiga_reversing.disasm import reproduction
+    except Exception:
+        return {}
+    try:
+        layout = reproduction._amiga_hunk_file_layout(hunk_data)
+    except Exception:
+        return {}
+    payload_starts: dict[int, int] = {}
+    for item in layout:
+        if not isinstance(item, dict) or item.get("kind") != "section_payload":
+            continue
+        section_index = _int_field(item, "section_index")
+        file_start = _int_field(item, "file_start")
+        if section_index is None or file_start is None:
+            continue
+        section_offset_start = _int_field(item, "section_offset_start") or 0
+        payload_start = file_start - section_offset_start
+        if payload_start < 0:
+            continue
+        payload_starts.setdefault(section_index, payload_start)
+    return payload_starts
+
+
 def _materialize_decompressed_payload_children(
     *,
     adf_file: Path,
@@ -1173,6 +1203,7 @@ def _materialize_decompressed_payload_children(
             analysis = analyze_binary_source_with_c_backend(parent_temp_path, project_root=project_root)
         except Exception:
             return MaterializedPayloadChildren([], [], [], False)
+        section_payload_starts = _hunk_file_section_payload_starts(parent_temp_path.read_bytes())
         for suggestion in _materializable_decompression_suggestions(analysis):
             source_section = _int_field(suggestion, "source_section")
             source_section_offset = _int_field(suggestion, "source_section_offset")
@@ -1186,6 +1217,12 @@ def _materialize_decompressed_payload_children(
             assert decompressed_size is not None
             assert load_address is not None
             assert entrypoint is not None
+            section_payload_start = section_payload_starts.get(source_section)
+            packed_file_offset = (
+                source_section_offset + section_payload_start
+                if section_payload_start is not None
+                else None
+            )
             role_fields = _decompression_role_fields(suggestion)
             local_target_id = _decompressed_payload_child_local_id(parent_local_target_id, suggestion)
             target_name = disk_child_project_id(disk_id, local_target_id)
@@ -1207,6 +1244,7 @@ def _materialize_decompressed_payload_children(
                 **role_fields,
                 "codec_id": _str_field(suggestion, "codec_id"),
                 "codec_name": _str_field(suggestion, "codec_name"),
+                "packed_file_offset": packed_file_offset,
                 "packed_section_offset": source_section_offset,
                 "packed_size": packed_size,
                 "decompressed_size": decompressed_size,
@@ -1276,6 +1314,7 @@ def _materialize_decompressed_payload_children(
                 "entrypoint": entrypoint,
                 "codec_id": _str_field(suggestion, "codec_id"),
                 "codec_name": _str_field(suggestion, "codec_name"),
+                "packed_file_offset": packed_file_offset,
                 **role_fields,
             }
             decompression_record = {
@@ -1341,6 +1380,16 @@ def _materialize_decompressed_payload_children(
             entrypoint = _int_field(event, "entrypoint")
             source_section = _int_field(event, "source_section") or 0
             marker_offset = _int_field(event, "unpacker_marker_offset") or 0
+            compressed_source_section_offset = _int_field(event, "compressed_source_section_offset")
+            source_section_payload_start = section_payload_starts.get(source_section)
+            packed_file_offset = (
+                compressed_source_section_offset + source_section_payload_start
+                if (
+                    compressed_source_section_offset is not None
+                    and source_section_payload_start is not None
+                )
+                else None
+            )
             native_provider_id = _native_unpacker_provider_id(event)
             assert event_id is not None
             assert output_size is not None
@@ -1367,6 +1416,8 @@ def _materialize_decompressed_payload_children(
                 "source_section": source_section,
                 "target_type": "raw_binary",
                 **role_fields,
+                "packed_file_offset": packed_file_offset,
+                "packed_section_offset": compressed_source_section_offset,
                 "codec_id": _str_field(event, "codec_id"),
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": native_provider_id,
@@ -1434,6 +1485,8 @@ def _materialize_decompressed_payload_children(
                 "decompressed_size": output_size,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
+                "packed_file_offset": packed_file_offset,
+                "packed_section_offset": compressed_source_section_offset,
                 "codec_id": _str_field(event, "codec_id"),
                 "codec_name": _str_field(event, "codec_name"),
                 "provider_id": native_provider_id,
@@ -1461,12 +1514,13 @@ def _materialize_decompressed_payload_children(
                     "kind": "recognized_unpacker",
                     "provider_id": _str_field(event, "provider_id"),
                     "event_id": event_id,
-                    "source_section": source_section,
-                    "unpacker_marker_offset": marker_offset,
-                    "compressed_source_section_offset": _int_field(event, "compressed_source_section_offset"),
-                    "compressed_source_section_end_offset": _int_field(
-                        event, "compressed_source_section_end_offset"
-                    ),
+                "source_section": source_section,
+                "unpacker_marker_offset": marker_offset,
+                "packed_section_offset": _int_field(event, "compressed_source_section_offset"),
+                "compressed_source_section_offset": _int_field(event, "compressed_source_section_offset"),
+                "compressed_source_section_end_offset": _int_field(
+                    event, "compressed_source_section_end_offset"
+                ),
                     "compressed_source_consumed_section_offset": _int_field(
                         event, "compressed_source_consumed_section_offset"
                     ),
@@ -1539,6 +1593,7 @@ def _materialize_decompressed_payload_children(
                 "target_role_id": TARGET_ROLE_DECOMPRESSED_PAYLOAD,
                 "target_role": "decompressed_payload",
                 "target_type": "raw_binary",
+                "packed_section_offset": transfer_offset,
                 **role_fields,
                 "codec_id": _str_field(event, "codec_id"),
                 "codec_name": _str_field(event, "codec_name"),
