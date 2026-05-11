@@ -1,5 +1,147 @@
 # TODO
 
+## Unsorted
+
+Some of these may be in non-updated source in targets/, they need checking for existing fixes.
+
+- Amiga segment chain detection failure (target: `amiga_disk_starglider-1987-rainbird__amiga_hunk_c__stack_3c172096`).
+  ```
+  0010 49faffee     lea.l loc_0_00000000(pc),a4
+  0014 286cfffc     movea.l -$0004(a4),a4
+  ```
+  - We have Amiga segment chain access detection via relocation of -4 from a segment base, however we do not detect this
+    case.
+- Pandora observed improvement possibilities (target: `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`):
+  - App slot bugs:
+    ```
+
+    app_07EE    RS.W    1
+    app_SIZEOF  EQU     __RS
+                RSSET   $028
+    app_0287    RS.B    1
+                RSSET   $07EF
+    app_07EF    RS.B    1
+    ```
+    - Despite having a full range above, two entries leak out and are separated. These clearly need to be reconciled
+      as either false positives or perhaps more likely placed within the one main app slot range.
+  - Amiga platform custom register propagation failure:
+    ```
+    04cc 3b7c86400096   move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)
+    04d2 610002f8       bsr.w abs_0_000107CC
+    ...
+    07cc              abs_0_000107CC:
+    07cc 207c00077d00   movea.l #$77D00,a0
+    07d2 2b480050       move.l a0,$0050(a5)
+    ```
+    - Despite the typed amiga platform `_custom` value of `a5` being used in the caller, it is not in the `callee`.
+    - The value set in `a0` should be registered as a runtime memory range and given an equate, and added to memory map.
+- Bloodwych observed improvement possibilities (target: `amiga_hunk_bloodwych`):
+  - General analysis failure: address not checked and resolved as code reference sample.
+    - Note that this should touch 8 interrupt addresses and a) make `$8CC8` a symbol and b) ensure it is code.
+    ```
+    0188 203c00008cc8 move.l #$8CC8,d0
+    018e 41f80060     lea.l m68k_vector_spurious_interrupt.w,a0
+    0192 7207         moveq.l #7,d1
+    0194          abs_0_00000538:
+    0194 20c0         move.l d0,(a0)+
+    0196 51c9fffc     dbf.w d1,abs_0_00000538
+    ```
+  - Web UI improvement possibilities for lookup tables samples:
+    ```
+      020e abs_0_000005B2:
+      020e 00008e8400008f1400008ecc00008f5c   dc.l abs_0_00008E84
+      020e 00008e8400008f1400008ecc00008f5c   dc.l abs_0_00008F14
+      020e 00008e8400008f1400008ecc00008f5c   dc.l abs_0_00008ECC
+      020e 00008e8400008f1400008ecc00008f5c   dc.l abs_0_00008F5C
+      020e 00008e8400008f1400008ecc00008f5c   dc.l abs_0_00008EC8
+      0222 0000                               dc.b $00,$00
+    ```
+      - Labels are not treated like `m68k_vector_spurious_interrupt` above (no link, no navigate lookup integration).
+      - Full table hex combined/repeated per line where each line should be the long offset/value.
+      - Trailing word should likely be `.w`.
+    ```
+      5548                  abs_0_000058EC:
+      5548 0000001802360064   dc.w abs_0_000058F4-abs_0_000058F4,abs_0_0000590C-abs_0_000058F4,abs_0_00005B2A-abs_0_000058F4,abs_0_00005958-abs_0_000058F4
+    ```
+      - Each entry should be on separate line (also with linkage/navigate integration).
+  - Web UI improvement possibilities for equates sample:
+    - Add Navigate list entry with same breakdown and interaction as Labels and App Slots in source and Navigate popup.
+    ```
+      disk_buffer_00067D00 EQU $67D00
+    ```
+  - Web UI improvement possibilities for ORG sections (or sections known to be bootstraped to addresses)
+    ```
+    | 5d5e | | abs_0_00006102: |
+    ```
+    - For these targets there would be value in a new column between hunk offset and hex value where we showed the
+      execution/bootstrap address. While it is implied by the label, it is insufficient for user browsing.
+    - Similarly a jump to address function in the web UI would be useful. Maybe alter the Navigate button or popup
+      in some way to also offer that functionality for suitable targets.
+- Bootblock regressions (amiga platform specific):
+  - Why bootblocks are treated as a $70000 absolute target is unclear. They should be assumed to be position
+    independent unless they bootstrap to absolute addresses internally:
+    ```
+        SECTION code,code
+    loc_0_00000000:
+        ORG $70000
+    abs_0_00070000:
+      dc.b "DOS",$00	; NOTE: boot magic
+    ```
+  - Substandard target: `targets\amiga_disk_epic-1992-ocean-disk-1\targets\amiga_raw_bootblock\bootblock.s`
+    - We fail to symbolise the offsets for the struct we pass into `DoIO` in `a1`. 
+    ```
+    lea.l abs_0_0007020E(pc),a5
+    movea.l (a5),a1
+    move.l #$400,$002C(a1)
+    move.l #$4E00,$0024(a1)
+    move.l #$1E200,$0028(a1)
+    move.w #$2,$001C(a1)
+    movea.l $0004.w,a6
+    jsr _LVODoIO(a6)
+    ```
+    - We fail to recognise that we read into `$1E200` and bootstrap to `$864` base range (missed entrypoint/code in
+      `targets\amiga_disk_epic-1992-ocean-disk-1\targets\amiga_raw_bootloader_stage_1\bootloader_stage_1.s`?).
+    ```
+    abs_0_0007008C:
+      move.w #$2FFF,d0
+      lea.l $00020000.l,a0
+      lea.l $00000864.l,a1
+    abs_0_0007009C:
+      move.b (a0)+,(a1)+
+      dbf.w d0,abs_0_0007009C
+      bsr.w abs_0_00070164
+      jsr $0000086C.l
+    ```
+- Emulation-based tracing:
+  - Local `WinUAE` usage (currently cloned to `resources/clone_common/WinUAE`):
+    - It is unclear why some things are the way they are in the disassembled source code. Orphaned code blocks are one
+      example of this. We should be able to use `WinUAE` (providing configuration on disk and on command-line and so on)
+      and drive sessions from the command-line to take advantage of a) ability to run a target in a realistic setting
+      b) to use the debugger to analyse memory and other state c) direct execution using breakpoint and more.
+- Assembler correctness:
+  - We used to have the ability to specify what assembler to render for. This might have been removed. However if we
+    do any of the assembler correctness tasks that follow this entry we might want to bring it back.
+  - We used to use `vasm` for binaries but `Genam` for instance failed the binary exactness requirement because one of
+    the instructions (perhaps previously disassembled from `70ff4e75` preceding `h0_063E`?) used a byte constant but
+    encoded the full word. In theory correct in the reproduction sense, but not correct in the precise sense of what is
+    used. It would be good to use `vasm` for the roundtrip assembly again and try to do exact builds with that again to
+    guard against our disassembler/IR/assembler looping on our system-wide misinterpretations.
+  - We also have `Genam` accessible via `uv tool vamos` in theory. We should also be able to do a pass through that.    
+- Codebase auditing/global refactoring:
+  - A loose approach has been taken to using static string values and string comparison as an implementation approach
+    and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
+    be using bitflags or enums to replace that.
+  - A loose approach to arrays of booleans (likely uint8_t per flag) has been used as an implementation approach
+    and it should use bitarrays instead at compile-time. The best approach might be #define and similar, although C99
+    might provide compile-time approaches. This should be formalised in a common .c/.h location and used from there.
+- One interesting facet of arena usage is that we have custom methods that work on arena memory. There is a good
+  argument here to expand that for all our allocations, where for instance instead of using an arena we provide an
+  allocator that happens to be an arena. It might also be worth abstracting it further to a context object that
+  happens to have the preferred allocator as it's default allocator.
+  - We should strongly consider using platform-specific allocations bypassing the C runtime with a view to not linking
+    against it at a later date.
+  - ...
+
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
