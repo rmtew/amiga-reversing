@@ -5653,8 +5653,11 @@ function renderDiskTargetMetadata(target, entry) {
       }
     }
     const packedOffset = Number(origin.packed_file_offset ?? origin.packed_section_offset);
+    const sourceSection = Number(origin.source_section);
+    const includeHunk = Number.isFinite(sourceSection) && Number.isInteger(sourceSection);
     if (Number.isFinite(packedOffset)) {
-      details.push(`packed @ ${formatAddressHex(packedOffset)}`);
+      const offsetText = `offset ${formatAddressHex(packedOffset)}`;
+      details.push(includeHunk ? `${offsetText} hunk ${sourceSection}` : offsetText);
     }
     const loadAddress = Number(origin.load_address);
     const entryAddress = Number(origin.entrypoint);

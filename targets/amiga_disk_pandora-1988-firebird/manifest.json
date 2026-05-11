@@ -7743,7 +7743,8 @@
         "payload_role": "primary_program",
         "payload_role_confidence": "tool_inferred",
         "payload_role_confidence_id": 1,
-        "payload_role_id": 2
+        "payload_role_id": 2,
+        "source_section": 0
       },
       "entry_path": "pandora::bk_000000e8",
       "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",

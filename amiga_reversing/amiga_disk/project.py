@@ -1270,6 +1270,7 @@ def _materialize_decompressed_payload_children(
                 "child_entry_path": child_entry_path,
                 "packed_section_offset": source_section_offset,
                 "packed_size": packed_size,
+                "source_section": source_section,
                 "decompressed_size": decompressed_size,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
@@ -1363,6 +1364,7 @@ def _materialize_decompressed_payload_children(
                 "child_entry_path": child_entry_path,
                 "target_role_id": TARGET_ROLE_DECOMPRESSED_PAYLOAD,
                 "target_role": "decompressed_payload",
+                "source_section": source_section,
                 "target_type": "raw_binary",
                 **role_fields,
                 "codec_id": _str_field(event, "codec_id"),
@@ -1373,6 +1375,7 @@ def _materialize_decompressed_payload_children(
                 "decompressed_sha256": output_sha256,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
+                "source_section": source_section,
             }
             if target_dir.exists() and not target_dir.is_dir():
                 continue
@@ -1545,6 +1548,7 @@ def _materialize_decompressed_payload_children(
                 "decompressed_sha256": output_sha256,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
+                "source_section": code_section,
             }
             if target_dir.exists() and not target_dir.is_dir():
                 continue

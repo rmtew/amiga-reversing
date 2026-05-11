@@ -48,7 +48,8 @@
     "payload_role": "primary_program",
     "payload_role_confidence": "tool_inferred",
     "payload_role_confidence_id": 1,
-    "payload_role_id": 2
+    "payload_role_id": 2,
+    "source_section": 0
   },
   "schema_version": 1
 }
