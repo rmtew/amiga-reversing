@@ -1,6 +1,6 @@
 {
   "disk_id": "voodoo-nightmare-1990-palace-cr-angels-defjam-genesis",
-  "disk_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
+  "disk_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
   "entry_path": "run",
   "kind": "disk_entry",
   "parent_disk_id": "voodoo-nightmare-1990-palace-cr-angels-defjam-genesis"

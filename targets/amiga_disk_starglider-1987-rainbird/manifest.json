@@ -15752,6 +15752,20 @@
   "disk_id": "starglider-1987-rainbird",
   "imported_targets": [
     {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Starglider (1987)(Rainbird).adf::SG",
+      "entry_path": "SG",
+      "target_name": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
+      "target_path": "targets/amiga_disk_starglider-1987-rainbird/targets/amiga_hunk_sg_9832b282",
+      "target_type": "program"
+    },
+    {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Starglider (1987)(Rainbird).adf::SGload",
+      "entry_path": "SGload",
+      "target_name": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
+      "target_path": "targets/amiga_disk_starglider-1987-rainbird/targets/amiga_hunk_sgload_ee6b361e",
+      "target_type": "program"
+    },
+    {
       "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Starglider (1987)(Rainbird).adf::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_starglider-1987-rainbird__amiga_raw_bootblock",

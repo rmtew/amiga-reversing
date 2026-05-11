@@ -5433,6 +5433,42 @@ function formatFileKind(entry) {
   return "unknown";
 }
 
+function renderDiskTargetEntryIcon(entry, target) {
+  const content = entry && typeof entry === "object" ? entry.content : null;
+  const kind = content && typeof content.kind === "string" ? content.kind : "";
+  if (kind === "text") {
+    return "&#128195;";
+  }
+  if ((kind === "amiga_hunk_executable" && content.is_executable) || kind === "amiga_hunk_executable") {
+    return "&#62;";
+  }
+  if (kind === "iff_container") {
+    const formId = content.form_id ? String(content.form_id).toUpperCase() : "";
+    const groupId = content.group_id ? String(content.group_id).toUpperCase() : "";
+    if (formId === "8SVX" || groupId === "8SVX") {
+      return "&#128266;";
+    }
+    if (formId === "ILBM" || groupId === "ILBM") {
+      return "&#128065;";
+    }
+  }
+  if (target && target.entry_path === "bootblock") {
+    return "";
+  }
+  return "&#63;";
+}
+
+function renderDiskSourcePathIcon(path) {
+  const normalized = String(path || "").trim().toLowerCase();
+  if (!normalized) {
+    return "&#63;";
+  }
+  if (normalized === "s/startup-sequence" || normalized === "startup-sequence" || normalized === "s:startup-sequence") {
+    return "&#128195;";
+  }
+  return "&#63;";
+}
+
 function formatTargetTypeLabel(targetType) {
   return targetType.replaceAll("_", " ");
 }
@@ -5570,6 +5606,28 @@ function renderDiskTargetStateSummary(targetState) {
     ? state.startup_sequence_parse
     : null;
   const candidateRejects = Array.isArray(state.candidate_rejects) ? state.candidate_rejects : [];
+  const startupSequenceLines = startupParse && Array.isArray(startupParse.startup_sequence_lines)
+    ? startupParse.startup_sequence_lines
+    : [];
+  const startupSequenceEntries = startupParse && Array.isArray(startupParse.startup_sequence_entries)
+    ? startupParse.startup_sequence_entries
+    : [];
+  const startupLineStatus = new Map();
+  if (startupSequenceEntries.length) {
+    for (const entry of startupSequenceEntries) {
+      if (!entry || typeof entry !== "object") {
+        continue;
+      }
+      const line = Number(entry.line);
+      if (!Number.isFinite(line)) {
+        continue;
+      }
+      const lineNumber = Number(line);
+      const list = startupLineStatus.get(lineNumber) || [];
+      list.push(entry);
+      startupLineStatus.set(lineNumber, list);
+    }
+  }
   if (!startupParse && !candidateRejects.length) {
     return "";
   }
@@ -5586,6 +5644,9 @@ function renderDiskTargetStateSummary(targetState) {
   if (startupParse && startupParse.command) {
     details.push(`command=${startupParse.command}`);
   }
+  if (startupParse && startupParse.reason && startupParse.status === "parse_error" && Number.isFinite(startupParse.line)) {
+    details.push(`failed_line=${startupParse.line}`);
+  }
   const rejectRows = candidateRejects.map((reject) => {
     const path = typeof reject.path === "string" ? reject.path : "unknown";
     const reason = typeof reject.reason_code === "string" ? reject.reason_code : "reject";
@@ -5594,19 +5655,58 @@ function renderDiskTargetStateSummary(targetState) {
     const command = typeof reject.command === "string" ? ` (${reject.command})` : "";
     return `<li><span class="disk-reject-code">${escapeHtml(reason)}</span> ${escapeHtml(path)}${escapeHtml(line)}${escapeHtml(command)}${detail ? `: ${escapeHtml(detail)}` : ""}</li>`;
   });
+  const startupLinesMarkup = startupSequenceLines.length
+    ? `<div class="disk-startup-lines" aria-label="Startup sequence">
+        <div class="disk-startup-seq-content">
+        ${startupSequenceLines.map((rawLine, index) => {
+          const lineNumber = index + 1;
+          const lineRecords = startupLineStatus.get(lineNumber) || [];
+          const failedRecord = lineRecords.find((record) => {
+            const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
+            return status && status !== "pending" && status !== "imported";
+          });
+          const importedRecord = lineRecords.find((record) => {
+            const status = typeof record.status === "string" ? record.status.toLowerCase() : "";
+            return status === "imported";
+          });
+          const failedReasons = [];
+          for (const record of lineRecords) {
+            const reason = typeof record.reason_detail === "string" && record.reason_detail ? record.reason_detail : "";
+            if (reason) {
+              failedReasons.push(reason);
+            }
+          }
+          const suffix = importedRecord ? " <span class=\"disk-startup-line-check\">&#x2713;</span>" : "";
+          const statusLine = failedReasons.length ? ` ${escapeHtml(Array.from(new Set(failedReasons)).join(" | "))}` : "";
+          const cls = failedRecord ? "disk-startup-line disk-startup-line-failed" : "disk-startup-line";
+          return `<div class="${cls}">${escapeHtml(typeof rawLine === "string" ? rawLine : "")}${statusLine}${suffix}</div>`;
+        }).join("")}
+        </div>
+      </div>`
+    : "";
+  const startupSummaryHasDetail = Boolean(startupLinesMarkup);
+  const startupStateCollapsed = startupParse && startupParse.status === "ok";
+  const caret = startupStateCollapsed ? "&#9654;" : "&#9660;";
   return `
     <div class="disk-state-summary">
-      <div class="disk-state-summary-title">Startup import state</div>
-      <div class="disk-state-summary-detail">${escapeHtml(details.join(" | "))}</div>
-      ${rejectRows.length ? `
-      <ul class="disk-reject-list">
-        ${rejectRows.join("")}
-      </ul>` : ""}
+      <button type="button" class="disk-state-summary-title" data-project-startup-state-toggle="1" aria-expanded="${startupStateCollapsed ? "false" : "true"}">
+        <span class="disk-state-summary-caret" aria-hidden="true">${caret}</span>
+        Startup import state
+      </button>
+      <div class="disk-startup-state-body${startupStateCollapsed ? " disk-startup-state-body-collapsed" : ""}" data-project-startup-state-body="1">
+        <div class="disk-state-summary-detail">${escapeHtml(details.join(" | "))}</div>
+        ${startupSummaryHasDetail ? startupLinesMarkup : ""}
+        ${rejectRows.length ? `
+        <ul class="disk-reject-list">
+          ${rejectRows.join("")}
+        </ul>` : ""}
+      </div>
     </div>
   `;
 }
 
-function renderDiskTargetItem(target, entry, targetState, isChild = false) {
+function renderDiskTargetItem(target, entry, targetState, indentLevel = 0, extraBadges = null) {
+  const normalizedIndentLevel = Number.isFinite(indentLevel) ? Math.max(0, Math.floor(indentLevel)) : 0;
   const stateEntry = targetState && typeof targetState.stateById?.get === "function"
     ? targetState.stateById.get(target.target_name)
     : null;
@@ -5618,13 +5718,34 @@ function renderDiskTargetItem(target, entry, targetState, isChild = false) {
   if (target.derived_from && target.derived_from.kind === "decompressed_payload") {
     stateBadges.push("payload-child");
   }
-  const extra = stateBadges.length ? `<span class="disk-item-state">${renderInlineBadges(stateBadges)}</span>` : "";
+  const explicitBadges = Array.isArray(extraBadges) ? extraBadges.filter((badge) => typeof badge === "string" && badge.trim()) : [];
+  const allBadges = [...stateBadges, ...explicitBadges];
+  const extra = allBadges.length ? `<span class="disk-item-state">${renderInlineBadges(allBadges)}</span>` : "";
+  const icon = renderDiskTargetEntryIcon(entry, target);
   const title = target.entry_path === "bootblock" ? "Boot Block" : (target.entry_path || target.target_name);
+  const indentClass = normalizedIndentLevel === 0
+    ? ""
+    : normalizedIndentLevel === 1
+      ? " disk-target-child"
+      : normalizedIndentLevel === 2
+        ? " disk-target-child disk-target-child-nested"
+        : ` disk-target-child disk-target-child-nested disk-target-child-nested-${normalizedIndentLevel}`;
   return `
-    <button class="disk-item disk-target-button${isChild ? " disk-target-child" : ""}" data-project-id="${escapeHtml(target.target_name)}" type="button">
-      <span class="disk-item-main">${escapeHtml(title)}</span>
+    <button class="disk-item disk-target-button${indentClass}" data-project-id="${escapeHtml(target.target_name)}" type="button">
+      <span class="disk-item-main">${icon ? `<span class="disk-target-entry-icon">${icon}</span>` : ""}${escapeHtml(title)}</span>
       <span class="disk-item-meta">${metadata}${extra ? ` ${extra}` : ""}</span>
     </button>
+  `;
+}
+
+function renderDiskStartupSourceNode(sourcePath, childCount) {
+  const childText = Number.isFinite(childCount) ? `${escapeHtml(childCount.toString())} auto target${childCount === 1 ? "" : "s"}` : "";
+  const sourceIcon = renderDiskSourcePathIcon(sourcePath);
+  return `
+    <div class="disk-item">
+      <span class="disk-item-main"><span class="disk-target-entry-icon">${sourceIcon}</span>${escapeHtml(sourcePath)}</span>
+      <span class="disk-item-meta">${renderInlineBadges(["source"])}${childText ? `<span class="disk-item-state">(${childText})</span>` : ""}</span>
+    </div>
   `;
 }
 
@@ -5634,9 +5755,6 @@ function renderDiskTargets(manifest, targetState = null) {
   const filesystem = analysis.filesystem || null;
   const bootblockTargetName = manifest.bootblock_target_name || null;
   const importedTargets = requireArray(manifest.imported_targets, "Imported targets");
-  const hasBootblockImportedTarget = importedTargets.some((target) => {
-    return target.entry_path === "bootblock" || target.target_type === "bootblock";
-  });
   const stateById = new Map();
   const payloadState = targetState && typeof targetState === "object"
     ? targetState
@@ -5663,13 +5781,74 @@ function renderDiskTargets(manifest, targetState = null) {
     ? []
     : requireArray(analysis.files, "Indexed disk files");
   const fileByPath = new Map(files.map((entry) => [entry.full_path, entry]));
+  const entryPathByTargetId = new Map();
+  const payloadParentByTargetId = new Map();
+  const payloadNodes = Array.isArray(payloadState.payload_nodes)
+    ? payloadState.payload_nodes
+    : [];
+  for (const node of payloadNodes) {
+    if (!node || typeof node !== "object") {
+      continue;
+    }
+    const payloadId = typeof node.id === "string" ? node.id : "";
+    const parentId = typeof node.parent_file_id === "string" ? node.parent_file_id : "";
+    if (payloadId && parentId) {
+      payloadParentByTargetId.set(payloadId, parentId);
+    }
+  }
+  for (const target of importedTargets) {
+    const targetId = typeof target.target_name === "string" ? target.target_name : "";
+    const entryPath = typeof target.entry_path === "string" ? target.entry_path : "";
+    if (!targetId || !entryPath) {
+      continue;
+    }
+    const normalizedPath = entryPath.toLowerCase();
+    entryPathByTargetId.set(normalizedPath, targetId);
+  }
+  const childTargetIdByEntryPath = new Map();
+  for (const [entryPath, targetId] of entryPathByTargetId.entries()) {
+    const parentPath = entryPath.split("::")[0];
+    if (parentPath) {
+      childTargetIdByEntryPath.set(parentPath, targetId);
+    }
+  }
+  const resolveDecompressedParentId = (target) => {
+    if (!target || typeof target !== "object") {
+      return "";
+    }
+    const entryPath = typeof target.entry_path === "string" ? target.entry_path : "";
+    const targetId = typeof target.target_name === "string" ? target.target_name : "";
+    const parentFromPayloadNode = payloadParentByTargetId.get(targetId);
+    if (parentFromPayloadNode) {
+      return parentFromPayloadNode;
+    }
+    const relationship = target.derived_from;
+    if (relationship && typeof relationship === "object") {
+      const parentRef = relationship.kind;
+      if (parentRef === "decompressed_payload" || parentRef === "derived_decompressed_payload") {
+        const parentTarget = typeof relationship.parent_target === "string" ? relationship.parent_target : "";
+        const parentTargetId = parentTarget || (typeof relationship.parent_target_id === "string" ? relationship.parent_target_id : "");
+        if (parentTargetId) {
+          return parentTargetId;
+        }
+      }
+    }
+    if (target.target_type === "raw_binary" && entryPath.includes("::")) {
+      const parentEntryPath = entryPath.split("::")[0].trim().toLowerCase();
+      return childTargetIdByEntryPath.get(parentEntryPath) || "";
+    }
+    return "";
+  };
   const childrenByParent = new Map();
   const rootTargets = [];
+  const targetById = new Map();
   for (const target of importedTargets) {
-    const parentRef = target.derived_from;
-    const parentId = parentRef && parentRef.kind === "decompressed_payload" && typeof parentRef.parent_target === "string"
-      ? parentRef.parent_target
-      : "";
+    const targetId = typeof target.target_name === "string" ? target.target_name : "";
+    if (!targetId) {
+      continue;
+    }
+    targetById.set(targetId, target);
+    const parentId = resolveDecompressedParentId(target);
     if (parentId) {
       const list = childrenByParent.get(parentId) || [];
       list.push(target);
@@ -5678,25 +5857,93 @@ function renderDiskTargets(manifest, targetState = null) {
       rootTargets.push(target);
     }
   }
-  const renderedChildren = (parentId) => {
+  const renderedChildren = (parentId, childIndentLevel = 0) => {
     const children = childrenByParent.get(parentId) || [];
     if (!children.length) {
       return "";
     }
     return children.map((child) => {
       const entry = fileByPath.get(child.entry_path) || null;
-      return `${renderDiskTargetItem(child, entry, statePayload, true)}${
-        renderedChildren(child.target_name)
+      const nextLevel = childIndentLevel + 1;
+      return `${renderDiskTargetItem(child, entry, statePayload, nextLevel)}${
+        renderedChildren(child.target_name, nextLevel)
       }`;
     }).join("");
   };
+  const startupParse = payloadState.startup_sequence_parse && typeof payloadState.startup_sequence_parse === "object"
+    ? payloadState.startup_sequence_parse
+    : null;
+  const startupSequenceEntries = startupParse && Array.isArray(startupParse.startup_sequence_entries)
+    ? startupParse.startup_sequence_entries
+    : [];
+  const startupDefaultSource = startupParse && typeof startupParse.source_path === "string"
+    ? startupParse.source_path
+    : "s/startup-sequence";
+  const startupSourceGroups = [];
+  const startupGroupTargets = new Set();
+  if (startupSequenceEntries.length) {
+    const grouped = new Map();
+    for (const startupEntry of startupSequenceEntries) {
+      if (!startupEntry || typeof startupEntry !== "object") {
+        continue;
+      }
+      const status = typeof startupEntry.status === "string" ? startupEntry.status.toLowerCase() : "";
+      if (!status || status === "filtered" || status === "reject" || status === "failed" || status === "skip") {
+        continue;
+      }
+      const targetName = typeof startupEntry.target_name === "string" ? startupEntry.target_name : "";
+      const target = targetName ? targetById.get(targetName) : null;
+      if (!target) {
+        continue;
+      }
+      if (startupGroupTargets.has(targetName)) {
+        continue;
+      }
+      const source = typeof startupEntry.source_path === "string" ? startupEntry.source_path : startupDefaultSource;
+      const group = grouped.get(source) || [];
+      group.push(targetName);
+      grouped.set(source, group);
+      startupGroupTargets.add(targetName);
+    }
+    for (const [sourcePath, targetNames] of grouped.entries()) {
+      if (!targetNames.length) {
+        continue;
+      }
+      startupSourceGroups.push({
+        sourcePath,
+        targetNames,
+      });
+    }
+  }
+  const groupedStartupMarkup = startupSourceGroups.map((group) => {
+    const children = group.targetNames.map((targetName) => {
+      const target = targetById.get(targetName);
+      if (!target) {
+        return "";
+      }
+      const entry = fileByPath.get(target.entry_path) || null;
+      return `${renderDiskTargetItem(target, entry, statePayload, 1)}${
+        renderedChildren(target.target_name, 1)
+      }`;
+    }).join("");
+    return `
+      ${renderDiskStartupSourceNode(group.sourcePath, group.targetNames.length)}
+      ${children}
+    `;
+  }).join("");
+  const manualTargets = rootTargets.filter((target) => (
+    target.entry_path !== "bootblock"
+    && target.target_type !== "bootblock"
+    && !startupGroupTargets.has(target.target_name)
+  ));
   return `
     <div class="disk-list">
-      ${hasBootblockImportedTarget ? "" : renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
       ${renderDiskTargetStateSummary(targetState)}
-      ${rootTargets.map((target) => `
-        ${renderDiskTargetItem(target, fileByPath.get(target.entry_path), statePayload, false)}
-        ${renderedChildren(target.target_name)}
+      ${renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
+      ${groupedStartupMarkup}
+      ${manualTargets.map((target) => `
+        ${renderDiskTargetItem(target, fileByPath.get(target.entry_path), statePayload, 0)}
+        ${renderedChildren(target.target_name, 0)}
       `).join("")}
     </div>
   `;
@@ -5795,14 +6042,12 @@ function renderDiskProject(projectData) {
       </div>
       <div class="disk-tab-panel active" data-tab-panel="targets" role="tabpanel">
         <div class="disk-section">
-          <h2>Targets</h2>
           ${renderDiskTargets(manifest, targetState)}
         </div>
       </div>
       ${files ? `
       <div class="disk-tab-panel" data-tab-panel="contents" role="tabpanel" hidden>
         <div class="disk-section">
-          <h2>Disk Contents</h2>
           ${renderDiskFiles(files, targetIndex, addedTargetIds)}
         </div>
       </div>` : ""}
@@ -5813,6 +6058,29 @@ function renderDiskProject(projectData) {
   document.querySelectorAll(".disk-target-button").forEach((button) => {
     button.addEventListener("click", () => {
       navigateToProject(button.dataset.projectId);
+    });
+  });
+  document.querySelectorAll("[data-project-startup-state-toggle]").forEach((button) => {
+    const summaryNode = button.closest(".disk-state-summary");
+    if (!summaryNode) {
+      return;
+    }
+    const body = summaryNode.querySelector("[data-project-startup-state-body]");
+    if (!body) {
+      return;
+    }
+    const caret = button.querySelector(".disk-state-summary-caret");
+    const setState = (expanded) => {
+      const isExpanded = !!expanded;
+      body.classList.toggle("disk-startup-state-body-collapsed", !isExpanded);
+      button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+      if (caret) {
+        caret.innerHTML = isExpanded ? "&#9660;" : "&#9654;";
+      }
+    };
+    button.addEventListener("click", () => {
+      const currentlyExpanded = !body.classList.contains("disk-startup-state-body-collapsed");
+      setState(!currentlyExpanded);
     });
   });
   document.querySelectorAll("[data-project-disk-path]").forEach((button) => {
@@ -5883,7 +6151,7 @@ async function importDiskProjectFile(projectId, entryPath) {
   const importTarget = String(entryPath);
   try {
     setAnalysisStatus(`Importing ${importTarget}`, "running");
-    await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/disk-entry-import`, {
+    await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/disk/import-entry`, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({path: importTarget}),

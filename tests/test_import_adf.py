@@ -1187,7 +1187,7 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "s/Run"]
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
     assert manifest.imported_targets[0].derived_targets is None
 
 
@@ -1246,6 +1246,332 @@ def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
 
     assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "s/Run"]
     assert manifest.imported_targets[0].derived_targets is None
+
+
+def test_import_adf_ignores_loadwb_in_startup_sequence(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b"loadwb s/Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"packed-parent"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
+
+
+def test_import_adf_ignores_startup_sequence_keyword_in_startup_sequence(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b"s/startup-sequence"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"run-body"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
+
+
+def test_import_adf_ignores_echo_and_wait_commands_in_startup_sequence(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b'echo "                                             "\nwait 5\npandora'
+
+    pandora_import_target = replace(
+        _program_import_target(),
+        entry_path="pandora",
+        local_target_id="amiga_hunk_pandora_12345678",
+    )
+    def fake_analyze_adf(
+        adf_file: str | Path, *, extract_dir: None | Path = None, include_tracks: bool = False
+    ) -> AdfAnalysis:
+        analysis = _single_program_disk_analysis_with_startup(adf_file)
+        files = list(analysis.files)
+        files.append(
+            DiskFileEntry(
+                block_num=30,
+                name="pandora",
+                full_path="pandora",
+                size=4,
+                protection="----rwed",
+                comment=None,
+                date="1978-01-01 00:00:00",
+                hash_chain=0,
+                parent=0,
+                extension_blocks=[],
+                data_blocks=[31],
+                data_block_count=1,
+                checksum_valid=True,
+                content=FileContentInfo(
+                    kind="amiga_hunk_executable",
+                    size=4,
+                    sha256="deadbeef",
+                    is_executable=True,
+                    hunk_count=1,
+                    target_type="program",
+                    import_target=pandora_import_target,
+                ),
+            ),
+        )
+        return replace(analysis, files=files)
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "pandora":
+            return b"pandora-body"
+        if entry_path == "s/Run":
+            return b"run-body"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        fake_analyze_adf,
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "pandora"]
+
+
+def test_import_adf_ignores_stack_command_in_root_if_only_c_variant_exists(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b"stack 1800"
+
+    def fake_analyze_adf(
+        adf_file: str | Path, *, extract_dir: None | Path = None, include_tracks: bool = False
+    ) -> AdfAnalysis:
+        analysis = _single_program_disk_analysis_with_startup(adf_file)
+        files = list(analysis.files)
+        files.append(
+            DiskFileEntry(
+                block_num=30,
+                name="Stack",
+                full_path="c/Stack",
+                size=4,
+                protection="----rwed",
+                comment=None,
+                date="1978-01-01 00:00:00",
+                hash_chain=0,
+                parent=0,
+                extension_blocks=[],
+                data_blocks=[31],
+                data_block_count=1,
+                checksum_valid=True,
+                content=FileContentInfo(
+                    kind="data",
+                    size=4,
+                    sha256="cafebabe",
+                    is_executable=False,
+                    hunk_count=None,
+                    target_type="raw_binary",
+                ),
+            )
+        )
+        return replace(analysis, files=files)
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"run-body"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        fake_analyze_adf,
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
+
+
+def test_import_adf_allows_run_command_without_args_in_startup_sequence(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b"run"
+
+    run_import_target = replace(
+        _program_import_target(),
+        entry_path="run",
+        local_target_id="amiga_hunk_run_12345678",
+    )
+    def fake_analyze_adf(
+        adf_file: str | Path, *, extract_dir: None | Path = None, include_tracks: bool = False
+    ) -> AdfAnalysis:
+        analysis = _single_program_disk_analysis_with_startup(adf_file)
+        files = list(analysis.files)
+        files.append(
+            DiskFileEntry(
+                block_num=30,
+                name="run",
+                full_path="run",
+                size=4,
+                protection="----rwed",
+                comment=None,
+                date="1978-01-01 00:00:00",
+                hash_chain=0,
+                parent=0,
+                extension_blocks=[],
+                data_blocks=[31],
+                data_block_count=1,
+                checksum_valid=True,
+                content=FileContentInfo(
+                    kind="amiga_hunk_executable",
+                    size=4,
+                    sha256="beefbeef",
+                    is_executable=True,
+                    hunk_count=1,
+                    target_type="program",
+                    import_target=run_import_target,
+                ),
+            ),
+        )
+        return replace(analysis, files=files)
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "run":
+            return b"run-body"
+        if entry_path == "s/Run":
+            return b"run-body"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        fake_analyze_adf,
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "run"]
+
+
+def test_import_adf_ignores_run_command_with_arguments_in_startup_sequence(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+    startup_script = b"run System:Utilities"
+
+    run_import_target = replace(
+        _program_import_target(),
+        entry_path="run",
+        local_target_id="amiga_hunk_run_12345678",
+    )
+    def fake_analyze_adf(
+        adf_file: str | Path, *, extract_dir: None | Path = None, include_tracks: bool = False
+    ) -> AdfAnalysis:
+        analysis = _single_program_disk_analysis_with_startup(adf_file)
+        files = list(analysis.files)
+        files.append(
+            DiskFileEntry(
+                block_num=30,
+                name="run",
+                full_path="run",
+                size=4,
+                protection="----rwed",
+                comment=None,
+                date="1978-01-01 00:00:00",
+                hash_chain=0,
+                parent=0,
+                extension_blocks=[],
+                data_blocks=[31],
+                data_block_count=1,
+                checksum_valid=True,
+                content=FileContentInfo(
+                    kind="amiga_hunk_executable",
+                    size=4,
+                    sha256="beefbeef",
+                    is_executable=True,
+                    hunk_count=1,
+                    target_type="program",
+                    import_target=run_import_target,
+                ),
+            ),
+        )
+        return replace(analysis, files=files)
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "run":
+            return b"run-body"
+        if entry_path == "System:Utilities":
+            return b"unused"
+        if entry_path == "s/Run":
+            return b"run-body"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        fake_analyze_adf,
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
 
 
 def test_import_adf_creates_raw_target_for_bootloader_disk_stage(

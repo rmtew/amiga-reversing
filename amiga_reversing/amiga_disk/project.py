@@ -93,6 +93,34 @@ TARGET_STATE_REJECT_REASON_FILTERED_DIR = "filtered_dir"
 TARGET_STATE_SUBTARGET_STATES = {"added"}
 _STARTUP_PARSE_PREFIX_ALIASES = {"s"}
 _STARTUP_PARSE_PREFIX_FILTERED = {"c", "l", "lib", "libs", "devs", "fonts", "system"}
+_STARTUP_PARSE_SHELL_KEYWORDS = {
+    "loadwb",
+    "alias",
+    "assign",
+    "cd",
+    "cat",
+    "copy",
+    "delete",
+    "else",
+    "esac",
+    "echo",
+    "fi",
+    "for",
+    "if",
+    "in",
+    "set",
+    "setenv",
+    "skip",
+    "then",
+    "while",
+    "wait",
+}
+_STARTUP_PARSE_PATH_KEYWORDS = {
+    "s/startup-sequence",
+    "s:startup-sequence",
+    "startup-sequence",
+}
+_STARTUP_PARSE_BARE_PATH_TOKEN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def _normalize_disk_id_arg(disk_id: str | None) -> str | None:
@@ -138,6 +166,20 @@ def _coerce_disk_entry_import_path(raw_path: str | None) -> str | None:
     if not value:
         return None
     return value.strip("/")
+
+
+def _startup_disk_entry_paths(analysis: AdfAnalysis) -> set[str]:
+    if analysis.files is None:
+        return set()
+    paths: set[str] = set()
+    for entry in analysis.files:
+        full_path = getattr(entry, "full_path", None)
+        if not isinstance(full_path, str):
+            continue
+        normalized = full_path.strip().strip("/").lower()
+        if normalized:
+            paths.add(normalized)
+    return paths
 
 
 def _materialized_bootloader_disk_stage_targets(
@@ -300,8 +342,9 @@ def _startup_parse_status_payload(
     command: str | None = None,
     error: str | None = None,
     source_path: str = TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+    extra: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "status": status,
         "source_path": source_path,
         "reason": reason,
@@ -309,6 +352,9 @@ def _startup_parse_status_payload(
         "command": command,
         "error": error,
     }
+    if isinstance(extra, dict):
+        payload.update(extra)
+    return payload
 
 
 def _coerce_startup_parse_status(payload: object) -> dict[str, object]:
@@ -321,7 +367,7 @@ def _coerce_startup_parse_status(payload: object) -> dict[str, object]:
     status = payload.get("status")
     if not isinstance(status, str):
         status = TARGET_STATE_STARTUP_PARSE_STATUS_DISABLED
-    return {
+    parsed_status: dict[str, object] = {
         "status": status,
         "source_path": payload.get("source_path") or TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
         "reason": payload.get("reason") or "startup-sequence parse status unknown",
@@ -329,6 +375,28 @@ def _coerce_startup_parse_status(payload: object) -> dict[str, object]:
         "command": payload.get("command") if isinstance(payload.get("command"), str) else None,
         "error": payload.get("error") if isinstance(payload.get("error"), str) else None,
     }
+    startup_sequence_lines = payload.get("startup_sequence_lines")
+    if isinstance(startup_sequence_lines, list):
+        parsed_status["startup_sequence_lines"] = [
+            item for item in startup_sequence_lines if isinstance(item, str)
+        ]
+    startup_sequence_entries = payload.get("startup_sequence_entries")
+    if isinstance(startup_sequence_entries, list):
+        parsed_entries: list[dict[str, object]] = []
+        for entry in startup_sequence_entries:
+            if not isinstance(entry, dict):
+                continue
+            coerced_entry: dict[str, object] = {}
+            line = _int_field(entry, "line")
+            if line is not None:
+                coerced_entry["line"] = line
+            for name in ("path", "command", "status", "reason_code", "reason_detail", "target_name"):
+                value = entry.get(name)
+                if isinstance(value, str):
+                    coerced_entry[name] = value
+            parsed_entries.append(coerced_entry)
+        parsed_status["startup_sequence_entries"] = parsed_entries
+    return parsed_status
 
 
 def _coerce_candidate_rejects(payload: object) -> list[dict[str, object]]:
@@ -552,17 +620,17 @@ def _import_disk_file_entry(
 ) -> tuple[ImportedTarget, list[ImportedTarget]]:
     from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated
 
-    target_type = _str_field(import_target.__dict__, "target_type") or _str_field(import_target, "target_type")
+    target_type = _obj_str_field(import_target, "target_type")
     if target_type is None:
         raise DiskAnalysisError("C disk import target is missing target_type")
     local_target_name = _import_target_required_text(
-        _str_field(import_target.__dict__, "local_target_id") or _str_field(import_target, "local_target_id"),
+        _obj_str_field(import_target, "local_target_id"),
         "local_target_id",
         target_type,
     )
     entry_path = _import_target_required_text(
         _import_target_required_text(
-            _str_field(import_target.__dict__, "entry_path") or _str_field(import_target, "entry_path"),
+            _obj_str_field(import_target, "entry_path"),
             "entry_path",
             target_type,
         ),
@@ -678,9 +746,17 @@ def _find_dos_entry_by_path(analysis: AdfAnalysis, path: str) -> object | None:
     return None
 
 
-def _normalize_startup_token(token: str) -> tuple[str | None, str | None]:
+def _normalize_startup_token(
+    token: str,
+    *,
+    token_args: list[str] | None = None,
+    available_entry_paths: set[str] | None = None,
+) -> tuple[str | None, str | None]:
     value = token.strip().strip().strip('"').strip("'").strip()
     if not value:
+        return None, None
+    normalized_value = value.lower().strip()
+    if normalized_value in _STARTUP_PARSE_PATH_KEYWORDS:
         return None, None
     if value.startswith((";", "#", ">", "<")):
         return None, None
@@ -699,14 +775,31 @@ def _normalize_startup_token(token: str) -> tuple[str | None, str | None]:
         if prefix_lower in _STARTUP_PARSE_PREFIX_ALIASES:
             return f"{prefix_lower}/{suffix}"
         return suffix
-    if "/" not in value and ":" not in value:
-        return None, None
-    if value.startswith("-"):
+    command_args = token_args or []
+    if normalized_value == "run" and command_args:
         return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+    if "/" not in value and ":" not in value:
+        if normalized_value in _STARTUP_PARSE_SHELL_KEYWORDS:
+            return None, None
+        normalized_candidate = value.lstrip("/")
+        lower_candidate = normalized_candidate.lower()
+        if available_entry_paths is not None:
+            if lower_candidate in available_entry_paths:
+                return normalized_candidate, None
+            filtered_candidate = f"c/{lower_candidate}"
+            if filtered_candidate in available_entry_paths:
+                return None, TARGET_STATE_REJECT_REASON_FILTERED_DIR
+        if not _STARTUP_PARSE_BARE_PATH_TOKEN.fullmatch(value):
+            return None, None
+        return value.lstrip("/"), None
     return value.lstrip("/"), None
 
 
-def _extract_startup_candidates(raw_lines: list[str]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+def _extract_startup_candidates(
+    raw_lines: list[str],
+    *,
+    available_entry_paths: set[str] | None = None,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     candidates: list[dict[str, object]] = []
     seen: set[str] = set()
     parse_failures: list[dict[str, object]] = []
@@ -727,45 +820,50 @@ def _extract_startup_candidates(raw_lines: list[str]) -> tuple[list[dict[str, ob
             continue
         if not tokens:
             continue
-        for token in tokens:
-            path, reject_reason = _normalize_startup_token(token)
-            if path is None:
-                if reject_reason is not None:
-                    parse_failures.append(
-                        {
-                            "line": index,
-                            "reason": "Startup token was not importable for startup-sequence auto import",
-                            "reason_detail": reject_reason,
-                            "path": token,
-                            "command": tokens[0],
-                            "reason_code": reject_reason,
-                        }
-                    )
-                continue
-            path_key = path.lower()
-            if path_key in seen:
+        command = tokens[0]
+        path, reject_reason = _normalize_startup_token(
+            command,
+            token_args=tokens[1:],
+            available_entry_paths=available_entry_paths,
+        )
+        if path is None:
+            if reject_reason is not None:
                 parse_failures.append(
                     {
                         "line": index,
-                        "reason": "Filtered duplicate startup reference",
-                        "path": path,
-                        "command": tokens[0],
-                        "reason_code": TARGET_STATE_REJECT_REASON_DUPLICATE,
+                        "reason": "Startup token was not importable for startup-sequence auto import",
+                        "reason_detail": reject_reason,
+                        "path": command,
+                        "command": command,
+                        "reason_code": reject_reason,
                     }
                 )
-                continue
-            seen.add(path_key)
-            candidates.append({
-                "path": path,
-                "line": index,
-                "command": tokens[0],
-            })
+            continue
+        path_key = path.lower()
+        if path_key in seen:
+            parse_failures.append(
+                {
+                    "line": index,
+                    "reason": "Filtered duplicate startup reference",
+                    "path": path,
+                    "command": command,
+                    "reason_code": TARGET_STATE_REJECT_REASON_DUPLICATE,
+                }
+            )
+            continue
+        seen.add(path_key)
+        candidates.append({
+            "path": path,
+            "line": index,
+            "command": command,
+        })
     return candidates, parse_failures
 
 
 def _discover_startup_sequence_targets(
     analysis: AdfAnalysis,
     *,
+    available_entry_paths: set[str] | None = None,
     adf_path: Path,
     project_root: Path,
 ) -> tuple[list[dict[str, object]], dict[str, object], list[dict[str, object]]]:
@@ -779,6 +877,7 @@ def _discover_startup_sequence_targets(
                     TARGET_STATE_STARTUP_PARSE_STATUS_MISSING,
                     reason="Missing DOS file inventory for startup-sequence parse",
                     source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                    extra={"startup_sequence_lines": []},
                 ),
                 [],
             )
@@ -794,6 +893,7 @@ def _discover_startup_sequence_targets(
                     TARGET_STATE_STARTUP_PARSE_STATUS_MISSING,
                     reason="startup-sequence file was not indexed in the filesystem analysis",
                     source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                    extra={"startup_sequence_lines": []},
                 ),
                 [],
             )
@@ -811,6 +911,7 @@ def _discover_startup_sequence_targets(
                     reason=f"Could not extract {TARGET_STATE_STARTUP_PARSE_SOURCE_PATH}",
                     error=str(exc),
                     source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                    extra={"startup_sequence_lines": []},
                 ),
                 [],
             )
@@ -819,7 +920,10 @@ def _discover_startup_sequence_targets(
         except UnicodeDecodeError:
             startup_text = startup_text_bytes.decode("latin1")
         raw_lines = startup_text.splitlines()
-        candidates, parse_warnings = _extract_startup_candidates(raw_lines)
+        candidates, parse_warnings = _extract_startup_candidates(
+            raw_lines,
+            available_entry_paths=available_entry_paths,
+        )
         if not candidates:
             return (
                 [],
@@ -827,6 +931,7 @@ def _discover_startup_sequence_targets(
                     TARGET_STATE_STARTUP_PARSE_STATUS_EMPTY,
                     reason="No valid startup command candidates were discovered",
                     source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                    extra={"startup_sequence_lines": raw_lines},
                 ),
                 parse_warnings,
             )
@@ -836,6 +941,7 @@ def _discover_startup_sequence_targets(
                 TARGET_STATE_STARTUP_PARSE_STATUS_OK,
                 reason="startup-sequence parsed",
                 source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                extra={"startup_sequence_lines": raw_lines},
             ),
             parse_warnings,
         )
@@ -847,6 +953,7 @@ def _discover_startup_sequence_targets(
                 reason="Failed parsing startup-sequence",
                 error=str(exc),
                 source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                extra={"startup_sequence_lines": []},
             ),
             [{"path": TARGET_STATE_STARTUP_PARSE_SOURCE_PATH, "reason_code": TARGET_STATE_REJECT_REASON_PARSE_ERROR, "reason_detail": str(exc)}],
         )
@@ -859,6 +966,15 @@ def _int_field(payload: dict[str, object], key: str) -> int | None:
 
 def _str_field(payload: dict[str, object], key: str) -> str | None:
     value = payload.get(key)
+    return value if isinstance(value, str) and value else None
+
+
+def _obj_str_field(payload: Any, key: str) -> str | None:
+    if isinstance(payload, dict):
+        return _str_field(payload, key)
+    if not hasattr(payload, key):
+        return None
+    value = getattr(payload, key)
     return value if isinstance(value, str) and value else None
 
 
@@ -1806,6 +1922,7 @@ def create_disk_project(
             source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
         )
         candidate_rejects: list[dict[str, object]] = []
+        startup_sequence_entries: list[dict[str, object]] = []
         if _has_dos_filesystem(analysis):
             _require_complete_dos_analysis(analysis)
             if progress_fn is not None:
@@ -1815,6 +1932,7 @@ def create_disk_project(
             if analysis.files is not None:
                 startup_candidates, startup_parse_status, startup_parse_warnings = _discover_startup_sequence_targets(
                     analysis,
+                    available_entry_paths=_startup_disk_entry_paths(analysis),
                     adf_path=adf_file,
                     project_root=project_root,
                 )
@@ -1826,6 +1944,16 @@ def create_disk_project(
                     warn_path = TARGET_STATE_STARTUP_PARSE_SOURCE_PATH
                 reason_code, reason_detail = _coerce_startup_warning_reason(warning)
                 startup_command = _str_field(warning, "command")
+                startup_sequence_entries.append(
+                    {
+                        "line": _int_field(warning, "line"),
+                        "command": startup_command,
+                        "path": warn_path,
+                        "status": "rejected",
+                        "reason_code": reason_code,
+                        "reason_detail": reason_detail,
+                    }
+                )
                 _append_startup_candidate_reject(
                     candidate_rejects,
                     path=warn_path,
@@ -1840,54 +1968,108 @@ def create_disk_project(
                 if candidate_path is None:
                     continue
                 path_key = candidate_path.strip().strip("/").lower()
+                startup_line = _int_field(startup_entry, "line")
+                startup_command = _str_field(startup_entry, "command")
                 if path_key in startup_imported_paths:
-                    startup_command = _str_field(startup_entry, "command")
+                    reason_code = TARGET_STATE_REJECT_REASON_DUPLICATE
+                    reason_detail = "Filtered duplicate startup reference"
+                    startup_sequence_entries.append(
+                        {
+                            "line": startup_line,
+                            "command": startup_command,
+                            "path": candidate_path,
+                            "status": "rejected",
+                            "reason_code": reason_code,
+                            "reason_detail": reason_detail,
+                        }
+                    )
                     _append_startup_candidate_reject(
                         candidate_rejects,
                         path=candidate_path,
-                        reason_code=TARGET_STATE_REJECT_REASON_DUPLICATE,
-                        reason_detail="Filtered duplicate startup reference",
-                        line=_int_field(startup_entry, "line"),
+                        reason_code=reason_code,
+                        reason_detail=reason_detail,
+                        line=startup_line,
                         command=startup_command,
                     )
                     continue
                 startup_imported_paths.add(path_key)
                 entry = _find_dos_entry_by_path(analysis, candidate_path)
                 if entry is None:
-                    startup_command = _str_field(startup_entry, "command")
+                    reason_code = TARGET_STATE_REJECT_REASON_PATH_NOT_FOUND
+                    reason_detail = "startup-sequence candidate was not found in disk index"
+                    startup_sequence_entries.append(
+                        {
+                            "line": startup_line,
+                            "command": startup_command,
+                            "path": candidate_path,
+                            "status": "missing",
+                            "reason_code": reason_code,
+                            "reason_detail": reason_detail,
+                        }
+                    )
                     _append_startup_candidate_reject(
                         candidate_rejects,
                         path=candidate_path,
-                        reason_code=TARGET_STATE_REJECT_REASON_PATH_NOT_FOUND,
-                        reason_detail="startup-sequence candidate was not found in disk index",
-                        line=_int_field(startup_entry, "line"),
+                        reason_code=reason_code,
+                        reason_detail=reason_detail,
+                        line=startup_line,
                         command=startup_command,
                     )
                     continue
                 entry_content = getattr(entry, "content", None)
                 if entry_content is None:
-                    startup_command = _str_field(startup_entry, "command")
+                    reason_code = TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+                    reason_detail = "Disk entry does not have import metadata"
+                    startup_sequence_entries.append(
+                        {
+                            "line": startup_line,
+                            "command": startup_command,
+                            "path": candidate_path,
+                            "status": "rejected",
+                            "reason_code": reason_code,
+                            "reason_detail": reason_detail,
+                        }
+                    )
                     _append_startup_candidate_reject(
                         candidate_rejects,
                         path=candidate_path,
-                        reason_code=TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT,
-                        reason_detail="Disk entry does not have import metadata",
-                        line=_int_field(startup_entry, "line"),
+                        reason_code=reason_code,
+                        reason_detail=reason_detail,
+                        line=startup_line,
                         command=startup_command,
                     )
                     continue
                 import_target = cast(Any, getattr(entry_content, "import_target", None))
                 if import_target is None:
-                    startup_command = _str_field(startup_entry, "command")
+                    reason_code = TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+                    reason_detail = "Disk entry type is unsupported for direct import"
+                    startup_sequence_entries.append(
+                        {
+                            "line": startup_line,
+                            "command": startup_command,
+                            "path": candidate_path,
+                            "status": "rejected",
+                            "reason_code": reason_code,
+                            "reason_detail": reason_detail,
+                        }
+                    )
                     _append_startup_candidate_reject(
                         candidate_rejects,
                         path=candidate_path,
-                        reason_code=TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT,
-                        reason_detail="Disk entry type is unsupported for direct import",
-                        line=_int_field(startup_entry, "line"),
+                        reason_code=reason_code,
+                        reason_detail=reason_detail,
+                        line=startup_line,
                         command=startup_command,
                     )
                     continue
+                startup_sequence_entries.append(
+                    {
+                        "line": startup_line,
+                        "command": startup_command,
+                        "path": candidate_path,
+                        "status": "pending",
+                    }
+                )
                 imported_target, child_targets = _import_disk_file_entry(
                     adf_file=adf_file,
                     disk_id=resolved_disk_id,
@@ -1902,7 +2084,10 @@ def create_disk_project(
                 for child_target in child_targets:
                     imported_targets_by_name[child_target.target_name] = child_target
                     auto_discovered_target_names.add(child_target.target_name)
+                startup_sequence_entries[-1]["status"] = "imported"
+                startup_sequence_entries[-1]["target_name"] = target_name
 
+        startup_parse_status["startup_sequence_entries"] = startup_sequence_entries
         state_subtargets_by_id: dict[str, dict[str, object]] = {
             target_id: dict(item) for target_id, item in existing_state_subtargets.items()
         }

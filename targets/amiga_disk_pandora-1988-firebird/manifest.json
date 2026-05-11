@@ -7698,6 +7698,57 @@
       "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_bootblock",
       "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_bootblock",
       "target_type": "bootblock"
+    },
+    {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::pandora",
+      "derived_targets": [
+        {
+          "codec_id": "bk",
+          "kind": "decompressed_payload",
+          "kind_id": 1,
+          "packed_section_offset": 232,
+          "packed_size": 189000,
+          "parent_remains_active": "false",
+          "parent_remains_active_id": 1,
+          "payload_role": "primary_program",
+          "payload_role_confidence": "tool_inferred",
+          "payload_role_confidence_id": 1,
+          "payload_role_id": 2,
+          "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+        }
+      ],
+      "entry_path": "pandora",
+      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_pandora_3e1ee0f1",
+      "target_type": "program"
+    },
+    {
+      "binary_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin",
+      "derived_from": {
+        "child_entry_path": "pandora::bk_000000e8",
+        "child_target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+        "codec_id": "bk",
+        "codec_name": "BK: ByteKiller",
+        "decompressed_size": 376832,
+        "entrypoint": 131072,
+        "kind": "decompressed_payload",
+        "kind_id": 1,
+        "load_address": 131072,
+        "packed_section_offset": 232,
+        "packed_size": 189000,
+        "parent_entry_path": "pandora",
+        "parent_remains_active": "false",
+        "parent_remains_active_id": 1,
+        "parent_target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+        "payload_role": "primary_program",
+        "payload_role_confidence": "tool_inferred",
+        "payload_role_confidence_id": 1,
+        "payload_role_id": 2
+      },
+      "entry_path": "pandora::bk_000000e8",
+      "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "target_type": "raw_binary"
     }
   ],
   "schema_version": 1,

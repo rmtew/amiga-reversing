@@ -23,9 +23,12 @@
   },
   "parent_entry_path": "pandora",
   "parent_remains_active": "false",
+  "parent_remains_active_id": 1,
   "parent_target_id": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
   "payload_role": "primary_program",
   "payload_role_confidence": "tool_inferred",
+  "payload_role_confidence_id": 1,
+  "payload_role_id": 2,
   "relationship": {
     "child_entry_path": "pandora::bk_000000e8",
     "child_target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
@@ -34,14 +37,18 @@
     "decompressed_size": 376832,
     "entrypoint": 131072,
     "kind": "decompressed_payload",
+    "kind_id": 1,
     "load_address": 131072,
     "packed_section_offset": 232,
     "packed_size": 189000,
     "parent_entry_path": "pandora",
     "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
     "parent_target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
     "payload_role": "primary_program",
-    "payload_role_confidence": "tool_inferred"
+    "payload_role_confidence": "tool_inferred",
+    "payload_role_confidence_id": 1,
+    "payload_role_id": 2
   },
   "schema_version": 1
 }

@@ -10902,14 +10902,28 @@
   "disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
   "imported_targets": [
     {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf::bootblock",
+      "binary_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf::TRIO",
+      "entry_path": "TRIO",
+      "target_name": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_trio_6d66c94c",
+      "target_path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_trio_6d66c94c",
+      "target_type": "program"
+    },
+    {
+      "binary_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_bootblock",
       "target_path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_bootblock",
       "target_type": "bootblock"
+    },
+    {
+      "binary_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf::menu",
+      "entry_path": "menu",
+      "target_name": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566",
+      "target_path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_menu_252a2566",
+      "target_type": "program"
     }
   ],
   "schema_version": 1,
-  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+  "source_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
   "source_sha256": "82b732091d6b5c9372d1a5d3877c3dd8a24efc1267137581921cd31d2a797791"
 }

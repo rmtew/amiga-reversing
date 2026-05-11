@@ -1586,7 +1586,8 @@ def route_request(
         if (
             method == "POST"
             and len(parts) == 5
-            and parts[3] == "disk-entry-import"
+            and parts[3] == "disk"
+            and parts[4] == "import-entry"
         ):
             raw_path = (body or {}).get("path") or (body or {}).get("entry_path")
             import_path = raw_path if isinstance(raw_path, str) else ""

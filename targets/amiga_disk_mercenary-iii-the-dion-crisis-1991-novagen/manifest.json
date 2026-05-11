@@ -4751,6 +4751,13 @@
   "disk_id": "mercenary-iii-the-dion-crisis-1991-novagen",
   "imported_targets": [
     {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Mercenary III - The Dion Crisis (1991)(Novagen)[cr CSL].adf::Crystal",
+      "entry_path": "Crystal",
+      "target_name": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c",
+      "target_path": "targets/amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen/targets/amiga_hunk_crystal_4d67d97c",
+      "target_type": "program"
+    },
+    {
       "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Mercenary III - The Dion Crisis (1991)(Novagen)[cr CSL].adf::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_raw_bootblock",

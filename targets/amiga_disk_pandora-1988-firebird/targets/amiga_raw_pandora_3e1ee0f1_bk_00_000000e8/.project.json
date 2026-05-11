@@ -13,12 +13,17 @@
     "parent_disk_id": "pandora-1988-firebird",
     "parent_entry_path": "pandora",
     "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
     "parent_target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
     "payload_role": "primary_program",
     "payload_role_confidence": "tool_inferred",
+    "payload_role_confidence_id": 1,
+    "payload_role_id": 2,
+    "project_origin_kind_id": 1,
     "target_role": "decompressed_payload",
+    "target_role_id": 1,
     "target_type": "raw_binary"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-08T05:19:19.348389+00:00"
+  "updated_at": "2026-05-11T08:12:58.448597+00:00"
 }

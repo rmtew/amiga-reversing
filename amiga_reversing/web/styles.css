@@ -1821,8 +1821,24 @@ body {
   display: grid;
   gap: 4px;
   padding: 10px;
-  border: 1px solid #7a7a7a;
+  border-top: none;
+  border-right: 1px solid #7a7a7a;
+  border-left: 1px solid #7a7a7a;
+  border-bottom: 1px solid #7a7a7a;
   background: #fff;
+}
+
+.disk-list > .disk-item:first-child,
+.disk-list > .disk-state-summary + .disk-item {
+  border-top: 1px solid #7a7a7a;
+}
+
+.disk-list .disk-item:last-child {
+  border-bottom: 1px solid #7a7a7a;
+}
+
+.disk-state-summary + .disk-item {
+  margin-top: 8px;
 }
 
 .disk-file-browse {
@@ -1966,6 +1982,15 @@ body {
 .disk-item-main {
   font-weight: bold;
   overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disk-target-entry-icon {
+  line-height: 1;
+  width: 1.1em;
+  text-align: center;
 }
 
 .disk-item-meta {
@@ -1987,17 +2012,77 @@ body {
   border: 1px dashed #9ca3af;
   background: #f8fafc;
   padding: 10px;
+  margin-bottom: 6px;
 }
 
 .disk-state-summary-title {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  margin: 0 0 4px 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-weight: bold;
-  margin-bottom: 4px;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.disk-state-summary-caret {
+  display: inline-block;
+  min-width: 12px;
+  line-height: 1;
+}
+
+.disk-startup-state-body {
+  display: block;
+}
+
+.disk-startup-state-body-collapsed {
+  display: none;
 }
 
 .disk-state-summary-detail {
   color: #334155;
   font-size: 12px;
   margin-bottom: 6px;
+}
+
+.disk-startup-lines {
+  margin-top: 6px;
+}
+
+.disk-startup-line {
+  color: #0f172a;
+  font-family: "Roboto Mono", Menlo, Consolas, Monaco, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  padding: 1px 0;
+}
+
+.disk-startup-seq-content {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 6px 8px;
+}
+
+.disk-startup-line-check {
+  color: #166534;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.disk-startup-line-detail {
+  color: #334155;
+  margin-left: 8px;
+}
+
+.disk-startup-line-failed {
+  color: #991b1b;
 }
 
 .disk-reject-list {
@@ -2015,6 +2100,18 @@ body {
 
 .disk-target-child {
   margin-left: 16px;
+}
+
+.disk-target-child-nested {
+  margin-left: 32px;
+}
+
+.disk-target-child-nested-3 {
+  margin-left: 48px;
+}
+
+.disk-target-child-nested-4 {
+  margin-left: 64px;
 }
 
 .disk-item-state {

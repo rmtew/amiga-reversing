@@ -4620,6 +4620,13 @@
   "disk_id": "conqueror-1990-rainbow-arts-de-en",
   "imported_targets": [
     {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::CONQUEROR",
+      "entry_path": "CONQUEROR",
+      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_conqueror_cf971606",
+      "target_type": "program"
+    },
+    {
       "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_bootblock",
