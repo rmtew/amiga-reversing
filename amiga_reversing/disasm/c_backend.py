@@ -1398,7 +1398,7 @@ class CListingArtifact:
         if not self._handle.value:
             raise RuntimeError("C listing artifact is closed")
         out_text = c_void_p()
-        c_args = [_c_arg(arg) for arg in args]
+        c_args = [arg if isinstance(arg, int) else _c_arg(arg) for arg in args]
         result = function(self._handle, *c_args, byref(out_text))
         try:
             text = string_at(out_text.value).decode("utf-8", errors="replace") if out_text.value else ""

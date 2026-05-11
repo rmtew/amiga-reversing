@@ -3161,6 +3161,21 @@ def test_project_listing_artifact_build_uses_summary_only_with_platform_calls(
     assert artifact.closed is False
 
 
+def test_real_dll_listing_artifact_address_helpers_pass_typed_integer_args() -> None:
+    _requires_c_backend_dlls()
+    total_rows, _profile, artifact = c_backend.build_project_listing_artifact_profile("amiga_hunk_genam")
+    try:
+        assert total_rows > 0
+        source_row = artifact.row_for_source_offset(section_index=0, offset=0)
+        assert source_row is not None
+        assert source_row.get("start_offset") == 0
+        addr_window, _addr_profile = artifact.addr_window_payload(addr=0, before=0, after=3)
+        assert addr_window["rows"]
+        assert addr_window["rows"][0].get("start_offset") == 0
+    finally:
+        artifact.close()
+
+
 def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "boot.bin"
