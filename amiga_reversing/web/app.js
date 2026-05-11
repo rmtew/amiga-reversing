@@ -2989,6 +2989,28 @@ function formatFileSize(size) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatBriefFileSize(size) {
+  const value = Number(size);
+  if (!Number.isFinite(value) || value < 0) {
+    return "";
+  }
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${Math.round(value / 1024)} KB`;
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} M`;
+}
+
+function formatAddressHex(value) {
+  const address = Number(value);
+  if (!Number.isFinite(address)) {
+    return "";
+  }
+  return `$${address.toString(16).toUpperCase()}`;
+}
+
 function navigationEntryHunkIndex(entry) {
   const value = entry.hunk_index ?? entry.hunkIndex ?? entry.section_index ?? entry.sectionIndex;
   return Number.isInteger(value) ? value : null;
@@ -5416,13 +5438,48 @@ function focusListingRow(row) {
   window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
 }
 
+function formatHunkSubkind(content) {
+  if (!content || typeof content !== "object") {
+    return "executable";
+  }
+  const explicitType = String(
+    content.target_type
+    || content.import_target_type
+    || (content.import_target && content.import_target.target_type)
+    || (content.import_target && content.import_target.target_metadata && content.import_target.target_metadata.target_type)
+    || "",
+  ).toLowerCase();
+  if (explicitType === "library") {
+    return "library";
+  }
+  if (explicitType === "device") {
+    return "device";
+  }
+  const residentType = String(
+    (content.resident && (content.resident.node_type_name || content.resident.node_type))
+    || "",
+  ).toLowerCase();
+  if (residentType === "library") {
+    return "library";
+  }
+  if (residentType === "device") {
+    return "device";
+  }
+  if (content.library) {
+    return "library";
+  }
+  return "executable";
+}
+
 function formatFileKind(entry) {
   const content = entry.content;
   if (!content) {
     throw new Error(`Indexed file is missing content metadata: ${entry.full_path}`);
   }
-  if (content.kind === "amiga_hunk_executable" && content.is_executable) {
-    return `HUNK executable${content.hunk_count ? ` (${content.hunk_count} hunks)` : ""}`;
+  if (content.kind === "amiga_hunk_executable") {
+    const hunkCount = Number(content.hunk_count);
+    const count = Number.isFinite(hunkCount) ? `x${hunkCount}` : "";
+    return `HUNK ${formatHunkSubkind(content)} ${count}`.trim();
   }
   if (content.kind === "iff_container") {
     return `IFF ${content.group_id || "container"} ${content.form_id || ""}`.trim();
@@ -5484,9 +5541,10 @@ function renderInlineBadges(labels) {
     .join("");
 }
 
-function appendPayloadRelationshipDetails(details, relationship) {
+function payloadRelationshipTooltip(relationship) {
+  const details = [];
   if (!relationship) {
-    return;
+    return "";
   }
   if (relationship.payload_role) {
     details.push(`role: ${formatRelationshipValue(relationship.payload_role)}`);
@@ -5504,6 +5562,14 @@ function appendPayloadRelationshipDetails(details, relationship) {
       details.push(`parent active: ${formatRelationshipValue(relationship.parent_remains_active)}`);
     }
   }
+  return details.join(" | ");
+}
+
+function renderTargetTypeBadgeLabel(targetType) {
+  if (targetType === "raw_binary") {
+    return "RAW";
+  }
+  return formatTargetTypeLabel(targetType).toUpperCase();
 }
 
 function appendDerivedTargetSummary(details, target) {
@@ -5516,23 +5582,29 @@ function appendDerivedTargetSummary(details, target) {
     details.push(`${derivedTargets.length} derived targets`);
     return;
   }
-  const roles = Array.from(new Set(
-    decompressedTargets
-      .map((item) => item.payload_role)
-      .filter((role) => role)
-      .map(formatRelationshipValue),
-  ));
-  details.push(`${decompressedTargets.length} decompressed payload${decompressedTargets.length === 1 ? "" : "s"}`);
-  if (roles.length) {
-    details.push(`roles: ${roles.join(", ")}`);
+}
+
+function derivedTargetsRelationshipTooltip(target) {
+  const derivedTargets = target.derived_targets;
+  if (!Array.isArray(derivedTargets) || !derivedTargets.length) {
+    return "";
   }
+  const decompressedTargets = derivedTargets.filter((item) => item && item.kind === "decompressed_payload");
+  const lines = [];
+  if (decompressedTargets.length) {
+    lines.push(`${decompressedTargets.length} decompressed payload${decompressedTargets.length === 1 ? "" : "s"}`);
+  }
+  const relationshipLines = derivedTargets
+    .map((item) => payloadRelationshipTooltip(item))
+    .filter((item) => item);
+  lines.push(...relationshipLines);
+  return lines.join(" | ");
 }
 
 function renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName) {
   const details = [
-    `${bootBlock.bootcode_size} bytes`,
-    bootBlock.is_dos ? `${bootBlock.fs_type} boot block` : "non-DOS boot block",
-    bootBlock.bootcode_has_code ? "boot code present" : "no boot code",
+    `${formatBriefFileSize(bootBlock.bootcode_size)} bootcode`,
+    bootBlock.is_dos ? `fs type ${bootBlock.fs_type}` : "non-DOS boot block",
   ];
   if (bootBlock.rootblock_ptr) {
     details.push(`root block ${bootBlock.rootblock_ptr}`);
@@ -5553,27 +5625,71 @@ function renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName) {
 }
 
 function renderDiskTargetMetadata(target, entry) {
-  if (target.derived_from && target.derived_from.kind === "decompressed_payload") {
+  if (target.derived_from && typeof target.derived_from === "object") {
     const origin = target.derived_from;
     const details = [];
-    if (origin.compressor) details.push(origin.compressor);
-    if (origin.parent_entry_path) details.push(`from ${origin.parent_entry_path}`);
-    if (origin.packed_file_offset !== null && origin.packed_file_offset !== undefined) {
-      details.push(`packed @ $${Number(origin.packed_file_offset).toString(16).toUpperCase()}`);
+    const relationshipKind = String(origin.kind || "").toLowerCase();
+    const isPayloadRelationship = relationshipKind.includes("decompressed_payload");
+    const payloadSize = Number(origin.decompressed_size);
+    const size = Number.isFinite(payloadSize)
+      ? payloadSize
+      : Number(entry ? entry.size : undefined);
+    if (Number.isFinite(size)) {
+      details.push(formatBriefFileSize(size));
     }
-    if (origin.load_address !== null && origin.load_address !== undefined) {
-      details.push(`loads @ $${Number(origin.load_address).toString(16).toUpperCase()}`);
+    const payloadBadges = [renderTargetTypeBadgeLabel(target.target_type)];
+    if (isPayloadRelationship) {
+      payloadBadges.unshift("decompressed");
     }
-    appendPayloadRelationshipDetails(details, origin);
-    return `${renderInlineBadges(["decompressed", formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
+    if (origin.payload_role === "primary_program") {
+      payloadBadges.push("PRIMARY");
+    }
+    if (origin.compressor) {
+      const compressor = typeof origin.compressor === "string"
+        ? origin.compressor
+        : (origin.compressor.id || origin.compressor.name);
+      if (compressor) {
+        details.push(compressor);
+      }
+    }
+    const packedOffset = Number(origin.packed_file_offset ?? origin.packed_section_offset);
+    if (Number.isFinite(packedOffset)) {
+      details.push(`packed @ ${formatAddressHex(packedOffset)}`);
+    }
+    const loadAddress = Number(origin.load_address);
+    const entryAddress = Number(origin.entrypoint);
+    const hasLoadAddress = Number.isFinite(loadAddress);
+    const hasEntryAddress = Number.isFinite(entryAddress);
+    if (hasLoadAddress || hasEntryAddress) {
+      if (hasLoadAddress && hasEntryAddress && loadAddress === entryAddress) {
+        details.push(`load/enter @ ${formatAddressHex(loadAddress)}`);
+      } else {
+        if (hasLoadAddress) {
+          details.push(`load @ ${formatAddressHex(loadAddress)}`);
+        }
+        if (hasEntryAddress) {
+          details.push(`enter @ ${formatAddressHex(entryAddress)}`);
+        }
+      }
+    }
+    const payloadTooltip = payloadRelationshipTooltip(origin);
+    const metaText = `${renderInlineBadges(payloadBadges)} ${escapeHtml(details.join(" | "))}`.trim();
+    return {
+      metadata: metaText || "",
+      tooltip: payloadTooltip || "",
+    };
   }
   if (
     !entry
     && (target.entry_path === "bootblock" || String(target.entry_path || "").startsWith("bootloader/"))
   ) {
     const details = [target.binary_path || target.entry_path];
+    const tooltip = derivedTargetsRelationshipTooltip(target);
     appendDerivedTargetSummary(details, target);
-    return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
+    return {
+      metadata: `${renderInlineBadges([renderTargetTypeBadgeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`.trim(),
+      tooltip: tooltip || "",
+    };
   }
   if (!entry) {
     throw new Error(`Missing indexed file entry for imported target: ${target.entry_path}`);
@@ -5582,7 +5698,7 @@ function renderDiskTargetMetadata(target, entry) {
   if (!content) {
     throw new Error(`Target entry is missing content metadata: ${entry.full_path}`);
   }
-  const details = [`${entry.size} bytes`, formatFileKind(entry)];
+  const details = [formatBriefFileSize(entry.size), formatFileKind(entry)];
   if (content.library) {
     details.push(content.library.library_name);
     details.push(`v${content.library.version}`);
@@ -5597,7 +5713,10 @@ function renderDiskTargetMetadata(target, entry) {
     details.push(content.resident.node_type_name);
   }
   appendDerivedTargetSummary(details, target);
-  return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
+  return {
+    metadata: `${renderInlineBadges([renderTargetTypeBadgeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`.trim(),
+    tooltip: derivedTargetsRelationshipTooltip(target),
+  };
 }
 
 function renderDiskTargetStateSummary(targetState) {
@@ -5710,19 +5829,19 @@ function renderDiskTargetItem(target, entry, targetState, indentLevel = 0, extra
   const stateEntry = targetState && typeof targetState.stateById?.get === "function"
     ? targetState.stateById.get(target.target_name)
     : null;
-  const metadata = renderDiskTargetMetadata(target, entry);
+  const metadataPayload = renderDiskTargetMetadata(target, entry);
+  const metadata = metadataPayload && typeof metadataPayload === "object" ? metadataPayload.metadata || "" : "";
+  const metadataTooltip = metadataPayload && typeof metadataPayload === "object" ? metadataPayload.tooltip || "" : "";
   const stateBadges = [];
   if (stateEntry && typeof stateEntry.origin === "string") {
     stateBadges.push(stateEntry.origin);
-  }
-  if (target.derived_from && target.derived_from.kind === "decompressed_payload") {
-    stateBadges.push("payload-child");
   }
   const explicitBadges = Array.isArray(extraBadges) ? extraBadges.filter((badge) => typeof badge === "string" && badge.trim()) : [];
   const allBadges = [...stateBadges, ...explicitBadges];
   const extra = allBadges.length ? `<span class="disk-item-state">${renderInlineBadges(allBadges)}</span>` : "";
   const icon = renderDiskTargetEntryIcon(entry, target);
   const title = target.entry_path === "bootblock" ? "Boot Block" : (target.entry_path || target.target_name);
+  const tooltip = metadataTooltip ? ` title="${escapeHtml(metadataTooltip)}"` : "";
   const indentClass = normalizedIndentLevel === 0
     ? ""
     : normalizedIndentLevel === 1
@@ -5733,7 +5852,7 @@ function renderDiskTargetItem(target, entry, targetState, indentLevel = 0, extra
   return `
     <button class="disk-item disk-target-button${indentClass}" data-project-id="${escapeHtml(target.target_name)}" type="button">
       <span class="disk-item-main">${icon ? `<span class="disk-target-entry-icon">${icon}</span>` : ""}${escapeHtml(title)}</span>
-      <span class="disk-item-meta">${metadata}${extra ? ` ${extra}` : ""}</span>
+      <span class="disk-item-meta"${tooltip}>${metadata}${extra ? ` ${extra}` : ""}</span>
     </button>
   `;
 }
