@@ -119,7 +119,6 @@ def _run_one_target(
         listing_profile: dict[str, object] = {}
         source_refused = False
         source_sha256: str | None = None
-        facts_v2_defer_source_to_reproduction = True
         if listing_profile:
             source_refused = facts_v2_source_refused(listing_profile)
             source_sha256 = (

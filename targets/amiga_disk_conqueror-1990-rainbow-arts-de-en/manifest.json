@@ -72,7 +72,6 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -109,6 +108,7 @@
           "execution_views": [],
           "library": null,
           "resident": null,
+          "rsset_layout_regions": [],
           "seeded_code_entrypoints": [],
           "seeded_code_labels": [],
           "seeded_entities": [],
@@ -142,121 +142,9 @@
           "reachable_instruction_count": 4,
           "read_setups": [],
           "size": 1012
-        },
-        {
-          "base_addr": 262144,
-          "decode_outputs": [],
-          "decode_regions": [],
-          "derived_regions": [],
-          "disk_reads": [
-            {
-              "byte_length": 4608,
-              "command_name": "CMD_READ",
-              "destination_addr": 262144,
-              "disk_offset": 1024,
-              "instruction_addr": 458764,
-              "source_kind": "logical_disk_offset"
-            }
-          ],
-          "entry_addr": 262144,
-          "handoff_target": null,
-          "handoffs": [],
-          "hardware_accesses": [],
-          "import_target": {
-            "entry_path": "bootloader/stage_1",
-            "local_target_id": "amiga_raw_bootloader_stage_1",
-            "source": {
-              "address_model": "runtime_absolute",
-              "byte_offset": 1024,
-              "byte_size": 4608,
-              "code_start_offset": 0,
-              "entrypoint": 262144,
-              "kind": "raw_binary",
-              "load_address": 262144
-            },
-            "target_metadata": {
-              "absolute_code_labels": [],
-              "rsset_layout_regions": [],
-              "bootblock": null,
-              "custom_structs": [],
-              "entry_register_seeds": [
-                {
-                  "context_name": null,
-                  "entry_offset": null,
-                  "kind": "library_base",
-                  "library_name": "exec.library",
-                  "note": "ExecBase",
-                  "register": "A6",
-                  "struct_name": "LIB"
-                },
-                {
-                  "context_name": "trackdisk.device",
-                  "entry_offset": null,
-                  "kind": "struct_ptr",
-                  "library_name": null,
-                  "note": "IOStdReq (open trackdisk.device)",
-                  "register": "A1",
-                  "struct_name": "IO"
-                }
-              ],
-              "execution_views": [],
-              "library": null,
-              "resident": null,
-              "seeded_code_entrypoints": [],
-              "seeded_code_labels": [],
-              "seeded_entities": [],
-              "suppressed_seeded_items": [],
-              "target_type": "bootloader_stage"
-            },
-            "target_type": "bootloader_stage"
-          },
-          "loads": [],
-          "materialized": true,
-          "memory_copies": [],
-          "name": "stage_1",
-          "reachable_instruction_count": 1152,
-          "read_setups": [
-            {
-              "adkcon_values": [],
-              "buffer_addr": 262144,
-              "buffer_scan_addr": null,
-              "cylinder": 0,
-              "dma_byte_length": 4608,
-              "dmacon_values": [],
-              "drive": null,
-              "dsklen_dma_byte_length": null,
-              "dsklen_dma_enabled": false,
-              "dsklen_value": null,
-              "dsklen_write": false,
-              "head": 0,
-              "instruction_addr": 458764,
-              "sync_word": null,
-              "track": 0,
-              "wait_loop_addr": null
-            }
-          ],
-          "size": 4608
         }
       ],
-      "transfers": [
-        {
-          "byte_length": 4608,
-          "checksum_gate_addr": null,
-          "checksum_gate_kind": null,
-          "destination_addr": 262144,
-          "disk_offset": 1024,
-          "end_track": null,
-          "input_buffer_addr": null,
-          "output_addr": null,
-          "source_addr": null,
-          "source_kind": "logical_disk_offset",
-          "stage_name": "stage_1",
-          "start_byte_offset": null,
-          "start_track": null,
-          "target_addr": null,
-          "transfer_kind": "disk_read"
-        }
-      ]
+      "transfers": []
     },
     "directories": [
       {
@@ -392,13 +280,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -452,13 +340,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -573,13 +461,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1103,13 +991,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -4732,28 +4620,14 @@
   "disk_id": "conqueror-1990-rainbow-arts-de-en",
   "imported_targets": [
     {
-      "binary_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::CONQUEROR",
-      "entry_path": "CONQUEROR",
-      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
-      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_conqueror_cf971606",
-      "target_type": "program"
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
     },
     {
-      "binary_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::game",
-      "entry_path": "game",
-      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_game_cda051c9",
-      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_game_cda051c9",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::intro",
-      "entry_path": "intro",
-      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_intro_3cee6746",
-      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_intro_3cee6746",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::s/type",
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::s/type",
       "entry_path": "s/type",
       "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_s__type_0496bf04",
       "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_s__type_0496bf04",
@@ -4761,6 +4635,6 @@
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf",
   "source_sha256": "24c6421e8d69780faf2d89351c5a6c2b28fd9b1069a0cc0f27ec28bc1bcbd015"
 }

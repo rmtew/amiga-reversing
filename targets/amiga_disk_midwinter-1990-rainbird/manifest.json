@@ -25,7 +25,6 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -62,6 +61,7 @@
           "execution_views": [],
           "library": null,
           "resident": null,
+          "rsset_layout_regions": [],
           "seeded_code_entrypoints": [],
           "seeded_code_labels": [],
           "seeded_entities": [],
@@ -88,6 +88,22 @@
           "handoffs": [],
           "hardware_accesses": [
             {
+              "access": "read",
+              "address": 14675968,
+              "instruction_addr": 458766,
+              "symbol": "bltddat",
+              "value": null,
+              "width_bits": 32
+            },
+            {
+              "access": "write",
+              "address": 14676122,
+              "instruction_addr": 458772,
+              "symbol": "intena",
+              "value": 32767,
+              "width_bits": 16
+            },
+            {
               "access": "write",
               "address": 14676124,
               "instruction_addr": 458778,
@@ -96,11 +112,35 @@
               "width_bits": 16
             },
             {
+              "access": "read",
+              "address": 14675968,
+              "instruction_addr": 458900,
+              "symbol": "bltddat",
+              "value": null,
+              "width_bits": 32
+            },
+            {
               "access": "write",
               "address": 14676118,
               "instruction_addr": 458906,
               "symbol": "dmacon",
               "value": 34384,
+              "width_bits": 16
+            },
+            {
+              "access": "read",
+              "address": 12570624,
+              "instruction_addr": 458912,
+              "symbol": "ciapra",
+              "value": null,
+              "width_bits": 32
+            },
+            {
+              "access": "write",
+              "address": 14676352,
+              "instruction_addr": 458854,
+              "symbol": "color",
+              "value": 256,
               "width_bits": 16
             },
             {
@@ -189,6 +229,22 @@
               "instruction_addr": 459292,
               "symbol": "dsklen",
               "value": 39318,
+              "width_bits": 16
+            },
+            {
+              "access": "read",
+              "address": 14675998,
+              "instruction_addr": 459298,
+              "symbol": "intreqr",
+              "value": null,
+              "width_bits": 16
+            },
+            {
+              "access": "read",
+              "address": 12574721,
+              "instruction_addr": 458982,
+              "symbol": "ciapra",
+              "value": null,
               "width_bits": 16
             }
           ],
@@ -10709,8 +10765,16 @@
   "bootblock_target_name": "amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
   "bootblock_target_path": "targets/amiga_disk_midwinter-1990-rainbird/targets/amiga_raw_bootblock",
   "disk_id": "midwinter-1990-rainbird",
-  "imported_targets": [],
+  "imported_targets": [
+    {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Midwinter (1990)(Rainbird)[cr Defjam - CCS - ACC].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_midwinter-1990-rainbird/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
+    }
+  ],
   "schema_version": 1,
-  "source_path": "bin/Midwinter (1990)(Rainbird)[cr Defjam - CCS - ACC].adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Midwinter (1990)(Rainbird)[cr Defjam - CCS - ACC].adf",
   "source_sha256": "83d803835edafa5f47d775e9d882fd73dc5be4126de904fc680f24aa4554dd0f"
 }

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from amiga_reversing.tools import precommit
 from amiga_reversing.tools.benchmark_target import (
     EntityBenchmark,
     TargetBenchmark,
@@ -15,7 +16,6 @@ from amiga_reversing.tools.benchmark_target import (
     _disk_project_benchmark,
     main,
 )
-from amiga_reversing.tools import precommit
 from amiga_reversing.tools.precommit import _benchmark_targets
 
 
@@ -181,22 +181,38 @@ def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Pat
     assert _benchmark_targets() == ["amiga_disk_demo", "filedemo", "rawdemo"]
 
 
-def test_precommit_benchmark_step_runs_target_benchmark(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_precommit_benchmark_step_runs_target_benchmark(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target_name = "amiga_disk_demo"
+    targets_dir = tmp_path / "targets"
     monkeypatch.setenv(precommit.FACTS_V2_GATE_ENV, "0")
     commands: list[list[str]] = []
+    target_root = targets_dir / target_name
+    target_root.mkdir(parents=True, exist_ok=True)
+    (target_root / "manifest.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(precommit, "TARGETS_DIR", targets_dir)
+    monkeypatch.setattr(precommit, "ROOT", tmp_path)
     monkeypatch.setattr(precommit, "_run", lambda command: commands.append(command) or 0)
 
-    assert precommit.main(["precommit.py", "demo"]) == 0
+    assert precommit.main(["precommit.py", target_name]) == 0
 
     assert commands[-1] == [
         "uv",
         "run",
         "amiga-benchmark-target",
-        "demo",
+        target_name,
     ]
 
 
-def test_precommit_can_run_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_precommit_can_run_facts_v2_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_name = "amiga_disk_demo"
+    targets_dir = tmp_path / "targets"
+    target_root = targets_dir / target_name
+    target_root.mkdir(parents=True, exist_ok=True)
+    (target_root / "manifest.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(precommit, "TARGETS_DIR", targets_dir)
+    monkeypatch.setattr(precommit, "ROOT", tmp_path)
     monkeypatch.delenv(precommit.FACTS_V2_GATE_ENV, raising=False)
     commands: list[list[str]] = []
     envs: list[dict[str, str] | None] = []
@@ -208,7 +224,7 @@ def test_precommit_can_run_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> Non
 
     monkeypatch.setattr(precommit, "_run", fake_run)
 
-    assert precommit.main(["precommit.py", "demo"]) == 0
+    assert precommit.main(["precommit.py", target_name]) == 0
 
     assert commands[-2] == [
         precommit.sys.executable,
@@ -226,12 +242,19 @@ def test_precommit_can_run_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> Non
     assert envs[-1][precommit.FULL_REPRO_FACTS_V2_SOURCE_GATE_ENV] == "1"
 
 
-def test_precommit_can_disable_facts_v2_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_precommit_can_disable_facts_v2_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_name = "amiga_disk_demo"
+    targets_dir = tmp_path / "targets"
+    target_root = targets_dir / target_name
+    target_root.mkdir(parents=True, exist_ok=True)
+    (target_root / "manifest.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(precommit, "TARGETS_DIR", targets_dir)
+    monkeypatch.setattr(precommit, "ROOT", tmp_path)
     monkeypatch.setenv(precommit.FACTS_V2_GATE_ENV, "0")
     commands: list[list[str]] = []
     monkeypatch.setattr(precommit, "_run", lambda command: commands.append(command) or 0)
 
-    assert precommit.main(["precommit.py", "demo"]) == 0
+    assert precommit.main(["precommit.py", target_name]) == 0
 
     assert not any("tests/test_full_reproduction_integration.py" in command for command in commands)
 

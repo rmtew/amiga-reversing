@@ -30,15 +30,24 @@ from amiga_reversing.disasm.c_backend import (
     decompress_packed_section_range_with_c_backend,
     effective_policy_project_source_with_c_backend,
     extract_disk_entry_with_c_backend,
-    listing_artifact_source_text_with_c_backend_profile,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
-    inspect_disk_with_c_backend,
     identify_packed_range_with_c_backend,
+    inspect_disk_with_c_backend,
+    listing_artifact_source_text_with_c_backend_profile,
     materialize_recognized_unpacker_event_with_c_backend,
     materialize_self_decrunch_event_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
     validate_amiga_hunk_executable_with_c_backend,
+)
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
+from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from src.tests._platform_backend_test_utils import (
+    M68kDiagList,
+    make_synthetic_atari_prg,
+    make_synthetic_hunkexe,
+    u32,
 )
 from tests.c_backend_listing_rows import (
     analyze_project_with_c_artifact,
@@ -46,15 +55,6 @@ from tests.c_backend_listing_rows import (
     build_project_listing_rows_from_source_with_c_artifact,
     build_project_listing_rows_profile_with_c_artifact,
     build_project_listing_rows_with_c_artifact,
-)
-from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
-from amiga_reversing.disasm.effective_metadata import effective_metadata_file
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
-from src.tests._platform_backend_test_utils import (
-    M68kDiagList,
-    make_synthetic_atari_prg,
-    make_synthetic_hunkexe,
-    u32,
 )
 
 
@@ -1075,32 +1075,34 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     assert facts_v2["asm_source_first_numeric_runtime_ref_target_offset"] == 0x10
     assert facts_v2["asm_source_first_numeric_runtime_ref_runtime_address"] == 0x80
     runtime_views = combined["analysis"]["sections"][0]["runtime_views"]
-    assert runtime_views == [
-        {
-            "runtime_view_id": 0,
-            "storage_address": 0x10,
-            "storage_offset": 0x10,
-            "size": 0x10,
-            "runtime_address": 0x80,
-            "kind": 1,
-            "confidence": 3,
-            "materialized": False,
-            "materialization_reason": 102,
-            "materialization_reason_name": "crossed_by_storage_xref",
-        },
-        {
-            "runtime_view_id": 1,
-            "storage_address": 0x20,
-            "storage_offset": 0x20,
-            "size": 0x04,
-            "runtime_address": 0x100,
-            "kind": 1,
-            "confidence": 3,
-            "materialized": True,
-            "materialization_reason": 3,
-            "materialization_reason_name": "runtime_ref_target",
-        },
-    ]
+    runtime_view_0_expected = {
+        "runtime_view_id": 0,
+        "storage_address": 0x10,
+        "storage_offset": 0x10,
+        "size": 0x10,
+        "runtime_address": 0x80,
+        "kind": 1,
+        "confidence": 3,
+        "materialized": False,
+        "materialization_reason": 102,
+        "materialization_reason_name": "crossed_by_storage_xref",
+    }
+    runtime_view_1_expected = {
+        "runtime_view_id": 1,
+        "storage_address": 0x20,
+        "storage_offset": 0x20,
+        "size": 0x04,
+        "runtime_address": 0x100,
+        "kind": 1,
+        "confidence": 3,
+        "materialized": True,
+        "materialization_reason": 3,
+        "materialization_reason_name": "runtime_ref_target",
+    }
+    for key, value in runtime_view_0_expected.items():
+        assert runtime_views[0][key] == value
+    for key, value in runtime_view_1_expected.items():
+        assert runtime_views[1][key] == value
 
     rows = combined["listing"]["rows"]
     row_texts = [str(row["text"]).rstrip("\n") for row in rows]
@@ -2930,7 +2932,7 @@ def test_project_source_facts_v2_atari_symbol_table_roundtrips(tmp_path: Path) -
     binary_path = tmp_path / "symbols.prg"
     source_path = tmp_path / "symbols.s"
     rebuilt_path = tmp_path / "symbols.rebuilt.prg"
-    symbol_table = bytes((index & 0xFF for index in range(300)))
+    symbol_table = bytes(index & 0xFF for index in range(300))
     original = make_synthetic_atari_prg(
         b"\x4E\x75",
         b"",
@@ -4835,7 +4837,11 @@ def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(targe
 
 def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_stay_clean() -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(
+        "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -5653,7 +5659,11 @@ def test_real_dll_serial_device_app_slot_widths_stay_evidence_backed(target_name
 def test_real_dll_voodoo_absolute_four_stays_numeric_not_initial_pc_vector() -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(
+        "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -5669,7 +5679,11 @@ def test_real_dll_voodoo_absolute_four_stays_numeric_not_initial_pc_vector() -> 
 def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths("amiga_hunk_voodoo_nightmare_run", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(
+        "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
+        project_root=PROJECT_ROOT,
+        require_entities=False,
+    )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",

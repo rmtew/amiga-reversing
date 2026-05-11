@@ -1239,7 +1239,7 @@ def test_route_create_project_from_executable_media(monkeypatch: pytest.MonkeyPa
 
 
 def test_route_corpus_features_query_xrefs_and_snippet(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    monkeypatch.setattr(disasm_server, "list_projects", list)
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "feature_list",
@@ -1612,7 +1612,7 @@ def test_route_corpus_diff_rejects_unrelated_targets(monkeypatch: pytest.MonkeyP
             {"id": "right-target", "platform": "amiga-hunk", "origin": {"display_name": "right"}},
         ],
     )
-    monkeypatch.setattr(disasm_server.corpus_usage, "read_variants", lambda: [])
+    monkeypatch.setattr(disasm_server.corpus_usage, "read_variants", list)
 
     with pytest.raises(ValueError, match="not variants"):
         disasm_server.route_request(
@@ -1713,7 +1713,7 @@ def test_corpus_disk_browser_lists_directories_first_and_file_metadata(monkeypat
     }
     monkeypatch.setattr(disasm_server.corpus_usage, "read_manifest", lambda: [disk_target, file_target])
     monkeypatch.setattr(disasm_server.corpus_usage, "load_disk_image_bytes", lambda origin: b"Echo")
-    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    monkeypatch.setattr(disasm_server, "list_projects", list)
 
     def fake_read_jsonl(path: Path) -> list[dict[str, object]]:
         if path == disasm_server.corpus_usage.DISK_MANIFEST_PATH:
@@ -2112,10 +2112,6 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
-        for index in range(5)
-    ]
     calls: list[tuple[int, int]] = []
 
     class FakeArtifact:
@@ -2214,10 +2210,6 @@ def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.Mon
 
 
 def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
-        for index in range(5)
-    ]
     calls: list[tuple[int | None, int, int]] = []
 
     class FakeArtifact:
@@ -3583,7 +3575,7 @@ def test_resolve_static_response_serves_app_js_with_no_store() -> None:
 
     assert response["content_type"] == "application/javascript; charset=utf-8"
     assert response["headers"]["Cache-Control"] == "no-store"
-    assert b"function renderDiskTargets(manifest)" in response["body"]
+    assert b"function renderDiskTargets(manifest" in response["body"]
 
 
 def test_resolve_static_response_rejects_missing_file() -> None:

@@ -7,8 +7,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-from amiga_reversing.disasm.facts_v2_source_gate import facts_v2_source_gate_report_for_targets
-from amiga_reversing.disasm.profile_set_targets import ensure_profile_set_project, select_profile_targets
+from amiga_reversing.disasm.facts_v2_source_gate import (
+    facts_v2_source_gate_report_for_targets,
+)
+from amiga_reversing.disasm.profile_set_targets import (
+    ensure_profile_set_project,
+    select_profile_targets,
+)
 
 SOURCE_GATE_PROFILE_TARGET_CATEGORIES = (
     ("genam", ("genam",)),

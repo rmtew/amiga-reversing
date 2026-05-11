@@ -1814,7 +1814,7 @@ body {
 
 .disk-list {
   display: grid;
-  gap: 8px;
+  gap: 0;
 }
 
 .disk-item {
@@ -1823,6 +1823,137 @@ body {
   padding: 10px;
   border: 1px solid #7a7a7a;
   background: #fff;
+}
+
+.disk-file-browse {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid #9ca3af;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.disk-file-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.disk-file-table thead th {
+  background: #f1f5f9;
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid #94a3b8;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.disk-file-table tbody tr {
+  background: #f7f9fc;
+  cursor: pointer;
+}
+
+.disk-file-table tbody tr:nth-child(even) {
+  background: #eceff3;
+}
+
+.disk-file-table th:nth-child(1),
+.disk-file-table td:nth-child(1) {
+  width: 42%;
+}
+
+.disk-file-table th:nth-child(2),
+.disk-file-table td:nth-child(2) {
+  width: 10%;
+}
+
+.disk-file-table th:nth-child(3),
+.disk-file-table td:nth-child(3) {
+  width: 22%;
+}
+
+.disk-file-table th:nth-child(4),
+.disk-file-table td:nth-child(4) {
+  width: 18%;
+}
+
+.disk-file-table th:nth-child(5),
+.disk-file-table td:nth-child(5) {
+  width: 8%;
+  text-align: right;
+}
+
+.disk-file-table th,
+.disk-file-table td {
+  border: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 7px 10px;
+}
+
+.disk-file-header-name,
+.disk-file-header-size,
+.disk-file-header-type,
+.disk-file-header-details,
+.disk-file-header-action,
+.disk-file-name,
+.disk-file-size,
+.disk-file-type,
+.disk-file-details,
+.disk-file-action {
+  min-width: 0;
+}
+
+.disk-file-size,
+.disk-file-type {
+  color: #374151;
+  font-size: 12px;
+}
+
+.disk-file-table th.disk-file-header-size {
+  text-align: right;
+}
+
+.disk-file-name,
+.disk-file-type,
+.disk-file-details {
+  text-align: left;
+}
+
+.disk-file-size {
+  text-align: right;
+}
+
+.disk-file-action {
+  text-align: right;
+}
+
+.disk-file-table tbody tr:focus,
+.disk-file-table tbody tr:hover {
+  background: #e5ecff;
+}
+
+.disk-file-header-name,
+.disk-file-header-type,
+.disk-file-header-details {
+  text-align: left;
+}
+
+.disk-file-header-size,
+.disk-file-header-action {
+  text-align: right;
+}
+
+.disk-file-details {
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.disk-file-action {
+  text-align: right;
 }
 
 
@@ -1841,4 +1972,78 @@ body {
   color: #555;
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.disk-item-action {
+  display: inline-block;
+  padding: 3px 6px;
+  border: 1px solid #9a9a9a;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.disk-state-summary {
+  border: 1px dashed #9ca3af;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.disk-state-summary-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.disk-state-summary-detail {
+  color: #334155;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.disk-reject-list {
+  list-style-type: circle;
+  margin: 4px 0 0 20px;
+  padding: 0;
+  color: #111827;
+  font-size: 12px;
+}
+
+.disk-reject-code {
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.disk-target-child {
+  margin-left: 16px;
+}
+
+.disk-item-state {
+  margin-left: 6px;
+}
+
+.disk-item-state-action {
+  display: inline-block;
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.disk-item-state-action.disk-item-action-add {
+  color: #052e16;
+  background: #dcfce7;
+  border: 1px solid #166534;
+}
+
+.disk-item-state-action.disk-item-action-keep {
+  color: #1e293b;
+  background: #e2e8f0;
+  border: 1px solid #475569;
+}
+
+.disk-item-state-action.disk-item-action-remove {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border: 1px solid #b91c1c;
 }

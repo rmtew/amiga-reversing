@@ -19,7 +19,7 @@ def browser_payload(
     current_path = normalise_path(path)
     selected_entry = entry_for_path(entries, current_path) if current_path else None
     if selected_entry is not None and not entry_is_directory(selected_entry):
-        children: list[dict[str, object]] = []
+        children = []
         parent_path = parent_path_for(current_path)
     else:
         children = [
@@ -55,6 +55,7 @@ def payload_from_project_manifest(
     path: str = "",
     *,
     content_for_entry: ContentProvider | None = None,
+    target_index: dict[str, str] | None = None,
 ) -> dict[str, object]:
     analysis = manifest.get("analysis")
     analysis = analysis if isinstance(analysis, dict) else {}
@@ -74,6 +75,7 @@ def payload_from_project_manifest(
         disk=disk,
         entries=project_manifest_entries(manifest),
         path=path,
+        target_index=target_index,
         content_for_entry=content_for_entry,
     )
 
@@ -131,9 +133,7 @@ def parent_path_for(path: str) -> str | None:
     return normalised.rsplit("/", 1)[0] if "/" in normalised else ""
 
 
-def entry_payload(entry: dict[str, Any] | None, target_index: dict[str, str]) -> dict[str, object] | None:
-    if entry is None:
-        return None
+def entry_payload(entry: dict[str, Any], target_index: dict[str, str]) -> dict[str, object]:
     path = entry_path_value(entry)
     name = entry.get("name")
     if not isinstance(name, str) or not name:
@@ -151,6 +151,9 @@ def entry_payload(entry: dict[str, Any] | None, target_index: dict[str, str]) ->
     target_id = target_index.get(path.lower())
     if target_id is not None:
         result["target_id"] = target_id
+    content = entry.get("content")
+    if isinstance(content, dict) and content.get("import_target") is not None and not result["is_directory"]:
+        result["importable"] = True
     for key in ("date", "protection", "comment"):
         value = entry.get(key)
         if isinstance(value, (str, int)) and value != "":
@@ -182,7 +185,9 @@ def entry_size(entry: dict[str, Any]) -> int | None:
             return value
     content = entry.get("content")
     if isinstance(content, dict) and isinstance(content.get("size"), int):
-        return content["size"]
+        size = content.get("size")
+        if isinstance(size, int):
+            return size
     return None
 
 

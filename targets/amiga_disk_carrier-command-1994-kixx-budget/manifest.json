@@ -80,7 +80,6 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -117,6 +116,7 @@
           "execution_views": [],
           "library": null,
           "resident": null,
+          "rsset_layout_regions": [],
           "seeded_code_entrypoints": [],
           "seeded_code_labels": [],
           "seeded_entities": [],
@@ -150,121 +150,9 @@
           "reachable_instruction_count": 4,
           "read_setups": [],
           "size": 1012
-        },
-        {
-          "base_addr": 262144,
-          "decode_outputs": [],
-          "decode_regions": [],
-          "derived_regions": [],
-          "disk_reads": [
-            {
-              "byte_length": 21504,
-              "command_name": "CMD_READ",
-              "destination_addr": 262144,
-              "disk_offset": 1024,
-              "instruction_addr": 458764,
-              "source_kind": "logical_disk_offset"
-            }
-          ],
-          "entry_addr": 262144,
-          "handoff_target": null,
-          "handoffs": [],
-          "hardware_accesses": [],
-          "import_target": {
-            "entry_path": "bootloader/stage_1",
-            "local_target_id": "amiga_raw_bootloader_stage_1",
-            "source": {
-              "address_model": "runtime_absolute",
-              "byte_offset": 1024,
-              "byte_size": 21504,
-              "code_start_offset": 0,
-              "entrypoint": 262144,
-              "kind": "raw_binary",
-              "load_address": 262144
-            },
-            "target_metadata": {
-              "absolute_code_labels": [],
-              "rsset_layout_regions": [],
-              "bootblock": null,
-              "custom_structs": [],
-              "entry_register_seeds": [
-                {
-                  "context_name": null,
-                  "entry_offset": null,
-                  "kind": "library_base",
-                  "library_name": "exec.library",
-                  "note": "ExecBase",
-                  "register": "A6",
-                  "struct_name": "LIB"
-                },
-                {
-                  "context_name": "trackdisk.device",
-                  "entry_offset": null,
-                  "kind": "struct_ptr",
-                  "library_name": null,
-                  "note": "IOStdReq (open trackdisk.device)",
-                  "register": "A1",
-                  "struct_name": "IO"
-                }
-              ],
-              "execution_views": [],
-              "library": null,
-              "resident": null,
-              "seeded_code_entrypoints": [],
-              "seeded_code_labels": [],
-              "seeded_entities": [],
-              "suppressed_seeded_items": [],
-              "target_type": "bootloader_stage"
-            },
-            "target_type": "bootloader_stage"
-          },
-          "loads": [],
-          "materialized": true,
-          "memory_copies": [],
-          "name": "stage_1",
-          "reachable_instruction_count": 5,
-          "read_setups": [
-            {
-              "adkcon_values": [],
-              "buffer_addr": 262144,
-              "buffer_scan_addr": null,
-              "cylinder": 0,
-              "dma_byte_length": 21504,
-              "dmacon_values": [],
-              "drive": null,
-              "dsklen_dma_byte_length": null,
-              "dsklen_dma_enabled": false,
-              "dsklen_value": null,
-              "dsklen_write": false,
-              "head": 0,
-              "instruction_addr": 458764,
-              "sync_word": null,
-              "track": 0,
-              "wait_loop_addr": null
-            }
-          ],
-          "size": 21504
         }
       ],
-      "transfers": [
-        {
-          "byte_length": 21504,
-          "checksum_gate_addr": null,
-          "checksum_gate_kind": null,
-          "destination_addr": 262144,
-          "disk_offset": 1024,
-          "end_track": null,
-          "input_buffer_addr": null,
-          "output_addr": null,
-          "source_addr": null,
-          "source_kind": "logical_disk_offset",
-          "stage_name": "stage_1",
-          "start_byte_offset": null,
-          "start_track": null,
-          "target_addr": null,
-          "transfer_kind": "disk_read"
-        }
-      ]
+      "transfers": []
     },
     "directories": [
       {
@@ -412,13 +300,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -469,13 +357,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -545,13 +433,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -602,13 +490,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -661,13 +549,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -714,13 +602,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -768,13 +656,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -866,13 +754,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -921,7 +809,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -940,6 +827,7 @@
                 "priority": 60,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1007,7 +895,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -1026,6 +913,7 @@
                 "priority": 60,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1123,7 +1011,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -1142,6 +1029,7 @@
                 "priority": 0,
                 "version": 35
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1212,7 +1100,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -1231,6 +1118,7 @@
                 "priority": -10,
                 "version": 35
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1343,7 +1231,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -1362,6 +1249,7 @@
                 "priority": 20,
                 "version": 1
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1520,13 +1408,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1963,7 +1851,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -2089,6 +1976,7 @@
                 "priority": 70,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -2190,7 +2078,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -2251,6 +2138,7 @@
                 "priority": 0,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -2361,7 +2249,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -2417,6 +2304,7 @@
                 "priority": 0,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -2493,7 +2381,6 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
@@ -2518,6 +2405,7 @@
                 "priority": 0,
                 "version": 34
               },
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -16025,170 +15913,14 @@
   "disk_id": "carrier-command-1994-kixx-budget",
   "imported_targets": [
     {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::Carrier",
-      "derived_targets": [
-        {
-          "child_entry_path": "Carrier::rnc_00004c60",
-          "child_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
-          "compressor": "RNC1: Rob Northen RNC1 Compressor (old)",
-          "decompressed_size": 359600,
-          "entrypoint": 16384,
-          "kind": "decompressed_payload",
-          "load_address": 16384,
-          "packed_file_offset": 19552,
-          "packed_section_offset": 19520,
-          "packed_size": 168391,
-          "parent_entry_path": "Carrier",
-          "parent_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
-        }
-      ],
-      "entry_path": "Carrier",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_carrier_91b0ba24",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_carrier_rnc_00004c60/binary.bin",
-      "derived_from": {
-        "child_entry_path": "Carrier::rnc_00004c60",
-        "child_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
-        "compressor": "RNC1: Rob Northen RNC1 Compressor (old)",
-        "decompressed_size": 359600,
-        "entrypoint": 16384,
-        "kind": "decompressed_payload",
-        "load_address": 16384,
-        "packed_file_offset": 19552,
-        "packed_section_offset": 19520,
-        "packed_size": 168391,
-        "parent_entry_path": "Carrier",
-        "parent_target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
-      },
-      "entry_path": "Carrier::rnc_00004c60",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_carrier_rnc_00004c60",
-      "target_type": "raw_binary"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/Echo",
-      "entry_path": "c/Echo",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__echo_e3564c37",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__echo_e3564c37",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/More",
-      "entry_path": "c/More",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__more_7c8dea18",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__more_7c8dea18",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/binddrivers",
-      "entry_path": "c/binddrivers",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__binddrivers_65a8f53c",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__binddrivers_65a8f53c",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/endcli",
-      "entry_path": "c/endcli",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__endcli_d6f4a4ee",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__endcli_d6f4a4ee",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/loadwb",
-      "entry_path": "c/loadwb",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__loadwb_175153fc",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__loadwb_175153fc",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/run",
-      "entry_path": "c/run",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__run_b7d992b5",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__run_b7d992b5",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::c/setpatch",
-      "entry_path": "c/setpatch",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_c__setpatch_50db5120",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_c__setpatch_50db5120",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/clipboard.device",
-      "entry_path": "devs/clipboard.device",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__clipboard.device_2e6f0d10",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_devs__clipboard.device_2e6f0d10",
-      "target_type": "device"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/parallel.device",
-      "entry_path": "devs/parallel.device",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__parallel.device_0b78e156",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_devs__parallel.device_0b78e156",
-      "target_type": "device"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/printer.device",
-      "entry_path": "devs/printer.device",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__printer.device_d449539a",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_devs__printer.device_d449539a",
-      "target_type": "device"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/ramdrive.device",
-      "entry_path": "devs/ramdrive.device",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_devs__ramdrive.device_2c146d8c",
-      "target_type": "device"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::devs/serial.device",
-      "entry_path": "devs/serial.device",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_devs__serial.device_ddfdac2b",
-      "target_type": "device"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::l/Disk-Validator",
-      "entry_path": "l/Disk-Validator",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_l__disk-validator_0c36e39c",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_l__disk-validator_0c36e39c",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::libs/diskfont.library",
-      "entry_path": "libs/diskfont.library",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_libs__diskfont.library_2bf8cf1a",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_libs__diskfont.library_2bf8cf1a",
-      "target_type": "library"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::libs/icon.library",
-      "entry_path": "libs/icon.library",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_libs__icon.library_8bc90c0c",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_libs__icon.library_8bc90c0c",
-      "target_type": "library"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::libs/info.library",
-      "entry_path": "libs/info.library",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_libs__info.library_3fb9d33a",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_libs__info.library_3fb9d33a",
-      "target_type": "library"
-    },
-    {
-      "binary_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf::libs/version.library",
-      "entry_path": "libs/version.library",
-      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_libs__version.library_5059c1a5",
-      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_hunk_libs__version.library_5059c1a5",
-      "target_type": "library"
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Carrier Command (1994)(Kixx)[h][budget].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/Carrier Command (1994)(Kixx)[h][budget].adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Carrier Command (1994)(Kixx)[h][budget].adf",
   "source_sha256": "285958dd0750861e296d7851bb53be5f4af2aabf5c0de5c677047e85ad7c8934"
 }

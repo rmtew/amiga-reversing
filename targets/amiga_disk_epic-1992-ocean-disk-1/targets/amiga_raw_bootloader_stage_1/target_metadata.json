@@ -1,6 +1,5 @@
 {
   "absolute_code_labels": [],
-  "rsset_layout_regions": [],
   "bootblock": null,
   "custom_structs": [],
   "entry_register_seeds": [
@@ -26,6 +25,7 @@
   "execution_views": [],
   "library": null,
   "resident": null,
+  "rsset_layout_regions": [],
   "seeded_code_entrypoints": [],
   "seeded_code_labels": [],
   "seeded_entities": [],

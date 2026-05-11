@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import contextlib
+import datetime
 import hashlib
 import json
+import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from amiga_reversing.amiga_disk.adf import (
     DiskAnalysisError,
@@ -27,6 +31,7 @@ from amiga_reversing.disasm.c_backend import (
     materialize_self_decrunch_event_with_c_backend,
 )
 from amiga_reversing.disasm.project_ids import (
+    AMIGA_DISK_PREFIX,
     disk_child_project_id,
     disk_child_target_relpath,
     disk_project_root,
@@ -70,6 +75,69 @@ DECOMPRESSION_PARENT_REMAINS_ACTIVE_NAMES = {
     1: "false",
     2: "true",
 }
+TARGET_STATE_SCHEMA_VERSION = 1
+TARGET_STATE_IMPORT_MODE = "amiga_dos_startup_sequence"
+TARGET_STATE_STARTUP_PARSE_STATUS_DISABLED = "disabled"
+TARGET_STATE_STARTUP_PARSE_STATUS_MISSING = "missing"
+TARGET_STATE_STARTUP_PARSE_STATUS_PARSE_ERROR = "parse_error"
+TARGET_STATE_STARTUP_PARSE_STATUS_EMPTY = "empty"
+TARGET_STATE_STARTUP_PARSE_STATUS_OK = "ok"
+TARGET_STATE_STARTUP_PARSE_SOURCE_PATH = "s/startup-sequence"
+TARGET_STATE_STARTUP_PARSE_DEFAULT_REASON = "startup-sequence auto-import is not currently available"
+TARGET_STATE_REJECT_REASON_PARSE_ERROR = "parse_error"
+TARGET_STATE_REJECT_REASON_MISSING_STARTUP = "missing_startup"
+TARGET_STATE_REJECT_REASON_PATH_NOT_FOUND = "path_not_found"
+TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT = "unsupported_format"
+TARGET_STATE_REJECT_REASON_DUPLICATE = "filtered_duplicate"
+TARGET_STATE_REJECT_REASON_FILTERED_DIR = "filtered_dir"
+TARGET_STATE_SUBTARGET_STATES = {"added"}
+_STARTUP_PARSE_PREFIX_ALIASES = {"s"}
+_STARTUP_PARSE_PREFIX_FILTERED = {"c", "l", "lib", "libs", "devs", "fonts", "system"}
+
+
+def _normalize_disk_id_arg(disk_id: str | None) -> str | None:
+    if disk_id is None:
+        return None
+    normalized = disk_id.strip()
+    if not normalized:
+        return None
+    if normalized.startswith(AMIGA_DISK_PREFIX):
+        raise DiskAnalysisError(
+            f"disk_id argument must be bare disk id; do not prefix with '{AMIGA_DISK_PREFIX}'"
+        )
+    return normalized
+
+
+def _normalize_disk_project_id(project_name: str) -> str:
+    normalized = project_name.strip()
+    if not normalized.startswith(AMIGA_DISK_PREFIX):
+        raise DiskAnalysisError(f"Project {project_name} is not a disk project")
+    suffix = normalized[len(AMIGA_DISK_PREFIX):]
+    if "__" in suffix:
+        raise DiskAnalysisError(f"Project {project_name} is not a parent disk project")
+    disk_id = _normalize_disk_id_arg(suffix)
+    if disk_id is None:
+        raise DiskAnalysisError(f"Invalid disk project id in {project_name}")
+    return disk_id
+
+
+def _is_legacy_startup_prefix(entry_path: str | None) -> bool:
+    if not isinstance(entry_path, str):
+        return False
+    normalized = entry_path.strip().strip("/")
+    if not normalized:
+        return False
+    first = normalized.split("/", 1)[0].lower()
+    return first in _STARTUP_PARSE_PREFIX_FILTERED
+
+
+def _coerce_disk_entry_import_path(raw_path: str | None) -> str | None:
+    if not isinstance(raw_path, str):
+        return None
+    value = raw_path.replace("\\", "/").strip()
+    if not value:
+        return None
+    return value.strip("/")
 
 
 def _materialized_bootloader_disk_stage_targets(
@@ -127,6 +195,661 @@ def _write_text(path: Path, text: str) -> None:
 def _write_bytes(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
+
+
+def _disk_target_state_path(disk_target_root: Path) -> Path:
+    return disk_target_root / "target_state.json"
+
+
+def _disk_target_state_payload(
+    *,
+    schema_version: int,
+    import_mode: str,
+    imported_targets: list[ImportedTarget],
+    state_subtargets: list[dict[str, object]] | None = None,
+    source_path: str,
+    startup_sequence_parse: dict[str, object],
+    candidate_rejects: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    now = datetime.datetime.now(datetime.UTC).replace(microsecond=0).isoformat()
+    subtargets: list[dict[str, object]] = []
+    payload_nodes: list[dict[str, object]] = []
+    if state_subtargets is None:
+        for imported_target in imported_targets:
+            subtargets.append(
+                {
+                    "id": imported_target.target_name,
+                    "path": imported_target.target_path,
+                    "state": "added",
+                    "origin": "auto",
+                    "reason_code": None,
+                    "reason_detail": None,
+                    "added_by_import": True,
+                    "imported_at": now,
+                }
+            )
+    else:
+        for state_entry_payload in state_subtargets:
+            state_entry = dict(state_entry_payload)
+            if not isinstance(state_entry.get("id"), str) or not state_entry.get("id"):
+                continue
+            path_value = state_entry.get("path")
+            if not isinstance(path_value, str):
+                state_entry["path"] = ""
+            state_entry.setdefault("state", "added")
+            state_entry.setdefault("origin", "manual")
+            state_entry.setdefault("added_by_import", False)
+            state_entry["imported_at"] = now
+            subtargets.append(state_entry)
+    for item in imported_targets:
+        if not isinstance(item.derived_from, dict):
+            continue
+        relationship = item.derived_from
+        if relationship.get("kind") != "decompressed_payload":
+            continue
+        payload_nodes.append(
+            {
+                "id": item.target_name,
+                "path": item.target_path,
+                "parent_file_id": relationship.get("parent_target"),
+                "origin": "auto",
+                "codec": _str_field(relationship, "codec_id") or _str_field(relationship, "codec_name") or "unknown",
+                "decode_status": "ok",
+                "media_hint": "raw",
+                "decoded_size": _int_field(relationship, "decompressed_size"),
+                "source_offset": _int_field(relationship, "packed_section_offset")
+                or _int_field(relationship, "source_section"),
+                "source_size": _int_field(relationship, "packed_size"),
+                "source_path": source_path,
+                "crc32": None,
+                "state": "added",
+                "reason_code": None,
+                "reason_detail": None,
+            }
+        )
+    return {
+        "schema_version": schema_version,
+        "import_mode": import_mode,
+        "imported_at": now,
+        "startup_sequence_parse": startup_sequence_parse,
+        "subtargets": subtargets,
+        "payload_nodes": payload_nodes,
+        "candidate_rejects": candidate_rejects or [],
+    }
+
+
+def _write_disk_target_state(path: Path, state: dict[str, object]) -> None:
+    _write_text(path, json.dumps(state, indent=2, sort_keys=True) + "\n")
+
+
+def _load_disk_target_state(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _startup_parse_status_payload(
+    status: str,
+    *,
+    reason: str,
+    line: int | None = None,
+    command: str | None = None,
+    error: str | None = None,
+    source_path: str = TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+) -> dict[str, object]:
+    return {
+        "status": status,
+        "source_path": source_path,
+        "reason": reason,
+        "line": line,
+        "command": command,
+        "error": error,
+    }
+
+
+def _coerce_startup_parse_status(payload: object) -> dict[str, object]:
+    if not isinstance(payload, dict):
+        return _startup_parse_status_payload(
+            TARGET_STATE_STARTUP_PARSE_STATUS_DISABLED,
+            reason=TARGET_STATE_STARTUP_PARSE_DEFAULT_REASON,
+            source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+        )
+    status = payload.get("status")
+    if not isinstance(status, str):
+        status = TARGET_STATE_STARTUP_PARSE_STATUS_DISABLED
+    return {
+        "status": status,
+        "source_path": payload.get("source_path") or TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+        "reason": payload.get("reason") or "startup-sequence parse status unknown",
+        "line": _int_field(payload, "line"),
+        "command": payload.get("command") if isinstance(payload.get("command"), str) else None,
+        "error": payload.get("error") if isinstance(payload.get("error"), str) else None,
+    }
+
+
+def _coerce_candidate_rejects(payload: object) -> list[dict[str, object]]:
+    if not isinstance(payload, list):
+        return []
+    rejects: list[dict[str, object]] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        path = item.get("path")
+        reason_code = item.get("reason_code")
+        if not isinstance(path, str) or not isinstance(reason_code, str):
+            continue
+        reason_detail = item.get("reason_detail")
+        if reason_detail is not None and not isinstance(reason_detail, str):
+            reason_detail = None
+        reject_entry: dict[str, object] = {
+            "path": path,
+            "reason_code": reason_code,
+            "reason_detail": reason_detail,
+        }
+        line = _int_field(item, "line")
+        if line is not None:
+            reject_entry["line"] = line
+        command = item.get("command")
+        if isinstance(command, str):
+            reject_entry["command"] = command
+        rejects.append(reject_entry)
+    return rejects
+
+
+def _coerce_state_subtargets(payload: object) -> dict[str, dict[str, object]]:
+    if not isinstance(payload, list):
+        return {}
+    entries: dict[str, dict[str, object]] = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        target_id = item.get("id")
+        if not isinstance(target_id, str) or not target_id:
+            continue
+        path = item.get("path")
+        if not isinstance(path, str) or not path.strip():
+            continue
+        if not isinstance(item.get("state"), str):
+            continue
+        if not isinstance(item.get("origin"), str):
+            continue
+        if item.get("state") not in TARGET_STATE_SUBTARGET_STATES:
+            continue
+        entries[target_id] = item
+    return entries
+
+
+def _coerce_payload_target_ids(payload: object, *, parent_ids: set[str]) -> set[str]:
+    if not isinstance(payload, list):
+        return set()
+    result: set[str] = set()
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        node_id = _str_field(item, "id")
+        if not node_id:
+            continue
+        if _str_field(item, "state") != "added":
+            continue
+        parent_target = _str_field(item, "parent_file_id")
+        if not parent_target:
+            continue
+        if parent_target not in parent_ids:
+            continue
+        result.add(node_id)
+    return result
+
+
+def _state_entry_payload(
+    *,
+    target_id: str,
+    target_path: str,
+    origin: str,
+) -> dict[str, object]:
+    return {
+        "id": target_id,
+        "path": target_path,
+        "state": "added",
+        "origin": origin,
+        "reason_code": None,
+        "reason_detail": None,
+        "added_by_import": origin == "auto",
+    }
+
+
+def import_disk_entry_target(
+    project_name: str,
+    *,
+    entry_path: str,
+    project_root: Path = PROJECT_ROOT,
+) -> ImportedTarget:
+    from amiga_reversing.disasm.projects import mark_project_updated
+
+    normalized_disk_id = _normalize_disk_project_id(project_name)
+    disk_target_root = disk_project_root(project_root, normalized_disk_id)
+    manifest_path = disk_target_root / "manifest.json"
+    if not manifest_path.exists():
+        raise DiskAnalysisError(f"Disk manifest does not exist: {manifest_path}")
+    manifest = DiskManifest.load(manifest_path)
+    normalized_entry_path = _coerce_disk_entry_import_path(entry_path)
+    if normalized_entry_path is None:
+        raise DiskAnalysisError("entry_path must be a non-empty string")
+    if manifest.analysis.files is None:
+        raise DiskAnalysisError("Disk analysis has no indexed files to resolve manual entry import")
+    entry = _find_dos_entry_by_path(manifest.analysis, normalized_entry_path)
+    if entry is None:
+        raise DiskAnalysisError(f"Disk entry was not found: {normalized_entry_path}")
+    entry_content = getattr(entry, "content", None)
+    if entry_content is None or getattr(entry_content, "import_target", None) is None:
+        raise DiskAnalysisError(f"Disk entry is not importable: {normalized_entry_path}")
+    import_target = entry_content.import_target
+    if import_target is None:
+        raise DiskAnalysisError(f"Disk entry is missing import metadata: {normalized_entry_path}")
+    adf_file = Path(manifest.source_path)
+    if not adf_file.is_absolute():
+        adf_file = project_root / adf_file
+    if not adf_file.exists():
+        raise DiskAnalysisError(f"Disk source file does not exist: {manifest.source_path}")
+    created_target_dirs: list[Path] = []
+    disk_children_root = disk_project_targets_dir(project_root, normalized_disk_id)
+    state_payload = _load_disk_target_state(_disk_target_state_path(disk_target_root))
+    state_subtargets = _coerce_state_subtargets(state_payload.get("subtargets"))
+    startup_parse = _coerce_startup_parse_status(state_payload.get("startup_sequence_parse"))
+    candidate_rejects = _coerce_candidate_rejects(state_payload.get("candidate_rejects"))
+    imported_targets = {target.target_name: target for target in manifest.imported_targets}
+    try:
+        imported_target, child_targets = _import_disk_file_entry(
+            adf_file=adf_file,
+            disk_id=normalized_disk_id,
+            disk_children_root=disk_children_root,
+            import_target=import_target,
+            created_target_dirs=created_target_dirs,
+            project_root=project_root,
+        )
+        imported_targets[imported_target.target_name] = imported_target
+        for child_target in child_targets:
+            imported_targets[child_target.target_name] = child_target
+        state_subtargets[imported_target.target_name] = _state_entry_payload(
+            target_id=imported_target.target_name,
+            target_path=imported_target.target_path,
+            origin="manual",
+        )
+        for child_target in child_targets:
+            if child_target.target_name in state_subtargets:
+                continue
+            state_subtargets[child_target.target_name] = _state_entry_payload(
+                target_id=child_target.target_name,
+                target_path=child_target.target_path,
+                origin="auto",
+            )
+        for target_id, state_entry in list(state_subtargets.items()):
+            existing_target = imported_targets.get(target_id)
+            if existing_target is None:
+                state_subtargets.pop(target_id, None)
+                continue
+            state_entry["path"] = existing_target.target_path
+            state_entry["id"] = target_id
+            state_entry.setdefault("reason_code", None)
+            state_entry.setdefault("reason_detail", None)
+            state_entry.setdefault("origin", "manual" if target_id == imported_target.target_name else "auto")
+            if target_id == imported_target.target_name:
+                state_entry["origin"] = "manual"
+                state_entry["added_by_import"] = False
+            elif state_entry.get("origin") == "manual":
+                pass
+            else:
+                state_entry["origin"] = "auto"
+                state_entry["added_by_import"] = True
+        manifest_path.write_text(
+            json.dumps(
+                DiskManifest(
+                    schema_version=manifest.schema_version,
+                    disk_id=manifest.disk_id,
+                    source_path=manifest.source_path,
+                    source_sha256=manifest.source_sha256,
+                    analysis=manifest.analysis,
+                    imported_targets=sorted(imported_targets.values(), key=lambda target: target.entry_path),
+                    bootblock_target_name=manifest.bootblock_target_name,
+                    bootblock_target_path=manifest.bootblock_target_path,
+                ).to_dict(),
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+        )
+        _write_disk_target_state(
+            _disk_target_state_path(disk_target_root),
+            _disk_target_state_payload(
+                schema_version=TARGET_STATE_SCHEMA_VERSION,
+                import_mode=TARGET_STATE_IMPORT_MODE,
+                imported_targets=sorted(imported_targets.values(), key=lambda target: target.entry_path),
+                source_path=manifest.source_path,
+                startup_sequence_parse=startup_parse,
+                candidate_rejects=candidate_rejects,
+                state_subtargets=list(state_subtargets.values()),
+            ),
+        )
+        mark_project_updated(disk_target_root)
+        return imported_target
+    except Exception:
+        for target_dir in reversed(created_target_dirs):
+            shutil.rmtree(target_dir, ignore_errors=True)
+        raise
+
+
+def _import_disk_file_entry(
+    *,
+    adf_file: Path,
+    disk_id: str,
+    disk_children_root: Path,
+    import_target: Any,
+    created_target_dirs: list[Path],
+    project_root: Path,
+) -> tuple[ImportedTarget, list[ImportedTarget]]:
+    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated
+
+    target_type = _str_field(import_target.__dict__, "target_type") or _str_field(import_target, "target_type")
+    if target_type is None:
+        raise DiskAnalysisError("C disk import target is missing target_type")
+    local_target_name = _import_target_required_text(
+        _str_field(import_target.__dict__, "local_target_id") or _str_field(import_target, "local_target_id"),
+        "local_target_id",
+        target_type,
+    )
+    entry_path = _import_target_required_text(
+        _import_target_required_text(
+            _str_field(import_target.__dict__, "entry_path") or _str_field(import_target, "entry_path"),
+            "entry_path",
+            target_type,
+        ),
+        "entry_path",
+        target_type,
+    )
+    target_name = disk_child_project_id(disk_id, local_target_name)
+    target_dir = disk_children_root / local_target_name
+    if target_dir.exists():
+        if not target_dir.is_dir():
+            raise DiskAnalysisError(f"Target already exists but is not a directory: {target_name}")
+    else:
+        create_project_at_path(
+            disk_child_target_relpath(disk_id, local_target_name).as_posix(),
+            project_root=project_root,
+            origin={
+                "kind": "disk_child",
+                "parent_disk_id": disk_id,
+                "target_role": "disk_entry",
+                "entry_path": entry_path,
+                "target_type": target_type,
+                "source_path": adf_file.as_posix(),
+            },
+        )
+        created_target_dirs.append(target_dir)
+    write_source_descriptor(
+        target_dir,
+        {
+            "kind": "disk_entry",
+            "disk_id": disk_id,
+            "disk_path": adf_file.as_posix(),
+            "entry_path": entry_path,
+            "parent_disk_id": disk_id,
+        },
+    )
+    target_metadata = import_target.target_metadata if hasattr(import_target, "target_metadata") else None
+    if not isinstance(target_metadata, dict):
+        raise DiskAnalysisError("C disk import target is missing target metadata")
+    write_target_metadata(target_dir, TargetMetadata.from_dict(target_metadata))
+    mark_project_updated(target_dir)
+    parent_derived: list[dict[str, object]] = []
+    child_targets: list[ImportedTarget] = []
+    if _target_type_may_contain_packed_payload(target_type):
+        materialized = _materialize_decompressed_payload_children(
+            adf_file=adf_file,
+            disk_id=disk_id,
+            disk_children_root=disk_children_root,
+            parent_local_target_id=local_target_name,
+            parent_target_name=target_name,
+            parent_entry_path=entry_path,
+            project_root=project_root,
+        )
+        parent_derived = materialized.parent_derived
+        child_targets = materialized.child_targets
+        created_target_dirs.extend(materialized.created_dirs)
+    return (
+        ImportedTarget(
+            target_name=target_name,
+            target_path=disk_child_target_relpath(disk_id, local_target_name).as_posix(),
+            entry_path=entry_path,
+            binary_path=f"{adf_file.as_posix()}::{entry_path}",
+            target_type=target_type,
+            derived_targets=parent_derived or None,
+        ),
+        child_targets,
+    )
+
+
+def _append_startup_candidate_reject(
+    rejects: list[dict[str, object]],
+    *,
+    path: str,
+    reason_code: str,
+    reason_detail: str,
+    line: int | None = None,
+    command: str | None = None,
+) -> None:
+    entry: dict[str, object] = {
+        "path": path,
+        "reason_code": reason_code,
+        "reason_detail": reason_detail,
+    }
+    if line is not None:
+        entry["line"] = line
+    if command is not None:
+        entry["command"] = command
+    rejects.append(entry)
+
+
+def _coerce_startup_warning_reason(item: dict[str, object]) -> tuple[str, str]:
+    reason_code = item.get("reason_code")
+    if not isinstance(reason_code, str) or not reason_code:
+        reason_code = TARGET_STATE_REJECT_REASON_PARSE_ERROR
+    reason_detail = item.get("reason")
+    if not isinstance(reason_detail, str) or not reason_detail:
+        detail = item.get("reason_detail")
+        reason_detail = detail if isinstance(detail, str) and detail else "startup parse warning"
+    return reason_code, reason_detail
+
+
+def _find_dos_entry_by_path(analysis: AdfAnalysis, path: str) -> object | None:
+    normalized = path.strip().strip("/").lower()
+    if not normalized:
+        return None
+    if analysis.files is None:
+        return None
+    for entry in analysis.files:
+            candidate_path = getattr(entry, "full_path", None)
+            if not isinstance(candidate_path, str):
+                continue
+            if candidate_path.strip().strip("/").lower() == normalized:
+                return entry
+    return None
+
+
+def _normalize_startup_token(token: str) -> tuple[str | None, str | None]:
+    value = token.strip().strip().strip('"').strip("'").strip()
+    if not value:
+        return None, None
+    if value.startswith((";", "#", ">", "<")):
+        return None, None
+    if ":" in value:
+        prefix, _, rest = value.partition(":")
+        prefix_lower = prefix.lower()
+        if not rest:
+            return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+        if prefix_lower in _STARTUP_PARSE_PREFIX_FILTERED:
+            return None, TARGET_STATE_REJECT_REASON_FILTERED_DIR
+        if prefix_lower not in _STARTUP_PARSE_PREFIX_ALIASES and not prefix_lower.startswith("df"):
+            return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+        suffix = rest.lstrip("/").strip()
+        if not suffix:
+            return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+        if prefix_lower in _STARTUP_PARSE_PREFIX_ALIASES:
+            return f"{prefix_lower}/{suffix}"
+        return suffix
+    if "/" not in value and ":" not in value:
+        return None, None
+    if value.startswith("-"):
+        return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
+    return value.lstrip("/"), None
+
+
+def _extract_startup_candidates(raw_lines: list[str]) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    candidates: list[dict[str, object]] = []
+    seen: set[str] = set()
+    parse_failures: list[dict[str, object]] = []
+    for index, raw_line in enumerate(raw_lines, start=1):
+        line = raw_line.split(";", 1)[0].strip()
+        if not line:
+            continue
+        try:
+            tokens = re.findall(r'"[^"]*"|\'[^\']*\'|\S+', line)
+        except Exception:
+            parse_failures.append(
+                {
+                    "line": index,
+                    "reason": f"Failed to tokenize startup line {index}",
+                    "command": line,
+                }
+            )
+            continue
+        if not tokens:
+            continue
+        for token in tokens:
+            path, reject_reason = _normalize_startup_token(token)
+            if path is None:
+                if reject_reason is not None:
+                    parse_failures.append(
+                        {
+                            "line": index,
+                            "reason": "Startup token was not importable for startup-sequence auto import",
+                            "reason_detail": reject_reason,
+                            "path": token,
+                            "command": tokens[0],
+                            "reason_code": reject_reason,
+                        }
+                    )
+                continue
+            path_key = path.lower()
+            if path_key in seen:
+                parse_failures.append(
+                    {
+                        "line": index,
+                        "reason": "Filtered duplicate startup reference",
+                        "path": path,
+                        "command": tokens[0],
+                        "reason_code": TARGET_STATE_REJECT_REASON_DUPLICATE,
+                    }
+                )
+                continue
+            seen.add(path_key)
+            candidates.append({
+                "path": path,
+                "line": index,
+                "command": tokens[0],
+            })
+    return candidates, parse_failures
+
+
+def _discover_startup_sequence_targets(
+    analysis: AdfAnalysis,
+    *,
+    adf_path: Path,
+    project_root: Path,
+) -> tuple[list[dict[str, object]], dict[str, object], list[dict[str, object]]]:
+    try:
+        startup_entry = None
+        startup_path: str | None = None
+        if analysis.files is None:
+            return (
+                [],
+                _startup_parse_status_payload(
+                    TARGET_STATE_STARTUP_PARSE_STATUS_MISSING,
+                    reason="Missing DOS file inventory for startup-sequence parse",
+                    source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                ),
+                [],
+            )
+        for entry in analysis.files:
+            if entry.full_path.lower().strip() == TARGET_STATE_STARTUP_PARSE_SOURCE_PATH.lower():
+                startup_entry = entry
+                startup_path = entry.full_path
+                break
+        if startup_entry is None:
+            return (
+                [],
+                _startup_parse_status_payload(
+                    TARGET_STATE_STARTUP_PARSE_STATUS_MISSING,
+                    reason="startup-sequence file was not indexed in the filesystem analysis",
+                    source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                ),
+                [],
+            )
+        try:
+            startup_text_bytes = extract_disk_entry_with_c_backend(
+                adf_path,
+                startup_path or TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                project_root=project_root,
+            )
+        except Exception as exc:
+            return (
+                [],
+                _startup_parse_status_payload(
+                    TARGET_STATE_STARTUP_PARSE_STATUS_PARSE_ERROR,
+                    reason=f"Could not extract {TARGET_STATE_STARTUP_PARSE_SOURCE_PATH}",
+                    error=str(exc),
+                    source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                ),
+                [],
+            )
+        try:
+            startup_text = startup_text_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            startup_text = startup_text_bytes.decode("latin1")
+        raw_lines = startup_text.splitlines()
+        candidates, parse_warnings = _extract_startup_candidates(raw_lines)
+        if not candidates:
+            return (
+                [],
+                _startup_parse_status_payload(
+                    TARGET_STATE_STARTUP_PARSE_STATUS_EMPTY,
+                    reason="No valid startup command candidates were discovered",
+                    source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+                ),
+                parse_warnings,
+            )
+        return (
+            candidates,
+            _startup_parse_status_payload(
+                TARGET_STATE_STARTUP_PARSE_STATUS_OK,
+                reason="startup-sequence parsed",
+                source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+            ),
+            parse_warnings,
+        )
+    except Exception as exc:
+        return (
+            [],
+            _startup_parse_status_payload(
+                TARGET_STATE_STARTUP_PARSE_STATUS_PARSE_ERROR,
+                reason="Failed parsing startup-sequence",
+                error=str(exc),
+                source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+            ),
+            [{"path": TARGET_STATE_STARTUP_PARSE_SOURCE_PATH, "reason_code": TARGET_STATE_REJECT_REASON_PARSE_ERROR, "reason_detail": str(exc)}],
+        )
 
 
 def _int_field(payload: dict[str, object], key: str) -> int | None:
@@ -314,7 +1037,11 @@ def _materialize_decompressed_payload_children(
     parent_entry_path: str,
     project_root: Path,
 ) -> MaterializedPayloadChildren:
-    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated, set_project_origin
+    from amiga_reversing.disasm.projects import (
+        create_project_at_path,
+        mark_project_updated,
+        set_project_origin,
+    )
 
     try:
         parent_bytes = extract_disk_entry_with_c_backend(adf_file, parent_entry_path, project_root=project_root)
@@ -397,10 +1124,8 @@ def _materialize_decompressed_payload_children(
                     raise DiskAnalysisError(f"C decompression did not materialise {child_entry_path}")
                 temp_output_path.replace(output_path)
             finally:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     temp_output_path.unlink()
-                except FileNotFoundError:
-                    pass
             set_project_origin(target_dir, origin=origin)
             source_sha256 = _str_field(packed_payload, "source_sha256") or _str_field(suggestion, "source_sha256")
             decompressed_sha256 = (
@@ -561,10 +1286,8 @@ def _materialize_decompressed_payload_children(
                     raise DiskAnalysisError(f"C recognized unpacker output mismatch for {child_entry_path}")
                 temp_output_path.replace(output_path)
             finally:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     temp_output_path.unlink()
-                except FileNotFoundError:
-                    pass
             set_project_origin(target_dir, origin=origin)
             code_start_offset = entrypoint - load_address if entrypoint >= load_address else 0
             if code_start_offset >= output_size:
@@ -735,10 +1458,8 @@ def _materialize_decompressed_payload_children(
                     raise DiskAnalysisError(f"C self-decrunch output mismatch for {child_entry_path}")
                 temp_output_path.replace(output_path)
             finally:
-                try:
+                with contextlib.suppress(FileNotFoundError):
                     temp_output_path.unlink()
-                except FileNotFoundError:
-                    pass
             set_project_origin(target_dir, origin=origin)
             code_start_offset = entrypoint - load_address if entrypoint >= load_address else 0
             if code_start_offset >= output_size:
@@ -844,10 +1565,8 @@ def _materialize_decompressed_payload_children(
             shutil.rmtree(target_dir, ignore_errors=True)
         raise
     finally:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             parent_temp_path.unlink()
-        except FileNotFoundError:
-            pass
     return MaterializedPayloadChildren(parent_derived, child_targets, created_dirs, True)
 
 
@@ -889,13 +1608,39 @@ def create_disk_project(
     )
 
     adf_file = Path(adf_path)
-    resolved_disk_id = disk_id or derive_disk_id(adf_file)
+    resolved_disk_id = _normalize_disk_id_arg(disk_id) or derive_disk_id(adf_file)
     disk_target_root = disk_project_root(project_root, resolved_disk_id)
     disk_children_root = disk_project_targets_dir(project_root, resolved_disk_id)
     manifest_path = disk_target_root / "manifest.json"
-    if disk_target_root.exists():
-        raise DiskAnalysisError(f"Disk target root already exists: {disk_target_root}")
-    disk_target_root.mkdir(parents=True)
+    disk_root_exists = disk_target_root.exists()
+    existing_state = _load_disk_target_state(_disk_target_state_path(disk_target_root))
+    existing_state_subtargets = _coerce_state_subtargets(existing_state.get("subtargets"))
+    existing_payload_target_ids = _coerce_payload_target_ids(
+        existing_state.get("payload_nodes"),
+        parent_ids=set(existing_state_subtargets.keys()),
+    )
+    existing_imported_targets: dict[str, ImportedTarget] = {}
+    if disk_root_exists:
+        if manifest_path.exists():
+            existing_imported_targets = {
+                target.target_name: target
+                for target in DiskManifest.load(manifest_path).imported_targets
+                if target.target_name in existing_state_subtargets
+                or target.target_name in existing_payload_target_ids
+            }
+    else:
+        disk_target_root.mkdir(parents=True)
+        initialize_project_metadata(
+            disk_target_root,
+            origin={
+                "kind": "user_upload",
+                "filename": adf_file.name,
+                "platform": "amiga-disk",
+                "source_path": adf_file.as_posix(),
+                "sha256": hashlib.sha256(adf_file.read_bytes()).hexdigest(),
+                "size": adf_file.stat().st_size,
+            },
+        )
     created_target_dirs: list[Path] = []
     try:
         disk_bytes = adf_file.read_bytes()
@@ -908,10 +1653,14 @@ def create_disk_project(
             "sha256": disk_sha256,
             "size": len(disk_bytes),
         }
-        initialize_project_metadata(disk_target_root, origin=disk_origin)
+        if not disk_root_exists:
+            initialize_project_metadata(disk_target_root, origin=disk_origin)
         if progress_fn is not None:
             progress_fn("analyze_disk", 1, 4)
         analysis = analyze_adf(adf_file, include_tracks=True)
+
+        imported_targets_by_name: dict[str, ImportedTarget] = dict(existing_imported_targets)
+        auto_discovered_target_names: set[str] = set()
 
         if progress_fn is not None:
             progress_fn("create_bootblock_target", 2, 4)
@@ -928,20 +1677,23 @@ def create_disk_project(
         )
         bootblock_target_name = disk_child_project_id(resolved_disk_id, bootblock_local_name)
         bootblock_target_dir = disk_children_root / bootblock_local_name
+        auto_discovered_target_names.add(bootblock_target_name)
         if bootblock_target_dir.exists():
-            raise DiskAnalysisError(f"Target already exists: {bootblock_target_name}")
-        create_project_at_path(
-            disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
-            project_root=project_root,
-            origin={
-                "kind": "disk_child",
-                "parent_disk_id": resolved_disk_id,
-                "target_role": "bootblock",
-                "target_type": "bootblock",
-                "source_path": adf_file.as_posix(),
-            },
-        )
-        created_target_dirs.append(bootblock_target_dir)
+            if not bootblock_target_dir.is_dir():
+                raise DiskAnalysisError(f"Target already exists but is not a directory: {bootblock_target_name}")
+        else:
+            create_project_at_path(
+                disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+                project_root=project_root,
+                origin={
+                    "kind": "disk_child",
+                    "parent_disk_id": resolved_disk_id,
+                    "target_role": "bootblock",
+                    "target_type": "bootblock",
+                    "source_path": adf_file.as_posix(),
+                },
+            )
+            created_target_dirs.append(bootblock_target_dir)
         bootblock_binary_path = bootblock_target_dir / "binary.bin"
         _write_bytes(bootblock_binary_path, disk_bytes[bootblock_byte_offset:bootblock_byte_offset + bootblock_byte_size])
         bootblock_source["path"] = bootblock_binary_path.relative_to(project_root).as_posix()
@@ -950,7 +1702,13 @@ def create_disk_project(
         write_target_metadata(bootblock_target_dir, TargetMetadata.from_dict(bootblock_import.target_metadata))
         mark_project_updated(bootblock_target_dir)
 
-        imported_targets: list[ImportedTarget] = []
+        imported_targets_by_name[bootblock_target_name] = ImportedTarget(
+            target_name=bootblock_target_name,
+            target_path=disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+            entry_path="bootblock",
+            binary_path=f"{adf_file.as_posix()}::bootblock",
+            target_type="bootblock",
+        )
         for stage, stage_bytes in _materialized_bootloader_disk_stage_targets(analysis, disk_bytes):
             assert stage.import_target is not None
             assert stage.import_target.source is not None
@@ -962,21 +1720,24 @@ def create_disk_project(
             )
             target_name = disk_child_project_id(resolved_disk_id, local_target_name)
             target_dir = disk_children_root / local_target_name
+            auto_discovered_target_names.add(target_name)
             if target_dir.exists():
-                raise DiskAnalysisError(f"Target already exists: {target_name}")
-            create_project_at_path(
-                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
-                project_root=project_root,
-                origin={
-                    "kind": "disk_child",
-                    "parent_disk_id": resolved_disk_id,
-                    "target_role": "bootloader_stage",
-                    "entry_path": stage_entry_path,
-                    "target_type": stage.import_target.target_type,
-                    "source_path": adf_file.as_posix(),
-                },
-            )
-            created_target_dirs.append(target_dir)
+                if not target_dir.is_dir():
+                    raise DiskAnalysisError(f"Target already exists: {target_name}")
+            else:
+                create_project_at_path(
+                    disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    project_root=project_root,
+                    origin={
+                        "kind": "disk_child",
+                        "parent_disk_id": resolved_disk_id,
+                        "target_role": "bootloader_stage",
+                        "entry_path": stage_entry_path,
+                        "target_type": stage.import_target.target_type,
+                        "source_path": adf_file.as_posix(),
+                    },
+                )
+                created_target_dirs.append(target_dir)
             binary_path = target_dir / "binary.bin"
             _write_bytes(binary_path, stage_bytes)
             source_descriptor = dict(stage.import_target.source)
@@ -987,14 +1748,12 @@ def create_disk_project(
             write_source_descriptor(target_dir, source_descriptor)
             write_target_metadata(target_dir, TargetMetadata.from_dict(stage.import_target.target_metadata))
             mark_project_updated(target_dir)
-            imported_targets.append(
-                ImportedTarget(
-                    target_name=target_name,
-                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
-                    entry_path=stage_entry_path,
-                    binary_path=f"{adf_file.as_posix()}::{stage_entry_path}",
-                    target_type=stage.import_target.target_type,
-                )
+            imported_targets_by_name[target_name] = ImportedTarget(
+                target_name=target_name,
+                target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                entry_path=stage_entry_path,
+                binary_path=f"{adf_file.as_posix()}::{stage_entry_path}",
+                target_type=stage.import_target.target_type,
             )
         for stage, span_index, span_bytes in _unique_bootloader_raw_span_targets(analysis, disk_bytes):
             import_target = stage.decode_regions[span_index].import_target
@@ -1006,21 +1765,24 @@ def create_disk_project(
             )
             target_name = disk_child_project_id(resolved_disk_id, local_target_name)
             target_dir = disk_children_root / local_target_name
+            auto_discovered_target_names.add(target_name)
             if target_dir.exists():
-                raise DiskAnalysisError(f"Target already exists: {target_name}")
-            create_project_at_path(
-                disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
-                project_root=project_root,
-                origin={
-                    "kind": "disk_child",
-                    "parent_disk_id": resolved_disk_id,
-                    "target_role": "bootloader_raw_span",
-                    "entry_path": span_entry_path,
-                    "target_type": import_target.target_type,
-                    "source_path": adf_file.as_posix(),
-                },
-            )
-            created_target_dirs.append(target_dir)
+                if not target_dir.is_dir():
+                    raise DiskAnalysisError(f"Target already exists: {target_name}")
+            else:
+                create_project_at_path(
+                    disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    project_root=project_root,
+                    origin={
+                        "kind": "disk_child",
+                        "parent_disk_id": resolved_disk_id,
+                        "target_role": "bootloader_raw_span",
+                        "entry_path": span_entry_path,
+                        "target_type": import_target.target_type,
+                        "source_path": adf_file.as_posix(),
+                    },
+                )
+                created_target_dirs.append(target_dir)
             binary_path = target_dir / "binary.bin"
             _write_bytes(binary_path, span_bytes)
             source_descriptor = dict(import_target.source)
@@ -1031,91 +1793,173 @@ def create_disk_project(
             write_source_descriptor(target_dir, source_descriptor)
             write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
             mark_project_updated(target_dir)
-            imported_targets.append(
-                ImportedTarget(
-                    target_name=target_name,
-                    target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
-                    entry_path=span_entry_path,
-                    binary_path=f"{adf_file.as_posix()}::{span_entry_path}",
-                    target_type=import_target.target_type,
-                )
+            imported_targets_by_name[target_name] = ImportedTarget(
+                target_name=target_name,
+                target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                entry_path=span_entry_path,
+                binary_path=f"{adf_file.as_posix()}::{span_entry_path}",
+                target_type=import_target.target_type,
             )
+        startup_parse_status = _startup_parse_status_payload(
+            TARGET_STATE_STARTUP_PARSE_STATUS_MISSING,
+            reason="No DOS filesystem available for startup-sequence import discovery",
+            source_path=TARGET_STATE_STARTUP_PARSE_SOURCE_PATH,
+        )
+        candidate_rejects: list[dict[str, object]] = []
         if _has_dos_filesystem(analysis):
             _require_complete_dos_analysis(analysis)
             if progress_fn is not None:
                 progress_fn("import_targets", 3, 4)
-            assert analysis.files is not None
-            for entry in analysis.files:
-                if entry.content is None:
-                    raise DiskAnalysisError(f"Extracted file is missing content classification: {entry.full_path}")
-                import_target = entry.content.import_target
-                if import_target is None:
-                    continue
-                local_target_name = _import_target_required_text(
-                    import_target.local_target_id, "local_target_id", import_target.target_type
-                )
-                entry_path = _import_target_required_text(import_target.entry_path, "entry_path", import_target.target_type)
-                target_name = disk_child_project_id(resolved_disk_id, local_target_name)
-                target_dir = disk_children_root / local_target_name
-                if target_dir.exists():
-                    raise DiskAnalysisError(f"Target already exists: {target_name}")
-                create_project_at_path(
-                    disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+            startup_candidates: list[dict[str, object]] = []
+            startup_parse_warnings: list[dict[str, object]] = []
+            if analysis.files is not None:
+                startup_candidates, startup_parse_status, startup_parse_warnings = _discover_startup_sequence_targets(
+                    analysis,
+                    adf_path=adf_file,
                     project_root=project_root,
-                    origin={
-                        "kind": "disk_child",
-                        "parent_disk_id": resolved_disk_id,
-                        "target_role": "disk_entry",
-                        "entry_path": entry_path,
-                        "target_type": import_target.target_type,
-                        "source_path": adf_file.as_posix(),
-                    },
                 )
-                created_target_dirs.append(target_dir)
-                write_source_descriptor(
-                    target_dir,
-                    {
-                        "kind": "disk_entry",
-                        "disk_id": resolved_disk_id,
-                        "disk_path": adf_file.as_posix(),
-                        "entry_path": entry_path,
-                        "parent_disk_id": resolved_disk_id,
-                    },
+            for warning in startup_parse_warnings:
+                if not isinstance(warning, dict):
+                    continue
+                warn_path = warning.get("path")
+                if not isinstance(warn_path, str):
+                    warn_path = TARGET_STATE_STARTUP_PARSE_SOURCE_PATH
+                reason_code, reason_detail = _coerce_startup_warning_reason(warning)
+                startup_command = _str_field(warning, "command")
+                _append_startup_candidate_reject(
+                    candidate_rejects,
+                    path=warn_path,
+                    reason_code=reason_code,
+                    reason_detail=reason_detail,
+                    line=_int_field(warning, "line"),
+                    command=startup_command,
                 )
-                write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
-                mark_project_updated(target_dir)
-                parent_derived: list[dict[str, object]] = []
-                child_targets: list[ImportedTarget] = []
-                child_dirs: list[Path] = []
-                if _target_type_may_contain_packed_payload(import_target.target_type):
-                    materialized = _materialize_decompressed_payload_children(
-                        adf_file=adf_file,
-                        disk_id=resolved_disk_id,
-                        disk_children_root=disk_children_root,
-                        parent_local_target_id=local_target_name,
-                        parent_target_name=target_name,
-                        parent_entry_path=entry_path,
-                        project_root=project_root,
+            startup_imported_paths: set[str] = set()
+            for startup_entry in startup_candidates:
+                candidate_path = _str_field(startup_entry, "path")
+                if candidate_path is None:
+                    continue
+                path_key = candidate_path.strip().strip("/").lower()
+                if path_key in startup_imported_paths:
+                    startup_command = _str_field(startup_entry, "command")
+                    _append_startup_candidate_reject(
+                        candidate_rejects,
+                        path=candidate_path,
+                        reason_code=TARGET_STATE_REJECT_REASON_DUPLICATE,
+                        reason_detail="Filtered duplicate startup reference",
+                        line=_int_field(startup_entry, "line"),
+                        command=startup_command,
                     )
-                    parent_derived = materialized.parent_derived
-                    child_targets = materialized.child_targets
-                    child_dirs = materialized.created_dirs
-                created_target_dirs.extend(child_dirs)
-                imported_targets.append(
-                    ImportedTarget(
-                        target_name=target_name,
-                        target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
-                        entry_path=entry_path,
-                        binary_path=f"{adf_file.as_posix()}::{entry_path}",
-                        target_type=import_target.target_type,
-                        derived_targets=parent_derived or None,
+                    continue
+                startup_imported_paths.add(path_key)
+                entry = _find_dos_entry_by_path(analysis, candidate_path)
+                if entry is None:
+                    startup_command = _str_field(startup_entry, "command")
+                    _append_startup_candidate_reject(
+                        candidate_rejects,
+                        path=candidate_path,
+                        reason_code=TARGET_STATE_REJECT_REASON_PATH_NOT_FOUND,
+                        reason_detail="startup-sequence candidate was not found in disk index",
+                        line=_int_field(startup_entry, "line"),
+                        command=startup_command,
                     )
+                    continue
+                entry_content = getattr(entry, "content", None)
+                if entry_content is None:
+                    startup_command = _str_field(startup_entry, "command")
+                    _append_startup_candidate_reject(
+                        candidate_rejects,
+                        path=candidate_path,
+                        reason_code=TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT,
+                        reason_detail="Disk entry does not have import metadata",
+                        line=_int_field(startup_entry, "line"),
+                        command=startup_command,
+                    )
+                    continue
+                import_target = cast(Any, getattr(entry_content, "import_target", None))
+                if import_target is None:
+                    startup_command = _str_field(startup_entry, "command")
+                    _append_startup_candidate_reject(
+                        candidate_rejects,
+                        path=candidate_path,
+                        reason_code=TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT,
+                        reason_detail="Disk entry type is unsupported for direct import",
+                        line=_int_field(startup_entry, "line"),
+                        command=startup_command,
+                    )
+                    continue
+                imported_target, child_targets = _import_disk_file_entry(
+                    adf_file=adf_file,
+                    disk_id=resolved_disk_id,
+                    disk_children_root=disk_children_root,
+                    import_target=import_target,
+                    created_target_dirs=created_target_dirs,
+                    project_root=project_root,
                 )
-                imported_targets.extend(child_targets)
+                target_name = imported_target.target_name
+                imported_targets_by_name[target_name] = imported_target
+                auto_discovered_target_names.add(target_name)
+                for child_target in child_targets:
+                    imported_targets_by_name[child_target.target_name] = child_target
+                    auto_discovered_target_names.add(child_target.target_name)
+
+        state_subtargets_by_id: dict[str, dict[str, object]] = {
+            target_id: dict(item) for target_id, item in existing_state_subtargets.items()
+        }
+        decompressed_related_target_names: set[str] = set()
+        for existing_import in imported_targets_by_name.values():
+            if isinstance(existing_import.derived_from, dict):
+                decompressed_related_target_names.add(existing_import.target_name)
+                parent_target = _str_field(existing_import.derived_from, "parent_target")
+                if isinstance(parent_target, str):
+                    decompressed_related_target_names.add(parent_target)
+        for target_id, imported_target in imported_targets_by_name.items():
+            if target_id in auto_discovered_target_names:
+                state_subtargets_by_id[target_id] = {
+                    "id": target_id,
+                    "path": imported_target.target_path,
+                    "state": "added",
+                    "origin": "auto",
+                    "reason_code": None,
+                    "reason_detail": None,
+                    "added_by_import": True,
+                }
+                continue
+            if (
+                _is_legacy_startup_prefix(imported_target.entry_path)
+                and target_id not in decompressed_related_target_names
+            ):
+                continue
+
+            state_entry = state_subtargets_by_id.get(target_id)
+            if state_entry is None:
+                continue
+            if _str_field(state_entry, "origin") == "manual":
+                state_entry = dict(state_entry)
+                state_entry["id"] = target_id
+                state_entry["path"] = imported_target.target_path
+                state_entry["state"] = "added"
+                state_entry["added_by_import"] = False
+                state_subtargets_by_id[target_id] = state_entry
+
+        for target_id, state_entry in list(state_subtargets_by_id.items()):
+            if _str_field(state_entry, "origin") != "manual":
+                if target_id in auto_discovered_target_names:
+                    continue
+            state_subtargets_by_id.pop(target_id, None)
+            imported_targets_by_name.pop(target_id, None)
+            subtarget_path = Path(_str_field(state_entry, "path") or target_id)
+            if not subtarget_path.is_absolute():
+                subtarget_path = PROJECT_ROOT / subtarget_path
+            if subtarget_path.exists() and subtarget_path.is_dir():
+                shutil.rmtree(subtarget_path, ignore_errors=True)
+        state_subtargets = [
+            dict(item) for _, item in sorted(state_subtargets_by_id.items(), key=lambda item: item[0])
+        ]
 
         if progress_fn is not None:
             progress_fn("write_manifest", 4, 4)
-        imported_targets.sort(key=lambda target: target.entry_path)
+        imported_targets = sorted(imported_targets_by_name.values(), key=lambda target: target.entry_path)
         manifest = DiskManifest(
             schema_version=1,
             disk_id=resolved_disk_id,
@@ -1127,12 +1971,25 @@ def create_disk_project(
             bootblock_target_path=disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
         )
         _write_text(manifest_path, json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+        _write_disk_target_state(
+            _disk_target_state_path(disk_target_root),
+            _disk_target_state_payload(
+                schema_version=TARGET_STATE_SCHEMA_VERSION,
+                import_mode=TARGET_STATE_IMPORT_MODE,
+                imported_targets=imported_targets,
+                state_subtargets=state_subtargets,
+                source_path=adf_file.as_posix(),
+                startup_sequence_parse=startup_parse_status,
+                candidate_rejects=candidate_rejects,
+            ),
+        )
         mark_project_updated(disk_target_root)
         return manifest
     except Exception:
         for target_dir in reversed(created_target_dirs):
             shutil.rmtree(target_dir, ignore_errors=True)
-        shutil.rmtree(disk_target_root, ignore_errors=True)
+        if not disk_root_exists:
+            shutil.rmtree(disk_target_root, ignore_errors=True)
         raise
 
 
@@ -1143,7 +2000,10 @@ def refresh_decompressed_payload_children(
 ) -> DiskManifest:
     from amiga_reversing.disasm.projects import mark_project_updated
 
-    disk_target_root = disk_project_root(project_root, disk_id)
+    normalized_disk_id = _normalize_disk_id_arg(disk_id)
+    if normalized_disk_id is None:
+        raise DiskAnalysisError("disk_id is required for decompression refresh")
+    disk_target_root = disk_project_root(project_root, normalized_disk_id)
     manifest_path = disk_target_root / "manifest.json"
     if not manifest_path.exists():
         raise DiskAnalysisError(f"Disk manifest does not exist: {manifest_path}")
@@ -1153,8 +2013,13 @@ def refresh_decompressed_payload_children(
         adf_file = project_root / adf_file
     if not adf_file.exists():
         raise DiskAnalysisError(f"Disk source does not exist: {adf_file}")
+    existing_state = _load_disk_target_state(_disk_target_state_path(disk_target_root))
+    startup_sequence_parse = _coerce_startup_parse_status(
+        existing_state.get("startup_sequence_parse")
+    )
+    candidate_rejects = _coerce_candidate_rejects(existing_state.get("candidate_rejects"))
     imported_by_name = {target.target_name: target for target in manifest.imported_targets}
-    disk_children_root = disk_project_targets_dir(project_root, disk_id)
+    disk_children_root = disk_project_targets_dir(project_root, normalized_disk_id)
     refreshed_by_parent: dict[str, list[dict[str, object]]] = {}
     refreshed_children: dict[str, ImportedTarget] = {}
     refreshed_parent_names: set[str] = set()
@@ -1164,7 +2029,7 @@ def refresh_decompressed_payload_children(
         local_target_id = Path(target.target_path).name
         materialized = _materialize_decompressed_payload_children(
             adf_file=adf_file,
-            disk_id=disk_id,
+            disk_id=normalized_disk_id,
             disk_children_root=disk_children_root,
             parent_local_target_id=local_target_id,
             parent_target_name=target.target_name,
@@ -1222,6 +2087,17 @@ def refresh_decompressed_payload_children(
         bootblock_target_path=manifest.bootblock_target_path,
     )
     _write_text(manifest_path, json.dumps(refreshed_manifest.to_dict(), indent=2, sort_keys=True) + "\n")
+    _write_disk_target_state(
+        _disk_target_state_path(disk_target_root),
+        _disk_target_state_payload(
+            schema_version=TARGET_STATE_SCHEMA_VERSION,
+            import_mode=TARGET_STATE_IMPORT_MODE,
+            imported_targets=refreshed_targets,
+            source_path=str(adf_file),
+            startup_sequence_parse=startup_sequence_parse,
+            candidate_rejects=candidate_rejects,
+        ),
+    )
     mark_project_updated(disk_target_root)
     return refreshed_manifest
 

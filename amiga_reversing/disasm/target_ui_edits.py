@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -59,7 +59,7 @@ def append_target_ui_edit(target_dir: Path, edit: dict[str, object]) -> dict[str
         raise ValueError("target edit kind must be a non-empty string")
     normalized = dict(edit)
     normalized.setdefault("id", str(uuid4()))
-    normalized.setdefault("created_at", datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    normalized.setdefault("created_at", datetime.now(UTC).isoformat(timespec="seconds"))
     normalized["kind"] = kind
     _validate_target_ui_edit(normalized)
     edits = load_target_ui_edits(target_dir)
@@ -125,10 +125,12 @@ def _apply_target_ui_edit(
     if kind in _MATERIALIZED_ENTITY_KINDS:
         current = _ensure_metadata(metadata)
         entity_type, default_subtype = _MATERIALIZED_ENTITY_KINDS[kind]
+        raw_end = edit.get("end")
+        end = raw_end if isinstance(raw_end, int) else None
         entity = SeededEntityMetadata(
             addr=_require_int(edit, "addr"),
             hunk=_edit_hunk(edit),
-            end=edit.get("end") if isinstance(edit.get("end"), int) else None,
+            end=end,
             name=_edit_str(edit, "name"),
             comment=_edit_str(edit, "comment"),
             type=entity_type,
@@ -166,7 +168,7 @@ def _apply_target_ui_edit(
         )
     if kind == "label":
         current = _ensure_metadata(metadata)
-        label = SeededCodeLabelMetadata(
+        seeded_label = SeededCodeLabelMetadata(
             addr=_require_int(edit, "addr"),
             hunk=_edit_hunk(edit),
             name=_require_str(edit, "name"),
@@ -178,13 +180,13 @@ def _apply_target_ui_edit(
         return replace(
             current,
             seeded_code_labels=tuple(
-                item for item in current.seeded_code_labels if (item.hunk, item.addr) != (label.hunk, label.addr)
+                item for item in current.seeded_code_labels if (item.hunk, item.addr) != (seeded_label.hunk, seeded_label.addr)
             )
-            + (label,),
+            + (seeded_label,),
         )
     if kind == "external_symbol":
         current = _ensure_metadata(metadata)
-        label = AbsoluteCodeLabelMetadata(
+        symbol = AbsoluteCodeLabelMetadata(
             addr=_require_int(edit, "addr"),
             name=_require_str(edit, "name"),
             comment=_edit_str(edit, "comment"),
@@ -195,9 +197,9 @@ def _apply_target_ui_edit(
         return replace(
             current,
             absolute_code_labels=tuple(
-                item for item in current.absolute_code_labels if item.addr != label.addr
+                item for item in current.absolute_code_labels if item.addr != symbol.addr
             )
-            + (label,),
+            + (symbol,),
         )
     if kind in {"suppress_inferred_code", "suppress_inferred_pointer"}:
         current = _ensure_metadata(metadata)

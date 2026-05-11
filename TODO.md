@@ -142,6 +142,65 @@ Some of these may be in non-updated source in targets/, they need checking for e
     against it at a later date.
   - ...
 
+### Web UI observations
+
+- Decompressed payload targets show load address but should also show entrypoint too (if applicable/entered).
+- Decompression payload targets should indicate source hunk from parent target (if applicable).
+
+### Damocles observations
+
+Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620`
+
+- Disk "damocles" target is not a standard decompression stub.
+  - Several indicators each alone differentiates from standard decompression with or without bootstrapping:
+    - Use of multiple hunks.
+    - Presence of multiple payloads.
+    - Non-trivial use of custom registers.
+  - We should perhaps flag stub decompressors with "stub" badge.
+- Disk "damocles" target analysis flaw indicators:
+  - Second hunk:
+    - Unresolved PC-relative labels:
+      ```
+      000c 287a00c4 movea.l $C4(pc),a4
+      ...
+      001e d1fafff4 adda.l -$C(pc),a0
+      ```
+      - This is likely because the `$c4` is picking the address to use out of the `lea` instruction leading what
+        looks like a RLE post-pass. And the `-$C` is perhaps picking out the offset. If we have PC-relative references
+        we are failing like this, we should perhaps put a label on the given instruction and do an intra-instruction
+        addend to the numeric value within it. This way there's no inter-instruction addend and no chance of drift.
+    - Non equated runtime address for tetragon decompression start address:
+      ```
+      002a 43f90004f92b lea.l $0004F92B.l,a1    
+      ```
+  - Third hunk:
+    - Non-equated runtime addresses for post-pass RLE start and end addresses:
+      ```
+      00d0 41f900040000 lea.l $00040000.l,a0
+      00d6 45f900050000 lea.l $00050000.l,a2
+      ```
+    - Entrypoint not load address for $100 bootstrapped payload.
+      ```
+      005c 4eea0040 jmp $0040(a2)
+      ```
+    - Invalid double ORG with invalid non-absolute labelling:
+      ```
+      0058 41fa00f2   lea.l loc_2_0000014C(pc),a0
+      005c 4eea0040   jmp $0040(a2)
+      ...
+      006a            loc_2_0000006A:
+                ORG $100
+      006a            abs_2_00000100:
+      ...
+                ORG $14C
+      014c            loc_2_0000014C:
+      ```
+      - `ORG $14C` seems like a false positive perhaps created by the PC-relative label?
+      - `loc_2_0000014C` should be a local label created pre-jmp outside the abs range of the `ORG $100`?
+      - It does compile exact so maybe it reflects correctness issues with our assembler and might fail with `vasm`?
+    - The decompressed payload 
+        
+
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.

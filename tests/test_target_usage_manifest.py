@@ -1,8 +1,8 @@
 from src.scripts.target_usage_manifest import (
     CODE_START_REASON_CONTROL_TARGET,
     CODE_START_REASON_PLATFORM_LOADSEG_ENTRY,
-    FeatureBag,
     ORPHAN_CODE_SIGNAL_STATUS_UNRESOLVED,
+    FeatureBag,
     _add_analysis_features,
     _add_listing_features,
     _analysis_xrefs,

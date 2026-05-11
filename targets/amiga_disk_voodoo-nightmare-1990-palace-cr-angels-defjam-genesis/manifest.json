@@ -83,7 +83,6 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -120,6 +119,7 @@
           "execution_views": [],
           "library": null,
           "resident": null,
+          "rsset_layout_regions": [],
           "seeded_code_entrypoints": [],
           "seeded_code_labels": [],
           "seeded_entities": [],
@@ -284,13 +284,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -1771,13 +1771,13 @@
             "source": null,
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [],
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -8605,21 +8605,14 @@
   "disk_id": "voodoo-nightmare-1990-palace-cr-angels-defjam-genesis",
   "imported_targets": [
     {
-      "binary_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf::f13",
-      "entry_path": "f13",
-      "target_name": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_f13_dc42311a",
-      "target_path": "targets/amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis/targets/amiga_hunk_f13_dc42311a",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf::run",
-      "entry_path": "run",
-      "target_name": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
-      "target_path": "targets/amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis/targets/amiga_hunk_run_df6ad190",
-      "target_type": "program"
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
   "source_sha256": "f4e1a7f7e9f92739708189649ec9a94c3afba6aef9372ef4cbabacd8696605f4"
 }

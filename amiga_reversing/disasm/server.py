@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import hashlib
 import json
 import logging
@@ -16,7 +17,10 @@ from typing import NotRequired, TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
 from amiga_reversing.amiga_disk.models import DiskManifest
-from amiga_reversing.amiga_disk.project import create_disk_project
+from amiga_reversing.amiga_disk.project import (
+    create_disk_project,
+    import_disk_entry_target,
+)
 from amiga_reversing.disasm import corpus_usage, disk_browser
 from amiga_reversing.disasm.annotations import (
     AnnotationPatchInput,
@@ -98,6 +102,7 @@ class AsyncJobPayload(TypedDict):
 class ProjectPayload(TypedDict):
     project: dict[str, object]
     disk_manifest: NotRequired[dict[str, object]]
+    target_state: NotRequired[dict[str, object]]
     reproduction: NotRequired[dict[str, object]]
 
 
@@ -283,11 +288,10 @@ def _annotate_listing_payload(
         if row_issues:
             annotated_row["repro_issues"] = row_issues
         annotated_rows.append(annotated_row)
-    payload = {
+    return {
         **payload,
         "rows": annotated_rows,
     }
-    return payload
 
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
@@ -371,10 +375,8 @@ def _current_reproduction_payload(
         ):
             job = _start_reproduction_job(project_name, force=False)
             if job["status"] == "ready":
-                try:
+                with contextlib.suppress(Exception):
                     report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
-                except Exception:
-                    pass
                 job = None
     return _reproduction_payload_with_job(report, job)
 
@@ -480,14 +482,12 @@ def _job_payload_or_none(job_id: str) -> AsyncJobPayload | None:
     return _job_payload(job_id)
 
 
-def _publish_job_event_payload(job_id: str, payload: dict[str, object]) -> None:
+def _publish_job_event_payload(job_id: str, payload: Mapping[str, object]) -> None:
     with _JOB_LOCK:
         subscribers = list(_JOB_EVENT_SUBSCRIBERS.get(job_id, []))
     for subscriber in subscribers:
-        try:
-            subscriber.put_nowait(payload)
-        except queue.Full:  # pragma: no cover - queues are unbounded
-            pass
+        with contextlib.suppress(queue.Full):  # pragma: no cover - queues are unbounded
+            subscriber.put_nowait(dict(payload))
 
 
 def _publish_job_event(job_id: str) -> None:
@@ -511,7 +511,7 @@ def _publish_listing_artifact_ready_event(
 
 
 def _cancel_listing_jobs(project_name: str | None = None) -> None:
-    canceled: list[tuple[str, AsyncJobPayload]] = []
+    canceled: list[tuple[str, dict[str, object]]] = []
     with _JOB_LOCK:
         stale_job_ids = [
             job_id
@@ -525,7 +525,7 @@ def _cancel_listing_jobs(project_name: str | None = None) -> None:
             job["phase_id"] = "error"
             job["error"] = "job canceled"
             job["finished_at"] = time.time()
-            canceled.append((job_id, cast(AsyncJobPayload, job)))
+            canceled.append((job_id, dict(job)))
             del _ASYNC_JOBS[job_id]
     for job_id, payload in canceled:
         _publish_job_event_payload(job_id, payload)
@@ -890,22 +890,41 @@ def _build_reproduction_job(job_id: str, project_name: str) -> None:
                 return
         if not _set_job_phase(job_id, phase_id="assemble", phase_index=2, phase_count=phase_count):
             return
-        reproduction_kwargs: dict[str, object] = {}
-        if row_for_section_offset is not None:
-            reproduction_kwargs["row_for_section_offset"] = row_for_section_offset
         if pre_rendered_source_text is not None:
-            report = run_reproduction(
-                project_name,
-                project_root=PROJECT_ROOT,
-                pre_rendered_source_text=pre_rendered_source_text,
-                pre_rendered_source_profile=pre_rendered_source_profile,
-                **reproduction_kwargs,
-            )
+            if row_for_section_offset is not None:
+                try:
+                    report = run_reproduction(
+                        project_name,
+                        project_root=PROJECT_ROOT,
+                        pre_rendered_source_text=pre_rendered_source_text,
+                        pre_rendered_source_profile=pre_rendered_source_profile,
+                        row_for_section_offset=row_for_section_offset,
+                    )
+                except TypeError as exc:
+                    if (
+                        "row_for_section_offset" in str(exc)
+                        and "unexpected keyword argument" in str(exc)
+                    ):
+                        report = run_reproduction(
+                            project_name,
+                            project_root=PROJECT_ROOT,
+                            pre_rendered_source_text=pre_rendered_source_text,
+                            pre_rendered_source_profile=pre_rendered_source_profile,
+                        )
+                    else:
+                        raise
+            else:
+                report = run_reproduction(
+                    project_name,
+                    project_root=PROJECT_ROOT,
+                    pre_rendered_source_text=pre_rendered_source_text,
+                    pre_rendered_source_profile=pre_rendered_source_profile,
+                )
         else:
             report = run_reproduction(
                 project_name,
                 project_root=PROJECT_ROOT,
-                **reproduction_kwargs,
+                row_for_section_offset=row_for_section_offset,
             )
         if not _set_job_phase(job_id, phase_id="diff", phase_index=3, phase_count=phase_count):
             return
@@ -1032,7 +1051,7 @@ def _start_reproduction_job_if_needed(project_name: str) -> AsyncJobPayload | No
 
 
 def _cancel_reproduction_jobs(project_name: str | None = None) -> None:
-    canceled: list[tuple[str, AsyncJobPayload]] = []
+    canceled: list[tuple[str, dict[str, object]]] = []
     with _JOB_LOCK:
         stale_job_ids = [
             job_id
@@ -1046,7 +1065,7 @@ def _cancel_reproduction_jobs(project_name: str | None = None) -> None:
             job["phase_id"] = "error"
             job["error"] = "job canceled"
             job["finished_at"] = time.time()
-            canceled.append((job_id, cast(AsyncJobPayload, job)))
+            canceled.append((job_id, dict(job)))
             del _ASYNC_JOBS[job_id]
     for job_id, payload in canceled:
         _publish_job_event_payload(job_id, payload)
@@ -1148,6 +1167,13 @@ def _project_payload(project_name: str) -> ProjectPayload:
             raise ValueError(f"Disk project {project_name} is missing manifest_path")
         manifest = DiskManifest.load(Path(manifest_path))
         payload["disk_manifest"] = manifest.to_dict()
+        target_state_path = Path(manifest_path).with_name("target_state.json")
+        if target_state_path.exists():
+            try:
+                with open(target_state_path, encoding="utf-8") as handle:
+                    payload["target_state"] = cast(dict[str, object], json.load(handle))
+            except Exception:
+                payload["target_state"] = {}
     elif project.kind == "binary" and project.ready:
         payload["reproduction"] = _current_reproduction_payload(project_name)
     return payload
@@ -1162,10 +1188,20 @@ def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str
         raise ValueError(f"Disk project {project_name} is missing manifest_path")
     manifest = DiskManifest.load(Path(manifest_path))
     manifest_dict = manifest.to_dict()
+    target_index: dict[str, str] = {}
+    for target in manifest_dict.get("imported_targets", []):
+        if not isinstance(target, dict):
+            continue
+        target_name = target.get("target_name")
+        entry_path = target.get("entry_path")
+        if not isinstance(target_name, str) or not isinstance(entry_path, str):
+            continue
+        target_index[entry_path.strip().strip("/").lower()] = target_name
     return disk_browser.payload_from_project_manifest(
         manifest_dict,
         path,
         content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
+        target_index=target_index,
     )
 
 
@@ -1189,7 +1225,7 @@ def _project_disk_entry_content_payload(
                 project_root=PROJECT_ROOT,
             )
     except Exception as exc:
-        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(cast(dict[str, object], entry)))
+        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry))
     return disk_browser.content_payload_from_bytes(data)
 
 
@@ -1331,10 +1367,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
             with _JOB_LOCK:
                 subscribers = _JOB_EVENT_SUBSCRIBERS.get(job_id)
                 if subscribers is not None:
-                    try:
+                    with contextlib.suppress(ValueError):
                         subscribers.remove(subscriber)
-                    except ValueError:
-                        pass
                     if not subscribers:
                         del _JOB_EVENT_SUBSCRIBERS[job_id]
             elapsed_ms = int((time.time() - started) * 1000)
@@ -1523,15 +1557,16 @@ def route_request(
                 ),
             }
         if method == "POST" and len(parts) == 3 and parts[2] == "import":
-            target_id = (body or {}).get("target_id")
-            if not isinstance(target_id, str) or not target_id:
+            raw_target_id = (body or {}).get("target_id")
+            import_target_id: str | None = raw_target_id if isinstance(raw_target_id, str) else None
+            if not isinstance(import_target_id, str) or not import_target_id:
                 raise ValueError("target_id is required")
             mode = (body or {}).get("mode", "target")
             if not isinstance(mode, str):
                 raise ValueError("mode must be a string")
             try:
                 job = _start_project_create_job(
-                    corpus_usage.corpus_import_media_body(target_id, mode=mode)
+                    corpus_usage.corpus_import_media_body(import_target_id, mode=mode)
                 )
             except Exception as exc:
                 job = _failed_project_create_job(str(exc))
@@ -1548,6 +1583,28 @@ def route_request(
             _clear_project_listing_cache(project_name)
             delete_project(project_name)
             return {"ok": True, "data": None}
+        if (
+            method == "POST"
+            and len(parts) == 5
+            and parts[3] == "disk-entry-import"
+        ):
+            raw_path = (body or {}).get("path") or (body or {}).get("entry_path")
+            import_path = raw_path if isinstance(raw_path, str) else ""
+            if not import_path.strip():
+                raise ValueError("path is required")
+            imported_target = import_disk_entry_target(
+                project_name,
+                entry_path=import_path,
+                project_root=PROJECT_ROOT,
+            )
+            return {
+                "ok": True,
+                "data": {
+                    "target_id": imported_target.target_name,
+                    "target_path": imported_target.target_path,
+                    "entry_path": imported_target.entry_path,
+                },
+            }
         if method == "POST" and len(parts) == 4 and parts[3] == "open":
             return {"ok": True, "data": mark_project_opened(project_name).to_dict()}
         if method == "GET" and len(parts) == 4 and parts[3] == "session":
@@ -1794,11 +1851,10 @@ def _create_project_from_media(
     if origin_payload is not None and not isinstance(origin_payload, dict):
         raise ValueError("project_origin must be an object")
     media_platform = "amiga-disk" if Path(filename).suffix.lower() == ".adf" else "amiga-hunk"
-    project_origin = (
-        {"kind": "user_upload", "filename": filename}
-        if origin_payload is None
-        else dict(cast(dict[str, object], origin_payload))
-    )
+    if origin_payload is None:
+        project_origin: dict[str, object] = {"kind": "user_upload", "filename": filename}
+    else:
+        project_origin = dict(cast(dict[str, object], origin_payload))
     project_origin.setdefault("filename", filename)
     project_origin.setdefault("platform", media_platform)
     project_origin.setdefault("sha256", hashlib.sha256(uploaded_bytes).hexdigest())

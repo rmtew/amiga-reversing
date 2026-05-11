@@ -4,9 +4,9 @@ from typing import cast
 
 from src.scripts.generate_amiga_os_runtime import (
     build_api_input_value_domain_map,
+    build_api_output_type_override_map,
     build_calling_convention_mask_map,
     build_domain_member_rows,
-    build_api_output_type_override_map,
     build_merged_value_domains,
     input_rows,
     load_assembler_include_symbols,

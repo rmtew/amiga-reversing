@@ -1,6 +1,5 @@
 {
   "absolute_code_labels": [],
-  "rsset_layout_regions": [],
   "bootblock": {
     "bootcode_offset": 12,
     "bootcode_size": 1012,
@@ -37,6 +36,7 @@
   "execution_views": [],
   "library": null,
   "resident": null,
+  "rsset_layout_regions": [],
   "seeded_code_entrypoints": [],
   "seeded_code_labels": [],
   "seeded_entities": [],

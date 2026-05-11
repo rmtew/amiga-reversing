@@ -7693,75 +7693,11 @@
   "disk_id": "pandora-1988-firebird",
   "imported_targets": [
     {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::c/echo",
-      "entry_path": "c/echo",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_c__echo_d51e6134",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_c__echo_d51e6134",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::c/show",
-      "entry_path": "c/show",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_c__show_33d33b59",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_c__show_33d33b59",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::c/type",
-      "entry_path": "c/type",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_c__type_dc0af80f",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_c__type_dc0af80f",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::c/wait",
-      "entry_path": "c/wait",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_c__wait_3f08a121",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_c__wait_3f08a121",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::pandora",
-      "derived_targets": [
-        {
-          "codec_id": "bk",
-          "kind": "decompressed_payload",
-          "packed_section_offset": 232,
-          "packed_size": 189000,
-          "parent_remains_active": "false",
-          "payload_role": "primary_program",
-          "payload_role_confidence": "tool_inferred",
-          "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
-        }
-      ],
-      "entry_path": "pandora",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_pandora_3e1ee0f1",
-      "target_type": "program"
-    },
-    {
-      "binary_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8/binary.bin",
-      "derived_from": {
-        "child_entry_path": "pandora::bk_000000e8",
-        "child_target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-        "codec_id": "bk",
-        "codec_name": "BK: ByteKiller",
-        "decompressed_size": 376832,
-        "entrypoint": 131072,
-        "kind": "decompressed_payload",
-        "load_address": 131072,
-        "packed_section_offset": 232,
-        "packed_size": 189000,
-        "parent_entry_path": "pandora",
-        "parent_remains_active": "false",
-        "parent_target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
-        "payload_role": "primary_program",
-        "payload_role_confidence": "tool_inferred"
-      },
-      "entry_path": "pandora::bk_000000e8",
-      "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-      "target_type": "raw_binary"
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
     }
   ],
   "schema_version": 1,

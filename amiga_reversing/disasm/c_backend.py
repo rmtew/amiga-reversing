@@ -19,7 +19,7 @@ from ctypes import (
 )
 from functools import cache
 from pathlib import Path
-from typing import cast
+from typing import Callable, cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
@@ -1394,7 +1394,7 @@ class CListingArtifact:
             self._dll.platform_file_facts_v2_listing_artifact_destroy(self._handle)
             self._handle = c_void_p()
 
-    def _text_from_artifact_call(self, function: object, *args: object) -> str:
+    def _text_from_artifact_call(self, function: Callable[..., int], *args: object) -> str:
         if not self._handle.value:
             raise RuntimeError("C listing artifact is closed")
         out_text = c_void_p()
@@ -1500,9 +1500,10 @@ def _benchmark_from_facts_v2_asm_source_profile(profile: dict[str, object]) -> d
 
 def _facts_v2_benchmark_timing(
     profile: dict[str, object],
-    facts_v2: dict[object, object],
+    facts_v2: dict[str, object],
 ) -> dict[str, object]:
-    timing = dict(profile["timing"]) if isinstance(profile.get("timing"), dict) else {}
+    timing_payload = profile.get("timing")
+    timing = dict(timing_payload) if isinstance(timing_payload, dict) else {}
     decode_seconds = _profile_float(facts_v2, "decode_seconds")
     seed_seconds = _profile_float(facts_v2, "seed_seconds")
     fixed_point_seconds = _profile_float(facts_v2, "fixed_point_seconds")
@@ -1530,14 +1531,14 @@ def _facts_v2_benchmark_timing(
     return timing
 
 
-def _profile_int(payload: dict[object, object], key: str) -> int:
+def _profile_int(payload: dict[str, object], key: str) -> int:
     value = payload.get(key)
     if isinstance(value, bool):
         return 0
     return value if isinstance(value, int) else 0
 
 
-def _profile_float(payload: dict[object, object], key: str) -> float:
+def _profile_float(payload: dict[str, object], key: str) -> float:
     value = payload.get(key)
     if isinstance(value, bool):
         return 0.0

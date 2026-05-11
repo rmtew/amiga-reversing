@@ -8,7 +8,10 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from pathlib import Path
 
-from amiga_reversing.disasm.binary_source import RawBinarySource, resolve_target_binary_source
+from amiga_reversing.disasm.binary_source import (
+    RawBinarySource,
+    resolve_target_binary_source,
+)
 from amiga_reversing.disasm.target_metadata import TargetMetadata, load_target_metadata
 from amiga_reversing.disasm.target_ui_edits import (
     apply_target_ui_edits,

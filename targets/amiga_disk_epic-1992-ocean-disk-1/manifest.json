@@ -25,7 +25,6 @@
         },
         "target_metadata": {
           "absolute_code_labels": [],
-          "rsset_layout_regions": [],
           "bootblock": {
             "bootcode_offset": 12,
             "bootcode_size": 1012,
@@ -62,6 +61,7 @@
           "execution_views": [],
           "library": null,
           "resident": null,
+          "rsset_layout_regions": [],
           "seeded_code_entrypoints": [],
           "seeded_code_labels": [],
           "seeded_entities": [],
@@ -86,7 +86,32 @@
           "entry_addr": 458764,
           "handoff_target": null,
           "handoffs": [],
-          "hardware_accesses": [],
+          "hardware_accesses": [
+            {
+              "access": "read",
+              "address": 14675974,
+              "instruction_addr": 459096,
+              "symbol": "vhposr",
+              "value": null,
+              "width_bits": 16
+            },
+            {
+              "access": "write",
+              "address": 14676096,
+              "instruction_addr": 459082,
+              "symbol": "cop1lc",
+              "value": null,
+              "width_bits": 32
+            },
+            {
+              "access": "write",
+              "address": 14676104,
+              "instruction_addr": 459088,
+              "symbol": "copjmp1",
+              "value": 25,
+              "width_bits": 16
+            }
+          ],
           "import_target": null,
           "loads": [],
           "materialized": true,
@@ -129,7 +154,6 @@
             },
             "target_metadata": {
               "absolute_code_labels": [],
-              "rsset_layout_regions": [],
               "bootblock": null,
               "custom_structs": [],
               "entry_register_seeds": [
@@ -155,6 +179,7 @@
               "execution_views": [],
               "library": null,
               "resident": null,
+              "rsset_layout_regions": [],
               "seeded_code_entrypoints": [],
               "seeded_code_labels": [],
               "seeded_entities": [],
@@ -8810,7 +8835,14 @@
   "disk_id": "epic-1992-ocean-disk-1",
   "imported_targets": [
     {
-      "binary_path": "bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf::bootloader/stage_1",
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_epic-1992-ocean-disk-1/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
+    },
+    {
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf::bootloader/stage_1",
       "entry_path": "bootloader/stage_1",
       "target_name": "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootloader_stage_1",
       "target_path": "targets/amiga_disk_epic-1992-ocean-disk-1/targets/amiga_raw_bootloader_stage_1",
@@ -8818,6 +8850,6 @@
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf",
   "source_sha256": "a9ead49af0d98e978e61d99e51ee2b3b9a3370db05c9cfbf2442dc41a89b8346"
 }

@@ -6,6 +6,7 @@ import shutil
 import struct
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -103,8 +104,8 @@ def _content_from_c_disk_inspect(tmp_path: Path, payload: bytes) -> FileContentI
 def _program_import_target() -> FileImportTargetInfo:
     return FileImportTargetInfo(
         target_type="program",
-        entry_path="c/Run",
-        local_target_id="amiga_hunk_c__run_dcce9fe5",
+        entry_path="s/Run",
+        local_target_id="amiga_hunk_s__run_dcce9fe5",
         target_metadata={
             "target_type": "program",
             "entry_register_seeds": [],
@@ -330,7 +331,7 @@ def _single_program_disk_analysis(adf_file: str | Path) -> AdfAnalysis:
             DiskFileEntry(
                 block_num=10,
                 name="Run",
-                full_path="c/Run",
+                full_path="s/Run",
                 size=4,
                 protection="----rwed",
                 comment=None,
@@ -362,6 +363,33 @@ def _single_program_disk_analysis(adf_file: str | Path) -> AdfAnalysis:
         ),
         block_usage=BlockUsageInfo(summary={"boot": 2}, orphan_blocks=[]),
     )
+
+
+def _single_program_disk_analysis_with_startup(adf_file: str | Path) -> AdfAnalysis:
+    analysis = _single_program_disk_analysis(adf_file)
+    startup_entry = DiskFileEntry(
+        block_num=20,
+        name="startup-sequence",
+        full_path="s/startup-sequence",
+        size=5,
+        protection="----rwed",
+        comment=None,
+        date="1978-01-01 00:00:00",
+        hash_chain=0,
+        parent=0,
+        extension_blocks=[],
+        data_blocks=[21],
+        data_block_count=1,
+        checksum_valid=True,
+        content=FileContentInfo(
+            kind="text",
+            size=5,
+            sha256="11" * 32,
+            is_executable=False,
+            target_type="text",
+        ),
+    )
+    return replace(analysis, files=[startup_entry, *analysis.files])
 
 
 def test_analyze_disk_help_loads_cleanly() -> None:
@@ -458,7 +486,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
                 DiskFileEntry(
                     block_num=10,
                     name="Run",
-                    full_path="c/Run",
+                    full_path="s/Run",
                     size=4,
                     protection="----rwed",
                     comment=None,
@@ -514,19 +542,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
     assert bootblock_metadata["entry_register_seeds"][1]["context_name"] == "trackdisk.device"
     assert bootblock_metadata["bootblock"]["entrypoint"] == 0x7000C
 
-    target_name = manifest.imported_targets[0].target_name
-    assert target_name == "amiga_disk_demo__amiga_hunk_c__run_dcce9fe5"
-    assert manifest.imported_targets[0].target_path == "targets/amiga_disk_demo/targets/amiga_hunk_c__run_dcce9fe5"
-    target_dir = project_root / manifest.imported_targets[0].target_path
-    assert (target_dir / "entities.jsonl").exists()
-    source_disk = json.loads((target_dir / "source_binary.json").read_text(encoding="utf-8"))
-    assert source_disk["kind"] == "disk_entry"
-    assert source_disk["disk_id"] == "demo"
-    assert source_disk["entry_path"] == "c/Run"
-    assert source_disk["disk_path"] == adf_path.as_posix()
-    assert manifest.imported_targets[0].target_type == "program"
-    target_metadata = json.loads((target_dir / "target_metadata.json").read_text(encoding="utf-8"))
-    assert target_metadata["target_type"] == "program"
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
 
 
 def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
@@ -537,14 +553,25 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
     (project_root / "bin").mkdir()
     adf_path = project_root / "bin" / "demo.adf"
     adf_path.write_bytes(b"demo")
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        assert entry_path == "s/Run"
+        return b"packed-parent"
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+        extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
@@ -611,7 +638,7 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "s/Run")
     child = next(target for target in manifest.imported_targets if target.target_type == "raw_binary")
     assert parent.derived_targets == [
         {
@@ -668,14 +695,25 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     output_bytes = b"\x4E\x75"
     output_hash = hashlib.sha256(output_bytes).hexdigest()
     event_id = "decompression:self_decrunch:section:0:00000000:00004000"
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        assert entry_path == "s/Run"
+        return b"packed-parent"
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
+        extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
@@ -745,7 +783,7 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "s/Run")
     child = next(target for target in manifest.imported_targets if target.target_type == "raw_binary")
     assert parent.derived_targets == [
         {
@@ -796,14 +834,26 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
     adf_path.write_bytes(b"demo")
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
     parent_bytes = fixture.read_bytes()
+    startup_script = b"s:Run"
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return parent_bytes
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: parent_bytes,
+        extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
@@ -826,7 +876,7 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    parent = next(target for target in manifest.imported_targets if target.entry_path == "c/Run")
+    parent = next(target for target in manifest.imported_targets if target.entry_path == "s/Run")
     children = sorted(
         (target for target in manifest.imported_targets if target.target_type == "raw_binary"),
         key=lambda target: target.derived_from["source_section"] if target.derived_from is not None else -1,
@@ -901,15 +951,24 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
     expected_packed_size = 10
     expected_bytes = b"\x4E\x75\x4E\x75"
     expected_hash = "22" * 32
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"packed-parent"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
-    monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
-    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
 
     def fake_analysis(source_path: str | Path, *, project_root: Path) -> dict[str, object]:
         return {
@@ -992,15 +1051,24 @@ def test_import_adf_refresh_removes_stale_decompressed_child_after_clean_reanaly
     adf_path = project_root / "bin" / "demo.adf"
     adf_path.write_bytes(b"demo")
     output_bytes = b"\x4E\x75"
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"packed-parent"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
-    monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
-    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
     analysis_payload: dict[str, object] = {
         "derived_target_suggestions": [
             {
@@ -1064,7 +1132,7 @@ def test_import_adf_refresh_removes_stale_decompressed_child_after_clean_reanaly
 
     assert all(target.target_name != child.target_name for target in refreshed.imported_targets)
     assert not child_dir.exists()
-    parent = next(target for target in refreshed.imported_targets if target.entry_path == "c/Run")
+    parent = next(target for target in refreshed.imported_targets if target.entry_path == "s/Run")
     assert parent.derived_targets is None
 
 
@@ -1076,15 +1144,24 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
     (project_root / "bin").mkdir()
     adf_path = project_root / "bin" / "demo.adf"
     adf_path.write_bytes(b"demo")
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"packed-parent"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
-    monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
-    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
         lambda source_path, *, project_root: {
@@ -1110,7 +1187,7 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    assert [target.entry_path for target in manifest.imported_targets] == ["c/Run"]
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "s/Run"]
     assert manifest.imported_targets[0].derived_targets is None
 
 
@@ -1122,15 +1199,24 @@ def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
     (project_root / "bin").mkdir()
     adf_path = project_root / "bin" / "demo.adf"
     adf_path.write_bytes(b"demo")
+    startup_script = b"s:Run"
+
+    def extract_disk_entry_with_startup(
+        adf_file: str | Path, entry_path: str, *, project_root: Path
+    ) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return startup_script
+        if entry_path == "s/Run":
+            return b"packed-parent"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
 
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_adf",
-        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis(adf_file),
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
     )
-    monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend",
-        lambda adf_file, entry_path, *, project_root: b"packed-parent",
-    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
         lambda source_path, *, project_root: {
@@ -1158,7 +1244,7 @@ def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    assert [target.entry_path for target in manifest.imported_targets] == ["c/Run"]
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "s/Run"]
     assert manifest.imported_targets[0].derived_targets is None
 
 
@@ -1361,7 +1447,7 @@ def test_import_adf_does_not_create_raw_target_without_bootloader_stage_import(
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    assert [target.target_type for target in manifest.imported_targets] == []
+    assert [target.target_type for target in manifest.imported_targets] == ["bootblock"]
     assert not (project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_raw_bootloader_stage_1").exists()
 
 
@@ -2110,8 +2196,71 @@ def test_create_disk_project_keeps_non_dos_disk_without_imported_targets(
     assert manifest.analysis.disk_info.is_dos is True
     assert manifest.analysis.filesystem is None
     assert manifest.analysis.non_dos is not None
-    assert manifest.imported_targets == []
+    assert [target.target_name for target in manifest.imported_targets] == [
+        "amiga_disk_demo__amiga_raw_bootblock",
+    ]
     assert (project_root / "targets" / "amiga_disk_demo" / "manifest.json").exists()
+
+
+def test_create_disk_project_rejects_prefixed_disk_id(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"demo")
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert include_tracks is True
+        assert extract_dir is None
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=901120,
+                variant="DD",
+                total_sectors=1760,
+                sectors_per_track=11,
+                is_dos=True,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=1,
+                fs_type="FFS",
+                fs_description="DOS\\1 - Fast File System",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=880,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=1.0,
+                import_target=_bootblock_import_target(),
+            ),
+            filesystem=FilesystemInfo(
+                type="FFS",
+                volume_name="Demo",
+                directories=1,
+                files=1,
+                total_file_size=4,
+            ),
+            files=[],
+            directories=[],
+            bitmap=None,
+            block_usage=None,
+        )
+
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
+    with pytest.raises(
+        DiskAnalysisError, match="disk_id argument must be bare disk id; do not prefix with 'amiga_disk_'"
+    ):
+        create_disk_project(adf_path, disk_id="amiga_disk_demo", project_root=project_root)
+    assert not (project_root / "targets" / "amiga_disk_demo" / "manifest.json").exists()
 
 
 def test_create_disk_project_requires_complete_dos_analysis(
@@ -2262,7 +2411,7 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
                 DiskFileEntry(
                     block_num=10,
                     name="Run",
-                    full_path="c/Run",
+                    full_path="s/Run",
                     size=4,
                     protection="----rwed",
                     comment=None,
@@ -2301,7 +2450,7 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
     def fail_on_second_source_write(target_dir: Path, payload: dict[str, object]) -> None:
         nonlocal call_count
         call_count += 1
-        if call_count == 2:
+        if call_count == 1:
             raise RuntimeError("boom")
         original_write_source_descriptor(target_dir, payload)
 
@@ -2313,7 +2462,6 @@ def test_create_disk_project_cleans_up_created_targets_on_import_failure(
 
     assert not (project_root / "targets" / "amiga_disk_demo").exists()
     assert not (project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_raw_bootblock").exists()
-    assert not (project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_hunk_c__run_dcce9fe5").exists()
 
 
 def test_analyze_adf_treats_invalid_dos_root_as_non_dos(tmp_path: Path) -> None:
@@ -2639,3 +2787,4 @@ def test_print_summary_requires_trackloader_analysis_when_tracks_exist() -> None
 
     with pytest.raises(DiskAnalysisError, match="missing trackloader_analysis"):
         print_summary(result)
+

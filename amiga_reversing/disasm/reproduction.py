@@ -704,6 +704,7 @@ def load_reproduction_report(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     resolve_error: Exception | None = None
+    target_dir: Path | None = None
     try:
         paths = resolve_project_paths(target_name, project_root=project_root, require_entities=False)
         target_dir = paths.target_dir
@@ -712,6 +713,7 @@ def load_reproduction_report(
         target_dir = _best_effort_target_dir(target_name, project_root=project_root)
         if target_dir is None:
             raise
+    assert target_dir is not None
     path = reproduction_report_path(target_dir)
     if not path.exists():
         try:
@@ -1040,8 +1042,10 @@ def _direct_compare_reproduction_comparison(
         "content_exact": bool(full_file_exact or semantic_exact),
         "payload_exact": bool(full_file_exact or payload_exact),
         "payload_diagnostics": [],
-        "relocation_semantics_exact": True if full_file_exact and backend == "amiga-hunk" else relocation_semantics,
-        "relocation_encoding_exact": True if full_file_exact and backend == "amiga-hunk" else False,
+        "relocation_semantics_exact": True
+        if full_file_exact and backend == "amiga-hunk"
+        else bool(relocation_semantics),
+        "relocation_encoding_exact": bool(full_file_exact and backend == "amiga-hunk"),
         "semantic_diagnostics": [],
         "failure_kinds": [] if full_file_exact else ["container_shape_mismatch"],
         "diff_range_count": 0,
@@ -1318,7 +1322,7 @@ def match_atari_st_header_shape(
             }
         )
     original_reloc_offset = _atari_st_relocation_offset(original)
-    rebuilt_reloc_offset = _atari_st_relocation_offset(adjusted)
+    rebuilt_reloc_offset = _atari_st_relocation_offset(bytes(adjusted))
     original_reloc = original[original_reloc_offset:]
     rebuilt_reloc = bytes(adjusted[rebuilt_reloc_offset:])
     if (
@@ -2090,14 +2094,17 @@ def _effective_reproduction_cpu(options: dict[str, object]) -> str:
 
 def _best_effort_effective_metadata_hash(target_dir: Path) -> str | None:
     try:
-        return cast(str, effective_metadata_hash(target_dir))
+        return effective_metadata_hash(target_dir)
     except Exception:
         return None
 
 
 def _best_effort_target_dir(target_name: str, *, project_root: Path) -> Path | None:
     try:
-        return cast(Path, resolve_project_dir(target_name, project_root=project_root))
+        resolved = resolve_project_dir(target_name, project_root=project_root)
+        if isinstance(resolved, Path):
+            return resolved
+        return None
     except Exception:
         candidate = project_root / "targets" / target_name
         return candidate if candidate.exists() else None

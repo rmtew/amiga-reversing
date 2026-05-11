@@ -101,13 +101,85 @@ unsupported container/format oddities.
 
 | Topic | Status | Next gap |
 | --- | --- | --- |
-| RSSET/app slots | Implemented and tested | Track only new real ownership conflicts. |
-| Typed structs vs app slots | Implemented and tested | Broaden only from mapped runtime/source-space evidence. |
-| ORG/runtime views | Implemented for current copied-range evidence | Expand with future runtime-copy/decompression heuristics. |
-| Lookup/jump tables | Active, broad heuristic coverage | Use unresolved C candidate statuses for the next work item. |
-| Absolute memory | Implemented for current owner classes | Broaden imported-target coverage and display/audio layout inference. |
-| Orphaned code | Signals implemented, promotion remains conservative | Reduce callback/vector/API/runtime-copy queues with real flow recovery. |
-| Targets | Bloodwych plus GenAm/MonAm/comparators indexed | Add tags/evidence only for new generalized heuristics. |
+| RSSET/app slots | Implemented (partial) | Close remaining gap between typed-layout and app-slot ownership on comparator-heavy targets. |
+| Typed structs vs app slots | Implemented (partial) | Harden callee-side propagation and _custom/platform register edge cases. |
+| ORG/runtime views | Implemented (partial) | Extend bootstrap/runtime heuristics (LoadSeg variants, Pandora-style segmentation). |
+| Lookup/jump tables | Implemented (broad, partial) | Add table-control-base disambiguation and unresolved candidate curation. |
+| Absolute memory | Implemented (partial) | Expand bootblock and external-format absolute-address assumptions. |
+| Orphaned code | Signals implemented | Validate queue-to-flow closure across remaining missing-inbound classes. |
+| Targets | Partially covered | Add non-Bloodwych comparator breadth for every high-risk claim. |
+
+### Remaining Work (explicit)
+
+Status keys: **done / partial / blocked / not started**
+
+- RSSET/app slots
+  - Status: `partial`.
+  - Remains:
+    - Verify app-slot overlap/fragmentation handling for large Pandora-style layouts.
+    - Keep RSSET aliasing strict for non-app structs while preserving app-typed interior field rendering.
+  - Acceptance:
+    - Add comparator for fragmented app-slot evidence where previous logic would emit duplicate/incorrect RSSET.
+    - Add manifest metric that keeps `base-layout:owner-conflict` stable while reducing false `app-slot` overlays.
+
+- Typed structs vs app slots
+  - Status: `partial`.
+  - Remains:
+    - `_custom` hardware register metadata remains a special-case risk in callee-flow.
+    - Zero-offset prefix refinement is improved, but some callee-preserved aliasing paths are still inconsistent.
+  - Acceptance:
+    - No `api_input` type lost when hardware registers are preserved across a call boundary.
+    - No new false positives in non-app typed conflict signaling.
+
+- ORG/runtime views
+  - Status: `partial`.
+  - Remains:
+    - LoadSeg segment-chain bootstrap variants are partially covered; not all helper shapes are generalized.
+    - Bootblock/decompression paths still depend on target-specific assumptions in some rows.
+  - Acceptance:
+    - At least one additional non-Bloodwych comparator validates LoadSeg entry provenance from raw segment starts.
+    - Keep existing runtime suppression behavior (`loaded-or-overlayed` precedence) while adding stronger evidence for ORG/materialization.
+
+- Lookup/jump tables
+  - Status: `partial`.
+  - Remains:
+    - Table candidate pruning is mostly robust, but unresolved candidates still can be reduced by better control-base separation.
+    - Remaining `recovered_indirect_sites` need stronger provenance before becoming table work items.
+  - Acceptance:
+    - New unresolved candidates only appear where either table-base or base-control proof exists.
+    - Existing non-table indirect control sites continue to remain as diagnostic-only rows.
+
+- Absolute memory
+  - Status: `partial`.
+  - Remains:
+    - Bootblock and container absolute assumptions still need explicit support/guards.
+    - Display/audio/runtime layout inference should be broadened beyond currently covered rows.
+  - Acceptance:
+    - No unconditional assumption that absolute `0x4` is vector/runtime without platform/context evidence.
+    - Add/extend manifest checks for non-Amiga absolute-owner edge cases.
+
+- Orphaned code
+  - Status: `partial` (gating is in place).
+  - Remains:
+    - More missing-inbound classes still need real flow closure instead of signal-only suppression.
+    - Cross-linking with table/API/vector/runtime callbacks should remain id-driven and not regress counts.
+  - Acceptance:
+    - Orphan-signal queue size decreases in comparator targets when table/API/runtime work succeeds.
+    - No increase in suppressed signals caused by table overlaps.
+
+- Targets
+  - Status: `partial`.
+  - Remains:
+    - Evidence concentration is still high in Bloodwych and a few comparators.
+    - Assembler, emulator-backed, and emulation-driven tracing coverage has open follow-up work.
+  - Acceptance:
+    - Minimum 1–2 additional comparators for each major nuance above (lookup, ORG/runtime, absolute memory).
+    - Keep round-trip/rebuild checks green for all newly touched targets.
+
+### Audit source references
+
+- Open items are still tracked in `TODO.md` (notably app-slot fragmentation, _custom callee propagation, bootstrap variants, Bloodwych output polish, bootblock assumptions).
+- Prioritized test-backed evidence lives in `src/tests/test_target_usage_manifest.py` (`orphan-code`, `table_candidate`, `runtime_view`, `memory-layout`, `absolute_memory_ref`, `app_slot` families).
 
 ### Topic Notes
 

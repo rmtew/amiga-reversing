@@ -7,7 +7,10 @@ import json
 import sys
 
 from amiga_reversing.amiga_disk.adf import DiskAnalysisError
-from amiga_reversing.amiga_disk.project import import_adf, refresh_decompressed_payload_children
+from amiga_reversing.amiga_disk.project import (
+    import_adf,
+    refresh_decompressed_payload_children,
+)
 
 
 def main() -> int:

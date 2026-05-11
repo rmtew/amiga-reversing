@@ -1003,7 +1003,7 @@ def test_brave_cdp_virtual_listing_pagedown_fetches_low_latency(
 
 @pytest.mark.web_e2e
 def test_brave_cdp_corpus_tab_renders_before_corpus_fetches_finish(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    monkeypatch.setattr(disasm_server, "list_projects", list)
     feature_entered = threading.Event()
     feature_release = threading.Event()
 
@@ -1044,7 +1044,7 @@ def test_brave_cdp_corpus_tab_renders_before_corpus_fetches_finish(monkeypatch: 
 
 @pytest.mark.web_e2e
 def test_brave_cdp_corpus_target_selection_ignores_stale_xrefs(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(disasm_server, "list_projects", lambda: [])
+    monkeypatch.setattr(disasm_server, "list_projects", list)
     monkeypatch.setattr(
         disasm_server.corpus_usage,
         "feature_list",
@@ -2266,31 +2266,13 @@ def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch)
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{disk_project_id}"})
         page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelector('.disk-state-summary') !== null")
         page.wait_for_expression(
-            """
-            Array.from(document.querySelectorAll('.disk-target-button'))
-              .some((button) => button.textContent.includes('libs/icon.library')
-                && button.textContent.includes('library')
-                && button.textContent.includes('LVOs'))
-            """
+            "Array.from(document.querySelectorAll('.disk-target-button')).every((button) => "
+            "!button.textContent.includes('libs/icon.library'))"
         )
-        page.evaluate(
-            """
-            Array.from(document.querySelectorAll('.disk-target-button'))
-              .find((button) => button.textContent.includes('libs/icon.library'))
-              .click()
-            """
-        )
-        page.wait_for_expression(
-            "location.pathname.includes('amiga_hunk_libs__icon.library')",
-            timeout=10.0,
-        )
-        page.wait_for_expression(
-            "document.querySelectorAll('.listing-row-instruction').length > 0",
-            timeout=45.0,
-        )
-        assert "amiga_hunk_libs__icon.library" in page.text_content("#project-title")
-        assert "library" in page.text_content("#project-details")
+        assert "status=empty" in page.text_content(".disk-section")
+        page.assert_no_errors()
         page.assert_no_errors()
 
 

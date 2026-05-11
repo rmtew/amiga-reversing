@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import base64
 import difflib
-import json
 import re
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -43,6 +42,11 @@ _VALUE_TOKEN_RE = re.compile(
 )
 
 
+def _int_field(payload: dict[str, object], key: str) -> int | None:
+    value = payload.get(key)
+    return value if isinstance(value, int) else None
+
+
 def _read_jsonl_cached(path: Path) -> list[dict[str, Any]]:
     stat = path.stat()
     cached = _JSONL_CACHE.get(path)
@@ -62,7 +66,11 @@ def read_xrefs() -> list[dict[str, Any]]:
 
 
 def read_snippet_rows() -> list[dict[str, Any]]:
-    return usage.read_usage_snippet_rows(SNIPPET_ROWS_PATH)
+    return [
+        cast(dict[str, Any], row)
+        for row in usage.read_usage_snippet_rows(SNIPPET_ROWS_PATH)
+        if isinstance(row, dict)
+    ]
 
 
 def read_snippet_rows_for_target(target_id: str) -> list[dict[str, Any]]:
@@ -70,7 +78,11 @@ def read_snippet_rows_for_target(target_id: str) -> list[dict[str, Any]]:
     cached = _SNIPPET_TARGET_CACHE.get(target_id)
     if cached is not None and cached[0] == stamp:
         return list(cached[1])
-    rows = usage.read_usage_snippet_rows_for_target(target_id, SNIPPET_ROWS_PATH)
+    rows = [
+        cast(dict[str, Any], row)
+        for row in usage.read_usage_snippet_rows_for_target(target_id, SNIPPET_ROWS_PATH)
+        if isinstance(row, dict)
+    ]
     _SNIPPET_TARGET_CACHE[target_id] = (stamp, rows)
     return list(rows)
 
@@ -246,6 +258,10 @@ def diff_payload(left_target_id: str, right_target_id: str) -> dict[str, object]
     right_bytes = _target_media_bytes(right)
     left_space = _target_diff_space(left_target_id, left_bytes)
     right_space = _target_diff_space(right_target_id, right_bytes)
+    left_rows = left_space.get("rows")
+    right_rows = right_space.get("rows")
+    left_rows_payload = left_rows if isinstance(left_rows, list) else None
+    right_rows_payload = right_rows if isinstance(right_rows, list) else None
     return {
         "left": _diff_target_summary(left),
         "right": _diff_target_summary(right),
@@ -254,10 +270,10 @@ def diff_payload(left_target_id: str, right_target_id: str) -> dict[str, object]
             for key in ("id", "platform", "title_family", "display_path")
         },
         "byte_diff": _byte_diff_summary(
-            left_space["bytes"],
-            right_space["bytes"],
-            left_rows=left_space["rows"],
-            right_rows=right_space["rows"],
+            cast(bytes, left_space.get("bytes")),
+            cast(bytes, right_space.get("bytes")),
+            left_rows=left_rows_payload,
+            right_rows=right_rows_payload,
             left_space_kind=str(left_space["kind"]),
             right_space_kind=str(right_space["kind"]),
         ),
@@ -369,14 +385,17 @@ def _xref_display_key(row: dict[str, object]) -> tuple[object, ...]:
         "local_wrapper": 4,
         "stack_cleanup": 5,
     }
+    section = row.get("section")
+    offset = row.get("offset")
+    row_index = row.get("row_index")
     return (
-        0 if isinstance(row.get("row_index"), int) else 1,
+        0 if isinstance(row_index, int) else 1,
         kind_priority.get(str(row.get("kind")), 20),
         resolution_priority.get(str(row.get("resolution")), 9),
         str(row.get("feature", "")),
-        int(row.get("section")) if isinstance(row.get("section"), int) else 1_000_000_000,
-        int(row.get("offset")) if isinstance(row.get("offset"), int) else 1_000_000_000,
-        int(row.get("row_index")) if isinstance(row.get("row_index"), int) else 1_000_000_000,
+        int(section) if isinstance(section, int) else 1_000_000_000,
+        int(offset) if isinstance(offset, int) else 1_000_000_000,
+        int(row_index) if isinstance(row_index, int) else 1_000_000_000,
         str(row.get("id", "")),
     )
 
@@ -395,11 +414,15 @@ def snippet_payload(xref_id: str, *, before: int = 20, after: int = 20) -> dict[
     ]
     start = max(0, row_index - max(0, before))
     end = row_index + max(0, after) + 1
-    rows_by_index = {
-        int(row["row_index"]): row.get("row")
-        for row in snippet_rows
-        if start <= int(row["row_index"]) < end and isinstance(row.get("row"), dict)
-    }
+    rows_by_index: dict[int, dict[str, object]] = {}
+    for row in snippet_rows:
+        row_index_value = _int_field(row, "row_index")
+        if row_index_value is None or not start <= row_index_value < end:
+            continue
+        row_value = row.get("row")
+        if not isinstance(row_value, dict):
+            continue
+        rows_by_index[row_index_value] = cast(dict[str, object], row_value)
     if row_index not in rows_by_index:
         raise ValueError(f"Corpus snippet cache has no row {row_index} for {target_id}")
     rows = []
@@ -556,7 +579,7 @@ def _listing_diff_space(rows: list[dict[str, object]]) -> dict[str, object] | No
         mapped["diff_start_offset"] = diff_start
         mapped["diff_end_offset"] = diff_end
         mapped_rows.append(mapped)
-    mapped_rows.sort(key=lambda row: (int(row.get("row_index")) if isinstance(row.get("row_index"), int) else 1_000_000_000))
+    mapped_rows.sort(key=lambda row: _int_field(row, "row_index") or 1_000_000_000)
     return {"kind": "listing", "bytes": bytes(image), "rows": mapped_rows}
 
 
@@ -632,16 +655,18 @@ def _parse_simple_asm_int(text: str) -> int | None:
 
 
 def _diff_target_summary(target: dict[str, Any]) -> dict[str, object]:
-    origin = target.get("origin") if isinstance(target.get("origin"), dict) else {}
+    origin_payload = target.get("origin")
+    origin = origin_payload if isinstance(origin_payload, dict) else {}
+    origin_payload_dict = cast(dict[str, object], origin)
     return {
         "id": target.get("id"),
         "platform": target.get("platform"),
         "sha256": target.get("sha256"),
         "size": target.get("size"),
         "display_name": (
-            origin.get("in_image_path")
-            or origin.get("member_name")
-            or origin.get("display_name")
+            origin_payload_dict.get("in_image_path")
+            or origin_payload_dict.get("member_name")
+            or origin_payload_dict.get("display_name")
             or target.get("id")
         ),
         "disk_name": _target_source_context(target).get("disk_name"),
@@ -815,7 +840,11 @@ def _paired_context_rows(
     pairs: list[dict[str, object]] = []
     for tag, left_start, left_end, right_start, right_end in matcher.get_opcodes():
         if tag == "equal":
-            for left_index, right_index in zip(range(left_start, left_end), range(right_start, right_end)):
+            for left_index, right_index in zip(
+                range(left_start, left_end),
+                range(right_start, right_end),
+                strict=False,
+            ):
                 pairs.append(_context_pair(left_rows[left_index], right_rows[right_index]))
             continue
         count = max(left_end - left_start, right_end - right_start)
@@ -846,14 +875,20 @@ def _classify_context_pairs(pairs: list[dict[str, object]]) -> None:
     for analysis in analyses:
         if analysis.get("diff_class") not in {"address_only", "target_change"}:
             continue
-        for delta in analysis.get("address_deltas", []):
-            if isinstance(delta, int):
-                delta_counts[delta] += 1
+        deltas = analysis.get("address_deltas")
+        if isinstance(deltas, list):
+            for delta in deltas:
+                if isinstance(delta, int):
+                    delta_counts[delta] += 1
     dominant_deltas = {delta for delta, count in delta_counts.items() if count >= 2}
 
-    for pair, analysis in zip(pairs, analyses):
+    for pair, analysis in zip(pairs, analyses, strict=False):
         diff_class = str(analysis.get("diff_class") or "semantic")
-        pair_deltas = [delta for delta in analysis.get("address_deltas", []) if isinstance(delta, int)]
+        address_deltas = analysis.get("address_deltas")
+        if isinstance(address_deltas, list):
+            pair_deltas = [delta for delta in address_deltas if isinstance(delta, int)]
+        else:
+            pair_deltas = []
         dominant = next((delta for delta in pair_deltas if delta in dominant_deltas), None)
         if diff_class in {"address_only", "target_change"} and dominant is not None:
             diff_class = "shifted_address"
@@ -894,12 +929,12 @@ def _context_pair_analysis(pair: dict[str, object]) -> dict[str, object]:
 
     left_tokens = _extract_value_tokens(left_text)
     right_tokens = _extract_value_tokens(right_text)
-    value_pairs = list(zip(left_tokens, right_tokens))
+    value_pairs = list(zip(left_tokens, right_tokens, strict=False))
     changed_pairs = [
         (left_token, right_token)
         for left_token, right_token in value_pairs
-        if left_token["value"] != right_token["value"]
-        or left_token["text"].lower() != right_token["text"].lower()
+        if left_token.get("value") != right_token.get("value")
+        or str(left_token.get("text")).lower() != str(right_token.get("text")).lower()
         or left_token.get("suffix") != right_token.get("suffix")
     ]
     address_pairs = [
@@ -907,13 +942,14 @@ def _context_pair_analysis(pair: dict[str, object]) -> dict[str, object]:
         for left_token, right_token in changed_pairs
         if _value_token_is_address_like(left_token) and _value_token_is_address_like(right_token)
     ]
-    address_deltas = [
-        int(left_token["value"]) - int(right_token["value"])
-        for left_token, right_token in address_pairs
-        if isinstance(left_token.get("value"), int) and isinstance(right_token.get("value"), int)
-    ]
+    address_deltas = []
+    for left_token, right_token in address_pairs:
+        left_value = left_token.get("value")
+        right_value = right_token.get("value")
+        if isinstance(left_value, int) and isinstance(right_value, int):
+            address_deltas.append(left_value - right_value)
     mode_change = any(
-        left_token["value"] == right_token["value"]
+        left_token.get("value") == right_token.get("value")
         and left_token.get("suffix")
         and right_token.get("suffix")
         and left_token.get("suffix") != right_token.get("suffix")
@@ -922,7 +958,7 @@ def _context_pair_analysis(pair: dict[str, object]) -> dict[str, object]:
     immediate_change = any(
         (left_token.get("immediate") or right_token.get("immediate"))
         and not (_value_token_is_address_like(left_token) and _value_token_is_address_like(right_token))
-        and left_token["value"] != right_token["value"]
+        and left_token.get("value") != right_token.get("value")
         for left_token, right_token in changed_pairs
     )
     same_shape = _normalise_value_text(left_text) == _normalise_value_text(right_text)
@@ -1066,8 +1102,10 @@ def _source_rows_for_target(target_id: str | None) -> list[dict[str, object]]:
         row_index = item.get("row_index")
         if isinstance(row_index, int):
             payload["row_index"] = row_index
+        else:
+            payload.pop("row_index", None)
         rows.append(payload)
-    rows.sort(key=lambda row: (int(row.get("row_index")) if isinstance(row.get("row_index"), int) else 1_000_000_000))
+    rows.sort(key=lambda row: _int_field(row, "row_index") or 1_000_000_000)
     return rows
 
 
@@ -1265,7 +1303,7 @@ def _corpus_project_origin(
         "source_id": str(imported_target.get("source_id")),
         "source_manifest": str(imported_target.get("source_manifest")),
         "platform": str(imported_target.get("platform")),
-        "size": int(imported_target.get("size")) if isinstance(imported_target.get("size"), int) else None,
+        "size": imported_target.get("size") if isinstance(imported_target.get("size"), int) else None,
         "sha256": str(imported_target.get("sha256")) if isinstance(imported_target.get("sha256"), str) else None,
     }
     for key in ("display_name", "source_relpath", "container_relpath", "member_name", "in_image_path"):
@@ -1332,7 +1370,6 @@ def _project_coverage_for_target(
     target: dict[str, Any],
     projects: list[dict[str, object]],
 ) -> dict[str, object]:
-    target_id = str(target.get("id"))
     exact_project = _project_covering_target(projects, target)
     disk_target = target if target.get("platform") == "amiga-disk" else _parent_disk_target_row(target)
     disk_target_id = str(disk_target.get("id")) if disk_target is not None else None

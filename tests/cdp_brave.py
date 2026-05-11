@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import base64
 import atexit
+import base64
 import hashlib
 import json
 import os
@@ -13,7 +13,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any, Self, cast
 from urllib.request import Request, urlopen
@@ -682,10 +682,8 @@ def _reset_page(ws: CdpWebSocket) -> None:
     ws.drain_events(timeout=0.05)
     ws.events.clear()
     ws.call("Page.navigate", {"url": "about:blank"}, timeout=5.0)
-    try:
+    with suppress(TimeoutError):
         ws.wait_for_event("Page.loadEventFired", timeout=5.0)
-    except TimeoutError:
-        pass
     ws.drain_events(timeout=0.05)
     ws.events.clear()
 

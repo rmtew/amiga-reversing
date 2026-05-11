@@ -6,7 +6,9 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import cast
 
-from amiga_reversing.disasm.c_backend import listing_artifact_source_text_with_c_backend_profile
+from amiga_reversing.disasm.c_backend import (
+    listing_artifact_source_text_with_c_backend_profile,
+)
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 

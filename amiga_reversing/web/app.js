@@ -2149,7 +2149,11 @@ function renderDiskContentView(content, view) {
 function renderDiskEntryRow(entry) {
   const path = entry.path || "";
   const icon = entry.is_directory ? "\u{1F4C1}" : "\u{1F4C4}";
-  const targetAction = entry.target_id ? `<span role="button" tabindex="0" class="corpus-disk-target-button" data-disk-browser-target="${escapeHtml(entry.target_id)}">Open</span>` : "";
+  const targetAction = entry.target_id
+    ? `<span role="button" tabindex="0" class="corpus-disk-target-button" data-disk-browser-target="${escapeHtml(entry.target_id)}">Open</span>`
+    : (entry.importable
+      ? `<span role="button" tabindex="0" class="corpus-disk-target-button" data-disk-browser-import="${escapeHtml(path)}">Import</span>`
+      : "");
   return `
     <button type="button" class="corpus-disk-entry${entry.is_directory ? " directory" : " file"}" data-disk-browser-path="${escapeHtml(path)}">
       <span class="corpus-disk-entry-name">${icon} ${escapeHtml(entry.name || path)}</span>
@@ -2161,12 +2165,18 @@ function renderDiskEntryRow(entry) {
 }
 
 function renderDiskEntryDetail(entry) {
+  const targetId = entry.target_id || "";
+  const importAction = targetId ? "" : (entry.importable
+    ? `<span role="button" tabindex="0" class="corpus-disk-target-button" data-disk-browser-import="${escapeHtml(entry.path || "")}">Import</span>`
+    : ""
+  );
   return `
     <div class="corpus-disk-entry-detail">
       <span>${escapeHtml(entry.name || entry.path || "")}</span>
       <span>${escapeHtml(entry.type || "")}</span>
       <span>${escapeHtml(formatFileSize(entry.size))}</span>
-      ${entry.target_id ? `<button type="button" data-disk-browser-target="${escapeHtml(entry.target_id)}">Open target</button>` : ""}
+      ${targetId ? `<span role="button" tabindex="0" data-disk-browser-target="${escapeHtml(targetId)}" class="corpus-disk-target-button">Open target</span>` : ""}
+      ${importAction}
     </div>
   `;
 }
@@ -2603,6 +2613,32 @@ function bindDiskBrowserControls() {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         openTarget(event);
+      }
+    });
+  });
+  document.querySelectorAll("[data-disk-browser-import]").forEach((button) => {
+    const importEntry = () => {
+      const requestKey = state.diskBrowser.requestKey || "";
+      const prefix = "project:";
+      if (!requestKey.startsWith(prefix)) {
+        return;
+      }
+      const projectId = requestKey.slice(prefix.length);
+      const path = button.dataset.diskBrowserImport || "";
+      if (!projectId || !path) {
+        return;
+      }
+      void importDiskProjectFile(projectId, path);
+      resetDiskBrowser();
+    };
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      importEntry();
+    });
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        importEntry();
       }
     });
   });
@@ -5495,7 +5531,10 @@ function renderDiskTargetMetadata(target, entry) {
     appendPayloadRelationshipDetails(details, origin);
     return `${renderInlineBadges(["decompressed", formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
   }
-  if (!entry && String(target.entry_path || "").startsWith("bootloader/")) {
+  if (
+    !entry
+    && (target.entry_path === "bootblock" || String(target.entry_path || "").startsWith("bootloader/"))
+  ) {
     const details = [target.binary_path || target.entry_path];
     appendDerivedTargetSummary(details, target);
     return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
@@ -5525,16 +5564,98 @@ function renderDiskTargetMetadata(target, entry) {
   return `${renderInlineBadges([formatTargetTypeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`;
 }
 
-function renderDiskTargets(manifest) {
+function renderDiskTargetStateSummary(targetState) {
+  const state = targetState && typeof targetState === "object" ? targetState : {};
+  const startupParse = state.startup_sequence_parse && typeof state.startup_sequence_parse === "object"
+    ? state.startup_sequence_parse
+    : null;
+  const candidateRejects = Array.isArray(state.candidate_rejects) ? state.candidate_rejects : [];
+  if (!startupParse && !candidateRejects.length) {
+    return "";
+  }
+  const details = [];
+  if (startupParse && startupParse.status) {
+    const parseLine = Number.isFinite(startupParse.line) ? ` @ line ${startupParse.line}` : "";
+    details.push(`status=${startupParse.status}${parseLine}`);
+  }
+  if (startupParse && startupParse.reason) {
+    details.push(`reason=${startupParse.reason}`);
+  }
+  const sourcePath = startupParse && typeof startupParse.source_path === "string" ? startupParse.source_path : "s/startup-sequence";
+  details.push(`source=${sourcePath}`);
+  if (startupParse && startupParse.command) {
+    details.push(`command=${startupParse.command}`);
+  }
+  const rejectRows = candidateRejects.map((reject) => {
+    const path = typeof reject.path === "string" ? reject.path : "unknown";
+    const reason = typeof reject.reason_code === "string" ? reject.reason_code : "reject";
+    const detail = typeof reject.reason_detail === "string" ? reject.reason_detail : "";
+    const line = Number.isFinite(reject.line) ? ` line ${reject.line}` : "";
+    const command = typeof reject.command === "string" ? ` (${reject.command})` : "";
+    return `<li><span class="disk-reject-code">${escapeHtml(reason)}</span> ${escapeHtml(path)}${escapeHtml(line)}${escapeHtml(command)}${detail ? `: ${escapeHtml(detail)}` : ""}</li>`;
+  });
+  return `
+    <div class="disk-state-summary">
+      <div class="disk-state-summary-title">Startup import state</div>
+      <div class="disk-state-summary-detail">${escapeHtml(details.join(" | "))}</div>
+      ${rejectRows.length ? `
+      <ul class="disk-reject-list">
+        ${rejectRows.join("")}
+      </ul>` : ""}
+    </div>
+  `;
+}
+
+function renderDiskTargetItem(target, entry, targetState, isChild = false) {
+  const stateEntry = targetState && typeof targetState.stateById?.get === "function"
+    ? targetState.stateById.get(target.target_name)
+    : null;
+  const metadata = renderDiskTargetMetadata(target, entry);
+  const stateBadges = [];
+  if (stateEntry && typeof stateEntry.origin === "string") {
+    stateBadges.push(stateEntry.origin);
+  }
+  if (target.derived_from && target.derived_from.kind === "decompressed_payload") {
+    stateBadges.push("payload-child");
+  }
+  const extra = stateBadges.length ? `<span class="disk-item-state">${renderInlineBadges(stateBadges)}</span>` : "";
+  const title = target.entry_path === "bootblock" ? "Boot Block" : (target.entry_path || target.target_name);
+  return `
+    <button class="disk-item disk-target-button${isChild ? " disk-target-child" : ""}" data-project-id="${escapeHtml(target.target_name)}" type="button">
+      <span class="disk-item-main">${escapeHtml(title)}</span>
+      <span class="disk-item-meta">${metadata}${extra ? ` ${extra}` : ""}</span>
+    </button>
+  `;
+}
+
+function renderDiskTargets(manifest, targetState = null) {
   const analysis = requireObject(manifest.analysis, "Disk analysis");
   const bootBlock = requireObject(analysis.boot_block, "Boot block analysis");
   const filesystem = analysis.filesystem || null;
   const bootblockTargetName = manifest.bootblock_target_name || null;
   const importedTargets = requireArray(manifest.imported_targets, "Imported targets");
+  const hasBootblockImportedTarget = importedTargets.some((target) => {
+    return target.entry_path === "bootblock" || target.target_type === "bootblock";
+  });
+  const stateById = new Map();
+  const payloadState = targetState && typeof targetState === "object"
+    ? targetState
+    : {};
+  if (Array.isArray(payloadState.subtargets)) {
+    for (const item of payloadState.subtargets) {
+      const targetId = typeof item.id === "string" ? item.id : "";
+      if (!targetId) {
+        continue;
+      }
+      stateById.set(targetId, item);
+    }
+  }
+  const statePayload = {stateById};
   if (!importedTargets.length) {
     return `
       <div class="disk-list">
         ${renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
+        ${renderDiskTargetStateSummary(targetState)}
       </div>
     `;
   }
@@ -5542,43 +5663,92 @@ function renderDiskTargets(manifest) {
     ? []
     : requireArray(analysis.files, "Indexed disk files");
   const fileByPath = new Map(files.map((entry) => [entry.full_path, entry]));
+  const childrenByParent = new Map();
+  const rootTargets = [];
+  for (const target of importedTargets) {
+    const parentRef = target.derived_from;
+    const parentId = parentRef && parentRef.kind === "decompressed_payload" && typeof parentRef.parent_target === "string"
+      ? parentRef.parent_target
+      : "";
+    if (parentId) {
+      const list = childrenByParent.get(parentId) || [];
+      list.push(target);
+      childrenByParent.set(parentId, list);
+    } else {
+      rootTargets.push(target);
+    }
+  }
+  const renderedChildren = (parentId) => {
+    const children = childrenByParent.get(parentId) || [];
+    if (!children.length) {
+      return "";
+    }
+    return children.map((child) => {
+      const entry = fileByPath.get(child.entry_path) || null;
+      return `${renderDiskTargetItem(child, entry, statePayload, true)}${
+        renderedChildren(child.target_name)
+      }`;
+    }).join("");
+  };
   return `
     <div class="disk-list">
-      ${renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
-      ${importedTargets.map((target) => {
-        const entry = fileByPath.get(target.entry_path);
-        return `
-        <button class="disk-item disk-target-button" data-project-id="${escapeHtml(target.target_name)}" type="button">
-          <span class="disk-item-main">${escapeHtml(target.entry_path)}</span>
-          <span class="disk-item-meta">${renderDiskTargetMetadata(target, entry)}</span>
-        </button>
-      `;
-      }).join("")}
+      ${hasBootblockImportedTarget ? "" : renderBootBlockTarget(bootBlock, filesystem, bootblockTargetName)}
+      ${renderDiskTargetStateSummary(targetState)}
+      ${rootTargets.map((target) => `
+        ${renderDiskTargetItem(target, fileByPath.get(target.entry_path), statePayload, false)}
+        ${renderedChildren(target.target_name)}
+      `).join("")}
     </div>
   `;
 }
 
-function renderDiskFiles(files) {
+function renderDiskFiles(files, targetIndex = new Map(), addedTargetIds = new Set()) {
   if (!files.length) {
     return '<div class="empty">No files indexed.</div>';
   }
+  const toPathKey = (value) => String(value || "").toLowerCase();
+  const isImportable = (entry) => entry && typeof entry === "object"
+    && (entry.importable === true
+      || (entry.content && typeof entry.content === "object" && entry.content.import_target !== null && entry.content.import_target !== undefined));
   return `
     <div class="disk-list">
-      <button class="disk-item disk-file-button" data-project-disk-path="" type="button">
-        <span class="disk-item-main">Browse disk files</span>
-        <span class="disk-item-meta">Directory view</span>
-      </button>
-      ${files.map((entry) => {
-        const path = entry.full_path || entry.path || entry.name || "";
-        const size = formatFileSize(entry.size);
-        const meta = [size, formatFileKind(entry)].filter(Boolean).join(" | ");
-        return `
-        <button class="disk-item disk-file-button" data-project-disk-path="${escapeHtml(path)}" type="button">
-          <span class="disk-item-main">${escapeHtml(path)}</span>
-          <span class="disk-item-meta">${escapeHtml(meta)}</span>
-        </button>
-      `;
-      }).join("")}
+      <button class="disk-file-browse" data-project-disk-path="" type="button">Browse disk files</button>
+      <table class="disk-file-table" aria-label="Disk file contents">
+        <thead>
+          <tr>
+            <th class="disk-file-header-name">File</th>
+            <th class="disk-file-header-size">Size</th>
+            <th class="disk-file-header-type">Type</th>
+            <th class="disk-file-header-details">Notes</th>
+            <th class="disk-file-header-action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${files.map((entry) => {
+            const path = entry.full_path || entry.path || entry.name || "";
+            const targetId = targetIndex.get(toPathKey(path));
+            const isAdded = targetId ? addedTargetIds.has(targetId) : false;
+            const importable = isImportable(entry);
+            const action = targetId
+              ? (isAdded
+                ? `<span role="button" tabindex="0" class="disk-item-action" data-project-disk-open-target="${escapeHtml(targetId)}">Open</span>`
+                : (importable ? `<span role="button" tabindex="0" class="disk-item-action" data-project-disk-import="${escapeHtml(path)}">Import</span>` : ""))
+              : (importable ? `<span role="button" tabindex="0" class="disk-item-action" data-project-disk-import="${escapeHtml(path)}">Import</span>` : "");
+            const size = formatFileSize(entry.size);
+            const type = formatFileKind(entry);
+            const details = "";
+            return `
+            <tr class="disk-file-entry-row" data-project-disk-path="${escapeHtml(path)}" tabindex="0" role="row">
+              <td class="disk-file-name" title="${escapeHtml(path)}">${escapeHtml(path)}</td>
+              <td class="disk-file-size">${escapeHtml(size)}</td>
+              <td class="disk-file-type">${escapeHtml(type)}</td>
+              <td class="disk-file-details">${escapeHtml(details)}</td>
+              <td class="disk-file-action">${action || ""}</td>
+            </tr>
+          `;
+          }).join("")}
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -5588,6 +5758,33 @@ function renderDiskProject(projectData) {
   const analysis = requireObject(manifest.analysis, "Disk analysis");
   const hasIndexedFiles = analysis.files !== null && analysis.files !== undefined;
   const files = hasIndexedFiles ? requireArray(analysis.files, "Indexed disk files") : null;
+  const targetState = projectData.target_state && typeof projectData.target_state === "object"
+    ? projectData.target_state
+    : null;
+  const stateById = new Map();
+  const addedTargetIds = new Set();
+  const targetIndex = new Map();
+  const importedTargets = requireArray(manifest.imported_targets, "Imported targets");
+  for (const item of importedTargets) {
+    const path = typeof item.entry_path === "string" ? item.entry_path : "";
+    const targetId = typeof item.target_name === "string" ? item.target_name : "";
+    if (!path || !targetId) {
+      continue;
+    }
+    targetIndex.set(path.trim().toLowerCase().replace(/\\/g, "/"), targetId);
+  }
+  for (const subtarget of requireArray(targetState && targetState.subtargets ? targetState.subtargets : null, "Target subtargets")) {
+    const targetId = typeof subtarget.id === "string" ? subtarget.id : "";
+    if (targetId) {
+      addedTargetIds.add(targetId);
+    }
+    if (typeof subtarget.state !== "string" || subtarget.state !== "added") {
+      continue;
+    }
+    if (targetId) {
+      stateById.set(targetId, subtarget);
+    }
+  }
   const app = document.getElementById("listing-viewport");
 
   app.innerHTML = `
@@ -5599,14 +5796,14 @@ function renderDiskProject(projectData) {
       <div class="disk-tab-panel active" data-tab-panel="targets" role="tabpanel">
         <div class="disk-section">
           <h2>Targets</h2>
-          ${renderDiskTargets(manifest)}
+          ${renderDiskTargets(manifest, targetState)}
         </div>
       </div>
       ${files ? `
       <div class="disk-tab-panel" data-tab-panel="contents" role="tabpanel" hidden>
         <div class="disk-section">
           <h2>Disk Contents</h2>
-          ${renderDiskFiles(files)}
+          ${renderDiskFiles(files, targetIndex, addedTargetIds)}
         </div>
       </div>` : ""}
     </section>
@@ -5621,6 +5818,41 @@ function renderDiskProject(projectData) {
   document.querySelectorAll("[data-project-disk-path]").forEach((button) => {
     button.addEventListener("click", () => {
       void openProjectDiskBrowser(projectData.project.id, button.dataset.projectDiskPath || "");
+    });
+  });
+  document.querySelectorAll("[data-project-disk-open-target]").forEach((button) => {
+    const openTarget = () => {
+      const targetId = button.dataset.projectDiskOpenTarget || "";
+      void selectCorpusTarget(targetId);
+    };
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openTarget();
+    });
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openTarget();
+      }
+    });
+  });
+  document.querySelectorAll("[data-project-disk-import]").forEach((button) => {
+      const importEntry = () => {
+        button.dataset.projectDiskImportBusy = "1";
+        const path = button.dataset.projectDiskImport || "";
+        void importDiskProjectFile(projectData.project.id, path).finally(() => {
+          button.removeAttribute("data-project-disk-import-busy");
+        });
+      };
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        importEntry();
+      });
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        importEntry();
+      }
     });
   });
 
@@ -5642,6 +5874,27 @@ function renderDiskProject(projectData) {
     });
   });
   bindDiskBrowserControls();
+}
+
+async function importDiskProjectFile(projectId, entryPath) {
+  if (!projectId || !entryPath) {
+    return;
+  }
+  const importTarget = String(entryPath);
+  try {
+    setAnalysisStatus(`Importing ${importTarget}`, "running");
+    await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/disk-entry-import`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({path: importTarget}),
+    });
+    const projectData = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}`);
+    state.projectData = projectData;
+    await Promise.resolve(renderDiskProject(projectData));
+    setAnalysisStatus("Import complete", "ready", 2000);
+  } catch (error) {
+    setAnalysisStatus(`Import failed: ${String(error.message || error)}`, "failed", 6000);
+  }
 }
 
 async function jumpToListingAddr(projectId, addr, matchText = null) {

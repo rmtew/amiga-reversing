@@ -17,8 +17,8 @@ from amiga_reversing.disasm.projects import (
     mark_project_opened,
 )
 from amiga_reversing.disasm.target_metadata import (
-    RssetLayoutRegionMetadata,
     EntryRegisterSeedMetadata,
+    RssetLayoutRegionMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
