@@ -18,18 +18,30 @@ Write the decision record for advanced arena forms: either select a production m
 
 ## Acceptance criteria
 
-- [ ] ADR cites the measurement report and fit analyses.
-- [ ] Decision clearly states whether any advanced arena form moves to implementation.
-- [ ] If implementation is recommended, follow-up PRD or issue scope is identified.
-- [ ] If no implementation is recommended, the no-build rationale is explicit.
-- [ ] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
-- [ ] Before committing, run `cmd /c src\precommit.bat`.
+- [x] ADR cites the measurement report and fit analyses.
+- [x] Decision clearly states whether any advanced arena form moves to implementation.
+- [x] If implementation is recommended, follow-up PRD or issue scope is identified.
+- [x] If no implementation is recommended, the no-build rationale is explicit.
+- [x] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
+- [x] Before committing, run `cmd /c src\precommit.bat`.
 
 ## Work notes required
 
 - Record raw heap allocation sites before/after for touched modules.
 - Record arena stats if the touched workflow exposes them.
 - Record exact CDP and precommit command results before commit.
+
+## Work Notes
+
+- ADR: `docs/adr/0003-advanced-arena-forms.md`.
+- PRD status updated in `docs/prd/005-advanced-arena-forms-research.md`.
+- Decision: no advanced arena form moves to production implementation under PRD005; no follow-up
+  implementation PRD is opened.
+- Raw heap allocation sites: documentation-only issue; touched production modules before/after 0 -> 0.
+- Arena stats: no workflow code touched. ADR cites the PRD005 measurement/prototype reports.
+- CDP: `uv run python -m pytest tests\test_web_e2e_cdp.py -q` passed: 29 passed in 100.62s.
+- Precommit: `cmd /c src\precommit.bat` passed; style OK 19 tests, dead_code OK,
+  unit OK 129 tests, integration OK 88 tests, explicit OK 41 tests.
 
 ## Blocked by
 

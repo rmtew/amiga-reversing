@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved research PRD. Not implementation-ready until measurements justify a production migration.
+Closed with a no-build decision. Measurements did not justify a production migration.
 
 ## Problem
 
@@ -37,6 +37,11 @@ Prototypes must live outside the production allocation path unless explicitly en
 - Each arena form has a fit analysis covering lifetime model, API impact, failure modes, and expected benefit.
 - Any recommended production migration has an ADR describing tradeoffs and rollback cost.
 - If no form is justified, the PRD closes with a documented no-build decision.
+
+## Decision
+
+No advanced arena form moves to production implementation from this PRD. See
+[`docs/adr/0003-advanced-arena-forms.md`](../adr/0003-advanced-arena-forms.md).
 
 ## Later Task Slices
 
