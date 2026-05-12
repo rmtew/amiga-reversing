@@ -6127,6 +6127,73 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
   return text;
 }
 
+static char *facts_v2_reproduction_compare_profile_json_alloc(const char *backend_name, size_t original_bytes,
+    uint32_t rebuilt_bytes, M68kReproductionCompareResult compare_result, double compare_seconds,
+    const M68kAssemblerPolicy *assembler_policy, M68kDiagList *diagnostics) {
+  JsonBuilder builder = {0};
+  char *text;
+  uint32_t policy_kind = assembler_policy != NULL ? assembler_policy->kind : M68K_ASSEMBLER_POLICY_IDEAL;
+  uint32_t policy_flags = assembler_policy != NULL ? assembler_policy->flags : 0U;
+  uint32_t hunk_relocation_records =
+    assembler_policy != NULL ? assembler_policy->hunk_relocation_record_count : 0U;
+  int compare_compared = compare_result.status_id != M68K_REPRO_COMPARE_STATUS_NOT_COMPARED;
+  int compare_full_file_exact = compare_result.exactness_id == M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE;
+  int compare_payload_exact = direct_compare_payload_exact(&compare_result);
+  int compare_relocation_exact = direct_compare_relocation_exact(&compare_result);
+  int compare_content_exact = compare_payload_exact && compare_relocation_exact;
+  int compare_container_oddity =
+    (compare_result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U;
+  if (json_builder_create(&builder) != 0 ||
+      json_builder_append(&builder, "{\"facts_v2_reproduction_compare\":true,\"backend\":") != 0 ||
+      json_builder_append_json_string(&builder, backend_name != NULL ? backend_name : "") != 0 ||
+      json_builder_appendf(&builder,
+        ",\"original_bytes\":%u,\"rebuilt_bytes\":%u,"
+        "\"reproduction_compare_compared\":%s,"
+        "\"reproduction_compare_full_file_exact\":%s,"
+        "\"reproduction_compare_status\":",
+        (unsigned)(original_bytes > UINT32_MAX ? UINT32_MAX : original_bytes),
+        (unsigned)rebuilt_bytes,
+        compare_compared ? "true" : "false",
+        compare_full_file_exact ? "true" : "false") != 0 ||
+      json_builder_append_json_string(&builder, direct_compare_status_text(&compare_result)) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"reproduction_compare_payload_exact\":%s,"
+        "\"reproduction_compare_relocation_semantics_exact\":%s,"
+        "\"reproduction_compare_content_exact\":%s,"
+        "\"reproduction_compare_container_oddity\":%s,"
+        "\"reproduction_compare_status_id\":%u,"
+        "\"reproduction_compare_exactness_id\":%u,"
+        "\"reproduction_compare_diagnostic_id\":%u,"
+        "\"reproduction_compare_issue_group_flags\":%u,"
+        "\"reproduction_compare_first_diff_offset\":%u,"
+        "\"reproduction_compare_range_count\":%u,"
+        "\"reproduction_compare_source_hint_count\":%u,"
+        "\"reproduction_compare_source_hint_overflow\":%s,"
+        "\"reproduction_compare_source_hints\":",
+        compare_payload_exact ? "true" : "false",
+        compare_relocation_exact ? "true" : "false",
+        compare_content_exact ? "true" : "false",
+        compare_container_oddity ? "true" : "false",
+        (unsigned)compare_result.status_id, (unsigned)compare_result.exactness_id,
+        (unsigned)compare_result.diagnostic_id, (unsigned)compare_result.issue_group_flags,
+        (unsigned)compare_result.first_diff_offset, (unsigned)compare_result.range_count,
+        (unsigned)compare_result.source_hint_count,
+        compare_result.source_hint_overflow ? "true" : "false") != 0 ||
+      json_builder_append_direct_compare_source_hints(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"reproduction_compare_seconds\":%.6f,\"assembler_policy_kind\":%u,"
+        "\"assembler_policy_flags\":%u,\"assembler_policy_hunk_relocation_record_count\":%u}",
+        compare_seconds, (unsigned)policy_kind, (unsigned)policy_flags, (unsigned)hunk_relocation_records) != 0) {
+    if (diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
+    json_builder_destroy(&builder);
+    return NULL;
+  }
+  text = json_builder_build(&builder);
+  json_builder_destroy(&builder);
+  if (text == NULL && diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
+  return text;
+}
+
 static int platform_file_assemble_source_common_alloc(const char *backend_name, const char *include_dir,
     const char *path, const char *source_text, const char *output_path, const char *target_cpu_name,
     unsigned char **out_data, size_t *out_size, char **out_profile_json, char **out_error) {
@@ -6967,14 +7034,14 @@ int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc(con
 
 static int platform_file_reproduction_compare_object_common_alloc(const char *backend_name,
     const M68kBackend *backend, const M68kObject *object, const unsigned char *original_data,
-    size_t original_size, const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_direct_profile_json,
+    size_t original_size, const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_compare_profile_json,
     char **out_error, M68kDiagList *diagnostics) {
   M68kAssemblerPolicy assembler_policy;
   M68kReproductionCompareResult compare_result;
   clock_t compare_start;
   double compare_seconds;
-  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
-  *out_direct_profile_json = NULL;
+  if (out_compare_profile_json == NULL || out_error == NULL) return -1;
+  *out_compare_profile_json = NULL;
   *out_error = NULL;
   if (backend == NULL || object == NULL || original_data == NULL || rebuilt_data == NULL) {
     *out_error = duplicate_text_local("invalid reproduction compare input");
@@ -6985,10 +7052,10 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
   compare_result = facts_v2_direct_compare_result(backend_name, backend, object, rebuilt_data, rebuilt_size,
     original_data, original_size, &assembler_policy);
   compare_seconds = elapsed_seconds(compare_start, clock());
-  *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name, 0U,
-    rebuilt_size > UINT32_MAX ? UINT32_MAX : (uint32_t)rebuilt_size, 0, NULL, 0.0, 0.0, original_size,
-    compare_result, compare_seconds, compare_seconds, &assembler_policy, diagnostics);
-  if (*out_direct_profile_json == NULL) {
+  *out_compare_profile_json = facts_v2_reproduction_compare_profile_json_alloc(backend_name, original_size,
+    rebuilt_size > UINT32_MAX ? UINT32_MAX : (uint32_t)rebuilt_size, compare_result, compare_seconds,
+    &assembler_policy, diagnostics);
+  if (*out_compare_profile_json == NULL) {
     *out_error = duplicate_text_local("out of memory");
     return -1;
   }
@@ -6997,7 +7064,7 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
 
 int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const unsigned char *rebuilt_data, size_t rebuilt_size,
-    char **out_direct_profile_json, char **out_error) {
+    char **out_compare_profile_json, char **out_error) {
   Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
@@ -7006,8 +7073,8 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
   unsigned char *original_data = NULL;
   size_t original_size = 0U;
   int result = -1;
-  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
-  *out_direct_profile_json = NULL;
+  if (out_compare_profile_json == NULL || out_error == NULL) return -1;
+  *out_compare_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
@@ -7025,7 +7092,7 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
   if (read_file_to_buffer(path, &original_data, &original_size, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
   if (load_object_from_path(backend, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
   result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, original_data,
-    original_size, rebuilt_data, rebuilt_size, out_direct_profile_json, out_error, &diagnostics);
+    original_size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7040,7 +7107,7 @@ cleanup:
 
 int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *backend_name,
     const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
-    const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_direct_profile_json, char **out_error) {
+    const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_compare_profile_json, char **out_error) {
   Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
@@ -7048,8 +7115,8 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   int result = -1;
   (void)display_path;
-  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
-  *out_direct_profile_json = NULL;
+  if (out_compare_profile_json == NULL || out_error == NULL) return -1;
+  *out_compare_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
   memset(&object, 0, sizeof(object));
@@ -7066,7 +7133,7 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
     goto cleanup;
   if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
   result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, data, size,
-    rebuilt_data, rebuilt_size, out_direct_profile_json, out_error, &diagnostics);
+    rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {

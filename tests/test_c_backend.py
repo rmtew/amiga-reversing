@@ -2989,19 +2989,20 @@ def test_project_source_reproduction_compare_atari_uses_object_semantics(tmp_pat
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
-    direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+    compare_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
         source,
         rebuilt,
         project_root=PROJECT_ROOT,
     )
 
-    assert direct_profile["direct_rebuild_exact"] is False
-    assert direct_profile["direct_compare_payload_exact"] is True
-    assert direct_profile["direct_compare_semantic_exact"] is True
-    assert direct_profile["direct_compare_status_id"] == 2
-    assert direct_profile["direct_compare_exactness_id"] == 2
-    assert direct_profile["direct_compare_issue_group_flags"] & 0x4 == 0x4
-    assert direct_profile["direct_compare_issue_group_flags"] & 0x100 == 0x100
+    assert compare_profile["facts_v2_reproduction_compare"] is True
+    assert compare_profile["reproduction_compare_full_file_exact"] is False
+    assert compare_profile["reproduction_compare_payload_exact"] is True
+    assert compare_profile["reproduction_compare_content_exact"] is True
+    assert compare_profile["reproduction_compare_status_id"] == 2
+    assert compare_profile["reproduction_compare_exactness_id"] == 2
+    assert compare_profile["reproduction_compare_issue_group_flags"] & 0x4 == 0x4
+    assert compare_profile["reproduction_compare_issue_group_flags"] & 0x100 == 0x100
 
 
 def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_path: Path) -> None:

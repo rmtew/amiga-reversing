@@ -264,7 +264,7 @@ def run_reproduction(
                             compare_started_at,
                         )
                         original_for_source_compare = paths.binary_source.read_bytes()
-                        source_compare_direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+                        source_compare_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
                             paths.binary_source,
                             source_bytes,
                             metadata_path=metadata_path,
@@ -274,7 +274,7 @@ def run_reproduction(
                             profile_timings,
                             direct_bytes,
                             source_bytes,
-                            compare_profile=source_compare_direct_profile,
+                            compare_profile=source_compare_profile,
                         )
                         direct_source_report = _direct_source_report_fields(
                             original_for_source_compare,
@@ -657,7 +657,7 @@ def run_reproduction(
             )
             if c_compare_profile is not None:
                 _merge_source_compare_profile(profile_timings, c_compare_profile)
-                direct_shape_diagnostics = _direct_compare_shape_diagnostics(
+                direct_shape_diagnostics = _reproduction_compare_shape_diagnostics(
                     c_compare_profile, row_for_section_offset
                 )
                 if direct_shape_diagnostics:
@@ -1020,17 +1020,51 @@ def _direct_compare_reproduction_comparison(
     policy: dict[str, object],
     direct_profile: dict[str, object],
 ) -> dict[str, object]:
+    return _c_profile_reproduction_comparison(
+        backend,
+        policy,
+        direct_profile,
+        prefix="direct_compare",
+        full_file_exact_key="direct_rebuild_exact",
+        content_exact_key="direct_compare_semantic_exact",
+    )
+
+
+def _reproduction_compare_reproduction_comparison(
+    backend: str,
+    policy: dict[str, object],
+    compare_profile: dict[str, object],
+) -> dict[str, object]:
+    return _c_profile_reproduction_comparison(
+        backend,
+        policy,
+        compare_profile,
+        prefix="reproduction_compare",
+        full_file_exact_key="reproduction_compare_full_file_exact",
+        content_exact_key="reproduction_compare_content_exact",
+    )
+
+
+def _c_profile_reproduction_comparison(
+    backend: str,
+    policy: dict[str, object],
+    compare_profile: dict[str, object],
+    *,
+    prefix: str,
+    full_file_exact_key: str,
+    content_exact_key: str,
+) -> dict[str, object]:
     comparison_mode = str(policy.get("comparison") or "full_file")
     requested_exactness = str(policy.get("requested_exactness") or "full_file")
     requested_exactness_id = _direct_profile_int(policy, "requested_exactness_id") or 1
-    status_id = _direct_profile_int(direct_profile, "direct_compare_status_id")
-    exactness_id = _direct_profile_int(direct_profile, "direct_compare_exactness_id")
-    issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
-    full_file_exact = bool(exactness_id == 1 or direct_profile.get("direct_rebuild_exact") is True)
-    semantic_exact = bool(exactness_id in {1, 2} or direct_profile.get("direct_compare_semantic_exact") is True)
+    status_id = _direct_profile_int(compare_profile, f"{prefix}_status_id")
+    exactness_id = _direct_profile_int(compare_profile, f"{prefix}_exactness_id")
+    issue_flags = _direct_profile_int(compare_profile, f"{prefix}_issue_group_flags") or 0
+    full_file_exact = bool(exactness_id == 1 or compare_profile.get(full_file_exact_key) is True)
+    semantic_exact = bool(exactness_id in {1, 2} or compare_profile.get(content_exact_key) is True)
     content_exact_accepted = bool(semantic_exact and requested_exactness_id >= 2)
     selected_exact = bool(full_file_exact or content_exact_accepted)
-    payload_exact = bool(semantic_exact or direct_profile.get("direct_compare_payload_exact") is True)
+    payload_exact = bool(semantic_exact or compare_profile.get(f"{prefix}_payload_exact") is True)
     relocation_semantics = None
     if backend in {"amiga-hunk", "atari-st"}:
         relocation_semantics = bool(semantic_exact and not (issue_flags & (1 << 1)))
@@ -1087,19 +1121,40 @@ def _direct_compare_shape_diagnostics(
     direct_profile: dict[str, object],
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
 ) -> list[dict[str, object]]:
-    issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
+    return _c_compare_shape_diagnostics(
+        direct_profile, "direct_compare", "facts_v2_direct_compare", row_for_section_offset
+    )
+
+
+def _reproduction_compare_shape_diagnostics(
+    compare_profile: dict[str, object],
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+) -> list[dict[str, object]]:
+    return _c_compare_shape_diagnostics(
+        compare_profile, "reproduction_compare", "facts_v2_reproduction_compare", row_for_section_offset
+    )
+
+
+def _c_compare_shape_diagnostics(
+    compare_profile: dict[str, object],
+    prefix: str,
+    source: str,
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+) -> list[dict[str, object]]:
+    issue_flags = _direct_profile_int(compare_profile, f"{prefix}_issue_group_flags") or 0
     issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
     if issue_kinds:
-        diagnostics = _direct_compare_issue_diagnostics(issue_kinds, "original_file_structure")
-        _attach_direct_compare_source_hints(diagnostics, direct_profile, row_for_section_offset)
+        diagnostics = [{"kind": issue_kind, "group": "original_file_structure", "source": source}
+            for issue_kind in issue_kinds]
+        _attach_c_compare_source_hints(diagnostics, compare_profile, f"{prefix}_source_hints", row_for_section_offset)
         return diagnostics
-    if direct_profile.get("direct_compare_container_oddity") is not True:
+    if compare_profile.get(f"{prefix}_container_oddity") is not True:
         return []
     return [
         {
             "kind": "container_shape_oddity",
-            "source": "facts_v2_direct_compare",
-            "status": direct_profile.get("direct_compare_status") or "semantic_container_oddity",
+            "source": source,
+            "status": compare_profile.get(f"{prefix}_status") or "semantic_container_oddity",
         }
     ]
 
@@ -1109,9 +1164,18 @@ def _attach_direct_compare_source_hints(
     direct_profile: dict[str, object],
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
 ) -> None:
+    _attach_c_compare_source_hints(diagnostics, direct_profile, "direct_compare_source_hints", row_for_section_offset)
+
+
+def _attach_c_compare_source_hints(
+    diagnostics: list[dict[str, object]],
+    compare_profile: dict[str, object],
+    hints_key: str,
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
+) -> None:
     if row_for_section_offset is None:
         return
-    hints = direct_profile.get("direct_compare_source_hints")
+    hints = compare_profile.get(hints_key)
     if not isinstance(hints, list):
         return
     for diagnostic in diagnostics:
@@ -1185,7 +1249,7 @@ def _comparison_for_rebuilt_bytes(
             metadata_path=metadata_path,
             project_root=project_root,
         )
-        return _direct_compare_reproduction_comparison(backend, policy, direct_profile), direct_profile
+        return _reproduction_compare_reproduction_comparison(backend, policy, direct_profile), direct_profile
     return (
         reproduction_comparison_result(
             original,
@@ -1203,10 +1267,10 @@ def _comparison_for_rebuilt_bytes(
 
 def _merge_source_compare_profile(timings: dict[str, object], profile: dict[str, object]) -> None:
     for key, value in profile.items():
-        if key.startswith("direct_compare_"):
+        if key == "facts_v2_reproduction_compare":
+            output_key = "facts_v2_source_reproduction_compare_c_api"
+        elif key.startswith("reproduction_compare_"):
             output_key = f"facts_v2_source_{key}"
-        elif key.startswith("direct_rebuild_"):
-            continue
         else:
             output_key = f"facts_v2_source_compare_{key}"
         if isinstance(value, bool):
@@ -1744,23 +1808,23 @@ def _record_direct_source_comparison(
     timings["facts_v2_direct_source_mismatch"] = 0.0 if direct_bytes == source_bytes else 1.0
     if compare_profile is None:
         return
-    exactness_id = _direct_profile_int(compare_profile, "direct_compare_exactness_id") or 0
+    exactness_id = _direct_profile_int(compare_profile, "reproduction_compare_exactness_id") or 0
     timings["facts_v2_source_full_file_exact"] = 1.0 if exactness_id == 1 else 0.0
     timings["facts_v2_source_content_exact"] = 1.0 if exactness_id in {1, 2} else 0.0
     timings["facts_v2_source_payload_exact"] = (
-        1.0 if compare_profile.get("direct_compare_payload_exact") is True else 0.0
+        1.0 if compare_profile.get("reproduction_compare_payload_exact") is True else 0.0
     )
-    if "direct_compare_relocation_semantics_exact" in compare_profile:
+    if "reproduction_compare_relocation_semantics_exact" in compare_profile:
         timings["facts_v2_source_relocation_semantics_exact"] = (
-            1.0 if compare_profile.get("direct_compare_relocation_semantics_exact") is True else 0.0
+            1.0 if compare_profile.get("reproduction_compare_relocation_semantics_exact") is True else 0.0
         )
-    if "direct_compare_status_id" in compare_profile:
+    if "reproduction_compare_status_id" in compare_profile:
         timings["facts_v2_source_compare_status_id"] = _direct_profile_int(
-            compare_profile, "direct_compare_status_id"
+            compare_profile, "reproduction_compare_status_id"
         ) or 0
-    if "direct_compare_issue_group_flags" in compare_profile:
+    if "reproduction_compare_issue_group_flags" in compare_profile:
         timings["facts_v2_source_compare_issue_group_flags"] = _direct_profile_int(
-            compare_profile, "direct_compare_issue_group_flags"
+            compare_profile, "reproduction_compare_issue_group_flags"
         ) or 0
 
 

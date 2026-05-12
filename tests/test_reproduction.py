@@ -128,13 +128,14 @@ def _hunk_with_reloc_groups(groups: list[tuple[int, list[int]]]) -> bytes:
 def _mock_c_compare_profile(original: bytes, rebuilt: bytes) -> dict[str, object]:
     exact = original == rebuilt
     return {
-        "direct_compare_status_id": 1 if exact else 3,
-        "direct_compare_exactness_id": 1 if exact else 3,
-        "direct_compare_issue_group_flags": 0 if exact else 1,
-        "direct_compare_payload_exact": exact,
-        "direct_compare_relocation_semantics_exact": exact,
-        "direct_compare_semantic_exact": exact,
-        "direct_compare_container_oddity": False,
+        "facts_v2_reproduction_compare": True,
+        "reproduction_compare_status_id": 1 if exact else 3,
+        "reproduction_compare_exactness_id": 1 if exact else 3,
+        "reproduction_compare_issue_group_flags": 0 if exact else 1,
+        "reproduction_compare_payload_exact": exact,
+        "reproduction_compare_relocation_semantics_exact": exact,
+        "reproduction_compare_content_exact": exact,
+        "reproduction_compare_container_oddity": False,
     }
 
 

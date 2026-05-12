@@ -889,7 +889,7 @@ def _platform_file_reproduction_compare_path_profile(
     dll = _platform_file_dll(project_root)
     function = getattr(dll, function_name)
     rebuilt_buffer = create_string_buffer(rebuilt_bytes)
-    out_direct_profile_json = c_void_p()
+    out_compare_profile_json = c_void_p()
     out_error = c_void_p()
     result = function(
         _c_arg(platform_name),
@@ -897,29 +897,29 @@ def _platform_file_reproduction_compare_path_profile(
         _c_arg(metadata_text),
         rebuilt_buffer,
         len(rebuilt_bytes),
-        byref(out_direct_profile_json),
+        byref(out_compare_profile_json),
         byref(out_error),
     )
     try:
-        direct_profile_text = (
-            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
-            if out_direct_profile_json.value
+        compare_profile_text = (
+            string_at(out_compare_profile_json.value).decode("utf-8", errors="replace")
+            if out_compare_profile_json.value
             else "{}"
         )
-        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
+        compare_profile = cast(dict[str, object], json.loads(compare_profile_text))
         if result != 0:
             detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
             raise FactsV2ProfiledOperationFailed(
                 f"C reproduction compare failed: {detail}",
                 source_profile={},
-                operation_profile=direct_profile,
+                operation_profile=compare_profile,
             )
-        return direct_profile
+        return compare_profile
     finally:
         if out_error.value:
             dll.platform_file_free_text(out_error)
-        if out_direct_profile_json.value:
-            dll.platform_file_free_text(out_direct_profile_json)
+        if out_compare_profile_json.value:
+            dll.platform_file_free_text(out_compare_profile_json)
 
 
 def _platform_file_reproduction_compare_buffer_profile(
@@ -936,7 +936,7 @@ def _platform_file_reproduction_compare_buffer_profile(
     function = getattr(dll, function_name)
     data_buffer = create_string_buffer(data)
     rebuilt_buffer = create_string_buffer(rebuilt_bytes)
-    out_direct_profile_json = c_void_p()
+    out_compare_profile_json = c_void_p()
     out_error = c_void_p()
     result = function(
         _c_arg(platform_name),
@@ -946,29 +946,29 @@ def _platform_file_reproduction_compare_buffer_profile(
         _c_arg(display_path),
         rebuilt_buffer,
         len(rebuilt_bytes),
-        byref(out_direct_profile_json),
+        byref(out_compare_profile_json),
         byref(out_error),
     )
     try:
-        direct_profile_text = (
-            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
-            if out_direct_profile_json.value
+        compare_profile_text = (
+            string_at(out_compare_profile_json.value).decode("utf-8", errors="replace")
+            if out_compare_profile_json.value
             else "{}"
         )
-        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
+        compare_profile = cast(dict[str, object], json.loads(compare_profile_text))
         if result != 0:
             detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
             raise FactsV2ProfiledOperationFailed(
                 f"C reproduction compare failed: {detail}",
                 source_profile={},
-                operation_profile=direct_profile,
+                operation_profile=compare_profile,
             )
-        return direct_profile
+        return compare_profile
     finally:
         if out_error.value:
             dll.platform_file_free_text(out_error)
-        if out_direct_profile_json.value:
-            dll.platform_file_free_text(out_direct_profile_json)
+        if out_compare_profile_json.value:
+            dll.platform_file_free_text(out_compare_profile_json)
 
 
 def _platform_disk_text(function_name: str, *args: object, project_root: Path) -> str:
