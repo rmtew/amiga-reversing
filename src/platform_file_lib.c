@@ -6005,9 +6005,9 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
     const M68kAssemblerPolicy *assembler_policy) {
   M68kReproductionCompareResult result;
   m68k_reproduction_compare_init_result(&result);
+  (void)backend_name;
   if (compare_data == NULL) return result;
-  if (backend_name == NULL || strcmp(backend_name, "amiga-hunk") != 0 || backend == NULL ||
-      backend->read_buffer == NULL || original_object == NULL || rebuilt_data == NULL) {
+  if (backend == NULL || backend->read_buffer == NULL || original_object == NULL || rebuilt_data == NULL) {
     M68kReproductionCompareContext context;
     memset(&context, 0, sizeof(context));
     context.original_bytes = compare_data;

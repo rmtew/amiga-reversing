@@ -427,6 +427,37 @@ static int test_reproduction_compare_hunk_unsupported_container_shape_is_distinc
   return 0;
 }
 
+static int test_reproduction_compare_reports_unsupported_shape_with_payload_mismatch(void) {
+  static const unsigned char original_bytes[] = {0x00U, 0x01U};
+  static const unsigned char rebuilt_bytes[] = {0x00U, 0x02U};
+  static const unsigned char original_payload[] = {0x4EU, 0x75U};
+  static const unsigned char rebuilt_payload[] = {0x4EU, 0x76U};
+  M68kObject original_object;
+  M68kObject rebuilt_object;
+  M68kReproductionCompareContext context;
+  M68kReproductionCompareResult result;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&original_object));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&rebuilt_object));
+  M68K_C_ASSERT_INT(0, add_compare_code_section(&original_object, original_payload, sizeof(original_payload)));
+  M68K_C_ASSERT_INT(0, add_compare_code_section(&rebuilt_object, rebuilt_payload, sizeof(rebuilt_payload)));
+  original_object.container_metadata.encoding_overflow = 1U;
+  memset(&context, 0, sizeof(context));
+  context.original_bytes = original_bytes;
+  context.original_size = sizeof(original_bytes);
+  context.rebuilt_bytes = rebuilt_bytes;
+  context.rebuilt_size = sizeof(rebuilt_bytes);
+  context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  context.original_object = &original_object;
+  context.rebuilt_object = &rebuilt_object;
+  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_MISMATCH, result.status_id);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF) != 0U);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE) != 0U);
+  m68k_object_destroy(&rebuilt_object);
+  m68k_object_destroy(&original_object);
+  return 0;
+}
+
 static int test_atari_loader_records_header_and_eof_relocation_metadata(void) {
   static const unsigned char prg[] = {
     0x60, 0x1A,
@@ -556,6 +587,8 @@ int m68k_c_container_metadata_tests(void) {
       test_reproduction_compare_hunk_regrouped_fixups_reports_policy_divergence},
     {"reproduction_compare_hunk_unsupported_container_shape_is_distinct",
       test_reproduction_compare_hunk_unsupported_container_shape_is_distinct},
+    {"reproduction_compare_reports_unsupported_shape_with_payload_mismatch",
+      test_reproduction_compare_reports_unsupported_shape_with_payload_mismatch},
     {"atari_loader_records_header_and_eof_relocation_metadata",
       test_atari_loader_records_header_and_eof_relocation_metadata},
     {"atari_writer_preserves_eof_relocation_terminator",

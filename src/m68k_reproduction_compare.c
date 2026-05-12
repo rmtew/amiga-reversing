@@ -217,6 +217,9 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
   compare_collect_byte_diffs(result, context->original_bytes, context->original_size,
     context->rebuilt_bytes, context->rebuilt_size);
   result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF;
+  if (object_has_unsupported_container_shape(context->original_object) ||
+      object_has_unsupported_container_shape(context->rebuilt_object))
+    result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE;
   if ((context->backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
        context->backend_kind == M68K_PLATFORM_BACKEND_ATARI_ST) &&
       objects_have_same_payload_semantics(context->original_object, context->rebuilt_object)) {
@@ -236,9 +239,6 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
           relocation_shape_flags != 0U) ||
          (context->assembler_policy->flags & M68K_ASSEMBLER_POLICY_PRESERVE_ATARI_ST_CONTAINER_ENCODING) != 0U))
       result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE;
-    if (object_has_unsupported_container_shape(context->original_object) ||
-        object_has_unsupported_container_shape(context->rebuilt_object))
-      result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE;
   }
   return 0;
 }

@@ -38,6 +38,7 @@ from amiga_reversing.disasm.c_backend import (
     materialize_self_decrunch_event_with_c_backend,
     render_binary_source_with_c_backend,
     render_project_source_with_c_backend,
+    reproduction_compare_rebuilt_bytes_with_c_backend_profile,
     validate_amiga_hunk_executable_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -2959,6 +2960,48 @@ def test_project_source_facts_v2_direct_rebuild_preserves_atari_eof_relocation_t
     assert rebuilt == original
     assert direct_profile["direct_rebuild_exact"] is True
     assert direct_profile["assembler_policy_flags"] & 0x20 == 0x20
+
+
+def test_project_source_reproduction_compare_atari_uses_object_semantics(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "atari_content_exact.prg"
+    original = make_synthetic_atari_prg(
+        b"\x4e\x75",
+        b"",
+        0,
+        symbol_table_type=7,
+        program_flags=0x1234,
+        relocation_flag=0xFFFF,
+    ) + u32(0)
+    rebuilt = make_synthetic_atari_prg(
+        b"\x4e\x75",
+        b"",
+        0,
+        symbol_table_type=0,
+        program_flags=0,
+        relocation_flag=0xFFFF,
+    ) + u32(0)
+    binary_path.write_bytes(original)
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+        source,
+        rebuilt,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert direct_profile["direct_rebuild_exact"] is False
+    assert direct_profile["direct_compare_payload_exact"] is True
+    assert direct_profile["direct_compare_semantic_exact"] is True
+    assert direct_profile["direct_compare_status_id"] == 2
+    assert direct_profile["direct_compare_exactness_id"] == 2
+    assert direct_profile["direct_compare_issue_group_flags"] & 0x4 == 0x4
+    assert direct_profile["direct_compare_issue_group_flags"] & 0x100 == 0x100
 
 
 def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_path: Path) -> None:
