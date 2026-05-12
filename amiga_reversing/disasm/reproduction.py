@@ -39,8 +39,16 @@ from amiga_reversing.disasm.reproduction_report import (
     ReportContext,
     ReproductionOutcome,
     RoundTripReportBuilder,
+    direct_source_report_fields,
+    direct_source_report_fields_from_ranges,
     profile_payload,
+    row_int,
+    row_match_text,
+    row_str,
     write_report,
+)
+from amiga_reversing.disasm.reproduction_report import (
+    issue as make_issue,
 )
 from amiga_reversing.disasm.target_metadata import (
     TARGET_CORRECTIONS_FILE_NAME,
@@ -205,7 +213,7 @@ def run_reproduction(
             report = report_builder.error(
                 status="tool_error",
                 tool_error=message,
-                issues=[_issue("tool", message, None)],
+                issues=[make_issue("tool", message, None)],
             )
             return _write_reproduction_report(paths.target_dir, report)
         use_facts_v2_native_reproduction = source_text is None
@@ -286,7 +294,7 @@ def run_reproduction(
                             source_bytes,
                             compare_profile=source_compare_profile,
                         )
-                        direct_source_report = _direct_source_report_fields(
+                        direct_source_report = direct_source_report_fields(
                             original_for_source_compare,
                             source_bytes,
                             assembler=assembler,
@@ -359,7 +367,7 @@ def run_reproduction(
                     report = report_builder.error(
                         status="render_error",
                         tool_error=message,
-                        issues=[_issue("renderer", message, None)],
+                        issues=[make_issue("renderer", message, None)],
                         listing_profile=exc.listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
@@ -391,7 +399,7 @@ def run_reproduction(
                     report = report_builder.error(
                         status="tool_error",
                         tool_error=message,
-                        issues=[_issue("direct_rebuild", message, None)],
+                        issues=[make_issue("direct_rebuild", message, None)],
                         listing_profile=listing_profile,
                         direct_rebuild_profile=exc.direct_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
@@ -406,7 +414,7 @@ def run_reproduction(
                     report = report_builder.error(
                         status="tool_error",
                         tool_error=message,
-                        issues=[_issue("direct_rebuild", message, None)],
+                        issues=[make_issue("direct_rebuild", message, None)],
                         listing_profile=listing_profile,
                         direct_rebuild_profile=exc.operation_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
@@ -440,7 +448,7 @@ def run_reproduction(
                     report = report_builder.error(
                         status="render_error",
                         tool_error=message,
-                        issues=[_issue("renderer", message, None)],
+                        issues=[make_issue("renderer", message, None)],
                         listing_profile=exc.listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
@@ -468,7 +476,7 @@ def run_reproduction(
                     diagnostics = parse_assembler_diagnostics(assembler_stderr)
                     report = report_builder.error(
                         status="assembler_error",
-                        issues=diagnostics or [_issue("assembler", "Assembler failed", None)],
+                        issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
                         assembler_diagnostics=diagnostics,
                         assembler_stdout=assembler_stdout,
                         assembler_stderr=assembler_stderr,
@@ -535,7 +543,7 @@ def run_reproduction(
                 diagnostics = parse_assembler_diagnostics(assembler_stderr)
                 report = report_builder.error(
                     status="assembler_error",
-                    issues=diagnostics or [_issue("assembler", "Assembler failed", None)],
+                    issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
                     assembler_diagnostics=diagnostics,
                     assembler_stdout=assembler_stdout,
                     assembler_stderr=assembler_stderr,
@@ -654,7 +662,7 @@ def run_reproduction(
                     file_shape_diagnostics = direct_shape_diagnostics
                     canonical_file_shape_diagnostics = [dict(item) for item in direct_shape_diagnostics]
         if direct_source_report is None and assembled_source_for_reproduction:
-            direct_source_report = _direct_source_report_fields_from_ranges(
+            direct_source_report = direct_source_report_fields_from_ranges(
                 original,
                 canonical_rebuilt,
                 assembler=assembler,
@@ -740,7 +748,7 @@ def run_reproduction(
         report = report_builder.error(
             status=status,
             tool_error=str(exc),
-            issues=[_issue(issue_kind, str(exc), None)],
+            issues=[make_issue(issue_kind, str(exc), None)],
             profile=profile_payload(profile_timings, profile_started_at) if profile else None,
         )
         if target_dir is None:
@@ -1183,9 +1191,9 @@ def _attach_c_compare_source_hints(
             diagnostic["row_index"] = row_index
             diagnostic["section_index"] = section_index
             diagnostic["section_offset"] = offset
-            diagnostic["addr"] = _row_int(row, "addr")
-            diagnostic["stable_key"] = _row_str(row, "stable_key")
-            diagnostic["match_text"] = _row_match_text(row)
+            diagnostic["addr"] = row_int(row, "addr")
+            diagnostic["stable_key"] = row_str(row, "stable_key")
+            diagnostic["match_text"] = row_match_text(row)
             break
 
 
@@ -1203,7 +1211,7 @@ def _direct_compare_shape_row_issues(
             _optional_int(diagnostic.get("section_offset"), 0),
         )
         issues.append(
-            _issue(
+            make_issue(
                 str(diagnostic.get("kind") or "file_structure"),
                 str(diagnostic.get("kind") or "file structure issue"),
                 row_ref,
@@ -1418,7 +1426,7 @@ def diff_issues_for_lookup(
     for diff_range in diff_ranges:
         if not file_layout:
             row = _row_ref_for_lookup(row_for_section_offset, None, _required_int(diff_range.get("start")))
-            issues.append(_issue("diff", _diff_summary(diff_range), row, diff_range=diff_range))
+            issues.append(make_issue("diff", _diff_summary(diff_range), row, diff_range=diff_range))
             continue
         for issue_range, layout_range in _split_diff_range_by_layout(diff_range, file_layout):
             section_index = _layout_int(layout_range, "section_index")
@@ -1434,7 +1442,7 @@ def diff_issues_for_lookup(
                 row = _row_ref_for_lookup(row_for_section_offset, section_index, section_offset)
                 issue_kind = "diff" if row is not None else "diff_payload"
             issues.append(
-                _issue(
+                make_issue(
                     issue_kind.replace("-", "_"),
                     _diff_summary(issue_range, layout_range=layout_range, section_offset=section_offset),
                     row,
@@ -1458,7 +1466,7 @@ def _row_ref_for_lookup(
     row = row_for_section_offset(section_index, offset)
     if row is None:
         return None
-    row_index = _row_int(row, "row_index")
+    row_index = row_int(row, "row_index")
     if row_index is None:
         return None
     return row_index, row
@@ -1480,7 +1488,7 @@ def parse_assembler_diagnostics(
             line_no = int(match.group(1))
             if 1 <= line_no <= len(rows):
                 row = (line_no - 1, rows[line_no - 1])
-        diagnostics.append(_issue("assembler", stripped, row))
+        diagnostics.append(make_issue("assembler", stripped, row))
         if len(diagnostics) >= MAX_DIAGNOSTICS:
             break
     return diagnostics
@@ -1548,66 +1556,6 @@ def _write_source_artifact(path: Path, text: str, profile_timings: dict[str, obj
     profile_timings["source_file_rewritten"] = 1.0 if source_written else 0.0
     _record_profile_timing(profile_timings, "write_source_seconds", started_at)
     return source_size
-
-
-def _issue(
-    kind: str,
-    message: str,
-    row_ref: tuple[int, Mapping[str, object]] | None,
-    *,
-    diff_range: dict[str, object] | None = None,
-    layout_range: dict[str, object] | None = None,
-    section_index: int | None = None,
-    section_offset: int | None = None,
-    hunk: int | None = None,
-) -> dict[str, object]:
-    row_index: int | None = None
-    row: Mapping[str, object] | None = None
-    if row_ref is not None:
-        row_index, row = row_ref
-    if row is not None and section_index is None:
-        section_index = _row_int(row, "section_index")
-    if hunk is None:
-        hunk = section_index
-    payload: dict[str, object] = {
-        "kind": kind,
-        "message": message,
-        "summary": message,
-        "row_index": row_index,
-        "addr": _row_int(row, "addr") if row is not None else None,
-        "section_index": section_index,
-        "section_offset": section_offset,
-        "hunk": hunk,
-        "stable_key": _row_str(row, "stable_key") if row is not None else None,
-        "match_text": _row_match_text(row) if row is not None else None,
-    }
-    if diff_range is not None:
-        payload["diff_range"] = diff_range
-    if layout_range is not None:
-        payload["layout_range"] = layout_range
-        payload["layout_kind"] = layout_range.get("kind")
-    return payload
-
-
-def _row_match_text(row: Mapping[str, object]) -> str:
-    label = _row_str(row, "label")
-    if label:
-        return label
-    opcode = _row_str(row, "opcode_or_directive")
-    if opcode:
-        operand_text = _row_str(row, "operand_text") or ""
-        return " ".join(part for part in (opcode, operand_text) if part).strip()
-    return str(row.get("text") or "").strip()
-
-
-def _row_int(row: Mapping[str, object], key: str) -> int | None:
-    value = row.get(key)
-    return value if isinstance(value, int) else None
-
-
-def _row_str(row: Mapping[str, object], key: str) -> str | None:
-    value = row.get(key)
-    return value if isinstance(value, str) else None
 
 
 def _diff_range(start: int, end: int, original: bytes, rebuilt: bytes) -> dict[str, object]:
@@ -1766,30 +1714,6 @@ def _record_direct_source_comparison(
         timings["facts_v2_source_compare_issue_group_flags"] = _direct_profile_int(
             compare_profile, "reproduction_compare_issue_group_flags"
         ) or 0
-
-
-def _direct_source_report_fields(original: bytes, source_bytes: bytes, *, assembler: str) -> dict[str, object]:
-    return _direct_source_report_fields_from_ranges(
-        original,
-        source_bytes,
-        assembler=assembler,
-        diff_ranges=grouped_diff_ranges(original, source_bytes),
-    )
-
-
-def _direct_source_report_fields_from_ranges(
-    original: bytes,
-    source_bytes: bytes,
-    *,
-    assembler: str,
-    diff_ranges: list[dict[str, object]],
-) -> dict[str, object]:
-    return {
-        "direct_source_exact": not diff_ranges,
-        "direct_source_assembler": assembler,
-        "direct_source_diff_range_count": len(diff_ranges),
-        "direct_source_first_diff": _first_diff_from_ranges(original, source_bytes, diff_ranges),
-    }
 
 
 def _profile_timing_total(profile: dict[str, object] | None) -> float:
