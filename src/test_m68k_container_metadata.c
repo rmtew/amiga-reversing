@@ -1,6 +1,7 @@
 #include "m68k_backend.h"
 #include "m68k_assembler_policy.h"
 #include "m68k_c_unit_test.h"
+#include "m68k_reproduction_compare.h"
 #include "generated/amiga_hunk_file_runtime.h"
 
 #include <stdlib.h>
@@ -165,6 +166,79 @@ static int test_hunk_writer_preserves_policy_allowed_relocation_record_grouping(
   return 0;
 }
 
+static int test_reproduction_compare_raw_exact_and_grouped_mismatch(void) {
+  static const unsigned char original[] = {1U, 2U, 3U, 4U, 5U, 6U};
+  static const unsigned char rebuilt[] = {1U, 9U, 9U, 4U, 8U};
+  M68kReproductionCompareContext context;
+  M68kReproductionCompareResult result;
+  memset(&context, 0, sizeof(context));
+  context.original_bytes = original;
+  context.original_size = sizeof(original);
+  context.rebuilt_bytes = original;
+  context.rebuilt_size = sizeof(original);
+  context.backend_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_FULL_FILE_EXACT, result.status_id);
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE, result.exactness_id);
+  M68K_C_ASSERT_U32(0U, result.issue_group_flags);
+
+  context.rebuilt_bytes = rebuilt;
+  context.rebuilt_size = sizeof(rebuilt);
+  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_MISMATCH, result.status_id);
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_MISMATCH, result.exactness_id);
+  M68K_C_ASSERT_U32(1U, result.has_first_diff);
+  M68K_C_ASSERT_U32(1U, result.first_diff_offset);
+  M68K_C_ASSERT_U32(2U, result.first_diff_original_byte);
+  M68K_C_ASSERT_U32(9U, result.first_diff_rebuilt_byte);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF) != 0U);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_SIZE_DIFF) != 0U);
+  M68K_C_ASSERT_U32(2U, result.range_count);
+  M68K_C_ASSERT_U32(1U, result.ranges[0].original_offset);
+  M68K_C_ASSERT_U32(2U, result.ranges[0].original_size);
+  M68K_C_ASSERT_U32(4U, result.ranges[1].original_offset);
+  M68K_C_ASSERT_U32(2U, result.ranges[1].original_size);
+  M68K_C_ASSERT_U32(1U, result.ranges[1].rebuilt_size);
+  return 0;
+}
+
+static int test_reproduction_compare_hunk_content_exact_container_difference(void) {
+  static const unsigned char original_bytes[] = {0U, 0U, 3U, 0xF3U};
+  static const unsigned char rebuilt_bytes[] = {0U, 0U, 3U, 0xE9U};
+  static const unsigned char payload[] = {0x4EU, 0x75U, 0U, 0U};
+  M68kObject original_object;
+  M68kObject rebuilt_object;
+  M68kSection section;
+  M68kReproductionCompareContext context;
+  M68kReproductionCompareResult result;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&original_object));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&rebuilt_object));
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(payload);
+  section.data = (uint8_t *)payload;
+  section.data_size = sizeof(payload);
+  M68K_C_ASSERT(m68k_object_add_section(&original_object, &section).ok);
+  M68K_C_ASSERT(m68k_object_add_section(&rebuilt_object, &section).ok);
+  memset(&context, 0, sizeof(context));
+  context.original_bytes = original_bytes;
+  context.original_size = sizeof(original_bytes);
+  context.rebuilt_bytes = rebuilt_bytes;
+  context.rebuilt_size = sizeof(rebuilt_bytes);
+  context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  context.original_object = &original_object;
+  context.rebuilt_object = &rebuilt_object;
+  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_CONTENT, result.exactness_id);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF) == 0U);
+  M68K_C_ASSERT_U32(1U, result.range_count);
+  m68k_object_destroy(&rebuilt_object);
+  m68k_object_destroy(&original_object);
+  return 0;
+}
+
 int m68k_c_container_metadata_tests(void) {
   static const M68kCTestCase cases[] = {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
@@ -177,6 +251,10 @@ int m68k_c_container_metadata_tests(void) {
       test_no_container_preservation_policy_does_not_claim_container_shape},
     {"hunk_writer_preserves_policy_allowed_relocation_record_grouping",
       test_hunk_writer_preserves_policy_allowed_relocation_record_grouping},
+    {"reproduction_compare_raw_exact_and_grouped_mismatch",
+      test_reproduction_compare_raw_exact_and_grouped_mismatch},
+    {"reproduction_compare_hunk_content_exact_container_difference",
+      test_reproduction_compare_hunk_content_exact_container_difference},
   };
   return m68k_c_test_run_suite("container_metadata", cases, sizeof(cases) / sizeof(cases[0]));
 }

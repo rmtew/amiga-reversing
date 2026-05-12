@@ -12,6 +12,7 @@
 #include "m68k_ir_codec.h"
 #include "m68k_object.h"
 #include "m68k_parse_util.h"
+#include "m68k_reproduction_compare.h"
 #include "m68k_simulator.h"
 #include "m68k_source_pipeline.h"
 #include "m68k_source_ir_render.h"
@@ -5960,123 +5961,70 @@ static int write_bytes_to_path_local(const char *path, const unsigned char *data
   return 0;
 }
 
-typedef struct FactsV2DirectCompareResult {
-  int compared;
-  int full_file_exact;
-  int payload_exact;
-  int relocation_semantics_exact;
-  int semantic_exact;
-  int container_oddity;
-  const char *status;
-} FactsV2DirectCompareResult;
-
-static int objects_have_same_payload_semantics(const M68kObject *left, const M68kObject *right) {
-  size_t index;
-  if (left == NULL || right == NULL || left->section_count != right->section_count) return 0;
-  for (index = 0U; index < left->section_count; ++index) {
-    const M68kSection *a = &left->sections[index];
-    const M68kSection *b = &right->sections[index];
-    if (a->kind != b->kind || a->size != b->size || a->data_size != b->data_size ||
-        a->platform_mem_type != b->platform_mem_type || a->platform_mem_attrs != b->platform_mem_attrs)
-      return 0;
-    if (a->data_size != 0U && (a->data == NULL || b->data == NULL ||
-        memcmp(a->data, b->data, a->data_size) != 0))
-      return 0;
+static const char *direct_compare_status_text(const M68kReproductionCompareResult *result) {
+  if (result == NULL) return "not_compared";
+  switch (result->status_id) {
+  case M68K_REPRO_COMPARE_STATUS_FULL_FILE_EXACT: return "full_file_exact";
+  case M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT: return "semantic_container_oddity";
+  case M68K_REPRO_COMPARE_STATUS_MISMATCH: return "binary_mismatch";
+  case M68K_REPRO_COMPARE_STATUS_INVALID_ARGUMENT: return "invalid_argument";
+  default: return "not_compared";
   }
-  return 1;
 }
 
-static const M68kSymbol *fixup_symbol_local(const M68kObject *object, const M68kFixup *fixup) {
-  if (object == NULL || fixup == NULL || !fixup->has_symbol || fixup->symbol_index >= object->symbol_count)
-    return NULL;
-  return &object->symbols[fixup->symbol_index];
+static int direct_compare_payload_exact(const M68kReproductionCompareResult *result) {
+  return result != NULL && (result->exactness_id == M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE ||
+    result->exactness_id == M68K_REPRO_COMPARE_EXACTNESS_CONTENT);
 }
 
-static int fixups_have_same_semantics(const M68kObject *left_object, const M68kFixup *left,
-    const M68kObject *right_object, const M68kFixup *right) {
-  const M68kSymbol *left_symbol;
-  const M68kSymbol *right_symbol;
-  const char *left_name;
-  const char *right_name;
-  if (left == NULL || right == NULL) return 0;
-  if (left->section_index != right->section_index || left->offset != right->offset ||
-      left->kind != right->kind || left->width != right->width || left->addend != right->addend ||
-      left->has_target_section != right->has_target_section || left->has_symbol != right->has_symbol)
-    return 0;
-  if (left->has_target_section && left->target_section_index != right->target_section_index) return 0;
-  if (!left->has_symbol) return 1;
-  left_symbol = fixup_symbol_local(left_object, left);
-  right_symbol = fixup_symbol_local(right_object, right);
-  if (left_symbol == NULL || right_symbol == NULL) return 0;
-  left_name = left_symbol->name != NULL ? left_symbol->name : "";
-  right_name = right_symbol->name != NULL ? right_symbol->name : "";
-  return left_symbol->binding == right_symbol->binding && left_symbol->defined == right_symbol->defined &&
-    strcmp(left_name, right_name) == 0;
+static int direct_compare_relocation_exact(const M68kReproductionCompareResult *result) {
+  return result != NULL && (result->exactness_id == M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE ||
+    result->exactness_id == M68K_REPRO_COMPARE_EXACTNESS_CONTENT);
 }
 
-static int objects_have_same_relocation_semantics(const M68kObject *left, const M68kObject *right) {
-  uint8_t *used;
-  size_t left_index;
-  if (left == NULL || right == NULL || left->fixup_count != right->fixup_count) return 0;
-  if (left->fixup_count == 0U) return 1;
-  used = (uint8_t *)calloc(right->fixup_count, sizeof(*used));
-  if (used == NULL) return 0;
-  for (left_index = 0U; left_index < left->fixup_count; ++left_index) {
-    size_t right_index;
-    int matched = 0;
-    for (right_index = 0U; right_index < right->fixup_count; ++right_index) {
-      if (used[right_index]) continue;
-      if (!fixups_have_same_semantics(left, &left->fixups[left_index], right, &right->fixups[right_index]))
-        continue;
-      used[right_index] = 1U;
-      matched = 1;
-      break;
-    }
-    if (!matched) {
-      free(used);
-      return 0;
-    }
-  }
-  free(used);
-  return 1;
-}
-
-static FactsV2DirectCompareResult facts_v2_direct_compare_result(const char *backend_name,
+static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *backend_name,
     const M68kBackend *backend, const M68kObject *original_object, const unsigned char *rebuilt_data,
     size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size) {
-  FactsV2DirectCompareResult result;
-  memset(&result, 0, sizeof(result));
-  result.status = "not_compared";
+  M68kReproductionCompareResult result;
+  m68k_reproduction_compare_init_result(&result);
   if (compare_data == NULL) return result;
-  result.compared = 1;
-  result.full_file_exact = (rebuilt_size == compare_size &&
-    (rebuilt_size == 0U || memcmp(rebuilt_data, compare_data, rebuilt_size) == 0)) ? 1 : 0;
-  if (result.full_file_exact) {
-    result.payload_exact = 1;
-    result.relocation_semantics_exact = 1;
-    result.semantic_exact = 1;
-    result.status = "full_file_exact";
-    return result;
-  }
-  result.status = "binary_mismatch";
   if (backend_name == NULL || strcmp(backend_name, "amiga-hunk") != 0 || backend == NULL ||
       backend->read_buffer == NULL || original_object == NULL || rebuilt_data == NULL) {
+    M68kReproductionCompareContext context;
+    memset(&context, 0, sizeof(context));
+    context.original_bytes = compare_data;
+    context.original_size = compare_size;
+    context.rebuilt_bytes = rebuilt_data;
+    context.rebuilt_size = rebuilt_size;
+    context.backend_kind = original_object != NULL ? original_object->platform_backend_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
+    m68k_reproduction_compare(&context, &result);
     return result;
   }
   {
     M68kObject rebuilt_object;
     M68kDiagList diagnostics;
+    M68kReproductionCompareContext context;
     m68k_diag_list_reset(&diagnostics);
     memset(&rebuilt_object, 0, sizeof(rebuilt_object));
-    if (load_object_from_buffer(backend, rebuilt_data, rebuilt_size, &rebuilt_object, m68k_diag_sink(&diagnostics)) != 0)
+    if (load_object_from_buffer(backend, rebuilt_data, rebuilt_size, &rebuilt_object, m68k_diag_sink(&diagnostics)) != 0) {
+      memset(&context, 0, sizeof(context));
+      context.original_bytes = compare_data;
+      context.original_size = compare_size;
+      context.rebuilt_bytes = rebuilt_data;
+      context.rebuilt_size = rebuilt_size;
+      context.backend_kind = original_object->platform_backend_kind;
+      m68k_reproduction_compare(&context, &result);
       return result;
-    result.payload_exact = objects_have_same_payload_semantics(original_object, &rebuilt_object);
-    result.relocation_semantics_exact = objects_have_same_relocation_semantics(original_object, &rebuilt_object);
-    result.semantic_exact = result.payload_exact && result.relocation_semantics_exact;
-    if (result.semantic_exact) {
-      result.container_oddity = 1;
-      result.status = "semantic_container_oddity";
     }
+    memset(&context, 0, sizeof(context));
+    context.original_bytes = compare_data;
+    context.original_size = compare_size;
+    context.rebuilt_bytes = rebuilt_data;
+    context.rebuilt_size = rebuilt_size;
+    context.backend_kind = original_object->platform_backend_kind;
+    context.original_object = original_object;
+    context.rebuilt_object = &rebuilt_object;
+    m68k_reproduction_compare(&context, &result);
     m68k_object_destroy(&rebuilt_object);
   }
   return result;
@@ -6084,7 +6032,7 @@ static FactsV2DirectCompareResult facts_v2_direct_compare_result(const char *bac
 
 static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name, uint32_t source_bytes,
     uint32_t rebuilt_bytes, int refused, const char *refusal_reason, double write_buffer_seconds,
-    double write_file_seconds, size_t original_bytes, FactsV2DirectCompareResult compare_result,
+    double write_file_seconds, size_t original_bytes, M68kReproductionCompareResult compare_result,
     double compare_seconds, double total_seconds, const M68kAssemblerPolicy *assembler_policy,
     M68kDiagList *diagnostics) {
   JsonBuilder builder = {0};
@@ -6093,6 +6041,13 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
   uint32_t policy_flags = assembler_policy != NULL ? assembler_policy->flags : 0U;
   uint32_t hunk_relocation_records =
     assembler_policy != NULL ? assembler_policy->hunk_relocation_record_count : 0U;
+  int compare_compared = compare_result.status_id != M68K_REPRO_COMPARE_STATUS_NOT_COMPARED;
+  int compare_full_file_exact = compare_result.exactness_id == M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE;
+  int compare_payload_exact = direct_compare_payload_exact(&compare_result);
+  int compare_relocation_exact = direct_compare_relocation_exact(&compare_result);
+  int compare_semantic_exact = compare_payload_exact && compare_relocation_exact;
+  int compare_container_oddity =
+    (compare_result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U;
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"facts_v2_direct_rebuild\":true,\"backend\":") != 0 ||
       json_builder_append_json_string(&builder, backend_name != NULL ? backend_name : "") != 0 ||
@@ -6108,23 +6063,32 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         (unsigned)source_bytes,
         (unsigned)(original_bytes > UINT32_MAX ? UINT32_MAX : original_bytes),
         (unsigned)rebuilt_bytes, write_buffer_seconds, write_file_seconds,
-        compare_result.compared ? "true" : "false",
-        compare_result.full_file_exact ? "true" : "false") != 0 ||
-      json_builder_append_json_string(&builder, compare_result.status != NULL ? compare_result.status : "") != 0 ||
+        compare_compared ? "true" : "false",
+        compare_full_file_exact ? "true" : "false") != 0 ||
+      json_builder_append_json_string(&builder, direct_compare_status_text(&compare_result)) != 0 ||
       json_builder_appendf(&builder,
         ",\"direct_compare_payload_exact\":%s,"
         "\"direct_compare_relocation_semantics_exact\":%s,"
         "\"direct_compare_semantic_exact\":%s,"
         "\"direct_compare_container_oddity\":%s,"
+        "\"direct_compare_status_id\":%u,"
+        "\"direct_compare_exactness_id\":%u,"
+        "\"direct_compare_diagnostic_id\":%u,"
+        "\"direct_compare_issue_group_flags\":%u,"
+        "\"direct_compare_first_diff_offset\":%u,"
+        "\"direct_compare_range_count\":%u,"
         "\"direct_compare_seconds\":%.6f,"
         "\"assembler_policy_kind\":%u,"
         "\"assembler_policy_flags\":%u,"
         "\"assembler_policy_hunk_relocation_record_count\":%u,"
         "\"total_seconds\":%.6f}",
-        compare_result.payload_exact ? "true" : "false",
-        compare_result.relocation_semantics_exact ? "true" : "false",
-        compare_result.semantic_exact ? "true" : "false",
-        compare_result.container_oddity ? "true" : "false",
+        compare_payload_exact ? "true" : "false",
+        compare_relocation_exact ? "true" : "false",
+        compare_semantic_exact ? "true" : "false",
+        compare_container_oddity ? "true" : "false",
+        (unsigned)compare_result.status_id, (unsigned)compare_result.exactness_id,
+        (unsigned)compare_result.diagnostic_id, (unsigned)compare_result.issue_group_flags,
+        (unsigned)compare_result.first_diff_offset, (unsigned)compare_result.range_count,
         compare_seconds, (unsigned)policy_kind, (unsigned)policy_flags, (unsigned)hunk_relocation_records,
         total_seconds) != 0) {
     if (diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
@@ -6684,7 +6648,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   double write_buffer_seconds = 0.0;
   double write_file_seconds = 0.0;
   double compare_seconds = 0.0;
-  FactsV2DirectCompareResult compare_result;
+  M68kReproductionCompareResult compare_result;
   unsigned char *data = NULL;
   size_t size = 0U;
   char temp_path[512];
@@ -6695,8 +6659,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   *out_size = 0U;
   *out_direct_profile_json = NULL;
   *out_error = NULL;
-  memset(&compare_result, 0, sizeof(compare_result));
-  compare_result.status = "not_compared";
+  m68k_reproduction_compare_init_result(&compare_result);
   temp_path[0] = '\0';
   if (backend == NULL || object == NULL) {
     *out_error = duplicate_text_local("unknown platform file backend");
@@ -6779,7 +6742,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
     M68kDiagList *diagnostics) {
   M68kFactsV2Profile source_profile;
   M68kAssemblerPolicy assembler_policy;
-  FactsV2DirectCompareResult not_compared;
+  M68kReproductionCompareResult not_compared;
   char *source_profile_json = NULL;
   clock_t source_start = clock();
   clock_t source_end;
@@ -6792,8 +6755,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   *out_source_profile_json = NULL;
   *out_direct_profile_json = NULL;
   *out_error = NULL;
-  memset(&not_compared, 0, sizeof(not_compared));
-  not_compared.status = "not_compared";
+  m68k_reproduction_compare_init_result(&not_compared);
   m68k_assembler_policy_derive_preservation(object, &assembler_policy);
   m68k_facts_v2_profile_init(&source_profile);
   if (m68k_facts_v2_collect_direct_rebuild_profile(object, analysis_policy, &source_profile,

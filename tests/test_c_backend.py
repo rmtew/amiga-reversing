@@ -2663,6 +2663,10 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
     assert direct_profile["direct_compare_relocation_semantics_exact"] is True
     assert direct_profile["direct_compare_container_oddity"] is True
     assert direct_profile["direct_compare_status"] == "semantic_container_oddity"
+    assert direct_profile["direct_compare_status_id"] == 2
+    assert direct_profile["direct_compare_exactness_id"] == 2
+    assert direct_profile["direct_compare_issue_group_flags"] & 0x4 == 0x4
+    assert direct_profile["direct_compare_range_count"] >= 1
     assert direct_profile["assembler_policy_kind"] == 2
     assert direct_profile["assembler_policy_flags"] & 0x3 == 0x3
 
@@ -2708,6 +2712,9 @@ def test_project_source_facts_v2_direct_rebuild_preserves_hunk_reloc32short_enco
 
     assert rebuilt == original
     assert direct_profile["direct_rebuild_exact"] is True
+    assert direct_profile["direct_compare_status_id"] == 1
+    assert direct_profile["direct_compare_exactness_id"] == 1
+    assert direct_profile["direct_compare_issue_group_flags"] == 0
     assert direct_profile["assembler_policy_kind"] == 2
     assert direct_profile["assembler_policy_hunk_relocation_record_count"] == 1
 

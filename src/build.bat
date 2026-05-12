@@ -66,6 +66,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_ir_parse.c ^
     src\m68k_ir_symbol_resolve.c ^
     src\m68k_parse_util.c ^
+    src\m68k_reproduction_compare.c ^
     src\m68k_diagnostics.c ^
     src\util_arena.c ^
     src\m68k_c_unit_test.c ^
@@ -202,6 +203,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_ir_symbol_resolve.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
+    %OUTDIR%\m68k_reproduction_compare.obj ^
     %OUTDIR%\m68k_source_model.obj ^
     %OUTDIR%\m68k_source_pipeline.obj ^
     %OUTDIR%\m68k_source_instruction_resolve.obj ^
@@ -304,6 +306,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_disk_cli.obj ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_reproduction_compare.obj ^
     %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
@@ -370,6 +373,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
 link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_disk_lib.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_reproduction_compare.obj ^
     %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
@@ -436,6 +440,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
 link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_cli.obj ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_reproduction_compare.obj ^
     %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
@@ -496,6 +501,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
 
 link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\platform_file_lib.obj ^
+    %OUTDIR%\m68k_reproduction_compare.obj ^
     %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\platform_file_core.obj ^
     %OUTDIR%\platform_file_amiga.obj ^
