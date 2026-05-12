@@ -42,8 +42,6 @@ from amiga_reversing.disasm.target_metadata import (
 from amiga_reversing.disasm.target_ui_edits import TARGET_UI_EDITS_FILE_NAME
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
-FACTS_V2_DIRECT_REPRO_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_REPRO"
-FACTS_V2_DIRECT_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_COMPARE"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
 MAX_DIFF_RANGES = 128
 MAX_DIAGNOSTICS = 80
@@ -124,6 +122,7 @@ def run_reproduction(
     pre_rendered_source_text: str | None = None,
     pre_rendered_source_profile: Mapping[str, object] | None = None,
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+    source_assembly_debug: bool = False,
 ) -> dict[str, object]:
     started_at = time.time()
     profile_started_at = time.perf_counter()
@@ -137,6 +136,7 @@ def run_reproduction(
     source_size = len(source_text.encode("utf-8")) if source_text is not None else 0
     rebuilt_bytes: bytes | None = None
     assembled_source_for_reproduction = False
+    direct_rebuild_for_reproduction = False
     direct_source_report: dict[str, object] | None = None
     assembler_stdout = ""
     assembler_stderr = ""
@@ -199,9 +199,9 @@ def run_reproduction(
         use_facts_v2_direct_rebuild = (
             use_facts_v2_native_reproduction
             and backend != "amiga-raw"
-            and facts_v2_direct_reproduction_enabled()
+            and not source_assembly_debug
         )
-        use_facts_v2_direct_compare = use_facts_v2_direct_rebuild and facts_v2_direct_compare_enabled()
+        use_facts_v2_direct_compare = use_facts_v2_direct_rebuild
         use_listing_source_assembly = use_facts_v2_native_reproduction and not use_facts_v2_direct_rebuild
         if use_facts_v2_direct_rebuild:
             phase = "direct_rebuild"
@@ -226,6 +226,7 @@ def run_reproduction(
                         )
                     )
                     rebuilt_bytes = direct_bytes
+                    direct_rebuild_for_reproduction = True
                     _merge_direct_rebuild_profile(profile_timings, direct_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
                     profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
@@ -565,12 +566,16 @@ def run_reproduction(
         profile_timings["reused_assembler_rebuilt_bytes"] = 1.0
         policy_started_at = time.perf_counter()
         reproduction_policy = _input_reproduction_policy(input_stamp)
-        rebuilt, file_shape_adjustments = apply_reproduction_output_policy(
-            original,
-            canonical_rebuilt,
-            backend=backend,
-            policy=reproduction_policy,
-        )
+        if direct_rebuild_for_reproduction:
+            rebuilt = canonical_rebuilt
+            file_shape_adjustments: list[dict[str, object]] = []
+        else:
+            rebuilt, file_shape_adjustments = apply_reproduction_output_policy(
+                original,
+                canonical_rebuilt,
+                backend=backend,
+                policy=reproduction_policy,
+            )
         _record_profile_timing(profile_timings, "file_shape_policy_seconds", policy_started_at)
         diff_started_at = time.perf_counter()
         diff_ranges = grouped_diff_ranges(original, rebuilt)
@@ -1638,16 +1643,6 @@ def _write_text_if_changed(path: Path, text: str) -> tuple[int, bool]:
         pass
     path.write_bytes(data)
     return len(data), True
-
-
-def facts_v2_direct_reproduction_enabled() -> bool:
-    value = os.environ.get(FACTS_V2_DIRECT_REPRO_ENV)
-    return value is None or value.lower() not in {"0", "false", "no", "off"}
-
-
-def facts_v2_direct_compare_enabled() -> bool:
-    value = os.environ.get(FACTS_V2_DIRECT_COMPARE_ENV)
-    return value is None or value.lower() not in {"0", "false", "no", "off"}
 
 
 def facts_v2_direct_source_compare_enabled() -> bool:

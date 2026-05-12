@@ -494,7 +494,6 @@ def test_reproduction_assembler_diagnostics_map_to_rows() -> None:
 
 
 def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -532,7 +531,7 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", fail_assemble)
 
-    report = run_reproduction("demo")
+    report = run_reproduction("demo", source_assembly_debug=True)
 
     assert report["status"] == "assembler_error"
     assert "target_cpu" not in calls[0]["kwargs"]
@@ -545,7 +544,6 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
 def test_run_reproduction_exact_match_skips_file_layout(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -592,7 +590,7 @@ def test_run_reproduction_exact_match_skips_file_layout(
 
     monkeypatch.setattr(reproduction, "file_layout_for_binary_source", fail_layout)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "exact"
     assert report["file_layout"] == []
@@ -606,7 +604,6 @@ def test_run_reproduction_exact_match_skips_file_layout(
 def test_run_reproduction_uses_listing_artifact_source_assembly(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -644,7 +641,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "exact"
     assert report["listing_profile"] == {
@@ -718,7 +715,6 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
 def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -765,7 +761,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "exact"
     assert report["backend"] == "amiga-raw"
@@ -776,18 +772,9 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     assert assemble_calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
 
 
-def test_facts_v2_direct_reproduction_defaults_on(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, raising=False)
-    assert reproduction.facts_v2_direct_reproduction_enabled() is True
-
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
-    assert reproduction.facts_v2_direct_reproduction_enabled() is False
-
-
 def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -821,6 +808,7 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
 
     def direct(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
         calls.append({"args": args, "kwargs": kwargs})
+        assert kwargs["compare_original"] is True
         output_path = kwargs.get("output_path")
         if isinstance(output_path, Path):
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -828,7 +816,16 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
         return (
             original,
             {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False, "asm_source_bytes": 32}},
-            {"facts_v2_direct_rebuild": True, "direct_rebuild_refused": False, "rebuilt_bytes": len(original)},
+            {
+                "facts_v2_direct_rebuild": True,
+                "direct_rebuild_refused": False,
+                "direct_rebuild_compared": True,
+                "direct_rebuild_exact": True,
+                "direct_compare_status_id": 1,
+                "direct_compare_exactness_id": 1,
+                "direct_compare_issue_group_flags": 0,
+                "rebuilt_bytes": len(original),
+            },
         )
 
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
@@ -850,7 +847,6 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
 def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -908,7 +904,6 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
 def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
     monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_SOURCE_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -958,6 +953,11 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "apply_reproduction_output_policy",
+        lambda *_args, **_kwargs: pytest.fail("normal direct rebuild should not use Python output policy"),
+    )
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True)
 
@@ -980,8 +980,6 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
 def test_run_reproduction_direct_compare_exact_skips_python_diff(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -1047,8 +1045,6 @@ def test_run_reproduction_direct_compare_exact_skips_python_diff(
 def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_diff(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "1")
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_COMPARE_ENV, "1")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -1152,7 +1148,6 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
 def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -1187,7 +1182,7 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "binary_mismatch"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
@@ -1196,7 +1191,6 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
 def test_run_reproduction_captures_renderer_failure_as_render_error(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -1228,7 +1222,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
 
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", fail_render)
 
-    report = run_reproduction("demo")
+    report = run_reproduction("demo", source_assembly_debug=True)
 
     assert report["status"] == "render_error"
     assert "renderer_crashed" in str(report["tool_error"])
@@ -1238,7 +1232,6 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
 def test_run_reproduction_refuses_facts_v2_source_before_assemble(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv(reproduction.FACTS_V2_DIRECT_REPRO_ENV, "0")
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     binary_path = tmp_path / "demo.bin"
@@ -1279,7 +1272,7 @@ def test_run_reproduction_refuses_facts_v2_source_before_assemble(
 
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", fail_assemble)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
     assert report["status"] == "render_error"
     assert str(report["tool_error"]).startswith("facts_v2 asm source refused")
