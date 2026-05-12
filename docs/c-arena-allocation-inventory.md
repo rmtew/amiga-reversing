@@ -107,6 +107,11 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - `src/platform_disk_lib.c`: workflow-classified direct raw heap sites reduced from 8 (`malloc`, `free`) to 0; disk path image buffers and Amiga entry classification payloads now use local Workflow Arenas. The previous external read-buffer heap sites for disk path image reads are also gone. Public extracted entry bytes remain caller-freed output buffers.
 - `src/platform_atari_st_disk.c`: parser workflow direct raw heap sites reduced from 7 (`realloc`, `free`) to 0 and image read-buffer heap sites reduced from 3 (`malloc`, `free`) to 0. Subdirectory scratch buffers and image-file reads now use local Workflow Arenas; returned analysis internals remain `AtariStDiskAnalysis` Result Arena owned.
 
+## PRD 005 Notes
+
+- `src/test_util_arena.c`: virtual-reserved arena prototype is isolated in test-only code and uses Windows `VirtualAlloc`/`VirtualFree`; it adds no production raw heap sites and no default allocator/API behavior changes.
+- Current linked-block baseline for the matched large transient sequence is 5032 used bytes, 9096 capacity bytes, 4064 wasted bytes, and 2 blocks. The virtual-reserved prototype uses 5032 used bytes, a 65536-byte reservation, and page-aligned commit on demand.
+
 ## Verification
 
 Issue 0001 is documentation-only. Standard verification for implementation issues remains:

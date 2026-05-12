@@ -5,11 +5,71 @@
 #include "util_arena.h"
 
 #include <string.h>
+#include <windows.h>
 
 typedef struct TestPair {
   uint32_t left;
   uint32_t right;
 } TestPair;
+
+typedef struct TestVirtualReservedArena {
+  unsigned char *base;
+  size_t reserve_size;
+  size_t page_size;
+  size_t committed;
+  size_t used;
+  size_t peak_used;
+  size_t commit_count;
+} TestVirtualReservedArena;
+
+static size_t test_align_up(size_t value, size_t alignment) {
+  return (value + alignment - 1U) & ~(alignment - 1U);
+}
+
+static int test_virtual_arena_create(TestVirtualReservedArena *arena, size_t reserve_size) {
+  SYSTEM_INFO info;
+  memset(arena, 0, sizeof(*arena));
+  GetSystemInfo(&info);
+  arena->page_size = info.dwPageSize;
+  arena->reserve_size = test_align_up(reserve_size, arena->page_size);
+  arena->base = (unsigned char *)VirtualAlloc(NULL, arena->reserve_size, MEM_RESERVE, PAGE_READWRITE);
+  return arena->base != NULL ? 0 : -1;
+}
+
+static void test_virtual_arena_destroy(TestVirtualReservedArena *arena) {
+  if (arena == NULL) return;
+  if (arena->base != NULL) VirtualFree(arena->base, 0U, MEM_RELEASE);
+  memset(arena, 0, sizeof(*arena));
+}
+
+static void *test_virtual_arena_alloc(TestVirtualReservedArena *arena, size_t size) {
+  size_t aligned_size;
+  size_t end;
+  size_t next_committed;
+  void *ptr;
+  if (arena == NULL || arena->base == NULL || size == 0U) return NULL;
+  aligned_size = test_align_up(size, sizeof(void *));
+  if (aligned_size < size || arena->used > arena->reserve_size - aligned_size) return NULL;
+  end = arena->used + aligned_size;
+  if (end > arena->committed) {
+    next_committed = test_align_up(end, arena->page_size);
+    if (next_committed > arena->reserve_size) return NULL;
+    if (VirtualAlloc(arena->base + arena->committed, next_committed - arena->committed, MEM_COMMIT,
+        PAGE_READWRITE) == NULL) {
+      return NULL;
+    }
+    arena->committed = next_committed;
+    arena->commit_count += 1U;
+  }
+  ptr = arena->base + arena->used;
+  arena->used = end;
+  if (arena->used > arena->peak_used) arena->peak_used = arena->used;
+  return ptr;
+}
+
+static void test_virtual_arena_reset(TestVirtualReservedArena *arena) {
+  if (arena != NULL) arena->used = 0U;
+}
 
 static int test_builder_appends_and_flattens_growth(void) {
   Arena *arena = arena_create(64U);
@@ -94,6 +154,31 @@ static int test_builder_rewind_discards_chunks_and_finalized_storage(void) {
   return 0;
 }
 
+static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
+  TestVirtualReservedArena arena;
+  unsigned char *first;
+  unsigned char *large;
+  M68K_C_ASSERT_INT(0, test_virtual_arena_create(&arena, 64U * 1024U));
+  first = (unsigned char *)test_virtual_arena_alloc(&arena, 32U);
+  M68K_C_ASSERT(first != NULL);
+  M68K_C_ASSERT(first == arena.base);
+  M68K_C_ASSERT_U32(32U, (uint32_t)arena.used);
+  M68K_C_ASSERT(arena.committed >= arena.page_size);
+  large = (unsigned char *)test_virtual_arena_alloc(&arena, 5000U);
+  M68K_C_ASSERT(large != NULL);
+  M68K_C_ASSERT(large == arena.base + 32U);
+  M68K_C_ASSERT_U32(5032U, (uint32_t)arena.used);
+  M68K_C_ASSERT(arena.committed >= arena.used);
+  M68K_C_ASSERT(arena.reserve_size >= 64U * 1024U);
+  test_virtual_arena_reset(&arena);
+  M68K_C_ASSERT_U32(0U, (uint32_t)arena.used);
+  M68K_C_ASSERT_U32(5032U, (uint32_t)arena.peak_used);
+  M68K_C_ASSERT(arena.committed >= 5032U);
+  test_virtual_arena_destroy(&arena);
+  M68K_C_ASSERT(arena.base == NULL);
+  return 0;
+}
+
 static int test_decode_ir_result_arrays_use_result_arena(void) {
   uint8_t code[] = {0x4eU, 0x75U};
   M68kObject object;
@@ -154,6 +239,7 @@ int m68k_c_util_arena_tests(void) {
     {"builder_zero_length_finalize_is_arena_owned", test_builder_zero_length_finalize_is_arena_owned},
     {"builder_typed_pair_append_uninit", test_builder_typed_pair_append_uninit},
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
+    {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"decode_ir_result_arrays_use_result_arena", test_decode_ir_result_arrays_use_result_arena},
     {"fact_ir_result_arrays_use_result_arena", test_fact_ir_result_arrays_use_result_arena},
   };
