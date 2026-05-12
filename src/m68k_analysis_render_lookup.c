@@ -2867,7 +2867,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
 
 static int typed_flow_build_nodes(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode **out_nodes, size_t *out_node_count, size_t **out_node_by_offset,
-    uint32_t *out_node_by_offset_count) {
+    uint32_t *out_node_by_offset_count, Arena *arena) {
   M68kRenderTypedFlowNode *nodes = NULL;
   size_t *node_by_offset = NULL;
   size_t candidate_index;
@@ -2881,10 +2881,12 @@ static int typed_flow_build_nodes(const M68kDecodeSectionIR *section, const uint
       out_node_by_offset == NULL || out_node_by_offset_count == NULL) {
     return -1;
   }
+  if (arena == NULL) return -1;
   render_extent = render_section_extent(section);
   if (render_extent == 0U) return 0;
-  nodes = (M68kRenderTypedFlowNode *)calloc(section->candidate_count, sizeof(*nodes));
-  node_by_offset = (size_t *)malloc(((size_t)render_extent + 1U) * sizeof(*node_by_offset));
+  nodes = (M68kRenderTypedFlowNode *)arena_calloc(arena,
+    section->candidate_count != 0U ? section->candidate_count : 1U, sizeof(*nodes));
+  node_by_offset = (size_t *)arena_alloc(arena, ((size_t)render_extent + 1U) * sizeof(*node_by_offset));
   if (nodes == NULL || node_by_offset == NULL) goto oom;
   for (candidate_index = 0U; candidate_index <= (size_t)render_extent; ++candidate_index)
     node_by_offset[candidate_index] = SIZE_MAX;
@@ -2903,8 +2905,6 @@ static int typed_flow_build_nodes(const M68kDecodeSectionIR *section, const uint
   return 0;
 
 oom:
-  free(nodes);
-  free(node_by_offset);
   return -1;
 }
 
@@ -2917,8 +2917,6 @@ typedef struct M68kRenderTypedFlowGraph {
 
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   if (graph == NULL) return;
-  free(graph->nodes);
-  free(graph->node_by_offset);
   memset(graph, 0, sizeof(*graph));
 }
 
@@ -2937,8 +2935,9 @@ static void typed_flow_build_successors_for_nodes(const M68kDecodeSectionIR *sec
 
 static int typed_flow_mark_roots(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
-    uint32_t node_by_offset_count) {
+    uint32_t node_by_offset_count, Arena *arena) {
   uint16_t *incoming_counts = NULL;
+  ArenaMark mark;
   size_t node_index;
   int seeded_root = 0;
   (void)section;
@@ -2946,8 +2945,13 @@ static int typed_flow_mark_roots(const M68kDecodeSectionIR *section, const uint8
   (void)node_by_offset;
   (void)node_by_offset_count;
   if (node_count == 0U) return 0;
-  incoming_counts = (uint16_t *)calloc(node_count, sizeof(*incoming_counts));
-  if (incoming_counts == NULL) return -1;
+  if (arena == NULL) return -1;
+  mark = arena_mark(arena);
+  incoming_counts = (uint16_t *)arena_calloc(arena, node_count, sizeof(*incoming_counts));
+  if (incoming_counts == NULL) {
+    arena_rewind(arena, mark);
+    return -1;
+  }
   for (node_index = 0U; node_index < node_count; ++node_index) nodes[node_index].is_root = 0U;
   for (node_index = 0U; node_index < node_count; ++node_index) {
     uint8_t successor_index;
@@ -2962,7 +2966,7 @@ static int typed_flow_mark_roots(const M68kDecodeSectionIR *section, const uint8
     seeded_root = 1;
   }
   if (!seeded_root) nodes[0].is_root = 1U;
-  free(incoming_counts);
+  arena_rewind(arena, mark);
   return 0;
 }
 
@@ -2982,9 +2986,9 @@ static void typed_flow_reset_roots(M68kRenderTypedFlowNode *nodes, size_t node_c
 
 static int typed_flow_initialize_roots(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
-    uint32_t node_by_offset_count) {
+    uint32_t node_by_offset_count, Arena *arena) {
   if (typed_flow_mark_roots(section, accepted_start, nodes, node_count, node_by_offset,
-      node_by_offset_count) != 0) {
+      node_by_offset_count, arena) != 0) {
     return -1;
   }
   typed_flow_reset_roots(nodes, node_count);
@@ -2992,17 +2996,17 @@ static int typed_flow_initialize_roots(const M68kDecodeSectionIR *section, const
 }
 
 static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start) {
+    const uint8_t *accepted_start, Arena *arena) {
   if (graph == NULL) return -1;
   memset(graph, 0, sizeof(*graph));
   if (typed_flow_build_nodes(section, accepted_start, &graph->nodes, &graph->node_count,
-      &graph->node_by_offset, &graph->node_by_offset_count) != 0) {
+      &graph->node_by_offset, &graph->node_by_offset_count, arena) != 0) {
     return -1;
   }
   typed_flow_build_successors_for_nodes(section, accepted_start, graph->nodes, graph->node_count,
     graph->node_by_offset, graph->node_by_offset_count);
   if (typed_flow_initialize_roots(section, accepted_start, graph->nodes, graph->node_count,
-      graph->node_by_offset, graph->node_by_offset_count) != 0) {
+      graph->node_by_offset, graph->node_by_offset_count, arena) != 0) {
     typed_flow_graph_destroy(graph);
     return -1;
   }
@@ -3057,7 +3061,7 @@ static int typed_flow_enqueue_node(size_t *queue, uint8_t *queued, size_t capaci
 
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, const M68kDecodeSectionIR *section, M68kRenderTypedFlowGraph *graph,
-    int final_pass, int *io_changed) {
+    int final_pass, int *io_changed, Arena *arena) {
   size_t iteration_limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_ITERATIONS",
     M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT);
   size_t node_visit_limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
@@ -3065,12 +3069,14 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   size_t max_visits, node_visit_count = 0U, queue_head = 0U, queue_count = 0U, node_index;
   size_t *queue = NULL;
   uint8_t *queued = NULL;
+  ArenaMark mark;
   int result = -1;
-  if (graph == NULL) return -1;
+  if (graph == NULL || arena == NULL) return -1;
   typed_flow_reinitialize_roots(graph->nodes, graph->node_count);
   if (graph->node_count == 0U) return 0;
-  queue = (size_t *)malloc(graph->node_count * sizeof(*queue));
-  queued = (uint8_t *)calloc(graph->node_count, sizeof(*queued));
+  mark = arena_mark(arena);
+  queue = (size_t *)arena_alloc(arena, graph->node_count * sizeof(*queue));
+  queued = (uint8_t *)arena_calloc(arena, graph->node_count, sizeof(*queued));
   if (queue == NULL || queued == NULL) goto cleanup;
   max_visits = typed_flow_visit_limit(graph->node_count, iteration_limit, node_visit_limit);
   for (node_index = 0U; node_index < graph->node_count; ++node_index) {
@@ -3123,8 +3129,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   result = 0;
 
 cleanup:
-  free(queue);
-  free(queued);
+  arena_rewind(arena, mark);
   return result;
 }
 
@@ -3207,6 +3212,7 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
 
 static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  Arena *workflow_arena = NULL;
   M68kRenderTypedFlowGraph *graphs = NULL;
   int pass;
   int changed = 0;
@@ -3217,12 +3223,15 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     return 0;
   }
   if (!render_lookup_has_typed_flow_sources(lookup, decode, accepted_start)) return 0;
-  graphs = (M68kRenderTypedFlowGraph *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  workflow_arena = arena_create(4096U);
+  if (workflow_arena == NULL) return -1;
+  graphs = (M68kRenderTypedFlowGraph *)arena_calloc(workflow_arena,
+    decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*graphs));
-  if (graphs == NULL) return -1;
+  if (graphs == NULL) goto cleanup;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     if (typed_flow_graph_build(&graphs[section_index], &decode->sections[section_index],
-        accepted_start[section_index]) != 0) {
+        accepted_start[section_index], workflow_arena) != 0) {
       goto cleanup;
     }
   }
@@ -3233,7 +3242,7 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
     for (section_index = 0U; section_index < decode->section_count; ++section_index) {
       if (render_lookup_analyze_amiga_typed_refs_for_section(lookup, decode, accepted_start,
           &decode->sections[section_index], &graphs[section_index], final_pass,
-          final_pass ? NULL : &changed) != 0) {
+          final_pass ? NULL : &changed, workflow_arena) != 0) {
         goto cleanup;
       }
     }
@@ -3246,7 +3255,7 @@ cleanup:
     for (section_index = 0U; section_index < decode->section_count; ++section_index)
       typed_flow_graph_destroy(&graphs[section_index]);
   }
-  free(graphs);
+  arena_destroy(workflow_arena);
   return result;
 }
 
@@ -3907,9 +3916,10 @@ static int append_render_lookup_unresolved_typed_accesses_for_section(const M68k
 }
 
 static int global_base_observation_add(M68kRenderGlobalBaseObservation **observations, size_t *count,
-    size_t *capacity, size_t section_index, uint32_t offset, uint8_t index_reg, int16_t lvo) {
+    size_t *capacity, size_t section_index, uint32_t offset, uint8_t index_reg, int16_t lvo,
+    Arena *arena) {
   size_t index;
-  if (observations == NULL || count == NULL || capacity == NULL) return -1;
+  if (observations == NULL || count == NULL || capacity == NULL || arena == NULL) return -1;
   for (index = 0U; index < *count; ++index) {
     M68kRenderGlobalBaseObservation *observation = &(*observations)[index];
     size_t lvo_index;
@@ -3926,7 +3936,8 @@ static int global_base_observation_add(M68kRenderGlobalBaseObservation **observa
   if (*count == *capacity) {
     size_t next_capacity = *capacity == 0U ? 16U : *capacity * 2U;
     M68kRenderGlobalBaseObservation *grown =
-      (M68kRenderGlobalBaseObservation *)realloc(*observations, next_capacity * sizeof(*grown));
+      (M68kRenderGlobalBaseObservation *)arena_realloc_copy(arena, *observations,
+        *capacity * sizeof(*grown), next_capacity * sizeof(*grown));
     if (grown == NULL) return -1;
     *observations = grown;
     *capacity = next_capacity;
@@ -9847,6 +9858,7 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
 
 static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start) {
+  Arena *workflow_arena = NULL;
   M68kRenderGlobalBaseObservation *observations = NULL;
   M68kRenderGlobalBaseObservation *wrapper_observations = NULL;
   size_t observation_count = 0U;
@@ -9856,6 +9868,8 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
   size_t section_index;
   int result = -1;
   if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
+  workflow_arena = arena_create(4096U);
+  if (workflow_arena == NULL) return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderBaseTraceState trace_state;
@@ -10002,7 +10016,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       if (current_slot_valid && candidate_calls_a6_lvo(candidate, &lvo)) {
         if (global_base_observation_add(&observations, &observation_count, &observation_capacity,
-          current_slot_section, current_slot_offset, 0U, lvo) != 0) goto cleanup;
+          current_slot_section, current_slot_offset, 0U, lvo, workflow_arena) != 0) goto cleanup;
       }
       {
         uint8_t wrapper_reg = 0U;
@@ -10016,7 +10030,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
             candidate_direct_same_section_target(next_candidate, section->section_index, &wrapper_offset)) {
           if (global_base_observation_add(&wrapper_observations, &wrapper_observation_count,
               &wrapper_observation_capacity, section->section_index, wrapper_offset, wrapper_reg,
-              wrapper_lvo) != 0) {
+              wrapper_lvo, workflow_arena) != 0) {
             goto cleanup;
           }
         }
@@ -10074,8 +10088,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
   }
   result = 0;
 cleanup:
-  free(observations);
-  free(wrapper_observations);
+  arena_destroy(workflow_arena);
   return result;
 }
 

@@ -24,7 +24,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/json_builder.c` | 95, 101, 107, 110, 186 | caller_freed_output | Returned JSON/text copy; keep heap until output API changes. |
 | `src/m68k_analysis_facts_v2.c` | 340 | workflow | Facts pass workflow arena; work queues, maps, lookups, runtime ranges, and accepted-index scratch marks allocate from it. |
 | `src/m68k_analysis_facts_v2.c` | 9166 | caller_freed_output | Facts text free API. |
-| `src/m68k_analysis_render_lookup.c` | 2886, 2887, 2906, 2907, 2920, 2921, 2949, 2965, 3072, 3073, 3126, 3127, 3220, 3249, 3929, 10077, 10078 | workflow | Render lookup temporary graphs, queues, observations. |
+| `src/m68k_analysis_render_lookup.c` | 3225, 9869 | workflow | Render lookup workflow arenas. Typed-flow graphs/queues and global-base observations are arena-backed; nested queues use scratch rewinds. |
 | `src/m68k_assembler_app.c` | 107, 115 | external_read_buffer | Input file read buffer. |
 | `src/m68k_assembler_app.c` | 373, 530, 551 | caller_freed_output | Assembled section data returned through app edge. |
 | `src/m68k_assembler_app.c` | 593, 597 | caller_freed_output | Rendered text release at app edge. |
@@ -99,6 +99,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - `src/m68k_source_ir_render.c`: direct raw heap allocation sites reduced from 10 (`calloc`, `free`) to 0; temporary render indexes and include cache storage are owned by a local Workflow Arena.
 - `src/m68k_source_file_emit.c`: direct raw heap allocation sites reduced from 27 (`calloc`, `free`) to 0; layout offsets, section writer slots, and intermediate writer output use workflow/result arenas.
 - `src/platform_binary_io.c`: added `m68k_writer_build_arena` for arena-owned flattened writer output; existing `m68k_writer_build` remains the caller-freed output boundary.
+- `src/m68k_analysis_render_lookup.c`: direct raw heap allocation sites reduced from 17 (`malloc`, `calloc`, `realloc`, `free`) to 0; render lookup temporary graphs, queues, and observations use local Workflow Arenas.
 
 ## Verification
 
