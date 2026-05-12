@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #define M68K_REPRO_COMPARE_RANGE_CAPACITY 8U
+#define M68K_REPRO_COMPARE_SOURCE_HINT_CAPACITY 8U
 
 typedef enum M68kReproductionCompareStatusId {
   M68K_REPRO_COMPARE_STATUS_NOT_COMPARED = 0,
@@ -49,6 +50,12 @@ typedef struct M68kReproductionCompareRange {
   uint32_t rebuilt_size;
 } M68kReproductionCompareRange;
 
+typedef struct M68kReproductionCompareSourceHint {
+  uint32_t issue_group_flags;
+  uint32_t section_index;
+  uint32_t offset;
+} M68kReproductionCompareSourceHint;
+
 typedef struct M68kReproductionCompareResult {
   uint32_t status_id;
   uint32_t exactness_id;
@@ -60,7 +67,10 @@ typedef struct M68kReproductionCompareResult {
   uint8_t has_first_diff;
   uint8_t range_count;
   uint8_t range_overflow;
+  uint8_t source_hint_count;
+  uint8_t source_hint_overflow;
   M68kReproductionCompareRange ranges[M68K_REPRO_COMPARE_RANGE_CAPACITY];
+  M68kReproductionCompareSourceHint source_hints[M68K_REPRO_COMPARE_SOURCE_HINT_CAPACITY];
 } M68kReproductionCompareResult;
 
 typedef struct M68kReproductionCompareContext {

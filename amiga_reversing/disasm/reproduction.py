@@ -103,6 +103,7 @@ _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS = {
     1 << 8: "policy_divergence",
     1 << 9: "unsupported_container_shape",
 }
+_C_COMPARE_FILE_STRUCTURE_ISSUE_BITS = {label: bit for bit, label in _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS.items()}
 
 
 def reproduction_report_path(target_dir: Path) -> Path:
@@ -292,6 +293,12 @@ def run_reproduction(
                             profile_timings["facts_v2_direct_semantic_fast_path"] = 1.0
                         profile_timings["diff_phase_seconds"] = 0.0
                         original_size = _optional_int(input_stamp.get("original_size"), len(direct_bytes))
+                        direct_shape_diagnostics = _direct_compare_shape_diagnostics(
+                            direct_profile, row_for_section_offset
+                        )
+                        direct_shape_row_issues = _direct_compare_shape_row_issues(
+                            direct_profile, row_for_section_offset
+                        )
                         report = {
                             **base_report,
                             "status": "exact",
@@ -307,14 +314,14 @@ def run_reproduction(
                             "diff_ranges": [],
                             "canonical_diff_ranges": [],
                             "file_layout": [],
-                            "row_mappings": [],
-                            "issues": [],
+                            "row_mappings": direct_shape_row_issues,
+                            "issues": direct_shape_row_issues,
                             "assembler_diagnostics": [],
                             "assembler_stdout": assembler_stdout,
                             "assembler_stderr": assembler_stderr,
                             "file_shape_adjustments": [],
-                            "file_shape_diagnostics": _direct_compare_shape_diagnostics(direct_profile),
-                            "canonical_file_shape_diagnostics": _direct_compare_shape_diagnostics(direct_profile),
+                            "file_shape_diagnostics": direct_shape_diagnostics,
+                            "canonical_file_shape_diagnostics": [dict(item) for item in direct_shape_diagnostics],
                             "comparison": comparison,
                         }
                         if direct_source_report is not None:
@@ -1100,11 +1107,16 @@ def _direct_compare_issue_diagnostics(issue_kinds: list[str], group: str) -> lis
     return [{"kind": issue_kind, "group": group, "source": "facts_v2_direct_compare"} for issue_kind in issue_kinds]
 
 
-def _direct_compare_shape_diagnostics(direct_profile: dict[str, object]) -> list[dict[str, object]]:
+def _direct_compare_shape_diagnostics(
+    direct_profile: dict[str, object],
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+) -> list[dict[str, object]]:
     issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
     issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
     if issue_kinds:
-        return _direct_compare_issue_diagnostics(issue_kinds, "original_file_structure")
+        diagnostics = _direct_compare_issue_diagnostics(issue_kinds, "original_file_structure")
+        _attach_direct_compare_source_hints(diagnostics, direct_profile, row_for_section_offset)
+        return diagnostics
     if direct_profile.get("direct_compare_container_oddity") is not True:
         return []
     return [
@@ -1114,6 +1126,66 @@ def _direct_compare_shape_diagnostics(direct_profile: dict[str, object]) -> list
             "status": direct_profile.get("direct_compare_status") or "semantic_container_oddity",
         }
     ]
+
+
+def _attach_direct_compare_source_hints(
+    diagnostics: list[dict[str, object]],
+    direct_profile: dict[str, object],
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
+) -> None:
+    if row_for_section_offset is None:
+        return
+    hints = direct_profile.get("direct_compare_source_hints")
+    if not isinstance(hints, list):
+        return
+    for diagnostic in diagnostics:
+        bit = _C_COMPARE_FILE_STRUCTURE_ISSUE_BITS.get(str(diagnostic.get("kind") or ""))
+        if bit is None:
+            continue
+        for hint in hints:
+            if not isinstance(hint, dict):
+                continue
+            flags = _direct_profile_int(hint, "issue_group_flags") or 0
+            section_index = _direct_profile_int(hint, "section_index")
+            offset = _direct_profile_int(hint, "offset")
+            if not (flags & bit) or section_index is None or offset is None:
+                continue
+            row_ref = _row_ref_for_lookup(row_for_section_offset, section_index, offset)
+            if row_ref is None:
+                continue
+            row_index, row = row_ref
+            diagnostic["row_index"] = row_index
+            diagnostic["section_index"] = section_index
+            diagnostic["section_offset"] = offset
+            diagnostic["addr"] = _row_int(row, "addr")
+            diagnostic["stable_key"] = _row_str(row, "stable_key")
+            diagnostic["match_text"] = _row_match_text(row)
+            break
+
+
+def _direct_compare_shape_row_issues(
+    direct_profile: dict[str, object],
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None,
+) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+    for diagnostic in _direct_compare_shape_diagnostics(direct_profile, row_for_section_offset):
+        if not isinstance(diagnostic.get("row_index"), int):
+            continue
+        row_ref = _row_ref_for_lookup(
+            row_for_section_offset,
+            _optional_int(diagnostic.get("section_index"), 0),
+            _optional_int(diagnostic.get("section_offset"), 0),
+        )
+        issues.append(
+            _issue(
+                str(diagnostic.get("kind") or "file_structure"),
+                str(diagnostic.get("kind") or "file structure issue"),
+                row_ref,
+                section_index=_optional_int(diagnostic.get("section_index"), 0),
+                section_offset=_optional_int(diagnostic.get("section_offset"), 0),
+            )
+        )
+    return issues
 
 
 def compare_section_payloads(original: bytes, rebuilt: bytes, *, backend: str) -> dict[str, object]:

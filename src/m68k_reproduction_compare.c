@@ -42,6 +42,20 @@ static void compare_add_range(M68kReproductionCompareResult *result, size_t star
   range->rebuilt_size = compare_size_to_u32(rebuilt_end > start ? rebuilt_end - start : 0U);
 }
 
+static void compare_add_source_hint(M68kReproductionCompareResult *result, uint32_t issue_group_flags,
+    const M68kFixup *fixup) {
+  M68kReproductionCompareSourceHint *hint;
+  if (result == NULL || fixup == NULL || issue_group_flags == 0U) return;
+  if (result->source_hint_count >= M68K_REPRO_COMPARE_SOURCE_HINT_CAPACITY) {
+    result->source_hint_overflow = 1U;
+    return;
+  }
+  hint = &result->source_hints[result->source_hint_count++];
+  hint->issue_group_flags = issue_group_flags;
+  hint->section_index = compare_size_to_u32(fixup->section_index);
+  hint->offset = fixup->offset;
+}
+
 static void compare_collect_byte_diffs(M68kReproductionCompareResult *result,
     const unsigned char *original_bytes, size_t original_size,
     const unsigned char *rebuilt_bytes, size_t rebuilt_size) {
@@ -134,7 +148,7 @@ static uint32_t fixup_container_shape_diff_flags(size_t left_index, size_t right
 }
 
 static int objects_have_same_relocation_semantics(const M68kObject *left, const M68kObject *right,
-    uint32_t *out_container_shape_flags) {
+    uint32_t *out_container_shape_flags, M68kReproductionCompareResult *result) {
   uint8_t *used;
   size_t left_index;
   uint32_t container_shape_flags = 0U;
@@ -151,11 +165,16 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
       if (!fixups_have_same_semantics(left, &left->fixups[left_index], right, &right->fixups[right_index]))
         continue;
       used[right_index] = 1U;
-      if (!fixups_have_same_container_shape(&left->fixups[left_index], &right->fixups[right_index])) {
-        container_shape_flags |= fixup_container_shape_diff_flags(left_index, right_index,
-          &left->fixups[left_index], &right->fixups[right_index]);
-      } else if (left_index != right_index) {
-        container_shape_flags |= M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF;
+      {
+        uint32_t fixup_shape_flags = 0U;
+        if (!fixups_have_same_container_shape(&left->fixups[left_index], &right->fixups[right_index])) {
+          fixup_shape_flags = fixup_container_shape_diff_flags(left_index, right_index,
+            &left->fixups[left_index], &right->fixups[right_index]);
+        } else if (left_index != right_index) {
+          fixup_shape_flags = M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF;
+        }
+        container_shape_flags |= fixup_shape_flags;
+        compare_add_source_hint(result, fixup_shape_flags, &left->fixups[left_index]);
       }
       matched = 1;
       break;
@@ -204,7 +223,7 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
     uint32_t relocation_shape_flags = 0U;
     result->issue_group_flags &= ~M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF;
     if (!objects_have_same_relocation_semantics(context->original_object, context->rebuilt_object,
-        &relocation_shape_flags)) {
+        &relocation_shape_flags, result)) {
       result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF;
       return 0;
     }

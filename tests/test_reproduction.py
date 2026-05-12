@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -1094,6 +1095,9 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
                 "direct_compare_status_id": 2,
                 "direct_compare_exactness_id": 2,
                 "direct_compare_issue_group_flags": 4 | 32 | 256,
+                "direct_compare_source_hints": [
+                    {"issue_group_flags": 32, "section_index": 0, "offset": 4},
+                ],
                 "rebuilt_bytes": len(rebuilt),
                 "original_bytes": len(original),
             },
@@ -1106,7 +1110,20 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
         lambda *_args, **_kwargs: pytest.fail("direct semantic fast path should skip Python diff"),
     )
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    def row_for_section_offset(section_index: int | None, offset: int) -> Mapping[str, object] | None:
+        if section_index == 0 and offset == 4:
+            return {
+                "row_index": 9,
+                "section_index": 0,
+                "addr": 0x104,
+                "stable_key": "row-9",
+                "text": "dc.l target",
+            }
+        return None
+
+    report = run_reproduction(
+        "demo", project_root=tmp_path, profile=True, row_for_section_offset=row_for_section_offset
+    )
 
     assert report["status"] == "exact"
     assert report["exact"] is True
@@ -1122,7 +1139,11 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
         "policy_divergence",
     ]
     assert report["file_shape_diagnostics"][0]["group"] == "original_file_structure"
+    assert "row_index" not in report["file_shape_diagnostics"][0]
     assert report["file_shape_diagnostics"][1]["kind"] == "hunk_relocation_order_mismatch"
+    assert report["file_shape_diagnostics"][1]["row_index"] == 9
+    assert report["row_mappings"][0]["kind"] == "hunk_relocation_order_mismatch"
+    assert report["row_mappings"][0]["row_index"] == 9
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_semantic_fast_path"] == 1.0
     assert profile["facts_v2_direct_compare_semantic_exact"] == 1.0

@@ -350,6 +350,11 @@ static int test_reproduction_compare_hunk_reordered_fixups_are_file_structure_is
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF) == 0U);
+  M68K_C_ASSERT_U32(2U, result.source_hint_count);
+  M68K_C_ASSERT((result.source_hints[0].issue_group_flags &
+    M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF) != 0U);
+  M68K_C_ASSERT_U32(0U, result.source_hints[0].section_index);
+  M68K_C_ASSERT_U32(0U, result.source_hints[0].offset);
   m68k_object_destroy(&rebuilt_object);
   m68k_object_destroy(&original_object);
   return 0;

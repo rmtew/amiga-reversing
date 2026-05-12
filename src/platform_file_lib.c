@@ -5982,6 +5982,23 @@ static int direct_compare_relocation_exact(const M68kReproductionCompareResult *
     result->exactness_id == M68K_REPRO_COMPARE_EXACTNESS_CONTENT);
 }
 
+static int json_builder_append_direct_compare_source_hints(JsonBuilder *builder,
+    const M68kReproductionCompareResult *result) {
+  uint32_t index;
+  if (builder == NULL || result == NULL) return -1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < result->source_hint_count; ++index) {
+    const M68kReproductionCompareSourceHint *hint = &result->source_hints[index];
+    if ((index != 0U && json_builder_append(builder, ",") != 0) ||
+        json_builder_appendf(builder,
+          "{\"issue_group_flags\":%u,\"section_index\":%u,\"offset\":%u}",
+          (unsigned)hint->issue_group_flags, (unsigned)hint->section_index,
+          (unsigned)hint->offset) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *backend_name,
     const M68kBackend *backend, const M68kObject *original_object, const unsigned char *rebuilt_data,
     size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size,
@@ -6081,11 +6098,9 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         "\"direct_compare_issue_group_flags\":%u,"
         "\"direct_compare_first_diff_offset\":%u,"
         "\"direct_compare_range_count\":%u,"
-        "\"direct_compare_seconds\":%.6f,"
-        "\"assembler_policy_kind\":%u,"
-        "\"assembler_policy_flags\":%u,"
-        "\"assembler_policy_hunk_relocation_record_count\":%u,"
-        "\"total_seconds\":%.6f}",
+        "\"direct_compare_source_hint_count\":%u,"
+        "\"direct_compare_source_hint_overflow\":%s,"
+        "\"direct_compare_source_hints\":",
         compare_payload_exact ? "true" : "false",
         compare_relocation_exact ? "true" : "false",
         compare_semantic_exact ? "true" : "false",
@@ -6093,6 +6108,13 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         (unsigned)compare_result.status_id, (unsigned)compare_result.exactness_id,
         (unsigned)compare_result.diagnostic_id, (unsigned)compare_result.issue_group_flags,
         (unsigned)compare_result.first_diff_offset, (unsigned)compare_result.range_count,
+        (unsigned)compare_result.source_hint_count,
+        compare_result.source_hint_overflow ? "true" : "false") != 0 ||
+      json_builder_append_direct_compare_source_hints(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"direct_compare_seconds\":%.6f,\"assembler_policy_kind\":%u,"
+        "\"assembler_policy_flags\":%u,\"assembler_policy_hunk_relocation_record_count\":%u,"
+        "\"total_seconds\":%.6f}",
         compare_seconds, (unsigned)policy_kind, (unsigned)policy_flags, (unsigned)hunk_relocation_records,
         total_seconds) != 0) {
     if (diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
