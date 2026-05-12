@@ -17,12 +17,10 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
 from amiga_reversing.disasm.reproduction import (
-    compare_amiga_hunk_relocation_groups,
     compare_atari_st_file_shape,
     diff_issues_for_lookup,
     first_diff,
     grouped_diff_ranges,
-    match_amiga_hunk_relocation_order,
     parse_assembler_diagnostics,
     reproduction_input_stamp,
     reproduction_options_for_target,
@@ -127,6 +125,19 @@ def _hunk_with_reloc_groups(groups: list[tuple[int, list[int]]]) -> bytes:
     return bytes(payload)
 
 
+def _mock_c_compare_profile(original: bytes, rebuilt: bytes) -> dict[str, object]:
+    exact = original == rebuilt
+    return {
+        "direct_compare_status_id": 1 if exact else 3,
+        "direct_compare_exactness_id": 1 if exact else 3,
+        "direct_compare_issue_group_flags": 0 if exact else 1,
+        "direct_compare_payload_exact": exact,
+        "direct_compare_relocation_semantics_exact": exact,
+        "direct_compare_semantic_exact": exact,
+        "direct_compare_container_oddity": False,
+    }
+
+
 def test_reproduction_diff_finds_first_byte_and_grouped_ranges() -> None:
     original = b"\x00\x01\x02\x03\x04"
     rebuilt = b"\x00\xff\xfe\x03"
@@ -141,140 +152,6 @@ def test_reproduction_diff_finds_first_byte_and_grouped_ranges() -> None:
         "original": 1,
         "rebuilt": 255,
     }
-
-
-def test_amiga_hunk_relocation_order_can_match_original_shape() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = _hunk_with_reloc_order([0, 4])
-
-    adjusted, adjustments = match_amiga_hunk_relocation_order(original, rebuilt)
-
-    assert adjusted == original
-    assert adjustments == [
-        {
-            "kind": "relocation_order",
-            "section_index": 0,
-            "record_id": 1004,
-            "target_section": 1,
-            "count": 2,
-        }
-    ]
-
-
-def test_amiga_hunk_relocation_order_can_match_original_group_shape() -> None:
-    original = _hunk_with_reloc_groups([(1, [4]), (1, [0])])
-    rebuilt = _hunk_with_reloc_groups([(1, [4, 0])])
-
-    adjusted, adjustments = match_amiga_hunk_relocation_order(original, rebuilt)
-
-    assert adjusted == original
-    assert adjustments == [
-        {
-            "kind": "relocation_group_shape",
-            "section_index": 0,
-            "record_id": 1004,
-            "count": 2,
-            "groups": 2,
-        }
-    ]
-
-
-def test_amiga_container_policy_preserves_original_shape_when_content_matches() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = bytearray(original)
-    rebuilt[28:32] = _u32(1002)
-
-    adjusted, adjustments = reproduction.apply_reproduction_output_policy(
-        original,
-        bytes(rebuilt),
-        backend="amiga-hunk",
-        policy={
-            "mode": "template_preserved",
-            "container_policy": "preserve_original",
-            "relocation_policy": "preserve_original_encoding",
-            "comparison": "full_file",
-        },
-    )
-
-    assert adjusted == original
-    assert adjustments == [{"kind": "container_template", "backend": "amiga-hunk", "sections": [0, 1]}]
-
-
-def test_amiga_container_policy_does_not_hide_relocation_semantic_mismatch() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = bytearray(_hunk_with_reloc_order([8, 0]))
-    rebuilt[28:32] = _u32(1002)
-
-    adjusted, adjustments = reproduction.apply_reproduction_output_policy(
-        original,
-        bytes(rebuilt),
-        backend="amiga-hunk",
-        policy={
-            "mode": "template_preserved",
-            "container_policy": "preserve_original",
-            "relocation_policy": "preserve_original_encoding",
-            "comparison": "full_file",
-        },
-    )
-
-    assert adjusted != original
-    assert adjustments == [
-        {
-            "kind": "container_template_skipped",
-            "reason": "relocation_semantics_mismatch",
-        }
-    ]
-
-
-def test_content_comparison_distinguishes_container_shape_from_payload() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = bytearray(original)
-    rebuilt[28:32] = _u32(1002)
-    diff_ranges = grouped_diff_ranges(original, bytes(rebuilt))
-    layout = reproduction.file_layout_for_binary_source(
-        HunkFileBinarySource(
-            kind="hunk_file",
-            path=Path("demo"),
-            display_path="demo",
-            analysis_cache_path=Path("demo.analysis"),
-        ),
-        backend="amiga-hunk",
-        data=original,
-    )
-
-    comparison = reproduction.reproduction_comparison_result(
-        original,
-        bytes(rebuilt),
-        bytes(rebuilt),
-        backend="amiga-hunk",
-        policy={
-            "mode": "content",
-            "container_policy": "assembler_default",
-            "relocation_policy": "assembler_default",
-            "comparison": "content",
-            "requested_exactness": "content",
-            "requested_exactness_id": 2,
-        },
-        diff_ranges=diff_ranges,
-        canonical_diff_ranges=diff_ranges,
-        file_layout=layout,
-    )
-
-    assert comparison["status"] == "accepted_content_exact"
-    assert comparison["full_file_exact"] is False
-    assert comparison["content_exact"] is True
-    assert comparison["failure_kinds"] == ["header_shape_mismatch"]
-
-
-def test_amiga_hunk_relocation_comparator_classifies_offset_order() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = _hunk_with_reloc_order([0, 4])
-
-    diagnostics = compare_amiga_hunk_relocation_groups(original, rebuilt)
-
-    assert diagnostics[0]["kind"] == "offset_order_mismatch"
-    assert diagnostics[0]["section_index"] == 0
-
 
 def test_atari_file_shape_comparator_classifies_header_fields() -> None:
     original = (
@@ -305,17 +182,6 @@ def test_atari_file_shape_comparator_classifies_header_fields() -> None:
 
     assert {"kind": "atari_header_field_mismatch", "field": "symbol_size", "original": 4, "rebuilt": 0} in diagnostics
     assert {"kind": "atari_header_field_mismatch", "field": "flags", "original": 1, "rebuilt": 0} in diagnostics
-
-
-def test_amiga_hunk_relocation_order_keeps_different_fixup_sets() -> None:
-    original = _hunk_with_reloc_order([4, 0])
-    rebuilt = _hunk_with_reloc_order([0, 8])
-
-    adjusted, adjustments = match_amiga_hunk_relocation_order(original, rebuilt)
-
-    assert adjusted == rebuilt
-    assert adjustments == []
-
 
 def test_reproduction_diff_maps_ranges_to_rows() -> None:
     rows = _rows(
@@ -586,6 +452,11 @@ def test_run_reproduction_exact_match_skips_file_layout(
         render_exact,
     )
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_exact)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
 
     def fail_layout(*args: object, **kwargs: object) -> list[dict[str, object]]:
         raise AssertionError("exact reproduction should not need file layout")
@@ -642,6 +513,11 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
 
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
@@ -697,11 +573,17 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
         return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
 
     report = run_reproduction(
         "demo",
         project_root=tmp_path,
         profile=True,
+        source_assembly_debug=True,
         pre_rendered_source_text="dc.l $000003F3\n",
         pre_rendered_source_profile=source_profile,
     )
@@ -762,6 +644,11 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
 
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 
@@ -955,6 +842,11 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
     monkeypatch.setattr(
         reproduction,
         "apply_reproduction_output_policy",
@@ -1214,6 +1106,11 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
 
     monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt_bytes, **_kwargs: _mock_c_compare_profile(original, rebuilt_bytes),
+    )
 
     report = run_reproduction("demo", project_root=tmp_path, profile=True, source_assembly_debug=True)
 

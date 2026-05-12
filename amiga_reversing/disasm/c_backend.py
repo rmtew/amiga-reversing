@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from ctypes import (
     CDLL,
@@ -19,7 +19,7 @@ from ctypes import (
 )
 from functools import cache
 from pathlib import Path
-from typing import Callable, cast
+from typing import cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
@@ -430,6 +430,38 @@ def facts_v2_direct_rebuild_project_source_with_c_backend_profile(
             str(source_file.path),
             metadata_text,
             output_text,
+            project_root=project_root,
+        )
+
+
+def reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+    binary_source: BinarySource,
+    rebuilt_bytes: bytes,
+    *,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    metadata_text = _metadata_path_text(metadata_path)
+    if isinstance(binary_source, DiskEntryBinarySource):
+        data = binary_source.read_bytes()
+        return _platform_file_reproduction_compare_buffer_profile(
+            "platform_file_reproduction_compare_buffer_bytes_profile_alloc",
+            _platform_file_name_for_disk_path(binary_source.adf_path),
+            data,
+            metadata_text,
+            binary_source.display_path,
+            rebuilt_bytes,
+            project_root=project_root,
+        )
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        if source_file.entry_offset is not None:
+            raise UnsupportedCBackendProject("C reproduction comparison does not support raw binary sources")
+        return _platform_file_reproduction_compare_path_profile(
+            "platform_file_reproduction_compare_path_bytes_profile_alloc",
+            source_file.platform_name,
+            str(source_file.path),
+            metadata_text,
+            rebuilt_bytes,
             project_root=project_root,
         )
 
@@ -845,6 +877,100 @@ def _platform_file_facts_v2_direct_rebuild_buffer_profile(
             dll.platform_file_free_bytes(out_data)
 
 
+def _platform_file_reproduction_compare_path_profile(
+    function_name: str,
+    platform_name: str,
+    path: str,
+    metadata_text: str,
+    rebuilt_bytes: bytes,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    dll = _platform_file_dll(project_root)
+    function = getattr(dll, function_name)
+    rebuilt_buffer = create_string_buffer(rebuilt_bytes)
+    out_direct_profile_json = c_void_p()
+    out_error = c_void_p()
+    result = function(
+        _c_arg(platform_name),
+        _c_arg(path),
+        _c_arg(metadata_text),
+        rebuilt_buffer,
+        len(rebuilt_bytes),
+        byref(out_direct_profile_json),
+        byref(out_error),
+    )
+    try:
+        direct_profile_text = (
+            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
+            if out_direct_profile_json.value
+            else "{}"
+        )
+        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
+        if result != 0:
+            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
+            raise FactsV2ProfiledOperationFailed(
+                f"C reproduction compare failed: {detail}",
+                source_profile={},
+                operation_profile=direct_profile,
+            )
+        return direct_profile
+    finally:
+        if out_error.value:
+            dll.platform_file_free_text(out_error)
+        if out_direct_profile_json.value:
+            dll.platform_file_free_text(out_direct_profile_json)
+
+
+def _platform_file_reproduction_compare_buffer_profile(
+    function_name: str,
+    platform_name: str,
+    data: bytes,
+    metadata_text: str,
+    display_path: str,
+    rebuilt_bytes: bytes,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    dll = _platform_file_dll(project_root)
+    function = getattr(dll, function_name)
+    data_buffer = create_string_buffer(data)
+    rebuilt_buffer = create_string_buffer(rebuilt_bytes)
+    out_direct_profile_json = c_void_p()
+    out_error = c_void_p()
+    result = function(
+        _c_arg(platform_name),
+        data_buffer,
+        len(data),
+        _c_arg(metadata_text),
+        _c_arg(display_path),
+        rebuilt_buffer,
+        len(rebuilt_bytes),
+        byref(out_direct_profile_json),
+        byref(out_error),
+    )
+    try:
+        direct_profile_text = (
+            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
+            if out_direct_profile_json.value
+            else "{}"
+        )
+        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
+        if result != 0:
+            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
+            raise FactsV2ProfiledOperationFailed(
+                f"C reproduction compare failed: {detail}",
+                source_profile={},
+                operation_profile=direct_profile,
+            )
+        return direct_profile
+    finally:
+        if out_error.value:
+            dll.platform_file_free_text(out_error)
+        if out_direct_profile_json.value:
+            dll.platform_file_free_text(out_direct_profile_json)
+
+
 def _platform_disk_text(function_name: str, *args: object, project_root: Path) -> str:
     dll = _platform_disk_dll(project_root)
     function = getattr(dll, function_name)
@@ -955,6 +1081,28 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc.restype = c_int
+    dll.platform_file_reproduction_compare_path_bytes_profile_alloc.argtypes = [
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        c_void_p,
+        c_size_t,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_reproduction_compare_path_bytes_profile_alloc.restype = c_int
+    dll.platform_file_reproduction_compare_buffer_bytes_profile_alloc.argtypes = [
+        c_char_p,
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_char_p,
+        c_void_p,
+        c_size_t,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_reproduction_compare_buffer_bytes_profile_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_path_create.argtypes = [
         c_char_p,
         c_char_p,

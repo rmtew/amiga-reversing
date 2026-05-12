@@ -6965,6 +6965,119 @@ int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc(con
     display_path, output_path, out_data, out_size, out_source_profile_json, out_direct_profile_json, out_error, 1);
 }
 
+static int platform_file_reproduction_compare_object_common_alloc(const char *backend_name,
+    const M68kBackend *backend, const M68kObject *object, const unsigned char *original_data,
+    size_t original_size, const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_direct_profile_json,
+    char **out_error, M68kDiagList *diagnostics) {
+  M68kAssemblerPolicy assembler_policy;
+  M68kReproductionCompareResult compare_result;
+  clock_t compare_start;
+  double compare_seconds;
+  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
+  *out_direct_profile_json = NULL;
+  *out_error = NULL;
+  if (backend == NULL || object == NULL || original_data == NULL || rebuilt_data == NULL) {
+    *out_error = duplicate_text_local("invalid reproduction compare input");
+    return -1;
+  }
+  m68k_assembler_policy_derive_preservation(object, &assembler_policy);
+  compare_start = clock();
+  compare_result = facts_v2_direct_compare_result(backend_name, backend, object, rebuilt_data, rebuilt_size,
+    original_data, original_size, &assembler_policy);
+  compare_seconds = elapsed_seconds(compare_start, clock());
+  *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name, 0U,
+    rebuilt_size > UINT32_MAX ? UINT32_MAX : (uint32_t)rebuilt_size, 0, NULL, 0.0, 0.0, original_size,
+    compare_result, compare_seconds, compare_seconds, &assembler_policy, diagnostics);
+  if (*out_direct_profile_json == NULL) {
+    *out_error = duplicate_text_local("out of memory");
+    return -1;
+  }
+  return 0;
+}
+
+int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *backend_name,
+    const char *path, const char *metadata_path, const unsigned char *rebuilt_data, size_t rebuilt_size,
+    char **out_direct_profile_json, char **out_error) {
+  Arena *scratch_arena = NULL;
+  M68kAnalysisPolicy *analysis_policy;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  unsigned char *original_data = NULL;
+  size_t original_size = 0U;
+  int result = -1;
+  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
+  *out_direct_profile_json = NULL;
+  *out_error = NULL;
+  m68k_diag_list_reset(&diagnostics);
+  memset(&object, 0, sizeof(object));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
+  if (analysis_policy == NULL) {
+    *out_error = duplicate_text_local("out of memory");
+    arena_destroy(scratch_arena);
+    return -1;
+  }
+  if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
+    goto cleanup;
+  if (read_file_to_buffer(path, &original_data, &original_size, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, original_data,
+    original_size, rebuilt_data, rebuilt_size, out_direct_profile_json, out_error, &diagnostics);
+
+cleanup:
+  if (result != 0 && *out_error == NULL) {
+    const char *message = m68k_diag_first_message(&diagnostics);
+    *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
+  }
+  free(original_data);
+  m68k_object_destroy(&object);
+  arena_destroy(scratch_arena);
+  return result;
+}
+
+int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *backend_name,
+    const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
+    const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_direct_profile_json, char **out_error) {
+  Arena *scratch_arena = NULL;
+  M68kAnalysisPolicy *analysis_policy;
+  M68kDiagList diagnostics;
+  M68kObject object;
+  const M68kBackend *backend = m68k_backend_by_name(backend_name);
+  int result = -1;
+  (void)display_path;
+  if (out_direct_profile_json == NULL || out_error == NULL) return -1;
+  *out_direct_profile_json = NULL;
+  *out_error = NULL;
+  m68k_diag_list_reset(&diagnostics);
+  memset(&object, 0, sizeof(object));
+  scratch_arena = arena_create(4096U);
+  analysis_policy = scratch_arena != NULL
+    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
+    : NULL;
+  if (analysis_policy == NULL) {
+    *out_error = duplicate_text_local("out of memory");
+    arena_destroy(scratch_arena);
+    return -1;
+  }
+  if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
+    goto cleanup;
+  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, data, size,
+    rebuilt_data, rebuilt_size, out_direct_profile_json, out_error, &diagnostics);
+
+cleanup:
+  if (result != 0 && *out_error == NULL) {
+    const char *message = m68k_diag_first_message(&diagnostics);
+    *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
+  }
+  m68k_object_destroy(&object);
+  arena_destroy(scratch_arena);
+  return result;
+}
+
 int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name, const char *path,
     const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
     char **out_error) {

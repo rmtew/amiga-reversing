@@ -70,6 +70,12 @@ PLATFORM_FILE_API int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes
     const unsigned char *data, size_t size, const char *metadata_path,
     const char *display_path, const char *output_path, unsigned char **out_data, size_t *out_size,
     char **out_source_profile_json, char **out_direct_profile_json, char **out_error);
+PLATFORM_FILE_API int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *backend_name,
+    const char *path, const char *metadata_path, const unsigned char *rebuilt_data, size_t rebuilt_size,
+    char **out_direct_profile_json, char **out_error);
+PLATFORM_FILE_API int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *backend_name,
+    const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
+    const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_direct_profile_json, char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name,
     const char *path, const char *metadata_path, const char *include_dir,
     PlatformFileListingArtifact **out_artifact, char **out_error);

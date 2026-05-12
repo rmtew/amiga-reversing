@@ -21,6 +21,7 @@ from amiga_reversing.disasm.c_backend import (
     assemble_platform_source_text_with_c_backend,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
     listing_artifact_source_text_with_c_backend_profile,
+    reproduction_compare_rebuilt_bytes_with_c_backend_profile,
 )
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
@@ -263,12 +264,17 @@ def run_reproduction(
                             compare_started_at,
                         )
                         original_for_source_compare = paths.binary_source.read_bytes()
+                        source_compare_direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+                            paths.binary_source,
+                            source_bytes,
+                            metadata_path=metadata_path,
+                            project_root=project_root,
+                        )
                         _record_direct_source_comparison(
                             profile_timings,
                             direct_bytes,
                             source_bytes,
-                            original_bytes=original_for_source_compare,
-                            backend=backend,
+                            compare_profile=source_compare_direct_profile,
                         )
                         direct_source_report = _direct_source_report_fields(
                             original_for_source_compare,
@@ -596,16 +602,21 @@ def run_reproduction(
             canonical_file_shape_diagnostics: list[dict[str, object]] = []
             profile_timings["file_layout_seconds"] = 0.0
             profile_timings["row_mapping_seconds"] = 0.0
-            comparison = reproduction_comparison_result(
-                original,
-                canonical_rebuilt,
+            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
+                paths.binary_source,
                 rebuilt,
                 backend=backend,
                 policy=reproduction_policy,
+                metadata_path=None,
+                project_root=project_root,
+                original=original,
+                canonical_rebuilt=canonical_rebuilt,
                 diff_ranges=diff_ranges,
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
+            if c_compare_profile is not None:
+                _merge_source_compare_profile(profile_timings, c_compare_profile)
         else:
             layout_started_at = time.perf_counter()
             file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
@@ -631,16 +642,27 @@ def run_reproduction(
                 diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
-            comparison = reproduction_comparison_result(
-                original,
-                canonical_rebuilt,
+            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
+                paths.binary_source,
                 rebuilt,
                 backend=backend,
                 policy=reproduction_policy,
+                metadata_path=None,
+                project_root=project_root,
+                original=original,
+                canonical_rebuilt=canonical_rebuilt,
                 diff_ranges=diff_ranges,
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
+            if c_compare_profile is not None:
+                _merge_source_compare_profile(profile_timings, c_compare_profile)
+                direct_shape_diagnostics = _direct_compare_shape_diagnostics(
+                    c_compare_profile, row_for_section_offset
+                )
+                if direct_shape_diagnostics:
+                    file_shape_diagnostics = direct_shape_diagnostics
+                    canonical_file_shape_diagnostics = [dict(item) for item in direct_shape_diagnostics]
         if direct_source_report is None and assembled_source_for_reproduction:
             direct_source_report = _direct_source_report_fields_from_ranges(
                 original,
@@ -904,76 +926,8 @@ def apply_reproduction_output_policy(
     backend: str,
     policy: dict[str, object],
 ) -> tuple[bytes, list[dict[str, object]]]:
-    if original == rebuilt:
-        return rebuilt, []
-    adjusted = rebuilt
-    adjustments: list[dict[str, object]] = []
-    relocation_policy = policy.get("relocation_policy")
-    container_policy = policy.get("container_policy")
-    if backend == "amiga-hunk" and relocation_policy == "preserve_original_encoding":
-        adjusted, relocation_adjustments = match_amiga_hunk_relocation_order(original, adjusted)
-        adjustments.extend(relocation_adjustments)
-    if backend == "amiga-hunk" and container_policy == "preserve_original":
-        adjusted, container_adjustments = preserve_amiga_hunk_container_shape(original, adjusted)
-        adjustments.extend(container_adjustments)
-    return adjusted, adjustments
-
-
-def preserve_amiga_hunk_container_shape(
-    original: bytes,
-    rebuilt: bytes,
-) -> tuple[bytes, list[dict[str, object]]]:
-    if not _amiga_hunk_relocation_semantics_equal(original, rebuilt):
-        return rebuilt, [
-            {
-                "kind": "container_template_skipped",
-                "reason": "relocation_semantics_mismatch",
-            }
-        ]
-    original_payloads = _section_payload_ranges(_amiga_hunk_file_layout(original))
-    rebuilt_payloads = _section_payload_ranges(_amiga_hunk_file_layout(rebuilt))
-    if not original_payloads:
-        return rebuilt, [
-            {
-                "kind": "container_template_skipped",
-                "reason": "no_section_payloads",
-            }
-        ]
-    if original_payloads.keys() != rebuilt_payloads.keys():
-        return rebuilt, [
-            {
-                "kind": "container_template_skipped",
-                "reason": "section_payload_set_mismatch",
-            }
-        ]
-    adjusted = bytearray(original)
-    replaced_sections: list[int] = []
-    for section_index, original_range in sorted(original_payloads.items()):
-        rebuilt_range = rebuilt_payloads[section_index]
-        original_length = original_range[1] - original_range[0]
-        rebuilt_length = rebuilt_range[1] - rebuilt_range[0]
-        if original_length != rebuilt_length:
-            return rebuilt, [
-                {
-                    "kind": "container_template_skipped",
-                    "reason": "section_payload_size_mismatch",
-                    "section_index": section_index,
-                    "original_size": original_length,
-                    "rebuilt_size": rebuilt_length,
-                }
-            ]
-        adjusted[original_range[0]:original_range[1]] = rebuilt[rebuilt_range[0]:rebuilt_range[1]]
-        replaced_sections.append(section_index)
-    adjusted_bytes = bytes(adjusted)
-    if adjusted_bytes == rebuilt:
-        return rebuilt, []
-    return adjusted_bytes, [
-        {
-            "kind": "container_template",
-            "backend": "amiga-hunk",
-            "sections": replaced_sections,
-        }
-    ]
+    del original, backend, policy
+    return rebuilt, []
 
 
 def reproduction_comparison_result(
@@ -1015,16 +969,11 @@ def reproduction_comparison_result(
             "diff_range_count": len(diff_ranges),
             "canonical_diff_range_count": len(canonical_diff_ranges),
         }
-    payload_comparison = compare_section_payloads(original, canonical_rebuilt, backend=backend)
+    payload_comparison = {"exact": original == canonical_rebuilt, "diagnostics": []}
     relocation_semantics = None
     relocation_encoding = None
     semantic_diagnostics: list[dict[str, object]] = []
-    if backend == "amiga-hunk":
-        relocation_semantics = _amiga_hunk_relocation_semantics_equal(original, canonical_rebuilt)
-        relocation_encoding = _amiga_hunk_relocation_encoding_equal(original, canonical_rebuilt)
-        if not relocation_semantics:
-            semantic_diagnostics = compare_amiga_hunk_relocation_groups(original, canonical_rebuilt)
-    content_exact = bool(payload_comparison["exact"]) and relocation_semantics is not False
+    content_exact = bool(payload_comparison["exact"])
     content_exact_accepted = bool(content_exact and requested_exactness_id >= 2)
     policy_adjusted_full_file_exact = full_file_exact
     selected_exact = full_file_exact
@@ -1215,139 +1164,57 @@ def _direct_compare_shape_row_issues(
     return issues
 
 
-def compare_section_payloads(original: bytes, rebuilt: bytes, *, backend: str) -> dict[str, object]:
-    if backend == "amiga-hunk":
-        original_payloads = _section_payload_ranges(_amiga_hunk_file_layout(original))
-        rebuilt_payloads = _section_payload_ranges(_amiga_hunk_file_layout(rebuilt))
-    elif backend == "atari-st":
-        original_payloads = _section_payload_ranges(_atari_st_file_layout(original))
-        rebuilt_payloads = _section_payload_ranges(_atari_st_file_layout(rebuilt))
-    else:
-        return {"exact": original == rebuilt, "diagnostics": []}
-    if not original_payloads:
-        return {
-            "exact": original == rebuilt,
-            "diagnostics": [] if original == rebuilt else [{"kind": "section_payload_unavailable"}],
-        }
-    diagnostics: list[dict[str, object]] = []
-    if original_payloads.keys() != rebuilt_payloads.keys():
-        diagnostics.append(
-            {
-                "kind": "section_payload_set_mismatch",
-                "original_sections": sorted(original_payloads.keys()),
-                "rebuilt_sections": sorted(rebuilt_payloads.keys()),
-            }
-        )
-        return {"exact": False, "diagnostics": diagnostics}
-    exact = True
-    for section_index, original_range in sorted(original_payloads.items()):
-        rebuilt_range = rebuilt_payloads[section_index]
-        original_payload = original[original_range[0]:original_range[1]]
-        rebuilt_payload = rebuilt[rebuilt_range[0]:rebuilt_range[1]]
-        if original_payload == rebuilt_payload:
-            continue
-        exact = False
-        first = first_diff(original_payload, rebuilt_payload)
-        diagnostics.append(
-            {
-                "kind": "payload_mismatch",
-                "section_index": section_index,
-                "original_size": len(original_payload),
-                "rebuilt_size": len(rebuilt_payload),
-                "first_diff": first,
-            }
-        )
-        if len(diagnostics) >= MAX_DIAGNOSTICS:
-            break
-    return {"exact": exact, "diagnostics": diagnostics}
-
-
-def match_amiga_hunk_relocation_order(
-    original: bytes,
+def _comparison_for_rebuilt_bytes(
+    binary_source: BinarySource,
     rebuilt: bytes,
-) -> tuple[bytes, list[dict[str, object]]]:
-    try:
-        original_groups = _amiga_hunk_relocation_groups(original)
-        rebuilt_groups = _amiga_hunk_relocation_groups(rebuilt)
-    except ValueError:
-        return rebuilt, []
-    original_by_key: dict[tuple[object, ...], list[dict[str, object]]] = {}
-    for group in original_groups:
-        original_by_key.setdefault(_hunk_relocation_group_key(group), []).append(group)
-    adjusted = bytearray(rebuilt)
-    adjustments: list[dict[str, object]] = []
-    for rebuilt_group in rebuilt_groups:
-        candidates = original_by_key.get(_hunk_relocation_group_key(rebuilt_group))
-        if not candidates:
-            continue
-        original_group = candidates.pop(0)
-        original_offsets = cast(list[int], original_group["offsets"])
-        rebuilt_offsets = cast(list[int], rebuilt_group["offsets"])
-        if original_offsets == rebuilt_offsets:
-            continue
-        _write_hunk_relocation_offsets(adjusted, rebuilt_group, original_offsets)
-        adjustments.append(
-            {
-                "kind": "relocation_order",
-                "section_index": rebuilt_group["section_index"],
-                "record_id": rebuilt_group["record_id"],
-                "target_section": rebuilt_group["target_section"],
-                "count": len(original_offsets),
-            }
-        )
-    adjusted_bytes, block_adjustments = _match_amiga_hunk_relocation_block_shapes(original, bytes(adjusted))
-    adjustments.extend(block_adjustments)
-    return adjusted_bytes, adjustments
-
-
-def _match_amiga_hunk_relocation_block_shapes(
+    *,
+    backend: str,
+    policy: dict[str, object],
+    metadata_path: Path | None,
+    project_root: Path,
     original: bytes,
-    rebuilt: bytes,
-) -> tuple[bytes, list[dict[str, object]]]:
-    try:
-        original_blocks = _amiga_hunk_relocation_blocks(original)
-        rebuilt_blocks = _amiga_hunk_relocation_blocks(rebuilt)
-    except ValueError:
-        return rebuilt, []
-    original_by_key: dict[tuple[object, ...], list[dict[str, object]]] = {}
-    for block in original_blocks:
-        original_by_key.setdefault(_hunk_relocation_block_key(block), []).append(block)
-    replacements: list[tuple[int, int, bytes, dict[str, object]]] = []
-    for rebuilt_block in rebuilt_blocks:
-        candidates = original_by_key.get(_hunk_relocation_block_key(rebuilt_block))
-        if not candidates:
-            continue
-        original_block = candidates.pop(0)
-        rebuilt_start = _required_int(rebuilt_block.get("file_start"))
-        rebuilt_end = _required_int(rebuilt_block.get("file_end"))
-        original_start = _required_int(original_block.get("file_start"))
-        original_end = _required_int(original_block.get("file_end"))
-        replacement = original[original_start:original_end]
-        if rebuilt[rebuilt_start:rebuilt_end] == replacement:
-            continue
-        replacements.append(
-            (
-                rebuilt_start,
-                rebuilt_end,
-                replacement,
-                {
-                    "kind": "relocation_group_shape",
-                    "section_index": rebuilt_block["section_index"],
-                    "record_id": rebuilt_block["record_id"],
-                    "count": _hunk_relocation_block_offset_count(rebuilt_block),
-                    "groups": len(cast(list[dict[str, object]], original_block["groups"])),
-                },
-            )
+    canonical_rebuilt: bytes,
+    diff_ranges: list[dict[str, object]],
+    canonical_diff_ranges: list[dict[str, object]],
+    file_layout: list[dict[str, object]],
+) -> tuple[dict[str, object], dict[str, object] | None]:
+    if backend != "amiga-raw":
+        direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+            binary_source,
+            rebuilt,
+            metadata_path=metadata_path,
+            project_root=project_root,
         )
-    if not replacements:
-        return rebuilt, []
-    adjusted = bytearray(rebuilt)
-    adjustments: list[dict[str, object]] = []
-    for start, end, replacement, adjustment in sorted(replacements, key=lambda item: item[0], reverse=True):
-        adjusted[start:end] = replacement
-        adjustments.append(adjustment)
-    adjustments.reverse()
-    return bytes(adjusted), adjustments
+        return _direct_compare_reproduction_comparison(backend, policy, direct_profile), direct_profile
+    return (
+        reproduction_comparison_result(
+            original,
+            canonical_rebuilt,
+            rebuilt,
+            backend=backend,
+            policy=policy,
+            diff_ranges=diff_ranges,
+            canonical_diff_ranges=canonical_diff_ranges,
+            file_layout=file_layout,
+        ),
+        None,
+    )
+
+
+def _merge_source_compare_profile(timings: dict[str, object], profile: dict[str, object]) -> None:
+    for key, value in profile.items():
+        if key.startswith("direct_compare_"):
+            output_key = f"facts_v2_source_{key}"
+        elif key.startswith("direct_rebuild_"):
+            continue
+        else:
+            output_key = f"facts_v2_source_compare_{key}"
+        if isinstance(value, bool):
+            timings[output_key] = 1.0 if value else 0.0
+        elif isinstance(value, (int, float)):
+            timings[output_key] = round(float(value), 6)
+        elif isinstance(value, str) and value:
+            timings[output_key] = value
 
 
 def file_shape_diagnostics_for_mismatch(
@@ -1361,53 +1228,9 @@ def file_shape_diagnostics_for_mismatch(
     if not diff_ranges:
         return []
     first_layout_kind = _first_diff_layout_kind(diff_ranges, file_layout)
-    if backend == "amiga-hunk" and first_layout_kind == "relocation":
-        return compare_amiga_hunk_relocation_groups(original, rebuilt)
     if backend == "atari-st" and first_layout_kind in {"header", "relocation", "symbol_table"}:
         return compare_atari_st_file_shape(original, rebuilt)
     return []
-
-
-def compare_amiga_hunk_relocation_groups(original: bytes, rebuilt: bytes) -> list[dict[str, object]]:
-    try:
-        original_groups = _amiga_hunk_relocation_groups(original)
-        rebuilt_groups = _amiga_hunk_relocation_groups(rebuilt)
-    except ValueError as exc:
-        return [{"kind": "relocation_parse_error", "message": str(exc)}]
-    diagnostics: list[dict[str, object]] = []
-    matched_original: set[int] = set()
-    matched_rebuilt: set[int] = set()
-
-    for original_index, original_group in enumerate(original_groups):
-        for rebuilt_index, rebuilt_group in enumerate(rebuilt_groups):
-            if rebuilt_index in matched_rebuilt:
-                continue
-            if _hunk_relocation_group_full_key(original_group) == _hunk_relocation_group_full_key(rebuilt_group):
-                matched_original.add(original_index)
-                matched_rebuilt.add(rebuilt_index)
-                break
-
-    for original_index, original_group in enumerate(original_groups):
-        if original_index in matched_original:
-            continue
-        for rebuilt_index, rebuilt_group in enumerate(rebuilt_groups):
-            if rebuilt_index in matched_rebuilt:
-                continue
-            kind = _hunk_relocation_mismatch_kind(original_group, rebuilt_group)
-            if kind is None:
-                continue
-            diagnostics.append(_hunk_relocation_diagnostic(kind, original_group, rebuilt_group))
-            matched_original.add(original_index)
-            matched_rebuilt.add(rebuilt_index)
-            break
-
-    for original_index, original_group in enumerate(original_groups):
-        if original_index not in matched_original:
-            diagnostics.append(_hunk_relocation_diagnostic("missing_relocation_group", original_group, None))
-    for rebuilt_index, rebuilt_group in enumerate(rebuilt_groups):
-        if rebuilt_index not in matched_rebuilt:
-            diagnostics.append(_hunk_relocation_diagnostic("extra_relocation_group", None, rebuilt_group))
-    return diagnostics[:MAX_DIAGNOSTICS]
 
 
 def compare_atari_st_file_shape(original: bytes, rebuilt: bytes) -> list[dict[str, object]]:
@@ -1910,8 +1733,7 @@ def _record_direct_source_comparison(
     direct_bytes: bytes,
     source_bytes: bytes,
     *,
-    original_bytes: bytes | None = None,
-    backend: str | None = None,
+    compare_profile: dict[str, object] | None = None,
 ) -> None:
     timings["facts_v2_direct_source_compare"] = 1.0
     timings["facts_v2_direct_rebuilt_bytes"] = len(direct_bytes)
@@ -1920,23 +1742,26 @@ def _record_direct_source_comparison(
     timings["facts_v2_source_assembled_sha256"] = _sha256_bytes(source_bytes)
     timings["facts_v2_direct_source_match"] = 1.0 if direct_bytes == source_bytes else 0.0
     timings["facts_v2_direct_source_mismatch"] = 0.0 if direct_bytes == source_bytes else 1.0
-    if original_bytes is None or backend is None:
+    if compare_profile is None:
         return
-    payload_comparison = compare_section_payloads(original_bytes, source_bytes, backend=backend)
-    payload_exact = payload_comparison.get("exact") is True
-    relocation_semantics: bool | None = None
-    relocation_encoding: bool | None = None
-    if backend == "amiga-hunk":
-        relocation_semantics = _amiga_hunk_relocation_semantics_equal(original_bytes, source_bytes)
-        relocation_encoding = _amiga_hunk_relocation_encoding_equal(original_bytes, source_bytes)
-    content_exact = payload_exact and relocation_semantics is not False
-    timings["facts_v2_source_full_file_exact"] = 1.0 if original_bytes == source_bytes else 0.0
-    timings["facts_v2_source_content_exact"] = 1.0 if content_exact else 0.0
-    timings["facts_v2_source_payload_exact"] = 1.0 if payload_exact else 0.0
-    if relocation_semantics is not None:
-        timings["facts_v2_source_relocation_semantics_exact"] = 1.0 if relocation_semantics else 0.0
-    if relocation_encoding is not None:
-        timings["facts_v2_source_relocation_encoding_exact"] = 1.0 if relocation_encoding else 0.0
+    exactness_id = _direct_profile_int(compare_profile, "direct_compare_exactness_id") or 0
+    timings["facts_v2_source_full_file_exact"] = 1.0 if exactness_id == 1 else 0.0
+    timings["facts_v2_source_content_exact"] = 1.0 if exactness_id in {1, 2} else 0.0
+    timings["facts_v2_source_payload_exact"] = (
+        1.0 if compare_profile.get("direct_compare_payload_exact") is True else 0.0
+    )
+    if "direct_compare_relocation_semantics_exact" in compare_profile:
+        timings["facts_v2_source_relocation_semantics_exact"] = (
+            1.0 if compare_profile.get("direct_compare_relocation_semantics_exact") is True else 0.0
+        )
+    if "direct_compare_status_id" in compare_profile:
+        timings["facts_v2_source_compare_status_id"] = _direct_profile_int(
+            compare_profile, "direct_compare_status_id"
+        ) or 0
+    if "direct_compare_issue_group_flags" in compare_profile:
+        timings["facts_v2_source_compare_issue_group_flags"] = _direct_profile_int(
+            compare_profile, "direct_compare_issue_group_flags"
+        ) or 0
 
 
 def _direct_source_report_fields(original: bytes, source_bytes: bytes, *, assembler: str) -> dict[str, object]:
@@ -2765,143 +2590,6 @@ def _read_hunk_relocation_block(
         )
 
 
-def _hunk_relocation_group_key(group: dict[str, object]) -> tuple[object, ...]:
-    offsets = cast(list[int], group["offsets"])
-    return (
-        group["section_index"],
-        group["record_id"],
-        group["target_section"],
-        group["short_counts"],
-        tuple(sorted(offsets)),
-    )
-
-
-def _hunk_relocation_block_key(block: dict[str, object]) -> tuple[object, ...]:
-    return (
-        block["section_index"],
-        block["record_id"],
-        block["short_counts"],
-        _hunk_relocation_block_signature(block),
-    )
-
-
-def _hunk_relocation_block_signature(block: dict[str, object]) -> tuple[tuple[int, int], ...]:
-    entries: list[tuple[int, int]] = []
-    for group in cast(list[dict[str, object]], block["groups"]):
-        target_section = _required_int(group["target_section"])
-        for offset in cast(list[int], group["offsets"]):
-            entries.append((target_section, int(offset)))
-    return tuple(sorted(entries))
-
-
-def _hunk_relocation_block_offset_count(block: dict[str, object]) -> int:
-    return sum(len(cast(list[int], group["offsets"])) for group in cast(list[dict[str, object]], block["groups"]))
-
-
-def _hunk_relocation_group_full_key(group: dict[str, object]) -> tuple[object, ...]:
-    offsets = cast(list[int], group["offsets"])
-    return (
-        group["section_index"],
-        group["record_id"],
-        group["target_section"],
-        group["short_counts"],
-        tuple(offsets),
-    )
-
-
-def _hunk_relocation_mismatch_kind(
-    original_group: dict[str, object],
-    rebuilt_group: dict[str, object],
-) -> str | None:
-    original_offsets = cast(list[int], original_group["offsets"])
-    rebuilt_offsets = cast(list[int], rebuilt_group["offsets"])
-    if original_group["section_index"] != rebuilt_group["section_index"]:
-        return None
-    if sorted(original_offsets) != sorted(rebuilt_offsets):
-        return None
-    if (
-        original_group["record_id"] == rebuilt_group["record_id"]
-        and original_group["target_section"] == rebuilt_group["target_section"]
-        and original_group["short_counts"] == rebuilt_group["short_counts"]
-        and original_offsets != rebuilt_offsets
-    ):
-        return "offset_order_mismatch"
-    if (
-        original_group["record_id"] != rebuilt_group["record_id"]
-        and original_group["target_section"] == rebuilt_group["target_section"]
-    ):
-        return "record_type_mismatch"
-    if (
-        original_group["record_id"] == rebuilt_group["record_id"]
-        and original_group["target_section"] != rebuilt_group["target_section"]
-    ):
-        return "target_section_mismatch"
-    return None
-
-
-def _hunk_relocation_diagnostic(
-    kind: str,
-    original_group: dict[str, object] | None,
-    rebuilt_group: dict[str, object] | None,
-) -> dict[str, object]:
-    group = original_group or rebuilt_group or {}
-    diagnostic: dict[str, object] = {
-        "kind": kind,
-        "section_index": group.get("section_index"),
-    }
-    if original_group is not None:
-        diagnostic["original"] = _hunk_relocation_group_summary(original_group)
-    if rebuilt_group is not None:
-        diagnostic["rebuilt"] = _hunk_relocation_group_summary(rebuilt_group)
-    return diagnostic
-
-
-def _hunk_relocation_group_summary(group: dict[str, object]) -> dict[str, object]:
-    offsets = cast(list[int], group["offsets"])
-    return {
-        "record_id": group["record_id"],
-        "target_section": group["target_section"],
-        "short_counts": group["short_counts"],
-        "count": len(offsets),
-        "offsets": offsets[:16],
-    }
-
-
-def _amiga_hunk_relocation_semantics_equal(original: bytes, rebuilt: bytes) -> bool:
-    try:
-        return _amiga_hunk_relocation_semantic_signature(original) == _amiga_hunk_relocation_semantic_signature(rebuilt)
-    except ValueError:
-        return False
-
-
-def _amiga_hunk_relocation_encoding_equal(original: bytes, rebuilt: bytes) -> bool:
-    try:
-        return _amiga_hunk_relocation_encoding_signature(original) == _amiga_hunk_relocation_encoding_signature(rebuilt)
-    except ValueError:
-        return False
-
-
-def _amiga_hunk_relocation_semantic_signature(data: bytes) -> tuple[tuple[int, int, int, int], ...]:
-    entries: list[tuple[int, int, int, int]] = []
-    for group in _amiga_hunk_relocation_groups(data):
-        semantic_record = _hunk_relocation_semantic_record_id(_required_int(group.get("record_id")))
-        section_index = _required_int(group.get("section_index"))
-        target_section = _required_int(group.get("target_section"))
-        for offset in cast(list[int], group["offsets"]):
-            entries.append((section_index, semantic_record, target_section, int(offset)))
-    return tuple(sorted(entries))
-
-
-def _amiga_hunk_relocation_encoding_signature(data: bytes) -> tuple[tuple[object, ...], ...]:
-    return tuple(_hunk_relocation_group_full_key(group) for group in _amiga_hunk_relocation_groups(data))
-
-
-def _hunk_relocation_semantic_record_id(record_id: int) -> int:
-    if record_id == _HUNK_RELOC32SHORT:
-        return _HUNK_RELOC32
-    return record_id
-
-
 def _first_diff_layout_kind(
     diff_ranges: list[dict[str, object]],
     file_layout: list[dict[str, object]],
@@ -2938,22 +2626,6 @@ def _atari_st_relocation_offset(data: bytes) -> int:
     if header is None:
         return len(data)
     return _ATARI_PRG_HEADER_SIZE + header["text_size"] + header["data_size"] + header["symbol_size"]
-
-
-def _write_hunk_relocation_offsets(
-    data: bytearray,
-    group: dict[str, object],
-    offsets: list[int],
-) -> None:
-    pos = _required_int(group.get("offsets_file_start"))
-    if group["short_counts"]:
-        for offset in offsets:
-            data[pos:pos + 2] = int(offset).to_bytes(2, "big")
-            pos += 2
-        return
-    for offset in offsets:
-        data[pos:pos + 4] = int(offset).to_bytes(4, "big")
-        pos += 4
 
 
 def _skip_hunk_symbol_block(data: bytes, pos: int) -> int:
