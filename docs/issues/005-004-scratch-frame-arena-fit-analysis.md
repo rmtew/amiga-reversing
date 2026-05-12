@@ -18,17 +18,29 @@ Analyze per-thread scratch arenas and frame/double-buffer-style arenas against p
 
 ## Acceptance criteria
 
-- [ ] Analysis covers per-thread scratch lifetime risks and conflict-avoidance requirements.
-- [ ] Analysis covers frame/double-buffer applicability to repeated project workflows.
-- [ ] Recommendation states whether either form should advance to implementation work.
-- [ ] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
-- [ ] Before committing, run `cmd /c src\precommit.bat`.
+- [x] Analysis covers per-thread scratch lifetime risks and conflict-avoidance requirements.
+- [x] Analysis covers frame/double-buffer applicability to repeated project workflows.
+- [x] Recommendation states whether either form should advance to implementation work.
+- [x] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
+- [x] Before committing, run `cmd /c src\precommit.bat`.
 
 ## Work notes required
 
 - Record raw heap allocation sites before/after for touched modules.
 - Record arena stats if the touched workflow exposes them.
 - Record exact CDP and precommit command results before commit.
+
+## Work Notes
+
+- Analysis: `docs/arena-scratch-frame-fit-analysis.md`.
+- Raw heap allocation sites: documentation-only issue; touched production modules before/after 0 -> 0.
+- Arena stats: no workflow code touched. Analysis references existing stats from
+  `docs/arena-measurement-report.md` and prototype measurements from PRD005 issues 005-002/005-003.
+- Recommendation: do not advance per-thread scratch arenas or frame/double-buffer arenas to
+  production implementation without a future measured repeated-workflow bottleneck.
+- CDP: `uv run python -m pytest tests\test_web_e2e_cdp.py -q` passed: 29 passed in 87.67s.
+- Precommit: `cmd /c src\precommit.bat` passed; style OK 19 tests, dead_code OK,
+  unit OK 129 tests, integration OK 88 tests, explicit OK 41 tests.
 
 ## Blocked by
 

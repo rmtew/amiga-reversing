@@ -113,6 +113,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - Current linked-block baseline for the matched large transient sequence is 5032 used bytes, 9096 capacity bytes, 4064 wasted bytes, and 2 blocks. The virtual-reserved prototype uses 5032 used bytes, a 65536-byte reservation, and page-aligned commit on demand.
 - `src/test_util_arena.c`: growable pool prototype is isolated in test-only code and uses an existing Arena as backing storage; it adds no production raw heap sites and no default allocator/API behavior changes.
 - Fixed-size pool measurement: repeated 16-node allocation across 3 rounds uses 768 bytes with plain arena allocation and 256 bytes with the pool after slot reuse.
+- Scratch/frame fit analysis is documentation-only. It touches no modules and adds no raw heap sites.
 
 ## Verification
 
