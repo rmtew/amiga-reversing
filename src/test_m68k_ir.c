@@ -117,6 +117,29 @@ static int test_source_statement_renderer_uses_comment_kind_for_metadata(void) {
   return 0;
 }
 
+static int test_source_file_renderer_output_survives_source_destroy(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR stmt;
+  char *text = NULL;
+  m68k_ir_statement_init(&stmt);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section, source_file.arena));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_set_name(&section, "code"));
+  section.kind = M68K_SECTION_CODE;
+  stmt.kind = M68K_STATEMENT_LABEL;
+  stmt.label_name = "start";
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+  M68K_C_ASSERT_INT(0, m68k_source_ir_render_text_with_policy(&source_file, NULL, &text, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(text != NULL);
+
+  m68k_ir_source_file_destroy(&source_file);
+  M68K_C_ASSERT(strstr(text, "start:") != NULL);
+  free(text);
+  return 0;
+}
+
 static int test_parse_syntax_mode_name(void) {
   uint8_t mode = 0xFFu;
   M68K_C_ASSERT(m68k_ir_parse_syntax_mode_name("canonical", &mode));
@@ -18767,6 +18790,8 @@ int m68k_c_ir_tests(void) {
       test_source_statement_renderer_uses_comment_kind_for_struct_label},
     {"source_statement_renderer_uses_comment_kind_for_metadata",
       test_source_statement_renderer_uses_comment_kind_for_metadata},
+    {"source_file_renderer_output_survives_source_destroy",
+      test_source_file_renderer_output_survives_source_destroy},
     {"parse_syntax_mode_name", test_parse_syntax_mode_name},
     {"generated_cpu_vector_metadata_marks_interrupt_autovectors",
       test_generated_cpu_vector_metadata_marks_interrupt_autovectors},
