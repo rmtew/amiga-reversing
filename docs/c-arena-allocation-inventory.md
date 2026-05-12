@@ -105,6 +105,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 ## PRD 004 Notes
 
 - `src/platform_amiga_hunk.c`: direct raw heap allocation sites in parser code reduced from 45 (`malloc`, `calloc`, `free`) to 0; one Workflow Arena now owns temporary BSTR names, HUNK_EXT names, debug payload staging, section payload staging, and executable header tables for each read-buffer call. Returned HUNK object internals remain object Result Arena owned. Remaining direct heap sites in the module are external file-read and caller-freed writer-output boundaries.
+- `src/platform_atari_st.c`: Atari PRG parser code already has 0 direct raw heap allocation sites; returned TEXT/DATA sections, symbol table data, relocation stream data, and platform metadata are object Result Arena owned. Existing direct heap sites are writer payload/output and external file-read boundaries.
 
 ## Verification
 
