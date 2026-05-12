@@ -21,6 +21,10 @@ struct Arena {
   ArenaBlock *head;
   ArenaBlock *current;
   size_t default_block_size;
+  size_t current_used;
+  size_t peak_used;
+  size_t current_block_count;
+  size_t total_block_count;
 };
 
 static size_t arena_align_up(size_t size) {
@@ -65,6 +69,19 @@ static void arena_poison_range(ArenaBlock *block, size_t start, size_t end) {
 #endif
 }
 
+static void arena_refresh_current_stats(Arena *arena) {
+  ArenaBlock *block;
+  size_t used = 0U;
+  size_t block_count = 0U;
+  if (arena == NULL) return;
+  for (block = arena->head; block != NULL; block = block->next) {
+    used += block->used;
+    ++block_count;
+  }
+  arena->current_used = used;
+  arena->current_block_count = block_count;
+}
+
 Arena *arena_create(size_t initial_capacity) {
   Arena *arena;
   ArenaBlock *block;
@@ -79,6 +96,10 @@ Arena *arena_create(size_t initial_capacity) {
   arena->head = block;
   arena->current = block;
   arena->default_block_size = initial_capacity;
+  arena->current_used = 0U;
+  arena->peak_used = 0U;
+  arena->current_block_count = 1U;
+  arena->total_block_count = 1U;
   return arena;
 }
 
@@ -93,8 +114,9 @@ void *arena_alloc(Arena *arena, size_t size) {
   size_t aligned_size;
   if (arena == NULL || size == 0U) return NULL;
   aligned_size = arena_align_up(size);
+  if (aligned_size < size) return NULL;
   block = arena->current;
-  if (block->used + aligned_size > block->capacity) {
+  if (aligned_size > block->capacity - block->used) {
     size_t new_block_size = arena->default_block_size;
     ArenaBlock *new_block;
     if (aligned_size > new_block_size) new_block_size = aligned_size;
@@ -102,11 +124,15 @@ void *arena_alloc(Arena *arena, size_t size) {
     if (new_block == NULL) return NULL;
     block->next = new_block;
     arena->current = new_block;
+    arena->current_block_count += 1U;
+    arena->total_block_count += 1U;
     block = new_block;
   }
   {
     void *ptr = block->buffer + block->used;
     block->used += aligned_size;
+    arena->current_used += aligned_size;
+    if (arena->current_used > arena->peak_used) arena->peak_used = arena->current_used;
     return ptr;
   }
 }
@@ -186,6 +212,7 @@ void arena_rewind(Arena *arena, ArenaMark mark) {
       block->next = NULL;
       arena->current = block;
       arena_block_chain_destroy(tail);
+      arena_refresh_current_stats(arena);
       return;
     }
   }
@@ -198,4 +225,17 @@ void arena_reset(Arena *arena) {
   arena->head->next = NULL;
   arena->head->used = 0U;
   arena->current = arena->head;
+  arena->current_used = 0U;
+  arena->current_block_count = 1U;
+}
+
+ArenaStats arena_stats(const Arena *arena) {
+  ArenaStats stats;
+  memset(&stats, 0, sizeof(stats));
+  if (arena == NULL) return stats;
+  stats.current_used = arena->current_used;
+  stats.peak_used = arena->peak_used;
+  stats.current_block_count = arena->current_block_count;
+  stats.total_block_count = arena->total_block_count;
+  return stats;
 }

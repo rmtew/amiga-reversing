@@ -12,10 +12,10 @@ Extend the core arena with minimal memory counters and focused tests while prese
 
 ## Acceptance criteria
 
-- [ ] Arena exposes current usage, peak usage, and block allocation counters.
-- [ ] Arena allocation still returns `NULL` on failure and does not own diagnostics.
-- [ ] Tests cover stats, mark/rewind, reset, destroy, and block growth.
-- [ ] Existing C precommit or build tests pass.
+- [x] Arena exposes current usage, peak usage, and block allocation counters.
+- [x] Arena allocation still returns `NULL` on failure and does not own diagnostics.
+- [x] Tests cover stats, mark/rewind, reset, destroy, and block growth.
+- [x] Existing C precommit or build tests pass.
 
 ## Blocked by
 
