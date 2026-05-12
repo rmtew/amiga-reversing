@@ -18,18 +18,29 @@ Move source file emission temporary layout arrays, logical offsets, section writ
 
 ## Acceptance criteria
 
-- [ ] Source file emit temporary collections use Workflow Arena ownership.
-- [ ] Intermediate writer buffers are not individually heap-freed after migration.
-- [ ] Public output remains a valid Caller-Freed Output Buffer where required.
-- [ ] Before/after notes report raw heap allocation site count changes in touched source emit code.
-- [ ] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
-- [ ] Before committing, run `cmd /c src\precommit.bat`.
+- [x] Source file emit temporary collections use Workflow Arena ownership.
+- [x] Intermediate writer buffers are not individually heap-freed after migration.
+- [x] Public output remains a valid Caller-Freed Output Buffer where required.
+- [x] Before/after notes report raw heap allocation site count changes in touched source emit code.
+- [x] Before committing, run `uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
+- [x] Before committing, run `cmd /c src\precommit.bat`.
 
 ## Work notes required
 
 - Record raw heap allocation sites before/after for touched modules.
 - Record arena stats if the touched workflow exposes them.
 - Record exact CDP and precommit command results before commit.
+
+## Work notes
+
+- `m68k_source_file_layout` now uses a local Workflow Arena for physical and logical section offsets.
+- `m68k_source_file_emit_object` now uses a local Workflow Arena for section writer slots; flattened section data is built directly into the output object arena.
+- `append_data_ir_statement` now flattens temporary writer bytes directly into the destination source IR section arena.
+- Added `m68k_writer_build_arena` for arena-owned flattened writer output while keeping `m68k_writer_build` as the public caller-freed output path.
+- Raw heap allocation sites in `src/m68k_source_file_emit.c`: before 27 direct sites (`calloc`, `free`); after 0 direct raw heap sites. Remaining workflow ownership enters through `arena_create` and `arena_calloc`.
+- Arena stats: not separately exposed by this workflow; ownership is covered by the local Workflow Arena lifetime and existing source/object emission tests.
+- CDP: `uv run python -m pytest tests\test_web_e2e_cdp.py -q` -> 29 passed.
+- Precommit: `cmd /c src\precommit.bat` -> passed.
 
 ## Blocked by
 

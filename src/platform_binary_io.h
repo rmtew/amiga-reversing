@@ -37,6 +37,7 @@ int m68k_writer_u32be(M68kBinaryWriter *writer, uint32_t value);
 int m68k_writer_bytes(M68kBinaryWriter *writer, const unsigned char *data,
                       size_t size);
 unsigned char *m68k_writer_build(const M68kBinaryWriter *writer);
+unsigned char *m68k_writer_build_arena(const M68kBinaryWriter *writer, Arena *arena);
 void m68k_writer_destroy(M68kBinaryWriter *writer);
 
 #endif

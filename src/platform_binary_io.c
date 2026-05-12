@@ -179,6 +179,22 @@ unsigned char *m68k_writer_build(const M68kBinaryWriter *writer) {
     return data;
 }
 
+unsigned char *m68k_writer_build_arena(const M68kBinaryWriter *writer, Arena *arena) {
+    M68kBinaryWriterChunk *chunk;
+    unsigned char *data;
+    size_t offset = 0U;
+    if (writer == NULL || arena == NULL) return NULL;
+    data = (unsigned char *)arena_alloc(arena, writer->size == 0U ? 1U : writer->size);
+    if (data == NULL) return NULL;
+    for (chunk = writer->state != NULL ? writer->state->head : NULL; chunk != NULL; chunk = chunk->next) {
+        if (chunk->used != 0U) {
+            memcpy(data + offset, chunk->data, chunk->used);
+            offset += chunk->used;
+        }
+    }
+    return data;
+}
+
 void m68k_writer_destroy(M68kBinaryWriter *writer) {
     if (writer == NULL) return;
     arena_destroy(writer->arena);

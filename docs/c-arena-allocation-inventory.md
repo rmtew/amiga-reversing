@@ -38,7 +38,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_render_plan.c` | 81, 163, 400, 419, 464, 638 | caller_freed_output | Text builder/output buffers. |
 | `src/m68k_reproduction_compare.c` | 497, 522, 526 | workflow | Temporary fixup-match bitmap. |
 | `src/m68k_source_data.c` | 15, 35, 39, 45, 49, 50, 53, 55, 71, 76, 81, 86, 91, 92, 96, 97 | workflow | Temporary parse buffers; source model copies data item bytes into its result arena. |
-| `src/m68k_source_file_emit.c` | 144, 145, 148, 149, 165, 166, 174, 175, 184, 185, 209, 210, 220, 221, 231, 232, 237, 238, 353, 361, 422, 428, 436, 439, 445, 505, 510 | workflow | Emit offsets/writers and copied data statement buffers. |
+| `src/m68k_source_file_emit.c` | 144, 347 | workflow | Source file emit workflow arenas. Layout offsets and section writer slots are arena-backed; intermediate writer output flattens into destination arenas. |
 | `src/m68k_source_file_parse.c` | 177, 183, 682, 687, 701, 706, 720, 725, 739, 744 | workflow | Temporary hex-blob buffers; Atari ST metadata chunks are copied into the source result arena. |
 | `src/m68k_source_ir_api.c` | 52 | caller_freed_output | Public text free API. |
 | `src/m68k_source_ir_render.c` | 1015 | workflow | Source render workflow arena. Label indexes, section label counts, and include cache storage are arena-backed. |
@@ -97,6 +97,8 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 ## PRD 003 Notes
 
 - `src/m68k_source_ir_render.c`: direct raw heap allocation sites reduced from 10 (`calloc`, `free`) to 0; temporary render indexes and include cache storage are owned by a local Workflow Arena.
+- `src/m68k_source_file_emit.c`: direct raw heap allocation sites reduced from 27 (`calloc`, `free`) to 0; layout offsets, section writer slots, and intermediate writer output use workflow/result arenas.
+- `src/platform_binary_io.c`: added `m68k_writer_build_arena` for arena-owned flattened writer output; existing `m68k_writer_build` remains the caller-freed output boundary.
 
 ## Verification
 

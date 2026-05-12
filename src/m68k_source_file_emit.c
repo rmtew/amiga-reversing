@@ -3,7 +3,6 @@
 #include "platform_binary_io.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 
@@ -132,22 +131,27 @@ static int should_emit_internal_abs_fixup(const AsmSourceFile *source, M68kFixup
 
 int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitContext *context,
     M68kDiagSink diagnostics) {
-  uint32_t *offsets;
-  uint32_t *logical_offsets;
+  Arena *workflow_arena = NULL;
+  uint32_t *offsets = NULL;
+  uint32_t *logical_offsets = NULL;
   size_t pass_index;
   size_t section_count;
+  int result = 0;
   if (source == NULL) {
     source_emit_error(diagnostics, "missing source");
     return 0;
   }
+  workflow_arena = arena_create(4096U);
+  if (workflow_arena == NULL) {
+    source_emit_error(diagnostics, "out of memory");
+    return 0;
+  }
   section_count = source->section_count != 0U ? source->section_count : 1U;
-  offsets = (uint32_t *)calloc(section_count, sizeof(*offsets));
-  logical_offsets = (uint32_t *)calloc(section_count, sizeof(*logical_offsets));
+  offsets = (uint32_t *)arena_calloc(workflow_arena, section_count, sizeof(*offsets));
+  logical_offsets = (uint32_t *)arena_calloc(workflow_arena, section_count, sizeof(*logical_offsets));
   if (offsets == NULL || logical_offsets == NULL) {
     source_emit_error(diagnostics, "out of memory");
-    free(offsets);
-    free(logical_offsets);
-    return 0;
+    goto cleanup;
   }
   for (pass_index = 0; pass_index < 8U; ++pass_index) {
     int changed = 0;
@@ -162,18 +166,14 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         uint32_t value;
         if (stmt->section_index != (size_t)-1 && stmt->section_index >= source->section_count) {
           source_emit_error(diagnostics, "invalid section index");
-          free(offsets);
-          free(logical_offsets);
-          return 0;
+          goto cleanup;
         }
         value = (stmt->section_index == (size_t)-1) ? 0U : logical_offsets[stmt->section_index];
         uint8_t is_absolute = (uint8_t)(stmt->section_index != (size_t)-1 &&
           value != offsets[stmt->section_index]);
         if (!context->set_label_value(source, stmt->u.label.name, stmt->section_index, value, is_absolute)) {
           source_emit_error(diagnostics, "failed updating label");
-          free(offsets);
-          free(logical_offsets);
-          return 0;
+          goto cleanup;
         }
         stmt->offset = (stmt->section_index == (size_t)-1) ? 0U : offsets[stmt->section_index];
         stmt->logical_offset = value;
@@ -181,9 +181,7 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
       }
       if (stmt->section_index >= source->section_count) {
         source_emit_error(diagnostics, "invalid section index");
-        free(offsets);
-        free(logical_offsets);
-        return 0;
+        goto cleanup;
       }
       stmt->offset = offsets[stmt->section_index];
       stmt->logical_offset = logical_offsets[stmt->section_index];
@@ -206,9 +204,7 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
         M68kIrEncodeResult encoded;
         resolved = context->resolve_instruction(source, stmt, stmt->logical_offset, 1, diagnostics);
         if (!resolved.ok) {
-          free(offsets);
-          free(logical_offsets);
-          return 0;
+          goto cleanup;
         }
         if (resolved.instruction.size_suffix == '\0')
           resolved.instruction.size_suffix = stmt->u.instruction.requested_size_suffix;
@@ -217,9 +213,7 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
           m68k_diag_sink(&encode_diagnostics));
         if (m68k_diag_has_errors(&encode_diagnostics)) {
           source_emit_error(diagnostics, m68k_diag_first_message(&encode_diagnostics));
-          free(offsets);
-          free(logical_offsets);
-          return 0;
+          goto cleanup;
         }
         if (stmt->size != (uint32_t)encoded.byte_count) changed = 1;
         stmt->size = (uint32_t)encoded.byte_count;
@@ -228,15 +222,14 @@ int m68k_source_file_layout(AsmSourceFile *source, const M68kSourceFileEmitConte
       logical_offsets[stmt->section_index] += stmt->size;
     }
     if (!changed) {
-      free(offsets);
-      free(logical_offsets);
-      return 1;
+      result = 1;
+      goto cleanup;
     }
   }
   source_emit_error(diagnostics, "layout did not stabilize");
-  free(offsets);
-  free(logical_offsets);
-  return 0;
+cleanup:
+  arena_destroy(workflow_arena);
+  return result;
 }
 
 static int emit_data_statement(const AsmSourceFile *source, const AsmSourceStmt *stmt,
@@ -343,6 +336,7 @@ static int emit_instruction_statement(const AsmSourceFile *source, const M68kSou
 
 int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFileEmitContext *context,
     M68kObject *out_object, M68kDiagSink diagnostics) {
+  Arena *workflow_arena = NULL;
   M68kBinaryWriter *section_writers = NULL;
   size_t index;
   size_t section_writer_count = 0U;
@@ -350,16 +344,21 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
     source_emit_error(diagnostics, "missing source");
     return 0;
   }
-  section_writers = (M68kBinaryWriter *)calloc(source->section_count != 0U ? source->section_count : 1U,
-    sizeof(*section_writers));
-  if (section_writers == NULL) {
+  workflow_arena = arena_create(4096U);
+  if (workflow_arena == NULL) {
     source_emit_error(diagnostics, "out of memory");
     return 0;
   }
+  section_writers = (M68kBinaryWriter *)arena_calloc(workflow_arena,
+    source->section_count != 0U ? source->section_count : 1U,
+    sizeof(*section_writers));
+  if (section_writers == NULL) {
+    source_emit_error(diagnostics, "out of memory");
+    goto fail_without_object;
+  }
   if (m68k_object_create(out_object) != 0) {
     source_emit_error(diagnostics, "out of memory");
-    free(section_writers);
-    return 0;
+    goto fail_without_object;
   }
   out_object->platform_backend_kind = source->platform_backend_kind;
   out_object->platform_file_kind = source->file_kind;
@@ -412,20 +411,19 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
   }
   for (index = 0; index < out_object->section_count; ++index) {
     M68kSection *section = &out_object->sections[index];
-    uint8_t *data = (uint8_t *)m68k_writer_build(&section_writers[index]);
     uint32_t data_size = (uint32_t)section_writers[index].size;
-    if (section_writers[index].size != 0U && data == NULL) {
+    uint8_t *data = data_size != 0U
+      ? (uint8_t *)m68k_writer_build_arena(&section_writers[index], out_object->arena)
+      : NULL;
+    if (data_size != 0U && data == NULL) {
       source_emit_error(diagnostics, "out of memory");
       goto fail;
     }
-    if (m68k_object_set_section_data(out_object, index, data, data_size) != 0) {
-      free(data);
-      source_emit_error(diagnostics, "out of memory");
-      goto fail;
-    }
+    section->data = data;
+    section->data_size = data_size;
+    if (section->size < data_size) section->size = data_size;
     if (source->sections[index].has_alloc_size) {
       if (source->sections[index].alloc_size < data_size) {
-        free(data);
         source_emit_error(diagnostics, "section allocation size is smaller than emitted data");
         goto fail;
       }
@@ -433,17 +431,17 @@ int m68k_source_file_emit_object(const AsmSourceFile *source, const M68kSourceFi
     } else {
       section->size = data_size;
     }
-    free(data);
     m68k_writer_destroy(&section_writers[index]);
   }
-  free(section_writers);
+  arena_destroy(workflow_arena);
   return 1;
 
 fail:
   for (index = 0; index < section_writer_count; ++index)
     m68k_writer_destroy(&section_writers[index]);
-  free(section_writers);
   m68k_object_destroy(out_object);
+fail_without_object:
+  arena_destroy(workflow_arena);
   return 0;
 }
 
@@ -498,16 +496,16 @@ static int append_data_ir_statement(const AsmSourceFile *source, const AsmSource
       }
     }
   }
-  statement.u.data.data = (uint8_t *)m68k_writer_build(&writer);
   statement.u.data.size = writer.size;
+  statement.u.data.data = statement.u.data.size != 0U
+    ? (uint8_t *)m68k_writer_build_arena(&writer, section->arena)
+    : NULL;
   if (statement.u.data.size != 0U && statement.u.data.data == NULL) goto fail;
   if (m68k_ir_section_append_statement(section, &statement) != 0) goto fail;
-  free(statement.u.data.data);
   m68k_writer_destroy(&writer);
   return 1;
 
 fail:
-  free(statement.u.data.data);
   m68k_writer_destroy(&writer);
   return 0;
 }
