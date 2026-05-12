@@ -35,6 +35,13 @@ from amiga_reversing.disasm.project_paths import (
     resolve_project_dir,
     resolve_project_paths,
 )
+from amiga_reversing.disasm.reproduction_report import (
+    ReportContext,
+    ReproductionOutcome,
+    RoundTripReportBuilder,
+    profile_payload,
+    write_report,
+)
 from amiga_reversing.disasm.target_metadata import (
     TARGET_CORRECTIONS_FILE_NAME,
     TARGET_METADATA_FILE_NAME,
@@ -153,14 +160,16 @@ def run_reproduction(
         error="not prepared",
     )
     backend = "unknown"
-    base_report = _base_reproduction_report(
-        target_name,
-        started_at=started_at,
-        input_stamp=input_stamp,
-        assembler=assembler,
-        backend=backend,
-        source_path=source_path,
-        rebuilt_path=rebuilt_path,
+    report_builder = RoundTripReportBuilder(
+        ReportContext(
+            target_name=target_name,
+            started_at=started_at,
+            input_stamp=input_stamp,
+            assembler=assembler,
+            backend=backend,
+            source_path=source_path,
+            rebuilt_path=rebuilt_path,
+        )
     )
 
     phase = "prepare"
@@ -178,25 +187,26 @@ def run_reproduction(
         backend = cast(str, input_stamp["backend"])
         assembler = cast(str, input_stamp["assembler"])
         assembler_cpu = cast(str, input_stamp["assembler_cpu"])
-        base_report = _base_reproduction_report(
-            target_name,
-            started_at=started_at,
-            input_stamp=input_stamp,
-            assembler=assembler,
-            backend=backend,
-            source_path=source_path,
-            rebuilt_path=rebuilt_path,
+        report_builder = RoundTripReportBuilder(
+            ReportContext(
+                target_name=target_name,
+                started_at=started_at,
+                input_stamp=input_stamp,
+                assembler=assembler,
+                backend=backend,
+                source_path=source_path,
+                rebuilt_path=rebuilt_path,
+            )
         )
         _record_profile_timing(profile_timings, "prepare_seconds", phase_started_at)
         out_dir.mkdir(parents=True, exist_ok=True)
         if assembler not in REPRODUCTION_ASSEMBLERS:
-            report = {
-                **base_report,
-                "status": "tool_error",
-                "tool_error": f"unsupported exactness assembler: {assembler}",
-                "finished_at": time.time(),
-                "issues": [_issue("tool", f"unsupported exactness assembler: {assembler}", None)],
-            }
+            message = f"unsupported exactness assembler: {assembler}"
+            report = report_builder.error(
+                status="tool_error",
+                tool_error=message,
+                issues=[_issue("tool", message, None)],
+            )
             return _write_reproduction_report(paths.target_dir, report)
         use_facts_v2_native_reproduction = source_text is None
         use_facts_v2_direct_rebuild = (
@@ -309,37 +319,36 @@ def run_reproduction(
                         direct_shape_row_issues = _direct_compare_shape_row_issues(
                             direct_profile, row_for_section_offset
                         )
-                        report = {
-                            **base_report,
-                            "status": "exact" if selected_exact else "binary_mismatch",
-                            "exact": selected_exact,
-                            "finished_at": time.time(),
-                            "original_size": original_size,
-                            "rebuilt_size": len(direct_bytes),
-                            "rebuilt_sha256": digest,
-                            "canonical_rebuilt_size": len(direct_bytes),
-                            "canonical_rebuilt_sha256": digest,
-                            "canonical_rebuilt_path": str(rebuilt_path),
-                            "first_diff": None,
-                            "diff_ranges": [],
-                            "canonical_diff_ranges": [],
-                            "file_layout": [],
-                            "row_mappings": direct_shape_row_issues,
-                            "issues": direct_shape_row_issues,
-                            "assembler_diagnostics": [],
-                            "assembler_stdout": assembler_stdout,
-                            "assembler_stderr": assembler_stderr,
-                            "file_shape_adjustments": [],
-                            "file_shape_diagnostics": direct_shape_diagnostics,
-                            "canonical_file_shape_diagnostics": [dict(item) for item in direct_shape_diagnostics],
-                            "comparison": comparison,
-                        }
-                        if direct_source_report is not None:
-                            report.update(direct_source_report)
-                        if listing_profile is not None:
-                            report["listing_profile"] = listing_profile
-                        if profile:
-                            report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                        report = report_builder.completed(
+                            ReproductionOutcome(
+                                status="exact" if selected_exact else "binary_mismatch",
+                                exact=selected_exact,
+                                original_size=original_size,
+                                rebuilt_size=len(direct_bytes),
+                                rebuilt_sha256=digest,
+                                canonical_rebuilt_size=len(direct_bytes),
+                                canonical_rebuilt_sha256=digest,
+                                canonical_rebuilt_path=rebuilt_path,
+                                first_diff=None,
+                                diff_ranges=[],
+                                canonical_diff_ranges=[],
+                                file_layout=[],
+                                row_mappings=direct_shape_row_issues,
+                                issues=direct_shape_row_issues,
+                                assembler_diagnostics=[],
+                                assembler_stdout=assembler_stdout,
+                                assembler_stderr=assembler_stderr,
+                                file_shape_adjustments=[],
+                                file_shape_diagnostics=direct_shape_diagnostics,
+                                canonical_file_shape_diagnostics=[
+                                    dict(item) for item in direct_shape_diagnostics
+                                ],
+                                comparison=comparison,
+                                direct_source_report=direct_source_report,
+                                listing_profile=listing_profile,
+                                profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                            )
+                        )
                         return _write_reproduction_report(paths.target_dir, report)
                 except FactsV2SourceRefused as exc:
                     message = str(exc)
@@ -347,16 +356,13 @@ def run_reproduction(
                     profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
-                    report = {
-                        **base_report,
-                        "status": "render_error",
-                        "finished_at": time.time(),
-                        "tool_error": message,
-                        "issues": [_issue("renderer", message, None)],
-                        "listing_profile": exc.listing_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    report = report_builder.error(
+                        status="render_error",
+                        tool_error=message,
+                        issues=[_issue("renderer", message, None)],
+                        listing_profile=exc.listing_profile,
+                        profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                    )
                     return _write_reproduction_report(paths.target_dir, report)
                 except FactsV2DirectRebuildRefused as exc:
                     listing_profile = exc.source_profile
@@ -370,30 +376,26 @@ def run_reproduction(
                         direct_profile=exc.direct_profile,
                     )
                     if accepted_kind is not None:
-                        report = {
-                            **base_report,
-                            "status": "accepted_mismatch",
-                            "accepted_mismatch_kind": accepted_kind,
-                            "accepted_mismatch_reason": message,
-                            "finished_at": time.time(),
-                            "issues": [],
-                            "listing_profile": listing_profile,
-                            "direct_rebuild_profile": exc.direct_profile,
-                        }
-                        if profile:
-                            report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                        report = report_builder.error(
+                            status="accepted_mismatch",
+                            issues=[],
+                            listing_profile=listing_profile,
+                            direct_rebuild_profile=exc.direct_profile,
+                            profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                            extra={
+                                "accepted_mismatch_kind": accepted_kind,
+                                "accepted_mismatch_reason": message,
+                            },
+                        )
                         return _write_reproduction_report(paths.target_dir, report)
-                    report = {
-                        **base_report,
-                        "status": "tool_error",
-                        "finished_at": time.time(),
-                        "tool_error": message,
-                        "issues": [_issue("direct_rebuild", message, None)],
-                        "listing_profile": listing_profile,
-                        "direct_rebuild_profile": exc.direct_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    report = report_builder.error(
+                        status="tool_error",
+                        tool_error=message,
+                        issues=[_issue("direct_rebuild", message, None)],
+                        listing_profile=listing_profile,
+                        direct_rebuild_profile=exc.direct_profile,
+                        profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                    )
                     return _write_reproduction_report(paths.target_dir, report)
                 except FactsV2ProfiledOperationFailed as exc:
                     listing_profile = exc.source_profile
@@ -401,17 +403,14 @@ def run_reproduction(
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
                     message = str(exc)
-                    report = {
-                        **base_report,
-                        "status": "tool_error",
-                        "finished_at": time.time(),
-                        "tool_error": message,
-                        "issues": [_issue("direct_rebuild", message, None)],
-                        "listing_profile": listing_profile,
-                        "direct_rebuild_profile": exc.operation_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    report = report_builder.error(
+                        status="tool_error",
+                        tool_error=message,
+                        issues=[_issue("direct_rebuild", message, None)],
+                        listing_profile=listing_profile,
+                        direct_rebuild_profile=exc.operation_profile,
+                        profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                    )
                     return _write_reproduction_report(paths.target_dir, report)
         if use_listing_source_assembly and rebuilt_bytes is None:
             phase = "render_source"
@@ -438,16 +437,13 @@ def run_reproduction(
                     profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["listing_artifact_source_assembly"] = 1.0
-                    report = {
-                        **base_report,
-                        "status": "render_error",
-                        "finished_at": time.time(),
-                        "tool_error": message,
-                        "issues": [_issue("renderer", message, None)],
-                        "listing_profile": exc.listing_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    report = report_builder.error(
+                        status="render_error",
+                        tool_error=message,
+                        issues=[_issue("renderer", message, None)],
+                        listing_profile=exc.listing_profile,
+                        profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                    )
                     return _write_reproduction_report(paths.target_dir, report)
                 _record_profile_timing(profile_timings, "render_source_seconds", phase_started_at)
                 profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
@@ -470,18 +466,15 @@ def run_reproduction(
                     _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
                     profile_timings["listing_artifact_source_assembly"] = 1.0
                     diagnostics = parse_assembler_diagnostics(assembler_stderr)
-                    report = {
-                        **base_report,
-                        "status": "assembler_error",
-                        "finished_at": time.time(),
-                        "assembler_diagnostics": diagnostics,
-                        "assembler_stdout": assembler_stdout,
-                        "assembler_stderr": assembler_stderr,
-                        "issues": diagnostics or [_issue("assembler", "Assembler failed", None)],
-                        "listing_profile": listing_profile,
-                    }
-                    if profile:
-                        report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                    report = report_builder.error(
+                        status="assembler_error",
+                        issues=diagnostics or [_issue("assembler", "Assembler failed", None)],
+                        assembler_diagnostics=diagnostics,
+                        assembler_stdout=assembler_stdout,
+                        assembler_stderr=assembler_stderr,
+                        listing_profile=listing_profile,
+                        profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                    )
                     return _write_reproduction_report(paths.target_dir, report)
             _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
             profile_timings["assemble_seconds"] = _flat_profile_total(assembler_profile)
@@ -540,17 +533,14 @@ def run_reproduction(
                 assembler_stderr = str(exc)
                 _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
                 diagnostics = parse_assembler_diagnostics(assembler_stderr)
-                report = {
-                    **base_report,
-                    "status": "assembler_error",
-                    "finished_at": time.time(),
-                    "assembler_diagnostics": diagnostics,
-                    "assembler_stdout": assembler_stdout,
-                    "assembler_stderr": assembler_stderr,
-                    "issues": diagnostics or [_issue("assembler", "Assembler failed", None)],
-                }
-                if profile:
-                    report["profile"] = _profile_payload(profile_timings, profile_started_at)
+                report = report_builder.error(
+                    status="assembler_error",
+                    issues=diagnostics or [_issue("assembler", "Assembler failed", None)],
+                    assembler_diagnostics=diagnostics,
+                    assembler_stdout=assembler_stdout,
+                    assembler_stderr=assembler_stderr,
+                    profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                )
                 return _write_reproduction_report(paths.target_dir, report)
             _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
         diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
@@ -683,37 +673,34 @@ def run_reproduction(
             canonical_rebuilt_path.write_bytes(canonical_rebuilt)
             rebuilt_path.write_bytes(rebuilt)
         canonical_path_for_report = canonical_rebuilt_path if rebuilt != canonical_rebuilt else rebuilt_path
-        report = {
-            **base_report,
-            "status": report_status,
-            "exact": exact,
-            "finished_at": time.time(),
-            "original_size": len(original),
-            "rebuilt_size": len(rebuilt),
-            "rebuilt_sha256": _sha256_bytes(rebuilt),
-            "canonical_rebuilt_size": len(canonical_rebuilt),
-            "canonical_rebuilt_sha256": _sha256_bytes(canonical_rebuilt),
-            "canonical_rebuilt_path": str(canonical_path_for_report),
-            "first_diff": first_diff_payload,
-            "diff_ranges": diff_ranges,
-            "canonical_diff_ranges": canonical_diff_ranges,
-            "file_layout": file_layout,
-            "row_mappings": row_issues,
-            "issues": row_issues,
-            "assembler_diagnostics": diagnostics,
-            "assembler_stdout": assembler_stdout,
-            "assembler_stderr": assembler_stderr,
-            "file_shape_adjustments": file_shape_adjustments,
-            "file_shape_diagnostics": file_shape_diagnostics,
-            "canonical_file_shape_diagnostics": canonical_file_shape_diagnostics,
-            "comparison": comparison,
-        }
-        if direct_source_report is not None:
-            report.update(direct_source_report)
-        if listing_profile is not None:
-            report["listing_profile"] = listing_profile
-        if profile:
-            report["profile"] = _profile_payload(profile_timings, profile_started_at)
+        report = report_builder.completed(
+            ReproductionOutcome(
+                status=report_status,
+                exact=exact,
+                original_size=len(original),
+                rebuilt_size=len(rebuilt),
+                rebuilt_sha256=_sha256_bytes(rebuilt),
+                canonical_rebuilt_size=len(canonical_rebuilt),
+                canonical_rebuilt_sha256=_sha256_bytes(canonical_rebuilt),
+                canonical_rebuilt_path=canonical_path_for_report,
+                first_diff=first_diff_payload,
+                diff_ranges=diff_ranges,
+                canonical_diff_ranges=canonical_diff_ranges,
+                file_layout=file_layout,
+                row_mappings=row_issues,
+                issues=row_issues,
+                assembler_diagnostics=diagnostics,
+                assembler_stdout=assembler_stdout,
+                assembler_stderr=assembler_stderr,
+                file_shape_adjustments=file_shape_adjustments,
+                file_shape_diagnostics=file_shape_diagnostics,
+                canonical_file_shape_diagnostics=canonical_file_shape_diagnostics,
+                comparison=comparison,
+                direct_source_report=direct_source_report,
+                listing_profile=listing_profile,
+                profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+            )
+        )
         _emit_progress(
             progress_callback,
             target_name=target_name,
@@ -737,26 +724,25 @@ def run_reproduction(
                 error=str(exc),
                 target_dir=target_dir,
             )
-            base_report = _base_reproduction_report(
-                target_name,
-                started_at=started_at,
-                input_stamp=input_stamp,
-                assembler=assembler,
-                backend=str(input_stamp.get("backend") or backend),
-                source_path=source_path,
-                rebuilt_path=rebuilt_path,
+            report_builder = RoundTripReportBuilder(
+                ReportContext(
+                    target_name=target_name,
+                    started_at=started_at,
+                    input_stamp=input_stamp,
+                    assembler=assembler,
+                    backend=str(input_stamp.get("backend") or backend),
+                    source_path=source_path,
+                    rebuilt_path=rebuilt_path,
+                )
             )
         status = "render_error" if phase == "render" else "tool_error"
         issue_kind = "renderer" if phase == "render" else "tool"
-        report = {
-            **base_report,
-            "status": status,
-            "finished_at": time.time(),
-            "tool_error": str(exc),
-            "issues": [_issue(issue_kind, str(exc), None)],
-        }
-        if profile:
-            report["profile"] = _profile_payload(profile_timings, profile_started_at)
+        report = report_builder.error(
+            status=status,
+            tool_error=str(exc),
+            issues=[_issue(issue_kind, str(exc), None)],
+            profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+        )
         if target_dir is None:
             return report
         return _write_reproduction_report(target_dir, report)
@@ -1538,9 +1524,7 @@ def issues_by_row_index(report: dict[str, object]) -> dict[int, list[dict[str, o
 
 
 def _write_reproduction_report(target_dir: Path, report: dict[str, object]) -> dict[str, object]:
-    path = reproduction_report_path(target_dir)
-    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return report
+    return write_report(reproduction_report_path(target_dir), report)
 
 
 def _write_text_if_changed(path: Path, text: str) -> tuple[int, bool]:
@@ -1687,50 +1671,6 @@ def source_renderer_tool_stamps(project_root: Path) -> dict[str, str]:
         "c_backend.py": _file_stamp(Path(__file__).with_name("c_backend.py")),
         "platform_file_lib.dll": _file_stamp(build_dir / "platform_file_lib.dll"),
         "platform_disk_lib.dll": _file_stamp(build_dir / "platform_disk_lib.dll"),
-    }
-
-
-def _base_reproduction_report(
-    target_name: str,
-    *,
-    started_at: float,
-    input_stamp: dict[str, object],
-    assembler: str,
-    backend: str,
-    source_path: Path,
-    rebuilt_path: Path,
-) -> dict[str, object]:
-    return {
-        "target": target_name,
-        "status": "not_ready",
-        "exact": False,
-        "stale": False,
-        "input_stamp": input_stamp,
-        "started_at": started_at,
-        "finished_at": None,
-        "assembler": assembler,
-        "assembler_cpu": input_stamp.get("assembler_cpu"),
-        "backend": backend,
-        "analysis_backend": input_stamp.get("analysis_backend"),
-        "source_path": str(source_path),
-        "rebuilt_path": str(rebuilt_path),
-        "original_size": input_stamp.get("original_size"),
-        "rebuilt_size": None,
-        "original_sha256": input_stamp.get("original_sha256"),
-        "rebuilt_sha256": None,
-        "direct_source_exact": None,
-        "direct_source_assembler": None,
-        "direct_source_diff_range_count": None,
-        "direct_source_first_diff": None,
-        "first_diff": None,
-        "diff_ranges": [],
-        "row_mappings": [],
-        "issues": [],
-        "assembler_diagnostics": [],
-        "assembler_stdout": "",
-        "assembler_stderr": "",
-        "file_shape_adjustments": [],
-        "tool_error": None,
     }
 
 
@@ -1909,12 +1849,6 @@ def _facts_v2_profile_counter(profile: dict[str, object] | None, key: str) -> in
         return 0
     value = facts_v2.get(key)
     return int(value) if isinstance(value, int) and not isinstance(value, bool) else 0
-
-
-def _profile_payload(timings: dict[str, object], started_at: float) -> dict[str, object]:
-    payload: dict[str, object] = dict(timings)
-    payload["total_seconds"] = round(time.perf_counter() - started_at, 4)
-    return payload
 
 
 def _default_reproduction_options() -> dict[str, object]:

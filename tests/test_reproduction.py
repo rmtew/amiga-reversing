@@ -26,6 +26,11 @@ from amiga_reversing.disasm.reproduction import (
     reproduction_options_for_target,
     run_reproduction,
 )
+from amiga_reversing.disasm.reproduction_report import (
+    ReportContext,
+    ReproductionOutcome,
+    RoundTripReportBuilder,
+)
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
@@ -137,6 +142,87 @@ def _mock_c_compare_profile(original: bytes, rebuilt: bytes) -> dict[str, object
         "reproduction_compare_content_exact": exact,
         "reproduction_compare_container_oddity": False,
     }
+
+
+def test_round_trip_report_builder_completed_shape(tmp_path: Path) -> None:
+    builder = RoundTripReportBuilder(
+        ReportContext(
+            target_name="demo",
+            started_at=10.0,
+            input_stamp={
+                "assembler_cpu": "any",
+                "analysis_backend": "facts_v2",
+                "original_size": 4,
+                "original_sha256": "orig",
+            },
+            assembler="our",
+            backend="amiga-hunk",
+            source_path=tmp_path / "source.s",
+            rebuilt_path=tmp_path / "rebuilt.bin",
+        )
+    )
+
+    report = builder.completed(
+        ReproductionOutcome(
+            status="exact",
+            exact=True,
+            original_size=4,
+            rebuilt_size=4,
+            rebuilt_sha256="rebuilt",
+            canonical_rebuilt_size=4,
+            canonical_rebuilt_sha256="rebuilt",
+            canonical_rebuilt_path=tmp_path / "rebuilt.bin",
+            first_diff=None,
+            diff_ranges=[],
+            canonical_diff_ranges=[],
+            file_layout=[],
+            row_mappings=[],
+            issues=[],
+            assembler_diagnostics=[],
+            assembler_stdout="",
+            assembler_stderr="",
+            file_shape_adjustments=[],
+            file_shape_diagnostics=[],
+            canonical_file_shape_diagnostics=[],
+            comparison={"full_file_exact": True},
+            listing_profile={"generation": "facts_v2_asm_source"},
+            profile={"total_seconds": 0.1},
+        )
+    )
+
+    assert report["target"] == "demo"
+    assert report["status"] == "exact"
+    assert report["exact"] is True
+    assert report["canonical_rebuilt_path"] == str(tmp_path / "rebuilt.bin")
+    assert report["comparison"] == {"full_file_exact": True}
+    assert report["listing_profile"] == {"generation": "facts_v2_asm_source"}
+    assert report["profile"] == {"total_seconds": 0.1}
+
+
+def test_round_trip_report_builder_error_shape(tmp_path: Path) -> None:
+    builder = RoundTripReportBuilder(
+        ReportContext(
+            target_name="demo",
+            started_at=10.0,
+            input_stamp={},
+            assembler="our",
+            backend="amiga-hunk",
+            source_path=tmp_path / "source.s",
+            rebuilt_path=tmp_path / "rebuilt.bin",
+        )
+    )
+
+    report = builder.error(
+        status="tool_error",
+        tool_error="boom",
+        issues=[{"kind": "tool", "message": "boom"}],
+        profile={"total_seconds": 0.1},
+    )
+
+    assert report["status"] == "tool_error"
+    assert report["tool_error"] == "boom"
+    assert report["issues"] == [{"kind": "tool", "message": "boom"}]
+    assert report["profile"] == {"total_seconds": 0.1}
 
 
 def test_reproduction_diff_finds_first_byte_and_grouped_ranges() -> None:
