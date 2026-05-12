@@ -43,6 +43,52 @@ typedef enum M68kFixupWidth {
   M68K_FIXUP_WIDTH_32 = 4
 } M68kFixupWidth;
 
+#define M68K_CONTAINER_METADATA_CAPACITY 16U
+
+typedef enum M68kContainerLayoutKind {
+  M68K_CONTAINER_LAYOUT_NONE = 0,
+  M68K_CONTAINER_LAYOUT_NO_CONTAINER = 1,
+  M68K_CONTAINER_LAYOUT_AMIGA_HUNK_CONTAINER = 2,
+  M68K_CONTAINER_LAYOUT_AMIGA_HUNK_SECTION = 3,
+  M68K_CONTAINER_LAYOUT_AMIGA_HUNK_RELOCATION_BLOCK = 4
+} M68kContainerLayoutKind;
+
+typedef enum M68kContainerEncodingKind {
+  M68K_CONTAINER_ENCODING_NONE = 0,
+  M68K_CONTAINER_ENCODING_NO_CONTAINER = 1,
+  M68K_CONTAINER_ENCODING_AMIGA_HUNK_RECORD_WIRE_ID = 2,
+  M68K_CONTAINER_ENCODING_AMIGA_HUNK_RELOCATION_WIRE_ID = 3
+} M68kContainerEncodingKind;
+
+enum {
+  M68K_CONTAINER_LAYOUT_FLAG_PAYLOAD = 1U << 0,
+  M68K_CONTAINER_LAYOUT_FLAG_RELOCATION = 1U << 1,
+  M68K_CONTAINER_LAYOUT_FLAG_HEADER = 1U << 2
+};
+
+typedef struct M68kContainerLayoutMetadata {
+  uint16_t kind;
+  uint16_t flags;
+  uint32_t id;
+  uint32_t aux;
+} M68kContainerLayoutMetadata;
+
+typedef struct M68kContainerEncodingMetadata {
+  uint16_t kind;
+  uint16_t flags;
+  uint32_t id;
+  uint32_t aux;
+} M68kContainerEncodingMetadata;
+
+typedef struct M68kContainerMetadata {
+  M68kContainerLayoutMetadata layout[M68K_CONTAINER_METADATA_CAPACITY];
+  M68kContainerEncodingMetadata encoding[M68K_CONTAINER_METADATA_CAPACITY];
+  uint8_t layout_count;
+  uint8_t encoding_count;
+  uint8_t layout_overflow;
+  uint8_t encoding_overflow;
+} M68kContainerMetadata;
+
 typedef struct M68kSection {
   char *name;
   M68kSectionKind kind;
@@ -93,6 +139,7 @@ typedef struct M68kObject {
   M68kFixup *fixups;
   size_t fixup_count;
   size_t fixup_capacity;
+  M68kContainerMetadata container_metadata;
   void *platform_data;
   Arena *arena;
 } M68kObject;
@@ -112,5 +159,8 @@ int m68k_object_set_section_data(M68kObject *object, size_t section_index, const
 int m68k_object_set_section_debug_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t debug_size);
 M68kObjectAddResult m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol);
 M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup);
+void m68k_object_add_container_layout(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux);
+void m68k_object_add_container_encoding(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux);
+void m68k_object_mark_no_container(M68kObject *object);
 
 #endif

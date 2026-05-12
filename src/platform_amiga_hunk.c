@@ -432,6 +432,10 @@ static int parse_reloc_block(Reader *reader, M68kObject *object, size_t section_
     uint32_t record_wire_id, uint32_t block_index, M68kFixupKind kind, M68kFixupWidth width, int short_counts,
     M68kDiagSink diagnostics) {
     uint32_t group_index = 0U;
+    m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_RELOCATION_BLOCK,
+        M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, (uint32_t)record_kind, (uint32_t)section_index);
+    m68k_object_add_container_encoding(object, M68K_CONTAINER_ENCODING_AMIGA_HUNK_RELOCATION_WIRE_ID,
+        M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, record_wire_id, block_index);
     while (1) {
         uint32_t count = 0;
         uint32_t target = 0;
@@ -695,6 +699,10 @@ static int add_section_from_hunk(M68kObject *object, uint32_t raw_type, const ch
         return -1;
     }
     section_index = section_result.index;
+    m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_SECTION,
+        M68K_CONTAINER_LAYOUT_FLAG_PAYLOAD, (uint32_t)record_kind_from_wire_id(hunk_type), (uint32_t)section_index);
+    m68k_object_add_container_encoding(object, M68K_CONTAINER_ENCODING_AMIGA_HUNK_RECORD_WIRE_ID,
+        M68K_CONTAINER_LAYOUT_FLAG_PAYLOAD, hunk_type, raw_type);
     free(section.data);
     if (parse_section_body(reader, object, section_index, is_executable, diagnostics) != 0) return -1;
     return 0;
@@ -708,6 +716,10 @@ static int parse_hunk_executable(Reader *reader, M68kObject *object, M68kDiagSin
     uint32_t *header_size_words = NULL;
 
     object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_CONTAINER,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, AMIGA_HUNK_FILE_META_CONTAINER_KIND_EXECUTABLE, 0U);
+    m68k_object_add_container_encoding(object, M68K_CONTAINER_ENCODING_AMIGA_HUNK_RECORD_WIRE_ID,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, HUNK_HEADER, 0U);
     if (ensure_amiga_hunk_platform_data(object, &platform_data) != 0) {
         platform_file_diag_error(diagnostics, "Out of memory allocating Amiga hunk platform metadata");
         return -1;
@@ -792,6 +804,10 @@ fail:
 static int parse_hunk_object(Reader *reader, M68kObject *object, M68kDiagSink diagnostics) {
     AmigaHunkPlatformData *platform_data = NULL;
     object->platform_file_kind = M68K_PLATFORM_FILE_OBJECT;
+    m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_CONTAINER,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, AMIGA_HUNK_FILE_META_CONTAINER_KIND_OBJECT, 0U);
+    m68k_object_add_container_encoding(object, M68K_CONTAINER_ENCODING_AMIGA_HUNK_RECORD_WIRE_ID,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, HUNK_UNIT, 0U);
     if (ensure_amiga_hunk_platform_data(object, &platform_data) != 0) {
         platform_file_diag_error(diagnostics, "Out of memory allocating Amiga hunk platform metadata");
         return -1;

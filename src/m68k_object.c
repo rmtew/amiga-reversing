@@ -120,3 +120,41 @@ M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *f
   object->fixup_count += 1;
   return result;
 }
+
+void m68k_object_add_container_layout(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux) {
+  M68kContainerMetadata *metadata;
+  M68kContainerLayoutMetadata *item;
+  if (object == NULL) return;
+  metadata = &object->container_metadata;
+  if (metadata->layout_count >= M68K_CONTAINER_METADATA_CAPACITY) {
+    metadata->layout_overflow = 1U;
+    return;
+  }
+  item = &metadata->layout[metadata->layout_count++];
+  item->kind = kind;
+  item->flags = flags;
+  item->id = id;
+  item->aux = aux;
+}
+
+void m68k_object_add_container_encoding(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux) {
+  M68kContainerMetadata *metadata;
+  M68kContainerEncodingMetadata *item;
+  if (object == NULL) return;
+  metadata = &object->container_metadata;
+  if (metadata->encoding_count >= M68K_CONTAINER_METADATA_CAPACITY) {
+    metadata->encoding_overflow = 1U;
+    return;
+  }
+  item = &metadata->encoding[metadata->encoding_count++];
+  item->kind = kind;
+  item->flags = flags;
+  item->id = id;
+  item->aux = aux;
+}
+
+void m68k_object_mark_no_container(M68kObject *object) {
+  if (object == NULL) return;
+  m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_NO_CONTAINER, 0U, 0U, 0U);
+  m68k_object_add_container_encoding(object, M68K_CONTAINER_ENCODING_NO_CONTAINER, 0U, 0U, 0U);
+}

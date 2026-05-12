@@ -5390,6 +5390,7 @@ static int load_raw_object_from_path(const char *platform_name, const char *path
   object->platform_backend_kind = (backend == &M68K_BACKEND_ATARI_ST) ? M68K_PLATFORM_BACKEND_ATARI_ST
     : M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  m68k_object_mark_no_container(object);
   memset(&section, 0, sizeof(section));
   section.name = "code";
   section.kind = M68K_SECTION_CODE;
