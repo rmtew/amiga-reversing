@@ -113,9 +113,32 @@ static int fixups_have_same_semantics(const M68kObject *left_object, const M68kF
     strcmp(left_name, right_name) == 0;
 }
 
-static int objects_have_same_relocation_semantics(const M68kObject *left, const M68kObject *right) {
+static int fixups_have_same_container_shape(const M68kFixup *left, const M68kFixup *right) {
+  return left->platform_relocation_record_kind == right->platform_relocation_record_kind &&
+    left->platform_relocation_record_wire_id == right->platform_relocation_record_wire_id &&
+    left->platform_relocation_block_index == right->platform_relocation_block_index &&
+    left->platform_relocation_group_index == right->platform_relocation_group_index;
+}
+
+static uint32_t fixup_container_shape_diff_flags(size_t left_index, size_t right_index,
+    const M68kFixup *left, const M68kFixup *right) {
+  uint32_t flags = 0U;
+  if (left_index != right_index) flags |= M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF;
+  if (left->platform_relocation_record_kind != right->platform_relocation_record_kind ||
+      left->platform_relocation_record_wire_id != right->platform_relocation_record_wire_id)
+    flags |= M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ENCODING_DIFF;
+  if (left->platform_relocation_block_index != right->platform_relocation_block_index ||
+      left->platform_relocation_group_index != right->platform_relocation_group_index)
+    flags |= M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_GROUP_DIFF;
+  return flags;
+}
+
+static int objects_have_same_relocation_semantics(const M68kObject *left, const M68kObject *right,
+    uint32_t *out_container_shape_flags) {
   uint8_t *used;
   size_t left_index;
+  uint32_t container_shape_flags = 0U;
+  if (out_container_shape_flags != NULL) *out_container_shape_flags = 0U;
   if (left == NULL || right == NULL || left->fixup_count != right->fixup_count) return 0;
   if (left->fixup_count == 0U) return 1;
   used = (uint8_t *)calloc(right->fixup_count, sizeof(*used));
@@ -128,6 +151,12 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
       if (!fixups_have_same_semantics(left, &left->fixups[left_index], right, &right->fixups[right_index]))
         continue;
       used[right_index] = 1U;
+      if (!fixups_have_same_container_shape(&left->fixups[left_index], &right->fixups[right_index])) {
+        container_shape_flags |= fixup_container_shape_diff_flags(left_index, right_index,
+          &left->fixups[left_index], &right->fixups[right_index]);
+      } else if (left_index != right_index) {
+        container_shape_flags |= M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF;
+      }
       matched = 1;
       break;
     }
@@ -137,7 +166,13 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
     }
   }
   free(used);
+  if (out_container_shape_flags != NULL) *out_container_shape_flags = container_shape_flags;
   return 1;
+}
+
+static int object_has_unsupported_container_shape(const M68kObject *object) {
+  return object != NULL && (object->container_metadata.layout_overflow != 0U ||
+    object->container_metadata.encoding_overflow != 0U);
 }
 
 int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
@@ -165,14 +200,24 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
   result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF;
   if (context->backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
       objects_have_same_payload_semantics(context->original_object, context->rebuilt_object)) {
+    uint32_t relocation_shape_flags = 0U;
     result->issue_group_flags &= ~M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF;
-    if (!objects_have_same_relocation_semantics(context->original_object, context->rebuilt_object)) {
+    if (!objects_have_same_relocation_semantics(context->original_object, context->rebuilt_object,
+        &relocation_shape_flags)) {
       result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF;
       return 0;
     }
     result->status_id = M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT;
     result->exactness_id = M68K_REPRO_COMPARE_EXACTNESS_CONTENT;
     result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF;
+    result->issue_group_flags |= relocation_shape_flags;
+    if (context->assembler_policy != NULL &&
+        (context->assembler_policy->flags & M68K_ASSEMBLER_POLICY_PRESERVE_HUNK_RELOCATION_ENCODING) != 0U &&
+        relocation_shape_flags != 0U)
+      result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE;
+    if (object_has_unsupported_container_shape(context->original_object) ||
+        object_has_unsupported_container_shape(context->rebuilt_object))
+      result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE;
   }
   return 0;
 }

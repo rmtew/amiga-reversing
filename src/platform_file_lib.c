@@ -5984,7 +5984,8 @@ static int direct_compare_relocation_exact(const M68kReproductionCompareResult *
 
 static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *backend_name,
     const M68kBackend *backend, const M68kObject *original_object, const unsigned char *rebuilt_data,
-    size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size) {
+    size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size,
+    const M68kAssemblerPolicy *assembler_policy) {
   M68kReproductionCompareResult result;
   m68k_reproduction_compare_init_result(&result);
   if (compare_data == NULL) return result;
@@ -5997,6 +5998,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
     context.rebuilt_bytes = rebuilt_data;
     context.rebuilt_size = rebuilt_size;
     context.backend_kind = original_object != NULL ? original_object->platform_backend_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
+    context.assembler_policy = assembler_policy;
     m68k_reproduction_compare(&context, &result);
     return result;
   }
@@ -6013,6 +6015,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
       context.rebuilt_bytes = rebuilt_data;
       context.rebuilt_size = rebuilt_size;
       context.backend_kind = original_object->platform_backend_kind;
+      context.assembler_policy = assembler_policy;
       m68k_reproduction_compare(&context, &result);
       return result;
     }
@@ -6022,6 +6025,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
     context.rebuilt_bytes = rebuilt_data;
     context.rebuilt_size = rebuilt_size;
     context.backend_kind = original_object->platform_backend_kind;
+    context.assembler_policy = assembler_policy;
     context.original_object = original_object;
     context.rebuilt_object = &rebuilt_object;
     m68k_reproduction_compare(&context, &result);
@@ -6718,7 +6722,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   if (compare_data != NULL) {
     phase_start = clock();
     compare_result = facts_v2_direct_compare_result(backend_name, backend, object, data, size, compare_data,
-      compare_size);
+      compare_size, assembler_policy);
     compare_seconds += elapsed_seconds(phase_start, clock());
   }
   *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name, source_bytes,
