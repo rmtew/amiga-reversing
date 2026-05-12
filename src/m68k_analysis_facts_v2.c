@@ -9064,6 +9064,13 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_asm_source_plan != NULL && !facts_v2_has_asm_source_failures(out_profile)) {
     m68k_render_plan_move(out_asm_source_plan, &render_preview->asm_source_plan);
   }
+  {
+    ArenaStats workflow_stats = arena_stats(workflow.arena);
+    out_profile->workflow_arena_peak_used =
+      workflow_stats.peak_used > UINT32_MAX ? UINT32_MAX : (uint32_t)workflow_stats.peak_used;
+    out_profile->workflow_arena_total_blocks =
+      workflow_stats.total_block_count > UINT32_MAX ? UINT32_MAX : (uint32_t)workflow_stats.total_block_count;
+  }
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);

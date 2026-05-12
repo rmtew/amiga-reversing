@@ -75,6 +75,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/test_m68k_container_metadata.c` | 192, 526 | test_only | Test output cleanup. |
 | `src/test_m68k_ir.c` | 63, 77, 85, 102, 110, 697, 724, 744, 793, 816, 2648, 3122, 3541, 4467, 4535, 4585, 4643, 4693, 4754, 4850, 4908, 5066, 5126, 5178, 5236, 5294, 5346, 5419, 5471, 6211, 6790, 7023, 7063, 7110, 7141, 7191, 7746, 8421, 9186, 10319, 10469, 10511, 10563, 10629, 10698, 10755, 10795, 10831, 10869, 10894, 11020, 11045, 11078, 11096, 11159, 11160, 11179, 11249, 11250, 11251, 11371, 11437, 11537, 11607, 11674, 12221, 12280, 12344, 12403, 13320, 13646, 14468, 15911, 15943, 17020, 17133, 17187, 17240 | test_only | Test arenas, output buffers, and assertions. |
 | `src/test_m68k_parse_util.c` | 216, 238, 246 | test_only | Test output cleanup and arena. |
+| `src/test_m68k_render_plan.c` | 9 | test_only | Test result arena helper. |
 | `src/test_platform_decompression.c` | 109 | test_only | Test JSON cleanup. |
 | `src/tests/test_c_style.py` | 172 | test_only | Fixture text inside Python style test. |
 | `src/util_arena.c` | 31, 33, 35, 50, 51, 72, 76, 88 | keep_heap_for_now | Core arena allocates/frees backing blocks and the arena object itself. |

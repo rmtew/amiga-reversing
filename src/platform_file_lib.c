@@ -5671,6 +5671,8 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"first_opcode_relocation_conflict_offset\":%u,"
     "\"first_opcode_relocation_conflict_aux_offset\":%u,"
     "\"queue_iterations\":%u,"
+    "\"workflow_arena_peak_used\":%u,"
+    "\"workflow_arena_total_blocks\":%u,"
     "\"render_ir_statements\":%u,"
     "\"render_ir_labels\":%u,"
     "\"render_ir_instructions\":%u,"
@@ -5809,6 +5811,8 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->first_opcode_relocation_conflict_offset,
     (unsigned)profile->first_opcode_relocation_conflict_aux_offset,
     (unsigned)profile->queue_iterations,
+    (unsigned)profile->workflow_arena_peak_used,
+    (unsigned)profile->workflow_arena_total_blocks,
     (unsigned)profile->render_ir_statements,
     (unsigned)profile->render_ir_labels,
     (unsigned)profile->render_ir_instructions,

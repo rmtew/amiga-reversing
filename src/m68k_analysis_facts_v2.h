@@ -135,6 +135,8 @@ typedef struct M68kFactsV2Profile {
   uint32_t first_opcode_relocation_conflict_offset;
   uint32_t first_opcode_relocation_conflict_aux_offset;
   uint32_t queue_iterations;
+  uint32_t workflow_arena_peak_used;
+  uint32_t workflow_arena_total_blocks;
   uint32_t render_ir_statements;
   uint32_t render_ir_labels;
   uint32_t render_ir_instructions;
