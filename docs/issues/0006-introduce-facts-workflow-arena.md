@@ -12,11 +12,11 @@ Introduce explicit **Workflow Arena** ownership for the facts/source-rendering w
 
 ## Acceptance criteria
 
-- [ ] Facts/source-rendering workflow has one explicit workflow-owned state.
-- [ ] Pass-local temporary allocations use **Scratch Marks** where appropriate.
-- [ ] Result objects and caller-freed outputs do not point into the **Workflow Arena**.
-- [ ] Failure diagnostics still report the relevant stage.
-- [ ] Existing facts, render, and round-trip tests pass.
+- [x] Facts/source-rendering workflow has one explicit workflow-owned state.
+- [x] Pass-local temporary allocations use **Scratch Marks** where appropriate.
+- [x] Result objects and caller-freed outputs do not point into the **Workflow Arena**.
+- [x] Failure diagnostics still report the relevant stage.
+- [x] Existing facts, render, and round-trip tests pass.
 
 ## Blocked by
 

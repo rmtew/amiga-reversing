@@ -115,6 +115,7 @@ typedef struct M68kFactsV2WorkItem {
 } M68kFactsV2WorkItem;
 
 typedef struct M68kFactsV2WorkQueue {
+  Arena *arena;
   M68kFactsV2WorkItem *items;
   size_t *stateful_next;
   size_t count;
@@ -167,6 +168,10 @@ typedef struct M68kAcceptedSectionIndex {
 } M68kAcceptedSectionIndex;
 
 typedef struct M68kAcceptedCandidateIndex {
+  Arena *arena;
+  ArenaMark mark;
+  uint8_t has_mark;
+  uint8_t reserved[7];
   M68kAcceptedSectionIndex *sections;
   size_t section_count;
 } M68kAcceptedCandidateIndex;
@@ -182,10 +187,16 @@ typedef struct M68kRuntimeAddressRange {
 } M68kRuntimeAddressRange;
 
 typedef struct M68kRuntimeAddressSpace {
+  Arena *arena;
   M68kRuntimeAddressRange *ranges;
   size_t count;
   size_t capacity;
 } M68kRuntimeAddressSpace;
+
+typedef struct M68kFactsV2Workflow {
+  Arena *arena;
+  M68kRenderIRPreview *render_preview;
+} M68kFactsV2Workflow;
 
 static int append_violation_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
   uint32_t target_offset);
@@ -323,42 +334,49 @@ static int reachable_profile_enabled_local(void) {
   return value != NULL && strcmp(value, "1") == 0;
 }
 
+static int facts_v2_workflow_create(M68kFactsV2Workflow *workflow) {
+  if (workflow == NULL) return -1;
+  memset(workflow, 0, sizeof(*workflow));
+  workflow->arena = arena_create(4096U);
+  if (workflow->arena == NULL) return -1;
+  workflow->render_preview = (M68kRenderIRPreview *)arena_calloc(workflow->arena, 1U,
+    sizeof(*workflow->render_preview));
+  if (workflow->render_preview == NULL) return -1;
+  m68k_render_ir_preview_init(workflow->render_preview);
+  return 0;
+}
+
+static void facts_v2_workflow_destroy(M68kFactsV2Workflow *workflow) {
+  if (workflow == NULL) return;
+  if (workflow->render_preview != NULL) m68k_render_ir_preview_destroy(workflow->render_preview);
+  arena_destroy(workflow->arena);
+  memset(workflow, 0, sizeof(*workflow));
+}
+
 static void work_queue_destroy(M68kFactsV2WorkQueue *queue) {
-  size_t section_index;
   if (queue == NULL) return;
-  if (queue->queued_confidence != NULL) {
-    for (section_index = 0U; section_index < queue->section_count; ++section_index)
-      free(queue->queued_confidence[section_index]);
-  }
-  if (queue->stateful_heads != NULL) {
-    for (section_index = 0U; section_index < queue->section_count; ++section_index)
-      free(queue->stateful_heads[section_index]);
-  }
-  free(queue->queued_confidence);
-  free(queue->stateful_heads);
-  free(queue->stateful_next);
-  free(queue->extents);
-  free(queue->items);
   memset(queue, 0, sizeof(*queue));
 }
 
-static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDecodeIR *decode) {
+static int work_queue_init_for_decode(M68kFactsV2WorkQueue *queue, const M68kDecodeIR *decode, Arena *arena) {
   size_t section_index;
-  if (queue == NULL || decode == NULL) return -1;
+  if (queue == NULL || decode == NULL || arena == NULL) return -1;
   memset(queue, 0, sizeof(*queue));
+  queue->arena = arena;
   queue->section_count = decode->section_count;
-  queue->queued_confidence = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  queue->queued_confidence = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->queued_confidence));
-  queue->stateful_heads = (size_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  queue->stateful_heads = (size_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->stateful_heads));
-  queue->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  queue->extents = (uint32_t *)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*queue->extents));
   if (queue->queued_confidence == NULL || queue->stateful_heads == NULL || queue->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t extent = decode->sections[section_index].size;
     queue->extents[section_index] = extent;
     if (extent == 0U) continue;
-    queue->queued_confidence[section_index] = (uint8_t *)calloc(extent, sizeof(*queue->queued_confidence[section_index]));
+    queue->queued_confidence[section_index] = (uint8_t *)arena_calloc(arena, extent,
+      sizeof(*queue->queued_confidence[section_index]));
     if (queue->queued_confidence[section_index] == NULL) goto fail;
   }
   return 0;
@@ -432,7 +450,7 @@ static size_t *work_queue_stateful_head_slot(M68kFactsV2WorkQueue *queue, size_t
   }
   if (queue->stateful_heads[section_index] == NULL) {
     uint32_t extent = queue->extents[section_index];
-    queue->stateful_heads[section_index] = (size_t *)calloc(extent != 0U ? extent : 1U,
+    queue->stateful_heads[section_index] = (size_t *)arena_calloc(queue->arena, extent != 0U ? extent : 1U,
       sizeof(*queue->stateful_heads[section_index]));
   }
   if (queue->stateful_heads[section_index] == NULL) return NULL;
@@ -445,10 +463,12 @@ static int work_queue_grow_items(M68kFactsV2WorkQueue *queue, size_t next_capaci
   size_t old_capacity;
   if (queue == NULL || next_capacity <= queue->capacity) return 0;
   old_capacity = queue->capacity;
-  grown_items = (M68kFactsV2WorkItem *)realloc(queue->items, next_capacity * sizeof(*grown_items));
+  grown_items = (M68kFactsV2WorkItem *)arena_realloc_copy(queue->arena, queue->items,
+    old_capacity * sizeof(*queue->items), next_capacity * sizeof(*grown_items));
   if (grown_items == NULL) return -1;
   queue->items = grown_items;
-  grown_next = (size_t *)realloc(queue->stateful_next, next_capacity * sizeof(*grown_next));
+  grown_next = (size_t *)arena_realloc_copy(queue->arena, queue->stateful_next,
+    old_capacity * sizeof(*queue->stateful_next), next_capacity * sizeof(*grown_next));
   if (grown_next == NULL) return -1;
   queue->stateful_next = grown_next;
   memset(queue->stateful_next + old_capacity, 0, (next_capacity - old_capacity) * sizeof(*queue->stateful_next));
@@ -574,27 +594,20 @@ static int work_queue_pop(M68kFactsV2WorkQueue *queue, M68kFactsV2WorkItem *out_
 }
 
 static void relocation_lookup_destroy(M68kFactsV2RelocationLookup *lookup) {
-  size_t section_index;
   if (lookup == NULL) return;
-  if (lookup->indices != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->indices[section_index]);
-  }
-  free(lookup->indices);
-  free(lookup->extents);
   memset(lookup, 0, sizeof(*lookup));
 }
 
 static int relocation_lookup_build(M68kFactsV2RelocationLookup *lookup, const M68kDecodeIR *decode,
-    const M68kFactIR *facts) {
+    const M68kFactIR *facts, Arena *arena) {
   size_t section_index;
   size_t fact_index;
-  if (lookup == NULL || decode == NULL || facts == NULL) return -1;
+  if (lookup == NULL || decode == NULL || facts == NULL || arena == NULL) return -1;
   memset(lookup, 0, sizeof(*lookup));
   lookup->section_count = decode->section_count;
-  lookup->indices = (size_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  lookup->indices = (size_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->indices));
-  lookup->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  lookup->extents = (uint32_t *)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->extents));
   if (lookup->indices == NULL || lookup->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -603,7 +616,8 @@ static int relocation_lookup_build(M68kFactsV2RelocationLookup *lookup, const M6
     uint32_t offset;
     lookup->extents[section_index] = extent;
     if (extent == 0U) continue;
-    lookup->indices[section_index] = (size_t *)malloc((size_t)extent * sizeof(*lookup->indices[section_index]));
+    lookup->indices[section_index] = (size_t *)arena_alloc(arena,
+      (size_t)extent * sizeof(*lookup->indices[section_index]));
     if (lookup->indices[section_index] == NULL) goto fail;
     for (offset = 0U; offset < extent; ++offset) lookup->indices[section_index][offset] = SIZE_MAX;
   }
@@ -640,31 +654,25 @@ static uint32_t decode_section_extent_local(const M68kDecodeSectionIR *section) 
 }
 
 static void label_lookup_destroy(M68kFactsV2LabelLookup *lookup) {
-  size_t section_index;
   if (lookup == NULL) return;
-  if (lookup->labels != NULL) {
-    for (section_index = 0U; section_index < lookup->section_count; ++section_index)
-      free(lookup->labels[section_index]);
-  }
-  free(lookup->labels);
-  free(lookup->extents);
   memset(lookup, 0, sizeof(*lookup));
 }
 
-static int label_lookup_build(M68kFactsV2LabelLookup *lookup, const M68kDecodeIR *decode) {
+static int label_lookup_build(M68kFactsV2LabelLookup *lookup, const M68kDecodeIR *decode, Arena *arena) {
   size_t section_index;
-  if (lookup == NULL || decode == NULL) return -1;
+  if (lookup == NULL || decode == NULL || arena == NULL) return -1;
   memset(lookup, 0, sizeof(*lookup));
   lookup->section_count = decode->section_count;
-  lookup->labels = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  lookup->labels = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->labels));
-  lookup->extents = (uint32_t *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  lookup->extents = (uint32_t *)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->extents));
   if (lookup->labels == NULL || lookup->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t extent = decode_section_extent_local(&decode->sections[section_index]);
     lookup->extents[section_index] = extent;
-    lookup->labels[section_index] = (uint8_t *)calloc((size_t)extent + 1U, sizeof(*lookup->labels[section_index]));
+    lookup->labels[section_index] = (uint8_t *)arena_calloc(arena, (size_t)extent + 1U,
+      sizeof(*lookup->labels[section_index]));
     if (lookup->labels[section_index] == NULL) goto fail;
   }
   return 0;
@@ -731,23 +739,22 @@ static int accepted_range_has_code_byte_local(const uint8_t *accepted_bytes, uin
 }
 
 static void accepted_candidate_index_destroy(M68kAcceptedCandidateIndex *index) {
-  size_t section_index;
   if (index == NULL) return;
-  if (index->sections != NULL) {
-    for (section_index = 0U; section_index < index->section_count; ++section_index)
-      free(index->sections[section_index].candidates);
-  }
-  free(index->sections);
+  if (index->has_mark && index->arena != NULL) arena_rewind(index->arena, index->mark);
   memset(index, 0, sizeof(*index));
 }
 
 static int accepted_candidate_index_build(M68kAcceptedCandidateIndex *index, const M68kDecodeIR *decode,
-    uint8_t **accepted_start) {
+    uint8_t **accepted_start, Arena *arena) {
   size_t section_index;
-  if (index == NULL || decode == NULL || accepted_start == NULL) return -1;
+  if (index == NULL || decode == NULL || accepted_start == NULL || arena == NULL) return -1;
   accepted_candidate_index_destroy(index);
+  index->arena = arena;
+  index->mark = arena_mark(arena);
+  index->has_mark = 1U;
   index->section_count = decode->section_count;
-  index->sections = (M68kAcceptedSectionIndex *)calloc(decode->section_count != 0U ? decode->section_count : 1U,
+  index->sections = (M68kAcceptedSectionIndex *)arena_calloc(arena,
+    decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*index->sections));
   if (index->sections == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -762,7 +769,8 @@ static int accepted_candidate_index_build(M68kAcceptedCandidateIndex *index, con
         ++accepted_count;
     }
     if (accepted_count == 0U) continue;
-    section_indexed->candidates = (const M68kDecodeCandidate **)malloc(accepted_count * sizeof(*section_indexed->candidates));
+    section_indexed->candidates = (const M68kDecodeCandidate **)arena_alloc(arena,
+      accepted_count * sizeof(*section_indexed->candidates));
     if (section_indexed->candidates == NULL) goto fail;
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
@@ -4009,8 +4017,13 @@ static int candidate_absolute_control_address(const M68kDecodeCandidate *candida
 
 static void runtime_address_space_destroy(M68kRuntimeAddressSpace *space) {
   if (space == NULL) return;
-  free(space->ranges);
   memset(space, 0, sizeof(*space));
+}
+
+static void runtime_address_space_init(M68kRuntimeAddressSpace *space, Arena *arena) {
+  if (space == NULL) return;
+  memset(space, 0, sizeof(*space));
+  space->arena = arena;
 }
 
 static int runtime_address_conflict_is_temporal_overlay(const M68kRuntimeAddressRange *existing,
@@ -4080,7 +4093,8 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
   }
   if (space->count == space->capacity) {
     next_capacity = space->capacity == 0U ? 16U : space->capacity * 2U;
-    grown = (M68kRuntimeAddressRange *)realloc(space->ranges, next_capacity * sizeof(*grown));
+    grown = (M68kRuntimeAddressRange *)arena_realloc_copy(space->arena, space->ranges,
+      space->capacity * sizeof(*space->ranges), next_capacity * sizeof(*grown));
     if (grown == NULL) return -1;
     space->ranges = grown;
     space->capacity = next_capacity;
@@ -8569,32 +8583,22 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
   return 0;
 }
 
-static int allocate_section_maps(const M68kDecodeIR *decode, uint8_t ***out_start, uint8_t ***out_bytes) {
+static int allocate_section_maps(const M68kDecodeIR *decode, Arena *arena, uint8_t ***out_start,
+    uint8_t ***out_bytes) {
   uint8_t **starts;
   uint8_t **bytes;
   size_t section_index;
-  if (decode == NULL || out_start == NULL || out_bytes == NULL) return -1;
-  starts = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U, sizeof(*starts));
-  bytes = (uint8_t **)calloc(decode->section_count != 0U ? decode->section_count : 1U, sizeof(*bytes));
-  if (starts == NULL || bytes == NULL) {
-    free(starts);
-    free(bytes);
-    return -1;
-  }
+  if (decode == NULL || arena == NULL || out_start == NULL || out_bytes == NULL) return -1;
+  starts = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*starts));
+  bytes = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*bytes));
+  if (starts == NULL || bytes == NULL) return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t size = decode->sections[section_index].size;
-    starts[section_index] = (uint8_t *)calloc(size != 0U ? size : 1U, 1U);
-    bytes[section_index] = (uint8_t *)calloc(size != 0U ? size : 1U, 1U);
-    if (starts[section_index] == NULL || bytes[section_index] == NULL) {
-      size_t cleanup_index;
-      for (cleanup_index = 0U; cleanup_index <= section_index; ++cleanup_index) {
-        free(starts[cleanup_index]);
-        free(bytes[cleanup_index]);
-      }
-      free(starts);
-      free(bytes);
-      return -1;
-    }
+    starts[section_index] = (uint8_t *)arena_calloc(arena, size != 0U ? size : 1U, 1U);
+    bytes[section_index] = (uint8_t *)arena_calloc(arena, size != 0U ? size : 1U, 1U);
+    if (starts[section_index] == NULL || bytes[section_index] == NULL) return -1;
   }
   *out_start = starts;
   *out_bytes = bytes;
@@ -8602,15 +8606,9 @@ static int allocate_section_maps(const M68kDecodeIR *decode, uint8_t ***out_star
 }
 
 static void free_section_maps(const M68kDecodeIR *decode, uint8_t **starts, uint8_t **bytes) {
-  size_t section_index;
-  if (decode != NULL) {
-    for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-      free(starts != NULL ? starts[section_index] : NULL);
-      free(bytes != NULL ? bytes[section_index] : NULL);
-    }
-  }
-  free(starts);
-  free(bytes);
+  (void)decode;
+  (void)starts;
+  (void)bytes;
 }
 
 void m68k_facts_v2_profile_init(M68kFactsV2Profile *profile) {
@@ -8681,7 +8679,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kFactsV2LabelLookup label_lookup;
   M68kAcceptedCandidateIndex accepted_index;
   M68kRuntimeAddressSpace runtime_addresses;
-  Arena *scratch_arena = NULL;
+  M68kFactsV2Workflow workflow;
   M68kRenderIRPreview *render_preview = NULL;
   int render_text_preview;
   int render_asm_source;
@@ -8697,22 +8695,17 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_facts_v2_profile_init(out_profile);
   m68k_decode_ir_init(&decode);
   m68k_fact_ir_init(&facts);
-  scratch_arena = arena_create(4096U);
-  if (scratch_arena == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (facts_v2_workflow_create(&workflow) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
     goto fail;
   }
-  render_preview = (M68kRenderIRPreview *)arena_calloc(scratch_arena, 1U, sizeof(*render_preview));
-  if (render_preview == NULL) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
-    goto fail;
-  }
-  m68k_render_ir_preview_init(render_preview);
+  render_preview = workflow.render_preview;
   memset(&queue, 0, sizeof(queue));
   memset(&relocation_lookup, 0, sizeof(relocation_lookup));
   memset(&label_lookup, 0, sizeof(label_lookup));
   memset(&accepted_index, 0, sizeof(accepted_index));
-  memset(&runtime_addresses, 0, sizeof(runtime_addresses));
+  runtime_address_space_init(&runtime_addresses, workflow.arena);
   render_text_preview = preview_source_enabled_local();
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
@@ -8722,17 +8715,17 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   end = clock();
   out_profile->decode_seconds = elapsed_seconds_local(start, end);
   fail_stage = "work queue initialization";
-  if (work_queue_init_for_decode(&queue, &decode) != 0) goto fail;
+  if (work_queue_init_for_decode(&queue, &decode, workflow.arena) != 0) goto fail;
   fail_stage = "accepted map allocation";
-  if (allocate_section_maps(&decode, &accepted_start, &accepted_bytes) != 0) goto fail;
+  if (allocate_section_maps(&decode, workflow.arena, &accepted_start, &accepted_bytes) != 0) goto fail;
   start = clock();
   fail_stage = "label lookup build";
-  if (label_lookup_build(&label_lookup, &decode) != 0) goto fail;
+  if (label_lookup_build(&label_lookup, &decode, workflow.arena) != 0) goto fail;
   fail_stage = "fact seeding";
   if (seed_facts_from_object(object, policy, &facts, &label_lookup, &queue, &runtime_addresses,
       out_profile) != 0) goto fail;
   fail_stage = "relocation lookup build";
-  if (relocation_lookup_build(&relocation_lookup, &decode, &facts) != 0) goto fail;
+  if (relocation_lookup_build(&relocation_lookup, &decode, &facts, workflow.arena) != 0) goto fail;
   fail_stage = "relocation-backed jump template seeding";
   if (seed_relocation_backed_jump_template_tables(&decode, &facts, &relocation_lookup, &queue,
       accepted_start, accepted_bytes, out_profile, max_cpu) != 0) goto fail;
@@ -8760,7 +8753,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->decoded_candidates = decode.decoded_candidate_count;
   start = clock();
   fail_stage = "accepted index build";
-  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
+  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start, workflow.arena) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
   {
@@ -8790,7 +8783,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   add_elapsed_seconds_local(&out_profile->fixed_point_rebuild_accepted_seconds, start, end);
   start = clock();
   fail_stage = "accepted index rebuild";
-  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start) != 0) goto fail;
+  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start, workflow.arena) != 0) goto fail;
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_index_seconds, start, end);
   start = clock();
@@ -8846,7 +8839,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     uint32_t callback_field_accepted = 0U;
     fail_stage = "callback field indirect target seeding";
     if (seed_callback_field_indirect_targets(&decode, &facts, &relocation_lookup, &queue, &runtime_addresses,
-        scratch_arena, accepted_start, accepted_bytes, out_profile, max_cpu, &callback_field_entry_seeds) != 0) {
+        workflow.arena, accepted_start, accepted_bytes, out_profile, max_cpu, &callback_field_entry_seeds) != 0) {
       goto fail;
     }
     if (callback_field_entry_seeds != 0U) {
@@ -9071,14 +9064,13 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_asm_source_plan != NULL && !facts_v2_has_asm_source_failures(out_profile)) {
     m68k_render_plan_move(out_asm_source_plan, &render_preview->asm_source_plan);
   }
-  m68k_render_ir_preview_destroy(render_preview);
-  arena_destroy(scratch_arena);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);
   relocation_lookup_destroy(&relocation_lookup);
   runtime_address_space_destroy(&runtime_addresses);
   work_queue_destroy(&queue);
+  facts_v2_workflow_destroy(&workflow);
   m68k_fact_ir_destroy(&facts);
   m68k_decode_ir_destroy(&decode);
   return 0;
@@ -9088,16 +9080,13 @@ fail:
       "facts_v2 failed during %s", fail_stage);
   }
   if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
-  if (render_preview != NULL) {
-    m68k_render_ir_preview_destroy(render_preview);
-  }
-  arena_destroy(scratch_arena);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);
   relocation_lookup_destroy(&relocation_lookup);
   runtime_address_space_destroy(&runtime_addresses);
   work_queue_destroy(&queue);
+  facts_v2_workflow_destroy(&workflow);
   m68k_fact_ir_destroy(&facts);
   m68k_decode_ir_destroy(&decode);
   return -1;

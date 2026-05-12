@@ -22,7 +22,8 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | --- | --- | --- | --- |
 | `src/json_builder.c` | 26 | result | JSON builder arena. |
 | `src/json_builder.c` | 95, 101, 107, 110, 186 | caller_freed_output | Returned JSON/text copy; keep heap until output API changes. |
-| `src/m68k_analysis_facts_v2.c` | 331, 335, 337, 338, 339, 340, 341, 350, 352, 354, 361, 435, 448, 451, 581, 583, 584, 595, 597, 606, 647, 649, 650, 659, 661, 667, 738, 740, 750, 765, 4012, 4083, 8577, 8578, 8580, 8581, 8586, 8587, 8591, 8592, 8594, 8595, 8608, 8609, 8612, 8613, 8700, 9177 | workflow | Facts pass scratch/work queues and temporary render text cleanup. |
+| `src/m68k_analysis_facts_v2.c` | 340 | workflow | Facts pass workflow arena; work queues, maps, lookups, runtime ranges, and accepted-index scratch marks allocate from it. |
+| `src/m68k_analysis_facts_v2.c` | 9166 | caller_freed_output | Facts text free API. |
 | `src/m68k_analysis_render_lookup.c` | 2886, 2887, 2906, 2907, 2920, 2921, 2949, 2965, 3072, 3073, 3126, 3127, 3220, 3249, 3929, 10077, 10078 | workflow | Render lookup temporary graphs, queues, observations. |
 | `src/m68k_assembler_app.c` | 107, 115 | external_read_buffer | Input file read buffer. |
 | `src/m68k_assembler_app.c` | 373, 530, 551 | caller_freed_output | Assembled section data returned through app edge. |
