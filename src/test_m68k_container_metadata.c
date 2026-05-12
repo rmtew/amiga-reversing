@@ -1,4 +1,5 @@
 #include "m68k_backend.h"
+#include "m68k_assembler_policy.h"
 #include "m68k_c_unit_test.h"
 #include "generated/amiga_hunk_file_runtime.h"
 
@@ -76,11 +77,64 @@ static int test_hunk_loader_records_payload_and_relocation_metadata(void) {
   return 0;
 }
 
+static int test_ideal_assembler_policy_has_no_preservation_metadata(void) {
+  M68kAssemblerPolicy policy;
+  m68k_assembler_policy_init_ideal(&policy);
+  M68K_C_ASSERT_U32(M68K_ASSEMBLER_POLICY_IDEAL, policy.kind);
+  M68K_C_ASSERT_U32(0U, policy.flags);
+  M68K_C_ASSERT_U32(0U, policy.hunk_relocation_record_count);
+  return 0;
+}
+
+static int test_preservation_policy_derives_hunk_relocation_encoding_ids(void) {
+  M68kObject object;
+  M68kAssemblerPolicy policy;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  m68k_object_add_container_layout(&object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_CONTAINER,
+    M68K_CONTAINER_LAYOUT_FLAG_HEADER, AMIGA_HUNK_FILE_META_CONTAINER_KIND_EXECUTABLE, 0U);
+  m68k_object_add_container_encoding(&object, M68K_CONTAINER_ENCODING_AMIGA_HUNK_RELOCATION_WIRE_ID,
+    M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_RELOC32SHORT, 1U);
+
+  m68k_assembler_policy_derive_preservation(&object, &policy);
+
+  M68K_C_ASSERT_U32(M68K_ASSEMBLER_POLICY_PRESERVE_ORIGINAL, policy.kind);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_AMIGA_HUNK, policy.platform_backend_kind);
+  M68K_C_ASSERT((policy.flags & M68K_ASSEMBLER_POLICY_PRESERVE_CONTAINER_LAYOUT) != 0U);
+  M68K_C_ASSERT((policy.flags & M68K_ASSEMBLER_POLICY_PRESERVE_CONTAINER_ENCODING) != 0U);
+  M68K_C_ASSERT((policy.flags & M68K_ASSEMBLER_POLICY_PRESERVE_HUNK_RELOCATION_ENCODING) != 0U);
+  M68K_C_ASSERT_U32(1U, policy.hunk_relocation_record_count);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_RELOC32SHORT, policy.hunk_relocation_record_wire_ids[0]);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_no_container_preservation_policy_does_not_claim_container_shape(void) {
+  M68kObject object;
+  M68kAssemblerPolicy policy;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  m68k_object_mark_no_container(&object);
+
+  m68k_assembler_policy_derive_preservation(&object, &policy);
+
+  M68K_C_ASSERT_U32(M68K_ASSEMBLER_POLICY_PRESERVE_ORIGINAL, policy.kind);
+  M68K_C_ASSERT_U32(0U, policy.flags);
+  M68K_C_ASSERT_U32(0U, policy.hunk_relocation_record_count);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 int m68k_c_container_metadata_tests(void) {
   static const M68kCTestCase cases[] = {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
     {"no_container_metadata_uses_numeric_ids", test_no_container_metadata_uses_numeric_ids},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
+    {"ideal_assembler_policy_has_no_preservation_metadata", test_ideal_assembler_policy_has_no_preservation_metadata},
+    {"preservation_policy_derives_hunk_relocation_encoding_ids",
+      test_preservation_policy_derives_hunk_relocation_encoding_ids},
+    {"no_container_preservation_policy_does_not_claim_container_shape",
+      test_no_container_preservation_policy_does_not_claim_container_shape},
   };
   return m68k_c_test_run_suite("container_metadata", cases, sizeof(cases) / sizeof(cases[0]));
 }

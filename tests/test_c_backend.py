@@ -2663,6 +2663,8 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
     assert direct_profile["direct_compare_relocation_semantics_exact"] is True
     assert direct_profile["direct_compare_container_oddity"] is True
     assert direct_profile["direct_compare_status"] == "semantic_container_oddity"
+    assert direct_profile["assembler_policy_kind"] == 2
+    assert direct_profile["assembler_policy_flags"] & 0x3 == 0x3
 
 
 def test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api(

@@ -4,6 +4,7 @@
 #include "m68k_analysis_facts_v2.h"
 #include "m68k_assembler_app.h"
 #include "m68k_assembler.h"
+#include "m68k_assembler_policy.h"
 #include "m68k_backend.h"
 #include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
@@ -6084,9 +6085,14 @@ static FactsV2DirectCompareResult facts_v2_direct_compare_result(const char *bac
 static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name, uint32_t source_bytes,
     uint32_t rebuilt_bytes, int refused, const char *refusal_reason, double write_buffer_seconds,
     double write_file_seconds, size_t original_bytes, FactsV2DirectCompareResult compare_result,
-    double compare_seconds, double total_seconds, M68kDiagList *diagnostics) {
+    double compare_seconds, double total_seconds, const M68kAssemblerPolicy *assembler_policy,
+    M68kDiagList *diagnostics) {
   JsonBuilder builder = {0};
   char *text;
+  uint32_t policy_kind = assembler_policy != NULL ? assembler_policy->kind : M68K_ASSEMBLER_POLICY_IDEAL;
+  uint32_t policy_flags = assembler_policy != NULL ? assembler_policy->flags : 0U;
+  uint32_t hunk_relocation_records =
+    assembler_policy != NULL ? assembler_policy->hunk_relocation_record_count : 0U;
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"facts_v2_direct_rebuild\":true,\"backend\":") != 0 ||
       json_builder_append_json_string(&builder, backend_name != NULL ? backend_name : "") != 0 ||
@@ -6110,12 +6116,17 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         "\"direct_compare_relocation_semantics_exact\":%s,"
         "\"direct_compare_semantic_exact\":%s,"
         "\"direct_compare_container_oddity\":%s,"
-        "\"direct_compare_seconds\":%.6f,\"total_seconds\":%.6f}",
+        "\"direct_compare_seconds\":%.6f,"
+        "\"assembler_policy_kind\":%u,"
+        "\"assembler_policy_flags\":%u,"
+        "\"assembler_policy_hunk_relocation_record_count\":%u,"
+        "\"total_seconds\":%.6f}",
         compare_result.payload_exact ? "true" : "false",
         compare_result.relocation_semantics_exact ? "true" : "false",
         compare_result.semantic_exact ? "true" : "false",
         compare_result.container_oddity ? "true" : "false",
-        compare_seconds, total_seconds) != 0) {
+        compare_seconds, (unsigned)policy_kind, (unsigned)policy_flags, (unsigned)hunk_relocation_records,
+        total_seconds) != 0) {
     if (diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
     json_builder_destroy(&builder);
     return NULL;
@@ -6667,7 +6678,7 @@ static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifa
 static int facts_v2_direct_write_object_alloc(const char *backend_name, const M68kBackend *backend,
     const M68kObject *object, const char *output_path, uint32_t source_bytes, unsigned char **out_data,
     size_t *out_size, const unsigned char *compare_data, size_t compare_size, char **out_direct_profile_json,
-    char **out_error, M68kDiagList *diagnostics) {
+    char **out_error, const M68kAssemblerPolicy *assembler_policy, M68kDiagList *diagnostics) {
   clock_t total_start = clock();
   clock_t phase_start;
   double write_buffer_seconds = 0.0;
@@ -6749,7 +6760,8 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   }
   *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name, source_bytes,
     size > UINT32_MAX ? UINT32_MAX : (uint32_t)size, 0, NULL, write_buffer_seconds, write_file_seconds,
-    compare_size, compare_result, compare_seconds, elapsed_seconds(total_start, clock()), diagnostics);
+    compare_size, compare_result, compare_seconds, elapsed_seconds(total_start, clock()), assembler_policy,
+    diagnostics);
   if (*out_direct_profile_json == NULL) {
     free(data);
     *out_error = duplicate_text_local("out of memory");
@@ -6766,6 +6778,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
     char **out_direct_profile_json, const unsigned char *compare_data, size_t compare_size, char **out_error,
     M68kDiagList *diagnostics) {
   M68kFactsV2Profile source_profile;
+  M68kAssemblerPolicy assembler_policy;
   FactsV2DirectCompareResult not_compared;
   char *source_profile_json = NULL;
   clock_t source_start = clock();
@@ -6781,6 +6794,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   *out_error = NULL;
   memset(&not_compared, 0, sizeof(not_compared));
   not_compared.status = "not_compared";
+  m68k_assembler_policy_derive_preservation(object, &assembler_policy);
   m68k_facts_v2_profile_init(&source_profile);
   if (m68k_facts_v2_collect_direct_rebuild_profile(object, analysis_policy, &source_profile,
       m68k_diag_sink(diagnostics)) != 0) {
@@ -6799,7 +6813,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   if (source_profile.asm_source_refused) {
     *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name,
       source_profile.asm_source_bytes, 0U, 1, "source_refused", 0.0, 0.0, 0U, not_compared, 0.0, 0.0,
-      diagnostics);
+      &assembler_policy, diagnostics);
     if (*out_direct_profile_json == NULL) {
       *out_error = duplicate_text_local("out of memory");
       return -1;
@@ -6809,7 +6823,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   if (source_profile.asm_source_lossy_numeric_hunk_relocations != 0U) {
     *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name,
       source_profile.asm_source_bytes, 0U, 1, "lossy_numeric_hunk_relocations", 0.0, 0.0, 0,
-      not_compared, 0.0, 0.0, diagnostics);
+      not_compared, 0.0, 0.0, &assembler_policy, diagnostics);
     if (*out_direct_profile_json == NULL) {
       *out_error = duplicate_text_local("out of memory");
       return -1;
@@ -6818,7 +6832,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   }
   return facts_v2_direct_write_object_alloc(backend_name, backend, object, output_path,
     source_profile.asm_source_bytes, out_data, out_size, compare_data, compare_size, out_direct_profile_json,
-    out_error, diagnostics);
+    out_error, &assembler_policy, diagnostics);
 }
 
 static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *backend_name, const char *path,

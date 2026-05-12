@@ -41,6 +41,7 @@ if not exist "%ANCIENT_EXE%" (
 cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\generated\m68k_asm_tables.c ^
     src\m68k_assembler.c ^
+    src\m68k_assembler_policy.c ^
     src\m68k_assembler_api.c ^
     src\m68k_source_ir_api.c ^
     src\m68k_assembler_app.c ^
@@ -124,6 +125,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_assembler_app.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
     %OUTDIR%\m68k_source_ir_api.obj ^
     %OUTDIR%\m68k_assembler_verify.obj ^
@@ -185,6 +187,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_c_unit_test.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_instruction_spec.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_simulator.obj ^
@@ -235,6 +238,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
 link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68k_source_ir_render_with_policy /EXPORT:m68k_source_ir_free /EXPORT:m68k_free_text ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_assembler_api.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
     %OUTDIR%\m68k_assembler_verify.obj ^
@@ -279,6 +283,7 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
 link %LDFLAGS% /DLL /OUT:%DISASM_DLL% ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
@@ -310,6 +315,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
@@ -375,6 +381,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_facts_v2.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_disassembler.obj ^
     %OUTDIR%\m68k_decode_ir.obj ^
     %OUTDIR%\m68k_fact_ir.obj ^
@@ -478,6 +485,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
@@ -537,6 +545,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^
+    %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
