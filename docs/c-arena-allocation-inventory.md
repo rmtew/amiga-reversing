@@ -45,9 +45,9 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_source_model.c` | 146 | result | Source model result arena creation. Append storage is arena-backed. |
 | `src/platform_amiga_disk.c` | 1035 | result | Disk analysis arena. |
 | `src/platform_amiga_disk.c` | 1219, 1228, 1233 | external_read_buffer | Disk image file read buffer. |
-| `src/platform_amiga_hunk.c` | 84, 87, 94, 96, 103, 389, 394, 398, 412, 419, 424, 428, 526, 529, 542, 547, 557, 563, 567, 573, 582, 586, 593, 596, 687, 690, 698, 707, 747, 748, 749, 793, 794, 795, 799, 800, 801, 828, 835, 841, 845, 854, 857, 861, 865 | workflow | Hunk parser temporary names, arrays, section/debug buffers. |
-| `src/platform_amiga_hunk.c` | 922, 929, 936 | external_read_buffer | Hunk file read buffer. |
-| `src/platform_amiga_hunk.c` | 1449, 1455, 1460 | caller_freed_output | Writer output data. |
+| `src/platform_amiga_hunk.c` | 839 | workflow | Hunk parser workflow arena. Temporary names, section/debug staging buffers, and header tables are arena-backed; durable parsed results copy into the object result arena. |
+| `src/platform_amiga_hunk.c` | 895, 902, 909 | external_read_buffer | Hunk file read buffer. |
+| `src/platform_amiga_hunk.c` | 1422, 1428, 1433 | caller_freed_output | Writer output data. |
 | `src/platform_atari_st.c` | 291, 309, 326, 327, 772, 773, 778, 779, 807, 813, 818 | caller_freed_output | Split payloads and writer output. |
 | `src/platform_atari_st.c` | 367, 375, 383, 394, 400, 408, 414, 419, 424 | workflow | Relocation offset scratch. |
 | `src/platform_atari_st.c` | 585, 592, 599 | external_read_buffer | Atari ST file read buffer. |
@@ -100,6 +100,11 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - `src/m68k_source_file_emit.c`: direct raw heap allocation sites reduced from 27 (`calloc`, `free`) to 0; layout offsets, section writer slots, and intermediate writer output use workflow/result arenas.
 - `src/platform_binary_io.c`: added `m68k_writer_build_arena` for arena-owned flattened writer output; existing `m68k_writer_build` remains the caller-freed output boundary.
 - `src/m68k_analysis_render_lookup.c`: direct raw heap allocation sites reduced from 17 (`malloc`, `calloc`, `realloc`, `free`) to 0; render lookup temporary graphs, queues, and observations use local Workflow Arenas.
+- Render output boundary coverage asserts a source IR render text result remains valid after its source-file result arena is destroyed.
+
+## PRD 004 Notes
+
+- `src/platform_amiga_hunk.c`: direct raw heap allocation sites in parser code reduced from 45 (`malloc`, `calloc`, `free`) to 0; one Workflow Arena now owns temporary BSTR names, HUNK_EXT names, debug payload staging, section payload staging, and executable header tables for each read-buffer call. Returned HUNK object internals remain object Result Arena owned. Remaining direct heap sites in the module are external file-read and caller-freed writer-output boundaries.
 
 ## Verification
 
