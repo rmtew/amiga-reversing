@@ -109,6 +109,37 @@ static int test_hunk_loader_records_payload_and_relocation_metadata(void) {
   return 0;
 }
 
+static int test_hunk_parser_result_survives_workflow_teardown(void) {
+  static const unsigned char hunk[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x03, 0xE9,
+    0x00, 0x00, 0x00, 0x01,
+    0x4E, 0x75, 0x00, 0x00,
+    0x00, 0x00, 0x03, 0xF2,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)object.section_count);
+  M68K_C_ASSERT(object.sections[0].data != NULL);
+  M68K_C_ASSERT_U32(4U, object.sections[0].data_size);
+  M68K_C_ASSERT_U32(0x4EU, object.sections[0].data[0]);
+  M68K_C_ASSERT_U32(0x75U, object.sections[0].data[1]);
+  m68k_object_destroy(&object);
+  M68K_C_ASSERT(object.arena == NULL);
+  M68K_C_ASSERT(object.sections == NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)object.section_count);
+  return 0;
+}
+
 static int test_ideal_assembler_policy_has_no_preservation_metadata(void) {
   M68kAssemblerPolicy policy;
   m68k_assembler_policy_init_ideal(&policy);
@@ -566,6 +597,7 @@ int m68k_c_container_metadata_tests(void) {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
     {"no_container_metadata_uses_numeric_ids", test_no_container_metadata_uses_numeric_ids},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
+    {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
     {"ideal_assembler_policy_has_no_preservation_metadata", test_ideal_assembler_policy_has_no_preservation_metadata},
     {"preservation_policy_derives_hunk_relocation_encoding_ids",
       test_preservation_policy_derives_hunk_relocation_encoding_ids},
