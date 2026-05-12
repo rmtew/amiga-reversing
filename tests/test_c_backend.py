@@ -2668,6 +2668,10 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
     assert direct_profile["direct_compare_exactness_id"] == 2
     assert direct_profile["direct_compare_issue_group_flags"] & 0x4 == 0x4
     assert direct_profile["direct_compare_range_count"] >= 1
+    assert any(item["kind"] == "section_payload" for item in direct_profile["direct_compare_file_layout"])
+    payload_layout = next(item for item in direct_profile["direct_compare_file_layout"] if item["kind"] == "section_payload")
+    assert payload_layout["section_index"] == 0
+    assert payload_layout["section_offset_start"] == 0
     assert direct_profile["direct_compare_source_hint_count"] == 0
     assert direct_profile["direct_compare_source_hints"] == []
     assert direct_profile["assembler_policy_kind"] == 2
@@ -3003,6 +3007,30 @@ def test_project_source_reproduction_compare_atari_uses_object_semantics(tmp_pat
     assert compare_profile["reproduction_compare_exactness_id"] == 2
     assert compare_profile["reproduction_compare_issue_group_flags"] & 0x4 == 0x4
     assert compare_profile["reproduction_compare_issue_group_flags"] & 0x100 == 0x100
+    assert compare_profile["reproduction_compare_file_layout"][:2] == [
+        {"kind": "header", "file_start": 0, "file_end": 28, "length": 28},
+        {
+            "kind": "section_payload",
+            "file_start": 28,
+            "file_end": 30,
+            "length": 2,
+            "section_index": 0,
+            "hunk": 0,
+            "section_offset_start": 0,
+        },
+    ]
+    assert {
+        "kind": "atari_header_field_mismatch",
+        "field": "symbol_table_type",
+        "original": 7,
+        "rebuilt": 0,
+    } in compare_profile["reproduction_compare_file_shape_diagnostics"]
+    assert {
+        "kind": "atari_header_field_mismatch",
+        "field": "flags",
+        "original": 0x1234,
+        "rebuilt": 0,
+    } in compare_profile["reproduction_compare_file_shape_diagnostics"]
 
 
 def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_path: Path) -> None:

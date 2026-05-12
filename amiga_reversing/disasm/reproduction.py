@@ -72,27 +72,6 @@ REPRODUCTION_RELOCATION_POLICIES = {"assembler_default", "preserve_original_enco
 REPRODUCTION_COMPARISONS = {"full_file", "content", "semantic"}
 REPRODUCTION_REQUESTED_EXACTNESS = {"full_file", "content"}
 REPRODUCTION_REQUESTED_EXACTNESS_IDS = {"full_file": 1, "content": 2}
-_ATARI_PRG_HEADER_SIZE = 28
-_ATARI_PRG_MAGIC = 0x601A
-_HUNK_TYPE_ID_MASK = 0x1FFFFFFF
-_HUNK_SIZE_LONGS_MASK = 0x3FFFFFFF
-_HUNK_MEM_SHIFT = 30
-_HUNK_HEADER = 1011
-_HUNK_CODE = 1001
-_HUNK_DATA = 1002
-_HUNK_BSS = 1003
-_HUNK_SYMBOL = 1008
-_HUNK_DEBUG = 1009
-_HUNK_END = 1010
-_HUNK_EXT = 1007
-_HUNK_RELOC32 = 1004
-_HUNK_RELOC32SHORT = 1020
-_HUNK_SECTION_TYPES = {_HUNK_CODE, _HUNK_DATA, _HUNK_BSS}
-_HUNK_RELOCATION_LONG_TYPES = {1004, 1005, 1006, 1015, 1016, 1017, 1021, 1022}
-_HUNK_EXT_DEFINITION_TYPES = {0, 1, 2, 3}
-_HUNK_EXT_REFERENCE_TYPES = {129, 131, 132, 133, 134, 135, 136, 138, 139}
-_HUNK_EXT_COMMON_REFERENCE_TYPES = {130, 137}
-
 _C_COMPARE_STATUS_LABELS = {
     0: "not_compared",
     1: "exact_file",
@@ -616,9 +595,26 @@ def run_reproduction(
             if c_compare_profile is not None:
                 _merge_source_compare_profile(profile_timings, c_compare_profile)
         else:
+            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
+                paths.binary_source,
+                rebuilt,
+                backend=backend,
+                policy=reproduction_policy,
+                metadata_path=None,
+                project_root=project_root,
+                original=original,
+                canonical_rebuilt=canonical_rebuilt,
+                diff_ranges=diff_ranges,
+                canonical_diff_ranges=canonical_diff_ranges,
+                file_layout=[],
+            )
             layout_started_at = time.perf_counter()
-            file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
+            file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
+            if not file_layout and backend == "amiga-raw":
+                file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
             _record_profile_timing(profile_timings, "file_layout_seconds", layout_started_at)
+            if c_compare_profile is not None:
+                _merge_source_compare_profile(profile_timings, c_compare_profile)
             row_mapping_started_at = time.perf_counter()
             row_issues = diff_issues_for_lookup(
                 diff_ranges,
@@ -640,21 +636,13 @@ def run_reproduction(
                 diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
-            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
-                paths.binary_source,
-                rebuilt,
-                backend=backend,
-                policy=reproduction_policy,
-                metadata_path=None,
-                project_root=project_root,
-                original=original,
-                canonical_rebuilt=canonical_rebuilt,
-                diff_ranges=diff_ranges,
-                canonical_diff_ranges=canonical_diff_ranges,
-                file_layout=file_layout,
-            )
             if c_compare_profile is not None:
-                _merge_source_compare_profile(profile_timings, c_compare_profile)
+                c_shape_diagnostics = _comparison_profile_shape_diagnostics(
+                    c_compare_profile, "reproduction_compare"
+                )
+                if c_shape_diagnostics:
+                    file_shape_diagnostics = c_shape_diagnostics
+                    canonical_file_shape_diagnostics = [dict(item) for item in c_shape_diagnostics]
                 direct_shape_diagnostics = _reproduction_compare_shape_diagnostics(
                     c_compare_profile, row_for_section_offset
                 )
@@ -1259,6 +1247,30 @@ def _comparison_for_rebuilt_bytes(
     )
 
 
+def _comparison_profile_file_layout(
+    profile: dict[str, object] | None,
+    prefix: str,
+) -> list[dict[str, object]]:
+    if profile is None:
+        return []
+    return [dict(item) for item in _dict_list(profile.get(f"{prefix}_file_layout"))]
+
+
+def _comparison_profile_shape_diagnostics(
+    profile: dict[str, object] | None,
+    prefix: str,
+) -> list[dict[str, object]]:
+    if profile is None:
+        return []
+    diagnostics: list[dict[str, object]] = []
+    for item in _dict_list(profile.get(f"{prefix}_file_shape_diagnostics")):
+        diagnostic = dict(item)
+        diagnostic.setdefault("group", "original_file_structure")
+        diagnostic.setdefault("source", "facts_v2_reproduction_compare")
+        diagnostics.append(diagnostic)
+    return diagnostics[:MAX_DIAGNOSTICS]
+
+
 def _merge_source_compare_profile(timings: dict[str, object], profile: dict[str, object]) -> None:
     for key, value in profile.items():
         if key == "facts_v2_reproduction_compare":
@@ -1283,42 +1295,8 @@ def file_shape_diagnostics_for_mismatch(
     diff_ranges: list[dict[str, object]],
     file_layout: list[dict[str, object]],
 ) -> list[dict[str, object]]:
-    if not diff_ranges:
-        return []
-    first_layout_kind = _first_diff_layout_kind(diff_ranges, file_layout)
-    if backend == "atari-st" and first_layout_kind in {"header", "relocation", "symbol_table"}:
-        return compare_atari_st_file_shape(original, rebuilt)
+    del original, rebuilt, backend, diff_ranges, file_layout
     return []
-
-
-def compare_atari_st_file_shape(original: bytes, rebuilt: bytes) -> list[dict[str, object]]:
-    original_header = _atari_st_header_fields(original)
-    rebuilt_header = _atari_st_header_fields(rebuilt)
-    if original_header is None or rebuilt_header is None:
-        return [{"kind": "atari_header_parse_error"}]
-    diagnostics: list[dict[str, object]] = []
-    for key, original_value in original_header.items():
-        rebuilt_value = rebuilt_header.get(key)
-        if original_value != rebuilt_value:
-            diagnostics.append(
-                {
-                    "kind": "atari_header_field_mismatch",
-                    "field": key,
-                    "original": original_value,
-                    "rebuilt": rebuilt_value,
-                }
-            )
-    original_reloc_size = max(0, len(original) - _atari_st_relocation_offset(original))
-    rebuilt_reloc_size = max(0, len(rebuilt) - _atari_st_relocation_offset(rebuilt))
-    if original_reloc_size != rebuilt_reloc_size:
-        diagnostics.append(
-            {
-                "kind": "atari_relocation_size_mismatch",
-                "original": original_reloc_size,
-                "rebuilt": rebuilt_reloc_size,
-            }
-        )
-    return diagnostics[:MAX_DIAGNOSTICS]
 
 
 def file_layout_for_binary_source(
@@ -1328,10 +1306,6 @@ def file_layout_for_binary_source(
     data: bytes | None = None,
 ) -> list[dict[str, object]]:
     payload = binary_source.read_bytes() if data is None else data
-    if backend == "atari-st":
-        return _atari_st_file_layout(payload)
-    if backend == "amiga-hunk":
-        return _amiga_hunk_file_layout(payload)
     if backend.endswith("-raw"):
         start = 0
         if isinstance(binary_source, RawBinarySource):
@@ -1992,202 +1966,6 @@ def _optional_int(value: object, fallback: int) -> int:
     return value if isinstance(value, int) else fallback
 
 
-def _atari_st_file_layout(data: bytes) -> list[dict[str, object]]:
-    layout: list[dict[str, object]] = []
-    if len(data) < _ATARI_PRG_HEADER_SIZE or _u16be(data, 0) != _ATARI_PRG_MAGIC:
-        _append_layout_range(layout, "unknown", 0, len(data), data_len=len(data), label="unknown Atari file")
-        return layout
-    _append_layout_range(layout, "header", 0, _ATARI_PRG_HEADER_SIZE, data_len=len(data), label="Atari PRG header")
-    text_size = _u32be(data, 2)
-    data_size = _u32be(data, 6)
-    symbol_size = _u32be(data, 14)
-    offset = _ATARI_PRG_HEADER_SIZE
-    _append_layout_range(
-        layout,
-        "section_payload",
-        offset,
-        offset + text_size,
-        data_len=len(data),
-        section_index=0,
-        hunk=0,
-        section_offset_start=0,
-        label="text payload",
-    )
-    offset += text_size
-    _append_layout_range(
-        layout,
-        "section_payload",
-        offset,
-        offset + data_size,
-        data_len=len(data),
-        section_index=1,
-        hunk=1,
-        section_offset_start=0,
-        label="data payload",
-    )
-    offset += data_size
-    _append_layout_range(layout, "symbol_table", offset, offset + symbol_size, data_len=len(data), label="symbol table")
-    offset += symbol_size
-    if offset < len(data):
-        _append_layout_range(layout, "relocation", offset, len(data), data_len=len(data), label="relocation table")
-    return layout
-
-
-def _amiga_hunk_file_layout(data: bytes) -> list[dict[str, object]]:
-    layout: list[dict[str, object]] = []
-    if len(data) < 4 or _u32be(data, 0) != _HUNK_HEADER:
-        _append_layout_range(layout, "unknown", 0, len(data), data_len=len(data), label="unknown hunk file")
-        return layout
-    try:
-        _append_amiga_hunk_executable_layout(layout, data)
-    except ValueError:
-        last_end = max((_required_int(entry.get("file_end") or 0) for entry in layout), default=0)
-        _append_layout_range(layout, "unknown", last_end, len(data), data_len=len(data), label="unparsed hunk data")
-    return layout
-
-
-def _append_amiga_hunk_executable_layout(layout: list[dict[str, object]], data: bytes) -> None:
-    pos = 4
-    while True:
-        longs = _read_u32be(data, pos)
-        pos += 4
-        pos = _skip_bytes_checked(data, pos, longs * 4)
-        if longs == 0:
-            break
-    table_size = _read_u32be(data, pos)
-    pos += 4
-    first_hunk = _read_u32be(data, pos)
-    pos += 4
-    last_hunk = _read_u32be(data, pos)
-    pos += 4
-    count = (last_hunk - first_hunk + 1) if last_hunk >= first_hunk else table_size
-    header_mem_attrs: list[int] = []
-    for _index in range(count):
-        size_word = _read_u32be(data, pos)
-        pos += 4
-        mem_attrs = 0
-        if (size_word >> _HUNK_MEM_SHIFT) == 3:
-            mem_attrs = _read_u32be(data, pos)
-            pos += 4
-        header_mem_attrs.append(mem_attrs)
-    _append_layout_range(layout, "header", 0, pos, data_len=len(data), label="Amiga hunk header")
-    for section_index in range(count):
-        section_start = pos
-        raw_type = _read_u32be(data, pos)
-        pos += 4
-        hunk_id = raw_type & _HUNK_TYPE_ID_MASK
-        if hunk_id not in _HUNK_SECTION_TYPES:
-            _append_layout_range(
-                layout,
-                "unknown",
-                section_start,
-                len(data),
-                data_len=len(data),
-                section_index=section_index,
-                hunk=section_index,
-                label="unexpected hunk section",
-            )
-            return
-        mem_type = raw_type >> _HUNK_MEM_SHIFT
-        if mem_type == 3 and header_mem_attrs[section_index] == 0:
-            pos = _skip_bytes_checked(data, pos, 4)
-        size_longs = _read_u32be(data, pos)
-        pos += 4
-        payload_start = pos
-        if hunk_id in {_HUNK_CODE, _HUNK_DATA}:
-            payload_end = _skip_bytes_checked(data, payload_start, size_longs * 4)
-            _append_layout_range(
-                layout,
-                "section_header",
-                section_start,
-                payload_start,
-                data_len=len(data),
-                section_index=section_index,
-                hunk=section_index,
-                label="hunk section header",
-            )
-            _append_layout_range(
-                layout,
-                "section_payload",
-                payload_start,
-                payload_end,
-                data_len=len(data),
-                section_index=section_index,
-                hunk=section_index,
-                section_offset_start=0,
-                label="hunk section payload",
-            )
-            pos = payload_end
-        else:
-            _append_layout_range(
-                layout,
-                "section_header",
-                section_start,
-                pos,
-                data_len=len(data),
-                section_index=section_index,
-                hunk=section_index,
-                label="hunk BSS header",
-            )
-        pos = _append_amiga_hunk_aux_layout(layout, data, pos, section_index)
-
-
-def _append_amiga_hunk_aux_layout(
-    layout: list[dict[str, object]],
-    data: bytes,
-    pos: int,
-    section_index: int,
-) -> int:
-    while pos < len(data):
-        record_start = pos
-        raw = _read_u32be(data, pos)
-        pos += 4
-        hunk_id = raw & _HUNK_TYPE_ID_MASK
-        if hunk_id == _HUNK_END:
-            _append_layout_range(
-                layout,
-                "section_end",
-                record_start,
-                pos,
-                data_len=len(data),
-                section_index=section_index,
-                hunk=section_index,
-                label="hunk end",
-            )
-            return pos
-        if hunk_id == _HUNK_SYMBOL:
-            pos = _skip_hunk_symbol_block(data, pos)
-            kind = "symbol"
-        elif hunk_id == _HUNK_DEBUG:
-            size_longs = _read_u32be(data, pos)
-            pos = _skip_bytes_checked(data, pos + 4, size_longs * 4)
-            kind = "debug"
-        elif hunk_id in _HUNK_RELOCATION_LONG_TYPES:
-            pos = _skip_hunk_relocation_block(data, pos, short_counts=False)
-            kind = "relocation"
-        elif hunk_id == _HUNK_RELOC32SHORT:
-            pos = _skip_hunk_relocation_block(data, pos, short_counts=True)
-            kind = "relocation"
-        elif hunk_id == _HUNK_EXT:
-            pos = _skip_hunk_ext_block(data, pos)
-            kind = "external"
-        else:
-            size_longs = _read_u32be(data, pos)
-            pos = _skip_bytes_checked(data, pos + 4, size_longs * 4)
-            kind = "unknown"
-        _append_layout_range(
-            layout,
-            kind,
-            record_start,
-            pos,
-            data_len=len(data),
-            section_index=section_index,
-            hunk=section_index,
-            label=f"hunk {kind}",
-        )
-    return pos
-
-
 def _split_diff_range_by_layout(
     diff_range: dict[str, object],
     file_layout: list[dict[str, object]],
@@ -2339,286 +2117,3 @@ def _append_layout_range(
     if label:
         entry["label"] = label
     layout.append(entry)
-
-
-def _amiga_hunk_relocation_groups(data: bytes) -> list[dict[str, object]]:
-    groups: list[dict[str, object]] = []
-    for block in _amiga_hunk_relocation_blocks(data):
-        groups.extend(cast(list[dict[str, object]], block["groups"]))
-    return groups
-
-
-def _amiga_hunk_relocation_blocks(data: bytes) -> list[dict[str, object]]:
-    blocks: list[dict[str, object]] = []
-    if len(data) < 4 or _u32be(data, 0) != _HUNK_HEADER:
-        return blocks
-    pos = 4
-    while True:
-        longs = _read_u32be(data, pos)
-        pos += 4
-        pos = _skip_bytes_checked(data, pos, longs * 4)
-        if longs == 0:
-            break
-    table_size = _read_u32be(data, pos)
-    pos += 4
-    first_hunk = _read_u32be(data, pos)
-    pos += 4
-    last_hunk = _read_u32be(data, pos)
-    pos += 4
-    section_count = (last_hunk - first_hunk + 1) if last_hunk >= first_hunk else table_size
-    header_mem_attrs: list[int] = []
-    for _index in range(section_count):
-        size_word = _read_u32be(data, pos)
-        pos += 4
-        mem_attrs = 0
-        if (size_word >> _HUNK_MEM_SHIFT) == 3:
-            mem_attrs = _read_u32be(data, pos)
-            pos += 4
-        header_mem_attrs.append(mem_attrs)
-    for section_index in range(section_count):
-        raw_type = _read_u32be(data, pos)
-        pos += 4
-        hunk_id = raw_type & _HUNK_TYPE_ID_MASK
-        if hunk_id not in _HUNK_SECTION_TYPES:
-            return blocks
-        mem_type = raw_type >> _HUNK_MEM_SHIFT
-        if mem_type == 3 and header_mem_attrs[section_index] == 0:
-            pos = _skip_bytes_checked(data, pos, 4)
-        size_longs = _read_u32be(data, pos)
-        pos += 4
-        if hunk_id in {_HUNK_CODE, _HUNK_DATA}:
-            pos = _skip_bytes_checked(data, pos, size_longs * 4)
-        while pos < len(data):
-            record_file_start = pos
-            raw = _read_u32be(data, pos)
-            pos += 4
-            record_id = raw & _HUNK_TYPE_ID_MASK
-            if record_id == _HUNK_END:
-                break
-            if record_id in _HUNK_RELOCATION_LONG_TYPES:
-                pos, block_groups = _read_hunk_relocation_block(
-                    data,
-                    pos,
-                    section_index=section_index,
-                    record_id=record_id,
-                    short_counts=False,
-                )
-                blocks.append(
-                    _hunk_relocation_block(
-                        section_index,
-                        record_id,
-                        False,
-                        record_file_start,
-                        pos,
-                        block_groups,
-                    )
-                )
-            elif record_id == _HUNK_RELOC32SHORT:
-                pos, block_groups = _read_hunk_relocation_block(
-                    data,
-                    pos,
-                    section_index=section_index,
-                    record_id=record_id,
-                    short_counts=True,
-                )
-                blocks.append(
-                    _hunk_relocation_block(
-                        section_index,
-                        record_id,
-                        True,
-                        record_file_start,
-                        pos,
-                        block_groups,
-                    )
-                )
-            elif record_id == _HUNK_SYMBOL:
-                pos = _skip_hunk_symbol_block(data, pos)
-            elif record_id == _HUNK_DEBUG:
-                size_longs = _read_u32be(data, pos)
-                pos = _skip_bytes_checked(data, pos + 4, size_longs * 4)
-            elif record_id == _HUNK_EXT:
-                pos = _skip_hunk_ext_block(data, pos)
-            else:
-                size_longs = _read_u32be(data, pos)
-                pos = _skip_bytes_checked(data, pos + 4, size_longs * 4)
-    return blocks
-
-
-def _hunk_relocation_block(
-    section_index: int,
-    record_id: int,
-    short_counts: bool,
-    file_start: int,
-    file_end: int,
-    groups: list[dict[str, object]],
-) -> dict[str, object]:
-    return {
-        "section_index": section_index,
-        "record_id": record_id,
-        "short_counts": short_counts,
-        "file_start": file_start,
-        "file_end": file_end,
-        "groups": groups,
-    }
-
-
-def _read_hunk_relocation_block(
-    data: bytes,
-    pos: int,
-    *,
-    section_index: int,
-    record_id: int,
-    short_counts: bool,
-) -> tuple[int, list[dict[str, object]]]:
-    groups: list[dict[str, object]] = []
-    while True:
-        offsets: list[int] = []
-        group_file_start = pos
-        if short_counts:
-            count = _read_u16be(data, pos)
-            pos += 2
-            if count == 0:
-                if pos & 3:
-                    pos = _skip_bytes_checked(data, pos, 2)
-                return pos, groups
-            target_section = _read_u16be(data, pos)
-            pos += 2
-            offsets_file_start = pos
-            for _index in range(count):
-                offsets.append(_read_u16be(data, pos))
-                pos += 2
-        else:
-            count = _read_u32be(data, pos)
-            pos += 4
-            if count == 0:
-                return pos, groups
-            target_section = _read_u32be(data, pos)
-            pos += 4
-            offsets_file_start = pos
-            for _index in range(count):
-                offsets.append(_read_u32be(data, pos))
-                pos += 4
-        groups.append(
-            {
-                "section_index": section_index,
-                "record_id": record_id,
-                "target_section": target_section,
-                "short_counts": short_counts,
-                "group_file_start": group_file_start,
-                "group_file_end": pos,
-                "offsets_file_start": offsets_file_start,
-                "offsets": offsets,
-            }
-        )
-
-
-def _first_diff_layout_kind(
-    diff_ranges: list[dict[str, object]],
-    file_layout: list[dict[str, object]],
-) -> str | None:
-    if not diff_ranges:
-        return None
-    first_start = diff_ranges[0].get("start")
-    if not isinstance(first_start, int):
-        return None
-    layout_range = _layout_range_for_file_offset(file_layout, first_start)
-    if layout_range is None:
-        return None
-    kind = layout_range.get("kind")
-    return kind if isinstance(kind, str) else None
-
-
-def _atari_st_header_fields(data: bytes) -> dict[str, int] | None:
-    if len(data) < _ATARI_PRG_HEADER_SIZE or _u16be(data, 0) != _ATARI_PRG_MAGIC:
-        return None
-    return {
-        "magic": _u16be(data, 0),
-        "text_size": _u32be(data, 2),
-        "data_size": _u32be(data, 6),
-        "bss_size": _u32be(data, 10),
-        "symbol_size": _u32be(data, 14),
-        "reserved": _u32be(data, 18),
-        "flags": _u32be(data, 22),
-        "relocation_flag": _u16be(data, 26),
-    }
-
-
-def _atari_st_relocation_offset(data: bytes) -> int:
-    header = _atari_st_header_fields(data)
-    if header is None:
-        return len(data)
-    return _ATARI_PRG_HEADER_SIZE + header["text_size"] + header["data_size"] + header["symbol_size"]
-
-
-def _skip_hunk_symbol_block(data: bytes, pos: int) -> int:
-    while True:
-        name_longs = _read_u32be(data, pos)
-        pos += 4
-        if name_longs == 0:
-            return pos
-        pos = _skip_bytes_checked(data, pos, name_longs * 4 + 4)
-
-
-def _skip_hunk_relocation_block(data: bytes, pos: int, *, short_counts: bool) -> int:
-    if short_counts:
-        while True:
-            count = _read_u16be(data, pos)
-            pos += 2
-            if count == 0:
-                if pos & 3:
-                    pos = _skip_bytes_checked(data, pos, 2)
-                return pos
-            pos = _skip_bytes_checked(data, pos, 2 + count * 2)
-    while True:
-        count = _read_u32be(data, pos)
-        pos += 4
-        if count == 0:
-            return pos
-        pos = _skip_bytes_checked(data, pos, 4 + count * 4)
-
-
-def _skip_hunk_ext_block(data: bytes, pos: int) -> int:
-    while True:
-        tag = _read_u32be(data, pos)
-        pos += 4
-        if tag == 0:
-            return pos
-        ext_type = tag >> 24
-        name_longs = tag & 0xFFFFFF
-        pos = _skip_bytes_checked(data, pos, name_longs * 4)
-        if ext_type in _HUNK_EXT_DEFINITION_TYPES:
-            pos = _skip_bytes_checked(data, pos, 4)
-        elif ext_type in _HUNK_EXT_REFERENCE_TYPES or ext_type in _HUNK_EXT_COMMON_REFERENCE_TYPES:
-            if ext_type in _HUNK_EXT_COMMON_REFERENCE_TYPES:
-                pos = _skip_bytes_checked(data, pos, 4)
-            count = _read_u32be(data, pos)
-            pos = _skip_bytes_checked(data, pos + 4, count * 4)
-        else:
-            raise ValueError(f"Unsupported HUNK_EXT subtype {ext_type}")
-
-
-def _skip_bytes_checked(data: bytes, pos: int, count: int) -> int:
-    new_pos = pos + count
-    if count < 0 or new_pos > len(data):
-        raise ValueError("Unexpected EOF while parsing file layout")
-    return new_pos
-
-
-def _read_u16be(data: bytes, offset: int) -> int:
-    if offset + 2 > len(data):
-        raise ValueError("Unexpected EOF reading u16")
-    return int.from_bytes(data[offset:offset + 2], "big")
-
-
-def _read_u32be(data: bytes, offset: int) -> int:
-    if offset + 4 > len(data):
-        raise ValueError("Unexpected EOF reading u32")
-    return _u32be(data, offset)
-
-
-def _u16be(data: bytes, offset: int) -> int:
-    return int.from_bytes(data[offset:offset + 2], "big")
-
-
-def _u32be(data: bytes, offset: int) -> int:
-    return int.from_bytes(data[offset:offset + 4], "big")

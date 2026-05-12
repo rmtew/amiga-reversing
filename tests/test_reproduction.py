@@ -17,7 +17,6 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
 from amiga_reversing.disasm.reproduction import (
-    compare_atari_st_file_shape,
     diff_issues_for_lookup,
     first_diff,
     grouped_diff_ranges,
@@ -240,35 +239,26 @@ def test_reproduction_diff_finds_first_byte_and_grouped_ranges() -> None:
         "rebuilt": 255,
     }
 
-def test_atari_file_shape_comparator_classifies_header_fields() -> None:
-    original = (
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(0)
-        + _u32(0)
-        + _u32(4)
-        + _u32(0)
-        + _u32(1)
-        + _u16(0)
-        + b"\x4e\x75"
-        + b"sym!"
-    )
-    rebuilt = (
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u16(0)
-        + b"\x4e\x75"
+def test_comparison_profile_shape_diagnostics_expands_c_transport() -> None:
+    diagnostics = reproduction._comparison_profile_shape_diagnostics(
+        {
+            "reproduction_compare_file_shape_diagnostics": [
+                {"kind": "atari_header_field_mismatch", "field": "symbol_size", "original": 4, "rebuilt": 0},
+                {"kind": "atari_header_field_mismatch", "field": "flags", "original": 1, "rebuilt": 0},
+            ]
+        },
+        "reproduction_compare",
     )
 
-    diagnostics = compare_atari_st_file_shape(original, rebuilt)
-
-    assert {"kind": "atari_header_field_mismatch", "field": "symbol_size", "original": 4, "rebuilt": 0} in diagnostics
-    assert {"kind": "atari_header_field_mismatch", "field": "flags", "original": 1, "rebuilt": 0} in diagnostics
+    assert diagnostics[0] == {
+        "kind": "atari_header_field_mismatch",
+        "field": "symbol_size",
+        "original": 4,
+        "rebuilt": 0,
+        "group": "original_file_structure",
+        "source": "facts_v2_reproduction_compare",
+    }
+    assert diagnostics[1]["field"] == "flags"
 
 def test_reproduction_diff_maps_ranges_to_rows() -> None:
     rows = _rows(
@@ -292,33 +282,33 @@ def test_reproduction_diff_maps_ranges_to_rows() -> None:
     assert issues[0]["stable_key"] == "s0:1:data"
 
 
-def test_reproduction_diff_uses_file_layout_before_mapping_rows(tmp_path: Path) -> None:
-    binary_path = tmp_path / "BIN_GEN.TTP"
-    data = (
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(2)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u16(0)
-        + b"\x4e\x75"
-        + b"\x00\x01"
-    )
-    binary_path.write_bytes(data)
-    source = HunkFileBinarySource(
-        kind="hunk_file",
-        path=binary_path,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
+def test_reproduction_diff_uses_file_layout_before_mapping_rows() -> None:
     rows = _rows(
         ListingRow(row_id="text", kind="instruction", text="rts\n", section_index=0, start_offset=0, end_offset=2, addr=0),
         ListingRow(row_id="data", kind="data", text="dc.w 1\n", section_index=1, start_offset=0, end_offset=2, addr=0x200),
     )
 
-    layout = reproduction.file_layout_for_binary_source(source, backend="atari-st")
+    layout = [
+        {"kind": "header", "file_start": 0, "file_end": 28, "length": 28},
+        {
+            "kind": "section_payload",
+            "file_start": 28,
+            "file_end": 30,
+            "length": 2,
+            "section_index": 0,
+            "hunk": 0,
+            "section_offset_start": 0,
+        },
+        {
+            "kind": "section_payload",
+            "file_start": 30,
+            "file_end": 32,
+            "length": 2,
+            "section_index": 1,
+            "hunk": 1,
+            "section_offset_start": 0,
+        },
+    ]
     issues = _diff_issues_for_rows([{"start": 30, "end": 31, "length": 1}], rows, file_layout=layout)
 
     assert issues[0]["row_index"] == 1
@@ -328,27 +318,19 @@ def test_reproduction_diff_uses_file_layout_before_mapping_rows(tmp_path: Path) 
     assert issues[0]["section_offset"] == 0
 
 
-def test_reproduction_diff_uses_artifact_row_lookup(tmp_path: Path) -> None:
-    binary_path = tmp_path / "demo"
-    binary_path.write_bytes(
-        _u32(1011)
-        + _u32(0)
-        + _u32(1)
-        + _u32(0)
-        + _u32(0)
-        + _u32(1)
-        + _u32(1001)
-        + _u32(1)
-        + b"\x4e\x75\x00\x00"
-        + _u32(1010)
-    )
-    source = HunkFileBinarySource(
-        kind="hunk_file",
-        path=binary_path,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-    layout = reproduction.file_layout_for_binary_source(source, backend="amiga-hunk")
+def test_reproduction_diff_uses_artifact_row_lookup() -> None:
+    layout = [
+        {"kind": "header", "file_start": 0, "file_end": 24, "length": 24},
+        {
+            "kind": "section_payload",
+            "file_start": 32,
+            "file_end": 36,
+            "length": 4,
+            "section_index": 0,
+            "hunk": 0,
+            "section_offset_start": 0,
+        },
+    ]
 
     def lookup(section_index: int | None, offset: int) -> dict[str, object] | None:
         assert section_index == 0
@@ -369,27 +351,8 @@ def test_reproduction_diff_uses_artifact_row_lookup(tmp_path: Path) -> None:
     assert issues[0]["stable_key"] == "s0:00000000:instruction:7"
 
 
-def test_reproduction_diff_reports_header_ranges_without_row(tmp_path: Path) -> None:
-    binary_path = tmp_path / "demo.prg"
-    binary_path.write_bytes(
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u16(0)
-        + b"\x4e\x75"
-    )
-    source = HunkFileBinarySource(
-        kind="hunk_file",
-        path=binary_path,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
-
-    layout = reproduction.file_layout_for_binary_source(source, backend="atari-st")
+def test_reproduction_diff_reports_header_ranges_without_row() -> None:
+    layout = [{"kind": "header", "file_start": 0, "file_end": 28, "length": 28}]
     issues = diff_issues_for_lookup([{"start": 2, "end": 3, "length": 1}], None, file_layout=layout)
 
     assert issues[0]["kind"] == "diff_header"
@@ -397,26 +360,7 @@ def test_reproduction_diff_reports_header_ranges_without_row(tmp_path: Path) -> 
     assert issues[0]["layout_kind"] == "header"
 
 
-def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) -> None:
-    binary_path = tmp_path / "demo"
-    binary_path.write_bytes(
-        _u32(1011)
-        + _u32(0)
-        + _u32(1)
-        + _u32(0)
-        + _u32(0)
-        + _u32(1)
-        + _u32(1001)
-        + _u32(1)
-        + b"\x4e\x75\x00\x00"
-        + _u32(1010)
-    )
-    source = HunkFileBinarySource(
-        kind="hunk_file",
-        path=binary_path,
-        display_path=str(binary_path),
-        analysis_cache_path=tmp_path / "binary.analysis",
-    )
+def test_reproduction_diff_maps_amiga_hunk_payload_after_header() -> None:
     rows = _rows(
         ListingRow(
             row_id="code",
@@ -429,7 +373,17 @@ def test_reproduction_diff_maps_amiga_hunk_payload_after_header(tmp_path: Path) 
         )
     )
 
-    layout = reproduction.file_layout_for_binary_source(source, backend="amiga-hunk")
+    layout = [
+        {
+            "kind": "section_payload",
+            "file_start": 32,
+            "file_end": 36,
+            "length": 4,
+            "section_index": 0,
+            "hunk": 0,
+            "section_offset_start": 0,
+        }
+    ]
     issues = _diff_issues_for_rows([{"start": 32, "end": 33, "length": 1}], rows, file_layout=layout)
 
     assert issues[0]["row_index"] == 0

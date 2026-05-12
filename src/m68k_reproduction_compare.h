@@ -9,6 +9,8 @@
 
 #define M68K_REPRO_COMPARE_RANGE_CAPACITY 8U
 #define M68K_REPRO_COMPARE_SOURCE_HINT_CAPACITY 8U
+#define M68K_REPRO_COMPARE_LAYOUT_CAPACITY 64U
+#define M68K_REPRO_COMPARE_DIAGNOSTIC_CAPACITY 8U
 
 typedef enum M68kReproductionCompareStatusId {
   M68K_REPRO_COMPARE_STATUS_NOT_COMPARED = 0,
@@ -56,6 +58,22 @@ typedef struct M68kReproductionCompareSourceHint {
   uint32_t offset;
 } M68kReproductionCompareSourceHint;
 
+typedef struct M68kReproductionCompareLayoutRange {
+  uint32_t kind_id;
+  uint32_t file_start;
+  uint32_t file_end;
+  uint32_t section_index;
+  uint32_t section_offset_start;
+  uint8_t has_section_index;
+} M68kReproductionCompareLayoutRange;
+
+typedef struct M68kReproductionCompareDiagnostic {
+  uint32_t kind_id;
+  uint32_t field_id;
+  uint32_t original_value;
+  uint32_t rebuilt_value;
+} M68kReproductionCompareDiagnostic;
+
 typedef struct M68kReproductionCompareResult {
   uint32_t status_id;
   uint32_t exactness_id;
@@ -69,8 +87,14 @@ typedef struct M68kReproductionCompareResult {
   uint8_t range_overflow;
   uint8_t source_hint_count;
   uint8_t source_hint_overflow;
+  uint8_t layout_count;
+  uint8_t layout_overflow;
+  uint8_t diagnostic_count;
+  uint8_t diagnostic_overflow;
   M68kReproductionCompareRange ranges[M68K_REPRO_COMPARE_RANGE_CAPACITY];
   M68kReproductionCompareSourceHint source_hints[M68K_REPRO_COMPARE_SOURCE_HINT_CAPACITY];
+  M68kReproductionCompareLayoutRange layout[M68K_REPRO_COMPARE_LAYOUT_CAPACITY];
+  M68kReproductionCompareDiagnostic diagnostics[M68K_REPRO_COMPARE_DIAGNOSTIC_CAPACITY];
 } M68kReproductionCompareResult;
 
 typedef struct M68kReproductionCompareContext {

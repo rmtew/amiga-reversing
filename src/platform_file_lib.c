@@ -5999,6 +5999,91 @@ static int json_builder_append_direct_compare_source_hints(JsonBuilder *builder,
   return json_builder_append(builder, "]");
 }
 
+static const char *repro_compare_layout_kind_text(uint32_t kind_id) {
+  switch (kind_id) {
+  case 1U: return "header";
+  case 2U: return "section_header";
+  case 3U: return "section_payload";
+  case 4U: return "section_end";
+  case 5U: return "relocation";
+  case 6U: return "symbol_table";
+  case 7U: return "symbol";
+  case 8U: return "debug";
+  case 9U: return "external";
+  default: return "unknown";
+  }
+}
+
+static const char *repro_compare_diagnostic_kind_text(uint32_t kind_id) {
+  switch (kind_id) {
+  case 1U: return "atari_header_field_mismatch";
+  case 2U: return "atari_relocation_size_mismatch";
+  default: return "container_shape_diagnostic";
+  }
+}
+
+static const char *repro_compare_atari_field_text(uint32_t field_id) {
+  switch (field_id) {
+  case 1U: return "text_size";
+  case 2U: return "data_size";
+  case 3U: return "bss_size";
+  case 4U: return "symbol_size";
+  case 5U: return "symbol_table_type";
+  case 6U: return "flags";
+  case 7U: return "relocation_flag";
+  default: return "";
+  }
+}
+
+static int json_builder_append_repro_compare_layout(JsonBuilder *builder,
+    const M68kReproductionCompareResult *result) {
+  uint32_t index;
+  if (builder == NULL || result == NULL) return -1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < result->layout_count; ++index) {
+    const M68kReproductionCompareLayoutRange *range = &result->layout[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":") != 0 ||
+        json_builder_append_json_string(builder, repro_compare_layout_kind_text(range->kind_id)) != 0 ||
+        json_builder_appendf(builder, ",\"file_start\":%u,\"file_end\":%u,\"length\":%u",
+          (unsigned)range->file_start, (unsigned)range->file_end,
+          (unsigned)(range->file_end > range->file_start ? range->file_end - range->file_start : 0U)) != 0)
+      return -1;
+    if (range->has_section_index) {
+      if (json_builder_appendf(builder,
+            ",\"section_index\":%u,\"hunk\":%u,\"section_offset_start\":%u",
+            (unsigned)range->section_index, (unsigned)range->section_index,
+            (unsigned)range->section_offset_start) != 0)
+        return -1;
+    }
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int json_builder_append_repro_compare_diagnostics(JsonBuilder *builder,
+    const M68kReproductionCompareResult *result) {
+  uint32_t index;
+  if (builder == NULL || result == NULL) return -1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < result->diagnostic_count; ++index) {
+    const M68kReproductionCompareDiagnostic *diagnostic = &result->diagnostics[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":") != 0 ||
+        json_builder_append_json_string(builder, repro_compare_diagnostic_kind_text(diagnostic->kind_id)) != 0)
+      return -1;
+    if (diagnostic->field_id != 0U) {
+      if (json_builder_append(builder, ",\"field\":") != 0 ||
+          json_builder_append_json_string(builder, repro_compare_atari_field_text(diagnostic->field_id)) != 0)
+        return -1;
+    }
+    if (json_builder_appendf(builder, ",\"original\":%u,\"rebuilt\":%u}",
+          (unsigned)diagnostic->original_value, (unsigned)diagnostic->rebuilt_value) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *backend_name,
     const M68kBackend *backend, const M68kObject *original_object, const unsigned char *rebuilt_data,
     size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size,
@@ -6098,9 +6183,9 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         "\"direct_compare_issue_group_flags\":%u,"
         "\"direct_compare_first_diff_offset\":%u,"
         "\"direct_compare_range_count\":%u,"
-        "\"direct_compare_source_hint_count\":%u,"
-        "\"direct_compare_source_hint_overflow\":%s,"
-        "\"direct_compare_source_hints\":",
+        "\"direct_compare_file_layout_count\":%u,"
+        "\"direct_compare_file_layout_overflow\":%s,"
+        "\"direct_compare_file_layout\":",
         compare_payload_exact ? "true" : "false",
         compare_relocation_exact ? "true" : "false",
         compare_semantic_exact ? "true" : "false",
@@ -6108,6 +6193,16 @@ static char *facts_v2_direct_rebuild_profile_json_alloc(const char *backend_name
         (unsigned)compare_result.status_id, (unsigned)compare_result.exactness_id,
         (unsigned)compare_result.diagnostic_id, (unsigned)compare_result.issue_group_flags,
         (unsigned)compare_result.first_diff_offset, (unsigned)compare_result.range_count,
+        (unsigned)compare_result.layout_count,
+        compare_result.layout_overflow ? "true" : "false") != 0 ||
+      json_builder_append_repro_compare_layout(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"direct_compare_file_shape_diagnostics\":") != 0 ||
+      json_builder_append_repro_compare_diagnostics(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"direct_compare_source_hint_count\":%u,"
+        "\"direct_compare_source_hint_overflow\":%s,"
+        "\"direct_compare_source_hints\":",
         (unsigned)compare_result.source_hint_count,
         compare_result.source_hint_overflow ? "true" : "false") != 0 ||
       json_builder_append_direct_compare_source_hints(&builder, &compare_result) != 0 ||
@@ -6167,9 +6262,9 @@ static char *facts_v2_reproduction_compare_profile_json_alloc(const char *backen
         "\"reproduction_compare_issue_group_flags\":%u,"
         "\"reproduction_compare_first_diff_offset\":%u,"
         "\"reproduction_compare_range_count\":%u,"
-        "\"reproduction_compare_source_hint_count\":%u,"
-        "\"reproduction_compare_source_hint_overflow\":%s,"
-        "\"reproduction_compare_source_hints\":",
+        "\"reproduction_compare_file_layout_count\":%u,"
+        "\"reproduction_compare_file_layout_overflow\":%s,"
+        "\"reproduction_compare_file_layout\":",
         compare_payload_exact ? "true" : "false",
         compare_relocation_exact ? "true" : "false",
         compare_content_exact ? "true" : "false",
@@ -6177,6 +6272,16 @@ static char *facts_v2_reproduction_compare_profile_json_alloc(const char *backen
         (unsigned)compare_result.status_id, (unsigned)compare_result.exactness_id,
         (unsigned)compare_result.diagnostic_id, (unsigned)compare_result.issue_group_flags,
         (unsigned)compare_result.first_diff_offset, (unsigned)compare_result.range_count,
+        (unsigned)compare_result.layout_count,
+        compare_result.layout_overflow ? "true" : "false") != 0 ||
+      json_builder_append_repro_compare_layout(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"reproduction_compare_file_shape_diagnostics\":") != 0 ||
+      json_builder_append_repro_compare_diagnostics(&builder, &compare_result) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"reproduction_compare_source_hint_count\":%u,"
+        "\"reproduction_compare_source_hint_overflow\":%s,"
+        "\"reproduction_compare_source_hints\":",
         (unsigned)compare_result.source_hint_count,
         compare_result.source_hint_overflow ? "true" : "false") != 0 ||
       json_builder_append_direct_compare_source_hints(&builder, &compare_result) != 0 ||
