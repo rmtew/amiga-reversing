@@ -17,6 +17,13 @@ BANNED_INTEGER_TYPE_RE = re.compile(
 )
 CONTROL_HEADS = {"if", "for", "while", "switch"}
 SINGLE_CLAUSE_BODY_RE = re.compile(r"^\s*(?:return\b.*|break;|continue;)\s*$")
+RAW_ALLOCATION_RE = re.compile(r"\b(?:malloc|calloc|realloc|free)\s*\(")
+SOURCE_MODEL_RAW_ALLOCATION_GUARDS = {
+    ROOT / "src" / "m68k_source_model.c",
+    ROOT / "src" / "m68k_source_model.h",
+}
+# No output-edge or test-only exceptions are approved for the migrated source model.
+SOURCE_MODEL_RAW_ALLOCATION_EXCEPTIONS: set[tuple[str, int]] = set()
 
 
 @dataclass(frozen=True)
@@ -293,6 +300,7 @@ def _check_compact_local_declarations(lines: list[LineInfo], path: Path, issues:
 def check_file(path: Path, line_length: int) -> list[str]:
     issues: list[str] = []
     lines = _scan_lines(path.read_text(encoding="utf-8"))
+    resolved_path = path.resolve()
     for line in lines:
         if "\t" in line.raw:
             issues.append(f"{path}:{line.number}: tabs are not allowed")
@@ -302,6 +310,12 @@ def check_file(path: Path, line_length: int) -> list[str]:
             issues.append(f"{path}:{line.number}: line exceeds {line_length} columns")
         if BANNED_INTEGER_TYPE_RE.search(line.code):
             issues.append(f"{path}:{line.number}: use stdint.h fixed-width types instead of plain short/long")
+        if (
+            resolved_path in SOURCE_MODEL_RAW_ALLOCATION_GUARDS
+            and (path.name, line.number) not in SOURCE_MODEL_RAW_ALLOCATION_EXCEPTIONS
+            and RAW_ALLOCATION_RE.search(line.code)
+        ):
+            issues.append(f"{path}:{line.number}: migrated source model must use Result Arena allocation")
     _check_multiline_signature(lines, path, issues, line_length)
     _check_multiline_calls(lines, path, issues, line_length)
     _check_wrapped_boolean_continuations(lines, path, issues)

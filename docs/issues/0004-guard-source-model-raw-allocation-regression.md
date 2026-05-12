@@ -12,10 +12,10 @@ Add a staged source-scan guard for the migrated source model so new raw allocati
 
 ## Acceptance criteria
 
-- [ ] The guard checks migrated source model files for unapproved raw allocation calls.
-- [ ] The guard is narrow and does not globally ban heap allocation.
-- [ ] Approved output-edge or test-only exceptions are documented in the guard.
-- [ ] The guard runs in the normal C precommit/build workflow.
+- [x] The guard checks migrated source model files for unapproved raw allocation calls.
+- [x] The guard is narrow and does not globally ban heap allocation.
+- [x] Approved output-edge or test-only exceptions are documented in the guard.
+- [x] The guard runs in the normal C precommit/build workflow.
 
 ## Blocked by
 

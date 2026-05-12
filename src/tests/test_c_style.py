@@ -389,6 +389,16 @@ if (other_call(very_long_argument_name_a, very_long_argument_name_b,
                 failures.append("".join(issue + "\n" for issue in issues))
         self.assertEqual(failures, [], "".join(failures))
 
+    def test_rejects_raw_allocation_in_migrated_source_model(self) -> None:
+        original_guards = CHECKER_MODULE.SOURCE_MODEL_RAW_ALLOCATION_GUARDS
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "m68k_source_model.c"
+            path.write_text("static void guard_probe(void) { free(0); }\n", encoding="utf-8")
+            CHECKER_MODULE.SOURCE_MODEL_RAW_ALLOCATION_GUARDS = {path.resolve()}
+            issues = CHECKER_MODULE.check_file(path, CHECKER_MODULE.DEFAULT_LINE_LENGTH)
+            CHECKER_MODULE.SOURCE_MODEL_RAW_ALLOCATION_GUARDS = original_guards
+        self.assertTrue(any("Result Arena allocation" in issue for issue in issues), issues)
+
 
 if __name__ == "__main__":
     unittest.main()
