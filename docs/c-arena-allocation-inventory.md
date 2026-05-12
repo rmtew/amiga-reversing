@@ -41,7 +41,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_source_file_emit.c` | 144, 145, 148, 149, 165, 166, 174, 175, 184, 185, 209, 210, 220, 221, 231, 232, 237, 238, 353, 361, 422, 428, 436, 439, 445, 505, 510 | workflow | Emit offsets/writers and copied data statement buffers. |
 | `src/m68k_source_file_parse.c` | 177, 183, 682, 687, 701, 706, 720, 725, 739, 744 | workflow | Temporary hex-blob buffers; Atari ST metadata chunks are copied into the source result arena. |
 | `src/m68k_source_ir_api.c` | 52 | caller_freed_output | Public text free API. |
-| `src/m68k_source_ir_render.c` | 297, 339, 350, 361, 362, 392, 396, 500, 514, 533 | workflow | Render indexes/cache scratch. |
+| `src/m68k_source_ir_render.c` | 1015 | workflow | Source render workflow arena. Label indexes, section label counts, and include cache storage are arena-backed. |
 | `src/m68k_source_model.c` | 146 | result | Source model result arena creation. Append storage is arena-backed. |
 | `src/platform_amiga_disk.c` | 1035 | result | Disk analysis arena. |
 | `src/platform_amiga_disk.c` | 1219, 1228, 1233 | external_read_buffer | Disk image file read buffer. |
@@ -93,6 +93,10 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - `src/m68k_decode_ir.c`: direct raw heap allocation sites reduced from 6 (`realloc`, `calloc`, `free`) to 0; result lifetime is owned by `M68kDecodeIR.arena`.
 - `src/m68k_fact_ir.c`: direct raw heap allocation sites reduced from 2 (`realloc`, `free`) to 0; result lifetime is owned by `M68kFactIR.arena`.
 - Decode and facts tests assert arena stats visibility after result append/build operations.
+
+## PRD 003 Notes
+
+- `src/m68k_source_ir_render.c`: direct raw heap allocation sites reduced from 10 (`calloc`, `free`) to 0; temporary render indexes and include cache storage are owned by a local Workflow Arena.
 
 ## Verification
 

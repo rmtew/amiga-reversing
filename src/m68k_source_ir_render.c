@@ -11,7 +11,6 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define M68K_RENDER_COMMENT_COLUMN 40U
@@ -288,13 +287,13 @@ static size_t render_label_hash(const char *name) {
   return hash;
 }
 
-static int render_label_index_init(RenderLabelIndex *index, size_t count) {
+static int render_label_index_init(RenderLabelIndex *index, Arena *arena, size_t count) {
   size_t capacity = 1U;
-  if (index == NULL) return 0;
+  if (index == NULL || arena == NULL) return 0;
   memset(index, 0, sizeof(*index));
   if (count == 0U) return 1;
   while (capacity < count * 2U) capacity <<= 1U;
-  index->names = (const char **)calloc(capacity, sizeof(*index->names));
+  index->names = (const char **)arena_calloc(arena, capacity, sizeof(*index->names));
   if (index->names == NULL) return 0;
   index->capacity = capacity;
   return 1;
@@ -336,7 +335,6 @@ static int render_label_index_has(const RenderLabelIndex *index, const char *nam
 
 static void render_label_index_destroy(RenderLabelIndex *index) {
   if (index == NULL) return;
-  free(index->names);
   memset(index, 0, sizeof(*index));
 }
 
@@ -347,19 +345,20 @@ static void render_label_indexes_destroy(RenderLabelIndexes *indexes) {
   for (section_index = 0U; section_index < indexes->section_count; ++section_index) {
     render_label_index_destroy(&indexes->sections[section_index]);
   }
-  free(indexes->sections);
   memset(indexes, 0, sizeof(*indexes));
 }
 
-static int render_label_indexes_build(RenderLabelIndexes *indexes, const M68kSourceFileIR *source_file) {
+static int render_label_indexes_build(RenderLabelIndexes *indexes, const M68kSourceFileIR *source_file, Arena *arena) {
   size_t *section_label_counts = NULL;
   size_t total_label_count = 0U;
   size_t section_index;
-  if (indexes == NULL || source_file == NULL) return 0;
+  if (indexes == NULL || source_file == NULL || arena == NULL) return 0;
   memset(indexes, 0, sizeof(*indexes));
   if (source_file->section_count != 0U) {
-    indexes->sections = (RenderLabelIndex *)calloc(source_file->section_count, sizeof(*indexes->sections));
-    section_label_counts = (size_t *)calloc(source_file->section_count, sizeof(*section_label_counts));
+    indexes->sections = (RenderLabelIndex *)arena_calloc(arena, source_file->section_count,
+      sizeof(*indexes->sections));
+    section_label_counts = (size_t *)arena_calloc(arena, source_file->section_count,
+      sizeof(*section_label_counts));
     if (indexes->sections == NULL || section_label_counts == NULL) goto fail;
     indexes->section_count = source_file->section_count;
   }
@@ -373,9 +372,11 @@ static int render_label_indexes_build(RenderLabelIndexes *indexes, const M68kSou
       total_label_count += 1U;
     }
   }
-  if (!render_label_index_init(&indexes->all, total_label_count)) goto fail;
+  if (!render_label_index_init(&indexes->all, arena, total_label_count)) goto fail;
   for (section_index = 0U; section_index < source_file->section_count; ++section_index) {
-    if (!render_label_index_init(&indexes->sections[section_index], section_label_counts[section_index])) goto fail;
+    if (!render_label_index_init(&indexes->sections[section_index], arena,
+        section_label_counts[section_index]))
+      goto fail;
   }
   for (section_index = 0U; section_index < source_file->section_count; ++section_index) {
     const M68kSectionIR *section = &source_file->sections[section_index];
@@ -389,11 +390,9 @@ static int render_label_indexes_build(RenderLabelIndexes *indexes, const M68kSou
       }
     }
   }
-  free(section_label_counts);
   return 1;
 
 fail:
-  free(section_label_counts);
   render_label_indexes_destroy(indexes);
   return 0;
 }
@@ -458,6 +457,7 @@ typedef struct RenderSymbolIncludeCacheEntry {
 } RenderSymbolIncludeCacheEntry;
 
 typedef struct RenderSymbolIncludeCache {
+  Arena *arena;
   RenderSymbolIncludeCacheEntry *entries;
   size_t count;
   size_t capacity;
@@ -497,7 +497,6 @@ static size_t render_symbol_include_cache_hash(const char *name, uint8_t provena
 
 static void render_symbol_include_cache_destroy(RenderSymbolIncludeCache *cache) {
   if (cache == NULL) return;
-  free(cache->entries);
   memset(cache, 0, sizeof(*cache));
 }
 
@@ -506,12 +505,12 @@ static int render_symbol_include_cache_reserve(RenderSymbolIncludeCache *cache, 
   size_t old_capacity;
   size_t capacity = 64U;
   size_t index;
-  if (cache == NULL) return 0;
+  if (cache == NULL || cache->arena == NULL) return 0;
   while (capacity < count_needed * 2U) capacity <<= 1U;
   if (cache->capacity >= capacity) return 1;
   old_entries = cache->entries;
   old_capacity = cache->capacity;
-  cache->entries = (RenderSymbolIncludeCacheEntry *)calloc(capacity, sizeof(*cache->entries));
+  cache->entries = (RenderSymbolIncludeCacheEntry *)arena_calloc(cache->arena, capacity, sizeof(*cache->entries));
   if (cache->entries == NULL) {
     cache->entries = old_entries;
     return 0;
@@ -530,7 +529,6 @@ static int render_symbol_include_cache_reserve(RenderSymbolIncludeCache *cache, 
     cache->entries[slot] = *old_entry;
     cache->count += 1U;
   }
-  free(old_entries);
   return 1;
 }
 
@@ -995,6 +993,7 @@ static int append_needed_equates(JsonBuilder *builder, const M68kSourceFileIR *s
 int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
     char **out_text, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
+  Arena *workflow_arena = NULL;
   RenderLabelIndexes label_indexes;
   RenderSymbolIncludeCache include_cache;
   RenderInclude includes[32];
@@ -1013,7 +1012,10 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
   }
   memset(&label_indexes, 0, sizeof(label_indexes));
   memset(&include_cache, 0, sizeof(include_cache));
-  if (!render_label_indexes_build(&label_indexes, source_file)) goto oom;
+  workflow_arena = arena_create(4096U);
+  if (workflow_arena == NULL) goto oom;
+  include_cache.arena = workflow_arena;
+  if (!render_label_indexes_build(&label_indexes, source_file, workflow_arena)) goto oom;
   if (json_builder_create(&builder) != 0) goto oom;
   if (collect_needed_includes(includes, &include_count, sizeof(includes) / sizeof(includes[0]), source_file,
       &include_cache) != 0) goto oom;
@@ -1021,18 +1023,12 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
       active_policy->os.compatibility_level != 0U) {
     min_os_version_name = amiga_os_compatibility_version_name((AmigaOsCompatVersion)active_policy->os.compatibility_level);
     if (min_os_version_name == NULL) {
-      json_builder_destroy(&builder);
-      render_label_indexes_destroy(&label_indexes);
-      render_symbol_include_cache_destroy(&include_cache);
       render_error(diagnostics, "invalid minimum os version");
-      return -1;
+      goto fail;
     }
     if (validate_amiga_compatibility_floor(source_file, includes, include_count, active_policy->os.compatibility_level,
         diagnostics) != 0) {
-      json_builder_destroy(&builder);
-      render_label_indexes_destroy(&label_indexes);
-      render_symbol_include_cache_destroy(&include_cache);
-      return -1;
+      goto fail;
     }
     if (source_file->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
         json_builder_appendf(&builder, "; Minimum OS version: %s\n", min_os_version_name) != 0) {
@@ -1105,10 +1101,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
         if (m68k_instruction_is_fpu_id_alias_instruction(&rendered_instruction)) {
           if (!m68k_instruction_make_fpu_id_render_instruction(&rendered_instruction, &rendered_instruction)) {
             render_error(diagnostics, "unable to render coprocessor instruction");
-            json_builder_destroy(&builder);
-            render_label_indexes_destroy(&label_indexes);
-            render_symbol_include_cache_destroy(&include_cache);
-            return -1;
+            goto fail;
           }
           if (m68k_instruction_needs_fpu_id_directive(&stmt->u.instruction) &&
               json_builder_appendf(&builder, "    FPU     %u\n",
@@ -1120,10 +1113,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
           m68k_diag_sink(&render_diagnostics));
         if (m68k_diag_has_errors(&render_diagnostics)) {
           render_error(diagnostics, m68k_diag_first_message(&render_diagnostics));
-          json_builder_destroy(&builder);
-          render_label_indexes_destroy(&label_indexes);
-          render_symbol_include_cache_destroy(&include_cache);
-          return -1;
+          goto fail;
         }
         line_start = builder.size;
         if (json_builder_appendf(&builder, "    %s", rendered.text) != 0) goto oom;
@@ -1143,12 +1133,15 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
   json_builder_destroy(&builder);
   render_label_indexes_destroy(&label_indexes);
   render_symbol_include_cache_destroy(&include_cache);
+  arena_destroy(workflow_arena);
   return 0;
 
 oom:
+  render_error(diagnostics, "out of memory");
+fail:
   json_builder_destroy(&builder);
   render_label_indexes_destroy(&label_indexes);
   render_symbol_include_cache_destroy(&include_cache);
-  render_error(diagnostics, "out of memory");
+  arena_destroy(workflow_arena);
   return -1;
 }
