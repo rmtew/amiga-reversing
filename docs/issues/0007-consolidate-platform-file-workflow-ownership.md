@@ -12,11 +12,11 @@ Consolidate repeated platform-file workflow ownership for object loading, effect
 
 ## Acceptance criteria
 
-- [ ] Platform file workflows use explicit workflow/result/output ownership.
-- [ ] Repeated cleanup patterns are concentrated in workflow-owned state.
-- [ ] Plain text/byte outputs crossing Python or CLI edges are **Caller-Freed Output Buffers**.
-- [ ] No internal compatibility/fallback ownership paths are added.
-- [ ] Existing platform file, decompression, and C-backend tests pass.
+- [x] Platform file workflows use explicit workflow/result/output ownership.
+- [x] Repeated cleanup patterns are concentrated in workflow-owned state.
+- [x] Plain text/byte outputs crossing Python or CLI edges are **Caller-Freed Output Buffers**.
+- [x] No internal compatibility/fallback ownership paths are added.
+- [x] Existing platform file, decompression, and C-backend tests pass.
 
 ## Blocked by
 

@@ -6416,45 +6416,70 @@ int platform_file_assemble_source_text_to_output_bytes_profile_alloc(const char 
 void platform_file_free_text(char *text) { free(text); }
 void platform_file_free_bytes(unsigned char *data) { free(data); }
 
+typedef struct PlatformFileWorkflow {
+  Arena *arena;
+  M68kAnalysisPolicy *analysis_policy;
+  M68kFactsV2Profile *profile;
+  M68kSourceAnalysisIR *analysis;
+  M68kObject object;
+  uint8_t object_loaded;
+  uint8_t reserved[7];
+} PlatformFileWorkflow;
+
+static int platform_file_workflow_create(PlatformFileWorkflow *workflow, M68kDiagList *diagnostics) {
+  if (workflow == NULL) return -1;
+  memset(workflow, 0, sizeof(*workflow));
+  workflow->arena = arena_create(4096U);
+  if (workflow->arena == NULL) goto oom;
+  workflow->analysis_policy = (M68kAnalysisPolicy *)arena_calloc(workflow->arena, 1U,
+    sizeof(*workflow->analysis_policy));
+  workflow->profile = (M68kFactsV2Profile *)arena_calloc(workflow->arena, 1U, sizeof(*workflow->profile));
+  workflow->analysis = (M68kSourceAnalysisIR *)arena_calloc(workflow->arena, 1U, sizeof(*workflow->analysis));
+  if (workflow->analysis_policy == NULL || workflow->profile == NULL || workflow->analysis == NULL) goto oom;
+  return 0;
+oom:
+  if (diagnostics != NULL) platform_file_add_error(diagnostics, "out of memory");
+  arena_destroy(workflow->arena);
+  memset(workflow, 0, sizeof(*workflow));
+  return -1;
+}
+
+static void platform_file_workflow_destroy(PlatformFileWorkflow *workflow) {
+  if (workflow == NULL) return;
+  if (workflow->analysis != NULL) m68k_ir_source_analysis_destroy(workflow->analysis);
+  if (workflow->object_loaded) m68k_object_destroy(&workflow->object);
+  arena_destroy(workflow->arena);
+  memset(workflow, 0, sizeof(*workflow));
+}
+
 static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *object,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *local_policy = NULL;
-  M68kFactsV2Profile *profile = NULL;
-  M68kSourceAnalysisIR *analysis = NULL;
+  PlatformFileWorkflow workflow;
   char *base_json = NULL;
   int json_result;
   memset(&result, 0, sizeof(result));
+  memset(&workflow, 0, sizeof(workflow));
   if (object == NULL) {
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 analysis request");
     return result;
   }
-  scratch_arena = arena_create(4096U);
-  if (scratch_arena == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return result;
-  }
-  local_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*local_policy));
-  profile = (M68kFactsV2Profile *)arena_calloc(scratch_arena, 1U, sizeof(*profile));
-  analysis = (M68kSourceAnalysisIR *)arena_calloc(scratch_arena, 1U, sizeof(*analysis));
-  if (local_policy == NULL || profile == NULL || analysis == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    goto cleanup;
-  }
-  if (analysis_policy != NULL) *local_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(local_policy);
-  if (m68k_facts_v2_collect_source_analysis_profile(object, local_policy, profile, analysis,
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (m68k_facts_v2_collect_source_analysis_profile(object, workflow.analysis_policy, workflow.profile,
+      workflow.analysis,
       m68k_diag_sink(&result.diagnostics)) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "failed building facts_v2 source analysis");
     goto cleanup;
   }
-  json_result = source_analysis_to_json(analysis, &base_json, m68k_diag_sink(&result.diagnostics));
+  json_result = source_analysis_to_json(workflow.analysis, &base_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
-        append_analysis_json_with_decompression_profile(&builder, base_json, object, analysis, profile) != 0) {
+        append_analysis_json_with_decompression_profile(&builder, base_json, object, workflow.analysis,
+          workflow.profile) != 0) {
       json_result = -1;
     } else {
       result.text = json_builder_build(&builder);
@@ -6466,44 +6491,34 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
 cleanup:
   json_builder_destroy(&builder);
   platform_file_free_text(base_json);
-  if (analysis != NULL) m68k_ir_source_analysis_destroy(analysis);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
 PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *backend_name, const char *path,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  if (scratch_arena == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return result;
-  }
-  active_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*active_analysis_policy));
-  if (active_analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
-  }
-  if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(active_analysis_policy);
-  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&result.diagnostics)) != 0) goto cleanup;
-  if (enrich_policy_from_object_target_info_local(active_analysis_policy, backend, &object, NULL, 0U,
+  workflow.object_loaded = 1U;
+  if (enrich_policy_from_object_target_info_local(workflow.analysis_policy, backend, &workflow.object, NULL, 0U,
       &result.diagnostics) != 0) {
     goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(active_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, active_analysis_policy))
+  enrich_policy_pointer_targets_from_object_local(workflow.analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
+      workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&object, active_analysis_policy);
+  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
 cleanup:
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
@@ -6511,74 +6526,54 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
     uint32_t entry_address, uint8_t has_runtime_load_address, uint32_t runtime_load_address,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
-  M68kObject object;
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *raw_analysis_policy = NULL;
+  PlatformFileWorkflow workflow;
   memset(&result, 0, sizeof(result));
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  if (scratch_arena == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return result;
-  }
-  raw_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*raw_analysis_policy));
-  if (raw_analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (load_raw_object_from_path(platform_name, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
-  }
-  if (analysis_policy != NULL) *raw_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(raw_analysis_policy);
-  if (load_raw_object_from_path(platform_name, path, &object, m68k_diag_sink(&result.diagnostics)) != 0)
-    goto cleanup;
-  if (!policy_add_raw_runtime_load_range_local(raw_analysis_policy, &object, has_runtime_load_address,
+  workflow.object_loaded = 1U;
+  if (!policy_add_raw_runtime_load_range_local(workflow.analysis_policy, &workflow.object, has_runtime_load_address,
         runtime_load_address, &result.diagnostics) ||
-      !policy_set_raw_entry_address_local(raw_analysis_policy, &object, entry_address,
+      !policy_set_raw_entry_address_local(workflow.analysis_policy, &workflow.object, entry_address,
         has_runtime_load_address, &result.diagnostics))
     goto cleanup;
-  enrich_policy_pointer_targets_from_object_local(raw_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, raw_analysis_policy))
+  enrich_policy_pointer_targets_from_object_local(workflow.analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
+      workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&object, raw_analysis_policy);
+  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
 cleanup:
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
 PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *backend_name,
     const unsigned char *data, size_t size, const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *active_analysis_policy = NULL;
   memset(&result, 0, sizeof(result));
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  if (scratch_arena == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    return result;
-  }
-  active_analysis_policy = (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*active_analysis_policy));
-  if (active_analysis_policy == NULL) {
-    platform_file_add_error(&result.diagnostics, "out of memory");
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
+  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
+  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (load_object_from_buffer(backend, data, size, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
-  }
-  if (analysis_policy != NULL) *active_analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(active_analysis_policy);
-  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&result.diagnostics)) != 0)
-    goto cleanup;
-  if (enrich_policy_from_object_target_info_local(active_analysis_policy, backend, &object, NULL, 0U,
+  workflow.object_loaded = 1U;
+  if (enrich_policy_from_object_target_info_local(workflow.analysis_policy, backend, &workflow.object, NULL, 0U,
       &result.diagnostics) != 0) {
     goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(active_analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&result.diagnostics, &object, active_analysis_policy))
+  enrich_policy_pointer_targets_from_object_local(workflow.analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
+      workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&object, active_analysis_policy);
+  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
 cleanup:
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
@@ -6631,63 +6626,53 @@ int platform_file_inspect_path_json_alloc(const char *backend_name, const char *
 
 int platform_file_facts_v2_analysis_path_json_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *entry_offsets, char **out_text) {
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *analysis_policy;
+  PlatformFileWorkflow workflow;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   m68k_diag_list_reset(&diagnostics);
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    arena_destroy(scratch_arena);
+    result.diagnostics = diagnostics;
     return text_result_to_alloc(&result, out_text);
   }
-  if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, entry_offsets,
+  if (configure_analysis_policy_for_alloc(workflow.analysis_policy, backend_name, metadata_path, entry_offsets,
         &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    arena_destroy(scratch_arena);
+    platform_file_workflow_destroy(&workflow);
     return text_result_to_alloc(&result, out_text);
   }
-  result = platform_file_facts_v2_analysis_path_json(backend_name, path, analysis_policy);
-  arena_destroy(scratch_arena);
+  result = platform_file_facts_v2_analysis_path_json(backend_name, path, workflow.analysis_policy);
+  platform_file_workflow_destroy(&workflow);
   return text_result_to_alloc(&result, out_text);
 }
 
 int platform_file_facts_v2_analysis_raw_path_json_alloc(const char *platform_name, const char *path,
     uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
     const char *metadata_path, const char *entry_offsets, char **out_text) {
-  Arena *scratch_arena = NULL;
-  M68kAnalysisPolicy *analysis_policy;
+  PlatformFileWorkflow workflow;
   M68kDiagList diagnostics;
   PlatformFileTextResult result;
   m68k_diag_list_reset(&diagnostics);
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     result.text = NULL;
     memset(&result.diagnostics, 0, sizeof(result.diagnostics));
-    platform_file_add_error(&result.diagnostics, "out of memory");
-    arena_destroy(scratch_arena);
+    result.diagnostics = diagnostics;
     return text_result_to_alloc(&result, out_text);
   }
-  if (configure_analysis_policy_for_alloc(analysis_policy, platform_name, metadata_path, entry_offsets,
+  if (configure_analysis_policy_for_alloc(workflow.analysis_policy, platform_name, metadata_path, entry_offsets,
         &diagnostics) != 0) {
     result.text = NULL;
     result.diagnostics = diagnostics;
-    arena_destroy(scratch_arena);
+    platform_file_workflow_destroy(&workflow);
     return text_result_to_alloc(&result, out_text);
   }
   result = platform_file_facts_v2_analysis_raw_path_json(platform_name, path, entry_address,
-    (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, analysis_policy);
-  arena_destroy(scratch_arena);
+    (uint8_t)(has_runtime_load_address != 0U), runtime_load_address, workflow.analysis_policy);
+  platform_file_workflow_destroy(&workflow);
   return text_result_to_alloc(&result, out_text);
 }
 
@@ -6998,10 +6983,9 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
 static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *backend_name, const char *path,
     const char *metadata_path, const char *output_path, unsigned char **out_data, size_t *out_size,
     char **out_source_profile_json, char **out_direct_profile_json, char **out_error, int compare_original) {
-  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   unsigned char *compare_data = NULL;
   size_t compare_size = 0U;
@@ -7016,28 +7000,26 @@ static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *b
   *out_direct_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     *out_error = duplicate_text_local("out of memory");
-    arena_destroy(scratch_arena);
     return -1;
   }
+  analysis_policy = workflow.analysis_policy;
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
   if (compare_original && read_file_to_buffer(path, &compare_data, &compare_size, m68k_diag_sink(&diagnostics)) != 0)
     goto cleanup;
-  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
-  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &object, NULL, 0U,
+  if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  workflow.object_loaded = 1U;
+  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &workflow.object, NULL, 0U,
       &diagnostics) != 0) {
     goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) goto cleanup;
-  result = facts_v2_direct_rebuild_object_alloc(backend_name, path, backend, &object, analysis_policy,
+  enrich_policy_pointer_targets_from_object_local(analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &workflow.object, analysis_policy))
+    goto cleanup;
+  result = facts_v2_direct_rebuild_object_alloc(backend_name, path, backend, &workflow.object, analysis_policy,
     output_path, out_data, out_size, out_source_profile_json, out_direct_profile_json, compare_data, compare_size,
     out_error, &diagnostics);
 
@@ -7048,8 +7030,7 @@ cleanup:
     *out_error = duplicate_text_local(message);
   }
   free(compare_data);
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
@@ -7071,10 +7052,9 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
     const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
     const char *output_path, unsigned char **out_data, size_t *out_size, char **out_source_profile_json,
     char **out_direct_profile_json, char **out_error, int compare_original) {
-  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   int result = -1;
   if (out_data == NULL || out_size == NULL || out_source_profile_json == NULL ||
@@ -7087,28 +7067,28 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
   *out_direct_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     *out_error = duplicate_text_local("out of memory");
-    arena_destroy(scratch_arena);
     return -1;
   }
+  analysis_policy = workflow.analysis_policy;
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
-  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
-  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &object, NULL, 0U,
+  if (load_object_from_buffer(backend, data, size, &workflow.object, m68k_diag_sink(&diagnostics)) != 0)
+    goto cleanup;
+  workflow.object_loaded = 1U;
+  if (enrich_policy_from_object_target_info_local(analysis_policy, backend, &workflow.object, NULL, 0U,
       &diagnostics) != 0) {
     goto cleanup;
   }
-  enrich_policy_pointer_targets_from_object_local(analysis_policy, &object);
-  if (!validate_effective_policy_against_object_local(&diagnostics, &object, analysis_policy)) goto cleanup;
+  enrich_policy_pointer_targets_from_object_local(analysis_policy, &workflow.object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &workflow.object, analysis_policy))
+    goto cleanup;
   result = facts_v2_direct_rebuild_object_alloc(backend_name, display_path != NULL ? display_path : "", backend,
-    &object, analysis_policy, output_path, out_data, out_size, out_source_profile_json, out_direct_profile_json,
-    compare_original ? data : NULL, compare_original ? size : 0U, out_error, &diagnostics);
+    &workflow.object, analysis_policy, output_path, out_data, out_size, out_source_profile_json,
+    out_direct_profile_json, compare_original ? data : NULL, compare_original ? size : 0U, out_error,
+    &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7116,8 +7096,7 @@ cleanup:
     if (message == NULL || message[0] == '\0') message = "facts_v2 direct rebuild failed";
     *out_error = duplicate_text_local(message);
   }
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
@@ -7170,10 +7149,9 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
 int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *backend_name,
     const char *path, const char *metadata_path, const unsigned char *rebuilt_data, size_t rebuilt_size,
     char **out_compare_profile_json, char **out_error) {
-  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   unsigned char *original_data = NULL;
   size_t original_size = 0U;
@@ -7182,22 +7160,19 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
   *out_compare_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     *out_error = duplicate_text_local("out of memory");
-    arena_destroy(scratch_arena);
     return -1;
   }
+  analysis_policy = workflow.analysis_policy;
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
   if (read_file_to_buffer(path, &original_data, &original_size, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
-  if (load_object_from_path(backend, path, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
-  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, original_data,
-    original_size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
+  if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
+  workflow.object_loaded = 1U;
+  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &workflow.object,
+    original_data, original_size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7205,18 +7180,16 @@ cleanup:
     *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
   }
   free(original_data);
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 
 int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *backend_name,
     const unsigned char *data, size_t size, const char *metadata_path, const char *display_path,
     const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_compare_profile_json, char **out_error) {
-  Arena *scratch_arena = NULL;
   M68kAnalysisPolicy *analysis_policy;
   M68kDiagList diagnostics;
-  M68kObject object;
+  PlatformFileWorkflow workflow;
   const M68kBackend *backend = m68k_backend_by_name(backend_name);
   int result = -1;
   (void)display_path;
@@ -7224,29 +7197,26 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
   *out_compare_profile_json = NULL;
   *out_error = NULL;
   m68k_diag_list_reset(&diagnostics);
-  memset(&object, 0, sizeof(object));
-  scratch_arena = arena_create(4096U);
-  analysis_policy = scratch_arena != NULL
-    ? (M68kAnalysisPolicy *)arena_calloc(scratch_arena, 1U, sizeof(*analysis_policy))
-    : NULL;
-  if (analysis_policy == NULL) {
+  memset(&workflow, 0, sizeof(workflow));
+  if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
     *out_error = duplicate_text_local("out of memory");
-    arena_destroy(scratch_arena);
     return -1;
   }
+  analysis_policy = workflow.analysis_policy;
   if (configure_analysis_policy_for_alloc(analysis_policy, backend_name, metadata_path, NULL, &diagnostics) != 0)
     goto cleanup;
-  if (load_object_from_buffer(backend, data, size, &object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
-  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &object, data, size,
-    rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
+  if (load_object_from_buffer(backend, data, size, &workflow.object, m68k_diag_sink(&diagnostics)) != 0)
+    goto cleanup;
+  workflow.object_loaded = 1U;
+  result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &workflow.object, data,
+    size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
     const char *message = m68k_diag_first_message(&diagnostics);
     *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
   }
-  m68k_object_destroy(&object);
-  arena_destroy(scratch_arena);
+  platform_file_workflow_destroy(&workflow);
   return result;
 }
 

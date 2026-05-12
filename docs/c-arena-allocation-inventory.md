@@ -69,7 +69,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/platform_file_json.c` | 4384, 6213, 6706, 6755 | result | JSON result/index arenas. |
 | `src/platform_file_lib.c` | 58 | caller_freed_output | String copy returned/stored for artifact. |
 | `src/platform_file_lib.c` | 218, 220, 231, 4173, 4178, 4183, 4186, 4204, 4901, 4904, 4936, 4964, 4972, 4984, 4990, 4995, 6335, 6344, 6370, 6379, 6416, 6417, 7654, 7780, 7781, 7783 | caller_freed_output | Text/byte/JSON/artifact edge buffers and free APIs. |
-| `src/platform_file_lib.c` | 4239, 4245, 5206, 5388, 5404, 6434, 6483, 6519, 6557, 6639, 6670, 6878, 6927, 7020, 7050, 7091, 7186, 7207, 7228, 7899, 8020 | workflow | Platform file workflow scratch arenas/buffers. |
+| `src/platform_file_lib.c` | 4239, 4245, 5206, 5388, 5404, 6863, 6912, 7032, 7182, 7869, 7990 | workflow | Platform file workflow scratch arenas/buffers; facts/direct/reproduction policy/object workflows share `PlatformFileWorkflow`. |
 | `src/platform_file_lib.c` | 5445, 5453 | external_read_buffer | Platform file read buffer. |
 | `src/platform_file_lib.c` | 6758, 6771 | result | Listing artifact and listing index arena. |
 | `src/test_m68k_container_metadata.c` | 192, 526 | test_only | Test output cleanup. |
