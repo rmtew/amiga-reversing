@@ -60,6 +60,10 @@ _Avoid_: Free list, object destructor, result owner
 C-owned memory that lives exactly as long as a C result object and is destroyed by that object's destroy function.
 _Avoid_: Workflow scratch, caller-freed output buffer
 
+**Arena Builder**:
+A growable C collection or output accumulator that allocates from an explicit arena and finalizes into arena-owned storage without later per-buffer free calls.
+_Avoid_: realloc-owned vector, hidden heap list
+
 **Caller-Freed Output Buffer**:
 A plain text or byte buffer returned through a public C API and released by the caller with the matching free function.
 _Avoid_: Result arena pointer, workflow arena pointer
@@ -67,6 +71,10 @@ _Avoid_: Result arena pointer, workflow arena pointer
 **Local C API**:
 A C interface consumed only by this repository and changeable when a cleaner ownership model requires it.
 _Avoid_: External ABI contract, compatibility boundary
+
+**Compatibility Shim**:
+Legacy adapter code that preserves an older internal API shape after repository-owned callers have moved to a cleaner interface.
+_Avoid_: Migration helper, local API cleanup
 
 **Reproduction Exactness**:
 The level at which rebuilt bytes preserve the original target, ranging from full-file equality through content equality to mismatch.
@@ -102,11 +110,13 @@ _Avoid_: Policy divergence
 - A **Workflow Arena** supplies temporary C memory within one top-level workflow call.
 - A **Scratch Mark** creates a nested temporary lifetime inside a **Workflow Arena**.
 - A **Result Arena** owns internal pointers inside one C result object.
+- An **Arena Builder** is a reusable building block for append-style collections in either a **Workflow Arena** or **Result Arena**.
 - A **Caller-Freed Output Buffer** must not point into a **Workflow Arena** or **Result Arena**.
 - C modules that allocate internal pointers choose a **Workflow Arena** or **Result Arena** explicitly at their interface.
 - C allocation cleanup starts by classifying every allocation site by lifetime; only workflow and result ownership sites are converted first.
 - Internal C ownership migrations replace old ownership paths instead of keeping compatibility or fallback paths.
 - A **Local C API** may change when arena ownership makes a cleaner interface.
+- A **Compatibility Shim** is avoided for repository-owned code because this project has no external compatibility contract.
 - **Project Rebuild** preserves recognized original **Container Shape** by default.
 - **Original File Structure** is the user-facing way to describe **Container Shape** differences.
 - **Container Shape** can differ while **Reproduction Comparison** still reports **Content Exactness**.

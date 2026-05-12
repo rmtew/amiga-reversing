@@ -70,6 +70,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_diagnostics.c ^
     src\util_arena.c ^
     src\m68k_c_unit_test.c ^
+    src\test_util_arena.c ^
     src\test_m68k_parse_util.c ^
     src\test_m68k_instruction_spec.c ^
     src\test_m68k_ir.c ^
@@ -185,6 +186,7 @@ link %LDFLAGS% /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_diagnostics.obj ^
     %OUTDIR%\test_platform_decompression.obj ^
     %OUTDIR%\test_m68k_container_metadata.obj ^
+    %OUTDIR%\test_util_arena.obj ^
     %OUTDIR%\m68k_c_unit_test.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
     %OUTDIR%\m68k_assembler.obj ^

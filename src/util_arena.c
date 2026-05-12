@@ -17,6 +17,13 @@ typedef struct ArenaBlock {
   struct ArenaBlock *next;
 } ArenaBlock;
 
+struct ArenaBuilderChunk {
+  struct ArenaBuilderChunk *next;
+  size_t used;
+  size_t capacity;
+  unsigned char data[1];
+};
+
 struct Arena {
   ArenaBlock *head;
   ArenaBlock *current;
@@ -238,4 +245,116 @@ ArenaStats arena_stats(const Arena *arena) {
   stats.current_block_count = arena->current_block_count;
   stats.total_block_count = arena->total_block_count;
   return stats;
+}
+
+static ArenaBuilderChunk *arena_builder_chunk_create(
+    Arena *arena, size_t item_size, size_t item_capacity) {
+  ArenaBuilderChunk *chunk;
+  size_t header_size = offsetof(ArenaBuilderChunk, data);
+  size_t data_size;
+  size_t total_size;
+  if (arena == NULL || item_size == 0U || item_capacity == 0U) return NULL;
+  if (item_capacity > ((size_t)-1) / item_size) return NULL;
+  data_size = item_capacity * item_size;
+  if (data_size > ((size_t)-1) - header_size) return NULL;
+  total_size = header_size + data_size;
+  chunk = (ArenaBuilderChunk *)arena_alloc(arena, total_size);
+  if (chunk == NULL) return NULL;
+  chunk->next = NULL;
+  chunk->used = 0U;
+  chunk->capacity = item_capacity;
+  return chunk;
+}
+
+int arena_builder_init(ArenaBuilder *builder, Arena *arena, size_t item_size, size_t chunk_capacity) {
+  if (builder == NULL || arena == NULL || item_size == 0U) return 0;
+  if (chunk_capacity == 0U) chunk_capacity = 16U;
+  builder->arena = arena;
+  builder->head = NULL;
+  builder->tail = NULL;
+  builder->item_size = item_size;
+  builder->length = 0U;
+  builder->chunk_capacity = chunk_capacity;
+  return 1;
+}
+
+size_t arena_builder_length(const ArenaBuilder *builder) {
+  return builder != NULL ? builder->length : 0U;
+}
+
+size_t arena_builder_capacity(const ArenaBuilder *builder) {
+  size_t capacity = 0U;
+  ArenaBuilderChunk *chunk;
+  if (builder == NULL) return 0U;
+  for (chunk = builder->head; chunk != NULL; chunk = chunk->next) capacity += chunk->capacity;
+  return capacity;
+}
+
+void *arena_builder_append_uninit(ArenaBuilder *builder) {
+  ArenaBuilderChunk *chunk;
+  void *slot;
+  if (builder == NULL || builder->arena == NULL || builder->item_size == 0U) return NULL;
+  chunk = builder->tail;
+  if (chunk == NULL || chunk->used == chunk->capacity) {
+    chunk = arena_builder_chunk_create(builder->arena, builder->item_size, builder->chunk_capacity);
+    if (chunk == NULL) return NULL;
+    if (builder->tail != NULL) {
+      builder->tail->next = chunk;
+    } else {
+      builder->head = chunk;
+    }
+    builder->tail = chunk;
+  }
+  slot = chunk->data + (chunk->used * builder->item_size);
+  chunk->used += 1U;
+  builder->length += 1U;
+  return slot;
+}
+
+int arena_builder_append(ArenaBuilder *builder, const void *item) {
+  void *slot;
+  if (item == NULL) return 0;
+  slot = arena_builder_append_uninit(builder);
+  if (slot == NULL) return 0;
+  memcpy(slot, item, builder->item_size);
+  return 1;
+}
+
+int arena_builder_append_many(ArenaBuilder *builder, const void *items, size_t count) {
+  const unsigned char *cursor = (const unsigned char *)items;
+  size_t index;
+  if (count == 0U) return builder != NULL;
+  if (builder == NULL || items == NULL) return 0;
+  for (index = 0U; index < count; ++index) {
+    if (!arena_builder_append(builder, cursor + (index * builder->item_size))) return 0;
+  }
+  return 1;
+}
+
+void *arena_builder_finalize(ArenaBuilder *builder, size_t *out_count) {
+  unsigned char *items;
+  unsigned char *cursor;
+  ArenaBuilderChunk *chunk;
+  size_t total_size;
+  if (out_count != NULL) *out_count = 0U;
+  if (builder == NULL || builder->arena == NULL || builder->item_size == 0U) return NULL;
+  if (out_count != NULL) *out_count = builder->length;
+  if (builder->length == 0U) {
+    items = (unsigned char *)arena_alloc(builder->arena, 1U);
+  } else {
+    if (builder->length > ((size_t)-1) / builder->item_size) return NULL;
+    total_size = builder->length * builder->item_size;
+    items = (unsigned char *)arena_alloc(builder->arena, total_size);
+  }
+  if (items == NULL) return NULL;
+  cursor = items;
+  for (chunk = builder->head; chunk != NULL; chunk = chunk->next) {
+    size_t bytes = chunk->used * builder->item_size;
+    memcpy(cursor, chunk->data, bytes);
+    cursor += bytes;
+  }
+  builder->head = NULL;
+  builder->tail = NULL;
+  builder->length = 0U;
+  return items;
 }

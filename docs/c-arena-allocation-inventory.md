@@ -82,6 +82,12 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/util_arena.c` | 68 | keep_heap_for_now | `arena_create` implementation declaration, not a call site. |
 | `src/util_arena.h` | 12 | keep_heap_for_now | `arena_create` prototype, not a call site. |
 
+## PRD 001 Notes
+
+- Arena Builder chunks and finalized arrays are arena-owned and add no raw heap allocation sites beyond the core arena backing allocation sites above.
+- Builder allocations are visible through `ArenaStats` because every chunk and finalized output uses `arena_alloc`.
+- Builders may be used with Workflow Arenas or Result Arenas. If a caller creates a builder after a Scratch Mark, both append chunks and finalized storage rewind with that mark; callers must not return or retain finalized pointers past that rewind.
+
 ## Verification
 
 Issue 0001 is documentation-only. Standard verification for implementation issues remains:
