@@ -4,6 +4,7 @@
 #include "platform_common.h"
 #include "platform_disk_lib.h"
 #include "platform_file_lib.h"
+#include "util_arena.h"
 #include "generated/amiga_disk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
 
@@ -16,6 +17,7 @@
 #pragma comment(lib, "bcrypt.lib")
 
 #define AMIGA_DISK_CONTENT_CLASSIFY_MAX_BYTES (1024U * 1024U)
+#define PLATFORM_DISK_WORKFLOW_ARENA_SIZE 16384U
 
 static int is_leap_year(uint32_t year) {
     return (year % 4U == 0U && year % 100U != 0U) || (year % 400U == 0U);
@@ -107,12 +109,13 @@ static int disk_text_result_to_alloc(PlatformDiskTextResult *result, char **out_
     return 0;
 }
 
-static int read_file_to_buffer(const char *path, unsigned char **out_data, size_t *out_size, M68kDiagSink diagnostics) {
+static int read_file_to_arena(const char *path, Arena *arena, unsigned char **out_data, size_t *out_size,
+    M68kDiagSink diagnostics) {
     FILE *fp = NULL;
     int64_t file_size_signed = 0;
     unsigned char *buffer = NULL;
     size_t read_size = 0;
-    if (path == NULL || out_data == NULL || out_size == NULL) {
+    if (path == NULL || arena == NULL || out_data == NULL || out_size == NULL) {
         platform_disk_add_error(diagnostics.list, "bad arguments");
         return -1;
     }
@@ -137,7 +140,7 @@ static int read_file_to_buffer(const char *path, unsigned char **out_data, size_
         platform_disk_add_error(diagnostics.list, "could not rewind disk image");
         return -1;
     }
-    buffer = (unsigned char *)malloc((size_t)file_size_signed == 0U ? 1U : (size_t)file_size_signed);
+    buffer = (unsigned char *)arena_alloc(arena, (size_t)file_size_signed == 0U ? 1U : (size_t)file_size_signed);
     if (buffer == NULL) {
         fclose(fp);
         platform_disk_add_error(diagnostics.list, "out of memory");
@@ -146,7 +149,6 @@ static int read_file_to_buffer(const char *path, unsigned char **out_data, size_
     read_size = fread(buffer, 1, (size_t)file_size_signed, fp);
     fclose(fp);
     if (read_size != (size_t)file_size_signed) {
-        free(buffer);
         platform_disk_add_error(diagnostics.list, "could not read disk image");
         return -1;
     }
@@ -164,19 +166,18 @@ static int append_extent_bytes(const unsigned char *image, size_t image_size, ui
     return 0;
 }
 
-static int extract_amiga_entry_payload_from_analysis(const unsigned char *image, size_t image_size,
-    const AmigaDiskEntry *entry, unsigned char **out_data, size_t *out_size) {
+static int extract_amiga_entry_payload_from_analysis_arena(const unsigned char *image, size_t image_size,
+    const AmigaDiskEntry *entry, Arena *arena, unsigned char **out_data, size_t *out_size) {
     unsigned char *data;
     size_t pos = 0;
     size_t i;
-    if (entry == NULL || out_data == NULL || out_size == NULL) return -1;
-    data = (unsigned char *)malloc(entry->byte_size != 0U ? entry->byte_size : 1U);
+    if (entry == NULL || arena == NULL || out_data == NULL || out_size == NULL) return -1;
+    data = (unsigned char *)arena_alloc(arena, entry->byte_size != 0U ? entry->byte_size : 1U);
     if (data == NULL) return -1;
     for (i = 0; i < entry->extent_count; ++i) {
         const AmigaDiskExtent *extent = &entry->extents[i];
         if (append_extent_bytes(image, image_size, extent->image_offset, extent->byte_size, data, entry->byte_size,
                 &pos) != 0) {
-            free(data);
             return -1;
         }
     }
@@ -465,18 +466,21 @@ static int append_bootblock_import_target_json(JsonBuilder *builder, const Amiga
     return json_builder_append(builder, "}}");
 }
 
-static int append_amiga_entry_content_json(JsonBuilder *builder, const unsigned char *image, size_t image_size,
-    const AmigaDiskEntry *entry) {
+static int append_amiga_entry_content_json(JsonBuilder *builder, Arena *workflow_arena, const unsigned char *image,
+    size_t image_size, const AmigaDiskEntry *entry) {
+    ArenaMark mark;
     unsigned char *payload = NULL;
     size_t payload_size = 0U;
     char hash[65];
     int is_hunk = 0;
     int is_iff = 0;
     if (entry == NULL || entry->kind != AMIGA_DISK_ENTRY_FILE) return json_builder_append(builder, "null");
+    mark = arena_mark(workflow_arena);
     if (entry->byte_size > AMIGA_DISK_CONTENT_CLASSIFY_MAX_BYTES ||
-        extract_amiga_entry_payload_from_analysis(image, image_size, entry, &payload, &payload_size) != 0 ||
+        extract_amiga_entry_payload_from_analysis_arena(image, image_size, entry, workflow_arena, &payload,
+            &payload_size) != 0 ||
         m68k_platform_sha256_hex(payload, payload_size, hash) != 0) {
-        if (payload != NULL) free(payload);
+        arena_rewind(workflow_arena, mark);
         return json_builder_append(builder, "null");
     }
     is_hunk = payload_size >= 4U && payload[0] == 0x00U && payload[1] == 0x00U && payload[2] == 0x03U && payload[3] == 0xF3U;
@@ -510,7 +514,7 @@ static int append_amiga_entry_content_json(JsonBuilder *builder, const unsigned 
         }
         if (json_builder_append(builder, "}") != 0) goto fail_hunk;
         platform_file_free_text(hunk_info.text);
-        free(payload);
+        arena_rewind(workflow_arena, mark);
         return 0;
 fail_hunk:
         platform_file_free_text(hunk_info.text);
@@ -537,10 +541,10 @@ fail_hunk:
         if (json_builder_append_json_string(builder, form_id) != 0) goto fail;
     }
     if (json_builder_append(builder, "}") != 0) goto fail;
-    free(payload);
+    arena_rewind(workflow_arena, mark);
     return 0;
 fail:
-    free(payload);
+    arena_rewind(workflow_arena, mark);
     return -1;
 }
 
@@ -990,8 +994,8 @@ static int append_amiga_bootloader_analysis_json(JsonBuilder *builder, const Ami
     return json_builder_append(builder, "]}");
 }
 
-static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, const unsigned char *image, size_t image_size,
-    char **out_json) {
+static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, Arena *workflow_arena,
+    const unsigned char *image, size_t image_size, char **out_json) {
     JsonBuilder builder = {0};
     size_t i;
     const char *fs_type = "";
@@ -1214,7 +1218,7 @@ static int inspect_amiga_disk_json(const AmigaDiskAnalysis *analysis, const unsi
             }
         }
         if (json_builder_append(&builder, "],\"content\":") != 0) goto fail;
-        if (append_amiga_entry_content_json(&builder, image, image_size, entry) != 0) goto fail;
+        if (append_amiga_entry_content_json(&builder, workflow_arena, image, image_size, entry) != 0) goto fail;
         if (json_builder_append(&builder, "}") != 0) goto fail;
     }
     if (json_builder_append(&builder, "]}") != 0) goto fail;
@@ -1277,27 +1281,34 @@ fail:
 static int amiga_disk_inspect(const char *path, const unsigned char *data, size_t size,
     char **out_json, M68kDiagSink diagnostics) {
     AmigaDiskAnalysis analysis;
+    Arena *workflow_arena = NULL;
     unsigned char *owned_data = NULL;
     size_t owned_size = 0U;
+    int result = -1;
+    workflow_arena = arena_create(PLATFORM_DISK_WORKFLOW_ARENA_SIZE);
+    if (workflow_arena == NULL) {
+        platform_disk_add_error(diagnostics.list, "out of memory");
+        return -1;
+    }
     if (path != NULL) {
-        if (read_file_to_buffer(path, &owned_data, &owned_size, diagnostics) != 0) return -1;
+        if (read_file_to_arena(path, workflow_arena, &owned_data, &owned_size, diagnostics) != 0) goto done;
         data = owned_data;
         size = owned_size;
     }
     if (amiga_disk_analyze_buffer(data, size, &analysis, diagnostics) != 0) {
-        free(owned_data);
         amiga_disk_analysis_destroy(&analysis);
-        return -1;
+        goto done;
     }
-    if (inspect_amiga_disk_json(&analysis, data, size, out_json) != 0) {
+    if (inspect_amiga_disk_json(&analysis, workflow_arena, data, size, out_json) != 0) {
         platform_disk_add_error(diagnostics.list, "failed building inspect json");
-        free(owned_data);
         amiga_disk_analysis_destroy(&analysis);
-        return -1;
+        goto done;
     }
-    free(owned_data);
     amiga_disk_analysis_destroy(&analysis);
-    return 0;
+    result = 0;
+done:
+    arena_destroy(workflow_arena);
+    return result;
 }
 
 static int atari_st_disk_inspect(const char *path, const unsigned char *data, size_t size,
@@ -1345,10 +1356,19 @@ PLATFORM_DISK_API PlatformDiskTextResult platform_disk_inspect_buffer_json(const
 PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_entry_path(const char *platform_name, const char *path,
     const char *entry_path) {
     PlatformDiskBufferResult result;
+    Arena *workflow_arena = NULL;
     unsigned char *image = NULL;
     size_t image_size = 0;
     memset(&result, 0, sizeof(result));
-    if (read_file_to_buffer(path, &image, &image_size, m68k_diag_sink(&result.diagnostics)) != 0) return result;
+    workflow_arena = arena_create(PLATFORM_DISK_WORKFLOW_ARENA_SIZE);
+    if (workflow_arena == NULL) {
+        platform_disk_add_error(&result.diagnostics, "out of memory");
+        return result;
+    }
+    if (read_file_to_arena(path, workflow_arena, &image, &image_size, m68k_diag_sink(&result.diagnostics)) != 0) {
+        arena_destroy(workflow_arena);
+        return result;
+    }
     if (_stricmp(platform_name, "amiga-disk") == 0 || _stricmp(platform_name, "amiga") == 0) {
         extract_amiga_entry_from_buffer(image, image_size, entry_path, &result.data, &result.size,
             m68k_diag_sink(&result.diagnostics));
@@ -1358,7 +1378,7 @@ PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_entry_path(cons
     } else {
         platform_disk_add_error(&result.diagnostics, "unknown disk platform");
     }
-    free(image);
+    arena_destroy(workflow_arena);
     return result;
 }
 

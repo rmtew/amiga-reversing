@@ -57,10 +57,9 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/platform_binary_io.c` | 23 | result | Binary writer arena. |
 | `src/platform_binary_io.c` | 171 | caller_freed_output | Writer output bytes. |
 | `src/platform_common.c` | 16, 26 | caller_freed_output | Path/string copies returned to caller. |
-| `src/platform_disk_lib.c` | 83, 101, 1392, 1396 | caller_freed_output | Library text/data outputs. |
-| `src/platform_disk_lib.c` | 140, 149 | external_read_buffer | Disk image read buffer. |
-| `src/platform_disk_lib.c` | 173, 179, 573, 583, 634, 644 | caller_freed_output | Extracted file bytes. |
-| `src/platform_disk_lib.c` | 479, 513, 540, 543, 1288, 1294, 1298, 1361 | workflow | Temporary payload/image ownership inside disk workflows. |
+| `src/platform_disk_lib.c` | 85, 103, 1412, 1416 | caller_freed_output | Library text/data outputs. |
+| `src/platform_disk_lib.c` | 143, 175, 1288, 1363 | workflow | Disk path image buffers and Amiga entry classification payloads are owned by local workflow arenas with per-entry scratch rewinds. |
+| `src/platform_disk_lib.c` | 577, 587, 638, 648 | caller_freed_output | Extracted file bytes. |
 | `src/platform_file_amiga.c` | 3908, 3990, 4010, 4035 | workflow | Local workflow arenas. |
 | `src/platform_file_amiga.c` | 3913, 3921, 4111, 4112, 4113, 4114, 4115, 4119, 4120, 4121, 4122, 4123, 4139, 4140, 4141, 4142, 4143 | workflow | Temporary analysis/cache workspaces. |
 | `src/platform_file_cli.c` | 402 | workflow | CLI analysis policy scratch. |
@@ -106,6 +105,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 
 - `src/platform_amiga_hunk.c`: direct raw heap allocation sites in parser code reduced from 45 (`malloc`, `calloc`, `free`) to 0; one Workflow Arena now owns temporary BSTR names, HUNK_EXT names, debug payload staging, section payload staging, and executable header tables for each read-buffer call. Returned HUNK object internals remain object Result Arena owned. Remaining direct heap sites in the module are external file-read and caller-freed writer-output boundaries.
 - `src/platform_atari_st.c`: Atari PRG parser code already has 0 direct raw heap allocation sites; returned TEXT/DATA sections, symbol table data, relocation stream data, and platform metadata are object Result Arena owned. Existing direct heap sites are writer payload/output and external file-read boundaries.
+- `src/platform_disk_lib.c`: workflow-classified direct raw heap sites reduced from 8 (`malloc`, `free`) to 0; disk path image buffers and Amiga entry classification payloads now use local Workflow Arenas. The previous external read-buffer heap sites for disk path image reads are also gone. Public extracted entry bytes remain caller-freed output buffers.
 
 ## Verification
 
