@@ -19,6 +19,7 @@ typedef struct AtariStPrgPlatformData {
     uint32_t symbol_table_type;
     uint32_t program_flags;
     uint16_t relocation_flag;
+    uint8_t relocation_terminator_kind;
     uint8_t *symbol_table_data;
     uint32_t symbol_table_size;
     uint8_t *relocation_stream_data;
@@ -130,8 +131,8 @@ static int add_reloc_fixup(M68kObject *object, uint32_t image_offset, uint32_t t
     return m68k_object_add_fixup(object, &fixup).ok ? 0 : -1;
 }
 
-static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint32_t text_size, uint32_t data_size,
-    size_t text_index, size_t data_index, M68kDiagSink diagnostics) {
+static int parse_relocation_stream(Reader *reader, M68kObject *out_object, AtariStPrgPlatformData *platform_data,
+    uint32_t text_size, uint32_t data_size, size_t text_index, size_t data_index, M68kDiagSink diagnostics) {
     uint32_t offset = 0;
     unsigned char delta = 0;
     const AtariStPrgFileRelocationKind *reloc_kind =
@@ -145,6 +146,10 @@ static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint3
         return -1;
     }
     if (offset == 0U) {
+        if (platform_data != NULL) platform_data->relocation_terminator_kind =
+            M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_ZERO_BYTE;
+        m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_RELOCATION_TERMINATOR,
+            M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_ZERO_BYTE, 0U);
         if (m68k_reader_remaining_is_all_zero(reader)) return atari_allow_zero_only_padding_after_empty_relocations() ? 0 : -1;
         return 0;
     }
@@ -154,11 +159,23 @@ static int parse_relocation_stream(Reader *reader, M68kObject *out_object, uint3
     }
     for (;;) {
         if (m68k_reader_read_u8(reader, &delta) != 0) {
-            if (atari_allow_eof_terminated_relocation_stream()) return 0;
+            if (atari_allow_eof_terminated_relocation_stream()) {
+                if (platform_data != NULL) platform_data->relocation_terminator_kind =
+                    M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF;
+                m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_RELOCATION_TERMINATOR,
+                    M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF, 0U);
+                return 0;
+            }
             platform_file_diag_error(diagnostics, "Truncated Atari relocation stream");
             return -1;
         }
-        if (delta == 0U) return 0;
+        if (delta == 0U) {
+            if (platform_data != NULL) platform_data->relocation_terminator_kind =
+                M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_ZERO_BYTE;
+            m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_RELOCATION_TERMINATOR,
+                M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_ZERO_BYTE, 0U);
+            return 0;
+        }
         if (delta == 1U) {
             offset += 254U;
             continue;
@@ -371,6 +388,13 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         }
         return 0;
     }
+    if (platform_data != NULL &&
+        platform_data->relocation_terminator_kind == M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF &&
+        platform_data->relocation_stream_size != 0U && platform_data->relocation_stream_data != NULL) {
+        free(offsets);
+        return m68k_writer_bytes(writer, platform_data->relocation_stream_data,
+            platform_data->relocation_stream_size);
+    }
     qsort(offsets, offset_count, sizeof(*offsets), compare_u32);
     if (m68k_writer_u32be(writer, offsets[0]) != 0) {
         free(offsets);
@@ -447,6 +471,19 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     }
 
     out_object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    m68k_object_add_container_layout(out_object, M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_CONTAINER,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, ATARI_ST_PRG_FILE_META_CONTAINER_KIND_PRG_EXECUTABLE, 0U);
+    m68k_object_add_container_layout(out_object, M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_HEADER,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, ATARI_ST_PRG_FILE_META_RECORD_KIND_PRG_HEADER, 0U);
+    m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_HEADER_FIELD,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, ATARI_ST_PRG_FILE_PRG_HEADER_FIELD_SYMBOL_TABLE_TYPE_OFFSET,
+        symbol_table_type);
+    m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_HEADER_FIELD,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, ATARI_ST_PRG_FILE_PRG_HEADER_FIELD_PROGRAM_FLAGS_OFFSET,
+        program_flags);
+    m68k_object_add_container_encoding(out_object, M68K_CONTAINER_ENCODING_ATARI_ST_PRG_HEADER_FIELD,
+        M68K_CONTAINER_LAYOUT_FLAG_HEADER, ATARI_ST_PRG_FILE_PRG_HEADER_FIELD_RELOCATION_FLAG_OFFSET,
+        relocation_flag);
     section_result = add_named_section(out_object, "TEXT", ATARI_ST_PRG_FILE_META_RECORD_KIND_TEXT, text_size,
             data + reader.pos, text_size);
     if (!section_result.ok) {
@@ -490,6 +527,8 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
     if (reader.pos < reader.size || (!atari_relocation_flag_is_informational() && relocation_flag == 0u)) {
         size_t relocation_stream_start = reader.pos;
         size_t relocation_stream_size = reader.size - relocation_stream_start;
+        m68k_object_add_container_layout(out_object, M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_RELOCATION_STREAM,
+            M68K_CONTAINER_LAYOUT_FLAG_RELOCATION, ATARI_ST_PRG_FILE_META_RECORD_KIND_RELOCATION_STREAM, 0U);
         if (relocation_stream_size != 0U) {
             if (relocation_stream_size > UINT32_MAX) {
                 platform_file_diag_error(diagnostics, "Atari relocation stream is too large");
@@ -503,7 +542,7 @@ static int atari_st_read_buffer(const unsigned char *data, size_t size, M68kObje
             memcpy(platform_data->relocation_stream_data, data + relocation_stream_start, relocation_stream_size);
             platform_data->relocation_stream_size = (uint32_t)relocation_stream_size;
         }
-        if (parse_relocation_stream(&reader, out_object, text_size, data_size, text_index, data_index,
+        if (parse_relocation_stream(&reader, out_object, platform_data, text_size, data_size, text_index, data_index,
                 diagnostics) != 0) return -1;
     }
     if (reader.pos != reader.size && !m68k_reader_remaining_is_all_zero(&reader)) {

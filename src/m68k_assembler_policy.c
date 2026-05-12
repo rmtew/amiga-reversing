@@ -54,5 +54,9 @@ void m68k_assembler_policy_derive_preservation(const M68kObject *object, M68kAss
     if (encoding->kind == M68K_CONTAINER_ENCODING_AMIGA_HUNK_RELOCATION_WIRE_ID) {
       policy_add_hunk_relocation_record(policy, encoding->id);
     }
+    if (encoding->kind == M68K_CONTAINER_ENCODING_ATARI_ST_PRG_HEADER_FIELD ||
+        encoding->kind == M68K_CONTAINER_ENCODING_ATARI_ST_PRG_RELOCATION_TERMINATOR) {
+      policy->flags |= M68K_ASSEMBLER_POLICY_PRESERVE_ATARI_ST_CONTAINER_ENCODING;
+    }
   }
 }

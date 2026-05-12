@@ -874,9 +874,6 @@ def apply_reproduction_output_policy(
     if backend == "amiga-hunk" and container_policy == "preserve_original":
         adjusted, container_adjustments = preserve_amiga_hunk_container_shape(original, adjusted)
         adjustments.extend(container_adjustments)
-    elif backend == "atari-st" and container_policy == "preserve_original":
-        adjusted, atari_adjustments = match_atari_st_header_shape(original, adjusted)
-        adjustments.extend(atari_adjustments)
     return adjusted, adjustments
 
 
@@ -1289,58 +1286,6 @@ def compare_atari_st_file_shape(original: bytes, rebuilt: bytes) -> list[dict[st
             }
         )
     return diagnostics[:MAX_DIAGNOSTICS]
-
-
-def match_atari_st_header_shape(
-    original: bytes,
-    rebuilt: bytes,
-) -> tuple[bytes, list[dict[str, object]]]:
-    original_header = _atari_st_header_fields(original)
-    rebuilt_header = _atari_st_header_fields(rebuilt)
-    if original_header is None or rebuilt_header is None:
-        return rebuilt, []
-    for size_field in ("text_size", "data_size", "symbol_size"):
-        if original_header[size_field] != rebuilt_header[size_field]:
-            return rebuilt, []
-    adjusted = bytearray(rebuilt)
-    adjustments: list[dict[str, object]] = []
-    for field, start, end in (
-        ("bss_size", 10, 14),
-        ("reserved", 18, 22),
-        ("flags", 22, 26),
-        ("relocation_flag", 26, 28),
-    ):
-        if original_header[field] == rebuilt_header[field]:
-            continue
-        adjusted[start:end] = original[start:end]
-        adjustments.append(
-            {
-                "kind": "atari_header_field",
-                "field": field,
-                "original": original_header[field],
-                "rebuilt": rebuilt_header[field],
-            }
-        )
-    original_reloc_offset = _atari_st_relocation_offset(original)
-    rebuilt_reloc_offset = _atari_st_relocation_offset(bytes(adjusted))
-    original_reloc = original[original_reloc_offset:]
-    rebuilt_reloc = bytes(adjusted[rebuilt_reloc_offset:])
-    if (
-        original_reloc_offset <= len(original)
-        and rebuilt_reloc_offset <= len(adjusted)
-        and len(rebuilt_reloc) == len(original_reloc) + 1
-        and rebuilt_reloc.endswith(b"\0")
-        and rebuilt_reloc[:-1] == original_reloc
-    ):
-        del adjusted[-1:]
-        adjustments.append(
-            {
-                "kind": "atari_relocation_eof_terminator",
-                "original": "eof",
-                "rebuilt": "zero",
-            }
-        )
-    return bytes(adjusted), adjustments
 
 
 def file_layout_for_binary_source(

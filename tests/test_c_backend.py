@@ -2927,6 +2927,38 @@ def test_project_source_facts_v2_atari_empty_relocation_stream_roundtrips(tmp_pa
     assert rebuilt_path.read_bytes() == original
 
 
+def test_project_source_facts_v2_direct_rebuild_preserves_atari_eof_relocation_terminator(
+    tmp_path: Path,
+) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "eof_reloc.prg"
+    original = make_synthetic_atari_prg(
+        b"\0\0\0\0\0\0\0\0",
+        b"",
+        0,
+        symbol_table_type=7,
+        program_flags=0x1234,
+        relocation_flag=0xFFFF,
+    ) + u32(4)
+    binary_path.write_bytes(original)
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        source,
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+    assert direct_profile["assembler_policy_flags"] & 0x20 == 0x20
+
+
 def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     assembler = PROJECT_ROOT / "src" / "build" / "m68k_assembler_app.exe"

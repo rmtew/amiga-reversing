@@ -3,6 +3,7 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_reproduction_compare.h"
 #include "generated/amiga_hunk_file_runtime.h"
+#include "generated/atari_st_prg_file_runtime.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -421,6 +422,109 @@ static int test_reproduction_compare_hunk_unsupported_container_shape_is_distinc
   return 0;
 }
 
+static int test_atari_loader_records_header_and_eof_relocation_metadata(void) {
+  static const unsigned char prg[] = {
+    0x60, 0x1A,
+    0x00, 0x00, 0x00, 0x08,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x07,
+    0x00, 0x00, 0x12, 0x34,
+    0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x04,
+  };
+  M68kObject object;
+  M68kAssemblerPolicy policy;
+  M68kDiagList diagnostics;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_ATARI_ST.read_buffer(prg, sizeof(prg), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_CONTAINER, object.container_metadata.layout[0].kind);
+  M68K_C_ASSERT_U32(M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_HEADER, object.container_metadata.layout[1].kind);
+  M68K_C_ASSERT_U32(M68K_CONTAINER_LAYOUT_ATARI_ST_PRG_RELOCATION_STREAM, object.container_metadata.layout[2].kind);
+  M68K_C_ASSERT_U32(M68K_CONTAINER_ENCODING_ATARI_ST_PRG_HEADER_FIELD,
+    object.container_metadata.encoding[0].kind);
+  M68K_C_ASSERT_U32(ATARI_ST_PRG_FILE_PRG_HEADER_FIELD_SYMBOL_TABLE_TYPE_OFFSET,
+    object.container_metadata.encoding[0].id);
+  M68K_C_ASSERT_U32(7U, object.container_metadata.encoding[0].aux);
+  M68K_C_ASSERT_U32(M68K_CONTAINER_ENCODING_ATARI_ST_PRG_RELOCATION_TERMINATOR,
+    object.container_metadata.encoding[3].kind);
+  M68K_C_ASSERT_U32(M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF,
+    object.container_metadata.encoding[3].id);
+  m68k_assembler_policy_derive_preservation(&object, &policy);
+  M68K_C_ASSERT((policy.flags & M68K_ASSEMBLER_POLICY_PRESERVE_ATARI_ST_CONTAINER_ENCODING) != 0U);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_atari_writer_preserves_eof_relocation_terminator(void) {
+  static const unsigned char prg[] = {
+    0x60, 0x1A,
+    0x00, 0x00, 0x00, 0x08,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x07,
+    0x00, 0x00, 0x12, 0x34,
+    0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x04,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_ATARI_ST.read_buffer(prg, sizeof(prg), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_ATARI_ST.write_buffer(&object, &rebuilt, &rebuilt_size,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(prg), (uint32_t)rebuilt_size);
+  M68K_C_ASSERT(memcmp(prg, rebuilt, sizeof(prg)) == 0);
+  free(rebuilt);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_reproduction_compare_atari_content_exact_reports_policy_divergence(void) {
+  static const unsigned char original_bytes[] = {0x60U, 0x1AU, 0U, 1U};
+  static const unsigned char rebuilt_bytes[] = {0x60U, 0x1AU, 0U, 2U};
+  static const unsigned char payload[] = {0x4EU, 0x75U};
+  M68kObject original_object;
+  M68kObject rebuilt_object;
+  M68kAssemblerPolicy policy;
+  M68kReproductionCompareContext context;
+  M68kReproductionCompareResult result;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&original_object));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&rebuilt_object));
+  M68K_C_ASSERT_INT(0, add_compare_code_section(&original_object, payload, sizeof(payload)));
+  M68K_C_ASSERT_INT(0, add_compare_code_section(&rebuilt_object, payload, sizeof(payload)));
+  m68k_assembler_policy_init_ideal(&policy);
+  policy.flags = M68K_ASSEMBLER_POLICY_PRESERVE_ATARI_ST_CONTAINER_ENCODING;
+  memset(&context, 0, sizeof(context));
+  context.original_bytes = original_bytes;
+  context.original_size = sizeof(original_bytes);
+  context.rebuilt_bytes = rebuilt_bytes;
+  context.rebuilt_size = sizeof(rebuilt_bytes);
+  context.backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
+  context.assembler_policy = &policy;
+  context.original_object = &original_object;
+  context.rebuilt_object = &rebuilt_object;
+  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE) != 0U);
+  M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U);
+  m68k_object_destroy(&rebuilt_object);
+  m68k_object_destroy(&original_object);
+  return 0;
+}
+
 int m68k_c_container_metadata_tests(void) {
   static const M68kCTestCase cases[] = {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
@@ -447,6 +551,12 @@ int m68k_c_container_metadata_tests(void) {
       test_reproduction_compare_hunk_regrouped_fixups_reports_policy_divergence},
     {"reproduction_compare_hunk_unsupported_container_shape_is_distinct",
       test_reproduction_compare_hunk_unsupported_container_shape_is_distinct},
+    {"atari_loader_records_header_and_eof_relocation_metadata",
+      test_atari_loader_records_header_and_eof_relocation_metadata},
+    {"atari_writer_preserves_eof_relocation_terminator",
+      test_atari_writer_preserves_eof_relocation_terminator},
+    {"reproduction_compare_atari_content_exact_reports_policy_divergence",
+      test_reproduction_compare_atari_content_exact_reports_policy_divergence},
   };
   return m68k_c_test_run_suite("container_metadata", cases, sizeof(cases) / sizeof(cases[0]));
 }
