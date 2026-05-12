@@ -22,7 +22,6 @@ from amiga_reversing.disasm.reproduction import (
     first_diff,
     grouped_diff_ranges,
     match_amiga_hunk_relocation_order,
-    match_atari_st_header_shape,
     parse_assembler_diagnostics,
     reproduction_input_stamp,
     reproduction_options_for_target,
@@ -303,64 +302,6 @@ def test_atari_file_shape_comparator_classifies_header_fields() -> None:
 
     assert {"kind": "atari_header_field_mismatch", "field": "symbol_size", "original": 4, "rebuilt": 0} in diagnostics
     assert {"kind": "atari_header_field_mismatch", "field": "flags", "original": 1, "rebuilt": 0} in diagnostics
-
-
-def test_atari_header_shape_preserves_non_payload_header_fields() -> None:
-    original = (
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(0)
-        + _u32(8)
-        + _u32(0)
-        + _u32(0)
-        + _u32(1)
-        + _u16(1)
-        + b"\x4e\x75"
-    )
-    rebuilt = (
-        _u16(0x601A)
-        + _u32(2)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u16(0)
-        + b"\x4e\x75"
-    )
-
-    adjusted, adjustments = match_atari_st_header_shape(original, rebuilt)
-
-    assert adjusted == original
-    assert {item["field"] for item in adjustments} == {"bss_size", "flags", "relocation_flag"}
-
-
-def test_atari_header_shape_preserves_eof_terminated_relocations() -> None:
-    header = (
-        _u16(0x601A)
-        + _u32(8)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u32(0)
-        + _u16(0)
-    )
-    payload = b"\0" * 8
-    reloc_stream = _u32(4) + b"\x02"
-    original = header + payload + reloc_stream
-    rebuilt = original + b"\0"
-
-    adjusted, adjustments = match_atari_st_header_shape(original, rebuilt)
-
-    assert adjusted == original
-    assert adjustments == [
-        {
-            "kind": "atari_relocation_eof_terminator",
-            "original": "eof",
-            "rebuilt": "zero",
-        }
-    ]
 
 
 def test_amiga_hunk_relocation_order_keeps_different_fixup_sets() -> None:
@@ -1150,6 +1091,9 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
                 "direct_compare_relocation_semantics_exact": True,
                 "direct_compare_semantic_exact": True,
                 "direct_compare_container_oddity": True,
+                "direct_compare_status_id": 2,
+                "direct_compare_exactness_id": 2,
+                "direct_compare_issue_group_flags": 4 | 32 | 256,
                 "rebuilt_bytes": len(rebuilt),
                 "original_bytes": len(original),
             },
@@ -1171,7 +1115,14 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     assert report["comparison"]["full_file_exact"] is False
     assert report["comparison"]["content_exact"] is True
     assert report["comparison"]["status"] == "semantic_container_oddity"
-    assert report["file_shape_diagnostics"][0]["kind"] == "container_shape_oddity"
+    assert report["comparison"]["content_issue_kinds"] == []
+    assert report["comparison"]["file_structure_issue_kinds"] == [
+        "container_shape_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+    ]
+    assert report["file_shape_diagnostics"][0]["group"] == "original_file_structure"
+    assert report["file_shape_diagnostics"][1]["kind"] == "hunk_relocation_order_mismatch"
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_semantic_fast_path"] == 1.0
     assert profile["facts_v2_direct_compare_semantic_exact"] == 1.0

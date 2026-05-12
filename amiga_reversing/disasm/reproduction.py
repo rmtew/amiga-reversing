@@ -77,6 +77,33 @@ _HUNK_EXT_DEFINITION_TYPES = {0, 1, 2, 3}
 _HUNK_EXT_REFERENCE_TYPES = {129, 131, 132, 133, 134, 135, 136, 138, 139}
 _HUNK_EXT_COMMON_REFERENCE_TYPES = {130, 137}
 
+_C_COMPARE_STATUS_LABELS = {
+    0: "not_compared",
+    1: "exact_file",
+    2: "semantic_container_oddity",
+    3: "mismatch",
+    4: "invalid_comparison",
+}
+_C_COMPARE_EXACTNESS_LABELS = {
+    0: "none",
+    1: "full_file",
+    2: "content",
+    3: "mismatch",
+}
+_C_COMPARE_CONTENT_ISSUE_FLAGS = {
+    1 << 0: "payload_mismatch",
+    1 << 1: "relocation_semantic_mismatch",
+    1 << 3: "size_mismatch",
+}
+_C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS = {
+    1 << 2: "container_shape_mismatch",
+    1 << 5: "hunk_relocation_order_mismatch",
+    1 << 6: "hunk_relocation_group_mismatch",
+    1 << 7: "hunk_relocation_encoding_mismatch",
+    1 << 8: "policy_divergence",
+    1 << 9: "unsupported_container_shape",
+}
+
 
 def reproduction_report_path(target_dir: Path) -> Path:
     return target_dir / REPRODUCTION_FILE_NAME
@@ -1019,15 +1046,21 @@ def _direct_compare_reproduction_comparison(
     direct_profile: dict[str, object],
 ) -> dict[str, object]:
     comparison_mode = str(policy.get("comparison") or "full_file")
-    full_file_exact = direct_profile.get("direct_rebuild_exact") is True
-    semantic_exact = direct_profile.get("direct_compare_semantic_exact") is True
-    payload_exact = direct_profile.get("direct_compare_payload_exact") is True
-    relocation_semantics = (
-        direct_profile.get("direct_compare_relocation_semantics_exact") is True
-        if backend == "amiga-hunk"
-        else None
-    )
-    status = "exact_file" if full_file_exact else "semantic_container_oddity"
+    status_id = _direct_profile_int(direct_profile, "direct_compare_status_id")
+    exactness_id = _direct_profile_int(direct_profile, "direct_compare_exactness_id")
+    issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
+    full_file_exact = bool(exactness_id == 1 or direct_profile.get("direct_rebuild_exact") is True)
+    semantic_exact = bool(exactness_id in {1, 2} or direct_profile.get("direct_compare_semantic_exact") is True)
+    payload_exact = bool(semantic_exact or direct_profile.get("direct_compare_payload_exact") is True)
+    relocation_semantics = None
+    if backend in {"amiga-hunk", "atari-st"}:
+        relocation_semantics = bool(semantic_exact and not (issue_flags & (1 << 1)))
+    status = _C_COMPARE_STATUS_LABELS.get(status_id or -1)
+    if status is None:
+        status = "exact_file" if full_file_exact else "semantic_container_oddity"
+    content_issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_CONTENT_ISSUE_FLAGS)
+    file_structure_issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
+    failure_kinds = [] if full_file_exact else content_issue_kinds + file_structure_issue_kinds
     return {
         "mode": policy.get("mode"),
         "comparison": comparison_mode,
@@ -1040,18 +1073,38 @@ def _direct_compare_reproduction_comparison(
         "payload_exact": bool(full_file_exact or payload_exact),
         "payload_diagnostics": [],
         "relocation_semantics_exact": True
-        if full_file_exact and backend == "amiga-hunk"
+        if full_file_exact and backend in {"amiga-hunk", "atari-st"}
         else bool(relocation_semantics),
-        "relocation_encoding_exact": bool(full_file_exact and backend == "amiga-hunk"),
-        "semantic_diagnostics": [],
-        "failure_kinds": [] if full_file_exact else ["container_shape_mismatch"],
+        "relocation_encoding_exact": bool(full_file_exact and backend in {"amiga-hunk", "atari-st"}),
+        "semantic_diagnostics": _direct_compare_issue_diagnostics(content_issue_kinds, "content"),
+        "failure_kinds": failure_kinds,
+        "content_issue_kinds": content_issue_kinds,
+        "file_structure_issue_kinds": file_structure_issue_kinds,
         "diff_range_count": 0,
         "canonical_diff_range_count": 0 if full_file_exact else None,
-        "direct_compare_status": direct_profile.get("direct_compare_status"),
+        "direct_compare_status": status,
+        "direct_compare_exactness": _C_COMPARE_EXACTNESS_LABELS.get(exactness_id or -1, "unknown"),
     }
 
 
+def _direct_profile_int(profile: dict[str, object], key: str) -> int | None:
+    value = profile.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _c_compare_issue_labels(flags: int, labels_by_flag: dict[int, str]) -> list[str]:
+    return [label for bit, label in labels_by_flag.items() if flags & bit]
+
+
+def _direct_compare_issue_diagnostics(issue_kinds: list[str], group: str) -> list[dict[str, object]]:
+    return [{"kind": issue_kind, "group": group, "source": "facts_v2_direct_compare"} for issue_kind in issue_kinds]
+
+
 def _direct_compare_shape_diagnostics(direct_profile: dict[str, object]) -> list[dict[str, object]]:
+    issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
+    issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
+    if issue_kinds:
+        return _direct_compare_issue_diagnostics(issue_kinds, "original_file_structure")
     if direct_profile.get("direct_compare_container_oddity") is not True:
         return []
     return [
