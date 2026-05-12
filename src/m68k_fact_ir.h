@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "util_arena.h"
+
 typedef enum M68kFactKind {
   M68K_FACT_CODE_START = 1,
   M68K_FACT_CODE_ACCEPTED = 2,
@@ -68,6 +70,7 @@ typedef struct M68kFact {
 } M68kFact;
 
 typedef struct M68kFactIR {
+  Arena *arena;
   M68kFact *facts;
   size_t fact_count;
   size_t fact_capacity;

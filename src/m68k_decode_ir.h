@@ -6,6 +6,7 @@
 #include "m68k_diagnostics.h"
 #include "m68k_ir.h"
 #include "m68k_object.h"
+#include "util_arena.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -48,6 +49,7 @@ typedef struct M68kDecodeCandidate {
 } M68kDecodeCandidate;
 
 typedef struct M68kDecodeSectionIR {
+  Arena *owner_arena;
   size_t section_index;
   const char *name;
   M68kSectionKind kind;
@@ -64,6 +66,7 @@ typedef struct M68kDecodeSectionIR {
 } M68kDecodeSectionIR;
 
 typedef struct M68kDecodeIR {
+  Arena *arena;
   M68kDecodeSectionIR *sections;
   size_t section_count;
   size_t section_capacity;

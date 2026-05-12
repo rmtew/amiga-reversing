@@ -28,8 +28,8 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_assembler_app.c` | 107, 115 | external_read_buffer | Input file read buffer. |
 | `src/m68k_assembler_app.c` | 373, 530, 551 | caller_freed_output | Assembled section data returned through app edge. |
 | `src/m68k_assembler_app.c` | 593, 597 | caller_freed_output | Rendered text release at app edge. |
-| `src/m68k_decode_ir.c` | 18, 64, 234, 297, 298, 300 | result | Decode IR arrays currently heap-owned by result. |
-| `src/m68k_fact_ir.c` | 30, 40 | result | Fact IR array currently heap-owned by result. |
+| `src/m68k_decode_ir.c` | 283 | result | Decode IR result arena. Section, candidate, and absent CPU arrays are arena-backed. |
+| `src/m68k_fact_ir.c` | 25 | result | Facts IR result arena. Fact append storage is arena-backed. |
 | `src/m68k_ir.c` | 291, 305 | result | Source file/source analysis own result arenas; section/section analysis receive explicit result arenas from callers. |
 | `src/m68k_object.c` | 25 | result | Object arena. |
 | `src/m68k_render_ir.c` | 191, 203, 3989 | result | Preview/lookup arenas. |
@@ -87,6 +87,12 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - Arena Builder chunks and finalized arrays are arena-owned and add no raw heap allocation sites beyond the core arena backing allocation sites above.
 - Builder allocations are visible through `ArenaStats` because every chunk and finalized output uses `arena_alloc`.
 - Builders may be used with Workflow Arenas or Result Arenas. If a caller creates a builder after a Scratch Mark, both append chunks and finalized storage rewind with that mark; callers must not return or retain finalized pointers past that rewind.
+
+## PRD 002 Notes
+
+- `src/m68k_decode_ir.c`: direct raw heap allocation sites reduced from 6 (`realloc`, `calloc`, `free`) to 0; result lifetime is owned by `M68kDecodeIR.arena`.
+- `src/m68k_fact_ir.c`: direct raw heap allocation sites reduced from 2 (`realloc`, `free`) to 0; result lifetime is owned by `M68kFactIR.arena`.
+- Decode and facts tests assert arena stats visibility after result append/build operations.
 
 ## Verification
 

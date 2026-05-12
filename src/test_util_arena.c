@@ -1,4 +1,7 @@
 #include "m68k_c_unit_test.h"
+#include "m68k_decode_ir.h"
+#include "m68k_fact_ir.h"
+#include "m68k_object.h"
 #include "util_arena.h"
 
 #include <string.h>
@@ -91,12 +94,68 @@ static int test_builder_rewind_discards_chunks_and_finalized_storage(void) {
   return 0;
 }
 
+static int test_decode_ir_result_arrays_use_result_arena(void) {
+  uint8_t code[] = {0x4eU, 0x75U};
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult add_result;
+  M68kDecodeIR decode;
+  const M68kDecodeCandidate *candidate = NULL;
+  ArenaStats stats;
+  memset(&object, 0, sizeof(object));
+  memset(&decode, 0, sizeof(decode));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(code);
+  section.data_size = sizeof(code);
+  add_result = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(add_result.ok);
+  M68K_C_ASSERT_INT(0, m68k_object_set_section_data(&object, add_result.index, code, (uint32_t)sizeof(code)));
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object_sections(&decode, &object, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(decode.arena != NULL);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_ensure_candidate_at(&decode, 0U, 0U, M68K_ASM_CPU_68000,
+    &candidate, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(candidate != NULL);
+  stats = arena_stats(decode.arena);
+  M68K_C_ASSERT(stats.current_used > 0U);
+  m68k_decode_ir_destroy(&decode);
+  M68K_C_ASSERT(decode.arena == NULL);
+  M68K_C_ASSERT(decode.sections == NULL);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_fact_ir_result_arrays_use_result_arena(void) {
+  M68kFactIR facts;
+  M68kFact fact;
+  ArenaStats stats;
+  memset(&facts, 0, sizeof(facts));
+  memset(&fact, 0, sizeof(fact));
+  m68k_fact_ir_init(&facts);
+  M68K_C_ASSERT(facts.arena != NULL);
+  fact.kind = M68K_FACT_CODE_START;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT(facts.facts != NULL);
+  M68K_C_ASSERT_U32(1U, facts.fact_count);
+  M68K_C_ASSERT_U32(1U, facts.code_start_count);
+  stats = arena_stats(facts.arena);
+  M68K_C_ASSERT(stats.current_used > 0U);
+  m68k_fact_ir_destroy(&facts);
+  M68K_C_ASSERT(facts.arena == NULL);
+  M68K_C_ASSERT(facts.facts == NULL);
+  return 0;
+}
+
 int m68k_c_util_arena_tests(void) {
   static const M68kCTestCase cases[] = {
     {"builder_appends_and_flattens_growth", test_builder_appends_and_flattens_growth},
     {"builder_zero_length_finalize_is_arena_owned", test_builder_zero_length_finalize_is_arena_owned},
     {"builder_typed_pair_append_uninit", test_builder_typed_pair_append_uninit},
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
+    {"decode_ir_result_arrays_use_result_arena", test_decode_ir_result_arrays_use_result_arena},
+    {"fact_ir_result_arrays_use_result_arena", test_fact_ir_result_arrays_use_result_arena},
   };
   return m68k_c_test_run_suite("util_arena", cases, sizeof(cases) / sizeof(cases[0]));
 }

@@ -1,6 +1,5 @@
 #include "m68k_fact_ir.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 static void count_fact(M68kFactIR *ir, uint8_t kind) {
@@ -23,21 +22,26 @@ static void count_fact(M68kFactIR *ir, uint8_t kind) {
 void m68k_fact_ir_init(M68kFactIR *ir) {
   if (ir == NULL) return;
   memset(ir, 0, sizeof(*ir));
+  ir->arena = arena_create(4096U);
 }
 
 void m68k_fact_ir_destroy(M68kFactIR *ir) {
+  Arena *arena;
   if (ir == NULL) return;
-  free(ir->facts);
+  arena = ir->arena;
   memset(ir, 0, sizeof(*ir));
+  arena_destroy(arena);
 }
 
 int m68k_fact_ir_append(M68kFactIR *ir, const M68kFact *fact) {
   M68kFact *grown;
   size_t next_capacity;
   if (ir == NULL || fact == NULL) return -1;
+  if (ir->arena == NULL) return -1;
   if (ir->fact_count == ir->fact_capacity) {
     next_capacity = ir->fact_capacity == 0U ? 64U : ir->fact_capacity * 2U;
-    grown = (M68kFact *)realloc(ir->facts, next_capacity * sizeof(*grown));
+    grown = (M68kFact *)arena_realloc_copy(ir->arena, ir->facts,
+      ir->fact_capacity * sizeof(*grown), next_capacity * sizeof(*grown));
     if (grown == NULL) return -1;
     ir->facts = grown;
     ir->fact_capacity = next_capacity;

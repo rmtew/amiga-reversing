@@ -6,21 +6,12 @@
 #include "m68k_simulator.h"
 #include "platform_common.h"
 
-#include <stdlib.h>
 #include <string.h>
 
-static int append_decode_section(M68kDecodeIR *ir, M68kDecodeSectionIR **out_section) {
-  M68kDecodeSectionIR *grown;
-  size_t next_capacity;
-  if (ir == NULL || out_section == NULL) return -1;
-  if (ir->section_count == ir->section_capacity) {
-    next_capacity = ir->section_capacity == 0U ? 4U : ir->section_capacity * 2U;
-    grown = (M68kDecodeSectionIR *)realloc(ir->sections, next_capacity * sizeof(*grown));
-    if (grown == NULL) return -1;
-    ir->sections = grown;
-    ir->section_capacity = next_capacity;
-  }
-  *out_section = &ir->sections[ir->section_count++];
+static int append_decode_section(ArenaBuilder *builder, M68kDecodeSectionIR **out_section) {
+  if (builder == NULL || out_section == NULL) return -1;
+  *out_section = ARENA_BUILDER_APPEND_TYPED(builder, M68kDecodeSectionIR);
+  if (*out_section == NULL) return -1;
   memset(*out_section, 0, sizeof(**out_section));
   return 0;
 }
@@ -61,7 +52,8 @@ static int insert_candidate_sorted(M68kDecodeSectionIR *section, const M68kDecod
   }
   if (section->candidate_count == section->candidate_capacity) {
     next_capacity = section->candidate_capacity == 0U ? 32U : section->candidate_capacity * 2U;
-    grown = (M68kDecodeCandidate *)realloc(section->candidates, next_capacity * sizeof(*grown));
+    grown = (M68kDecodeCandidate *)arena_realloc_copy(section->owner_arena, section->candidates,
+      section->candidate_capacity * sizeof(*grown), next_capacity * sizeof(*grown));
     if (grown == NULL) return -1;
     section->candidates = grown;
     section->candidate_capacity = next_capacity;
@@ -231,7 +223,7 @@ static void candidate_absent_remember(M68kDecodeSectionIR *section, uint32_t off
   uint8_t value;
   if (section == NULL || offset >= section->size) return;
   if (section->candidate_absent_cpu == NULL) {
-    section->candidate_absent_cpu = (uint8_t *)calloc(section->size != 0U ? section->size : 1U,
+    section->candidate_absent_cpu = (uint8_t *)arena_calloc(section->owner_arena, section->size != 0U ? section->size : 1U,
       sizeof(*section->candidate_absent_cpu));
     if (section->candidate_absent_cpu == NULL) return;
     section->candidate_absent_size = section->size;
@@ -288,17 +280,15 @@ static int decode_candidate_at_section(M68kDecodeSectionIR *section, uint32_t of
 void m68k_decode_ir_init(M68kDecodeIR *ir) {
   if (ir == NULL) return;
   memset(ir, 0, sizeof(*ir));
+  ir->arena = arena_create(4096U);
 }
 
 void m68k_decode_ir_destroy(M68kDecodeIR *ir) {
-  size_t index;
+  Arena *arena;
   if (ir == NULL) return;
-  for (index = 0U; index < ir->section_count; ++index) {
-    free(ir->sections[index].candidates);
-    free(ir->sections[index].candidate_absent_cpu);
-  }
-  free(ir->sections);
+  arena = ir->arena;
   memset(ir, 0, sizeof(*ir));
+  arena_destroy(arena);
 }
 
 static void set_instruction_operand_from_candidate(M68kOperandIR *operand, uint8_t kind,
@@ -357,14 +347,26 @@ int m68k_decode_candidate_to_instruction(const M68kDecodeCandidate *candidate,
 int m68k_decode_ir_build_object_sections(M68kDecodeIR *ir, const M68kObject *object,
     M68kDiagSink diagnostics) {
   size_t section_index;
+  ArenaBuilder section_builder;
+  size_t finalized_section_count = 0U;
   (void)diagnostics;
   if (ir == NULL || object == NULL) return -1;
-  m68k_decode_ir_init(ir);
+  if (ir->arena == NULL) {
+    m68k_decode_ir_init(ir);
+  } else {
+    Arena *arena = ir->arena;
+    arena_reset(arena);
+    memset(ir, 0, sizeof(*ir));
+    ir->arena = arena;
+  }
+  if (ir->arena == NULL) goto oom;
+  if (!ARENA_BUILDER_INIT_TYPED(&section_builder, ir->arena, M68kDecodeSectionIR, 4U)) goto oom;
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *object_section = &object->sections[section_index];
     M68kDecodeSectionIR *section_ir;
-    if (append_decode_section(ir, &section_ir) != 0) goto oom;
+    if (append_decode_section(&section_builder, &section_ir) != 0) goto oom;
     section_ir->section_index = section_index;
+    section_ir->owner_arena = ir->arena;
     section_ir->name = object_section->name;
     section_ir->kind = object_section->kind;
     section_ir->platform_mem_type = object_section->platform_mem_type;
@@ -373,6 +375,10 @@ int m68k_decode_ir_build_object_sections(M68kDecodeIR *ir, const M68kObject *obj
     section_ir->size = object_section->data_size;
     section_ir->data = object_section->data;
   }
+  ir->sections = ARENA_BUILDER_FINALIZE_TYPED(&section_builder, M68kDecodeSectionIR, &finalized_section_count);
+  if (ir->sections == NULL) goto oom;
+  ir->section_count = finalized_section_count;
+  ir->section_capacity = finalized_section_count;
   return 0;
 oom:
   m68k_decode_ir_destroy(ir);
@@ -388,6 +394,7 @@ int m68k_decode_ir_ensure_candidate_at(M68kDecodeIR *ir, size_t section_index, u
   if (out_candidate != NULL) *out_candidate = NULL;
   if (ir == NULL || section_index >= ir->section_count) return -1;
   section = &ir->sections[section_index];
+  if (section->owner_arena == NULL) section->owner_arena = ir->arena;
   existing = m68k_decode_ir_find_candidate_at_offset(section, offset);
   if (existing != NULL) {
     if (out_candidate != NULL) *out_candidate = existing;
