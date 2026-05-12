@@ -252,13 +252,15 @@ def test_content_comparison_distinguishes_container_shape_from_payload() -> None
             "container_policy": "assembler_default",
             "relocation_policy": "assembler_default",
             "comparison": "content",
+            "requested_exactness": "content",
+            "requested_exactness_id": 2,
         },
         diff_ranges=diff_ranges,
         canonical_diff_ranges=diff_ranges,
         file_layout=layout,
     )
 
-    assert comparison["status"] == "content_match"
+    assert comparison["status"] == "accepted_content_exact"
     assert comparison["full_file_exact"] is False
     assert comparison["content_exact"] is True
     assert comparison["failure_kinds"] == ["header_shape_mismatch"]
@@ -1047,6 +1049,12 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
 ) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
+    metadata = _empty_metadata()
+    metadata["reproduction"] = {"requested_exactness": "content"}
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(metadata),
+        encoding="utf-8",
+    )
     binary_path = tmp_path / "demo.bin"
     original = b"\x00\x00\x03\xf3\x00\x00\x03\xf2"
     rebuilt = b"\x00\x00\x03\xf3"
@@ -1128,6 +1136,10 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     assert report["comparison"]["full_file_exact"] is False
     assert report["comparison"]["content_exact"] is True
     assert report["comparison"]["status"] == "semantic_container_oddity"
+    assert report["comparison"]["requested_exactness"] == "content"
+    assert report["comparison"]["requested_exactness_id"] == 2
+    assert report["comparison"]["content_exact_accepted"] is True
+    assert report["comparison"]["content_exact_unaccepted"] is False
     assert report["comparison"]["content_issue_kinds"] == []
     assert report["comparison"]["file_structure_issue_kinds"] == [
         "container_shape_mismatch",
@@ -1143,6 +1155,27 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_semantic_fast_path"] == 1.0
     assert profile["facts_v2_direct_compare_semantic_exact"] == 1.0
+
+
+def test_direct_compare_content_exact_is_unaccepted_by_default() -> None:
+    comparison = reproduction._direct_compare_reproduction_comparison(
+        "amiga-hunk",
+        reproduction.reproduction_policy_for_options(reproduction._default_reproduction_options()),
+        {
+            "direct_rebuild_exact": False,
+            "direct_compare_semantic_exact": True,
+            "direct_compare_status_id": 2,
+            "direct_compare_exactness_id": 2,
+            "direct_compare_issue_group_flags": 4,
+        },
+    )
+
+    assert comparison["requested_exactness"] == "full_file"
+    assert comparison["requested_exactness_id"] == 1
+    assert comparison["selected_exact"] is False
+    assert comparison["content_exact"] is True
+    assert comparison["content_exact_accepted"] is False
+    assert comparison["content_exact_unaccepted"] is True
 
 
 def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
@@ -1493,6 +1526,7 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "include_dirs": ["custom/include"],
         "oracle_modes": ["vasm", "unknown"],
         "comparison": "full-file",
+        "requested_exactness": "content",
         "file_shape": {"relocation_order": "assembler-default"},
     }
     corrections = _empty_metadata()
@@ -1533,6 +1567,8 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
     assert options["container_policy"] == "preserve_original"
     assert options["relocation_policy"] == "preserve_original_encoding"
     assert options["comparison"] == "full_file"
+    assert options["requested_exactness"] == "content"
+    assert options["requested_exactness_id"] == 2
     assert options["raw_output"] is None
     assert options["file_shape"] == {
         "relocation_order": "match_original",
@@ -1544,6 +1580,8 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "container_policy": "preserve_original",
         "relocation_policy": "preserve_original_encoding",
         "comparison": "content",
+        "requested_exactness": "content",
+        "requested_exactness_id": 2,
     }
 
 

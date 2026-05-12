@@ -54,6 +54,8 @@ REPRODUCTION_MODES = {"exact", "template_preserved", "canonical", "content", "se
 REPRODUCTION_CONTAINER_POLICIES = {"assembler_default", "preserve_original"}
 REPRODUCTION_RELOCATION_POLICIES = {"assembler_default", "preserve_original_encoding"}
 REPRODUCTION_COMPARISONS = {"full_file", "content", "semantic"}
+REPRODUCTION_REQUESTED_EXACTNESS = {"full_file", "content"}
+REPRODUCTION_REQUESTED_EXACTNESS_IDS = {"full_file": 1, "content": 2}
 _ATARI_PRG_HEADER_SIZE = 28
 _ATARI_PRG_MAGIC = 0x601A
 _HUNK_TYPE_ID_MASK = 0x1FFFFFFF
@@ -287,6 +289,7 @@ def run_reproduction(
                         comparison = _direct_compare_reproduction_comparison(
                             backend, reproduction_policy, direct_profile
                         )
+                        selected_exact = comparison["selected_exact"] is True
                         digest = _sha256_bytes(direct_bytes)
                         direct_full_exact = direct_profile.get("direct_rebuild_exact") is True
                         profile_timings["facts_v2_direct_exact_fast_path"] = 1.0 if direct_full_exact else 0.0
@@ -302,8 +305,8 @@ def run_reproduction(
                         )
                         report = {
                             **base_report,
-                            "status": "exact",
-                            "exact": True,
+                            "status": "exact" if selected_exact else "binary_mismatch",
+                            "exact": selected_exact,
                             "finished_at": time.time(),
                             "original_size": original_size,
                             "rebuilt_size": len(direct_bytes),
@@ -987,16 +990,22 @@ def reproduction_comparison_result(
     full_file_exact = original == compared_rebuilt
     canonical_full_file_exact = original == canonical_rebuilt
     comparison_mode = str(policy.get("comparison") or "full_file")
+    requested_exactness = str(policy.get("requested_exactness") or "full_file")
+    requested_exactness_id = _direct_profile_int(policy, "requested_exactness_id") or 1
     if full_file_exact and canonical_full_file_exact:
         return {
             "mode": policy.get("mode"),
             "comparison": comparison_mode,
+            "requested_exactness": requested_exactness,
+            "requested_exactness_id": requested_exactness_id,
             "status": "exact_file",
             "selected_exact": True,
             "full_file_exact": True,
             "policy_adjusted_full_file_exact": True,
             "canonical_full_file_exact": True,
             "content_exact": True,
+            "content_exact_accepted": requested_exactness_id >= 2,
+            "content_exact_unaccepted": False,
             "payload_exact": True,
             "payload_diagnostics": [],
             "relocation_semantics_exact": True if backend == "amiga-hunk" else None,
@@ -1016,13 +1025,14 @@ def reproduction_comparison_result(
         if not relocation_semantics:
             semantic_diagnostics = compare_amiga_hunk_relocation_groups(original, canonical_rebuilt)
     content_exact = bool(payload_comparison["exact"]) and relocation_semantics is not False
+    content_exact_accepted = bool(content_exact and requested_exactness_id >= 2)
     policy_adjusted_full_file_exact = full_file_exact
     selected_exact = full_file_exact
     status = "exact_file" if full_file_exact else "mismatch"
-    if comparison_mode in {"content", "semantic"}:
+    if content_exact_accepted:
         selected_exact = content_exact
         if content_exact and not full_file_exact:
-            status = f"{comparison_mode}_match"
+            status = "accepted_content_exact"
     elif content_exact and not full_file_exact:
         status = "container_shape_mismatch"
     failure_kinds = _comparison_failure_kinds(
@@ -1035,12 +1045,16 @@ def reproduction_comparison_result(
     return {
         "mode": policy.get("mode"),
         "comparison": comparison_mode,
+        "requested_exactness": requested_exactness,
+        "requested_exactness_id": requested_exactness_id,
         "status": status,
         "selected_exact": selected_exact,
         "full_file_exact": full_file_exact,
         "policy_adjusted_full_file_exact": policy_adjusted_full_file_exact,
         "canonical_full_file_exact": canonical_full_file_exact,
         "content_exact": content_exact,
+        "content_exact_accepted": content_exact_accepted,
+        "content_exact_unaccepted": bool(content_exact and not full_file_exact and not content_exact_accepted),
         "payload_exact": bool(payload_comparison["exact"]),
         "payload_diagnostics": payload_comparison["diagnostics"],
         "relocation_semantics_exact": relocation_semantics,
@@ -1058,11 +1072,15 @@ def _direct_compare_reproduction_comparison(
     direct_profile: dict[str, object],
 ) -> dict[str, object]:
     comparison_mode = str(policy.get("comparison") or "full_file")
+    requested_exactness = str(policy.get("requested_exactness") or "full_file")
+    requested_exactness_id = _direct_profile_int(policy, "requested_exactness_id") or 1
     status_id = _direct_profile_int(direct_profile, "direct_compare_status_id")
     exactness_id = _direct_profile_int(direct_profile, "direct_compare_exactness_id")
     issue_flags = _direct_profile_int(direct_profile, "direct_compare_issue_group_flags") or 0
     full_file_exact = bool(exactness_id == 1 or direct_profile.get("direct_rebuild_exact") is True)
     semantic_exact = bool(exactness_id in {1, 2} or direct_profile.get("direct_compare_semantic_exact") is True)
+    content_exact_accepted = bool(semantic_exact and requested_exactness_id >= 2)
+    selected_exact = bool(full_file_exact or content_exact_accepted)
     payload_exact = bool(semantic_exact or direct_profile.get("direct_compare_payload_exact") is True)
     relocation_semantics = None
     if backend in {"amiga-hunk", "atari-st"}:
@@ -1076,12 +1094,16 @@ def _direct_compare_reproduction_comparison(
     return {
         "mode": policy.get("mode"),
         "comparison": comparison_mode,
+        "requested_exactness": requested_exactness,
+        "requested_exactness_id": requested_exactness_id,
         "status": status,
-        "selected_exact": bool(full_file_exact or semantic_exact),
+        "selected_exact": selected_exact,
         "full_file_exact": full_file_exact,
-        "policy_adjusted_full_file_exact": bool(full_file_exact or semantic_exact),
+        "policy_adjusted_full_file_exact": selected_exact,
         "canonical_full_file_exact": full_file_exact,
         "content_exact": bool(full_file_exact or semantic_exact),
+        "content_exact_accepted": content_exact_accepted,
+        "content_exact_unaccepted": bool(semantic_exact and not full_file_exact and not content_exact_accepted),
         "payload_exact": bool(full_file_exact or payload_exact),
         "payload_diagnostics": [],
         "relocation_semantics_exact": True
@@ -2017,6 +2039,8 @@ def _default_reproduction_options() -> dict[str, object]:
         "container_policy": "preserve_original",
         "relocation_policy": "preserve_original_encoding",
         "comparison": "full_file",
+        "requested_exactness": "full_file",
+        "requested_exactness_id": 1,
         "file_shape": {
             "relocation_order": "match_original",
             "relocation_record": "auto",
@@ -2081,6 +2105,10 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
     comparison = _normalized_reproduction_value(payload.get("comparison"))
     if comparison in REPRODUCTION_COMPARISONS:
         options["comparison"] = comparison
+    requested_exactness = _normalized_reproduction_value(payload.get("requested_exactness"))
+    if requested_exactness in REPRODUCTION_REQUESTED_EXACTNESS:
+        options["requested_exactness"] = requested_exactness
+        options["requested_exactness_id"] = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
     if "raw_output" in payload:
         raw_output = payload["raw_output"]
         if raw_output is None or isinstance(raw_output, (str, dict)):
@@ -2116,6 +2144,10 @@ def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, obj
     comparison = _normalized_reproduction_value(options.get("comparison"))
     if comparison not in REPRODUCTION_COMPARISONS:
         comparison = "full_file"
+    requested_exactness = _normalized_reproduction_value(options.get("requested_exactness"))
+    if requested_exactness not in REPRODUCTION_REQUESTED_EXACTNESS:
+        requested_exactness = "full_file"
+    requested_exactness_id = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
     if mode == "template_preserved":
         container_policy = "preserve_original"
         relocation_policy = "preserve_original_encoding"
@@ -2133,6 +2165,8 @@ def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, obj
         "container_policy": container_policy,
         "relocation_policy": relocation_policy,
         "comparison": comparison,
+        "requested_exactness": requested_exactness,
+        "requested_exactness_id": requested_exactness_id,
     }
 
 
