@@ -3,6 +3,9 @@
 #include "m68k_c_unit_test.h"
 #include "generated/amiga_hunk_file_runtime.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 static int test_container_metadata_tracks_overflow_separately(void) {
   M68kObject object;
   uint32_t i;
@@ -125,6 +128,43 @@ static int test_no_container_preservation_policy_does_not_claim_container_shape(
   return 0;
 }
 
+static int test_hunk_writer_preserves_policy_allowed_relocation_record_grouping(void) {
+  static const unsigned char hunk[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x03, 0xE9,
+    0x00, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x04,
+    0x00, 0x00, 0x03, 0xFC,
+    0x00, 0x01, 0x00, 0x00,
+    0x00, 0x00,
+    0x00, 0x01, 0x00, 0x00,
+    0x00, 0x04,
+    0x00, 0x00,
+    0x00, 0x00,
+    0x00, 0x00, 0x03, 0xF2,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.write_buffer(&object, &rebuilt, &rebuilt_size,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(hunk), (uint32_t)rebuilt_size);
+  M68K_C_ASSERT(memcmp(hunk, rebuilt, sizeof(hunk)) == 0);
+  free(rebuilt);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 int m68k_c_container_metadata_tests(void) {
   static const M68kCTestCase cases[] = {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
@@ -135,6 +175,8 @@ int m68k_c_container_metadata_tests(void) {
       test_preservation_policy_derives_hunk_relocation_encoding_ids},
     {"no_container_preservation_policy_does_not_claim_container_shape",
       test_no_container_preservation_policy_does_not_claim_container_shape},
+    {"hunk_writer_preserves_policy_allowed_relocation_record_grouping",
+      test_hunk_writer_preserves_policy_allowed_relocation_record_grouping},
   };
   return m68k_c_test_run_suite("container_metadata", cases, sizeof(cases) / sizeof(cases[0]));
 }

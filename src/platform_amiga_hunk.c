@@ -1,4 +1,5 @@
 #include "m68k_backend.h"
+#include "m68k_assembler_policy.h"
 #include "platform_binary_io.h"
 #include "platform_common.h"
 #include "generated/amiga_hunk_file_runtime.h"
@@ -1045,9 +1046,21 @@ static int fixup_matches_relocation_record_kind(const M68kFixup *fixup, AmigaHun
     return map_relocation_mode_to_fixup_kind(reloc->mode) == fixup->kind;
 }
 
-static AmigaHunkFileRecordKind internal_reloc_record_kind_for_fixup(const M68kFixup *fixup) {
+static int assembler_policy_allows_hunk_relocation_wire_id(const M68kObject *object, uint32_t wire_id) {
+    M68kAssemblerPolicy policy;
+    uint8_t index;
+    if (object == NULL || wire_id == 0U) return 0;
+    m68k_assembler_policy_derive_preservation(object, &policy);
+    for (index = 0U; index < policy.hunk_relocation_record_count; ++index) {
+        if (policy.hunk_relocation_record_wire_ids[index] == wire_id) return 1;
+    }
+    return 0;
+}
+
+static AmigaHunkFileRecordKind internal_reloc_record_kind_for_fixup(const M68kObject *object, const M68kFixup *fixup) {
     AmigaHunkFileRecordKind platform_kind = (AmigaHunkFileRecordKind)fixup->platform_relocation_record_kind;
     if (fixup->has_target_section && platform_kind != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE
+        && assembler_policy_allows_hunk_relocation_wire_id(object, fixup->platform_relocation_record_wire_id)
         && fixup_matches_relocation_record_kind(fixup, platform_kind)) {
         return platform_kind;
     }
@@ -1064,7 +1077,7 @@ static int find_next_internal_reloc_for_section(const M68kObject *object, size_t
     for (i = start; i < object->fixup_count; ++i) {
         const M68kFixup *fixup = &object->fixups[i];
         if (fixup->section_index == section_index
-            && internal_reloc_record_kind_for_fixup(fixup) != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE) {
+            && internal_reloc_record_kind_for_fixup(object, fixup) != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE) {
             *out_index = i;
             return 1;
         }
@@ -1074,7 +1087,8 @@ static int find_next_internal_reloc_for_section(const M68kObject *object, size_t
 
 static int fixup_is_same_relocation_block(const M68kFixup *anchor, const M68kFixup *candidate,
     AmigaHunkFileRecordKind record_kind) {
-    if (internal_reloc_record_kind_for_fixup(candidate) != record_kind) return 0;
+    if (canonical_internal_reloc_record_kind_for_fixup(candidate) != record_kind
+        && (AmigaHunkFileRecordKind)candidate->platform_relocation_record_kind != record_kind) return 0;
     if (anchor->platform_relocation_block_index != 0U || candidate->platform_relocation_block_index != 0U) {
         return anchor->platform_relocation_block_index != 0U
             && anchor->platform_relocation_block_index == candidate->platform_relocation_block_index;
@@ -1170,7 +1184,7 @@ static int section_has_internal_reloc_kind(const M68kObject *object, size_t sect
     for (i = 0; i < object->fixup_count; ++i) {
         const M68kFixup *fixup = &object->fixups[i];
         if (fixup->section_index == section_index
-            && internal_reloc_record_kind_for_fixup(fixup) == record_kind) {
+            && internal_reloc_record_kind_for_fixup(object, fixup) == record_kind) {
             return 1;
         }
     }
@@ -1183,9 +1197,10 @@ static int write_preserved_internal_relocs_for_section(Writer *writer, const M68
     size_t block_start = 0U;
     while (find_next_internal_reloc_for_section(object, section_index, cursor, &block_start)) {
         const M68kFixup *block_anchor = &object->fixups[block_start];
-        AmigaHunkFileRecordKind record_kind = internal_reloc_record_kind_for_fixup(block_anchor);
+        AmigaHunkFileRecordKind record_kind = internal_reloc_record_kind_for_fixup(object, block_anchor);
         const AmigaHunkFileRecordInfo *record_info = amiga_hunk_file_record_info_by_record_kind(record_kind);
-        uint32_t wire_id = block_anchor->platform_relocation_record_wire_id != 0U
+        uint32_t wire_id = (block_anchor->platform_relocation_record_wire_id != 0U
+                && assembler_policy_allows_hunk_relocation_wire_id(object, block_anchor->platform_relocation_record_wire_id))
             ? block_anchor->platform_relocation_record_wire_id
             : (record_info != NULL ? record_info->wire_id : 0U);
         size_t group_start = block_start;
@@ -1277,7 +1292,8 @@ static int write_section_record(Writer *writer, const M68kObject *object, size_t
 }
 
 static int fixup_is_writable_internal_reloc(const M68kFixup *fixup) {
-    return internal_reloc_record_kind_for_fixup(fixup) != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE;
+    return canonical_internal_reloc_record_kind_for_fixup(fixup) != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE
+        || fixup->platform_relocation_record_kind != AMIGA_HUNK_FILE_META_RECORD_KIND_NONE;
 }
 
 static int fixup_is_writable_ext_reference(const M68kFixup *fixup) {

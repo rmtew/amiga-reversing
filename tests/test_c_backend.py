@@ -2667,6 +2667,51 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
     assert direct_profile["assembler_policy_flags"] & 0x3 == 0x3
 
 
+def test_project_source_facts_v2_direct_rebuild_preserves_hunk_reloc32short_encoding(
+    tmp_path: Path,
+) -> None:
+    _requires_c_backend_dlls()
+    original = bytes.fromhex(
+        "000003f3"
+        "00000000"
+        "00000001"
+        "00000000"
+        "00000000"
+        "00000002"
+        "000003e9"
+        "00000002"
+        "00000000"
+        "00000004"
+        "000003fc"
+        "00010000"
+        "0000"
+        "00010000"
+        "0004"
+        "0000"
+        "0000"
+        "000003f2"
+    )
+    binary_path = tmp_path / "reloc32short.exe"
+    binary_path.write_bytes(original)
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path="reloc32short.exe",
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        source,
+        compare_original=True,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+    assert direct_profile["assembler_policy_kind"] == 2
+    assert direct_profile["assembler_policy_hunk_relocation_record_count"] == 1
+
+
 def test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api(
     monkeypatch, tmp_path: Path
 ) -> None:
