@@ -539,7 +539,7 @@ int m68k_source_file_build_ir(const AsmSourceFile *source, M68kSourceExprLookupF
   }
   for (section_index = 0; section_index < source->section_count; ++section_index) {
     M68kSectionIR section;
-    if (m68k_ir_section_create(&section) != 0) {
+    if (m68k_ir_section_create(&section, out_source_file->arena) != 0) {
       source_emit_error(diagnostics, "out of memory");
       goto fail;
     }

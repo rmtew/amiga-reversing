@@ -8,9 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define M68K_IR_SECTION_ARENA_SIZE 4096U
 #define M68K_IR_SOURCE_FILE_ARENA_SIZE 16384U
-#define M68K_IR_SECTION_ANALYSIS_ARENA_SIZE 16384U
 #define M68K_IR_SOURCE_ANALYSIS_ARENA_SIZE 16384U
 
 const M68kInstructionIR g_m68k_ir_instruction_none = {
@@ -201,13 +199,11 @@ void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStru
 static void m68k_ir_section_init_shared(M68kSectionIR *section, Arena *arena) {
   memset(section, 0, sizeof(*section));
   section->arena = arena;
-  section->owns_arena = 0U;
 }
 
 static void m68k_ir_section_analysis_init_shared(M68kSectionAnalysisIR *section_analysis, Arena *arena) {
   memset(section_analysis, 0, sizeof(*section_analysis));
   section_analysis->arena = arena;
-  section_analysis->owns_arena = 0U;
 }
 
 static void m68k_ir_source_analysis_init_defaults(M68kSourceAnalysisIR *source_analysis) {
@@ -282,12 +278,10 @@ static char *arena_strdup_if_unresolved_name(Arena *arena, const M68kPlatformNam
   return arena_strdup(arena, text);
 }
 
-int m68k_ir_section_create(M68kSectionIR *section) {
-  if (section == NULL) return -1;
+int m68k_ir_section_create(M68kSectionIR *section, Arena *result_arena) {
+  if (section == NULL || result_arena == NULL) return -1;
   memset(section, 0, sizeof(*section));
-  section->arena = arena_create(M68K_IR_SECTION_ARENA_SIZE);
-  if (section->arena == NULL) return -1;
-  section->owns_arena = 1U;
+  section->arena = result_arena;
   return 0;
 }
 
@@ -298,12 +292,10 @@ int m68k_ir_source_file_create(M68kSourceFileIR *source_file) {
   return source_file->arena != NULL ? 0 : -1;
 }
 
-int m68k_ir_section_analysis_create(M68kSectionAnalysisIR *section_analysis) {
-  if (section_analysis == NULL) return -1;
+int m68k_ir_section_analysis_create(M68kSectionAnalysisIR *section_analysis, Arena *result_arena) {
+  if (section_analysis == NULL || result_arena == NULL) return -1;
   memset(section_analysis, 0, sizeof(*section_analysis));
-  section_analysis->arena = arena_create(M68K_IR_SECTION_ANALYSIS_ARENA_SIZE);
-  if (section_analysis->arena == NULL) return -1;
-  section_analysis->owns_arena = 1U;
+  section_analysis->arena = result_arena;
   return 0;
 }
 
@@ -430,7 +422,6 @@ void m68k_ir_section_destroy(M68kSectionIR *section) {
 
   for (index = 0; index < section->statement_count; ++index)
     m68k_ir_statement_free(&section->statements[index]);
-  if (section->owns_arena != 0U) arena_destroy(section->arena);
   memset(section, 0, sizeof(*section));
 }
 
@@ -524,7 +515,6 @@ void m68k_ir_section_analysis_destroy(M68kSectionAnalysisIR *section_analysis) {
   if (section_analysis == NULL) return;
   for (index = 0; index < section_analysis->violation_count; ++index)
     section_analysis->violations[index].message = NULL;
-  if (section_analysis->owns_arena != 0U) arena_destroy(section_analysis->arena);
   memset(section_analysis, 0, sizeof(*section_analysis));
 }
 

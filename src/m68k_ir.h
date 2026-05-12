@@ -417,7 +417,6 @@ typedef struct M68kSectionIR {
   size_t statement_count;
   size_t statement_capacity;
   Arena *arena;
-  uint8_t owns_arena;
 } M68kSectionIR;
 
 typedef struct M68kSourceFileIR {
@@ -1123,7 +1122,6 @@ typedef struct M68kSectionAnalysisIR {
   size_t code_start_ref_capacity;
   uint8_t recovered_direct_section_calls_indexed;
   Arena *arena;
-  uint8_t owns_arena;
 } M68kSectionAnalysisIR;
 
 typedef struct M68kSourceAnalysisIR {
@@ -1164,7 +1162,7 @@ const char *m68k_ir_instruction_mnemonic_name(const M68kInstructionIR *instructi
 void m68k_ir_data_item_init(M68kDataItemIR *item);
 void m68k_ir_statement_init(M68kStatementIR *statement);
 void m68k_ir_statement_free(M68kStatementIR *statement);
-int m68k_ir_section_create(M68kSectionIR *section);
+int m68k_ir_section_create(M68kSectionIR *section, Arena *result_arena);
 /* Arena-backed setters never reclaim replaced storage until m68k_ir_section_destroy(). */
 int m68k_ir_section_set_name(M68kSectionIR *section, const char *name);
 void m68k_ir_section_destroy(M68kSectionIR *section);
@@ -1172,7 +1170,7 @@ int m68k_ir_section_append_statement(M68kSectionIR *section, const M68kStatement
 int m68k_ir_source_file_create(M68kSourceFileIR *source_file);
 void m68k_ir_source_file_destroy(M68kSourceFileIR *source_file);
 int m68k_ir_source_file_append_section(M68kSourceFileIR *source_file, const M68kSectionIR *section);
-int m68k_ir_section_analysis_create(M68kSectionAnalysisIR *section_analysis);
+int m68k_ir_section_analysis_create(M68kSectionAnalysisIR *section_analysis, Arena *result_arena);
 /* Arena-backed setters never reclaim replaced storage until m68k_ir_section_analysis_destroy(). */
 int m68k_ir_section_analysis_set_name(M68kSectionAnalysisIR *section_analysis, const char *name);
 void m68k_ir_section_analysis_destroy(M68kSectionAnalysisIR *section_analysis);

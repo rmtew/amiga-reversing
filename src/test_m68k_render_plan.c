@@ -4,6 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
+static Arena *test_render_plan_ir_result_arena(void) {
+  static Arena *arena = NULL;
+  if (arena == NULL) arena = arena_create(4096U);
+  return arena;
+}
+
 static int test_render_plan_line_counts_and_order(void) {
   M68kRenderPlan plan;
   const M68kRenderPlanRow *row;
@@ -350,7 +356,7 @@ static int test_render_plan_builds_source_file_body_genam_fixture(void) {
     "    DC.B    $01,$02,$03\n"
     "    DS.B    $4\n";
   m68k_ir_source_file_create(&source_file);
-  m68k_ir_section_create(&section);
+  m68k_ir_section_create(&section, test_render_plan_ir_result_arena());
   m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_GENAM);
   M68K_C_ASSERT_INT(0, m68k_ir_section_set_name(&section, "section_0"));
   section.kind = M68K_SECTION_CODE;

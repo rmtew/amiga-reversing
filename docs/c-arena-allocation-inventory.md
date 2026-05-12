@@ -29,7 +29,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_assembler_app.c` | 593, 597 | caller_freed_output | Rendered text release at app edge. |
 | `src/m68k_decode_ir.c` | 18, 64, 234, 297, 298, 300 | result | Decode IR arrays currently heap-owned by result. |
 | `src/m68k_fact_ir.c` | 30, 40 | result | Fact IR array currently heap-owned by result. |
-| `src/m68k_ir.c` | 288, 297, 304, 313 | result | IR nested result arenas; migrate to explicit result ownership. |
+| `src/m68k_ir.c` | 291, 305 | result | Source file/source analysis own result arenas; section/section analysis receive explicit result arenas from callers. |
 | `src/m68k_object.c` | 25 | result | Object arena. |
 | `src/m68k_render_ir.c` | 191, 203, 3989 | result | Preview/lookup arenas. |
 | `src/m68k_render_ir.c` | 314, 8807 | caller_freed_output | Preview source text. |

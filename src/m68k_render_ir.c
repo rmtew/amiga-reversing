@@ -8884,7 +8884,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     out_preview->structural_hash = hash_step(out_preview->structural_hash, section_index);
     out_preview->structural_hash = hash_step(out_preview->structural_hash, render_extent);
     if (out_source_analysis != NULL) {
-      if (m68k_ir_section_analysis_create(&section_analysis) != 0) goto cleanup;
+      if (m68k_ir_section_analysis_create(&section_analysis, out_source_analysis->arena) != 0) goto cleanup;
       section_analysis_live = 1;
       section_analysis.section_index = section->section_index;
       section_analysis.section_kind = section->kind;

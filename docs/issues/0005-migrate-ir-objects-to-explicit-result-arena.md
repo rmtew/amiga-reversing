@@ -12,11 +12,11 @@ Refactor existing arena-backed IR result objects so their ownership is explicit 
 
 ## Acceptance criteria
 
-- [ ] IR result objects receive or clearly own a **Result Arena** at creation.
-- [ ] Internal callers are updated to the new ownership model.
-- [ ] Old internal compatibility/fallback create paths are removed.
-- [ ] Returned Python/CLI text and byte buffers remain independently freeable.
-- [ ] Existing IR/render/source-analysis tests pass.
+- [x] IR result objects receive or clearly own a **Result Arena** at creation.
+- [x] Internal callers are updated to the new ownership model.
+- [x] Old internal compatibility/fallback create paths are removed.
+- [x] Returned Python/CLI text and byte buffers remain independently freeable.
+- [x] Existing IR/render/source-analysis tests pass.
 
 ## Blocked by
 
