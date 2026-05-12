@@ -14,6 +14,7 @@ from typing import cast
 
 import pytest
 
+from amiga_reversing.amiga_disk.project import import_disk_entry_target
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
@@ -291,6 +292,44 @@ def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path)
         lambda project_name, project_root=project_root: project_store.get_project(
             project_name, project_root=project_root
         ),
+    )
+
+
+def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: str) -> None:
+    disk_root = project_root / "targets" / disk_project_id
+    manifest_path = disk_root / "manifest.json"
+    decompression_path = (
+        disk_root
+        / "targets"
+        / "amiga_raw_carrier_rnc_00004c60"
+        / "decompression.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    decompression = json.loads(decompression_path.read_text(encoding="utf-8"))
+    relationship = decompression["relationship"]
+    child_target_id = decompression["child_target_id"]
+    targets = manifest["imported_targets"]
+    if not any(target["target_name"] == child_target_id for target in targets):
+        targets.append(
+            {
+                "binary_path": (
+                    f"targets/{disk_project_id}/targets/"
+                    "amiga_raw_carrier_rnc_00004c60/binary.bin"
+                ),
+                "derived_from": relationship,
+                "derived_targets": None,
+                "entry_path": decompression["child_entry_path"],
+                "target_name": child_target_id,
+                "target_path": (
+                    f"targets/{disk_project_id}/targets/"
+                    "amiga_raw_carrier_rnc_00004c60"
+                ),
+                "target_type": "raw_binary",
+            }
+        )
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -2210,7 +2249,7 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
         page.call("Page.navigate", {"url": f"{base_url}/{disk_project_id}"})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_expression("document.querySelectorAll('.disk-target-button').length > 1")
-        assert "Targets" in page.text_content(".disk-section")
+        assert page.evaluate("document.querySelector('[data-tab=\"targets\"]')?.classList.contains('active')")
         page.click("[data-tab='contents']")
         page.wait_for_expression("document.querySelector(\"[data-tab-panel='contents']\").hidden === false")
         page.evaluate("document.querySelectorAll('.disk-target-button')[1].click()")
@@ -2225,14 +2264,35 @@ def test_brave_cdp_disk_project_browsing_and_target_listing(
 @pytest.mark.web_e2e
 def test_brave_cdp_disk_project_shows_decompressed_child_target(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     _skip_without_c_backend()
     disk_project_id = "amiga_disk_carrier-command-1994-kixx-budget"
+    project_root = tmp_path / "project_root"
+    shutil.copytree(
+        PROJECT_ROOT / "targets" / disk_project_id,
+        project_root / "targets" / disk_project_id,
+    )
+    (project_root / "bin").mkdir()
+    shutil.copy2(
+        PROJECT_ROOT / "bin" / "Carrier Command (1994)(Kixx)[h][budget].adf",
+        project_root / "bin" / "Carrier Command (1994)(Kixx)[h][budget].adf",
+    )
+    _temp_project_accessors(monkeypatch, project_root)
+    import_disk_entry_target(
+        disk_project_id,
+        entry_path="Carrier",
+        project_root=project_root,
+    )
+    _append_carrier_decompressed_fixture(project_root, disk_project_id)
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
         disasm_server,
         "mark_project_opened",
-        lambda project_name: project_store.get_project(project_name),
+        lambda project_name: project_store.get_project(
+            project_name,
+            project_root=project_root,
+        ),
     )
 
     with _live_server() as base_url, brave_page() as page:
@@ -2271,7 +2331,7 @@ def test_brave_cdp_dos_disk_icon_library_target(monkeypatch: pytest.MonkeyPatch)
             "Array.from(document.querySelectorAll('.disk-target-button')).every((button) => "
             "!button.textContent.includes('libs/icon.library'))"
         )
-        assert "status=empty" in page.text_content(".disk-section")
+        assert "Startup import state" in page.text_content(".disk-section")
         page.assert_no_errors()
         page.assert_no_errors()
 
