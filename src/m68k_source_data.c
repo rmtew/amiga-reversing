@@ -50,6 +50,7 @@ int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourc
       free(buffer);
       return 0;
     }
+    free(item.bytes);
   }
   free(buffer);
   return 1;
@@ -86,18 +87,7 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
     return 0;
   }
   for (index = 0; index < repeat_count; ++index) {
-    AsmDataItem copy = item;
-    if (item.kind == ASM_DATA_ITEM_STRING && item.byte_count != 0U) {
-      copy.bytes = (uint8_t *)malloc(item.byte_count);
-      if (copy.bytes == NULL) {
-        free(item.bytes);
-        free(buffer);
-        return 0;
-      }
-      memcpy(copy.bytes, item.bytes, item.byte_count);
-    }
-    if (!context->append_item(out_data, &copy, context->user_data)) {
-      free(copy.bytes);
+    if (!context->append_item(out_data, &item, context->user_data)) {
       free(item.bytes);
       free(buffer);
       return 0;

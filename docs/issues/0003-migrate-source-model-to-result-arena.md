@@ -12,11 +12,11 @@ Convert the source model to explicit **Result Arena** ownership. Source model ar
 
 ## Acceptance criteria
 
-- [ ] Source model construction requires explicit result ownership.
-- [ ] Source model append paths use arena-backed growth or equivalent result-owned storage.
-- [ ] Deep per-field cleanup is removed where the **Result Arena** owns the memory.
-- [ ] No compatibility/fallback ownership path remains for old internal callers.
-- [ ] Existing source parsing, assembly, and C tests pass.
+- [x] Source model construction requires explicit result ownership.
+- [x] Source model append paths use arena-backed growth or equivalent result-owned storage.
+- [x] Deep per-field cleanup is removed where the **Result Arena** owns the memory.
+- [x] No compatibility/fallback ownership path remains for old internal callers.
+- [x] Existing source parsing, assembly, and C tests pass.
 
 ## Blocked by
 

@@ -36,12 +36,12 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/m68k_render_plan.c` | 15 | result | Render plan arena. |
 | `src/m68k_render_plan.c` | 81, 163, 400, 419, 464, 638 | caller_freed_output | Text builder/output buffers. |
 | `src/m68k_reproduction_compare.c` | 497, 522, 526 | workflow | Temporary fixup-match bitmap. |
-| `src/m68k_source_data.c` | 15, 35, 39, 45, 49, 50, 54, 70, 75, 80, 85, 91, 93, 94, 100, 101, 102, 106, 107 | result | Parsed data item bytes and parse scratch; migrate with source model. |
+| `src/m68k_source_data.c` | 15, 35, 39, 45, 49, 50, 53, 55, 71, 76, 81, 86, 91, 92, 96, 97 | workflow | Temporary parse buffers; source model copies data item bytes into its result arena. |
 | `src/m68k_source_file_emit.c` | 144, 145, 148, 149, 165, 166, 174, 175, 184, 185, 209, 210, 220, 221, 231, 232, 237, 238, 353, 361, 422, 428, 436, 439, 445, 505, 510 | workflow | Emit offsets/writers and copied data statement buffers. |
-| `src/m68k_source_file_parse.c` | 177, 183, 198, 207, 222, 231, 682, 687, 701, 706, 720, 725, 739, 744 | result | Parsed source file owned buffers; migrate with source model. |
+| `src/m68k_source_file_parse.c` | 177, 183, 682, 687, 701, 706, 720, 725, 739, 744 | workflow | Temporary hex-blob buffers; Atari ST metadata chunks are copied into the source result arena. |
 | `src/m68k_source_ir_api.c` | 52 | caller_freed_output | Public text free API. |
 | `src/m68k_source_ir_render.c` | 297, 339, 350, 361, 362, 392, 396, 500, 514, 533 | workflow | Render indexes/cache scratch. |
-| `src/m68k_source_model.c` | 11, 52, 54, 295, 297, 300, 301, 302, 303, 304, 305 | result | Primary source model result storage; first migration target. |
+| `src/m68k_source_model.c` | 146 | result | Source model result arena creation. Append storage is arena-backed. |
 | `src/platform_amiga_disk.c` | 1035 | result | Disk analysis arena. |
 | `src/platform_amiga_disk.c` | 1219, 1228, 1233 | external_read_buffer | Disk image file read buffer. |
 | `src/platform_amiga_hunk.c` | 84, 87, 94, 96, 103, 389, 394, 398, 412, 419, 424, 428, 526, 529, 542, 547, 557, 563, 567, 573, 582, 586, 593, 596, 687, 690, 698, 707, 747, 748, 749, 793, 794, 795, 799, 800, 801, 828, 835, 841, 845, 854, 857, 861, 865 | workflow | Hunk parser temporary names, arrays, section/debug buffers. |
@@ -72,7 +72,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/platform_file_lib.c` | 5445, 5453 | external_read_buffer | Platform file read buffer. |
 | `src/platform_file_lib.c` | 6758, 6771 | result | Listing artifact and listing index arena. |
 | `src/test_m68k_container_metadata.c` | 192, 526 | test_only | Test output cleanup. |
-| `src/test_m68k_ir.c` | 63, 77, 85, 102, 110, 697, 724, 744, 762, 2647, 3121, 3540, 4466, 4534, 4584, 4642, 4692, 4753, 4849, 4907, 5065, 5125, 5177, 5235, 5293, 5345, 5418, 5470, 6210, 6789, 7022, 7062, 7109, 7140, 7190, 7745, 8420, 9185, 10318, 10468, 10510, 10562, 10628, 10697, 10754, 10794, 10830, 10868, 10893, 11019, 11044, 11077, 11095, 11158, 11159, 11178, 11248, 11249, 11250, 11370, 11436, 11536, 11606, 11673, 12220, 12279, 12343, 12402, 13319, 13645, 14467, 15910, 15942, 17019, 17132, 17186, 17239 | test_only | Test arenas, output buffers, and assertions. |
+| `src/test_m68k_ir.c` | 63, 77, 85, 102, 110, 697, 724, 744, 793, 816, 2648, 3122, 3541, 4467, 4535, 4585, 4643, 4693, 4754, 4850, 4908, 5066, 5126, 5178, 5236, 5294, 5346, 5419, 5471, 6211, 6790, 7023, 7063, 7110, 7141, 7191, 7746, 8421, 9186, 10319, 10469, 10511, 10563, 10629, 10698, 10755, 10795, 10831, 10869, 10894, 11020, 11045, 11078, 11096, 11159, 11160, 11179, 11249, 11250, 11251, 11371, 11437, 11537, 11607, 11674, 12221, 12280, 12344, 12403, 13320, 13646, 14468, 15911, 15943, 17020, 17133, 17187, 17240 | test_only | Test arenas, output buffers, and assertions. |
 | `src/test_m68k_parse_util.c` | 216, 238, 246 | test_only | Test output cleanup and arena. |
 | `src/test_platform_decompression.c` | 109 | test_only | Test JSON cleanup. |
 | `src/tests/test_c_style.py` | 172 | test_only | Fixture text inside Python style test. |

@@ -14,11 +14,15 @@ M68K_ASM_EXPORT M68kSourceIrParseResult m68k_source_ir_parse_file(const char *pa
   AsmSourceFile source;
   M68kDiagList diagnostics;
   memset(&result, 0, sizeof(result));
-  memset(&source, 0, sizeof(source));
   m68k_diag_list_reset(&diagnostics);
   if (path == NULL || include_dir == NULL) {
     m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_BAD_ARGUMENT,
         "bad arguments");
+    return result;
+  }
+  if (m68k_source_model_create(&source) != 0) {
+    m68k_diag_add(m68k_diag_sink(&result.diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY,
+        "out of memory");
     return result;
   }
   snprintf(source.include_dir, sizeof(source.include_dir), "%s", include_dir);

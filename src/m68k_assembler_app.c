@@ -198,7 +198,10 @@ static int assemble_platform_source_to_object_common(const char *input_path, con
   AsmSourceFile source;
   clock_t phase_start;
   size_t index;
-  memset(&source, 0, sizeof(source));
+  if (m68k_source_model_create(&source) != 0) {
+    assembler_add_error(diagnostics, "out of memory");
+    return 0;
+  }
   snprintf(source.include_dir, sizeof(source.include_dir), "%s", include_dir);
   source.target_cpu = target_cpu;
   source.platform_backend_kind = platform_backend_kind;

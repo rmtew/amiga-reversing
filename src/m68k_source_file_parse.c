@@ -193,9 +193,8 @@ static int parse_hex_blob(const char *text, uint8_t **out_data, uint32_t *out_si
 static int append_atari_relocation_stream_chunk(AsmSourceFile *source, const uint8_t *data, uint32_t size,
     int replace_existing) {
   uint8_t *combined;
-  if (source == NULL || (data == NULL && size != 0U)) return 0;
+  if (source == NULL || source->arena == NULL || (data == NULL && size != 0U)) return 0;
   if (replace_existing) {
-    free(source->atari_st_relocation_stream_data);
     source->atari_st_relocation_stream_data = NULL;
     source->atari_st_relocation_stream_size = 0U;
   }
@@ -204,9 +203,10 @@ static int append_atari_relocation_stream_chunk(AsmSourceFile *source, const uin
     return 1;
   }
   if ((uint32_t)(UINT32_MAX - source->atari_st_relocation_stream_size) < size) return 0;
-  combined = (uint8_t *)realloc(source->atari_st_relocation_stream_data,
-    (size_t)source->atari_st_relocation_stream_size + size);
+  combined = (uint8_t *)arena_alloc(source->arena, (size_t)source->atari_st_relocation_stream_size + size);
   if (combined == NULL) return 0;
+  if (source->atari_st_relocation_stream_size != 0U)
+    memcpy(combined, source->atari_st_relocation_stream_data, source->atari_st_relocation_stream_size);
   memcpy(combined + source->atari_st_relocation_stream_size, data, size);
   source->atari_st_relocation_stream_data = combined;
   source->atari_st_relocation_stream_size += size;
@@ -217,9 +217,8 @@ static int append_atari_relocation_stream_chunk(AsmSourceFile *source, const uin
 static int append_atari_symbol_table_chunk(AsmSourceFile *source, const uint8_t *data, uint32_t size,
     int replace_existing) {
   uint8_t *combined;
-  if (source == NULL || (data == NULL && size != 0U)) return 0;
+  if (source == NULL || source->arena == NULL || (data == NULL && size != 0U)) return 0;
   if (replace_existing) {
-    free(source->atari_st_symbol_table_data);
     source->atari_st_symbol_table_data = NULL;
     source->atari_st_symbol_table_size = 0U;
   }
@@ -228,9 +227,10 @@ static int append_atari_symbol_table_chunk(AsmSourceFile *source, const uint8_t 
     return 1;
   }
   if ((uint32_t)(UINT32_MAX - source->atari_st_symbol_table_size) < size) return 0;
-  combined = (uint8_t *)realloc(source->atari_st_symbol_table_data,
-    (size_t)source->atari_st_symbol_table_size + size);
+  combined = (uint8_t *)arena_alloc(source->arena, (size_t)source->atari_st_symbol_table_size + size);
   if (combined == NULL) return 0;
+  if (source->atari_st_symbol_table_size != 0U)
+    memcpy(combined, source->atari_st_symbol_table_data, source->atari_st_symbol_table_size);
   memcpy(combined + source->atari_st_symbol_table_size, data, size);
   source->atari_st_symbol_table_data = combined;
   source->atari_st_symbol_table_size += size;
@@ -314,7 +314,7 @@ static int source_data_append_item_callback(AsmSourceDataStmt *data_stmt,
                                             const AsmDataItem *item,
                                             void *user_data) {
   (void)user_data;
-  return m68k_source_model_append_data_item(data_stmt, item);
+  return m68k_source_model_append_data_item((AsmSourceFile *)user_data, data_stmt, item);
 }
 
 static int statement_is_fpu_id_alias_instruction(const char *text) {

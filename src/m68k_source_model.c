@@ -1,14 +1,15 @@
 #include "m68k_source_model.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-static int grow_items(void **items, size_t item_size, size_t *capacity, size_t count_needed) {
+static int grow_items(Arena *arena, void **items, size_t item_size, size_t *capacity, size_t count_needed) {
   size_t next_capacity = (*capacity == 0U) ? 16U : *capacity;
+  size_t old_size = item_size * *capacity;
   void *grown = NULL;
+  if (arena == NULL) return 0;
   while (next_capacity < count_needed) next_capacity *= 2U;
-  grown = realloc(*items, item_size * next_capacity);
+  grown = arena_realloc_copy(arena, *items, old_size, item_size * next_capacity);
   if (grown == NULL) return 0;
   *items = grown;
   *capacity = next_capacity;
@@ -46,12 +47,11 @@ static int source_symbol_index_reserve(AsmSourceFile *source, size_t count_neede
   size_t next_capacity = 16U;
   size_t index;
   size_t *slots;
-  if (source == NULL) return 0;
+  if (source == NULL || source->arena == NULL) return 0;
   while (next_capacity < count_needed * 2U) next_capacity *= 2U;
   if (source->symbol_index_capacity >= next_capacity) return 1;
-  slots = (size_t *)calloc(next_capacity, sizeof(*slots));
+  slots = (size_t *)arena_calloc(source->arena, next_capacity, sizeof(*slots));
   if (slots == NULL) return 0;
-  free(source->symbol_index_slots);
   source->symbol_index_slots = slots;
   source->symbol_index_capacity = next_capacity;
   for (index = 0U; index < source->symbol_count; ++index) {
@@ -139,6 +139,16 @@ static int source_model_parse_section_base_symbol(const char *name, size_t *out_
   return 1;
 }
 
+int m68k_source_model_create(AsmSourceFile *source) {
+  Arena *arena;
+  if (source == NULL) return -1;
+  memset(source, 0, sizeof(*source));
+  arena = arena_create(4096U);
+  if (arena == NULL) return -1;
+  source->arena = arena;
+  return 0;
+}
+
 M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data) {
   M68kSourceLookupResult result = {0};
   const AsmSourceFile *source = (const AsmSourceFile *)user_data;
@@ -190,7 +200,7 @@ M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *sourc
       return result;
     }
   }
-  if (!grow_items((void **)&source->sections, sizeof(*source->sections), &source->section_capacity,
+  if (!grow_items(source->arena, (void **)&source->sections, sizeof(*source->sections), &source->section_capacity,
     source->section_count + 1U)) return result;
   memset(&source->sections[source->section_count], 0, sizeof(*source->sections));
   snprintf(source->sections[source->section_count].name, sizeof(source->sections[source->section_count].name), "%s", name);
@@ -218,7 +228,7 @@ M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source
     return result;
   }
   if (!source_symbol_index_reserve(source, source->symbol_count + 1U)) return result;
-  if (!grow_items((void **)&source->symbols, sizeof(*source->symbols), &source->symbol_capacity,
+  if (!grow_items(source->arena, (void **)&source->symbols, sizeof(*source->symbols), &source->symbol_capacity,
     source->symbol_count + 1U)) return result;
   memset(&source->symbols[source->symbol_count], 0, sizeof(*source->symbols));
   snprintf(source->symbols[source->symbol_count].name, sizeof(source->symbols[source->symbol_count].name), "%s", name);
@@ -265,7 +275,7 @@ int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, s
 M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind,
     size_t line_number) {
   M68kSourceModelIndexResult result = {0};
-  if (!grow_items((void **)&source->statements, sizeof(*source->statements), &source->statement_capacity,
+  if (!grow_items(source->arena, (void **)&source->statements, sizeof(*source->statements), &source->statement_capacity,
     source->statement_count + 1U)) return result;
   memset(&source->statements[source->statement_count], 0, sizeof(*source->statements));
   source->statements[source->statement_count].kind = kind;
@@ -276,32 +286,26 @@ M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *sou
   return result;
 }
 
-int m68k_source_model_append_data_item(AsmSourceDataStmt *data_stmt, const AsmDataItem *item) {
-  if (!grow_items((void **)&data_stmt->items, sizeof(*data_stmt->items), &data_stmt->item_capacity,
+int m68k_source_model_append_data_item(AsmSourceFile *source, AsmSourceDataStmt *data_stmt,
+    const AsmDataItem *item) {
+  AsmDataItem copy;
+  if (source == NULL || source->arena == NULL || data_stmt == NULL || item == NULL) return 0;
+  if (!grow_items(source->arena, (void **)&data_stmt->items, sizeof(*data_stmt->items), &data_stmt->item_capacity,
     data_stmt->item_count + 1U)) return 0;
-  data_stmt->items[data_stmt->item_count] = *item;
+  copy = *item;
+  if (item->kind == ASM_DATA_ITEM_STRING) {
+    copy.bytes = (uint8_t *)arena_memdup(source->arena, item->bytes, item->byte_count);
+    if (copy.bytes == NULL) return 0;
+  }
+  data_stmt->items[data_stmt->item_count] = copy;
   data_stmt->item_count += 1U;
   return 1;
 }
 
 void m68k_source_model_free(AsmSourceFile *source) {
-  size_t index;
-  for (index = 0; index < source->statement_count; ++index) {
-    AsmSourceStmt *stmt = &source->statements[index];
-    if (stmt->kind != ASM_SOURCE_STMT_DATA) continue;
-    if (stmt->u.data.items != NULL) {
-      size_t item_index;
-      for (item_index = 0; item_index < stmt->u.data.item_count; ++item_index) {
-        free(stmt->u.data.items[item_index].bytes);
-      }
-      free(stmt->u.data.items);
-    }
-  }
-  free(source->sections);
-  free(source->symbols);
-  free(source->symbol_index_slots);
-  free(source->statements);
-  free(source->atari_st_symbol_table_data);
-  free(source->atari_st_relocation_stream_data);
+  Arena *arena;
+  if (source == NULL) return;
+  arena = source->arena;
   memset(source, 0, sizeof(*source));
+  arena_destroy(arena);
 }

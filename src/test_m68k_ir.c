@@ -367,7 +367,7 @@ static int test_source_model_symbol_index_preserves_lookup_semantics(void) {
   AsmSourceFile source;
   size_t index;
   M68kSourceModelIndexResult found;
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   for (index = 0U; index < 80U; ++index) {
     char name[32];
     M68kSourceModelIndexResult added;
@@ -1144,7 +1144,7 @@ static int test_source_parse_treats_cpu_policy_as_ceiling(void) {
   const char *source_text =
     "SECTION section_0,code\n"
     "\tmovec cacr,d0\n";
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   m68k_diag_list_reset(&diagnostics);
   source.target_cpu = M68K_ASM_CPU_68060;
   M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
@@ -1167,7 +1167,7 @@ static int test_source_fpu_directive_encodes_external_coprocessor_id(void) {
     "\tfrestore (a4)\n"
     "\tFPU 1\n"
     "\tfsave (a6)\n";
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   source.target_cpu = M68K_ASM_CPU_68020;
@@ -1193,7 +1193,7 @@ static int test_source_fpu_directive_uses_external_id_under_cpu_ceiling(void) {
     "SECTION section_0,code\n"
     "\tFPU 5\n"
     "\tfrestore (a4)\n";
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   /* target_cpu is a ceiling here; the directive still encodes the external 68881/68882 cpID. */
@@ -1217,7 +1217,7 @@ static int test_source_fpu_zero_disables_fpu_alias_instruction(void) {
     "SECTION section_0,code\n"
     "\tFPU 0\n"
     "\tfrestore (a4)\n";
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   m68k_diag_list_reset(&diagnostics);
   source.target_cpu = M68K_ASM_CPU_68040;
   M68K_C_ASSERT(!m68k_source_pipeline_parse_text_and_layout(&source, source_text,
@@ -1240,7 +1240,7 @@ static int test_source_org_sets_logical_pc_without_padding(void) {
     "\tnop\n"
     "target:\n"
     "\trts\n";
-  memset(&source, 0, sizeof(source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   source.target_cpu = M68K_ASM_CPU_68000;
@@ -1576,7 +1576,7 @@ static int test_facts_v2_genam_byte_postincrement_table_stays_byte_data(void) {
     "\tdc.b $30,$31,$32,$33,$34,$35\n"
     "after:\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -1631,7 +1631,7 @@ static int test_facts_v2_indexed_local_base_auto_classifies_scalar_table(void) {
     "\trts\n"
     "last:\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -1686,7 +1686,7 @@ static int test_facts_v2_genam_indexed_word_read_stays_unclassified_data(void) {
     "\tdc.w $0000,$0008,$0010\n"
     "after:\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -1738,7 +1738,7 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
     "\tdc.l $00000010,$00000012\n"
     "after:\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -2991,7 +2991,7 @@ static int test_facts_v2_classifies_hunk_negative_relocation_anchor(void) {
   char *source = NULL;
   uint8_t bytes[8] = {0x4eu, 0x71u, 0x4eu, 0x75u, 0xffu, 0xffu, 0xffu, 0xfcu};
   memset(&rebuilt, 0, sizeof(rebuilt));
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&section, 0, sizeof(section));
   memset(&fixup, 0, sizeof(fixup));
   m68k_diag_list_reset(&diagnostics);
@@ -4324,7 +4324,7 @@ static int test_facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy
     "entry:\n"
     "\tnop\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   memset(&source_analysis, 0, sizeof(source_analysis));
   m68k_diag_list_reset(&diagnostics);
@@ -4391,7 +4391,7 @@ static int test_facts_v2_unmaterialized_runtime_copy_code_address_renders_equ_sy
     "payload:\n"
     "\tnop\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   memset(&source_analysis, 0, sizeof(source_analysis));
   m68k_diag_list_reset(&diagnostics);
@@ -4445,7 +4445,7 @@ static int test_facts_v2_absolute_stack_top_load_renders_equ_symbol(void) {
     "\tadda.w #$12,a7\n"
     "\tmovea.l $00000004.l,a6\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   memset(&source_analysis, 0, sizeof(source_analysis));
   m68k_diag_list_reset(&diagnostics);
@@ -9206,7 +9206,7 @@ static int test_facts_v2_tool_inferred_runtime_copy_conflict_does_not_abort(void
     "\tdc.l $11111111,$22222222\n"
     "source2:\n"
     "\tdc.l $33333333,$44444444\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -9269,7 +9269,7 @@ static int test_facts_v2_policy_runtime_range_wins_over_inferred_copy_conflict(v
     "\trts\n"
     "payload:\n"
     "\tdc.l $11111111,$22222222\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   m68k_diag_list_reset(&diagnostics);
   parsed_source.target_cpu = M68K_ASM_CPU_68000;
@@ -16097,7 +16097,7 @@ static int test_facts_v2_render_asm_source_infers_lvo_immediate_for_d6_indexed_w
     "\tjsr 0(a6,d6.w)\n"
     "done:\n"
     "\trts\n";
-  memset(&parsed_source, 0, sizeof(parsed_source));
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
   memset(&object, 0, sizeof(object));
   memset(&source_analysis, 0, sizeof(source_analysis));
   m68k_diag_list_reset(&diagnostics);

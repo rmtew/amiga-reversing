@@ -4,6 +4,7 @@
 #include "m68k_ir.h"
 #include "m68k_source_data.h"
 #include "m68k_source_lookup.h"
+#include "util_arena.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -76,6 +77,7 @@ typedef struct AsmSectionDef {
 } AsmSectionDef;
 
 typedef struct AsmSourceFile {
+    Arena *arena;
     AsmSectionDef *sections;
     size_t section_count;
     size_t section_capacity;
@@ -109,6 +111,7 @@ typedef struct M68kSourceModelIndexResult {
     size_t index;
 } M68kSourceModelIndexResult;
 
+int m68k_source_model_create(AsmSourceFile *source);
 M68kSourceModelIndexResult m68k_source_model_find_symbol_index(const AsmSourceFile *source, const char *name);
 int m68k_source_model_format_section_base_symbol(char *buffer, size_t buffer_size, size_t section_index);
 M68kSourceLookupResult m68k_source_model_lookup_symbol(const char *name, void *user_data);
@@ -123,7 +126,8 @@ int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, s
     uint8_t is_absolute);
 M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind,
     size_t line_number);
-int m68k_source_model_append_data_item(AsmSourceDataStmt *data_stmt, const AsmDataItem *item);
+int m68k_source_model_append_data_item(AsmSourceFile *source, AsmSourceDataStmt *data_stmt,
+    const AsmDataItem *item);
 void m68k_source_model_free(AsmSourceFile *source);
 
 #endif

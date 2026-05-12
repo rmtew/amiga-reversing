@@ -3949,7 +3949,7 @@ static int rendered_text_reencodes_original_bytes(const char *text, const M68kIn
     M68kObject object;
     char source_text[512];
     int ok = 0;
-    memset(&source, 0, sizeof(source));
+    if (m68k_source_model_create(&source) != 0) return 0;
     memset(&object, 0, sizeof(object));
     snprintf(source_text, sizeof(source_text), "SECTION section_0,code\n\tFPU %u\n\t%s\n\tFPU 1\n",
       (unsigned)source_instruction->coprocessor_id, text);
