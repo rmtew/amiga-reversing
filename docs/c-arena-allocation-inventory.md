@@ -51,9 +51,8 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 | `src/platform_atari_st.c` | 291, 309, 326, 327, 772, 773, 778, 779, 807, 813, 818 | caller_freed_output | Split payloads and writer output. |
 | `src/platform_atari_st.c` | 367, 375, 383, 394, 400, 408, 414, 419, 424 | workflow | Relocation offset scratch. |
 | `src/platform_atari_st.c` | 585, 592, 599 | external_read_buffer | Atari ST file read buffer. |
-| `src/platform_atari_st_disk.c` | 178, 181, 183, 190, 196, 288, 291 | workflow | Cluster/subdirectory scratch. |
-| `src/platform_atari_st_disk.c` | 300 | result | Disk analysis arena. |
-| `src/platform_atari_st_disk.c` | 426, 435, 440 | external_read_buffer | Disk image file read buffer. |
+| `src/platform_atari_st_disk.c` | 179, 394, 417, 442 | workflow | Atari disk parser workflow arenas own subdirectory scratch buffers and image file read buffers. Recursive subdirectory parsing uses scratch rewinds. |
+| `src/platform_atari_st_disk.c` | 292 | result | Disk analysis arena. |
 | `src/platform_binary_io.c` | 23 | result | Binary writer arena. |
 | `src/platform_binary_io.c` | 171 | caller_freed_output | Writer output bytes. |
 | `src/platform_common.c` | 16, 26 | caller_freed_output | Path/string copies returned to caller. |
@@ -106,6 +105,7 @@ Categories: `workflow`, `result`, `caller_freed_output`, `external_read_buffer`,
 - `src/platform_amiga_hunk.c`: direct raw heap allocation sites in parser code reduced from 45 (`malloc`, `calloc`, `free`) to 0; one Workflow Arena now owns temporary BSTR names, HUNK_EXT names, debug payload staging, section payload staging, and executable header tables for each read-buffer call. Returned HUNK object internals remain object Result Arena owned. Remaining direct heap sites in the module are external file-read and caller-freed writer-output boundaries.
 - `src/platform_atari_st.c`: Atari PRG parser code already has 0 direct raw heap allocation sites; returned TEXT/DATA sections, symbol table data, relocation stream data, and platform metadata are object Result Arena owned. Existing direct heap sites are writer payload/output and external file-read boundaries.
 - `src/platform_disk_lib.c`: workflow-classified direct raw heap sites reduced from 8 (`malloc`, `free`) to 0; disk path image buffers and Amiga entry classification payloads now use local Workflow Arenas. The previous external read-buffer heap sites for disk path image reads are also gone. Public extracted entry bytes remain caller-freed output buffers.
+- `src/platform_atari_st_disk.c`: parser workflow direct raw heap sites reduced from 7 (`realloc`, `free`) to 0 and image read-buffer heap sites reduced from 3 (`malloc`, `free`) to 0. Subdirectory scratch buffers and image-file reads now use local Workflow Arenas; returned analysis internals remain `AtariStDiskAnalysis` Result Arena owned.
 
 ## Verification
 

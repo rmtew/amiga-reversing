@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define ATARI_ST_DISK_ANALYSIS_ARENA_SIZE 16384U
+#define ATARI_ST_DISK_WORKFLOW_ARENA_SIZE 16384U
 
 static void disk_diag_error(M68kDiagSink diagnostics, const char *message) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED, message);
@@ -163,8 +164,8 @@ static int build_cluster_extents(const DiskContext *ctx, uint16_t first_cluster,
     return 0;
 }
 
-static int build_directory_buffer(const DiskContext *ctx, uint16_t first_cluster, unsigned char **out_data,
-    size_t *out_size) {
+static int build_directory_buffer(const DiskContext *ctx, Arena *workflow_arena, uint16_t first_cluster,
+    unsigned char **out_data, size_t *out_size) {
     uint16_t cluster = first_cluster;
     uint16_t step_count = 0;
     unsigned char *buffer = NULL;
@@ -174,28 +175,16 @@ static int build_directory_buffer(const DiskContext *ctx, uint16_t first_cluster
         size_t offset = 0;
         uint16_t next = 0;
         unsigned char *grown;
-        if (cluster_offset(ctx, cluster, &offset) != 0) {
-            free(buffer);
-            return -1;
-        }
-        grown = (unsigned char *)realloc(buffer, size + ctx->cluster_size_bytes);
-        if (grown == NULL) {
-            free(buffer);
-            return -1;
-        }
+        if (cluster_offset(ctx, cluster, &offset) != 0) return -1;
+        grown = (unsigned char *)arena_realloc_copy(workflow_arena, buffer, size, size + ctx->cluster_size_bytes);
+        if (grown == NULL) return -1;
         buffer = grown;
         memcpy(buffer + size, ctx->data + offset, ctx->cluster_size_bytes);
         size += ctx->cluster_size_bytes;
-        if (fat12_next_cluster(ctx, cluster, &next) != 0) {
-            free(buffer);
-            return -1;
-        }
+        if (fat12_next_cluster(ctx, cluster, &next) != 0) return -1;
         cluster = next;
         step_count += 1U;
-        if (step_count > ctx->max_cluster_index) {
-            free(buffer);
-            return -1;
-        }
+        if (step_count > ctx->max_cluster_index) return -1;
     }
     *out_data = buffer;
     *out_size = size;
@@ -230,8 +219,8 @@ static int format_entry_name(const unsigned char *entry_data, char *out_name, si
     return 0;
 }
 
-static int parse_directory_entries(const DiskContext *ctx, AtariStDiskAnalysis *analysis, const unsigned char *dir_data,
-    size_t dir_size, const char *base_path, M68kDiagSink diagnostics) {
+static int parse_directory_entries(const DiskContext *ctx, Arena *workflow_arena, AtariStDiskAnalysis *analysis,
+    const unsigned char *dir_data, size_t dir_size, const char *base_path, M68kDiagSink diagnostics) {
     size_t entry_size = 32U;
     size_t offset;
     for (offset = 0; offset + entry_size <= dir_size; offset += entry_size) {
@@ -278,17 +267,20 @@ entry.first_cluster = read_u16le( entry_data, ATARI_ST_DISK_FILE_DIRECTORY_ENTRY
             return -1;
         }
         if (entry.kind == ATARI_ST_DISK_ENTRY_DIRECTORY && entry.first_cluster >= 2U) {
+            ArenaMark mark = arena_mark(workflow_arena);
             unsigned char *subdir_data = NULL;
             size_t subdir_size = 0;
-            if (build_directory_buffer(ctx, entry.first_cluster, &subdir_data, &subdir_size) != 0) {
+            if (build_directory_buffer(ctx, workflow_arena, entry.first_cluster, &subdir_data, &subdir_size) != 0) {
+                arena_rewind(workflow_arena, mark);
                 disk_diag_error(diagnostics, "Invalid FAT12 directory chain");
                 return -1;
             }
-            if (parse_directory_entries(ctx, analysis, subdir_data, subdir_size, entry.path, diagnostics) != 0) {
-                free(subdir_data);
+            if (parse_directory_entries(ctx, workflow_arena, analysis, subdir_data, subdir_size, entry.path,
+                    diagnostics) != 0) {
+                arena_rewind(workflow_arena, mark);
                 return -1;
             }
-            free(subdir_data);
+            arena_rewind(workflow_arena, mark);
         }
     }
     return 0;
@@ -307,8 +299,8 @@ void atari_st_disk_analysis_destroy(AtariStDiskAnalysis *analysis) {
     memset(analysis, 0, sizeof(*analysis));
 }
 
-int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariStDiskAnalysis *out_analysis,
-    M68kDiagSink diagnostics) {
+static int atari_st_disk_analyze_buffer_with_workflow(const unsigned char *data, size_t size,
+    AtariStDiskAnalysis *out_analysis, Arena *workflow_arena, M68kDiagSink diagnostics) {
     DiskContext ctx;
     size_t root_dir_sectors;
     size_t total_size;
@@ -387,7 +379,7 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
     out_analysis->sectors_per_track = ctx.sectors_per_track;
     out_analysis->side_count = ctx.side_count;
 
-    if (parse_directory_entries(&ctx, out_analysis, data + ctx.root_dir_offset, ctx.root_dir_size_bytes,
+    if (parse_directory_entries(&ctx, workflow_arena, out_analysis, data + ctx.root_dir_offset, ctx.root_dir_size_bytes,
             "", diagnostics) != 0) {
         atari_st_disk_analysis_destroy(out_analysis);
         return -1;
@@ -395,48 +387,75 @@ int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariSt
     return 0;
 }
 
+int atari_st_disk_analyze_buffer(const unsigned char *data, size_t size, AtariStDiskAnalysis *out_analysis,
+    M68kDiagSink diagnostics) {
+    Arena *workflow_arena;
+    int result;
+    workflow_arena = arena_create(ATARI_ST_DISK_WORKFLOW_ARENA_SIZE);
+    if (workflow_arena == NULL) {
+        disk_diag_error(diagnostics, "Out of memory");
+        return -1;
+    }
+    result = atari_st_disk_analyze_buffer_with_workflow(data, size, out_analysis, workflow_arena, diagnostics);
+    arena_destroy(workflow_arena);
+    return result;
+}
+
 int atari_st_disk_analyze_image(const char *path, AtariStDiskAnalysis *out_analysis, M68kDiagSink diagnostics) {
+    Arena *workflow_arena = NULL;
     FILE *fp = NULL;
     int64_t file_size_signed = 0;
     unsigned char *buffer = NULL;
     size_t read_size = 0;
-    int result;
+    int result = -1;
 
     fp = fopen(path, "rb");
     if (fp == NULL) {
         disk_diag_error(diagnostics, "Could not open Atari ST disk image");
         return -1;
     }
+    workflow_arena = arena_create(ATARI_ST_DISK_WORKFLOW_ARENA_SIZE);
+    if (workflow_arena == NULL) {
+        fclose(fp);
+        disk_diag_error(diagnostics, "Out of memory");
+        return -1;
+    }
     if (fseek(fp, 0, SEEK_END) != 0) {
         fclose(fp);
+        arena_destroy(workflow_arena);
         disk_diag_error(diagnostics, "Could not size Atari ST disk image");
         return -1;
     }
     file_size_signed = (int64_t)ftell(fp);
     if (file_size_signed < 0) {
         fclose(fp);
+        arena_destroy(workflow_arena);
         disk_diag_error(diagnostics, "Could not size Atari ST disk image");
         return -1;
     }
     if (fseek(fp, 0, SEEK_SET) != 0) {
         fclose(fp);
+        arena_destroy(workflow_arena);
         disk_diag_error(diagnostics, "Could not rewind Atari ST disk image");
         return -1;
     }
-    buffer = (unsigned char *)malloc((size_t)file_size_signed == 0U ? 1U : (size_t)file_size_signed);
+    buffer = (unsigned char *)arena_alloc(workflow_arena, (size_t)file_size_signed == 0U ? 1U :
+        (size_t)file_size_signed);
     if (buffer == NULL) {
         fclose(fp);
+        arena_destroy(workflow_arena);
         disk_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     read_size = fread(buffer, 1, (size_t)file_size_signed, fp);
     fclose(fp);
     if (read_size != (size_t)file_size_signed) {
-        free(buffer);
         disk_diag_error(diagnostics, "Could not read Atari ST disk image");
-        return -1;
+        goto done;
     }
-    result = atari_st_disk_analyze_buffer(buffer, (size_t)file_size_signed, out_analysis, diagnostics);
-    free(buffer);
+    result = atari_st_disk_analyze_buffer_with_workflow(buffer, (size_t)file_size_signed, out_analysis,
+        workflow_arena, diagnostics);
+done:
+    arena_destroy(workflow_arena);
     return result;
 }
