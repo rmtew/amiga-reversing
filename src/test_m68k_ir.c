@@ -733,6 +733,8 @@ static int test_arena_mark_rewind_reuses_same_block_range(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.total_block_count);
   first = (char *)arena_alloc(arena, 16U);
@@ -743,11 +745,15 @@ static int test_arena_mark_rewind_reuses_same_block_range(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(40U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(40U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
   memset(second, 0x11, 24U);
   arena_rewind(arena, mark);
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(16U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(40U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
 #if defined(_DEBUG)
   {
     size_t index;
@@ -760,6 +766,8 @@ static int test_arena_mark_rewind_reuses_same_block_range(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(40U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(40U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
   arena_destroy(arena);
   return 0;
 }
@@ -780,12 +788,16 @@ static int test_arena_rewind_discards_later_blocks(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(5032U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(5032U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.total_block_count);
   arena_rewind(arena, mark);
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(32U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(5032U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.total_block_count);
   again = (char *)arena_alloc(arena, 32U);
@@ -808,6 +820,8 @@ static int test_arena_reset_poisons_head_block_range(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(32U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.total_block_count);
 #if defined(_DEBUG)
@@ -824,6 +838,8 @@ static int test_arena_stats_null_and_reset_after_growth(void) {
   ArenaStats stats = arena_stats(NULL);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(0U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.total_block_count);
   M68K_C_ASSERT(arena != NULL);
@@ -831,12 +847,16 @@ static int test_arena_stats_null_and_reset_after_growth(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(5000U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(5000U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.total_block_count);
   arena_reset(arena);
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(5000U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(9096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)stats.total_block_count);
   arena_destroy(arena);
@@ -853,6 +873,8 @@ static int test_arena_rejects_overflow_allocations(void) {
   stats = arena_stats(arena);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.current_used);
   M68K_C_ASSERT_U32(0U, (uint32_t)stats.peak_used);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.current_capacity);
+  M68K_C_ASSERT_U32(4096U, (uint32_t)stats.peak_capacity);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.current_block_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)stats.total_block_count);
   arena_destroy(arena);

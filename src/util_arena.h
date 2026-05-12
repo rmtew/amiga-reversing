@@ -12,6 +12,8 @@ typedef struct ArenaMark {
 typedef struct ArenaStats {
   size_t current_used;
   size_t peak_used;
+  size_t current_capacity;
+  size_t peak_capacity;
   size_t current_block_count;
   size_t total_block_count;
 } ArenaStats;

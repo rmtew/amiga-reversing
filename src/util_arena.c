@@ -30,6 +30,8 @@ struct Arena {
   size_t default_block_size;
   size_t current_used;
   size_t peak_used;
+  size_t current_capacity;
+  size_t peak_capacity;
   size_t current_block_count;
   size_t total_block_count;
 };
@@ -79,13 +81,16 @@ static void arena_poison_range(ArenaBlock *block, size_t start, size_t end) {
 static void arena_refresh_current_stats(Arena *arena) {
   ArenaBlock *block;
   size_t used = 0U;
+  size_t capacity = 0U;
   size_t block_count = 0U;
   if (arena == NULL) return;
   for (block = arena->head; block != NULL; block = block->next) {
     used += block->used;
+    capacity += block->capacity;
     ++block_count;
   }
   arena->current_used = used;
+  arena->current_capacity = capacity;
   arena->current_block_count = block_count;
 }
 
@@ -105,6 +110,8 @@ Arena *arena_create(size_t initial_capacity) {
   arena->default_block_size = initial_capacity;
   arena->current_used = 0U;
   arena->peak_used = 0U;
+  arena->current_capacity = initial_capacity;
+  arena->peak_capacity = initial_capacity;
   arena->current_block_count = 1U;
   arena->total_block_count = 1U;
   return arena;
@@ -131,6 +138,8 @@ void *arena_alloc(Arena *arena, size_t size) {
     if (new_block == NULL) return NULL;
     block->next = new_block;
     arena->current = new_block;
+    arena->current_capacity += new_block_size;
+    if (arena->current_capacity > arena->peak_capacity) arena->peak_capacity = arena->current_capacity;
     arena->current_block_count += 1U;
     arena->total_block_count += 1U;
     block = new_block;
@@ -233,6 +242,7 @@ void arena_reset(Arena *arena) {
   arena->head->used = 0U;
   arena->current = arena->head;
   arena->current_used = 0U;
+  arena->current_capacity = arena->head->capacity;
   arena->current_block_count = 1U;
 }
 
@@ -242,6 +252,8 @@ ArenaStats arena_stats(const Arena *arena) {
   if (arena == NULL) return stats;
   stats.current_used = arena->current_used;
   stats.peak_used = arena->peak_used;
+  stats.current_capacity = arena->current_capacity;
+  stats.peak_capacity = arena->peak_capacity;
   stats.current_block_count = arena->current_block_count;
   stats.total_block_count = arena->total_block_count;
   return stats;
