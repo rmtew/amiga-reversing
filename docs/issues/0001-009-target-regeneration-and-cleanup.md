@@ -12,13 +12,13 @@ This slice finishes the cleanup once replacement behavior is in place.
 
 ## Acceptance criteria
 
-- [ ] Local target projects no longer rely on stale entity files or overrides.
-- [ ] Obsolete entity-building commands are removed or replaced with current analysis/review commands.
-- [ ] Generated or checked-in stale entity artifacts are deleted where they are no longer needed.
-- [ ] Documentation reflects the Manual Review workflow as the supported path.
-- [ ] Full test suite behavior is green after target regeneration/reimport.
-- [ ] CDP tests pass.
-- [ ] `cmd /c src\precommit.bat` passes.
+- [x] Local target projects no longer rely on stale entity files or overrides.
+- [x] Obsolete entity-building commands are removed or replaced with current analysis/review commands.
+- [x] Generated or checked-in stale entity artifacts are deleted where they are no longer needed.
+- [x] Documentation reflects the Manual Review workflow as the supported path.
+- [x] Full test suite behavior is green after target regeneration/reimport.
+- [x] CDP tests pass.
+- [x] `cmd /c src\precommit.bat` passes.
 
 ## Blocked by
 

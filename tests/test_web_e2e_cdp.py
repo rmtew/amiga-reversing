@@ -2368,10 +2368,10 @@ def test_brave_cdp_disk_project_shows_decompressed_child_target(
         page.wait_for_expression(
             """
             Array.from(document.querySelectorAll('.disk-target-button'))
-              .some((button) => button.textContent.includes('Carrier::rnc_00004c60')
+              .some((button) => button.textContent.toLowerCase().includes('carrier::rnc1-old_00004c40')
                 && button.textContent.includes('decompressed')
-                && button.textContent.includes('RNC1')
-                && button.textContent.includes('$4C60')
+                && button.textContent.toLowerCase().includes('rnc1')
+                && button.textContent.includes('$4C40')
                 && button.textContent.includes('$4000'))
             """,
             timeout=15.0,
