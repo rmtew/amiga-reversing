@@ -916,6 +916,101 @@ def test_get_project_exposes_manual_action_log_projection(tmp_path: Path) -> Non
     assert project.manual_state["seeds"] == ({"seed_id": "s1", "kind": "code"},)
 
 
+def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    bin_dir = project_root / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
+    binary_path = bin_dir / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "bin/demo.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=0,
+                    hunk=0,
+                    name="entry",
+                    seed_origin="manual_analysis",
+                    review_status="validated",
+                    citation="target_metadata",
+                ),
+            ),
+        ),
+    )
+    binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
+    assert binary_source is not None
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "record": "manual_action_log_header",
+                        "version": 1,
+                        "target_identity": build_target_identity(binary_source),
+                    },
+                    sort_keys=True,
+                ),
+                json.dumps(
+                    {
+                        "record": "manual_action",
+                        "action_id": "a1",
+                        "sequence": 1,
+                        "created_at": "2026-05-13T00:00:00+00:00",
+                        "kind": "create_manual_seed",
+                        "seed": {
+                            "seed_id": "text-range",
+                            "kind": "data",
+                            "mode": "required",
+                            "range": "h0:$00000000..$00000002",
+                        },
+                    },
+                    sort_keys=True,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    project = get_project("demo", project_root=project_root)
+
+    assert project.review_state == "needs_review"
+    assert project.manual_state is not None
+    assert project.manual_state["review_items"] == (
+        {
+            "kind": "manual_seed_conflict",
+            "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000000",
+            "scope": "range",
+            "state": "open",
+            "seed_ids": ["text-range"],
+            "stronger_kind": "code",
+            "stronger_source": "seeded_code_entrypoint:h0:$00000000",
+            "stronger_name": "entry",
+            "hunk": 0,
+            "start": 0,
+            "end": 1,
+            "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000000",
+        },
+    )
+
+
 def test_create_project_does_not_create_legacy_entities_file(tmp_path: Path) -> None:
     project = create_project("demo", project_root=tmp_path)
 

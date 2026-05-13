@@ -203,7 +203,11 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
     entities_path = target_dir / "entities.jsonl"
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
-    manual_projection = load_manual_projection(target_dir, binary_source=binary_source)
+    manual_projection = load_manual_projection(
+        target_dir,
+        binary_source=binary_source,
+        stronger_metadata=target_metadata,
+    )
     return ProjectRecord(
         id=project_id,
         name=target_dir.name,
