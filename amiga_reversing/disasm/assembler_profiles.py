@@ -29,6 +29,15 @@ class AssemblerIncludeAdapter:
 
 
 @dataclass(frozen=True, slots=True)
+class AssemblerLocalLabelProfile:
+    supported: bool
+    prefix: str | None
+    owner_rule: str | None
+    reserved_names: tuple[str, ...]
+    required_mode_flags: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AssemblerRenderProfile:
     assembler_id: str
     header_generated_syntax: str
@@ -44,6 +53,7 @@ class AssemblerRenderProfile:
     require_label_anchor_for_self_relative_data: bool
     auto_align_dc_w: bool
     auto_align_dc_l: bool
+    local_labels: AssemblerLocalLabelProfile
 
 
 @dataclass(frozen=True, slots=True)
@@ -193,6 +203,34 @@ def load_assembler_profile(profile_name: str) -> AssemblerProfile:
     assert isinstance(auto_align_dc_l, bool), (
         f"Invalid render_profile.auto_align_dc_l in assembler KB: {profile_path}"
     )
+    local_labels_payload = render_payload.get("local_labels", {})
+    assert isinstance(local_labels_payload, dict), (
+        f"Invalid render_profile.local_labels in assembler KB: {profile_path}"
+    )
+    local_labels_supported = local_labels_payload.get("supported", False)
+    assert isinstance(local_labels_supported, bool), (
+        f"Invalid render_profile.local_labels.supported in assembler KB: {profile_path}"
+    )
+    local_label_prefix = local_labels_payload.get("prefix")
+    assert local_label_prefix is None or isinstance(local_label_prefix, str), (
+        f"Invalid render_profile.local_labels.prefix in assembler KB: {profile_path}"
+    )
+    local_label_owner_rule = local_labels_payload.get("owner_rule")
+    assert local_label_owner_rule is None or isinstance(local_label_owner_rule, str), (
+        f"Invalid render_profile.local_labels.owner_rule in assembler KB: {profile_path}"
+    )
+    reserved_names_payload = local_labels_payload.get("reserved_names", [])
+    assert isinstance(reserved_names_payload, list) and all(
+        isinstance(name, str) and name for name in reserved_names_payload
+    ), (
+        f"Invalid render_profile.local_labels.reserved_names in assembler KB: {profile_path}"
+    )
+    required_mode_flags_payload = local_labels_payload.get("required_mode_flags", [])
+    assert isinstance(required_mode_flags_payload, list) and all(
+        isinstance(flag, str) and flag for flag in required_mode_flags_payload
+    ), (
+        f"Invalid render_profile.local_labels.required_mode_flags in assembler KB: {profile_path}"
+    )
     return AssemblerProfile(
         assembler_id=assembler_id,
         syntax_family=syntax_family,
@@ -222,6 +260,13 @@ def load_assembler_profile(profile_name: str) -> AssemblerProfile:
             require_label_anchor_for_self_relative_data=require_label_anchor_for_self_relative_data,
             auto_align_dc_w=auto_align_dc_w,
             auto_align_dc_l=auto_align_dc_l,
+            local_labels=AssemblerLocalLabelProfile(
+                supported=local_labels_supported,
+                prefix=local_label_prefix,
+                owner_rule=local_label_owner_rule,
+                reserved_names=tuple(reserved_names_payload),
+                required_mode_flags=tuple(required_mode_flags_payload),
+            ),
         ),
     )
 

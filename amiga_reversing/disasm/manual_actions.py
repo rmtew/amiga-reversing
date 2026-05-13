@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal, cast
 
+from amiga_reversing.disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
     DiskEntryBinarySource,
@@ -299,9 +300,29 @@ def _manual_seed_required(seed: dict[str, object]) -> bool:
     return mode is None or mode == "required"
 
 
-def _manual_label_conflict_items(labels: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+def _metadata_global_label_names(metadata: TargetMetadata | None) -> set[str]:
+    if metadata is None:
+        return set()
+    names: set[str] = set()
+    for label in (*metadata.seeded_code_labels, *metadata.absolute_code_labels):
+        names.add(label.name)
+    for entity in metadata.seeded_entities:
+        if entity.name is not None:
+            names.add(entity.name)
+    return names
+
+
+def _manual_label_conflict_items(
+    labels: dict[str, dict[str, object]],
+    *,
+    stronger_metadata: TargetMetadata | None,
+    assembler_profile: AssemblerProfile,
+) -> list[dict[str, object]]:
     items: list[dict[str, object]] = []
     global_labels: dict[str, dict[str, object]] = {}
+    metadata_names = _metadata_global_label_names(stronger_metadata)
+    local_profile = assembler_profile.render.local_labels
+    reserved_local_names = set(local_profile.reserved_names)
     for label in labels.values():
         label_id = label.get("label_id")
         name = label.get("name")
@@ -311,8 +332,8 @@ def _manual_label_conflict_items(labels: dict[str, dict[str, object]]) -> list[d
         label_range = _manual_seed_range(label)
         if scope == "local":
             owner_id = label.get("owner_id") or label.get("owner_label_id")
+            hunk, start, end = label_range or (0, 0, 1)
             if not isinstance(owner_id, str) or not owner_id:
-                hunk, start, end = label_range or (0, 0, 1)
                 items.append(
                     {
                         "kind": "label_scope_conflict",
@@ -327,9 +348,65 @@ def _manual_label_conflict_items(labels: dict[str, dict[str, object]]) -> list[d
                         "message": f"Local manual label {label_id} has no explicit owner id",
                     }
                 )
+                continue
+            if (
+                not local_profile.supported
+                or local_profile.prefix is None
+                or not name.startswith(local_profile.prefix)
+                or local_profile.required_mode_flags
+            ):
+                items.append(
+                    {
+                        "kind": "label_scope_conflict",
+                        "item_id": f"label_scope_conflict:{label_id}:unsupported-local-profile",
+                        "scope": "range",
+                        "state": "open",
+                        "review_blocker": True,
+                        "label_ids": [label_id],
+                        "hunk": hunk,
+                        "start": start,
+                        "end": end,
+                        "message": (
+                            f"Local manual label {label_id} cannot be emitted by assembler profile "
+                            f"{assembler_profile.assembler_id!r}"
+                        ),
+                    }
+                )
+                continue
+            if name in reserved_local_names:
+                items.append(
+                    {
+                        "kind": "label_scope_conflict",
+                        "item_id": f"label_scope_conflict:{label_id}:reserved-local-name",
+                        "scope": "range",
+                        "state": "open",
+                        "review_blocker": True,
+                        "label_ids": [label_id],
+                        "hunk": hunk,
+                        "start": start,
+                        "end": end,
+                        "message": f"Local manual label {label_id} uses reserved local name {name!r}",
+                    }
+                )
             continue
         if scope != "global":
             continue
+        if name in metadata_names:
+            hunk, start, end = label_range or (0, 0, 1)
+            items.append(
+                {
+                    "kind": "label_scope_conflict",
+                    "item_id": f"label_scope_conflict:{label_id}:metadata-collision",
+                    "scope": "range",
+                    "state": "open",
+                    "review_blocker": False,
+                    "label_ids": [label_id],
+                    "hunk": hunk,
+                    "start": start,
+                    "end": end,
+                    "message": f"Global manual label name {name!r} collides with existing metadata label",
+                }
+            )
         previous = global_labels.get(name)
         if previous is None:
             global_labels[name] = label
@@ -554,6 +631,7 @@ def _project_actions(
     current_target_identity: dict[str, object] | None,
     binary_source: BinarySource | None,
     stronger_metadata: TargetMetadata | None,
+    assembler_profile: AssemblerProfile,
     actions: list[_ManualAction],
     review_items: list[dict[str, object]],
 ) -> ManualActionLogProjection:
@@ -600,7 +678,13 @@ def _project_actions(
     review_items.extend(_manual_seed_conflict_items(seeds))
     review_items.extend(_manual_seed_metadata_conflict_items(seeds, stronger_metadata))
     review_items.extend(_manual_seed_binary_source_conflict_items(seeds, binary_source))
-    review_items.extend(_manual_label_conflict_items(labels))
+    review_items.extend(
+        _manual_label_conflict_items(
+            labels,
+            stronger_metadata=stronger_metadata,
+            assembler_profile=assembler_profile,
+        )
+    )
     finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
     open_review_items = tuple(item for item in finalized_review_items if item.get("state") == "open")
     review_state: ReviewState = "needs_review" if open_review_items else "clear"
@@ -625,6 +709,7 @@ def load_manual_projection(
     *,
     binary_source: BinarySource | None = None,
     stronger_metadata: TargetMetadata | None = None,
+    assembler_profile: AssemblerProfile = VASM_PROFILE,
 ) -> ManualActionLogProjection:
     path = manual_action_log_path(target_dir)
     if not path.exists():
@@ -705,6 +790,7 @@ def load_manual_projection(
             current_target_identity=current_target_identity,
             binary_source=binary_source,
             stronger_metadata=stronger_metadata,
+            assembler_profile=assembler_profile,
             actions=actions,
             review_items=review_items,
         )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
@@ -11,6 +12,7 @@ from amiga_reversing.disasm.manual_actions import (
 )
 from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
+    SeededCodeLabelMetadata,
     SeededEntityMetadata,
     TargetMetadata,
 )
@@ -227,6 +229,106 @@ def test_local_manual_label_without_owner_creates_scope_conflict_review_work(tmp
     assert item["kind"] == "label_scope_conflict"
     assert item["item_id"] == "label_scope_conflict:l1:missing-owner"
     assert item["review_blocker"] is True
+
+
+def test_local_manual_label_with_owner_is_allowed_by_vasm_profile(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={
+                    "label_id": "l1",
+                    "name": ".loop",
+                    "scope": "local",
+                    "owner_id": "global:start",
+                    "hunk": 0,
+                    "addr": 4,
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir, assembler_profile=load_assembler_profile("vasm"))
+
+    assert projection.review_state == "clear"
+    assert projection.review_items == ()
+
+
+def test_local_manual_label_rejected_when_profile_requires_unimplemented_mode_flags(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={
+                    "label_id": "l1",
+                    "name": ".loop",
+                    "scope": "local",
+                    "owner_id": "global:start",
+                    "hunk": 0,
+                    "addr": 4,
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir, assembler_profile=load_assembler_profile("devpac"))
+
+    assert projection.review_state == "needs_review"
+    item = projection.review_items[0]
+    assert item["kind"] == "label_scope_conflict"
+    assert item["item_id"] == "label_scope_conflict:l1:unsupported-local-profile"
+    assert item["review_blocker"] is True
+
+
+def test_manual_label_colliding_with_metadata_label_creates_nonblocking_scope_conflict(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "name": "start", "scope": "global", "hunk": 0, "addr": 4},
+            ),
+        ],
+    )
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_code_labels=(
+            SeededCodeLabelMetadata(
+                addr=0,
+                hunk=0,
+                name="start",
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+            ),
+        ),
+    )
+
+    projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+
+    assert projection.review_state == "needs_review"
+    item = projection.review_items[0]
+    assert item["kind"] == "label_scope_conflict"
+    assert item["item_id"] == "label_scope_conflict:l1:metadata-collision"
+    assert item["review_blocker"] is False
 
 
 def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> None:

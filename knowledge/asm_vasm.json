@@ -43,6 +43,13 @@
     "require_label_anchor_for_self_relative_data": false,
     "auto_align_dc_w": false,
     "auto_align_dc_l": false,
+    "local_labels": {
+      "supported": true,
+      "prefix": ".",
+      "owner_rule": "nearest_previous_non_local_label",
+      "reserved_names": [],
+      "required_mode_flags": []
+    },
     "directives": {
       "include": "INCLUDE",
       "section": "section",

@@ -43,6 +43,13 @@
     "require_label_anchor_for_self_relative_data": true,
     "auto_align_dc_w": true,
     "auto_align_dc_l": true,
+    "local_labels": {
+      "supported": true,
+      "prefix": ".",
+      "owner_rule": "nearest_previous_non_local_label",
+      "reserved_names": [".W", ".L"],
+      "required_mode_flags": ["LOCALU"]
+    },
     "unsupported_hint_operand_kinds": [
       "memory_indirect_indexed",
       "pc_memory_indirect_indexed"
