@@ -137,6 +137,41 @@ def test_effective_metadata_ignores_suggested_manual_seeds_until_accepted(tmp_pa
     assert payload["seeded_entities"] == []
 
 
+def test_effective_metadata_ignores_required_manual_seeds_with_projection_conflicts(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={"seed_id": "code-start", "kind": "code", "mode": "required", "hunk": 0, "addr": 4},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "text-range",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000002..$00000008",
+                    "data_role": "string",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_code_entrypoints"] == []
+    assert payload["seeded_entities"] == []
+
+
 def test_effective_metadata_ignores_manual_seeds_when_log_target_identity_mismatches(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

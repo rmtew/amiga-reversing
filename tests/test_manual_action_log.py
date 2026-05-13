@@ -154,6 +154,51 @@ def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Pa
     assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1"},)
 
 
+def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={"seed_id": "code-start", "kind": "code", "mode": "required", "hunk": 0, "addr": 4},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "text-range",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000002..$00000008",
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "needs_review"
+    assert projection.review_items == (
+        {
+            "kind": "manual_seed_conflict",
+            "item_id": "manual_seed_conflict:code-start:text-range",
+            "scope": "range",
+            "state": "open",
+            "seed_ids": ["code-start", "text-range"],
+            "hunk": 0,
+            "start": 4,
+            "end": 5,
+            "message": "Required manual seeds code-start and text-range conflict",
+        },
+    )
+
+
 def test_malformed_manual_action_log_blocks_review(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

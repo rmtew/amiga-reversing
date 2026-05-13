@@ -145,6 +145,93 @@ def _needs_review_item(kind: str, message: str) -> dict[str, object]:
     return {"kind": kind, "scope": "target", "state": "open", "message": message}
 
 
+def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
+    value = seed.get(field_name)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+    return None
+
+
+def _manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int] | None:
+    hunk = _manual_seed_int(seed, "hunk") or 0
+    addr = _manual_seed_int(seed, "addr")
+    end = _manual_seed_int(seed, "end")
+    if addr is not None:
+        return hunk, addr, end if end is not None and end > addr else addr + 1
+    raw_range = seed.get("range")
+    if not isinstance(raw_range, str):
+        return None
+    range_text = raw_range.strip()
+    if ":" in range_text:
+        hunk_text, range_text = range_text.split(":", 1)
+        if hunk_text.lower().startswith("h"):
+            try:
+                hunk = int(hunk_text[1:], 0)
+            except ValueError:
+                return None
+    if ".." in range_text:
+        start_text, end_text = range_text.split("..", 1)
+        try:
+            start = int(start_text.replace("$", "0x"), 0)
+            parsed_end = int(end_text.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+        return hunk, start, parsed_end if parsed_end > start else start + 1
+    try:
+        start = int(range_text.replace("$", "0x"), 0)
+    except ValueError:
+        return None
+    return hunk, start, start + 1
+
+
+def _manual_seed_required(seed: dict[str, object]) -> bool:
+    mode = seed.get("mode")
+    return mode is None or mode == "required"
+
+
+def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    values = list(seeds.values())
+    for left_index, left in enumerate(values):
+        left_id = left.get("seed_id")
+        left_kind = left.get("kind")
+        left_range = _manual_seed_range(left)
+        if not isinstance(left_id, str) or not isinstance(left_kind, str) or left_range is None:
+            continue
+        if not _manual_seed_required(left):
+            continue
+        for right in values[left_index + 1:]:
+            right_id = right.get("seed_id")
+            right_kind = right.get("kind")
+            right_range = _manual_seed_range(right)
+            if not isinstance(right_id, str) or not isinstance(right_kind, str) or right_range is None:
+                continue
+            if not _manual_seed_required(right) or right_kind == left_kind:
+                continue
+            if left_range[0] != right_range[0] or left_range[1] >= right_range[2] or right_range[1] >= left_range[2]:
+                continue
+            item_id = f"manual_seed_conflict:{min(left_id, right_id)}:{max(left_id, right_id)}"
+            items.append(
+                {
+                    "kind": "manual_seed_conflict",
+                    "item_id": item_id,
+                    "scope": "range",
+                    "state": "open",
+                    "seed_ids": [left_id, right_id],
+                    "hunk": left_range[0],
+                    "start": max(left_range[1], right_range[1]),
+                    "end": min(left_range[2], right_range[2]),
+                    "message": f"Required manual seeds {left_id} and {right_id} conflict",
+                }
+            )
+    return items
+
+
 def _object(value: object, *, what: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{what} must be an object")
@@ -257,6 +344,7 @@ def _project_actions(
         else:
             raise ValueError(f"Unsupported manual action kind: {action.kind}")
 
+    review_items.extend(_manual_seed_conflict_items(seeds))
     review_state: ReviewState = "needs_review" if review_items else "clear"
     return ManualActionLogProjection(
         review_state=review_state,
