@@ -958,8 +958,9 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
 
     project = get_project("demo", project_root=project_root)
 
-    assert project.review_state == "needs_review"
+    assert project.review_state == "blocked"
     assert project.manual_state is not None
+    assert project.manual_state["review_state"] == "blocked"
     review_items = project.manual_state["review_items"]
     assert isinstance(review_items, tuple)
     assert len(review_items) == 1

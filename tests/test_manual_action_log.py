@@ -288,7 +288,7 @@ def test_duplicate_global_manual_labels_create_scope_conflict_review_work(tmp_pa
 
     projection = load_manual_projection(target_dir)
 
-    assert projection.review_state == "needs_review"
+    assert projection.review_state == "blocked"
     item = projection.review_items[0]
     assert item["kind"] == "label_scope_conflict"
     assert item["review_blocker"] is True
@@ -318,7 +318,7 @@ def test_local_manual_label_without_owner_creates_scope_conflict_review_work(tmp
 
     projection = load_manual_projection(target_dir)
 
-    assert projection.review_state == "needs_review"
+    assert projection.review_state == "blocked"
     item = projection.review_items[0]
     assert item["kind"] == "label_scope_conflict"
     assert item["item_id"] == "label_scope_conflict:l1:missing-owner"
@@ -379,7 +379,7 @@ def test_local_manual_label_rejected_when_profile_requires_unimplemented_mode_fl
 
     projection = load_manual_projection(target_dir, assembler_profile=load_assembler_profile("devpac"))
 
-    assert projection.review_state == "needs_review"
+    assert projection.review_state == "blocked"
     item = projection.review_items[0]
     assert item["kind"] == "label_scope_conflict"
     assert item["item_id"] == "label_scope_conflict:l1:unsupported-local-profile"
@@ -454,7 +454,7 @@ def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> No
 
     projection = load_manual_projection(target_dir)
 
-    assert projection.review_state == "needs_review"
+    assert projection.review_state == "blocked"
     assert len(projection.review_items) == 1
     _assert_review_item_includes(
         projection.review_items[0],
@@ -569,7 +569,7 @@ def test_manual_resolution_acknowledges_but_does_not_close_live_blocker(tmp_path
     item = open_projection.review_items[0]
     item_id = item["item_id"]
     evidence_fingerprint = item["evidence_fingerprint"]
-    assert open_projection.review_state == "needs_review"
+    assert open_projection.review_state == "blocked"
     assert item["review_blocker"] is True
 
     resolution = {
@@ -581,14 +581,14 @@ def test_manual_resolution_acknowledges_but_does_not_close_live_blocker(tmp_path
     _append_jsonl(log_path, records(4, resolution))
     resolved_projection = load_manual_projection(target_dir)
 
-    assert resolved_projection.review_state == "needs_review"
+    assert resolved_projection.review_state == "blocked"
     assert resolved_projection.review_items[0]["state"] == "open"
     assert resolved_projection.review_items[0]["acknowledged"] is True
 
     _append_jsonl(log_path, records(6, resolution))
     changed_projection = load_manual_projection(target_dir)
 
-    assert changed_projection.review_state == "needs_review"
+    assert changed_projection.review_state == "blocked"
     assert changed_projection.review_items[0]["state"] == "open"
     assert changed_projection.review_items[0]["changed_since_resolution"] is True
     assert changed_projection.review_items[0]["evidence_fingerprint"] != evidence_fingerprint
@@ -631,7 +631,7 @@ def test_required_manual_data_seed_conflicts_with_stronger_code_entrypoint(tmp_p
 
     projection = load_manual_projection(target_dir, stronger_metadata=metadata)
 
-    assert projection.review_state == "needs_review"
+    assert projection.review_state == "blocked"
     assert len(projection.review_items) == 1
     _assert_review_item_includes(
         projection.review_items[0],
@@ -685,6 +685,7 @@ def test_required_manual_code_seed_conflicts_with_stronger_seeded_entity(tmp_pat
 
     projection = load_manual_projection(target_dir, stronger_metadata=metadata)
 
+    assert projection.review_state == "blocked"
     assert len(projection.review_items) == 1
     _assert_review_item_includes(
         projection.review_items[0],
@@ -736,6 +737,7 @@ def test_required_manual_data_seed_conflicts_with_raw_entrypoint(tmp_path: Path)
 
     projection = load_manual_projection(target_dir, binary_source=binary_source)
 
+    assert projection.review_state == "blocked"
     assert len(projection.review_items) == 1
     _assert_review_item_includes(
         projection.review_items[0],

@@ -287,6 +287,15 @@ def _finalize_review_items(
     return tuple(finalized)
 
 
+def _review_state_for_items(review_items: tuple[dict[str, object], ...]) -> ReviewState:
+    open_review_items = tuple(item for item in review_items if item.get("state") == "open")
+    if any(item.get("review_blocker") is True for item in open_review_items):
+        return "blocked"
+    if open_review_items:
+        return "needs_review"
+    return "clear"
+
+
 def finalize_review_items(
     items: tuple[dict[str, object], ...],
     resolutions: tuple[dict[str, object], ...] = (),
@@ -765,8 +774,7 @@ def _project_actions(
         )
     )
     finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
-    open_review_items = tuple(item for item in finalized_review_items if item.get("state") == "open")
-    review_state: ReviewState = "needs_review" if open_review_items else "clear"
+    review_state = _review_state_for_items(finalized_review_items)
     return ManualActionLogProjection(
         review_state=review_state,
         log_path=str(path),
