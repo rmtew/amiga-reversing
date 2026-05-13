@@ -201,8 +201,6 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
     metadata = _load_project_metadata(target_dir)
     target_metadata = load_target_metadata(target_dir)
     entities_path = target_dir / "entities.jsonl"
-    if not entities_path.exists():
-        raise FileNotFoundError(f"Missing entities.jsonl for target: {target_dir.name}")
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
     manual_projection = load_manual_projection(target_dir, binary_source=binary_source)
@@ -211,7 +209,7 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         name=target_dir.name,
         kind="binary",
         target_dir=str(target_dir),
-        entities_path=str(entities_path),
+        entities_path=str(entities_path) if entities_path.exists() else None,
         output_path=str(output_candidates[0]) if len(output_candidates) == 1 else None,
         binary_path=None if binary_source is None else binary_source.display_path,
         ready=binary_source is not None,
@@ -323,7 +321,6 @@ def create_project(
     if target_dir.exists():
         raise FileExistsError(f"Project already exists: {project_name}")
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
     initialize_project_metadata(
         target_dir,
         origin=origin or {"kind": "manual_project", "project_id": project_name},
@@ -341,7 +338,6 @@ def create_project_at_path(
     if target_dir.exists():
         raise FileExistsError(f"Project already exists: {target_relpath}")
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
     initialize_project_metadata(
         target_dir,
         origin=origin or {"kind": "materialized_target", "target_relpath": target_relpath},

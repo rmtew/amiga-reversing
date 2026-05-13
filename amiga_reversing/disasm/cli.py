@@ -66,10 +66,10 @@ def gen_disasm(binary_path: str, entities_path: str, output_path: str,
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
-        description="Generate assembler-profiled .s file from binary + entities")
+        description="Generate assembler-profiled .s file from binary analysis")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--entities", "-e",
-                        help="Path to entities.jsonl")
+                        help="Legacy override path; ignored by current C analysis rendering")
     parser.add_argument("--output", "-o",
                         help="Output .s file path")
     parser.add_argument("--target-dir", "-t",

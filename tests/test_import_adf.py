@@ -529,7 +529,7 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
     assert manifest.bootblock_target_name == "amiga_disk_demo__amiga_raw_bootblock"
     assert manifest.bootblock_target_path == "targets/amiga_disk_demo/targets/amiga_raw_bootblock"
     bootblock_dir = project_root / manifest.bootblock_target_path
-    assert (bootblock_dir / "entities.jsonl").exists()
+    assert not (bootblock_dir / "entities.jsonl").exists()
     bootblock_source = json.loads((bootblock_dir / "source_binary.json").read_text(encoding="utf-8"))
     assert bootblock_source["kind"] == "raw_binary"
     assert bootblock_source["address_model"] == "local_offset"
@@ -1187,8 +1187,9 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
 
     manifest = import_adf(adf_path, project_root=project_root)
 
-    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
-    assert manifest.imported_targets[0].derived_targets is None
+    assert [target.entry_path for target in manifest.imported_targets] == ["bootblock", "s/Run"]
+    parent = manifest.imported_targets[1]
+    assert parent.derived_targets is None
 
 
 def test_import_adf_does_not_materialize_non_materializable_decompressed_status(

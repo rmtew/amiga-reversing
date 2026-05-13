@@ -623,7 +623,10 @@ def _import_disk_file_entry(
     created_target_dirs: list[Path],
     project_root: Path,
 ) -> tuple[ImportedTarget, list[ImportedTarget]]:
-    from amiga_reversing.disasm.projects import create_project_at_path, mark_project_updated
+    from amiga_reversing.disasm.projects import (
+        create_project_at_path,
+        mark_project_updated,
+    )
 
     target_type = _obj_str_field(import_target, "target_type")
     if target_type is None:
@@ -743,11 +746,12 @@ def _find_dos_entry_by_path(analysis: AdfAnalysis, path: str) -> object | None:
     if analysis.files is None:
         return None
     for entry in analysis.files:
-            candidate_path = getattr(entry, "full_path", None)
-            if not isinstance(candidate_path, str):
-                continue
-            if candidate_path.strip().strip("/").lower() == normalized:
-                return entry
+        candidate_path = getattr(entry, "full_path", None)
+        if not isinstance(candidate_path, str):
+            continue
+        if candidate_path.strip().strip("/").lower() == normalized:
+            entry_object: object = entry
+            return entry_object
     return None
 
 
@@ -778,8 +782,8 @@ def _normalize_startup_token(
         if not suffix:
             return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
         if prefix_lower in _STARTUP_PARSE_PREFIX_ALIASES:
-            return f"{prefix_lower}/{suffix}"
-        return suffix
+            return f"{prefix_lower}/{suffix}", None
+        return suffix, None
     command_args = token_args or []
     if normalized_value == "run" and command_args:
         return None, TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT
@@ -1028,7 +1032,9 @@ def _decompressed_payload_child_local_id(
     candidate = f"{stem}_{codec}_{section:02x}_{offset:08x}"
     if len(candidate) > 71:
         candidate = candidate[:71].rstrip("._-")
-    return raw_target_id(candidate)
+    result = raw_target_id(candidate)
+    assert isinstance(result, str)
+    return result
 
 
 def _self_decrunch_payload_child_local_id(parent_local_target_id: str, event: dict[str, object]) -> str:
@@ -1039,7 +1045,9 @@ def _self_decrunch_payload_child_local_id(parent_local_target_id: str, event: di
     candidate = f"{stem}_simdecrunch_{section:02x}_{entry:08x}_{load_address:08x}"
     if len(candidate) > 71:
         candidate = candidate[:71].rstrip("._-")
-    return raw_target_id(candidate)
+    result = raw_target_id(candidate)
+    assert isinstance(result, str)
+    return result
 
 
 def _recognized_unpacker_payload_child_local_id(parent_local_target_id: str, event: dict[str, object]) -> str:
@@ -1051,7 +1059,9 @@ def _recognized_unpacker_payload_child_local_id(parent_local_target_id: str, eve
     candidate = f"{stem}_native_{codec}_{section:02x}_{offset:08x}"
     if len(candidate) > 71:
         candidate = candidate[:71].rstrip("._-")
-    return raw_target_id(candidate)
+    result = raw_target_id(candidate)
+    assert isinstance(result, str)
+    return result
 
 
 def _materializable_decompression_suggestions(analysis: dict[str, object]) -> list[dict[str, object]]:
@@ -1426,7 +1436,6 @@ def _materialize_decompressed_payload_children(
                 "decompressed_sha256": output_sha256,
                 "load_address": load_address,
                 "entrypoint": entrypoint,
-                "source_section": source_section,
             }
             if target_dir.exists() and not target_dir.is_dir():
                 continue
@@ -2187,9 +2196,8 @@ def create_disk_project(
                 state_subtargets_by_id[target_id] = state_entry
 
         for target_id, state_entry in list(state_subtargets_by_id.items()):
-            if _str_field(state_entry, "origin") != "manual":
-                if target_id in auto_discovered_target_names:
-                    continue
+            if _str_field(state_entry, "origin") != "manual" and target_id in auto_discovered_target_names:
+                continue
             state_subtargets_by_id.pop(target_id, None)
             imported_targets_by_name.pop(target_id, None)
             subtarget_path = Path(_str_field(state_entry, "path") or target_id)

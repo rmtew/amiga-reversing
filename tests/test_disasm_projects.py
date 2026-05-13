@@ -604,7 +604,7 @@ def test_resolve_target_binary_source_rejects_raw_entrypoint_outside_code_range(
         resolve_target_binary_source(target_dir)
 
 
-def test_resolve_project_paths_allows_missing_entities_when_requested(tmp_path: Path) -> None:
+def test_resolve_project_paths_allows_missing_entities_by_default(tmp_path: Path) -> None:
     project_root = tmp_path
     disk_dir = project_root / "targets" / "amiga_disk_demo_disk"
     disk_dir.mkdir(parents=True)
@@ -626,10 +626,33 @@ def test_resolve_project_paths_allows_missing_entities_when_requested(tmp_path: 
         "parent_disk_id": "demo_disk",
     }))
 
-    resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root, require_entities=False)
+    resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
 
-    assert resolved.entities_path == target_dir / "entities.jsonl"
+    assert resolved.entities_path is None
     assert resolved.binary_source.kind == "raw_binary"
+
+
+def test_resolve_project_paths_can_require_legacy_entities_when_called_explicitly(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "targets/demo/binary.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+
+    with pytest.raises(FileNotFoundError, match="Missing entities.jsonl"):
+        resolve_project_paths("demo", project_root=project_root, require_entities=True)
 
 
 def test_resolve_project_paths_rejects_disk_project_name(tmp_path: Path) -> None:
@@ -645,7 +668,6 @@ def test_list_projects_includes_unready_binary_project(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
     (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
 
     projects = list_projects(project_root=project_root)
@@ -653,6 +675,7 @@ def test_list_projects_includes_unready_binary_project(tmp_path: Path) -> None:
     assert len(projects) == 1
     assert projects[0].id == "demo"
     assert projects[0].kind == "binary"
+    assert projects[0].entities_path is None
     assert projects[0].ready is False
     assert projects[0].binary_path is None
     assert projects[0].parent_project_id is None
@@ -891,12 +914,13 @@ def test_get_project_exposes_manual_action_log_projection(tmp_path: Path) -> Non
     assert project.manual_state["seeds"] == ({"seed_id": "s1", "kind": "code"},)
 
 
-def test_create_project_creates_entities_file(tmp_path: Path) -> None:
+def test_create_project_does_not_create_legacy_entities_file(tmp_path: Path) -> None:
     project = create_project("demo", project_root=tmp_path)
 
     assert project.id == "demo"
     assert project.kind == "binary"
-    assert (tmp_path / "targets" / "demo" / "entities.jsonl").exists()
+    assert project.entities_path is None
+    assert not (tmp_path / "targets" / "demo" / "entities.jsonl").exists()
     metadata = json.loads((tmp_path / "targets" / "demo" / ".project.json").read_text())
     assert metadata["schema_version"] == 2
     assert metadata["created_at"] == project.created_at

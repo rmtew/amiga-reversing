@@ -209,13 +209,13 @@ def _resolve_annotation_paths(project_name: str, project_root: Path) -> tuple[Pa
     if not target_dir.exists():
         raise FileNotFoundError(f"Unknown target: {project_name}")
     entities_path = target_dir / "entities.jsonl"
-    if not entities_path.exists():
-        raise FileNotFoundError(f"Missing entities.jsonl for target: {project_name}")
     return target_dir, entities_path
 
 
 def get_entities_by_int_addr(project_name: str, project_root: Path = PROJECT_ROOT) -> dict[int, EntityRecord]:
     target_dir, entities_path = _resolve_annotation_paths(project_name, project_root)
+    if not entities_path.exists():
+        return {}
     overrides = load_overrides(target_dir)
     result: dict[int, EntityRecord] = {}
     for entity in _load_entities_by_addr(entities_path).values():
