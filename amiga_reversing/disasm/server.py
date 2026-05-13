@@ -1166,7 +1166,7 @@ def _failed_project_create_job(error: str) -> AsyncJobPayload:
 
 def _project_payload(project_name: str) -> ProjectPayload:
     project = get_project(project_name)
-    payload: ProjectPayload = {"project": project.to_dict()}
+    payload: ProjectPayload = {"project": _project_dict_with_cached_analysis_review(project_name, project)}
     if project.kind == "disk":
         manifest_path = project.manifest_path
         if manifest_path is None:
@@ -1183,6 +1183,26 @@ def _project_payload(project_name: str) -> ProjectPayload:
     elif project.kind == "binary" and project.ready:
         payload["reproduction"] = _current_reproduction_payload(project_name)
     return payload
+
+
+def _project_dict_with_cached_analysis_review(project_name: str, project: ProjectRecord) -> dict[str, object]:
+    project_dict = project.to_dict()
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is None:
+        return project_dict
+    analysis_payload, _ = artifact.analysis_payload()
+    analysis_items = analysis_review_items(analysis_payload)
+    if not analysis_items:
+        return project_dict
+    existing_items = project_dict.get("review_items")
+    review_items = [
+        *(existing_items if isinstance(existing_items, list | tuple) else []),
+        *analysis_items,
+    ]
+    project_dict["review_items"] = review_items
+    if project_dict.get("review_state") != "blocked" and any(item.get("state") == "open" for item in analysis_items):
+        project_dict["review_state"] = "needs_review"
+    return project_dict
 
 
 def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str, object]:

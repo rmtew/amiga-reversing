@@ -891,6 +891,30 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     assert "disk_manifest" not in data
 
 
+def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    artifact = _FakeCListingArtifact()
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", artifact)
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_current_reproduction_payload",
+        lambda project_name: {"status": "not_ready"},
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych", {})
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
+    review_items = cast(list[dict[str, object]], project["review_items"])
+
+    assert project["review_state"] == "needs_review"
+    assert review_items[0]["kind"] == "unreconciled_data_range"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
 def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         disasm_server,
