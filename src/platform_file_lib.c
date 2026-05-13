@@ -3420,6 +3420,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
         (uint8_t)(strcmp(subtype, "pointer_table") == 0))) {
     return 0;
   }
+  if (name[0] != '\0' && !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, addr, name)) return 0;
   return policy_set_structured_data_item_kb_metadata_local(policy, item_index, unit, NULL, NULL, encoding, NULL, 0U, 0);
 }
 

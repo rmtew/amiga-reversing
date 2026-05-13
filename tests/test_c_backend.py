@@ -2475,6 +2475,88 @@ helper:
     assert {4, 8}.issubset(block_starts)
 
 
+def test_real_dll_required_manual_data_seed_splits_rendered_subrange(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-seed.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b "TEXT",$00,$00
+after_data:
+    rts
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_seed",
+                "seed": {
+                    "seed_id": "manual-text",
+                    "kind": "data",
+                    "mode": "required",
+                    "hunk": 0,
+                    "addr": 2,
+                    "end": 7,
+                    "data_role": "string",
+                    "unit": "byte",
+                    "encoding": "ascii",
+                    "name": "manual_text",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "loc_0_00000000:\n\tbra.b loc_0_00000008\n" in rendered
+    assert (
+        'manual_text:\n\tdc.b "TEXT",$00\t; mode=required, data_role=string, unit=byte, encoding=ascii\n'
+        in rendered
+    )
+    assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
+
+
 def test_project_source_benchmark_uses_facts_v2(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
