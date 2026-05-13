@@ -2411,7 +2411,6 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
 
 def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     rows = [
         ListingRow(
             row_id="r0",
@@ -2450,7 +2449,6 @@ def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pyte
 
 def test_listing_navigation_indexes_unresolved_typed_accesses(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     rows = [
         ListingRow(
             row_id="r0",
@@ -2647,7 +2645,6 @@ def test_listing_navigation_api_calls_use_instruction_row_and_hunk_context() -> 
 
 def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     rows = [
         ListingRow(
             row_id="r0",
@@ -2741,7 +2738,6 @@ def test_listing_navigation_groups_app_slot_refs_by_symbol(monkeypatch: pytest.M
 
 def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     type_flow_analysis = {
         "schema_version": 1,
         "target_id": "project_target:bloodwych",
@@ -2760,7 +2756,6 @@ def test_listing_navigation_exposes_type_flow_analysis_metadata(monkeypatch: pyt
 
 def test_listing_navigation_exposes_rsset_layout_regions_and_gaps(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "_active_reproduction_report", lambda project_name: None)
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
     rows = [
         ListingRow(
             row_id="r0",
@@ -2989,90 +2984,6 @@ def test_project_listing_cache_key_includes_renderer_tool_stamps(
     second = disasm_server._project_listing_cache_key("demo")
 
     assert first != second
-
-
-def test_route_listing_omits_empty_view_annotations_for_monam(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(row_id="r0", kind="label", text="setpointer_pointer:\n", addr=0x0008),
-        ListingRow(row_id="r1", kind="instruction", text="movea.l #memtask,a0\n", addr=0x0298),
-        ListingRow(row_id="r2", kind="label", text="call_setpointer:\n", addr=0x8146),
-    ]
-    _seed_c_listing_artifact(
-        monkeypatch,
-        "amiga_hunk_monam302",
-        _RowsCListingArtifact(rows, project_name="amiga_hunk_monam302"),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/amiga_hunk_monam302/listing",
-        {"before": ["5"], "after": ["7"]},
-    )
-    data = cast(dict[str, object], payload["data"])
-    rows_data = cast(list[dict[str, object]], data["rows"])
-
-    assert payload["ok"] is True
-    assert "view_annotations" not in rows_data[0]
-    assert "view_annotations" not in rows_data[1]
-    assert "view_annotations" not in rows_data[2]
-
-
-def test_route_listing_hydrates_entity_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
-    rows = [
-        ListingRow(
-            row_id="r0",
-            kind="label",
-            text="loc_0010:\n",
-            addr=0x10,
-            entity_addr=0x10,
-        )
-    ]
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
-    monkeypatch.setattr(
-        disasm_server,
-        "get_project",
-        lambda project_name: _binary_project(project_name, ready=True),
-    )
-    monkeypatch.setattr(
-        disasm_server,
-        "get_entities_by_int_addr",
-        lambda project_name, project_root=None: {
-            0x10: {
-                "addr": "0x0010",
-                "type": "code",
-                "name": "main_entry",
-                "comment": "validated entry",
-                "confidence": "verified",
-            }
-        },
-    )
-
-    payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/listing",
-        {"before": ["0"], "after": ["1"]},
-    )
-    data = cast(dict[str, object], payload["data"])
-    rows_data = cast(list[dict[str, object]], data["rows"])
-
-    assert rows_data[0]["view_annotations"] == [
-        "main_entry",
-        "validated entry",
-        "code",
-        "verified",
-    ]
-    assert rows_data[0]["entity"] == {
-        "addr": "0x0010",
-        "type": "code",
-        "name": "main_entry",
-        "comment": "validated entry",
-        "confidence": "verified",
-    }
 
 
 def test_route_listing_adds_api_call_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -3667,33 +3578,6 @@ def test_resolve_static_response_rejects_missing_file() -> None:
         disasm_server.resolve_static_response("/assets/missing.txt")
 
 
-def test_route_get_entity_returns_annotation_view(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(disasm_server, "get_entity",
-                        lambda project_name, addr, project_root=None: {"addr": addr, "name": "main"})
-
-    payload = disasm_server.route_request(
-        "GET", "/api/projects/bloodwych/entities/0x0000", {})
-    data = cast(dict[str, object], payload["data"])
-
-    assert payload["ok"] is True
-    assert data["name"] == "main"
-
-
-def test_route_patch_entity_updates_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        disasm_server, "patch_entity",
-        lambda project_name, addr, body, project_root=None: {"addr": addr, "name": body["name"]},
-    )
-
-    payload = disasm_server.route_request(
-        "PATCH", "/api/projects/bloodwych/entities/0x0000", {},
-        {"name": "main"})
-    data = cast(dict[str, object], payload["data"])
-
-    assert payload["ok"] is True
-    assert data["name"] == "main"
-
-
 def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
@@ -4035,8 +3919,6 @@ def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatc
             ]
         },
     )
-    monkeypatch.setattr(disasm_server, "get_entities_by_int_addr", lambda project_name, project_root=None: {})
-
     payload = _test_listing_navigation_payload("bloodwych", rows)
     groups = cast(dict[str, list[dict[str, object]]], payload["groups"])
 

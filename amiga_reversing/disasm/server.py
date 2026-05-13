@@ -22,12 +22,6 @@ from amiga_reversing.amiga_disk.project import (
     import_disk_entry_target,
 )
 from amiga_reversing.disasm import corpus_usage, disk_browser
-from amiga_reversing.disasm.annotations import (
-    AnnotationPatchInput,
-    get_entities_by_int_addr,
-    get_entity,
-    patch_entity,
-)
 from amiga_reversing.disasm.api import (
     ListingWindowPayload,
 )
@@ -310,28 +304,12 @@ def _annotate_listing_payload(
     annotated_rows: list[dict[str, object]] = []
     repro_issues = _active_reproduction_issues_by_row_index(project_name)
     window_start = int(payload.get("start") or 0)
-    try:
-        entities_by_addr = get_entities_by_int_addr(project_name, project_root=PROJECT_ROOT)
-    except (FileNotFoundError, ValueError, AssertionError):
-        entities_by_addr = {}
     for relative_index, row in enumerate(payload["rows"]):
         annotations: list[str] = []
-        entity = None
-        entity_addr = row.get("entity_addr")
-        if isinstance(entity_addr, int):
-            entity = entities_by_addr.get(entity_addr)
-            if entity is not None:
-                for field_name in ("name", "comment", "type", "subtype", "confidence"):
-                    value = entity.get(field_name)
-                    if isinstance(value, str) and value:
-                        annotations.append(value)
-        entity_payload = cast(dict[str, object], entity) if entity is not None else None
         row_issues = repro_issues.get(window_start + relative_index, [])
         if row_issues:
             annotations.append("REPRO: " + str(row_issues[0].get("summary") or row_issues[0].get("message") or "issue"))
         annotated_row = dict(row)
-        if entity_payload is not None:
-            annotated_row["entity"] = entity_payload
         if annotations:
             annotated_row["view_annotations"] = annotations
         if row_issues:
@@ -1906,18 +1884,6 @@ def route_request(
             if not job_id:
                 raise ValueError("Missing job_id")
             return {"ok": True, "data": _job_payload(job_id)}
-        if method == "GET" and len(parts) == 5 and parts[3] == "entities":
-            return {"ok": True, "data": get_entity(project_name, parts[4], project_root=PROJECT_ROOT)}
-        if method == "PATCH" and len(parts) == 5 and parts[3] == "entities":
-            return {
-                "ok": True,
-                "data": patch_entity(
-                    project_name,
-                    parts[4],
-                    cast(AnnotationPatchInput, body or {}),
-                    project_root=PROJECT_ROOT,
-                ),
-            }
         if (
             method == "PATCH"
             and len(parts) == 10

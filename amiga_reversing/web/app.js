@@ -138,20 +138,6 @@ const LABEL_ACCESS_LABELS = {
   definition: "D",
   reference: "R",
 };
-const ENTITY_SUBTYPES = [
-  "",
-  "string",
-  "pointer_table",
-  "struct_instance",
-  "lookup_table",
-  "sprite",
-  "bitmap",
-  "palette",
-  "copper_list",
-  "tilemap",
-  "sound_sample",
-  "level_data",
-];
 const CORPUS_GROUPS = [
   {id: "", label: "All"},
   {id: "os", label: "OS calls"},
@@ -3853,14 +3839,6 @@ function renderApiEditButton(row, rowIndex) {
   return ` <button class="listing-api-edit" type="button" data-api-edit="1" data-row-index="${rowIndex}" title="Edit API argument types">Edit API</button>`;
 }
 
-function renderAnnotationEditButton(row, rowIndex) {
-  const addr = row.entity_addr ?? row.addr;
-  if (addr === null || addr === undefined) {
-    return "";
-  }
-  return ` <button class="listing-annotation-edit" type="button" data-annotation-edit="1" data-row-index="${rowIndex}" title="Edit entity annotation" aria-label="Edit entity annotation">Annotate</button>`;
-}
-
 function renderApiTypeBadges(row) {
   if (!row.api_call) {
     return "";
@@ -3965,7 +3943,7 @@ function renderListingRows(rows, globalStart = 0) {
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}${renderAnnotationEditButton(row, globalStart + rowIndex)}</span>
+      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
@@ -4458,7 +4436,7 @@ function rowHasUnresolvedTypedAccess(row) {
 }
 
 function rowHasComment(row) {
-  return Boolean(row.comment_text) || (Array.isArray(row.view_annotations) && row.view_annotations.length > 0);
+  return Boolean(row.comment_text);
 }
 
 function rowApiCallHasNearLvoReference(rows, row, rowIndex) {
@@ -5581,93 +5559,6 @@ async function openApiEditDialog(projectId, row) {
   });
 }
 
-function renderAnnotationEditDialog(entity) {
-  return `
-    <dialog class="annotation-edit-dialog" open>
-      <form method="dialog" class="api-edit-panel">
-        <div class="api-edit-title">${escapeHtml(entity.addr)}</div>
-        <label class="annotation-edit-field">Name <input class="annotation-edit-name" value="${escapeHtml(entity.name || "")}"></label>
-        <label class="annotation-edit-field">Comment <textarea class="annotation-edit-comment">${escapeHtml(entity.comment || "")}</textarea></label>
-        <label class="annotation-edit-field">Type <select class="annotation-edit-type">
-          ${["code", "data", "bss", "unknown"].map((value) => `<option value="${value}"${value === entity.type ? " selected" : ""}>${value}</option>`).join("")}
-        </select></label>
-        <label class="annotation-edit-field">Subtype <select class="annotation-edit-subtype">
-          ${ENTITY_SUBTYPES.map((value) => `<option value="${escapeHtml(value)}"${value === (entity.subtype || "") ? " selected" : ""}>${escapeHtml(value || "(none)")}</option>`).join("")}
-        </select></label>
-        <label class="annotation-edit-field">Confidence <select class="annotation-edit-confidence">
-          ${["tool-inferred", "llm-guessed", "verified"].map((value) => `<option value="${value}"${value === entity.confidence ? " selected" : ""}>${value}</option>`).join("")}
-        </select></label>
-        <div class="api-edit-actions">
-          <button type="button" class="annotation-edit-apply">Apply</button>
-          <button type="button" class="annotation-edit-close">Close</button>
-        </div>
-      </form>
-    </dialog>
-  `;
-}
-
-async function refreshListingAfterAnnotationEdit(projectId, addr) {
-  await loadListingWindow(projectId, null, 0, state.listingRows.length || 80, {
-    start: state.virtualListing.start,
-    count: state.listingRows.length || 80,
-    preserveScroll: true,
-  });
-  await loadNavigationEntries(projectId);
-  if (addr !== null && addr !== undefined) {
-    await jumpToListingAddr(projectId, addr);
-  }
-}
-
-async function openAnnotationEditDialog(projectId, row) {
-  const addr = row.entity_addr ?? row.addr;
-  if (addr === null || addr === undefined) {
-    return;
-  }
-  const viewport = document.getElementById("listing-viewport");
-  if (!viewport) {
-    return;
-  }
-  const addrText = formatRowOffset(addr);
-  let entity;
-  try {
-    entity = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/entities/${encodeURIComponent(addrText)}`);
-  } catch (err) {
-    const fallbackEntity = row.entity && typeof row.entity === "object" ? row.entity : {};
-    entity = {
-      addr: addrText,
-      name: fallbackEntity.name || "",
-      comment: fallbackEntity.comment || "",
-      type: fallbackEntity.type || (row.kind === "instruction" || row.kind === "label" ? "code" : row.kind === "data" ? "data" : "unknown"),
-      subtype: fallbackEntity.subtype || "",
-      confidence: fallbackEntity.confidence || "tool-inferred",
-    };
-  }
-  document.querySelector(".annotation-edit-dialog")?.remove();
-  viewport.insertAdjacentHTML("beforeend", renderAnnotationEditDialog(entity));
-  const dialog = document.querySelector(".annotation-edit-dialog");
-  if (!dialog) return;
-  dialog.querySelector(".annotation-edit-close")?.addEventListener("click", () => dialog.remove());
-  dialog.querySelector(".annotation-edit-apply")?.addEventListener("click", async () => {
-    await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/entities/${encodeURIComponent(addrText)}`, {
-      method: "PATCH",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        name: dialog.querySelector(".annotation-edit-name")?.value || "",
-        comment: dialog.querySelector(".annotation-edit-comment")?.value || "",
-        type: dialog.querySelector(".annotation-edit-type")?.value || "unknown",
-        subtype: dialog.querySelector(".annotation-edit-subtype")?.value || "",
-        confidence: dialog.querySelector(".annotation-edit-confidence")?.value || "tool-inferred",
-      }),
-    });
-    dialog.remove();
-    await refreshListingAfterAnnotationEdit(projectId, addr);
-  });
-  dispatchAppEvent("amiga:annotation-edit-dialog-opened", {
-    projectId,
-    addr,
-  });
-}
-
 function listingWindowRowByGlobalIndex(rows, rowIndex) {
   const globalIndex = Number(rowIndex);
   if (!Number.isFinite(globalIndex)) {
@@ -5727,15 +5618,6 @@ function bindListingEditors(projectId, rows) {
       const row = listingWindowRowByGlobalIndex(rows, rowIndex);
       if (row) {
         void openApiEditDialog(projectId, row);
-      }
-    });
-  });
-  viewport.querySelectorAll("[data-annotation-edit='1']").forEach((button) => {
-    button.addEventListener("click", () => {
-      const rowIndex = Number(button.dataset.rowIndex);
-      const row = listingWindowRowByGlobalIndex(rows, rowIndex);
-      if (row) {
-        void openAnnotationEditDialog(projectId, row);
       }
     });
   });
