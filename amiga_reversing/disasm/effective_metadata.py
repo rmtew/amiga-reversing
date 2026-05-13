@@ -5,14 +5,20 @@ import json
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm.target_metadata import TargetMetadata, load_target_metadata
+from amiga_reversing.disasm.manual_actions import load_manual_projection
+from amiga_reversing.disasm.target_metadata import (
+    SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
+    TargetMetadata,
+    load_target_metadata,
+)
 from amiga_reversing.disasm.target_ui_edits import (
     apply_target_ui_edits,
     load_target_ui_edits,
@@ -21,7 +27,154 @@ from amiga_reversing.disasm.target_ui_edits import (
 
 
 def effective_target_metadata(target_dir: Path) -> TargetMetadata | None:
-    return apply_target_ui_edits(load_target_metadata(target_dir), load_target_ui_edits(target_dir))
+    metadata = apply_target_ui_edits(load_target_metadata(target_dir), load_target_ui_edits(target_dir))
+    return _apply_manual_seed_projection(target_dir, metadata)
+
+
+def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
+    value = seed.get(field_name)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value, 0)
+        except ValueError:
+            return None
+    return None
+
+
+def _parse_manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int | None] | None:
+    hunk = _manual_seed_int(seed, "hunk") or 0
+    addr = _manual_seed_int(seed, "addr")
+    end = _manual_seed_int(seed, "end")
+    if addr is not None:
+        return hunk, addr, end
+    raw_range = seed.get("range")
+    if not isinstance(raw_range, str):
+        return None
+    range_text = raw_range.strip()
+    if ":" in range_text:
+        hunk_text, range_text = range_text.split(":", 1)
+        if hunk_text.lower().startswith("h"):
+            try:
+                hunk = int(hunk_text[1:], 0)
+            except ValueError:
+                return None
+    if ".." in range_text:
+        start_text, end_text = range_text.split("..", 1)
+        try:
+            return hunk, int(start_text.replace("$", "0x"), 0), int(end_text.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+    try:
+        return hunk, int(range_text.replace("$", "0x"), 0), None
+    except ValueError:
+        return None
+
+
+def _manual_seed_text(seed: dict[str, object], field_name: str) -> str | None:
+    value = seed.get(field_name)
+    return value if isinstance(value, str) and value else None
+
+
+def _manual_seed_name(seed: dict[str, object]) -> str:
+    name = _manual_seed_text(seed, "name")
+    if name is not None:
+        return name
+    seed_id = _manual_seed_text(seed, "seed_id") or "unnamed"
+    safe = "".join(char if char.isalnum() or char == "_" else "_" for char in seed_id)
+    return f"manual_seed_{safe}"
+
+
+def _manual_seed_citation(seed: dict[str, object]) -> str:
+    seed_id = _manual_seed_text(seed, "seed_id") or "unnamed"
+    return f"manual_action_log:{seed_id}"
+
+
+def _manual_seed_source_locator(seed: dict[str, object]) -> str:
+    seed_id = _manual_seed_text(seed, "seed_id") or "unnamed"
+    return f"ManualSeed:{seed_id}"
+
+
+def _manual_seed_comment(seed: dict[str, object]) -> str | None:
+    comment = _manual_seed_text(seed, "comment")
+    if comment is not None:
+        return comment
+    details: list[str] = []
+    for key in ("mode", "data_role", "unit", "encoding"):
+        value = _manual_seed_text(seed, key)
+        if value is not None:
+            details.append(f"{key}={value}")
+    return ", ".join(details) if details else None
+
+
+def _manual_seed_to_code_entrypoint(seed: dict[str, object]) -> SeededCodeEntrypointMetadata | None:
+    parsed_range = _parse_manual_seed_range(seed)
+    if parsed_range is None:
+        return None
+    hunk, addr, _end = parsed_range
+    return SeededCodeEntrypointMetadata(
+        addr=addr,
+        hunk=hunk,
+        name=_manual_seed_name(seed),
+        role=_manual_seed_text(seed, "role"),
+        comment=_manual_seed_comment(seed),
+        seed_origin="manual_analysis",
+        review_status="seeded",
+        citation=_manual_seed_citation(seed),
+        source_id="manual_action_log",
+        source_locator=_manual_seed_source_locator(seed),
+    )
+
+
+def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata | None:
+    parsed_range = _parse_manual_seed_range(seed)
+    if parsed_range is None:
+        return None
+    hunk, addr, end = parsed_range
+    return SeededEntityMetadata(
+        addr=addr,
+        end=end,
+        hunk=hunk,
+        name=_manual_seed_text(seed, "name"),
+        comment=_manual_seed_comment(seed),
+        type="data",
+        subtype=_manual_seed_text(seed, "data_role"),
+        seed_origin="manual_analysis",
+        review_status="seeded",
+        citation=_manual_seed_citation(seed),
+        source_id="manual_action_log",
+        source_locator=_manual_seed_source_locator(seed),
+    )
+
+
+def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
+    projection = load_manual_projection(target_dir)
+    required_seeds = tuple(
+        seed for seed in projection.seeds
+        if seed.get("mode") == "required" or seed.get("mode") is None
+    )
+    if not required_seeds:
+        return metadata
+    if metadata is None:
+        metadata = TargetMetadata(target_type="program", entry_register_seeds=())
+    seeded_entities = list(metadata.seeded_entities)
+    seeded_code_entrypoints = list(metadata.seeded_code_entrypoints)
+    for seed in required_seeds:
+        seed_kind = _manual_seed_text(seed, "kind")
+        if seed_kind == "code":
+            entrypoint = _manual_seed_to_code_entrypoint(seed)
+            if entrypoint is not None:
+                seeded_code_entrypoints.append(entrypoint)
+        elif seed_kind == "data":
+            entity = _manual_seed_to_data_entity(seed)
+            if entity is not None:
+                seeded_entities.append(entity)
+    return replace(
+        metadata,
+        seeded_entities=tuple(seeded_entities),
+        seeded_code_entrypoints=tuple(seeded_code_entrypoints),
+    )
 
 
 def effective_metadata_text(target_dir: Path) -> str:
