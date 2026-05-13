@@ -115,6 +115,12 @@ typedef struct M68kFactsV2Profile {
   uint32_t code_start_platform_loadseg_entries;
   uint32_t code_start_stack_continuations;
   uint32_t code_start_boundary_api_entries;
+  uint32_t platform_loadseg_segment_link_accesses;
+  uint32_t platform_loadseg_segment_link_bptr_loads;
+  uint32_t platform_loadseg_segment_link_resolved_targets;
+  uint32_t first_platform_loadseg_segment_link_section;
+  uint32_t first_platform_loadseg_segment_link_offset;
+  uint32_t first_platform_loadseg_segment_link_target_section;
   uint32_t runtime_address_ranges;
   uint32_t runtime_address_range_conflicts;
   uint32_t runtime_address_view_starts;

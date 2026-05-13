@@ -9661,6 +9661,7 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   uint8_t symbol_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
   uint8_t bytes[6] = {0x43u, 0xFAu, 0xFFu, 0xFAu, 0x4eu, 0x75u};
   uint8_t base_slot_bytes[10] = {0x49u, 0xfau, 0xffu, 0xfeu, 0x28u, 0x6cu, 0xffu, 0xfcu, 0x4eu, 0x75u};
+  uint8_t linked_bytes[4] = {0x4eu, 0x71u, 0x4eu, 0x75u};
   M68K_C_ASSERT(platform_facts_v2_pc_relative_section_anchor_for_target(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     -4, &base_offset, &addend, &symbol_provenance));
   M68K_C_ASSERT_U32(0U, base_offset);
@@ -9684,6 +9685,7 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   M68K_C_ASSERT(strstr(source, "amiga_loadseg_segment_link\tEQU\t-4") == NULL);
   M68K_C_ASSERT(strstr(source, "lea.l loc_0_00000000-4(pc),a1") != NULL);
   M68K_C_ASSERT(strstr(source, "lea.l -$6(pc),a1") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.platform_loadseg_segment_link_accesses);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -9699,6 +9701,13 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   section.data = base_slot_bytes;
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(linked_bytes);
+  section.data_size = sizeof(linked_bytes);
+  section.data = linked_bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
@@ -9706,6 +9715,12 @@ static int test_facts_v2_render_asm_source_anchors_amiga_loadseg_segment_link(vo
   M68K_C_ASSERT(strstr(source, "amiga_loadseg_segment_link\tEQU\t-4") != NULL);
   M68K_C_ASSERT(strstr(source, "lea.l loc_0_00000000(pc),a4") != NULL);
   M68K_C_ASSERT(strstr(source, "movea.l amiga_loadseg_segment_link(a4),a4") != NULL);
+  M68K_C_ASSERT_U32(1U, profile.platform_loadseg_segment_link_accesses);
+  M68K_C_ASSERT_U32(1U, profile.platform_loadseg_segment_link_bptr_loads);
+  M68K_C_ASSERT_U32(1U, profile.platform_loadseg_segment_link_resolved_targets);
+  M68K_C_ASSERT_U32(0U, profile.first_platform_loadseg_segment_link_section);
+  M68K_C_ASSERT_U32(4U, profile.first_platform_loadseg_segment_link_offset);
+  M68K_C_ASSERT_U32(1U, profile.first_platform_loadseg_segment_link_target_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);

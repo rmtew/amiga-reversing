@@ -5651,6 +5651,12 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"code_start_platform_loadseg_entries\":%u,"
     "\"code_start_stack_continuations\":%u,"
     "\"code_start_boundary_api_entries\":%u,"
+    "\"platform_loadseg_segment_link_accesses\":%u,"
+    "\"platform_loadseg_segment_link_bptr_loads\":%u,"
+    "\"platform_loadseg_segment_link_resolved_targets\":%u,"
+    "\"first_platform_loadseg_segment_link_section\":%u,"
+    "\"first_platform_loadseg_segment_link_offset\":%u,"
+    "\"first_platform_loadseg_segment_link_target_section\":%u,"
     "\"runtime_address_ranges\":%u,"
     "\"runtime_address_range_conflicts\":%u,"
     "\"runtime_address_view_starts\":%u,"
@@ -5791,6 +5797,12 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->code_start_platform_loadseg_entries,
     (unsigned)profile->code_start_stack_continuations,
     (unsigned)profile->code_start_boundary_api_entries,
+    (unsigned)profile->platform_loadseg_segment_link_accesses,
+    (unsigned)profile->platform_loadseg_segment_link_bptr_loads,
+    (unsigned)profile->platform_loadseg_segment_link_resolved_targets,
+    (unsigned)profile->first_platform_loadseg_segment_link_section,
+    (unsigned)profile->first_platform_loadseg_segment_link_offset,
+    (unsigned)profile->first_platform_loadseg_segment_link_target_section,
     (unsigned)profile->runtime_address_ranges,
     (unsigned)profile->runtime_address_range_conflicts,
     (unsigned)profile->runtime_address_view_starts,

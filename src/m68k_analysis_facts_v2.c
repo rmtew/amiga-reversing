@@ -853,6 +853,21 @@ static void profile_record_code_start(M68kFactsV2Profile *profile, uint32_t reas
   }
 }
 
+static void profile_record_platform_loadseg_segment_link_access(M68kFactsV2Profile *profile,
+    size_t section_index, uint32_t offset, uint8_t resolved_target, size_t target_section_index) {
+  if (profile == NULL) return;
+  if (profile->platform_loadseg_segment_link_accesses == 0U) {
+    profile->first_platform_loadseg_segment_link_section = (uint32_t)section_index;
+    profile->first_platform_loadseg_segment_link_offset = offset;
+    profile->first_platform_loadseg_segment_link_target_section = resolved_target
+      ? (uint32_t)target_section_index
+      : UINT32_MAX;
+  }
+  ++profile->platform_loadseg_segment_link_accesses;
+  ++profile->platform_loadseg_segment_link_bptr_loads;
+  if (resolved_target) ++profile->platform_loadseg_segment_link_resolved_targets;
+}
+
 static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint32_t offset, uint8_t confidence,
     uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
     uint32_t runtime_address) {
@@ -3648,6 +3663,31 @@ static int trace_state_apply_platform_loadseg_helper_call(M68kDecodeIR *decode, 
     }
     trace_value_set_source_offset_with_reason(&after->a[result_reg], body_section_index, 0U,
       M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY);
+    return 1;
+  }
+  return 0;
+}
+
+static int trace_state_candidate_loads_platform_loadseg_segment_link(M68kDecodeIR *decode, uint8_t platform_kind,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
+    size_t *out_target_section_index) {
+  uint8_t reg;
+  size_t target_section_index = 0U;
+  const M68kFactsV2TraceValue *base;
+  if (out_target_section_index != NULL) *out_target_section_index = (size_t)-1;
+  if (decode == NULL || candidate == NULL || before == NULL ||
+      !platform_facts_v2_supports_loadseg_segment_chain(platform_kind)) {
+    return 0;
+  }
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (!candidate_moves_long_address_reg_slot_to_same_reg(candidate, reg, -4)) continue;
+    base = &before->a[reg];
+    if (base->kind != M68K_FACTS_V2_TRACE_SOURCE_OFFSET || base->value != 0U) continue;
+    if (platform_facts_v2_loadseg_segment_body_for_hops(platform_kind, decode->section_count,
+        base->section_index, 1U, &target_section_index) &&
+        target_section_index < decode->section_count) {
+      if (out_target_section_index != NULL) *out_target_section_index = target_section_index;
+    }
     return 1;
   }
   return 0;
@@ -8423,6 +8463,14 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     if (trace_state_record_runtime_storage_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
         item.section_index, section, candidate, &item.trace_state) != 0) {
       return -1;
+    }
+    {
+      size_t segment_link_target_section = (size_t)-1;
+      if (trace_state_candidate_loads_platform_loadseg_segment_link(decode, object->platform_backend_kind,
+          candidate, &item.trace_state, &segment_link_target_section)) {
+        profile_record_platform_loadseg_segment_link_access(profile, item.section_index, item.offset,
+          segment_link_target_section < decode->section_count ? 1U : 0U, segment_link_target_section);
+      }
     }
     trace_state_after_candidate(item.section_index, section, candidate, &item.trace_state, relocation_lookup, facts,
       runtime_addresses, accepted_start[item.section_index], accepted_bytes[item.section_index], &next_trace_state);
