@@ -1,0 +1,85 @@
+{
+  "candidate_rejects": [
+    {
+      "command": "Stack",
+      "line": 1,
+      "path": "Stack",
+      "reason_code": "filtered_dir",
+      "reason_detail": "Startup token was not importable for startup-sequence auto import"
+    }
+  ],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:20+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "Stack",
+        "line": 1,
+        "path": "Stack",
+        "reason_code": "filtered_dir",
+        "reason_detail": "Startup token was not importable for startup-sequence auto import",
+        "status": "rejected"
+      },
+      {
+        "command": "SGload",
+        "line": 2,
+        "path": "SGload",
+        "status": "imported",
+        "target_name": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e"
+      },
+      {
+        "command": "SG",
+        "line": 3,
+        "path": "SG",
+        "status": "imported",
+        "target_name": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282"
+      }
+    ],
+    "startup_sequence_lines": [
+      "Stack 1600",
+      "SGload",
+      "SG",
+      ""
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
+      "imported_at": "2026-05-13T19:57:20+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_starglider-1987-rainbird/targets/amiga_hunk_sg_9832b282",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
+      "imported_at": "2026-05-13T19:57:20+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_starglider-1987-rainbird/targets/amiga_hunk_sgload_ee6b361e",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_starglider-1987-rainbird__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:20+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_starglider-1987-rainbird/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

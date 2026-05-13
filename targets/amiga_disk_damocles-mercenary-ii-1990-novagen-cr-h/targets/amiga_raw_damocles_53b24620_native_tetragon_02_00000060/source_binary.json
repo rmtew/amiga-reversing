@@ -1,9 +1,0 @@
-{
-  "address_model": "runtime_absolute",
-  "code_start_offset": 361604,
-  "entrypoint": 365700,
-  "kind": "raw_binary",
-  "load_address": 4096,
-  "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
-  "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_damocles_53b24620_native_tetragon_02_00000060/binary.bin"
-}

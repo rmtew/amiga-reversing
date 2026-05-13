@@ -1,6 +1,6 @@
 {
   "disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
-  "disk_path": "bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+  "disk_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
   "entry_path": "menu",
   "kind": "disk_entry",
   "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h"

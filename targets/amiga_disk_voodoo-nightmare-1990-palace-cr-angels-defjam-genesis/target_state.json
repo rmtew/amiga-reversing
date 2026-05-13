@@ -1,0 +1,49 @@
+{
+  "candidate_rejects": [],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:20+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "run",
+        "line": 1,
+        "path": "run",
+        "status": "imported",
+        "target_name": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190"
+      }
+    ],
+    "startup_sequence_lines": [
+      "run"
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
+      "imported_at": "2026-05-13T19:57:20+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis/targets/amiga_hunk_run_df6ad190",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:20+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

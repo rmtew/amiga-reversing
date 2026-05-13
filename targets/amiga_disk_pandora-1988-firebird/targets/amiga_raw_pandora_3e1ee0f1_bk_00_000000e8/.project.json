@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-05-08T05:19:19.072729+00:00",
+  "created_at": "2026-05-13T19:57:06.588227+00:00",
   "origin": {
     "child_entry_path": "pandora::bk_000000e8",
     "codec_id": "bk",
@@ -8,7 +8,7 @@
     "entrypoint": 131072,
     "kind": "derived_decompressed_payload",
     "load_address": 131072,
-    "packed_file_offset": 268,
+    "packed_file_offset": null,
     "packed_section_offset": 232,
     "packed_size": 189000,
     "parent_disk_id": "pandora-1988-firebird",
@@ -26,5 +26,5 @@
     "target_type": "raw_binary"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-11T22:58:44.987576+00:00"
+  "updated_at": "2026-05-13T19:57:06.717645+00:00"
 }

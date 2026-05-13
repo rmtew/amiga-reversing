@@ -1,0 +1,49 @@
+{
+  "candidate_rejects": [],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:00+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "Crystal",
+        "line": 1,
+        "path": "Crystal",
+        "status": "imported",
+        "target_name": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c"
+      }
+    ],
+    "startup_sequence_lines": [
+      "Crystal strikes again!"
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c",
+      "imported_at": "2026-05-13T19:57:00+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen/targets/amiga_hunk_crystal_4d67d97c",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:00+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 {
-  "created_at": "2026-05-04T18:33:45.789210+00:00",
+  "created_at": "2026-05-13T19:57:20.426480+00:00",
   "origin": {
     "kind": "disk_child",
     "parent_disk_id": "voodoo-nightmare-1990-palace-cr-angels-defjam-genesis",
-    "source_path": "bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Voodoo Nightmare (1990)(Palace)[cr Angels - Defjam - Genesis].adf",
     "target_role": "bootblock",
     "target_type": "bootblock"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-11T22:49:01.611381+00:00"
+  "updated_at": "2026-05-13T19:57:20.435654+00:00"
 }

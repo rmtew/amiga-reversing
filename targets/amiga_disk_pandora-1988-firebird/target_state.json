@@ -1,0 +1,82 @@
+{
+  "candidate_rejects": [],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:06+00:00",
+  "payload_nodes": [
+    {
+      "codec": "bk",
+      "crc32": null,
+      "decode_status": "ok",
+      "decoded_size": 376832,
+      "id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "media_hint": "raw",
+      "origin": "auto",
+      "parent_file_id": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+      "path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "reason_code": null,
+      "reason_detail": null,
+      "source_file_offset": null,
+      "source_hunk_offset": 232,
+      "source_offset": 232,
+      "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf",
+      "source_size": 189000,
+      "state": "added"
+    }
+  ],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "pandora",
+        "line": 3,
+        "path": "pandora",
+        "status": "imported",
+        "target_name": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1"
+      }
+    ],
+    "startup_sequence_lines": [
+      "echo \"                                             \"",
+      "wait 5",
+      "pandora",
+      ""
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+      "imported_at": "2026-05-13T19:57:06+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_hunk_pandora_3e1ee0f1",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_pandora-1988-firebird__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:06+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "imported_at": "2026-05-13T19:57:06+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "candidate_rejects": [
+    {
+      "command": "c:setpatch",
+      "line": 6,
+      "path": "c:setpatch",
+      "reason_code": "filtered_dir",
+      "reason_detail": "Startup token was not importable for startup-sequence auto import"
+    },
+    {
+      "command": "binddrivers",
+      "line": 7,
+      "path": "binddrivers",
+      "reason_code": "filtered_dir",
+      "reason_detail": "Startup token was not importable for startup-sequence auto import"
+    },
+    {
+      "command": "endcli",
+      "line": 13,
+      "path": "endcli",
+      "reason_code": "filtered_dir",
+      "reason_detail": "Startup token was not importable for startup-sequence auto import"
+    }
+  ],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:56:59+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "No valid startup command candidates were discovered",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "c:setpatch",
+        "line": 6,
+        "path": "c:setpatch",
+        "reason_code": "filtered_dir",
+        "reason_detail": "Startup token was not importable for startup-sequence auto import",
+        "status": "rejected"
+      },
+      {
+        "command": "binddrivers",
+        "line": 7,
+        "path": "binddrivers",
+        "reason_code": "filtered_dir",
+        "reason_detail": "Startup token was not importable for startup-sequence auto import",
+        "status": "rejected"
+      },
+      {
+        "command": "endcli",
+        "line": 13,
+        "path": "endcli",
+        "reason_code": "filtered_dir",
+        "reason_detail": "Startup token was not importable for startup-sequence auto import",
+        "status": "rejected"
+      }
+    ],
+    "startup_sequence_lines": [
+      ";Carrier Command",
+      ";1994 UK Kixx version",
+      ";",
+      ";This disk compiled August 2000",
+      ";",
+      "c:setpatch >nil:",
+      "binddrivers",
+      "echo",
+      "echo \"Carrier Command by Realtime Games\"",
+      "echo",
+      "echo \"Loading Workbench...\"",
+      "loadwb delay",
+      "endcli >nil:",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "status": "empty"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:56:59+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

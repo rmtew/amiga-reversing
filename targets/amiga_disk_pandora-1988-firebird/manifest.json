@@ -7693,14 +7693,14 @@
   "disk_id": "pandora-1988-firebird",
   "imported_targets": [
     {
-      "binary_path": "bin/uploads/Pandora (1988)(Firebird).adf::bootblock",
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::bootblock",
       "entry_path": "bootblock",
       "target_name": "amiga_disk_pandora-1988-firebird__amiga_raw_bootblock",
       "target_path": "targets/amiga_disk_pandora-1988-firebird/targets/amiga_raw_bootblock",
       "target_type": "bootblock"
     },
     {
-      "binary_path": "bin/uploads/Pandora (1988)(Firebird).adf::pandora",
+      "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf::pandora",
       "derived_targets": [
         {
           "codec_id": "bk",
@@ -7734,7 +7734,7 @@
         "kind": "decompressed_payload",
         "kind_id": 1,
         "load_address": 131072,
-        "packed_file_offset": 268,
+        "packed_file_offset": null,
         "packed_section_offset": 232,
         "packed_size": 189000,
         "parent_entry_path": "pandora",
@@ -7754,6 +7754,6 @@
     }
   ],
   "schema_version": 1,
-  "source_path": "bin/uploads/Pandora (1988)(Firebird).adf",
+  "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf",
   "source_sha256": "7f225192a177d9c06c54a99210de801ab0c840d4773bd99031aed5c7741a1c95"
 }

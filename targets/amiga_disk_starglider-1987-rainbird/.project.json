@@ -1,13 +1,13 @@
 {
-  "created_at": "2026-05-04T09:24:38.845511+00:00",
+  "created_at": "2026-05-13T19:57:17.525843+00:00",
   "origin": {
     "filename": "Starglider (1987)(Rainbird).adf",
     "kind": "user_upload",
     "platform": "amiga-disk",
     "sha256": "6743471cdcf8ce5556904ed4c889a0e3431cec03138dcec64c524fa74348a144",
     "size": 901120,
-    "source_path": "bin/Starglider (1987)(Rainbird).adf"
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Starglider (1987)(Rainbird).adf"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-11T22:49:00.729101+00:00"
+  "updated_at": "2026-05-13T19:57:20.404858+00:00"
 }

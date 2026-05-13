@@ -13,6 +13,7 @@
     "rootblock_ptr": 880
   },
   "custom_structs": [],
+  "entry_comments": [],
   "entry_register_seeds": [
     {
       "context_name": null,

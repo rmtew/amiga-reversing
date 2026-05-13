@@ -1,0 +1,28 @@
+{
+  "candidate_rejects": [],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:00+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "No DOS filesystem available for startup-sequence import discovery",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [],
+    "status": "missing"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:00+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_midwinter-1990-rainbird/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

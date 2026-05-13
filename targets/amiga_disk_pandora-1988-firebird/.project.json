@@ -1,20 +1,13 @@
 {
-  "created_at": "2026-05-08T03:04:33.985294+00:00",
+  "created_at": "2026-05-13T19:57:00.379322+00:00",
   "origin": {
-    "container_relpath": "resources/platform_amiga/Pandora (1988)(Firebird).zip",
-    "corpus_target_id": "platform_disk_manifest:amiga-disk/7f225192a177",
-    "display_name": "Pandora (1988)(Firebird).zip",
     "filename": "Pandora (1988)(Firebird).adf",
-    "import_mode": "disk",
-    "kind": "corpus_disk",
-    "member_name": "Pandora (1988)(Firebird).adf",
+    "kind": "user_upload",
     "platform": "amiga-disk",
     "sha256": "7f225192a177d9c06c54a99210de801ab0c840d4773bd99031aed5c7741a1c95",
     "size": 901120,
-    "source_id": "amiga-disk/7f225192a177",
-    "source_manifest": "platform_disk_manifest",
-    "source_relpath": "resources/platform_amiga/Pandora (1988)(Firebird).zip"
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/uploads/Pandora (1988)(Firebird).adf"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-11T22:58:44.997269+00:00"
+  "updated_at": "2026-05-13T19:57:06.733066+00:00"
 }

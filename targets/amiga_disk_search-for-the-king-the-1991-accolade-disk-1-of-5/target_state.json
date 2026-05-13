@@ -1,0 +1,67 @@
+{
+  "candidate_rejects": [
+    {
+      "command": "stack",
+      "line": 2,
+      "path": "stack",
+      "reason_code": "filtered_dir",
+      "reason_detail": "Startup token was not importable for startup-sequence auto import"
+    }
+  ],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-13T19:57:17+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "stack",
+        "line": 2,
+        "path": "stack",
+        "reason_code": "filtered_dir",
+        "reason_detail": "Startup token was not importable for startup-sequence auto import",
+        "status": "rejected"
+      },
+      {
+        "command": "king",
+        "line": 3,
+        "path": "king",
+        "status": "imported",
+        "target_name": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec"
+      }
+    ],
+    "startup_sequence_lines": [
+      "loadwb",
+      "stack 20000",
+      "king"
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
+      "imported_at": "2026-05-13T19:57:17+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_hunk_king_481902ec",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
+      "imported_at": "2026-05-13T19:57:17+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}

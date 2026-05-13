@@ -39,7 +39,7 @@
     "kind": "decompressed_payload",
     "kind_id": 1,
     "load_address": 131072,
-    "packed_file_offset": 268,
+    "packed_file_offset": null,
     "packed_section_offset": 232,
     "packed_size": 189000,
     "parent_entry_path": "pandora",
