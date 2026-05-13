@@ -102,15 +102,43 @@ def _test_navigation_payload(
         "app-slot-suggestions": [],
         "app-slot-api-args": [],
         "labels": [],
+        "equates": [],
         "comments": [],
     }
     app_slots: dict[str, dict[str, object]] = {}
     labels: dict[str, dict[str, object]] = {}
+    equates: dict[str, dict[str, object]] = {}
     api_calls_by_row_id = api_calls_by_row_id or {}
     for row_index, row in enumerate(rows):
+        code = _test_row_code(row)
+        parts = code.split(None, 2)
+        if len(parts) >= 2 and parts[1].upper() == "EQU":
+            symbol = parts[0]
+            operand = parts[2] if len(parts) > 2 else ""
+            equates[symbol] = {
+                "addr": row.addr,
+                "row_index": row_index,
+                "summary": f"{symbol} EQU{f' {operand}' if operand else ''}",
+                "match_text": code,
+                "stable_key": row.stable_key,
+                "symbol": symbol,
+                "operand": operand,
+                "ref_count": 1,
+                "access_counts": {"definition": 1},
+                "refs": [
+                    {
+                        "addr": row.addr,
+                        "row_index": row_index,
+                        "summary": code,
+                        "match_text": code,
+                        "stable_key": row.stable_key,
+                        "symbol": symbol,
+                        "access": "definition",
+                    }
+                ],
+            }
         if row.addr is None:
             continue
-        code = _test_row_code(row)
         base_entry: dict[str, object] = {
             "addr": row.addr,
             "row_index": row_index,
@@ -184,21 +212,31 @@ def _test_navigation_payload(
             base_entry["hunk_index"] = row.source_context.hunk_index
         for operand in row.operand_parts:
             symbol = operand.metadata.symbol if isinstance(operand.metadata, SymbolOperandMetadata) else None
-            if not symbol or symbol not in labels:
+            if not symbol:
                 continue
-            label_entry = labels[symbol]
-            cast(list[dict[str, object]], label_entry["refs"]).append(
-                {**base_entry, "symbol": symbol, "access": "reference"}
-            )
-            label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
-            access_counts = cast(dict[str, int], label_entry["access_counts"])
-            access_counts["reference"] = access_counts.get("reference", 0) + 1
+            if symbol in labels:
+                label_entry = labels[symbol]
+                cast(list[dict[str, object]], label_entry["refs"]).append(
+                    {**base_entry, "symbol": symbol, "access": "reference"}
+                )
+                label_entry["ref_count"] = cast(int, label_entry["ref_count"]) + 1
+                access_counts = cast(dict[str, int], label_entry["access_counts"])
+                access_counts["reference"] = access_counts.get("reference", 0) + 1
+            if symbol in equates:
+                equate_entry = equates[symbol]
+                cast(list[dict[str, object]], equate_entry["refs"]).append(
+                    {**base_entry, "symbol": symbol, "access": "reference"}
+                )
+                equate_entry["ref_count"] = cast(int, equate_entry["ref_count"]) + 1
+                access_counts = cast(dict[str, int], equate_entry["access_counts"])
+                access_counts["reference"] = access_counts.get("reference", 0) + 1
     for label_entry in labels.values():
         cast(list[dict[str, object]], label_entry["refs"]).sort(
             key=lambda entry: cast(int, entry.get("row_index", -1))
         )
     groups["app-slots"] = list(app_slots.values())
     groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
+    groups["equates"] = sorted(equates.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     return {
         "analysis_generation": "full" if project_name in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE else None,
         "total_rows": len(rows),
@@ -1977,6 +2015,97 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
         assert page.evaluate(
             "document.querySelector('.navigation-item.active')?.textContent.includes('jsr target.l')"
         )
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
+        ) == "R"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_equate_navigation_lists_refs_and_source_links(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_equate_navigation")
+    symbol = "disk_buffer_00067D00"
+    rows = [
+        ListingRow(
+            row_id="equ",
+            kind="directive",
+            text=f"{symbol} EQU $67D00\n",
+            stable_key="equate-def",
+        ),
+        ListingRow(
+            row_id="ref",
+            kind="instruction",
+            text=f"lea.l {symbol},a0\n",
+            stable_key="equate-ref",
+            addr=0x20,
+            opcode_or_directive="lea.l",
+            operand_text=f"{symbol},a0",
+            operand_parts=(
+                SemanticOperand(
+                    kind="absolute",
+                    text=symbol,
+                    metadata=SymbolOperandMetadata(symbol),
+                ),
+                SemanticOperand(kind="register", text="a0", register="a0"),
+            ),
+        ),
+    ]
+    disasm_server._ASYNC_JOBS.clear()
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
+        page.wait_for_selector(f".listing-equate-definition[data-equate-symbol='{symbol}']")
+        page.wait_for_selector(f".listing-equate-reference[data-equate-symbol='{symbol}']")
+        page.evaluate(
+            """
+            state.navigation.entries = null;
+            renderVirtualListingWindow(state.project, {
+              rows: state.listingRows,
+              start: state.virtualListing.start,
+              end: state.virtualListing.end,
+              total_rows: state.virtualListing.totalRows,
+              analysis_generation: state.virtualListing.generation,
+            }, true);
+            """
+        )
+        page.wait_for_selector(f".listing-equate-reference[data-equate-symbol='{symbol}']")
+
+        page.click("#open-navigation")
+        page.wait_for_selector("#navigation-overlay")
+        page.select_value("[data-navigation-class='1']", "equates")
+        page.wait_for_expression(
+            f"document.querySelector('.navigation-item')?.textContent.includes({json.dumps(symbol + ' EQU $67D00')})"
+        )
+        assert page.evaluate("document.querySelector('.navigation-summary')?.textContent") == "1 entries"
+
+        page.click(f".listing-equate-definition[data-equate-symbol='{symbol}']")
+        page.wait_for_expression(
+            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 refs')}"
+        )
+        assert page.evaluate("document.querySelector('[data-navigation-class=\"1\"]')?.value") == "equates"
+        assert page.evaluate(
+            "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
+        ) == "D"
+        page.click("[data-navigation-equates-root='1']")
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('EQU $67D00')")
+
+        page.click(f".listing-equate-reference[data-equate-symbol='{symbol}']")
+        page.wait_for_expression(
+            f"document.querySelector('.navigation-summary')?.textContent === {json.dumps(symbol + ': 2 refs')}"
+        )
+        assert page.evaluate("document.querySelector('.navigation-item.active')?.textContent.includes('lea.l')")
         assert page.evaluate(
             "document.querySelector('.navigation-item.active .navigation-access-badge')?.textContent"
         ) == "R"

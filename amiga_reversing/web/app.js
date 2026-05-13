@@ -77,7 +77,10 @@ const state = {
     selectedIndex: 0,
     appSlotSymbol: null,
     labelSymbol: null,
+    equateSymbol: null,
     entries: null,
+    equateNameCacheRows: null,
+    equateNameCache: null,
     appSlotAnalysis: null,
     generation: null,
     originEntry: null,
@@ -3618,6 +3621,17 @@ function parseGlobalRsEquRow(row) {
   };
 }
 
+function equateDefinitionFromRow(row) {
+  const parsed = parseGlobalRsEquRow(row);
+  if (!parsed || parsed.directive.toUpperCase() !== "EQU" || !parsed.label) {
+    return null;
+  }
+  return {
+    symbol: parsed.label,
+    operand: parsed.operand,
+  };
+}
+
 function labelNameFromText(text) {
   const trimmed = String(text || "").trim();
   if (!trimmed.endsWith(":")) {
@@ -3652,6 +3666,20 @@ function labelNamesFromNavigation() {
     const text = String(entry.summary || entry.matchText || entry.match_text || "");
     return text.replace(/:$/, "");
   }).filter(Boolean));
+}
+
+function equateNamesFromNavigation() {
+  if (!state.navigation.entries && state.navigation.equateNameCacheRows === state.listingRows && state.navigation.equateNameCache) {
+    return state.navigation.equateNameCache;
+  }
+  const groups = state.navigation.entries || buildNavigationEntries(state.listingRows || []);
+  const equates = groups.equates || [];
+  const names = new Set(equates.map((entry) => String(entry.symbol || "")).filter(Boolean));
+  if (!state.navigation.entries) {
+    state.navigation.equateNameCacheRows = state.listingRows;
+    state.navigation.equateNameCache = names;
+  }
+  return names;
 }
 
 function isListingSymbolChar(char) {
@@ -3728,10 +3756,15 @@ function renderListingLabelRefsHtml(row, text, globalRowIndex = null) {
   }
   let cursor = 0;
   let html = "";
+  const equateNames = equateNamesFromNavigation();
   ranges.forEach((range) => {
     html += escapeHtml(source.slice(cursor, range.start));
     const rowIndex = Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : "";
-    html += `<button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(range.symbol)}" data-symbol-role="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+    if (equateNames.has(range.symbol)) {
+      html += `<button class="listing-symbol-link listing-symbol-reference listing-equate-reference" type="button" data-equate-symbol="${escapeHtml(range.symbol)}" data-equate-access="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+    } else {
+      html += `<button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(range.symbol)}" data-symbol-role="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+    }
     cursor = range.end;
   });
   html += escapeHtml(source.slice(cursor));
@@ -3793,7 +3826,9 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
     const typedClass = typedInfo ? " listing-app-slot-typed" : "";
     const labelHtml = isAppSlotSymbolName(globalRsEqu.label)
       ? `<button class="listing-symbol-link listing-global-label listing-app-slot-definition${typedClass}" type="button" data-app-slot-symbol="${escapeHtml(globalRsEqu.label)}"${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
-      : `<span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span>`;
+      : (globalRsEqu.directive.toUpperCase() === "EQU" && globalRsEqu.label
+        ? `<button class="listing-symbol-link listing-global-label listing-equate-definition" type="button" data-equate-symbol="${escapeHtml(globalRsEqu.label)}" data-equate-access="definition"${Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : ""}${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
+        : `<span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span>`);
     return `<span class="listing-global-structured">${labelHtml}<span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
   }
   const code = renderListingCode(row);
@@ -4652,6 +4687,76 @@ function addLabelNavigationRef(labels, row, rowIndex, symbol) {
   label.access_counts.reference = (label.access_counts.reference || 0) + 1;
 }
 
+function addEquateNavigationEntry(equates, row, rowIndex) {
+  const equate = equateDefinitionFromRow(row);
+  if (!equate) {
+    return;
+  }
+  const hunkIndex = rowHunkIndex(row);
+  const stableKey = row.stable_key ?? row.stableKey ?? null;
+  const matchText = renderListingCode(row);
+  equates.set(equate.symbol, {
+    symbol: equate.symbol,
+    operand: equate.operand,
+    summary: `${equate.symbol} EQU${equate.operand ? ` ${equate.operand}` : ""}`,
+    matchText,
+    match_text: matchText,
+    addr: row.addr ?? null,
+    rowIndex,
+    row_index: rowIndex,
+    hunkIndex,
+    hunk_index: hunkIndex,
+    stableKey,
+    stable_key: stableKey,
+    ref_count: 1,
+    access_counts: {definition: 1},
+    refs: [{
+      symbol: equate.symbol,
+      addr: row.addr ?? null,
+      rowIndex,
+      row_index: rowIndex,
+      hunkIndex,
+      hunk_index: hunkIndex,
+      stableKey,
+      stable_key: stableKey,
+      summary: matchText.trim() || equate.symbol,
+      matchText,
+      match_text: matchText,
+      access: "definition",
+    }],
+  });
+}
+
+function addEquateNavigationRef(equates, row, rowIndex, symbol) {
+  const equate = equates.get(symbol);
+  if (!equate) {
+    return;
+  }
+  const ownDefinition = equateDefinitionFromRow(row);
+  if (ownDefinition?.symbol === symbol) {
+    return;
+  }
+  const hunkIndex = rowHunkIndex(row);
+  const stableKey = row.stable_key ?? row.stableKey ?? null;
+  const matchText = renderListingCode(row);
+  equate.refs.push({
+    symbol,
+    addr: row.addr ?? null,
+    rowIndex,
+    row_index: rowIndex,
+    hunkIndex,
+    hunk_index: hunkIndex,
+    stableKey,
+    stable_key: stableKey,
+    summary: matchText.trim() || symbol,
+    matchText,
+    match_text: matchText,
+    access: "reference",
+  });
+  equate.ref_count += 1;
+  equate.access_counts.reference = (equate.access_counts.reference || 0) + 1;
+}
+
 function sortedAppSlotNavigationEntries(appSlots) {
   return Array.from(appSlots.values())
     .map((slot) => {
@@ -4668,6 +4773,13 @@ function sortedLabelNavigationEntries(labels) {
   }).sort((left, right) => Number(left.row_index) - Number(right.row_index) || left.symbol.localeCompare(right.symbol));
 }
 
+function sortedEquateNavigationEntries(equates) {
+  return Array.from(equates.values()).map((equate) => {
+    equate.refs.sort((left, right) => Number(left.row_index) - Number(right.row_index));
+    return equate;
+  }).sort((left, right) => Number(left.row_index) - Number(right.row_index) || left.symbol.localeCompare(right.symbol));
+}
+
 function buildNavigationEntries(rows) {
   const groups = {
     "repro-issues": [],
@@ -4681,12 +4793,15 @@ function buildNavigationEntries(rows) {
     "app-slot-field-gaps": [],
     "app-slot-api-args": [],
     "labels": [],
+    "equates": [],
     "comments": [],
   };
   const appSlots = new Map();
   const labels = new Map();
+  const equates = new Map();
   const typedDataSeen = new Set();
   rows.forEach((row, rowIndex) => {
+    addEquateNavigationEntry(equates, row, rowIndex);
     if (row.addr === null || row.addr === undefined) {
       return;
     }
@@ -4695,6 +4810,7 @@ function buildNavigationEntries(rows) {
     }
   });
   rows.forEach((row, rowIndex) => {
+    rowOperandSymbolNames(row).forEach((symbol) => addEquateNavigationRef(equates, row, rowIndex, symbol));
     if (row.addr === null || row.addr === undefined) {
       return;
     }
@@ -4806,6 +4922,7 @@ function buildNavigationEntries(rows) {
   });
   groups["app-slots"] = sortedAppSlotNavigationEntries(appSlots);
   groups.labels = sortedLabelNavigationEntries(labels);
+  groups.equates = sortedEquateNavigationEntries(equates);
   return groups;
 }
 
@@ -4818,6 +4935,10 @@ function currentNavigationEntries() {
   if (state.navigation.selectedClass === "labels" && state.navigation.labelSymbol) {
     const label = (groups.labels || []).find((entry) => entry.symbol === state.navigation.labelSymbol);
     return label?.refs || [];
+  }
+  if (state.navigation.selectedClass === "equates" && state.navigation.equateSymbol) {
+    const equate = (groups.equates || []).find((entry) => entry.symbol === state.navigation.equateSymbol);
+    return equate?.refs || [];
   }
   return groups[state.navigation.selectedClass] || [];
 }
@@ -4838,6 +4959,12 @@ async function loadNavigationEntries(projectId) {
     !((state.navigation.entries?.labels || []).some((entry) => entry.symbol === state.navigation.labelSymbol))
   ) {
     state.navigation.labelSymbol = null;
+  }
+  if (
+    state.navigation.equateSymbol &&
+    !((state.navigation.entries?.equates || []).some((entry) => entry.symbol === state.navigation.equateSymbol))
+  ) {
+    state.navigation.equateSymbol = null;
   }
   return state.navigation.entries;
 }
@@ -4928,6 +5055,10 @@ function labelAccessBadgeLabel(access) {
   return LABEL_ACCESS_LABELS[access] || access;
 }
 
+function navigationUsesLabelAccessBadges() {
+  return state.navigation.selectedClass === "labels" || state.navigation.selectedClass === "equates";
+}
+
 function renderNavigationAccessBadges(entry) {
   const badges = [];
   const accessCounts = entry.access_counts || entry.accessCounts || null;
@@ -4936,8 +5067,8 @@ function renderNavigationAccessBadges(entry) {
     badges.push(`${refCount} ref${refCount === 1 ? "" : "s"}`);
   }
   if (accessCounts && typeof accessCounts === "object") {
-    const accessOrder = state.navigation.selectedClass === "labels" ? LABEL_ACCESS_ORDER : APP_SLOT_ACCESS_ORDER;
-    const labelForAccess = state.navigation.selectedClass === "labels" ? labelAccessBadgeLabel : appSlotAccessBadgeLabel;
+    const accessOrder = navigationUsesLabelAccessBadges() ? LABEL_ACCESS_ORDER : APP_SLOT_ACCESS_ORDER;
+    const labelForAccess = navigationUsesLabelAccessBadges() ? labelAccessBadgeLabel : appSlotAccessBadgeLabel;
     accessOrder.forEach((access) => {
       const count = Number(accessCounts[access]);
       if (Number.isFinite(count) && count > 0) {
@@ -4945,7 +5076,7 @@ function renderNavigationAccessBadges(entry) {
       }
     });
   } else if (typeof entry.access === "string") {
-    badges.push(state.navigation.selectedClass === "labels" ? labelAccessBadgeLabel(entry.access) : appSlotAccessBadgeLabel(entry.access));
+    badges.push(navigationUsesLabelAccessBadges() ? labelAccessBadgeLabel(entry.access) : appSlotAccessBadgeLabel(entry.access));
   }
   if (state.navigation.selectedClass === "app-slots" && entry.width_counts && typeof entry.width_counts === "object") {
     [["byte", "B"], ["word", "W"], ["long", "L"], ["unknown", "?"]].forEach(([width, label]) => {
@@ -5014,6 +5145,13 @@ function currentLabelNavigationSymbol() {
   return state.navigation.labelSymbol || null;
 }
 
+function currentEquateNavigationSymbol() {
+  if (state.navigation.selectedClass !== "equates") {
+    return null;
+  }
+  return state.navigation.equateSymbol || null;
+}
+
 function navigationSummaryText(entries) {
   const appSlotSymbol = currentAppSlotNavigationSymbol();
   if (appSlotSymbol) {
@@ -5022,6 +5160,10 @@ function navigationSummaryText(entries) {
   const labelSymbol = currentLabelNavigationSymbol();
   if (labelSymbol) {
     return `${labelSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
+  }
+  const equateSymbol = currentEquateNavigationSymbol();
+  if (equateSymbol) {
+    return `${equateSymbol}: ${entries.length} ref${entries.length === 1 ? "" : "s"}`;
   }
   if (state.navigation.selectedClass === "app-slots" && state.navigation.appSlotAnalysis) {
     const analysis = state.navigation.appSlotAnalysis;
@@ -5050,11 +5192,19 @@ function labelEntriesFromGroups(groups) {
   return groups?.labels || [];
 }
 
+function equateEntriesFromGroups(groups) {
+  return groups?.equates || [];
+}
+
 function appSlotEntryIndex(entries, symbolName) {
   return entries.findIndex((entry) => entry.symbol === symbolName);
 }
 
 function labelEntryIndex(entries, symbolName) {
+  return entries.findIndex((entry) => entry.symbol === symbolName);
+}
+
+function equateEntryIndex(entries, symbolName) {
   return entries.findIndex((entry) => entry.symbol === symbolName);
 }
 
@@ -5096,6 +5246,8 @@ function labelRefEntryIndex(refs, rowIndex, access) {
   }
   return refs.length ? 0 : -1;
 }
+
+const equateRefEntryIndex = labelRefEntryIndex;
 
 function focusVisibleListingRowByIndex(rowIndex) {
   const viewport = document.getElementById("listing-viewport");
@@ -5163,27 +5315,80 @@ async function selectLabelNavigationRef(projectId, symbolName, rowIndex = null, 
   focusVisibleListingRowByIndex(rowIndex);
 }
 
-function handleListingSymbolButtonAction(projectId, button, event) {
+async function selectEquateNavigationRef(projectId, symbolName, rowIndex = null, access = null) {
+  const symbol = String(symbolName || "").trim();
+  if (!symbol) {
+    return;
+  }
+  const groups = await ensureNavigationEntries(projectId);
+  const entries = equateEntriesFromGroups(groups);
+  const equateIndex = equateEntryIndex(entries, symbol);
+  if (equateIndex < 0) {
+    return;
+  }
+  const refs = entries[equateIndex].refs || [];
+  const refIndex = equateRefEntryIndex(refs, rowIndex, access);
+  if (!state.navigation.overlayOpen) {
+    state.navigation.originEntry = captureViewportAnchor();
+  }
+  state.navigation.overlayOpen = true;
+  state.navigation.selectedClass = "equates";
+  state.navigation.equateSymbol = symbol;
+  state.navigation.selectedIndex = Math.max(0, refIndex);
+  state.navigation.currentPreviewEntry = refs[state.navigation.selectedIndex] || null;
+  renderNavigationOverlay();
+  syncNavigationListFocus();
+  focusVisibleListingRowByIndex(rowIndex);
+}
+
+async function jumpToListingEquate(projectId, symbolName) {
+  const symbol = String(symbolName || "").trim();
+  if (!symbol) {
+    return;
+  }
+  const groups = await ensureNavigationEntries(projectId);
+  const equates = equateEntriesFromGroups(groups);
+  const target = equates.find((entry) => entry.symbol === symbol);
+  if (!target) {
+    return;
+  }
+  await jumpToListingIndex(
+    projectId,
+    target.rowIndex ?? target.row_index,
+    target.addr,
+    target.matchText || target.match_text || `${symbol} EQU`,
+    target.stableKey || target.stable_key || null,
+  );
+}
+
+async function handleListingSymbolButtonAction(projectId, button, event) {
   const symbol = button?.dataset?.symbolName || "";
   if (!symbol) {
     return false;
   }
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const groups = await ensureNavigationEntries(projectId);
+  const labelExists = labelEntryIndex(labelEntriesFromGroups(groups), symbol.replace(/:$/, "")) >= 0;
+  const equateExists = equateEntryIndex(equateEntriesFromGroups(groups), symbol) >= 0;
   const role = button.dataset.symbolRole || "";
   const rowIndex = button.dataset.rowIndex ?? null;
-  if (role === "definition") {
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
+  if (role === "definition" && labelExists) {
     void selectLabelNavigationRef(projectId, symbol, rowIndex, "definition");
     return true;
   }
-  if (role === "reference" && (event?.ctrlKey || event?.metaKey)) {
-    event.preventDefault();
-    event.stopPropagation?.();
+  if (role === "reference" && (event?.ctrlKey || event?.metaKey) && labelExists) {
     void selectLabelNavigationRef(projectId, symbol, rowIndex, "reference");
     return true;
   }
-  event?.preventDefault?.();
-  event?.stopPropagation?.();
+  if (equateExists) {
+    if (role === "reference" && (event?.ctrlKey || event?.metaKey)) {
+      void selectEquateNavigationRef(projectId, symbol, rowIndex, "reference");
+    } else {
+      await jumpToListingEquate(projectId, symbol);
+    }
+    return true;
+  }
   void jumpToListingSymbol(projectId, symbol);
   return true;
 }
@@ -5194,6 +5399,9 @@ function renderNavigationBack() {
   }
   if (currentLabelNavigationSymbol()) {
     return '<button type="button" class="navigation-back-to-slots" data-navigation-labels-root="1">All Labels</button>';
+  }
+  if (currentEquateNavigationSymbol()) {
+    return '<button type="button" class="navigation-back-to-slots" data-navigation-equates-root="1">All Equates</button>';
   }
   return "";
 }
@@ -5240,6 +5448,7 @@ function renderNavigationOverlay() {
     ["app-slot-api-args", "App API Args"],
     ["app-slot-suggestions", "App Suggestions"],
     ["labels", "Labels"],
+    ["equates", "Equates"],
     ["comments", "Comments"],
   ];
   const html = `
@@ -5351,6 +5560,7 @@ async function setNavigationClass(value) {
   state.navigation.selectedIndex = 0;
   state.navigation.appSlotSymbol = null;
   state.navigation.labelSymbol = null;
+  state.navigation.equateSymbol = null;
   state.navigation.currentPreviewEntry = null;
   renderNavigationOverlay();
   syncNavigationListFocus();
@@ -5437,6 +5647,15 @@ function bindNavigationOverlay() {
     const labelIndex = labelEntryIndex(entries, state.navigation.labelSymbol || "");
     state.navigation.labelSymbol = null;
     state.navigation.selectedIndex = labelIndex >= 0 ? labelIndex : 0;
+    state.navigation.currentPreviewEntry = null;
+    renderNavigationOverlay();
+    syncNavigationListFocus();
+  });
+  overlay.querySelector("[data-navigation-equates-root='1']")?.addEventListener("click", () => {
+    const entries = equateEntriesFromGroups(state.navigation.entries || buildNavigationEntries(state.listingRows || []));
+    const equateIndex = equateEntryIndex(entries, state.navigation.equateSymbol || "");
+    state.navigation.equateSymbol = null;
+    state.navigation.selectedIndex = equateIndex >= 0 ? equateIndex : 0;
     state.navigation.currentPreviewEntry = null;
     renderNavigationOverlay();
     syncNavigationListFocus();
@@ -5617,6 +5836,27 @@ function bindListingEditors(projectId, rows) {
           button.dataset.rowIndex ?? null,
           button.dataset.appSlotOperandIndex ?? null,
           button.dataset.appSlotAccess ?? null,
+        );
+      }
+    });
+  });
+  viewport.querySelectorAll("[data-equate-symbol]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void selectEquateNavigationRef(
+        projectId,
+        button.dataset.equateSymbol || "",
+        button.dataset.rowIndex ?? null,
+        button.dataset.equateAccess ?? null,
+      );
+    });
+    button.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void selectEquateNavigationRef(
+          projectId,
+          button.dataset.equateSymbol || "",
+          button.dataset.rowIndex ?? null,
+          button.dataset.equateAccess ?? null,
         );
       }
     });
@@ -6790,6 +7030,7 @@ async function renderProject(projectId) {
   state.navigation.generation = null;
   state.navigation.appSlotSymbol = null;
   state.navigation.labelSymbol = null;
+  state.navigation.equateSymbol = null;
   state.navigation.originEntry = null;
   state.navigation.currentPreviewEntry = null;
   state.navigation.currentLocation = null;

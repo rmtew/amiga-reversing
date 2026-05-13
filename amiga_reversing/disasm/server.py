@@ -461,6 +461,7 @@ def _overlay_listing_navigation_payload(
         "app-slot-api-args",
         "manual-review",
         "labels",
+        "equates",
         "comments",
     ):
         groups.setdefault(group_name, [])
