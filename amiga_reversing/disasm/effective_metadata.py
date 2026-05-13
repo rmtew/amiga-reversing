@@ -149,7 +149,7 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
 
 
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
-    projection = load_manual_projection(target_dir)
+    projection = load_manual_projection(target_dir, binary_source=resolve_target_binary_source(target_dir))
     required_seeds = tuple(
         seed for seed in projection.seeds
         if seed.get("mode") == "required" or seed.get("mode") is None
