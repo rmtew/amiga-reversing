@@ -140,6 +140,8 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
         comment=_manual_seed_comment(seed),
         type="data",
         subtype=_manual_seed_text(seed, "data_role"),
+        unit=_manual_seed_text(seed, "unit"),
+        encoding=_manual_seed_text(seed, "encoding"),
         seed_origin="manual_analysis",
         review_status="seeded",
         citation=_manual_seed_citation(seed),

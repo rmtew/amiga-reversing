@@ -2326,6 +2326,67 @@ def test_real_dll_local_offset_raw_binary_does_not_invent_runtime_load_range(tmp
     assert policy["runtime_entry_points"] == []
 
 
+def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "seeded-data.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(bytes.fromhex("4e75414243004e75"))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "seeded_entities": [
+                    {
+                        "addr": 2,
+                        "end": 6,
+                        "hunk": 0,
+                        "name": "manual_text",
+                        "comment": "Manual string seed",
+                        "type": "data",
+                        "subtype": "string",
+                        "unit": "byte",
+                        "encoding": "ascii",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "manual_action_log:text-table",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )["analysis_policy"]
+
+    assert len(policy["structured_data_items"]) == 1
+    item = policy["structured_data_items"][0]
+    assert item["section_index"] == 0
+    assert item["offset"] == 2
+    assert item["size"] == 4
+    assert item["kind"] == "string"
+    assert item["comment"] == "Manual string seed"
+    assert item["label"] == "manual_text"
+    assert item["field_type"] == "byte"
+    assert item["value_domain"] == "ascii"
+    assert item["semantic_role"] == "string"
+    assert item["semantic_role_flags"] == 128
+
+
 def test_project_source_benchmark_uses_facts_v2(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

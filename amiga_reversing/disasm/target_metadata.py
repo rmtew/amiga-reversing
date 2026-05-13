@@ -385,6 +385,8 @@ class SeededEntityMetadata:
     comment: str | None = None
     type: str | None = None
     subtype: str | None = None
+    unit: str | None = None
+    encoding: str | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededEntityMetadata:
@@ -401,6 +403,8 @@ class SeededEntityMetadata:
         comment = payload.get("comment")
         entity_type = payload.get("type")
         subtype = payload.get("subtype")
+        unit = payload.get("unit")
+        encoding = payload.get("encoding")
         assert isinstance(addr, int)
         assert isinstance(seed_origin, str)
         assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
@@ -416,6 +420,8 @@ class SeededEntityMetadata:
         assert comment is None or isinstance(comment, str)
         assert entity_type is None or isinstance(entity_type, str)
         assert subtype is None or isinstance(subtype, str)
+        assert unit is None or isinstance(unit, str)
+        assert encoding is None or isinstance(encoding, str)
         return cls(
             addr=addr,
             seed_origin=seed_origin,
@@ -430,6 +436,8 @@ class SeededEntityMetadata:
             comment=comment,
             type=entity_type,
             subtype=subtype,
+            unit=unit,
+            encoding=encoding,
         )
 
 @dataclass(frozen=True, slots=True)
@@ -917,6 +925,10 @@ def _merge_seeded_entity(manual: SeededEntityMetadata, seeded: SeededEntityMetad
         raise ValueError(f"Conflicting seeded entity type for {(manual.hunk, manual.addr)!r}")
     if manual.subtype is not None and seeded.subtype is not None and manual.subtype != seeded.subtype:
         raise ValueError(f"Conflicting seeded entity subtype for {(manual.hunk, manual.addr)!r}")
+    if manual.unit is not None and seeded.unit is not None and manual.unit != seeded.unit:
+        raise ValueError(f"Conflicting seeded entity unit for {(manual.hunk, manual.addr)!r}")
+    if manual.encoding is not None and seeded.encoding is not None and manual.encoding != seeded.encoding:
+        raise ValueError(f"Conflicting seeded entity encoding for {(manual.hunk, manual.addr)!r}")
     return SeededEntityMetadata(
         addr=manual.addr,
         hunk=manual.hunk,
@@ -925,6 +937,8 @@ def _merge_seeded_entity(manual: SeededEntityMetadata, seeded: SeededEntityMetad
         comment=manual.comment if manual.comment is not None else seeded.comment,
         type=manual.type if manual.type is not None else seeded.type,
         subtype=manual.subtype if manual.subtype is not None else seeded.subtype,
+        unit=manual.unit if manual.unit is not None else seeded.unit,
+        encoding=manual.encoding if manual.encoding is not None else seeded.encoding,
         seed_origin=manual.seed_origin,
         review_status=manual.review_status,
         citation=manual.citation,

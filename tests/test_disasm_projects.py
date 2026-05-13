@@ -257,6 +257,8 @@ def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Pat
             type="data",
             name="map_data_keep",
             hunk=0,
+            unit=None,
+            encoding=None,
             seed_origin="manual_analysis",
             review_status="seeded",
             citation="manual",

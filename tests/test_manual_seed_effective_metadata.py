@@ -103,6 +103,8 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
             "source_path": None,
             "subtype": "string",
             "type": "data",
+            "unit": "byte",
+            "encoding": "ascii",
         }
     ]
 

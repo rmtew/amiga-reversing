@@ -3345,6 +3345,84 @@ static int policy_add_structured_data_item_local(M68kAnalysisPolicy *policy, uin
   return policy_add_structured_data_item_section_local(policy, 0U, 0U, offset, size, kind, comment);
 }
 
+static uint8_t metadata_seeded_entity_kind_local(const char *subtype, const char *unit) {
+  if (subtype != NULL && strcmp(subtype, "string") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  if (subtype != NULL && strcmp(subtype, "pointer_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  if (unit != NULL && strcmp(unit, "word") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  if (unit != NULL && (strcmp(unit, "long") == 0 || strcmp(unit, "pointer") == 0))
+    return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  return M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+}
+
+static uint32_t metadata_seeded_entity_role_flags_local(const char *subtype) {
+  if (subtype == NULL || subtype[0] == '\0') return 0U;
+  if (strcmp(subtype, "copper_list") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+  if (strcmp(subtype, "palette") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE;
+  if (strcmp(subtype, "pointer_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+  if (strcmp(subtype, "lookup_table") == 0 || strcmp(subtype, "scalar_table") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+  if (strcmp(subtype, "length_prefixed_string") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
+  if (strcmp(subtype, "bitmap") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+  if (strcmp(subtype, "sound_sample") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+  if (strcmp(subtype, "string") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+  if (strcmp(subtype, "audio_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
+  if (strcmp(subtype, "sprite") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
+  if (strcmp(subtype, "string_control_stream") == 0)
+    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM;
+  return 0U;
+}
+
+static int append_metadata_seeded_entity_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t addr = 0U;
+  uint32_t end = 0U;
+  uint32_t hunk = 0U;
+  uint16_t item_index;
+  int has_addr = 0;
+  int has_end = 0;
+  int has_hunk = 0;
+  char entity_type[16];
+  char subtype[64];
+  char unit[32];
+  char encoding[32];
+  char name[64];
+  char comment[64];
+  uint8_t kind;
+  uint32_t role_flags;
+  entity_type[0] = '\0';
+  subtype[0] = '\0';
+  unit[0] = '\0';
+  encoding[0] = '\0';
+  name[0] = '\0';
+  comment[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
+      !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "type", entity_type, sizeof(entity_type)) ||
+      !json_optional_string_field_local(object_start, object_end, "subtype", subtype, sizeof(subtype)) ||
+      !json_optional_string_field_local(object_start, object_end, "unit", unit, sizeof(unit)) ||
+      !json_optional_string_field_local(object_start, object_end, "encoding", encoding, sizeof(encoding)) ||
+      !json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "comment", comment, sizeof(comment))) {
+    return 0;
+  }
+  if (!has_addr || !has_end || end <= addr) return 1;
+  if (entity_type[0] != '\0' && strcmp(entity_type, "data") != 0) return 1;
+  kind = metadata_seeded_entity_kind_local(subtype, unit);
+  role_flags = metadata_seeded_entity_role_flags_local(subtype);
+  item_index = policy->structured_data_item_count;
+  if (!policy_add_structured_data_item_section_local(policy, 1U, has_hunk ? hunk : 0U, addr, end - addr, kind,
+        comment)) {
+    return 0;
+  }
+  if (!policy_set_structured_data_item_metadata_local(policy, item_index, name, NULL, NULL, role_flags,
+        (uint8_t)(strcmp(subtype, "pointer_table") == 0))) {
+    return 0;
+  }
+  return policy_set_structured_data_item_kb_metadata_local(policy, item_index, unit, NULL, NULL, encoding, NULL, 0U, 0);
+}
+
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
   const char *end = text + strlen(text);
   const char *cursor = json_find_key_local(text, end, key);
@@ -4079,6 +4157,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     if (object_start == NULL) break;
     if (!append_metadata_entry_point_local(object_start, object_end, policy)) {
       platform_file_add_error(diagnostics.list, "failed parsing target metadata code entrypoint");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "seeded_entities", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_seeded_entity_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata seeded entity");
       return -1;
     }
     cursor = object_end;
