@@ -123,6 +123,7 @@ class StaticResponse(TypedDict):
 _MISSING = object()
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
+_PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
@@ -181,6 +182,26 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     ):
         return artifact
     return None
+
+
+def _cached_analysis_review_items(
+    project_name: str,
+    listing_artifact: CListingArtifact,
+) -> tuple[dict[str, object], ...]:
+    cache_key = _PROJECT_LISTING_CACHE_KEY.get(project_name)
+    if cache_key is None:
+        return ()
+    cached = _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.get(project_name)
+    artifact_id = id(listing_artifact)
+    if cached is not None and cached[0] == cache_key and cached[1] == artifact_id:
+        return cached[2]
+    analysis_payload_fn = getattr(listing_artifact, "analysis_payload", None)
+    if not callable(analysis_payload_fn):
+        return ()
+    analysis_payload, _ = analysis_payload_fn()
+    items = tuple(analysis_review_items(analysis_payload))
+    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE[project_name] = (cache_key, artifact_id, items)
+    return items
 
 
 def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dict[str, object]]:
@@ -286,6 +307,7 @@ def _write_api_input_type_override(
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_LISTING_CACHE_KEY.clear()
+    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
     _cancel_listing_jobs()
 
 
@@ -449,10 +471,10 @@ def _overlay_listing_navigation_payload(
         payload["analysis_generation"] = _project_listing_generation(project_name)
     if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
         payload["type_flow_analysis"] = {}
-    analysis_payload_fn = getattr(listing_artifact, "analysis_payload", None)
-    if callable(analysis_payload_fn):
-        analysis_payload, _ = analysis_payload_fn()
-        groups["manual-review"] = list(analysis_review_items(analysis_payload))
+    if listing_artifact is not None:
+        groups["manual-review"] = list(
+            _cached_analysis_review_items(project_name, listing_artifact)
+        )
     payload["groups"] = groups
     return payload
 
@@ -462,6 +484,13 @@ def _clear_project_listing_cache(project_name: str) -> None:
     if artifact is not None:
         artifact.close()
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
+    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.pop(project_name, None)
+
+
+def _prewarm_analysis_review_items(project_name: str) -> None:
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is not None:
+        _cached_analysis_review_items(project_name, artifact)
 
 
 def _json_bytes(payload: object) -> bytes:
@@ -766,6 +795,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 listing_artifact = None
             if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
                 old_artifact.close()
+        _prewarm_analysis_review_items(project_name)
         _log_event(
             "listing_job artifact_ready",
             job_id=job_id,
@@ -819,6 +849,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
     if _cache_satisfies_listing(project_name, cache_key):
+        _prewarm_analysis_review_items(project_name)
         total_rows = _c_listing_artifact_total_rows(project_name)
         job_id = f"cached-listing-artifact-{project_name}"
         payload: AsyncJobPayload = {
@@ -1232,11 +1263,7 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
         return project_dict
-    analysis_payload_fn = getattr(artifact, "analysis_payload", None)
-    if not callable(analysis_payload_fn):
-        return project_dict
-    analysis_payload, _ = analysis_payload_fn()
-    analysis_items = analysis_review_items(analysis_payload)
+    analysis_items = _cached_analysis_review_items(project_name, artifact)
     if not analysis_items:
         return project_dict
     existing_items = project_dict.get("review_items")

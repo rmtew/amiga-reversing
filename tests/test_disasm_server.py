@@ -184,6 +184,7 @@ class _RowsCListingArtifact:
         self.app_slot_analysis = app_slot_analysis or {}
         self.type_flow_analysis = type_flow_analysis or {}
         self.closed = False
+        self.analysis_calls = 0
 
     def close(self) -> None:
         self.closed = True
@@ -211,6 +212,7 @@ class _RowsCListingArtifact:
         ), {}
 
     def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        self.analysis_calls += 1
         return {"sections": []}, {}
 
 
@@ -221,6 +223,7 @@ def _seed_c_listing_artifact(
 ) -> None:
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
     monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, project_name, artifact)
     monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, project_name, "cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: "cache")
@@ -740,6 +743,28 @@ def test_route_listing_anchor_code_returns_window_at_non_address_row(
 
     assert data["start"] == 1
     assert window_rows[0]["text"].strip() == "SECTION section,code"
+
+
+def test_route_listing_reuses_cached_analysis_review_items(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+    artifact = _RowsCListingArtifact(rows)
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", artifact)
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    for _ in range(2):
+        disasm_server.route_request(
+            "GET",
+            "/api/projects/bloodwych/listing",
+            {"start": ["0"], "count": ["1"]},
+        )
+
+    assert artifact.analysis_calls == 1
 
 
 def _disk_manifest_payload() -> dict[str, object]:
