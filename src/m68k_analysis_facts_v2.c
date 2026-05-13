@@ -3474,6 +3474,18 @@ static int candidate_moves_long_indirect_address_reg_to_same_reg(const M68kDecod
     source_reg == reg && dest_reg == reg;
 }
 
+static int candidate_moves_long_address_reg_slot_to_same_reg(const M68kDecodeCandidate *candidate,
+    uint8_t reg, int32_t displacement) {
+  uint8_t source_reg = 0U;
+  uint8_t dest_reg = 0U;
+  int32_t slot_displacement = 0;
+  return candidate != NULL && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA &&
+    candidate->size_suffix == 'l' && candidate->operand_count == 2U &&
+    candidate_operand_base_field_slot(candidate, 0U, &source_reg, &slot_displacement) &&
+    operand_is_address_register_direct(&candidate->operands[1], &dest_reg) &&
+    source_reg == reg && dest_reg == reg && slot_displacement == displacement;
+}
+
 static int candidate_adds_address_reg_to_same_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
   uint8_t source_reg = 0U;
   uint8_t dest_reg = 0U;
@@ -3548,15 +3560,23 @@ static int resolve_platform_loadseg_helper_summary(M68kDecodeIR *decode, uint8_t
   }
   cursor = candidate->offset + candidate->byte_count;
   candidate = ensure_candidate_at_offset(decode, section, cursor, max_cpu);
-  if (!candidate_lea_platform_section_anchor(candidate, platform_kind, &result_reg,
-      &base_offset, &addend) || base_offset != 0U || addend != -4 ||
-      candidate->offset > UINT32_MAX - candidate->byte_count) {
+  if (candidate == NULL || candidate->offset > UINT32_MAX - candidate->byte_count) {
+    return 0;
+  }
+  if (candidate_lea_platform_section_anchor(candidate, platform_kind, &result_reg, &base_offset, &addend)) {
+    if (base_offset != 0U || addend != -4) return 0;
+  } else if (candidate_lea_pc_relative_data_target(candidate, section_index, section->size, &result_reg,
+      &base_offset)) {
+    if (base_offset != 0U) return 0;
+    addend = 0;
+  } else {
     return 0;
   }
   cursor = candidate->offset + candidate->byte_count;
   loop_offset = cursor;
   candidate = ensure_candidate_at_offset(decode, section, cursor, max_cpu);
-  if (!candidate_moves_long_indirect_address_reg_to_same_reg(candidate, result_reg) ||
+  if (!((addend == -4 && candidate_moves_long_indirect_address_reg_to_same_reg(candidate, result_reg)) ||
+        (addend == 0 && candidate_moves_long_address_reg_slot_to_same_reg(candidate, result_reg, -4))) ||
       candidate->offset > UINT32_MAX - candidate->byte_count) {
     return 0;
   }

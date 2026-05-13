@@ -7843,6 +7843,71 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
   return 0;
 }
 
+static const M68kDecodeCandidate *find_previous_accepted_candidate_local(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate) {
+  size_t index;
+  if (section == NULL || accepted_start == NULL || candidate == NULL) return NULL;
+  for (index = 0U; index < section->candidate_count; ++index) {
+    const M68kDecodeCandidate *previous = &section->candidates[index];
+    if (previous->offset >= section->size || accepted_start[previous->offset] == 0U) continue;
+    if (previous->byte_count <= UINT32_MAX - previous->offset &&
+        previous->offset + previous->byte_count == candidate->offset) {
+      return previous;
+    }
+  }
+  return NULL;
+}
+
+static int candidate_lea_pc_relative_section_base_to_reg(const M68kDecodeCandidate *candidate, uint8_t reg) {
+  M68kInstructionIR instruction;
+  M68kAsmOperandValue asm_operands[M68K_DECODE_IR_MAX_OPERANDS];
+  size_t index;
+  size_t relative_base;
+  int64_t target;
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_LEA ||
+      candidate->operand_count != 2U || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      instruction.operand_count != 2U || !operand_address_register_index_local(&instruction.operands[1], &dest_reg) ||
+      dest_reg != reg || instruction.operands[0].kind != M68K_ASM_OPERAND_EA ||
+      instruction.operands[0].value.ea_mode != 7U || instruction.operands[0].value.ea_reg != 2U ||
+      candidate->operand_kinds[0] != M68K_ASM_OPERAND_EA || candidate->operands[0].ea_mode != 7U ||
+      candidate->operands[0].ea_reg != 2U) {
+    return 0;
+  }
+  for (index = 0U; index < candidate->operand_count; ++index) {
+    asm_operands[index] = candidate->operands[index];
+    asm_operands[index].kind = candidate->operand_kinds[index];
+  }
+  relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
+    candidate->operand_count, candidate_effective_size_suffix(candidate), 0U, 0);
+  target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[0].value);
+  return target == 0;
+}
+
+static int attach_amiga_loadseg_segment_link_slot_symbol(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kDecodeCandidate *previous;
+  uint8_t base_reg = 0U;
+  uint8_t dest_reg = 0U;
+  int16_t displacement = 0;
+  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
+      candidate == NULL || instruction == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA || instruction->size_suffix != 'l' ||
+      instruction->operand_count != 2U || instruction->operands[0].symbol_ref.has_name != 0U ||
+      !operand_is_address_displacement_local(&instruction->operands[0], &base_reg, &displacement) ||
+      displacement != -4 || !operand_address_register_index_local(&instruction->operands[1], &dest_reg) ||
+      dest_reg != base_reg) {
+    return 1;
+  }
+  previous = find_previous_accepted_candidate_local(section, accepted_start, candidate);
+  if (previous == NULL || !candidate_lea_pc_relative_section_base_to_reg(previous, base_reg)) return 1;
+  if (!render_asm_declare_symbol_once(preview, "amiga_loadseg_segment_link", -4)) return 0;
+  attach_amiga_platform_symbol(&instruction->operands[0], "amiga_loadseg_segment_link");
+  return 1;
+}
+
 static int amiga_abs_exec_base_load_should_stay_absolute(const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction, size_t operand_index, const M68kOperandIR *operand,
     const M68kFact *fact) {
@@ -8645,6 +8710,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   }
   (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate, &instruction);
+  if (!attach_amiga_loadseg_segment_link_slot_symbol(preview, lookup, section, accepted_start, candidate,
+      &instruction)) {
+    return 0;
+  }
   if (!attach_runtime_address_ref_symbols(preview, lookup, section, accepted_bytes, candidate, &instruction))
     return 0;
   (void)attach_existing_materialized_runtime_immediate_symbols(lookup, section->section_index, &instruction);
