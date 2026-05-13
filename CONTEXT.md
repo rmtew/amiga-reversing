@@ -20,6 +20,10 @@ _Avoid_: Rebuild when specifically referring to the assembler step
 The policy values that control how assembly emits target bytes, including container encoding choices such as relocation record type and optional symbols.
 _Avoid_: Assembler options when referring to the normalized policy model
 
+**Assembler Profile**:
+The assembler syntax and compatibility metadata that source rendering must honor.
+_Avoid_: Renderer hardcoding
+
 **Project Rebuild**:
 The production of rebuilt target bytes for a project using original target metadata and preserving recognized original container shape by default.
 _Avoid_: Assembly when specifically referring to project-aware reproduction output
@@ -100,10 +104,75 @@ _Avoid_: Unsupported shape
 Original container shape that is observed but not understood well enough to preserve or fully check.
 _Avoid_: Policy divergence
 
+**Manual Review Item**:
+A user-facing unit of post-analysis work that needs human judgment or action before the target can be considered fully understood.
+_Avoid_: Issue
+
+**Review State**:
+The target-level summary of whether manual review is clear, pending, or blocked by a live contradiction.
+_Avoid_: Issues status
+
+**Reconciled Range**:
+A byte range explained by entrypoint-rooted analysis or accepted seeds.
+_Avoid_: Understood range
+
+**Unreconciled Range**:
+A byte range not yet explained by entrypoint-rooted analysis or accepted seeds.
+_Avoid_: Unknown range
+
+**Manual Seed**:
+A persisted user-authored analysis seed that records explicit intent such as treating a range as code, data, or a typed value.
+_Avoid_: Metadata seed, policy seed
+
+**Manual Label**:
+A user-authored symbol name attached to a target address or range start.
+_Avoid_: Entity name
+
+**Label Scope**:
+The namespace relationship that determines whether a label name must be globally unique or may be local to an owning label.
+_Avoid_: Manual label uniqueness
+
+**Manual Comment**:
+A user-authored note attached to a target address or range.
+_Avoid_: Entity comment
+
+**Manual Seed Mode**:
+The strength of a **Manual Seed** as either a required analysis input or an exploratory suggestion.
+_Avoid_: Seed confidence
+
+**Manual Resolution**:
+A persisted user-authored decision that closes or annotates a **Manual Review Item** without necessarily changing analysis facts.
+_Avoid_: Manual seed
+
+**Manual Action Log**:
+The ordered per-target record of user-authored review and analysis actions from which current manual state is projected.
+_Avoid_: Separate manual seed and resolution files
+
+**Target Identity**:
+The content and address-defining target inputs that manual actions are bound to.
+_Avoid_: Display metadata
+
+**Legacy Entity State**:
+The retired `entities.jsonl` and `overrides.json` model that mixed generated range inventory with user annotation state.
+_Avoid_: Current target state
+
+**Evidence Fingerprint**:
+A compact identity for the analysis evidence supporting a generated **Manual Review Item**.
+_Avoid_: Item ID
+
+**Review Confidence**:
+An ordinal confidence level for a **Manual Review Item** or candidate classification.
+_Avoid_: Probability score
+
+**Suggested Review Action**:
+A structured next action offered for a **Manual Review Item** that can append a domain action to the **Manual Action Log**.
+_Avoid_: Help text
+
 ## Relationships
 
 - **Round-Trip Verification** includes **Source Rendering**, **Project Rebuild**, and **Reproduction Comparison**.
 - **Project Rebuild** supplies an **Assembler Policy** to **Assembly**.
+- **Source Rendering** consumes an **Assembler Profile** for syntax features such as local labels.
 - Standalone **Assembly** uses an ideal/default **Assembler Policy** unless the caller overrides selected policy values.
 - **Reproduction Comparison** consumes original bytes and rebuilt bytes.
 - **Reproduction Comparison** runs inside a **Reproduction Comparison Context**.
@@ -129,6 +198,72 @@ _Avoid_: Policy divergence
 - A preserved **Relocation Fixup Set** with different record ordering or grouping is a **Container Shape** difference.
 - **Policy Divergence** means the original **Container Shape** was recognized but not selected by **Assembler Policy**.
 - **Unsupported Container Shape** means the original **Container Shape** was not understood well enough to derive a preserving **Assembler Policy**.
+- A target has manual work remaining when it has one or more **Manual Review Items**.
+- A **Manual Review Item** is range-bound when analysis can identify affected bytes, and target-level or section-level only when no exact byte range exists.
+- A **Review State** is `clear` when no **Manual Review Items** remain open, `needs_review` when normal review work remains, and `blocked` when a live hard conflict or required seed refusal remains.
+- A `clear` **Review State** means no known actionable manual work remains under current analysis rules, not that the target is fully understood.
+- A `blocked` **Review State** prevents a target from being rated `clear` but does not by itself prevent viewing, analysis, rendering, or export.
+- Resolved **Manual Review Items** do not affect **Review State** unless their current **Evidence Fingerprint** differs from the recorded **Manual Resolution**.
+- A **Manual Review Item** can be generated from an **Unreconciled Range**.
+- A **Reconciled Range** is explained by entrypoint-rooted analysis or an accepted seed, not by plausibility alone.
+- A **Manual Seed** can make an **Unreconciled Range** eligible for analysis and later reconciliation.
+- A **Manual Seed** keeps manual provenance distinct from metadata, policy, and tool-inferred evidence.
+- A **Manual Resolution** can close a **Manual Review Item** without turning its range into a **Reconciled Range**.
+- A **Manual Seed** requests reanalysis, while a **Manual Resolution** records a decision about review work.
+- **Manual Review Items** are regenerated from current analysis facts; **Manual Seeds** and **Manual Resolutions** are projected from the **Manual Action Log**.
+- The **Manual Action Log** is per target and ordered so user actions can be replayed.
+- The first **Manual Action Log** record is a header containing log version and **Target Identity**.
+- A missing **Manual Action Log** means no manual actions have been recorded yet.
+- A header-only **Manual Action Log** is valid empty manual state with pinned **Target Identity**.
+- Undo and redo append compensating entries to the **Manual Action Log** rather than deleting prior entries.
+- The **Manual Action Log** records domain actions, not UI gestures.
+- **Manual Action Log** replay follows file order, while each entry also records action id, sequence, timestamp, and optional undo relationship metadata.
+- Broken **Manual Action Log** sequence metadata creates a manual action log inconsistency **Manual Review Item**; replay still follows file order unless parsing or projection fails.
+- **Manual Action Log** parsing or projection failure sets **Review State** to `blocked` because current user intent cannot be computed.
+- **Target Identity** includes original byte hash, target format or platform, section or hunk layout, runtime or load address metadata, and extracted child source identity.
+- **Target Identity** excludes display names, notes, UI labels, and generated analysis outputs.
+- **Target Identity** excludes **Assembler Profile** unless the profile changes address interpretation.
+- Analysis regressions or improvements do not change **Target Identity**; they change generated facts, **Evidence Fingerprints**, or **Manual Review Items**.
+- **Manual Action Log** target identity mismatch is fatal for the project target; the log is not applied and the target remains `blocked` until restored or reimported.
+- **Legacy Entity State** is not preserved; any useful role it served is replaced by C analysis facts, **Manual Review Items**, and **Manual Action Log** projections.
+- New target state must not depend on `entities.jsonl`, `overrides.json`, entity overrides, or entity verification status.
+- A **Manual Label** replaces the old entity name override and is stored through **Manual Action Log** actions.
+- A **Manual Label** affects rendering and UI naming; it does not prove code or data unless paired with a **Manual Seed**.
+- A **Manual Label** on an unreconciled range creates a **Manual Review Item** unless classification evidence or a **Manual Seed** explains the range.
+- **Label Scope** applies to auto-generated labels, metadata or policy labels, and **Manual Labels**.
+- A global **Label Scope** requires uniqueness in emitted source scope; a local **Label Scope** may repeat only under an owning global label or scope anchor.
+- Local **Label Scope** ownership is explicit in analysis facts and manual actions; nearest-previous-label behavior is only an assembler emission constraint.
+- The assembler profile must prove local-label syntax support before source rendering emits local labels.
+- Local-label syntax, owner rule, reserved names, and required mode flags are **Assembler Profile** metadata.
+- Manual label UI defaults to global **Label Scope** until local-label emission is proven for the active assembler profile.
+- Auto-analysis emits globally unique generated labels until local-label emission is proven.
+- Label namespace problems create label scope conflict **Manual Review Items**.
+- A label scope conflict blocks review only when emitted source correctness or assembly is at risk.
+- A **Manual Comment** replaces the old entity comment override and is stored through **Manual Action Log** actions.
+- A **Manual Comment** on an unreconciled range creates a **Manual Review Item** unless classification evidence or a **Manual Seed** explains the range.
+- A review-resolution action records the review item id, **Evidence Fingerprint**, range and kind snapshot, and resolution reason.
+- A **Manual Seed** has a stable seed id and is updated through new **Manual Action Log** entries, not mutation in place.
+- A **Manual Seed Mode** is `required` when analysis must honor the seed or report a conflict, and `suggested` when analysis may reject it.
+- A data **Manual Seed** uses data role, unit, and encoding fields rather than separate seed kinds for each data conversion.
+- A **Manual Seed** may target a subrange inside an existing generated block; analysis normalizes the range and splits rendered blocks as needed.
+- A **Manual Review Item** may include **Suggested Review Actions** for creating seeds, resolving review work, or opening related evidence.
+- Navigational **Suggested Review Actions** are transient UI actions and are not appended to the **Manual Action Log**.
+- Manual review UI is checklist-first, with facets for kind, confidence, state, section, source, or range as secondary filtering.
+- Entrypoint seeds remain primary analysis evidence; **Manual Seeds** augment the same analysis run with lower provenance priority.
+- Seed provenance priority is entrypoint, metadata or policy, required **Manual Seed**, then suggested **Manual Seed**.
+- A required **Manual Seed** cannot override entrypoint-proven facts; conflicts are surfaced as manual seed conflict **Manual Review Items**.
+- A **Manual Resolution** closes the matching **Evidence Fingerprint** by default; changed evidence reopens the **Manual Review Item** as changed since resolution.
+- A hard conflict **Manual Review Item** can be acknowledged but not closed while the conflict remains true.
+- Acknowledged hard conflict **Manual Review Items** keep **Review State** at `blocked`.
+- User block conversion creates or updates a **Manual Seed**; source is rerendered from analysis facts rather than edited directly.
+- A code **Manual Seed** runs the normal fixed-point analysis for its target or runtime view and may cascade through discovered control-flow, table, and data evidence.
+- A code **Manual Seed** must not cause unrelated whole-file speculative scanning.
+- Initial **Manual Review Item** kinds are reproduction mismatch, unsupported container shape, orphan code candidate, unreconciled data range, suspicious instruction decode, manual seed conflict, manual label unreconciled, manual comment unreconciled, label scope conflict, manual action log inconsistency, and manual action log target mismatch.
+- A reproduction mismatch blocks review only when **Content Exactness** fails or cannot be checked; container-only differences are normal **Manual Review Items**.
+- An unreconciled data range lacks accepted classification evidence; absence of references from accepted code is not sufficient by itself.
+- A suspicious instruction decode **Manual Review Item** is emitted only for accepted or candidate code with actionable misclassification evidence grounded in established reverse-engineering tool practice.
+- **Review Confidence** uses `low`, `medium`, or `high` and must be supported by explicit evidence reasons rather than raw probability.
+- A required **Manual Seed** that conflicts with stronger facts creates a manual seed conflict **Manual Review Item**.
 
 ## Example Dialogue
 
@@ -138,3 +273,7 @@ _Avoid_: Policy divergence
 ## Flagged Ambiguities
 
 - "reproduction" was used for both the whole verification workflow and the byte comparison step; resolved: **Round-Trip Verification** is the workflow, **Reproduction Comparison** is the byte comparison step.
+- "issue" was used for user-facing post-analysis work; resolved: use **Manual Review Item** to avoid confusion with bug-tracker issues and reproduction failures.
+- "no issues" and "issues" were used for target-level review status; resolved: use **Review State** values `clear`, `needs_review`, and `blocked`.
+- "understood" was used as a loose target state; resolved: use **Reconciled Range** and **Unreconciled Range** for byte-range explanation.
+- "entity" was used for generated ranges and user annotation state in `entities.jsonl`; resolved: treat that as **Legacy Entity State** and replace it with C analysis facts plus manual review concepts.

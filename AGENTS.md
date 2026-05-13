@@ -47,25 +47,28 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
 
 ## Key Conventions
 
-### Entity Tracking
-- Every address range in the binary is an **entity** tracked in `targets/<name>/entities.jsonl`
-- Entities have types: `code`, `data`, `bss`, `unknown`
-- Data entities have subtypes: `sprite`, `bitmap`, `copper_list`, `palette`,
-  `tilemap`, `string`, `pointer_table`, `sound_sample`, `level_data`,
-  `struct_instance`, `lookup_table`, etc.
-- Entity status progression: `unmapped → typed → named → documented`
-- Confidence levels: `tool-inferred`, `llm-guessed`, `verified`
+### Manual Review
+- C analysis facts are the source of truth for discovered code, data, labels,
+  cross-references, and range classification.
+- User intervention is stored as a per-target Manual Action Log, not as mutable
+  `entities.jsonl` state.
+- Manual Review Items are regenerated from current analysis facts and previous
+  Manual Action Log projections.
+- `entities.jsonl`, entity overrides, and entity verification status are retired
+  state models. Do not add new dependencies on them.
 
 ### Target Output
-- Per-target output goes in `targets/<name>/` (entities, disassembly, progress)
+- Per-target output goes in `targets/<name>/`
 - Disassembly output is vasm-compatible `.s` files
-- Use symbolic names from entities for all labels and references
+- Use symbolic names from C analysis facts, target metadata, and accepted manual
+  seeds for all labels and references
 - Hardware register accesses must use symbolic names from `knowledge/amiga-hardware.md`
 - OS library calls must reference names from `knowledge/amiga-os.md`
 
 ### Verification
 - **Round-trip test is mandatory**: reassemble with vasm, binary-diff against original
-- Never mark an entity as `verified` unless it passes round-trip or type-specific checks
+- Never mark manual review work clear unless the relevant reproduction or
+  type-specific checks pass.
 
 ### Knowledge Files
 - `knowledge/m68k.md` — 68000 ISA reference
@@ -74,11 +77,11 @@ PDF  →  parser  →  JSON (knowledge base)  →  generated tools
 - `knowledge/game-specific.md` — discovered game conventions (updated as we learn)
 - Load knowledge files on-demand, not all at once
 
-### Working With Entities
-- When analyzing a code entity, always check its xrefs first
-- Propagate naming: if a function is named, its data references can often be named too
-- When naming, prefer descriptive names: `update_player_position` not `sub_1234`
-- Record all cross-references bidirectionally (calls/called_by, reads/read_by, etc.)
+### Working With Analysis Facts
+- When analyzing code, always check its xrefs first.
+- Propagate naming: if a function is named, its data references can often be named too.
+- When naming, prefer descriptive names: `update_player_position` not `sub_1234`.
+- Record all cross-references bidirectionally (calls/called_by, reads/read_by, etc.).
 
 ### Binary Files
 - Original binary goes in `bin/` — never modify originals

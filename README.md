@@ -14,7 +14,7 @@ amiga_reversing/ Python web/API/project orchestration, DTO adapters, and runtime
 tests/          Python web/orchestration pytest suite
 knowledge/      Generated JSON knowledge bases (M68K ISA, Amiga HW, OS)
 ext/vasm/       Vendored vasm assembler source
-targets/        Per-target output (entities, disassembly, progress)
+targets/        Per-target projects, generated source, review state, and reports
 bin/            User-supplied target binaries
 resources/      External reference files (not tracked, see RESOURCES.md)
 ```
@@ -34,14 +34,8 @@ separately. See [RESOURCES.md](RESOURCES.md) for details.
 ## Example: disassembling GenAm
 
 ```
-# Build entity database
-uv run amiga-build-entities bin/GenAm -t targets/amiga_hunk_genam
-
 # Generate disassembly
 uv run amiga-gen-disasm bin/GenAm -t targets/amiga_hunk_genam
-
-# Update progress dashboard
-uv run amiga-update-progress -t targets/amiga_hunk_genam
 
 # Run tests
 py -m pytest

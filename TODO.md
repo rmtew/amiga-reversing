@@ -4,13 +4,6 @@
 
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
-- Amiga segment chain detection failure (target: `amiga_disk_starglider-1987-rainbird__amiga_hunk_c__stack_3c172096`).
-  ```
-  0010 49faffee     lea.l loc_0_00000000(pc),a4
-  0014 286cfffc     movea.l -$0004(a4),a4
-  ```
-  - We have Amiga segment chain access detection via relocation of -4 from a segment base, however we do not detect this
-    case.
 - Pandora observed improvement possibilities (target: `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`):
   - App slot bugs:
     ```
@@ -141,11 +134,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
   - We should strongly consider using platform-specific allocations bypassing the C runtime with a view to not linking
     against it at a later date.
   - ...
-
-### Web UI observations
-
-- Decompressed payload targets show load address but should also show entrypoint too (if applicable/entered).
-- Decompression payload targets should indicate source hunk from parent target (if applicable).
 
 ### Damocles observations
 

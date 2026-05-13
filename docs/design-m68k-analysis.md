@@ -635,6 +635,238 @@ section. Render it as a section-start expression, not as an absolute low-memory
 address and not as a freestanding `EQU -4` symbol. See `docs/design-amiga.md`
 for the Amiga-specific details.
 
+## Manual Review Items
+
+Automatic analysis starts from entrypoints and accepted seeds. That gives users
+a useful boundary: some bytes are reconciled because entrypoint-rooted analysis
+or accepted seeds explain them, and some bytes remain unreconciled because the
+current evidence does not explain them yet.
+
+Manual review is the user-facing workflow for that second group. It should not
+be a second disassembler that guesses harder. It should be a checklist of
+actionable work the user can navigate, understand, and resolve.
+
+The target-level summary is the Review State:
+
+```
+clear         no known actionable manual work remains under current rules
+needs_review  ordinary Manual Review Items remain
+blocked       a live hard conflict or required seed refusal remains
+```
+
+`clear` is not a claim that the whole target is fully understood. It only means
+the current analysis rules did not produce open manual work.
+
+`blocked` is a review rating, not an export lock. The user can still view the
+target, edit manual actions, analyse, render, and export source. The UI and any
+exported report should carry a warning that the target cannot be rated `clear`
+while the blocker remains.
+
+Manual Review Items are generated from current facts. Do not store them as the
+source of truth. They should have stable ids derived from target, kind, and
+normalized range, plus an Evidence Fingerprint that changes when the supporting
+facts change. A previous resolution closes only the matching fingerprint by
+default. If evidence changes, the item reopens as changed since resolution.
+
+Good first review item kinds are:
+
+```
+reproduction_mismatch
+unsupported_container_shape
+orphan_code_candidate
+unreconciled_data_range
+suspicious_instruction_decode
+manual_seed_conflict
+manual_label_unreconciled
+manual_comment_unreconciled
+label_scope_conflict
+manual_action_log_inconsistency
+manual_action_log_target_mismatch
+```
+
+Reproduction mismatches block review only when content exactness fails or cannot
+be checked. Container-only differences remain review work, but they are not
+hard blockers if content exactness is preserved.
+
+An unreconciled data range is not just "data that accepted code did not touch".
+Assets, optional tables, loader-only data, and platform structures can all be
+valid without a direct entrypoint reference. Emit an unreconciled data item only
+when the range lacks accepted classification evidence such as relocation,
+metadata, container role, recognized data shape, or a manual seed.
+
+Suspicious instruction decode items must be conservative and actionable. They
+belong on accepted or candidate code when there is known misclassification
+evidence seen in comparable reverse-engineering tools: CPU requirements above
+target policy, FPU/PMMU/coprocessor/A-line/F-line forms in a plain 68000 target,
+unusually complex operands in a low-confidence candidate, or data-looking opcode
+patterns such as repeated zero longwords decoding as `or.l #0,d0`. Do not scan
+arbitrary data and report every decodable word as suspicious.
+
+Use ordinal Review Confidence:
+
+```
+low
+medium
+high
+```
+
+Do not expose raw probabilities. Show the evidence reasons instead.
+
+Manual intervention is stored as an ordered per-target Manual Action Log. The
+log records domain actions, not UI gestures. Replaying it projects the current
+Manual Seeds and Manual Resolutions:
+
+```
+target bytes + metadata/policy + Manual Action Log
+    -> current Manual Seeds and Manual Resolutions
+    -> analysis from entrypoints plus accepted manual seeds
+    -> generated Manual Review Items
+    -> Review State
+```
+
+Replay follows JSONL file order. Each entry should still carry an `action_id`,
+`sequence`, `created_at`, and optional `undoes_action_id` so the UI can refer to
+actions and corrupted or hand-edited logs can be diagnosed.
+
+The first JSONL record is the log header:
+
+```json
+{ "record": "manual_action_log_header", "version": 1, "target_identity": {} }
+```
+
+All following records are ordered domain actions.
+
+If the file is missing, treat it as empty manual state. Create it with a header
+when the first user action is recorded.
+
+A header-only log is also empty manual state, but it pins Target Identity for
+future actions.
+
+Broken sequence metadata is not fatal by itself. Replay still follows file order
+and analysis emits a `manual_action_log_inconsistency` review item. Parsing or
+projection failure is different: if the current manual state cannot be computed,
+the target is blocked until the log is repaired.
+
+Manual actions are tied to Target Identity: original byte hash, target
+format/platform, section or hunk layout, runtime or load address metadata, and
+source identity for extracted child targets. Do not include display names, UI
+labels, notes, generated analysis outputs, or Assembler Profile in Target
+Identity unless the profile changes address interpretation.
+
+Analysis regressions and improvements do not change Target Identity. They change
+generated facts, Evidence Fingerprints, or Manual Review Items. This lets user
+work survive tool changes while still reopening review items whose evidence has
+changed.
+
+If Target Identity no longer matches the log header, this is fatal for that
+project target. Do not apply the Manual Action Log and do not claim
+analysis/export is valid for that project target. Emit a
+`manual_action_log_target_mismatch` item and keep Review State `blocked` until
+the correct original target is restored or the target is reimported. Do not offer
+rebase or accept-identity-change paths in v1.
+
+The analysis seed priority is:
+
+```
+entrypoint
+metadata or policy
+required manual seed
+suggested manual seed
+```
+
+Entrypoints stay primary evidence. Manual Seeds augment the same analysis run
+and can discover normal branches, calls, jump tables, lookup tables, and data
+references. A code Manual Seed should cascade through real discovered evidence,
+but it must not cause unrelated whole-file speculative scanning.
+
+Manual Seeds record user intent such as:
+
+```json
+{ "kind": "code", "mode": "required", "range": "h0:$1000..$1040" }
+{ "kind": "data", "mode": "required", "data_role": "string", "encoding": "ascii" }
+{ "kind": "data", "mode": "suggested", "data_role": "scalar_table", "unit": "word" }
+```
+
+A required seed must be honored or reported as a conflict. A suggested seed may
+be rejected if stronger evidence contradicts it. Required manual seeds still do
+not override entrypoint-proven facts; for example, marking the middle of
+entrypoint-reached code as a string produces a `manual_seed_conflict` item.
+
+Manual Resolutions record user decisions about generated review items. They can
+close ordinary items without making the range reconciled. For hard conflicts,
+resolution can acknowledge the conflict, but the Review State stays `blocked`
+while the contradiction remains true.
+
+Do not keep `entities.jsonl` or `overrides.json` as parallel project-state
+models. The old entity files mixed generated range inventory, annotations,
+confidence, and verification status in mutable current-state shapes. Replace
+that support with C analysis facts, generated Manual Review Items, and Manual
+Action Log projections. Existing targets can be regenerated or reimported; there
+is no compatibility requirement to preserve stale entity state.
+
+The useful override behaviors become manual actions. A user-authored symbol name
+is a Manual Label, not an entity name. Comments, data roles, labels, and review
+resolutions are appended to the Manual Action Log and projected into the current
+manual state before analysis/rendering.
+
+A Manual Label names an address or range start for rendering and UI display. It
+does not prove that bytes are code or data. If the user wants the address to
+participate in analysis, record a Manual Seed as well.
+
+A Manual Label or Manual Comment on an unreconciled range should create review
+work unless another fact classifies the range. The item should explain that the
+user annotated bytes that analysis still cannot classify, and should offer seed
+or annotation-removal actions.
+
+Label Scope is shared by auto-generated labels, metadata or policy labels, and
+Manual Labels. A global label must be unique in the emitted source scope. A
+local label may repeat only under an owning global label or explicit scope
+anchor, such as Devpac-style `.loop` labels attached to the previous non-local
+label. The assembler profile must prove local-label syntax support before the
+renderer emits local labels. If local scope cannot be emitted safely, rendering
+must disambiguate or surface review work instead of producing ambiguous source.
+Local-label syntax belongs in Assembler Profile metadata: whether local labels
+are supported, the local prefix, the owner rule, reserved local names such as
+Devpac `.W` and `.L`, and any required mode flags such as `LOCALU`. The renderer
+must consume this profile metadata rather than hardcoding assembler folklore.
+Do not model local ownership as "whatever global label comes before it in the
+rendered file". Internal facts and manual actions must carry an explicit owner
+label or range id. The nearest-previous-label behavior is only an assembler
+emission constraint: the renderer must prove the emitted source binds the local
+label to the intended owner.
+The v1 manual-label UI should default to global labels. It may store scoped
+label data, but should not encourage local labels until assembler-profile
+support and renderer emission checks are implemented.
+Auto-analysis should also prefer globally unique generated labels until local
+label emission is proven. Local labels are a readability optimization, not a
+correctness requirement.
+Duplicate global labels, local labels without owners, local syntax unsupported
+by the active assembler profile, and manual labels that collide with generated
+labels should emit `label_scope_conflict` review items.
+The item blocks review only when emitted source correctness or assembly is at
+risk. If the renderer can safely disambiguate while preserving meaning, keep it
+as ordinary review work.
+
+The UI should be checklist-first. Facets such as kind, confidence, state,
+section, source, and range are filters, not the main structure. Manual Review
+Items may include Suggested Review Actions as structured descriptors:
+
+```json
+{
+  "kind": "orphan_code_candidate",
+  "suggested_actions": [
+    { "action": "navigate_to_range" },
+    { "action": "create_manual_seed", "seed_kind": "code", "mode": "required" },
+    { "action": "resolve_review_item", "resolution": "treat_as_data" }
+  ]
+}
+```
+
+Navigation actions are transient UI actions and do not append to the Manual
+Action Log. Domain-changing actions such as creating a seed, updating a seed, or
+resolving a review item append ordered log entries. Undo and redo also append
+compensating entries instead of deleting history.
+
 ## Absolute Memory Access
 
 Absolute memory is not one thing. Analysis should classify the ownership before
