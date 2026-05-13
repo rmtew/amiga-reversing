@@ -14,7 +14,9 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.manual_actions import load_manual_projection
 from amiga_reversing.disasm.target_metadata import (
+    EntryCommentMetadata,
     SeededCodeEntrypointMetadata,
+    SeededCodeLabelMetadata,
     SeededEntityMetadata,
     TargetMetadata,
     load_target_metadata,
@@ -96,6 +98,21 @@ def _manual_seed_source_locator(seed: dict[str, object]) -> str:
     return f"ManualSeed:{seed_id}"
 
 
+def _manual_label_source_locator(label: dict[str, object]) -> str:
+    label_id = _manual_seed_text(label, "label_id") or "unnamed"
+    return f"ManualLabel:{label_id}"
+
+
+def _manual_comment_source_locator(comment: dict[str, object]) -> str:
+    comment_id = _manual_seed_text(comment, "comment_id") or "unnamed"
+    return f"ManualComment:{comment_id}"
+
+
+def _manual_action_citation(action_object: dict[str, object], id_field: str) -> str:
+    action_id = _manual_seed_text(action_object, id_field) or "unnamed"
+    return f"manual_action_log:{action_id}"
+
+
 def _manual_seed_comment(seed: dict[str, object]) -> str | None:
     comment = _manual_seed_text(seed, "comment")
     if comment is not None:
@@ -150,6 +167,49 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
     )
 
 
+def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMetadata | None:
+    if _manual_seed_text(label, "scope") == "local":
+        return None
+    parsed_range = _parse_manual_seed_range(label)
+    if parsed_range is None:
+        return None
+    hunk, addr, _end = parsed_range
+    name = _manual_seed_text(label, "name")
+    if name is None:
+        return None
+    return SeededCodeLabelMetadata(
+        addr=addr,
+        hunk=hunk,
+        name=name,
+        comment=_manual_seed_text(label, "comment"),
+        seed_origin="manual_analysis",
+        review_status="seeded",
+        citation=_manual_action_citation(label, "label_id"),
+        source_id="manual_action_log",
+        source_locator=_manual_label_source_locator(label),
+    )
+
+
+def _manual_comment_to_entry_comment(comment: dict[str, object]) -> EntryCommentMetadata | None:
+    parsed_range = _parse_manual_seed_range(comment)
+    if parsed_range is None:
+        return None
+    hunk, addr, _end = parsed_range
+    text = _manual_seed_text(comment, "text") or _manual_seed_text(comment, "comment")
+    if text is None:
+        return None
+    return EntryCommentMetadata(
+        addr=addr,
+        hunk=hunk,
+        comment=text,
+        seed_origin="manual_analysis",
+        review_status="seeded",
+        citation=_manual_action_citation(comment, "comment_id"),
+        source_id="manual_action_log",
+        source_locator=_manual_comment_source_locator(comment),
+    )
+
+
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
@@ -157,23 +217,34 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         stronger_metadata=metadata,
     )
     conflicted_seed_ids: set[str] = set()
+    conflicted_label_ids: set[str] = set()
     for item in projection.review_items:
-        if item.get("kind") != "manual_seed_conflict":
-            continue
-        seed_ids = item.get("seed_ids")
-        if isinstance(seed_ids, list | tuple):
-            conflicted_seed_ids.update(seed_id for seed_id in seed_ids if isinstance(seed_id, str))
+        if item.get("kind") == "manual_seed_conflict":
+            seed_ids = item.get("seed_ids")
+            if isinstance(seed_ids, list | tuple):
+                conflicted_seed_ids.update(seed_id for seed_id in seed_ids if isinstance(seed_id, str))
+        elif item.get("kind") == "label_scope_conflict":
+            label_ids = item.get("label_ids")
+            if isinstance(label_ids, list | tuple):
+                conflicted_label_ids.update(label_id for label_id in label_ids if isinstance(label_id, str))
     required_seeds = tuple(
         seed for seed in projection.seeds
         if seed.get("mode") == "required" or seed.get("mode") is None
         if seed.get("seed_id") not in conflicted_seed_ids
     )
-    if not required_seeds:
+    labels = tuple(
+        label for label in projection.labels
+        if label.get("label_id") not in conflicted_label_ids
+    )
+    comments = projection.comments
+    if not required_seeds and not labels and not comments:
         return metadata
     if metadata is None:
         metadata = TargetMetadata(target_type="program", entry_register_seeds=())
     seeded_entities = list(metadata.seeded_entities)
+    seeded_code_labels = list(metadata.seeded_code_labels)
     seeded_code_entrypoints = list(metadata.seeded_code_entrypoints)
+    entry_comments = list(metadata.entry_comments)
     for seed in required_seeds:
         seed_kind = _manual_seed_text(seed, "kind")
         if seed_kind == "code":
@@ -184,10 +255,20 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             entity = _manual_seed_to_data_entity(seed)
             if entity is not None:
                 seeded_entities.append(entity)
+    for label in labels:
+        code_label = _manual_label_to_code_label(label)
+        if code_label is not None:
+            seeded_code_labels.append(code_label)
+    for comment in comments:
+        entry_comment = _manual_comment_to_entry_comment(comment)
+        if entry_comment is not None:
+            entry_comments.append(entry_comment)
     return replace(
         metadata,
         seeded_entities=tuple(seeded_entities),
+        seeded_code_labels=tuple(seeded_code_labels),
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
+        entry_comments=tuple(entry_comments),
     )
 
 

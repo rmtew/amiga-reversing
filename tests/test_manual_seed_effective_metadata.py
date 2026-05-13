@@ -141,6 +141,97 @@ def test_effective_metadata_ignores_suggested_manual_seeds_until_accepted(tmp_pa
     assert payload["seeded_entities"] == []
 
 
+def test_effective_metadata_projects_manual_labels_and_comments_without_seeding_code_or_data(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={
+                    "label_id": "loop-label",
+                    "scope": "global",
+                    "hunk": 0,
+                    "addr": 0x20,
+                    "name": "main_loop",
+                    "comment": "loop head",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_comment",
+                comment={"comment_id": "loop-note", "range": "h0:$00000024", "text": "poll joystick"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_code_entrypoints"] == []
+    assert payload["seeded_entities"] == []
+    assert payload["seeded_code_labels"] == [
+        {
+            "addr": 0x20,
+            "citation": "manual_action_log:loop-label",
+            "comment": "loop head",
+            "hunk": 0,
+            "name": "main_loop",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ManualLabel:loop-label",
+            "source_path": None,
+        }
+    ]
+    assert payload["entry_comments"] == [
+        {
+            "addr": 0x24,
+            "citation": "manual_action_log:loop-note",
+            "comment": "poll joystick",
+            "hunk": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ManualComment:loop-note",
+            "source_path": None,
+        }
+    ]
+
+
+def test_effective_metadata_ignores_manual_labels_with_scope_conflicts(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "scope": "global", "hunk": 0, "addr": 0x20, "name": "dup"},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_label",
+                label={"label_id": "l2", "scope": "global", "hunk": 0, "addr": 0x24, "name": "dup"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_code_labels"] == []
+
+
 def test_effective_metadata_ignores_required_manual_seeds_with_projection_conflicts(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

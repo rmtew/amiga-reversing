@@ -580,6 +580,53 @@ class AbsoluteCodeLabelMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class EntryCommentMetadata:
+    addr: int
+    seed_origin: str
+    review_status: str
+    citation: str
+    comment: str
+    source_id: str | None = None
+    source_path: str | None = None
+    source_locator: str | None = None
+    hunk: int = 0
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> EntryCommentMetadata:
+        addr = payload["addr"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        comment = payload["comment"]
+        source_id = payload.get("source_id")
+        source_path = payload.get("source_path")
+        source_locator = payload.get("source_locator")
+        hunk = payload.get("hunk", 0)
+        assert isinstance(addr, int)
+        assert isinstance(seed_origin, str)
+        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
+        assert isinstance(review_status, str)
+        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        assert isinstance(citation, str)
+        assert isinstance(comment, str)
+        assert source_id is None or isinstance(source_id, str)
+        assert source_path is None or isinstance(source_path, str)
+        assert source_locator is None or isinstance(source_locator, str)
+        assert isinstance(hunk, int)
+        return cls(
+            addr=addr,
+            hunk=hunk,
+            comment=comment,
+            seed_origin=seed_origin,
+            review_status=review_status,
+            citation=citation,
+            source_id=source_id,
+            source_path=source_path,
+            source_locator=source_locator,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionViewMetadata:
     source_start: int
     source_end: int
@@ -652,6 +699,7 @@ class TargetMetadata:
     seeded_code_labels: tuple[SeededCodeLabelMetadata, ...] = ()
     seeded_code_entrypoints: tuple[SeededCodeEntrypointMetadata, ...] = ()
     absolute_code_labels: tuple[AbsoluteCodeLabelMetadata, ...] = ()
+    entry_comments: tuple[EntryCommentMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
 
@@ -668,6 +716,7 @@ class TargetMetadata:
         seeded_code_labels = payload.get("seeded_code_labels", [])
         seeded_code_entrypoints = payload.get("seeded_code_entrypoints", [])
         absolute_code_labels = payload.get("absolute_code_labels", [])
+        entry_comments = payload.get("entry_comments", [])
         execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
@@ -704,6 +753,10 @@ class TargetMetadata:
             absolute_code_labels=tuple(
                 AbsoluteCodeLabelMetadata.from_dict(_json_object(label_payload))
                 for label_payload in _json_list(absolute_code_labels)
+            ),
+            entry_comments=tuple(
+                EntryCommentMetadata.from_dict(_json_object(comment_payload))
+                for comment_payload in _json_list(entry_comments)
             ),
             execution_views=tuple(
                 ExecutionViewMetadata.from_dict(_json_object(view_payload))
@@ -832,6 +885,15 @@ def validate_target_seeded_metadata(metadata: TargetMetadata) -> TargetMetadata:
             raise ValueError(
                 f"target_seeded_metadata.json absolute code label at {absolute_label.addr:#x} is invalid"
             )
+    for comment in metadata.entry_comments:
+        if comment.source_id is None:
+            raise ValueError(f"target_seeded_metadata.json entry comment at {comment.addr:#x} is missing source_id")
+        if comment.source_path is None:
+            raise ValueError(f"target_seeded_metadata.json entry comment at {comment.addr:#x} is missing source_path")
+        if comment.source_locator is None:
+            raise ValueError(
+                f"target_seeded_metadata.json entry comment at {comment.addr:#x} is missing source_locator"
+            )
     for view in metadata.execution_views:
         if view.source_start < 0 or view.source_end <= view.source_start:
             raise ValueError("target_seeded_metadata.json execution view source range is invalid")
@@ -886,6 +948,8 @@ def _apply_suppressed_seeded_items(
             for entrypoint in seeded.seeded_code_entrypoints
             if ("seeded_code_entrypoint", entrypoint.hunk, entrypoint.addr) not in suppressed
         ),
+        entry_comments=seeded.entry_comments,
+        execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
     )
 
@@ -1044,6 +1108,18 @@ def _merge_absolute_code_labels(
     return tuple(merged[key] for key in sorted(merged))
 
 
+def _merge_entry_comments(
+    manual: tuple[EntryCommentMetadata, ...],
+    seeded: tuple[EntryCommentMetadata, ...],
+) -> tuple[EntryCommentMetadata, ...]:
+    merged: dict[tuple[int, int, str], EntryCommentMetadata] = {
+        (comment.hunk, comment.addr, comment.comment): comment for comment in seeded
+    }
+    for comment in manual:
+        merged[(comment.hunk, comment.addr, comment.comment)] = comment
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def _merge_execution_views(
     manual: tuple[ExecutionViewMetadata, ...],
     seeded: tuple[ExecutionViewMetadata, ...],
@@ -1090,6 +1166,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             manual.absolute_code_labels,
             seeded.absolute_code_labels,
         ),
+        entry_comments=_merge_entry_comments(manual.entry_comments, seeded.entry_comments),
         execution_views=_merge_execution_views(
             manual.execution_views,
             seeded.execution_views,

@@ -4867,6 +4867,27 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "citation": "test",
                     }
                 ],
+                "seeded_code_labels": [
+                    {
+                        "addr": 0x28,
+                        "hunk": 0,
+                        "name": "manual_loop",
+                        "comment": "loop head",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
+                "entry_comments": [
+                    {
+                        "addr": 0x2A,
+                        "hunk": 0,
+                        "comment": "manual note",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
                 "rsset_layout_regions": [
                     {
                         "offset": 0x22C,
@@ -4915,9 +4936,16 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.runtime_ranges[0].runtime_address == 0x400
     assert generic_policy.structured_data_item_count == 0
     assert generic_policy.rsset_layout_region_count == 0
-    assert generic_policy.named_label_count == 1
-    assert generic_policy.named_labels[0].offset == 0x24
-    assert generic_policy.named_labels[0].name == b"stage_entry"
+    assert generic_policy.named_label_count == 2
+    assert generic_policy.named_labels[0].offset == 0x28
+    assert generic_policy.named_labels[0].name == b"manual_loop"
+    assert generic_policy.named_labels[1].offset == 0x24
+    assert generic_policy.named_labels[1].name == b"stage_entry"
+    assert generic_policy.entry_comment_count == 2
+    assert generic_policy.entry_comments[0].offset == 0x28
+    assert generic_policy.entry_comments[0].comment == b"loop head"
+    assert generic_policy.entry_comments[1].offset == 0x2A
+    assert generic_policy.entry_comments[1].comment == b"manual note"
 
     amiga_policy = _M68kAnalysisPolicy()
     amiga_diagnostics = M68kDiagList()

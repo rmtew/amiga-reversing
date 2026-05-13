@@ -426,6 +426,45 @@ static int append_metadata_entry_point_local(const char *object_start, const cha
   return platform_file_analysis_policy_add_entry_point_arg(policy, entry_arg);
 }
 
+static int append_metadata_seeded_code_label_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t offset = 0U;
+  uint32_t hunk = 0U;
+  int has_offset = 0;
+  int has_hunk = 0;
+  char name[64];
+  char comment[192];
+  name[0] = '\0';
+  comment[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "comment", comment, sizeof(comment))) {
+    return 0;
+  }
+  if (!has_offset || name[0] == '\0') return 1;
+  if (!policy_add_named_label_local(policy, has_hunk ? hunk : 0U, offset, name)) return 0;
+  if (comment[0] != '\0' && !policy_add_entry_comment_local(policy, has_hunk ? hunk : 0U, offset, comment)) return 0;
+  return 1;
+}
+
+static int append_metadata_entry_comment_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t offset = 0U;
+  uint32_t hunk = 0U;
+  int has_offset = 0;
+  int has_hunk = 0;
+  char comment[192];
+  comment[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &offset, &has_offset) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "comment", comment, sizeof(comment))) {
+    return 0;
+  }
+  if (!has_offset || comment[0] == '\0') return 1;
+  return policy_add_entry_comment_local(policy, has_hunk ? hunk : 0U, offset, comment);
+}
+
 static int append_metadata_execution_view_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t source_start = 0U;
@@ -4170,6 +4209,28 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     if (object_start == NULL) break;
     if (!append_metadata_entry_point_local(object_start, object_end, policy)) {
       platform_file_add_error(diagnostics.list, "failed parsing target metadata code entrypoint");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "seeded_code_labels", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_seeded_code_label_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata code label");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "entry_comments", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_entry_comment_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata entry comment");
       return -1;
     }
     cursor = object_end;
