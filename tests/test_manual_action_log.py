@@ -472,7 +472,69 @@ def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> No
     )
 
 
-def test_manual_resolution_closes_only_matching_evidence_fingerprint(tmp_path: Path) -> None:
+def test_manual_resolution_closes_nonblocking_matching_evidence_fingerprint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    log_path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_code_labels=(
+            SeededCodeLabelMetadata(
+                addr=0,
+                hunk=0,
+                name="start",
+                seed_origin="manual_analysis",
+                review_status="seeded",
+                citation="test",
+            ),
+        ),
+    )
+
+    def records(label_addr: int, resolution: dict[str, object] | None = None) -> list[dict[str, object]]:
+        result = [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "name": "start", "scope": "global", "hunk": 0, "addr": label_addr},
+            ),
+        ]
+        if resolution is not None:
+            result.append(_action("a2", 2, "resolve_review_item", resolution=resolution))
+        return result
+
+    _append_jsonl(log_path, records(4))
+    open_projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+    item = open_projection.review_items[0]
+    item_id = item["item_id"]
+    evidence_fingerprint = item["evidence_fingerprint"]
+    assert open_projection.review_state == "needs_review"
+    assert item["review_blocker"] is False
+
+    resolution = {
+        "resolution_id": "r1",
+        "item_id": item_id,
+        "evidence_fingerprint": evidence_fingerprint,
+        "decision": "acknowledge",
+    }
+    _append_jsonl(log_path, records(4, resolution))
+    resolved_projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+
+    assert resolved_projection.review_state == "clear"
+    assert resolved_projection.review_items[0]["state"] == "resolved"
+
+    _append_jsonl(log_path, records(6, resolution))
+    changed_projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+
+    assert changed_projection.review_state == "needs_review"
+    assert changed_projection.review_items[0]["state"] == "open"
+    assert changed_projection.review_items[0]["changed_since_resolution"] is True
+    assert changed_projection.review_items[0]["evidence_fingerprint"] != evidence_fingerprint
+
+
+def test_manual_resolution_acknowledges_but_does_not_close_live_blocker(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     log_path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
@@ -508,6 +570,7 @@ def test_manual_resolution_closes_only_matching_evidence_fingerprint(tmp_path: P
     item_id = item["item_id"]
     evidence_fingerprint = item["evidence_fingerprint"]
     assert open_projection.review_state == "needs_review"
+    assert item["review_blocker"] is True
 
     resolution = {
         "resolution_id": "r1",
@@ -518,8 +581,9 @@ def test_manual_resolution_closes_only_matching_evidence_fingerprint(tmp_path: P
     _append_jsonl(log_path, records(4, resolution))
     resolved_projection = load_manual_projection(target_dir)
 
-    assert resolved_projection.review_state == "clear"
-    assert resolved_projection.review_items[0]["state"] == "resolved"
+    assert resolved_projection.review_state == "needs_review"
+    assert resolved_projection.review_items[0]["state"] == "open"
+    assert resolved_projection.review_items[0]["acknowledged"] is True
 
     _append_jsonl(log_path, records(6, resolution))
     changed_projection = load_manual_projection(target_dir)

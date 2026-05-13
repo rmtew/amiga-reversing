@@ -1072,9 +1072,17 @@ function expandedReviewActions(item) {
     actions.push({action: "rerun_round_trip_verification", label: "Rerun round-trip"});
     actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
   } else if (kind === "manual_seed_conflict") {
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+    actions.push({
+      action: "resolve_review_item",
+      label: item?.review_blocker === true ? "Acknowledge blocker" : "Acknowledge",
+      disposition: "acknowledged",
+    });
   } else if (kind === "label_scope_conflict") {
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+    actions.push({
+      action: "resolve_review_item",
+      label: item?.review_blocker === true ? "Acknowledge blocker" : "Acknowledge",
+      disposition: "acknowledged",
+    });
   } else if (!kind.startsWith("manual_action_log_")) {
     actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
   }
@@ -1084,6 +1092,7 @@ function expandedReviewActions(item) {
 function renderReviewItem(item) {
   const blocker = item.review_blocker === true ? '<span class="review-pill blocker">Blocker</span>' : "";
   const changed = item.changed_since_resolution === true ? '<span class="review-pill changed">Changed</span>' : "";
+  const acknowledged = item.acknowledged === true ? '<span class="review-pill">Acknowledged</span>' : "";
   const statePill = `<span class="review-pill">${escapeHtml(String(item.state || "open"))}</span>`;
   const confidence = item.review_confidence
     ? `<span class="review-pill">${escapeHtml(String(item.review_confidence))}</span>`
@@ -1100,7 +1109,7 @@ function renderReviewItem(item) {
         ${source ? `<div class="review-source">${escapeHtml(source)}</div>` : ""}
         ${renderReviewSuggestedActions(item)}
       </div>
-      <div class="review-pills">${blocker}${changed}${statePill}${confidence}</div>
+      <div class="review-pills">${blocker}${acknowledged}${changed}${statePill}${confidence}</div>
     </div>
   `;
 }

@@ -277,7 +277,10 @@ def _finalize_review_items(
         item.setdefault("review_confidence", "high")
         item.setdefault("suggested_actions", _suggested_review_actions(item))
         if (str(item["item_id"]), str(item["evidence_fingerprint"])) in resolved_fingerprints:
-            item["state"] = "resolved"
+            if item.get("review_blocker") is True:
+                item["acknowledged"] = True
+            else:
+                item["state"] = "resolved"
         elif str(item["item_id"]) in resolved_item_ids:
             item["changed_since_resolution"] = True
         finalized.append(item)
@@ -531,6 +534,7 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
                     "item_id": item_id,
                     "scope": "range",
                     "state": "open",
+                    "review_blocker": True,
                     "seed_ids": [left_id, right_id],
                     "hunk": left_range[0],
                     "start": max(left_range[1], right_range[1]),
@@ -577,6 +581,7 @@ def _manual_seed_metadata_conflict_items(
                     "item_id": f"manual_seed_conflict:{seed_id}:{stronger_id}",
                     "scope": "range",
                     "state": "open",
+                    "review_blocker": True,
                     "seed_ids": [seed_id],
                     "stronger_kind": stronger_kind,
                     "stronger_source": stronger_id,
@@ -616,6 +621,7 @@ def _manual_seed_binary_source_conflict_items(
                 "item_id": f"manual_seed_conflict:{seed_id}:{source_id}",
                 "scope": "range",
                 "state": "open",
+                "review_blocker": True,
                 "seed_ids": [seed_id],
                 "stronger_kind": "code",
                 "stronger_source": source_id,
