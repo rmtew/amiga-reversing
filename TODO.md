@@ -57,11 +57,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
       5548 0000001802360064   dc.w abs_0_000058F4-abs_0_000058F4,abs_0_0000590C-abs_0_000058F4,abs_0_00005B2A-abs_0_000058F4,abs_0_00005958-abs_0_000058F4
     ```
       - Each entry should be on separate line (also with linkage/navigate integration).
-  - Web UI improvement possibilities for equates sample:
-    - Add Navigate list entry with same breakdown and interaction as Labels and App Slots in source and Navigate popup.
-    ```
-      disk_buffer_00067D00 EQU $67D00
-    ```
   - Web UI improvement possibilities for ORG sections (or sections known to be bootstraped to addresses)
     ```
     | 5d5e | | abs_0_00006102: |
