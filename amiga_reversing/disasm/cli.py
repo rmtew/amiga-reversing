@@ -34,7 +34,7 @@ class StageTimer:
                 for name, elapsed in self.samples]
 
 
-def gen_disasm(binary_path: str, entities_path: str, output_path: str,
+def gen_disasm(binary_path: str, output_path: str,
                base_addr: int = 0, code_start: int = 0,
                assembler_profile_name: str = "vasm",
                profile_stages: bool = False,
@@ -68,8 +68,6 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Generate assembler-profiled .s file from binary analysis")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
-    parser.add_argument("--entities", "-e",
-                        help="Legacy override path; ignored by current C analysis rendering")
     parser.add_argument("--output", "-o",
                         help="Output .s file path")
     parser.add_argument("--target-dir", "-t",
@@ -93,12 +91,11 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     target_dir = args.target_dir
-    entities = args.entities or (str(Path(target_dir) / "entities.jsonl") if target_dir else "entities.jsonl")
     output = args.output or (str(Path(target_dir) / (Path(args.binary).stem + ".s")) if target_dir else "amiga_reversing.disasm.s")
 
     Path(output).parent.mkdir(parents=True, exist_ok=True)
 
-    gen_disasm(args.binary, entities, output,
+    gen_disasm(args.binary, output,
                base_addr=args.base_addr,
                code_start=args.code_start,
                assembler_profile_name=args.assembler_profile,

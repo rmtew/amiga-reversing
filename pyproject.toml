@@ -15,14 +15,12 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 amiga-analyze-disk = "amiga_reversing.tools.analyze_disk:main"
 amiga-benchmark-target = "amiga_reversing.tools.benchmark_target:main"
-amiga-build-entities = "amiga_reversing.tools.build_entities:main"
 amiga-check-mojibake = "amiga_reversing.tools.check_mojibake:main"
 amiga-disasm-server = "amiga_reversing.tools.disasm_server:main"
 amiga-genam-roundtrip = "amiga_reversing.tools.genam_roundtrip:main"
 amiga-gen-disasm = "amiga_reversing.tools.gen_disasm:main"
 amiga-import-adf = "amiga_reversing.tools.import_adf:main"
 amiga-precommit = "amiga_reversing.tools.precommit:main"
-amiga-update-progress = "amiga_reversing.tools.update_progress:main"
 amiga-validate-target-seeded-metadata = "amiga_reversing.tools.validate_target_seeded_metadata:main"
 
 [dependency-groups]

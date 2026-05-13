@@ -40,7 +40,6 @@ def _binary_project(project_name: str) -> ProjectRecord:
         name=project_name,
         kind="binary",
         target_dir=f"targets/{project_name}",
-        entities_path=f"targets/{project_name}/entities.jsonl",
         output_path=f"targets/{project_name}/{project_name}.s",
         binary_path="bin/demo",
         ready=True,

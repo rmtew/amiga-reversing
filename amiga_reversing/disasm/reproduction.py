@@ -168,7 +168,7 @@ def run_reproduction(
             started_at=profile_started_at,
         )
         phase_started_at = time.perf_counter()
-        paths = resolve_project_paths(target_name, project_root=project_root, require_entities=False)
+        paths = resolve_project_paths(target_name, project_root=project_root)
         target_dir = paths.target_dir
         input_stamp = reproduction_input_stamp(target_name, project_root=project_root, assembler=assembler)
         backend = cast(str, input_stamp["backend"])
@@ -752,7 +752,7 @@ def load_reproduction_report(
     resolve_error: Exception | None = None
     target_dir: Path | None = None
     try:
-        paths = resolve_project_paths(target_name, project_root=project_root, require_entities=False)
+        paths = resolve_project_paths(target_name, project_root=project_root)
         target_dir = paths.target_dir
     except Exception as exc:
         resolve_error = exc
@@ -809,7 +809,7 @@ def reproduction_input_stamp(
     project_root: Path = PROJECT_ROOT,
     assembler: str = "our",
 ) -> dict[str, object]:
-    paths = resolve_project_paths(target_name, project_root=project_root, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=project_root)
     options = reproduction_options_for_target(paths.target_dir)
     backend = _effective_reproduction_backend(backend_for_binary_source(paths.binary_source), options)
     assembler = _effective_reproduction_assembler(assembler, options)

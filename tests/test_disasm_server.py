@@ -85,7 +85,6 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
         name=project_name,
         kind="binary",
         target_dir=f"targets/{project_name}",
-        entities_path=f"targets/{project_name}/entities.jsonl",
         output_path=None,
         binary_path="bin/BLOODWYCH" if ready else None,
         ready=ready,
@@ -1105,7 +1104,6 @@ def test_route_project_returns_disk_manifest_for_disk_project(
             name="demo_disk",
             kind="disk",
             target_dir=str(tmp_path),
-            entities_path=None,
             output_path=None,
             binary_path=None,
             ready=False,
@@ -1182,7 +1180,6 @@ def test_route_project_disk_browser_uses_common_disk_introspection(
             name="demo_disk",
             kind="disk",
             target_dir=str(tmp_path),
-            entities_path=None,
             output_path=None,
             binary_path=None,
             ready=False,
@@ -1233,7 +1230,6 @@ def test_route_listing_rejects_disk_project(monkeypatch: pytest.MonkeyPatch, tmp
         name="demo_disk",
         kind="disk",
         target_dir=str(tmp_path),
-        entities_path=None,
         output_path=None,
         binary_path=None,
         ready=False,
@@ -1261,7 +1257,6 @@ def test_route_listing_open_rejects_disk_project(monkeypatch: pytest.MonkeyPatch
         name="demo_disk",
         kind="disk",
         target_dir=str(tmp_path),
-        entities_path=None,
         output_path=None,
         binary_path=None,
         ready=False,
@@ -1975,7 +1970,6 @@ def test_create_project_from_media_creates_executable_project(
         assert origin["size"] == 4
         assert isinstance(origin["sha256"], str)
         target_dir.mkdir(parents=True, exist_ok=True)
-        (target_dir / "entities.jsonl").write_text("")
         (target_dir / ".project.json").write_text(json.dumps({
             "schema_version": 2,
             "created_at": "2026-03-25T00:00:00+00:00",
@@ -1987,7 +1981,6 @@ def test_create_project_from_media_creates_executable_project(
             name=project_id,
             kind="binary",
             target_dir=str(target_dir),
-            entities_path=str(target_dir / "entities.jsonl"),
             output_path=None,
             binary_path=None,
             ready=False,
@@ -2067,7 +2060,6 @@ def test_create_project_from_media_creates_disk_project(
             name="bloodwych",
             kind="disk",
             target_dir="targets/amiga_disk_bloodwych",
-            entities_path=None,
             output_path=None,
             binary_path=None,
             ready=False,
@@ -2971,7 +2963,7 @@ def test_project_listing_cache_key_includes_renderer_tool_stamps(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root, require_entities=False: SimpleNamespace(
+        lambda project_name, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -3831,7 +3823,7 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root, require_entities=False: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
     )
     monkeypatch.setattr(disasm_server, "append_target_ui_edit", lambda target_dir, body: {"kind": body["kind"], "addr": body["addr"]})
     monkeypatch.setattr(disasm_server, "_cancel_listing_jobs", lambda project_name: canceled.append(f"listing:{project_name}"))
@@ -3868,7 +3860,7 @@ def test_manual_action_route_appends_action_and_invalidates_analysis(
     monkeypatch.setattr(
         disasm_server,
         "resolve_project_paths",
-        lambda project_name, project_root, require_entities=False: SimpleNamespace(target_dir=target_dir),
+        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
     )
     monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: binary_source)
     monkeypatch.setattr(

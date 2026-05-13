@@ -679,7 +679,7 @@ def _file_cache_stamp(path: Path) -> str:
 
 def _project_listing_cache_key(project_name: str) -> str:
     try:
-        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT, require_entities=False)
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError):
         return f"{project_name}|unresolved"
     source = paths.binary_source
@@ -1738,7 +1738,7 @@ def route_request(
                 raise ValueError(
                     f"Project {project_name} is not ready for target metadata edits"
                 )
-            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT, require_entities=False)
+            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
             edit = append_target_ui_edit(paths.target_dir, cast(dict[str, object], body or {}))
             _cancel_listing_jobs(project_name)
             _cancel_reproduction_jobs(project_name)
@@ -1754,7 +1754,7 @@ def route_request(
             action_kind = (body or {}).get("kind")
             if not isinstance(action_kind, str) or not action_kind:
                 raise ValueError("Manual action kind is required")
-            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT, require_entities=False)
+            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
             binary_source = resolve_target_binary_source(paths.target_dir)
             if binary_source is None:
                 raise ValueError(f"Project {project_name} has no source binary")

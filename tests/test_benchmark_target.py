@@ -8,7 +8,6 @@ import pytest
 
 from amiga_reversing.tools import precommit
 from amiga_reversing.tools.benchmark_target import (
-    EntityBenchmark,
     TargetBenchmark,
     _assembler_profile_for_target,
     _benchmark_binary_target,
@@ -21,29 +20,13 @@ from amiga_reversing.tools.precommit import _benchmark_targets
 
 def test_benchmark_record_uses_target_command_and_sizes(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     c_benchmark: dict[str, object] = {
         "analysis": {"violation_count": 2},
         "facts_v2": {"decoded_candidates": 3},
     }
-    entities = tmp_path / "entities.jsonl"
     disasm = tmp_path / "example.s"
-    entities.write_bytes(b"b" * 20)
     disasm.write_bytes(b"c" * 30)
-
-    monkeypatch.setattr(
-        "amiga_reversing.tools.benchmark_target._entities_benchmark",
-        lambda path: EntityBenchmark(
-            entity_count=7,
-            code_entity_count=3,
-            data_entity_count=2,
-            bss_entity_count=1,
-            unknown_entity_count=1,
-            named_entity_count=4,
-            documented_entity_count=1,
-        ),
-    )
 
     record = _benchmark_record(
         "example",
@@ -51,7 +34,6 @@ def test_benchmark_record_uses_target_command_and_sizes(
         "ok",
         12.345,
         c_benchmark,
-        entities,
         disasm,
     )
 
@@ -61,27 +43,18 @@ def test_benchmark_record_uses_target_command_and_sizes(
     assert record.status == "ok"
     assert record.elapsed_seconds == 12.35
     assert record.benchmark_bytes is not None
-    assert record.entities_bytes == 20
     assert record.disasm_bytes == 30
     assert record.analysis == {"violation_count": 2}
     assert record.facts_v2 == {"decoded_candidates": 3}
-    assert record.entities is not None
-    assert record.entities.entity_count == 7
-    assert record.entities.named_entity_count == 4
     assert record.error is None
 
 
 def test_benchmark_record_uses_c_benchmark_json_size(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     c_benchmark: dict[str, object] = {"analysis": {"violation_counts": {"unresolved_indirect": 1}}}
-    entities = tmp_path / "entities.jsonl"
     disasm = tmp_path / "example.s"
-    entities.write_bytes(b"c" * 20)
     disasm.write_bytes(b"d" * 30)
-
-    monkeypatch.setattr("amiga_reversing.tools.benchmark_target._entities_benchmark", lambda path: None)
 
     record = _benchmark_record(
         "example",
@@ -89,7 +62,6 @@ def test_benchmark_record_uses_c_benchmark_json_size(
         "ok",
         1.0,
         c_benchmark,
-        entities,
         disasm,
     )
 
@@ -102,15 +74,13 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
 ) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    entities_path = target_dir / "entities.jsonl"
     disasm_path = target_dir / "demo.s"
 
     monkeypatch.setattr(
         "amiga_reversing.tools.benchmark_target.resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=SimpleNamespace(kind="hunk_file", path=Path("bin/demo"), display_path="bin/demo"),
-            entities_path=entities_path,
             output_path=disasm_path,
         ),
     )
@@ -150,10 +120,6 @@ def test_precommit_benchmark_targets_include_file_and_disk_sources(tmp_path: Pat
     disk_child_target.mkdir()
     empty_target.mkdir()
     bin_dir.mkdir()
-    (file_target / "entities.jsonl").write_text("")
-    (raw_target / "entities.jsonl").write_text("")
-    (disk_child_target / "entities.jsonl").write_text("")
-    (empty_target / "entities.jsonl").write_text("")
     (bin_dir / "DemoGame").write_bytes(b"\x4e\x75")
     (bin_dir / "demo.adf").write_bytes(b"demo")
     (raw_target / "binary.bin").write_bytes(b"\x00" * 12 + b"\x4e\x75")
@@ -361,7 +327,6 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
             status="ok",
             elapsed_seconds=1.0,
             benchmark_bytes=1,
-            entities_bytes=1,
             disasm_bytes=1,
             benchmark_version=1,
             platform="amiga-hunk",
@@ -370,7 +335,6 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
             analysis=None,
             render=None,
             sections=None,
-            entities=None,
             error=None,
             targets=None,
         )

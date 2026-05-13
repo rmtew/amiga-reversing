@@ -101,7 +101,7 @@ UI-created target edits
 
 Use metadata for code/data ranges, entrypoints, labels, pointer tables, text
 ranges, jump tables, external symbols, and suppressions. Keep display-only notes
-in `overrides.json`.
+as Manual Action Log comments.
 
 ## Assembler Repro Options
 

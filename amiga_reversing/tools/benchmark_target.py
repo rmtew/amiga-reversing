@@ -24,17 +24,6 @@ TARGETS_DIR = ROOT / "targets"
 
 
 @dataclass(frozen=True, slots=True)
-class EntityBenchmark:
-    entity_count: int
-    code_entity_count: int
-    data_entity_count: int
-    bss_entity_count: int
-    unknown_entity_count: int
-    named_entity_count: int
-    documented_entity_count: int
-
-
-@dataclass(frozen=True, slots=True)
 class TargetBenchmark:
     target: str
     binary: str
@@ -43,7 +32,6 @@ class TargetBenchmark:
     status: str
     elapsed_seconds: float
     benchmark_bytes: int | None
-    entities_bytes: int | None
     disasm_bytes: int | None
     benchmark_version: int | None
     platform: str | None
@@ -52,29 +40,9 @@ class TargetBenchmark:
     analysis: dict[str, object] | None
     render: dict[str, object] | None
     sections: list[dict[str, object]] | None
-    entities: EntityBenchmark | None
     error: str | None = None
     targets: dict[str, TargetBenchmark] | None = None
     facts_v2: dict[str, object] | None = None
-
-
-def _entities_benchmark(entities_path: Path) -> EntityBenchmark | None:
-    if not entities_path.exists():
-        return None
-    rows = [
-        json.loads(line)
-        for line in entities_path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    return EntityBenchmark(
-        entity_count=len(rows),
-        code_entity_count=sum(1 for row in rows if row.get("type") == "code"),
-        data_entity_count=sum(1 for row in rows if row.get("type") == "data"),
-        bss_entity_count=sum(1 for row in rows if row.get("type") == "bss"),
-        unknown_entity_count=sum(1 for row in rows if row.get("type") == "unknown"),
-        named_entity_count=sum(1 for row in rows if row.get("status") == "named" or "name" in row),
-        documented_entity_count=sum(1 for row in rows if row.get("status") == "documented"),
-    )
 
 
 def _sum_c_timing(records: Sequence[TargetBenchmark]) -> dict[str, object] | None:
@@ -109,7 +77,6 @@ def _benchmark_record(
     status: str,
     elapsed_seconds: float,
     c_benchmark: dict[str, object] | None,
-    entities_path: Path,
     disasm_path: Path,
     error: str | None = None,
     targets: dict[str, TargetBenchmark] | None = None,
@@ -130,7 +97,6 @@ def _benchmark_record(
         status=status,
         elapsed_seconds=round(elapsed_seconds, 2),
         benchmark_bytes=len(json.dumps(c_benchmark, sort_keys=True).encode("utf-8")) if c_benchmark is not None else None,
-        entities_bytes=entities_path.stat().st_size if entities_path.exists() else None,
         disasm_bytes=disasm_path.stat().st_size if disasm_path.exists() else None,
         benchmark_version=benchmark_version if isinstance(benchmark_version, int) else None,
         platform=platform if isinstance(platform, str) else None,
@@ -139,7 +105,6 @@ def _benchmark_record(
         analysis=analysis if isinstance(analysis, dict) else None,
         render=render if isinstance(render, dict) else None,
         sections=sections if isinstance(sections, list) else None,
-        entities=_entities_benchmark(entities_path),
         error=error,
         targets=targets,
         facts_v2=facts_v2 if isinstance(facts_v2, dict) else None,
@@ -161,9 +126,8 @@ def _benchmark_binary_target(
     *,
     write_output: bool,
 ) -> TargetBenchmark:
-    paths = resolve_project_paths(target, project_root=ROOT, require_entities=False)
+    paths = resolve_project_paths(target, project_root=ROOT)
     target_dir = paths.target_dir
-    entities_path = paths.entities_path
     disasm_path = paths.output_path or _default_disasm_path(target_dir, target)
 
     disasm_path.unlink(missing_ok=True)
@@ -191,7 +155,6 @@ def _benchmark_binary_target(
             "ok",
             elapsed,
             c_benchmark,
-            entities_path,
             disasm_path,
         )
     except Exception as exc:
@@ -202,7 +165,6 @@ def _benchmark_binary_target(
             "failed",
             elapsed,
             c_benchmark,
-            entities_path,
             disasm_path,
             error=str(exc),
         )
@@ -243,7 +205,6 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
         status="failed" if failures else "ok",
         elapsed_seconds=round(elapsed, 2),
         benchmark_bytes=sum(record.benchmark_bytes or 0 for record in child_records.values()) or None,
-        entities_bytes=sum(record.entities_bytes or 0 for record in child_records.values()) or None,
         disasm_bytes=sum(record.disasm_bytes or 0 for record in child_records.values()) or None,
         benchmark_version=1,
         platform="disk-project",
@@ -252,7 +213,6 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
         analysis=None,
         render=None,
         sections=None,
-        entities=None,
         error=None if not failures else "; ".join(
             f"{record.target}: {record.error or record.status}" for record in failures
         ),

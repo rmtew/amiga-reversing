@@ -22,27 +22,24 @@ def test_roundtrip_genam_target_reports_first_diff(monkeypatch, tmp_path: Path) 
     bin_dir.mkdir(parents=True)
     include_dir.mkdir(parents=True)
     binary_path = bin_dir / "GenAm"
-    entities_path = target_dir / "entities.jsonl"
     source_path = target_dir / "GenAm.s"
     binary_path.write_bytes(b"\x01\x02\x03\x04")
-    entities_path.write_text("", encoding="utf-8")
     (include_dir / "dummy.i").write_text("", encoding="utf-8")
 
     monkeypatch.setattr(
         roundtrip_mod,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
-            entities_path=entities_path,
-                binary_source=SimpleNamespace(
-                    kind="hunk_file",
-                    path=Path("bin/GenAm"),
-                    display_path="bin/GenAm",
-                ),
+            binary_source=SimpleNamespace(
+                kind="hunk_file",
+                path=Path("bin/GenAm"),
+                display_path="bin/GenAm",
+            ),
         ),
     )
 
-    def fake_gen_disasm(binary_path: str, entities_path: str, output_path: str, **_kwargs: object) -> None:
+    def fake_gen_disasm(binary_path: str, output_path: str, **_kwargs: object) -> None:
         Path(output_path).write_text("SECTION code,code\n", encoding="utf-8", newline="\n")
 
     monkeypatch.setattr(roundtrip_mod, "gen_disasm", fake_gen_disasm)

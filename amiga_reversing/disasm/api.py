@@ -18,7 +18,6 @@ class SessionHunkMetadata(TypedDict):
 class SessionMetadata(TypedDict):
     target_name: str | None
     binary_path: str
-    entities_path: str
     analysis_cache_path: str
     output_path: str | None
     entity_count: int
@@ -42,7 +41,6 @@ def session_metadata(session: Any) -> SessionMetadata:
     return {
         "target_name": session.target_name,
         "binary_path": str(session.binary_path),
-        "entities_path": str(session.entities_path),
         "analysis_cache_path": str(session.analysis_cache_path),
         "output_path": str(session.output_path) if session.output_path else None,
         "entity_count": len(session.entities),

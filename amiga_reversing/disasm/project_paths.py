@@ -20,7 +20,6 @@ class ProjectPaths:
     name: str
     kind: Literal["binary"]
     target_dir: Path
-    entities_path: Path | None
     output_path: Path | None
     binary_source: BinarySource
 
@@ -50,17 +49,10 @@ def resolve_project_dir(name: str, project_root: Path = PROJECT_ROOT) -> Path:
 def resolve_project_paths(
     name: str,
     project_root: Path = PROJECT_ROOT,
-    *,
-    require_entities: bool = False,
 ) -> ProjectPaths:
     target_dir = resolve_project_dir(name, project_root=project_root)
     if (target_dir / "manifest.json").exists():
         raise ValueError(f"Disk project {name} does not resolve to binary project paths")
-
-    entities_path = target_dir / "entities.jsonl"
-    if require_entities and not entities_path.exists():
-        raise FileNotFoundError(f"Missing entities.jsonl for target: {name}")
-    resolved_entities_path = entities_path if entities_path.exists() else None
 
     output_candidates = sorted(target_dir.glob("*.s"))
     output_path = output_candidates[0] if len(output_candidates) == 1 else None
@@ -75,7 +67,6 @@ def resolve_project_paths(
         name=name,
         kind="binary",
         target_dir=target_dir,
-        entities_path=resolved_entities_path,
         output_path=output_path,
         binary_source=binary_source,
     )

@@ -51,7 +51,7 @@ def facts_v2_source_gate_report_for_target(
     source_text = ""
     profile: Mapping[str, object] = {}
     try:
-        paths = resolve_project_paths(target, project_root=project_root, require_entities=False)
+        paths = resolve_project_paths(target, project_root=project_root)
         with effective_metadata_file(paths.target_dir) as metadata_path:
             source_text, raw_profile = listing_artifact_source_text_with_c_backend_profile(
                 paths.binary_source,

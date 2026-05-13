@@ -471,8 +471,6 @@ def test_resolve_project_paths_uses_recorded_binary_path(tmp_path: Path) -> None
     target_dir.mkdir(parents=True)
     bin_dir.mkdir(parents=True)
 
-    entities_path = target_dir / "entities.jsonl"
-    entities_path.write_text("")
     binary_path = bin_dir / "DemoGame"
     binary_path.write_bytes(b"\x4e\x75")
     (target_dir / "source_binary.json").write_text(json.dumps({
@@ -500,7 +498,6 @@ def test_resolve_project_paths_supports_disk_entry_binary_source(tmp_path: Path)
     bin_dir = project_root / "bin"
     target_dir.mkdir(parents=True)
     bin_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
     adf_path = bin_dir / "demo.adf"
     adf_path.write_bytes(b"demo")
     (target_dir / "source_binary.json").write_text(json.dumps({
@@ -529,7 +526,6 @@ def test_resolve_project_paths_supports_raw_binary_source(tmp_path: Path) -> Non
     (disk_dir / "manifest.json").write_text(json.dumps(payload))
     target_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
     binary_path = target_dir / "binary.bin"
     binary_path.write_bytes(b"\x00" * 0x0C + b"\x4e\x75")
     (target_dir / "source_binary.json").write_text(json.dumps({
@@ -630,31 +626,7 @@ def test_resolve_project_paths_allows_missing_entities_by_default(tmp_path: Path
 
     resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
 
-    assert resolved.entities_path is None
     assert resolved.binary_source.kind == "raw_binary"
-
-
-def test_resolve_project_paths_can_require_legacy_entities_when_called_explicitly(tmp_path: Path) -> None:
-    project_root = tmp_path
-    target_dir = project_root / "targets" / "demo"
-    target_dir.mkdir(parents=True)
-    binary_path = target_dir / "binary.bin"
-    binary_path.write_bytes(b"\x4e\x75")
-    (target_dir / "source_binary.json").write_text(
-        json.dumps(
-            {
-                "kind": "raw_binary",
-                "address_model": "local_offset",
-                "path": "targets/demo/binary.bin",
-                "load_address": 0x70000,
-                "entrypoint": 0x70000,
-                "code_start_offset": 0,
-            }
-        )
-    )
-
-    with pytest.raises(FileNotFoundError, match="Missing entities.jsonl"):
-        resolve_project_paths("demo", project_root=project_root, require_entities=True)
 
 
 def test_resolve_project_paths_rejects_disk_project_name(tmp_path: Path) -> None:
@@ -677,7 +649,6 @@ def test_list_projects_includes_unready_binary_project(tmp_path: Path) -> None:
     assert len(projects) == 1
     assert projects[0].id == "demo"
     assert projects[0].kind == "binary"
-    assert projects[0].entities_path is None
     assert projects[0].ready is False
     assert projects[0].binary_path is None
     assert projects[0].parent_project_id is None
@@ -757,11 +728,9 @@ def test_list_projects_hides_imported_disk_child_targets(tmp_path: Path) -> None
     (disk_dir / "manifest.json").write_text(json.dumps(_disk_manifest_payload()))
     child_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     child_dir.mkdir(parents=True)
-    (child_dir / "entities.jsonl").write_text("")
     (child_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     bootblock_dir = project_root / "targets" / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
     bootblock_dir.mkdir(parents=True)
-    (bootblock_dir / "entities.jsonl").write_text("")
     (bootblock_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (bootblock_dir / "binary.bin").write_bytes(b"\x4e\x75")
     (bootblock_dir / "source_binary.json").write_text(json.dumps({
@@ -838,7 +807,6 @@ def test_get_project_sets_parent_project_for_disk_entry_target(tmp_path: Path) -
     bin_dir = project_root / "bin"
     target_dir.mkdir(parents=True)
     bin_dir.mkdir()
-    (target_dir / "entities.jsonl").write_text("")
     (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (target_dir / "binary.analysis").write_text("")
     adf_path = bin_dir / "demo.adf"
@@ -862,7 +830,6 @@ def test_get_project_exposes_manual_action_log_projection(tmp_path: Path) -> Non
     bin_dir = project_root / "bin"
     target_dir.mkdir(parents=True)
     bin_dir.mkdir()
-    (target_dir / "entities.jsonl").write_text("")
     (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     binary_path = bin_dir / "demo.bin"
     binary_path.write_bytes(b"\x4e\x75")
@@ -1124,7 +1091,6 @@ def test_create_project_does_not_create_legacy_entities_file(tmp_path: Path) -> 
 
     assert project.id == "demo"
     assert project.kind == "binary"
-    assert project.entities_path is None
     assert not (tmp_path / "targets" / "demo" / "entities.jsonl").exists()
     metadata = json.loads((tmp_path / "targets" / "demo" / ".project.json").read_text())
     assert metadata["schema_version"] == 2
@@ -1197,7 +1163,6 @@ def test_delete_disk_project_removes_manifest_targets_and_source(tmp_path: Path)
     (disk_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     imported_dir = targets_dir / "amiga_disk_demo_disk" / "targets" / "amiga_hunk_run_12345678"
     imported_dir.mkdir(parents=True)
-    (imported_dir / "entities.jsonl").write_text("")
     (imported_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (imported_dir / "source_binary.json").write_text(json.dumps({
         "kind": "disk_entry",
@@ -1208,7 +1173,6 @@ def test_delete_disk_project_removes_manifest_targets_and_source(tmp_path: Path)
     }))
     bootblock_dir = targets_dir / "amiga_disk_demo_disk" / "targets" / "amiga_raw_bootblock"
     bootblock_dir.mkdir(parents=True)
-    (bootblock_dir / "entities.jsonl").write_text("")
     (bootblock_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
     (bootblock_dir / "binary.bin").write_bytes(b"\x00" * 0x0C + b"\x4e\x75")
     (bootblock_dir / "source_binary.json").write_text(json.dumps({
@@ -1242,7 +1206,6 @@ def test_delete_disk_project_removes_manifest_targets_and_source(tmp_path: Path)
 def test_get_project_requires_project_metadata(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
 
     with pytest.raises(FileNotFoundError, match=r"Missing \.project\.json for project: demo"):
         get_project("demo", project_root=tmp_path)
@@ -1251,7 +1214,6 @@ def test_get_project_requires_project_metadata(tmp_path: Path) -> None:
 def test_list_projects_requires_project_metadata(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("")
 
     with pytest.raises(FileNotFoundError, match=r"Missing \.project\.json for project: demo"):
         list_projects(project_root=tmp_path)

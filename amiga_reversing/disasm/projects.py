@@ -56,7 +56,6 @@ class ProjectRecord:
     name: str
     kind: Literal["binary", "disk"]
     target_dir: str
-    entities_path: str | None
     output_path: str | None
     binary_path: str | None
     ready: bool
@@ -203,7 +202,6 @@ def _save_state(project_root: Path, state: BrowserState) -> None:
 def _binary_project_record(project_id: str, target_dir: Path, state: BrowserState, project_root: Path) -> ProjectRecord:
     metadata = _load_project_metadata(target_dir)
     target_metadata = load_target_metadata(target_dir)
-    entities_path = target_dir / "entities.jsonl"
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
     manual_projection = load_manual_projection(
@@ -219,7 +217,6 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         name=target_dir.name,
         kind="binary",
         target_dir=str(target_dir),
-        entities_path=str(entities_path) if entities_path.exists() else None,
         output_path=str(output_candidates[0]) if len(output_candidates) == 1 else None,
         binary_path=None if binary_source is None else binary_source.display_path,
         ready=binary_source is not None,
@@ -378,7 +375,6 @@ def _disk_project_record(disk_dir: Path, state: BrowserState) -> ProjectRecord:
         name=manifest.disk_id,
         kind="disk",
         target_dir=str(disk_dir),
-        entities_path=None,
         output_path=None,
         binary_path=None,
         ready=False,

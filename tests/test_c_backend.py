@@ -3437,7 +3437,6 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
     binary_path.write_bytes(b"\x4e\x75")
     target_dir = tmp_path / "targets" / "raw_demo"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
     (target_dir / "source_binary.json").write_text(
         json.dumps(
             {
@@ -3499,7 +3498,6 @@ def test_project_listing_artifact_build_uses_summary_only_with_platform_calls(
     binary_path.write_bytes(b"\x4e\x75")
     target_dir = tmp_path / "targets" / "raw_demo"
     target_dir.mkdir(parents=True)
-    (target_dir / "entities.jsonl").write_text("", encoding="utf-8")
     (target_dir / "source_binary.json").write_text(
         json.dumps(
             {
@@ -3855,7 +3853,7 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
 def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> None:
     _requires_c_backend_dlls()
     target_name = "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -3899,7 +3897,7 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
 def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> None:
     _requires_c_backend_dlls()
     target_name = "amiga_disk_starglider-1987-rainbird__amiga_hunk_libs__mathieeedoubbas.library_3d4e4903"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -3924,7 +3922,7 @@ def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> No
 
 def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -3948,7 +3946,7 @@ def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> No
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths("amiga_hunk_magicland_dizzy_md", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths("amiga_hunk_magicland_dizzy_md", project_root=PROJECT_ROOT)
 
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5214,7 +5212,7 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
         target_name,
         project_root=PROJECT_ROOT,
     )
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -5238,7 +5236,7 @@ def test_project_source_facts_v2_indexed_pointer_table_comparators_stay_clean(ta
 @pytest.mark.parametrize("target_name", ["amiga_hunk_genam", "amiga_hunk_monam302"])
 def test_project_source_facts_v2_wide_word_dispatch_comparators_stay_clean(target_name: str) -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -5259,7 +5257,6 @@ def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_sta
     paths = resolve_project_paths(
         "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5280,7 +5277,7 @@ def test_project_source_facts_v2_inline_tail_dispatch_voodoo_and_comparators_sta
     assert "abs_6_000791A4:\n\tdbf.w d0,abs_6_00079194\n" in source_text
 
     for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
-        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
         rebuilt, direct_source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
             paths.binary_source,
             metadata_path=paths.target_dir / "target_metadata.json",
@@ -5499,7 +5496,7 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
         assert duplicate_keys
         assert expected
 
-        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
         metadata_path = paths.target_dir / "target_metadata.json"
         binary_path = paths.binary_source.path
         if not binary_path.is_absolute():
@@ -5551,7 +5548,6 @@ def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:
     paths = resolve_project_paths(
         "amiga_hunk_genam",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5570,7 +5566,6 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
     paths = resolve_project_paths(
         "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5702,7 +5697,6 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
     paths = resolve_project_paths(
         target_name,
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     payloads = combined["analysis"]["packed_payloads"]
     suggestions = combined["analysis"]["derived_target_suggestions"]
@@ -5821,7 +5815,6 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     paths = resolve_project_paths(
         "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
 
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
@@ -6062,7 +6055,7 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
 def test_real_dll_serial_device_app_slot_widths_stay_evidence_backed(target_name: str) -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6081,7 +6074,6 @@ def test_real_dll_voodoo_absolute_four_stays_numeric_not_initial_pc_vector() -> 
     paths = resolve_project_paths(
         "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -6101,7 +6093,6 @@ def test_real_dll_voodoo_adjacent_branch_stub_table_recovers_handlers() -> None:
     paths = resolve_project_paths(
         "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -6129,7 +6120,7 @@ def test_real_dll_carrier_clipboard_relocation_backed_jump_templates_are_code() 
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__clipboard.device_2e6f0d10"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6152,7 +6143,7 @@ def test_real_dll_carrier_serial_device_renders_non_autoinit_vectors() -> None:
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6170,7 +6161,7 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6206,7 +6197,7 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
 def test_real_dll_monam_keeps_unrelocated_jump_bytes_as_data() -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6226,7 +6217,6 @@ def test_real_dll_conqueror_file_handle_slots_do_not_alias_dosbase() -> None:
     paths = resolve_project_paths(
         target_name,
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -6291,7 +6281,6 @@ def test_real_dll_starglider_loader_file_handle_slot_stays_untyped() -> None:
     paths = resolve_project_paths(
         "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -6311,7 +6300,6 @@ def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None
     paths = resolve_project_paths(
         "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -6445,7 +6433,6 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     paths = resolve_project_paths(
         "amiga_hunk_bloodwych",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
 
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
@@ -6649,7 +6636,6 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     paths = resolve_project_paths(
         "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
         project_root=PROJECT_ROOT,
-        require_entities=False,
     )
 
     rendered = render_project_source_with_c_backend(
@@ -7060,7 +7046,7 @@ def test_non_autoinit_resident_make_library_vectors_seed_device_entrypoints(tmp_
 )
 def test_real_dll_non_autoinit_resident_vectors_seed_device_entrypoints(target_name: str, prefix: str) -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT, require_entities=False)
+    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
 
     rendered = render_project_source_with_c_backend(
         paths.binary_source,

@@ -59,7 +59,7 @@ def _devpac_output_args(profile_name: str, out_name: str) -> list[str]:
 
 
 def roundtrip_genam_target(target: str) -> RoundTripResult:
-    paths = resolve_project_paths(target, project_root=ROOT, require_entities=False)
+    paths = resolve_project_paths(target, project_root=ROOT)
     binary_source = paths.binary_source
     if binary_source.kind == "disk_entry":
         raise ValueError(f"GenAm round-trip target must be file-backed: {target}")
@@ -67,7 +67,6 @@ def roundtrip_genam_target(target: str) -> RoundTripResult:
     source_path = target_dir / f"{Path(binary_source.display_path).stem}.s"
     gen_disasm(
         str(binary_source.path),
-        str(paths.entities_path),
         str(source_path),
         assembler_profile_name="devpac",
     )

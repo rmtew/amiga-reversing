@@ -416,7 +416,7 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -467,7 +467,7 @@ def test_run_reproduction_exact_match_skips_file_layout(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -532,7 +532,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -590,7 +590,7 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -658,7 +658,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -719,7 +719,7 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -791,7 +791,7 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -852,7 +852,7 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -929,7 +929,7 @@ def test_run_reproduction_direct_compare_exact_skips_python_diff(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1001,7 +1001,7 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1130,7 +1130,7 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1175,7 +1175,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1216,7 +1216,7 @@ def test_run_reproduction_refuses_facts_v2_source_before_assemble(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1266,7 +1266,7 @@ def test_run_reproduction_writes_tool_error_when_stamp_fails(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1299,7 +1299,7 @@ def test_load_reproduction_report_keeps_tool_error_when_current_stamp_fails(
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: SimpleNamespace(
+        lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=source,
         ),
@@ -1342,7 +1342,7 @@ def test_load_reproduction_report_reads_saved_report_when_source_resolution_fail
     monkeypatch.setattr(
         reproduction,
         "resolve_project_paths",
-        lambda target, project_root, require_entities=False: (_ for _ in ()).throw(
+        lambda target, project_root: (_ for _ in ()).throw(
             FileNotFoundError("Unable to resolve binary source")
         ),
     )
