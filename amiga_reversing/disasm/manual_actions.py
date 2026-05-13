@@ -246,11 +246,13 @@ def _finalize_review_items(
     resolutions: tuple[dict[str, object], ...],
 ) -> tuple[dict[str, object], ...]:
     resolved_fingerprints: set[tuple[str, str]] = set()
+    resolved_item_ids: set[str] = set()
     for resolution in resolutions:
         item_id = resolution.get("item_id")
         evidence_fingerprint = resolution.get("evidence_fingerprint")
         if isinstance(item_id, str) and isinstance(evidence_fingerprint, str):
             resolved_fingerprints.add((item_id, evidence_fingerprint))
+            resolved_item_ids.add(item_id)
 
     finalized: list[dict[str, object]] = []
     for item in items:
@@ -261,6 +263,8 @@ def _finalize_review_items(
         item.setdefault("suggested_actions", _suggested_review_actions(item))
         if (str(item["item_id"]), str(item["evidence_fingerprint"])) in resolved_fingerprints:
             item["state"] = "resolved"
+        elif str(item["item_id"]) in resolved_item_ids:
+            item["changed_since_resolution"] = True
         finalized.append(item)
     return tuple(finalized)
 

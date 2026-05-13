@@ -1070,6 +1070,7 @@ function expandedReviewActions(item) {
 
 function renderReviewItem(item) {
   const blocker = item.review_blocker === true ? '<span class="review-pill blocker">Blocker</span>' : "";
+  const changed = item.changed_since_resolution === true ? '<span class="review-pill changed">Changed</span>' : "";
   const statePill = `<span class="review-pill">${escapeHtml(String(item.state || "open"))}</span>`;
   const confidence = item.review_confidence
     ? `<span class="review-pill">${escapeHtml(String(item.review_confidence))}</span>`
@@ -1086,7 +1087,7 @@ function renderReviewItem(item) {
         ${source ? `<div class="review-source">${escapeHtml(source)}</div>` : ""}
         ${renderReviewSuggestedActions(item)}
       </div>
-      <div class="review-pills">${blocker}${statePill}${confidence}</div>
+      <div class="review-pills">${blocker}${changed}${statePill}${confidence}</div>
     </div>
   `;
 }

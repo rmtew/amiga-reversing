@@ -462,6 +462,7 @@ def test_manual_resolution_closes_only_matching_evidence_fingerprint(tmp_path: P
 
     assert changed_projection.review_state == "needs_review"
     assert changed_projection.review_items[0]["state"] == "open"
+    assert changed_projection.review_items[0]["changed_since_resolution"] is True
     assert changed_projection.review_items[0]["evidence_fingerprint"] != evidence_fingerprint
 
 

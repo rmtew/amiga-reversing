@@ -1774,6 +1774,12 @@ body {
   color: #742020;
 }
 
+.review-pill.changed {
+  border-color: #b9862e;
+  background: #fff4d8;
+  color: #6f4900;
+}
+
 .repro-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
