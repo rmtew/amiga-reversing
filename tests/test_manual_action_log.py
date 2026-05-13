@@ -7,6 +7,7 @@ from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
+    append_manual_action,
     build_target_identity,
     load_manual_projection,
 )
@@ -168,6 +169,35 @@ def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Pa
     assert projection.labels == ({"label_id": "l1", "name": "start"},)
     assert projection.comments == ({"comment_id": "c1", "text": "entry"},)
     assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1"},)
+
+
+def test_append_manual_action_creates_header_and_sequences_actions(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = target_dir / "binary.bin"
+    _write_raw_source(target_dir, binary_path)
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+
+    first = append_manual_action(
+        target_dir,
+        kind="create_manual_seed",
+        payload={"seed": {"seed_id": "s1", "kind": "data", "addr": 0}},
+        binary_source=binary_source,
+    )
+    second = append_manual_action(
+        target_dir,
+        kind="resolve_review_item",
+        payload={"resolution": {"resolution_id": "r1", "item_id": "i1", "evidence_fingerprint": "abc"}},
+        binary_source=binary_source,
+    )
+
+    projection = load_manual_projection(target_dir, binary_source=binary_source)
+
+    assert first["sequence"] == 1
+    assert second["sequence"] == 2
+    assert projection.seeds == ({"seed_id": "s1", "kind": "data", "addr": 0},)
+    assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1", "evidence_fingerprint": "abc"},)
 
 
 def test_duplicate_global_manual_labels_create_scope_conflict_review_work(tmp_path: Path) -> None:

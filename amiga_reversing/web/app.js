@@ -1022,15 +1022,50 @@ function renderReviewSelect(name, label, values, value) {
 }
 
 function renderReviewSuggestedActions(item) {
-  const actions = Array.isArray(item.suggested_actions) ? item.suggested_actions : [];
+  const actions = expandedReviewActions(item);
   if (!actions.length) {
     return "";
   }
   return `
     <div class="review-actions">
-      ${actions.map((action) => `<span>${escapeHtml(String(action.action || "action").replaceAll("_", " "))}</span>`).join("")}
+      ${actions.map((action) => (
+        `<button type="button" data-review-action="${escapeHtml(action.action)}" data-review-index="${item.review_index}"${action.seedKind ? ` data-seed-kind="${escapeHtml(action.seedKind)}"` : ""}${action.dataRole ? ` data-data-role="${escapeHtml(action.dataRole)}"` : ""}${action.unit ? ` data-unit="${escapeHtml(action.unit)}"` : ""}${action.disposition ? ` data-disposition="${escapeHtml(action.disposition)}"` : ""}>${escapeHtml(action.label)}</button>`
+      )).join("")}
     </div>
   `;
+}
+
+function expandedReviewActions(item) {
+  const actions = [{action: "navigate", label: "Navigate"}];
+  const kind = String(item?.kind || "");
+  if (kind === "orphan_code_candidate") {
+    actions.push({action: "create_manual_seed", label: "Seed code", seedKind: "code"});
+    actions.push({action: "resolve_review_item", label: "Resolve data/padding", disposition: "data_or_padding"});
+  } else if (kind === "unreconciled_data_range") {
+    actions.push({action: "create_manual_seed", label: "String", seedKind: "data", dataRole: "string", unit: "byte"});
+    actions.push({action: "create_manual_seed", label: "Scalar table", seedKind: "data", dataRole: "scalar_table", unit: "word"});
+    actions.push({action: "create_manual_seed", label: "Pointer table", seedKind: "data", dataRole: "pointer_table", unit: "long"});
+    actions.push({action: "create_manual_seed", label: "Raw bytes", seedKind: "data", dataRole: "raw", unit: "byte"});
+    actions.push({action: "resolve_review_item", label: "Opaque data", disposition: "opaque_data"});
+  } else if (kind === "suspicious_instruction_decode") {
+    actions.push({action: "create_manual_seed", label: "Seed data", seedKind: "data", dataRole: "raw", unit: "byte"});
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  } else if (kind === "manual_label_unreconciled" || kind === "manual_comment_unreconciled") {
+    actions.push({action: "create_manual_seed", label: "Seed data", seedKind: "data", dataRole: "raw", unit: "byte"});
+    actions.push({action: "remove_manual_annotation", label: "Remove annotation"});
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  } else if (kind === "reproduction_mismatch" || kind === "unsupported_container_shape") {
+    actions.push({action: "open_reproduction_report", label: "Open comparison"});
+    actions.push({action: "rerun_round_trip_verification", label: "Rerun round-trip"});
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  } else if (kind === "manual_seed_conflict") {
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  } else if (kind === "label_scope_conflict") {
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  } else if (!kind.startsWith("manual_action_log_")) {
+    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
+  }
+  return actions;
 }
 
 function renderReviewItem(item) {
@@ -1122,6 +1157,99 @@ async function navigateToReviewItem(item) {
   await jumpToListingAddr(state.project, addr);
 }
 
+function reviewItemSeedPayload(item, button) {
+  const addr = reviewItemAddress(item);
+  if (!Number.isFinite(addr)) {
+    return null;
+  }
+  const end = reviewItemEnd(item);
+  const seedKind = button.dataset.seedKind || "data";
+  const seed = {
+    seed_id: `ui-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
+    kind: seedKind,
+    mode: "required",
+    hunk: Number.isInteger(item.hunk) ? item.hunk : 0,
+    addr,
+  };
+  if (Number.isFinite(end) && end > addr) {
+    seed.end = end;
+  }
+  if (seedKind === "data") {
+    if (button.dataset.dataRole) {
+      seed.data_role = button.dataset.dataRole;
+    }
+    if (button.dataset.unit) {
+      seed.unit = button.dataset.unit;
+    }
+  }
+  return seed;
+}
+
+function reviewResolutionPayload(item, disposition) {
+  return {
+    resolution_id: `ui-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
+    item_id: String(item.item_id || ""),
+    evidence_fingerprint: String(item.evidence_fingerprint || ""),
+    disposition: disposition || "acknowledged",
+  };
+}
+
+async function postManualReviewAction(payload) {
+  if (!state.project) {
+    return null;
+  }
+  const result = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-actions`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  state.projectData = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}`);
+  renderManualReviewPanel();
+  refreshProjectBadges();
+  return result;
+}
+
+async function applyReviewAction(item, button) {
+  const action = button.dataset.reviewAction || "";
+  if (action === "navigate") {
+    await navigateToReviewItem(item);
+    return;
+  }
+  if (action === "open_reproduction_report") {
+    await openReproPanel();
+    return;
+  }
+  if (action === "rerun_round_trip_verification") {
+    await runReproduction(state.project);
+    return;
+  }
+  if (action === "create_manual_seed") {
+    const seed = reviewItemSeedPayload(item, button);
+    if (!seed) {
+      return;
+    }
+    await postManualReviewAction({kind: "create_manual_seed", seed});
+    setAnalysisStatus("Manual seed saved", "ready", 2000);
+    return;
+  }
+  if (action === "remove_manual_annotation") {
+    if (item.label_id) {
+      await postManualReviewAction({kind: "remove_manual_label", label_id: item.label_id});
+    } else if (item.comment_id) {
+      await postManualReviewAction({kind: "remove_manual_comment", comment_id: item.comment_id});
+    }
+    setAnalysisStatus("Manual annotation removed", "ready", 2000);
+    return;
+  }
+  if (action === "resolve_review_item") {
+    await postManualReviewAction({
+      kind: "resolve_review_item",
+      resolution: reviewResolutionPayload(item, button.dataset.disposition),
+    });
+    setAnalysisStatus("Review item resolved", "ready", 2000);
+  }
+}
+
 function bindManualReviewPanel() {
   const overlay = document.getElementById("review-overlay");
   if (!overlay) {
@@ -1145,6 +1273,13 @@ function bindManualReviewPanel() {
       const index = Number(button.dataset.reviewNavigate);
       const item = reviewItems().find((candidate) => candidate.review_index === index);
       void navigateToReviewItem(item);
+    });
+  });
+  overlay.querySelectorAll("[data-review-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.reviewIndex);
+      const item = reviewItems().find((candidate) => candidate.review_index === index);
+      void applyReviewAction(item, button);
     });
   });
 }

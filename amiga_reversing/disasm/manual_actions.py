@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
 
@@ -53,6 +55,54 @@ class _ManualAction:
 
 def manual_action_log_path(target_dir: Path) -> Path:
     return target_dir / MANUAL_ACTION_LOG_FILE_NAME
+
+
+def append_manual_action(
+    target_dir: Path,
+    *,
+    kind: str,
+    payload: dict[str, object],
+    binary_source: BinarySource,
+) -> dict[str, object]:
+    path = manual_action_log_path(target_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    records: list[dict[str, object]] = []
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                raw = json.loads(line)
+                records.append(_object(raw, what="manual action log record"))
+    else:
+        records.append(
+            {
+                "record": "manual_action_log_header",
+                "version": MANUAL_ACTION_LOG_VERSION,
+                "target_identity": build_target_identity(binary_source),
+            }
+        )
+    if not records or records[0].get("record") != "manual_action_log_header":
+        raise ValueError("first record must be manual_action_log_header")
+    max_sequence = 0
+    for raw in records[1:]:
+        if raw.get("record") != "manual_action":
+            continue
+        sequence = raw.get("sequence")
+        if isinstance(sequence, int):
+            max_sequence = max(max_sequence, sequence)
+    action = {
+        "record": "manual_action",
+        "action_id": f"manual-{uuid.uuid4().hex}",
+        "sequence": max_sequence + 1,
+        "created_at": datetime.now(UTC).isoformat(),
+        "kind": kind,
+        **payload,
+    }
+    records.append(action)
+    path.write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+        encoding="utf-8",
+    )
+    return action
 
 
 def build_target_identity(binary_source: BinarySource) -> dict[str, object]:

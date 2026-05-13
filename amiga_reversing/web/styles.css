@@ -1663,7 +1663,8 @@ body {
 .repro-run,
 .repro-actions button,
 .review-close,
-.review-item-title {
+.review-item-title,
+.review-actions button {
   font: inherit;
   padding: 6px 10px;
   border: 1px solid #7a7a7a;
@@ -1758,8 +1759,7 @@ body {
   justify-content: flex-start;
 }
 
-.review-pill,
-.review-actions span {
+.review-pill {
   padding: 1px 5px;
   border: 1px solid #b8b8b8;
   background: #fff;

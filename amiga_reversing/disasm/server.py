@@ -31,7 +31,10 @@ from amiga_reversing.disasm.annotations import (
 from amiga_reversing.disasm.api import (
     ListingWindowPayload,
 )
-from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.binary_source import (
+    resolve_target_binary_source,
+    write_source_descriptor,
+)
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
     build_project_listing_artifact_profile,
@@ -41,6 +44,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.manual_actions import append_manual_action
 from amiga_reversing.disasm.manual_review_items import analysis_review_items
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
@@ -1701,6 +1705,36 @@ def route_request(
             _clear_project_listing_cache(project_name)
             mark_project_updated(paths.target_dir)
             return {"ok": True, "data": {"edit": edit}}
+        if method == "POST" and len(parts) == 4 and parts[3] == "manual-actions":
+            project = get_project(project_name)
+            if project.kind != "binary" or not project.ready:
+                raise ValueError(
+                    f"Project {project_name} is not ready for manual review actions"
+                )
+            action_kind = (body or {}).get("kind")
+            if not isinstance(action_kind, str) or not action_kind:
+                raise ValueError("Manual action kind is required")
+            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT, require_entities=False)
+            binary_source = resolve_target_binary_source(paths.target_dir)
+            if binary_source is None:
+                raise ValueError(f"Project {project_name} has no source binary")
+            action_payload = {
+                key: value
+                for key, value in (body or {}).items()
+                if key != "kind"
+            }
+            action = append_manual_action(
+                paths.target_dir,
+                kind=action_kind,
+                payload=action_payload,
+                binary_source=binary_source,
+            )
+            if action_kind != "resolve_review_item":
+                _cancel_listing_jobs(project_name)
+                _cancel_reproduction_jobs(project_name)
+                _clear_project_listing_cache(project_name)
+            mark_project_updated(paths.target_dir)
+            return {"ok": True, "data": {"action": action}}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
             if project.kind != "binary":
