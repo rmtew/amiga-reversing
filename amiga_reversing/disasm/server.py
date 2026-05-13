@@ -38,7 +38,10 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
-from amiga_reversing.disasm.manual_actions import append_manual_action
+from amiga_reversing.disasm.manual_actions import (
+    append_manual_action,
+    validate_manual_action_payload,
+)
 from amiga_reversing.disasm.manual_review_items import analysis_review_items
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
@@ -1763,6 +1766,7 @@ def route_request(
                 for key, value in (body or {}).items()
                 if key != "kind"
             }
+            validate_manual_action_payload(action_payload)
             action = append_manual_action(
                 paths.target_dir,
                 kind=action_kind,

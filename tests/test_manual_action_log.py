@@ -202,6 +202,29 @@ def test_append_manual_action_creates_header_and_sequences_actions(tmp_path: Pat
     assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1", "evidence_fingerprint": "abc"},)
 
 
+def test_append_manual_action_rejects_reserved_payload_fields(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = target_dir / "binary.bin"
+    _write_raw_source(target_dir, binary_path)
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+
+    with pytest.raises(ValueError, match="reserved field"):
+        append_manual_action(
+            target_dir,
+            kind="create_manual_seed",
+            payload={
+                "action_id": "manual-forged",
+                "sequence": 99,
+                "seed": {"seed_id": "s1", "kind": "data", "addr": 0},
+            },
+            binary_source=binary_source,
+        )
+
+    assert not (target_dir / MANUAL_ACTION_LOG_FILE_NAME).exists()
+
+
 def test_duplicate_global_manual_labels_create_scope_conflict_review_work(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

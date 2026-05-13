@@ -3894,6 +3894,45 @@ def test_manual_action_route_appends_action_and_invalidates_analysis(
     assert canceled == ["listing:bloodwych", "repro:bloodwych"]
 
 
+def test_manual_action_route_rejects_reserved_payload_fields(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    appended: list[dict[str, object]] = []
+    binary_source = object()
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: binary_source)
+    monkeypatch.setattr(
+        disasm_server,
+        "append_manual_action",
+        lambda target_dir, kind, payload, binary_source: appended.append(payload) or payload,
+    )
+
+    with pytest.raises(ValueError, match="reserved field"):
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/manual-actions",
+            {},
+            {
+                "kind": "create_manual_seed",
+                "action_id": "manual-forged",
+                "seed": {"seed_id": "s1", "kind": "data", "addr": 0x20},
+            },
+        )
+
+    assert appended == []
+
+
 def test_listing_navigation_includes_repro_issues(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0x20)]
     monkeypatch.setattr(

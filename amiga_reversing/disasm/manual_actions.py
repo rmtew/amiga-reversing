@@ -19,6 +19,9 @@ from amiga_reversing.disasm.target_metadata import TargetMetadata
 
 MANUAL_ACTION_LOG_FILE_NAME = "manual_actions.jsonl"
 MANUAL_ACTION_LOG_VERSION = 1
+RESERVED_MANUAL_ACTION_FIELDS = frozenset(
+    {"record", "action_id", "sequence", "created_at", "kind"}
+)
 
 type ReviewState = Literal["clear", "needs_review", "blocked"]
 
@@ -64,6 +67,7 @@ def append_manual_action(
     payload: dict[str, object],
     binary_source: BinarySource,
 ) -> dict[str, object]:
+    validate_manual_action_payload(payload)
     path = manual_action_log_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, object]] = []
@@ -107,6 +111,13 @@ def append_manual_action(
         encoding="utf-8",
     )
     return action
+
+
+def validate_manual_action_payload(payload: dict[str, object]) -> None:
+    reserved_fields = sorted(RESERVED_MANUAL_ACTION_FIELDS.intersection(payload))
+    if reserved_fields:
+        joined = ", ".join(reserved_fields)
+        raise ValueError(f"Manual action payload contains reserved field(s): {joined}")
 
 
 def build_target_identity(binary_source: BinarySource) -> dict[str, object]:
