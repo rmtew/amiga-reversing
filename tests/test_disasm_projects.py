@@ -1018,6 +1018,107 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
     assert isinstance(item.get("suggested_actions"), list)
 
 
+def test_get_project_blocks_on_reproduction_content_mismatch(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    bin_dir = project_root / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
+    binary_path = bin_dir / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "bin/demo.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    (target_dir / "reproduction.json").write_text(
+        json.dumps(
+            {
+                "status": "binary_mismatch",
+                "exact": False,
+                "comparison": {
+                    "status": "mismatch",
+                    "content_exact": False,
+                    "full_file_exact": False,
+                    "failure_kinds": ["payload_mismatch"],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    project = get_project("demo", project_root=project_root)
+
+    assert project.review_state == "blocked"
+    assert len(project.review_items) == 1
+    item = project.review_items[0]
+    assert item["kind"] == "reproduction_mismatch"
+    assert item["review_blocker"] is True
+    assert item["state"] == "open"
+    assert item["failure_kinds"] == ["payload_mismatch"]
+    assert isinstance(item["evidence_fingerprint"], str)
+    assert item["suggested_actions"] == [
+        {"action": "open_reproduction_report"},
+        {"action": "rerun_round_trip_verification"},
+    ]
+
+
+def test_get_project_reports_container_only_reproduction_difference_without_blocking(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    bin_dir = project_root / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
+    binary_path = bin_dir / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "bin/demo.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    (target_dir / "reproduction.json").write_text(
+        json.dumps(
+            {
+                "status": "binary_mismatch",
+                "exact": False,
+                "comparison": {
+                    "status": "container_shape_mismatch",
+                    "content_exact": True,
+                    "full_file_exact": False,
+                    "file_structure_issue_kinds": ["unsupported_container_shape"],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    project = get_project("demo", project_root=project_root)
+
+    assert project.review_state == "needs_review"
+    assert len(project.review_items) == 1
+    item = project.review_items[0]
+    assert item["kind"] == "unsupported_container_shape"
+    assert item["review_blocker"] is False
+    assert item["file_structure_issue_kinds"] == ["unsupported_container_shape"]
+    assert isinstance(item["evidence_fingerprint"], str)
+
+
 def test_create_project_does_not_create_legacy_entities_file(tmp_path: Path) -> None:
     project = create_project("demo", project_root=tmp_path)
 

@@ -158,6 +158,8 @@ def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]
         "manual_action_log_target_mismatch",
     }:
         return [{"action": "repair_manual_action_log"}]
+    if kind in {"reproduction_mismatch", "unsupported_container_shape"}:
+        return [{"action": "open_reproduction_report"}, {"action": "rerun_round_trip_verification"}]
     return []
 
 
@@ -183,6 +185,13 @@ def _finalize_review_items(
             item["state"] = "resolved"
         finalized.append(item)
     return tuple(finalized)
+
+
+def finalize_review_items(
+    items: tuple[dict[str, object], ...],
+    resolutions: tuple[dict[str, object], ...] = (),
+) -> tuple[dict[str, object], ...]:
+    return _finalize_review_items(list(items), resolutions)
 
 
 def _blocked_projection(

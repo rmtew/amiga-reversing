@@ -14,6 +14,7 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.manual_actions import (
     ReviewState,
+    finalize_review_items,
     load_manual_projection,
     manual_action_log_path,
 )
@@ -28,6 +29,7 @@ from amiga_reversing.disasm.project_paths import (
     PROJECT_ROOT,
     resolve_project_dir,
 )
+from amiga_reversing.disasm.reproduction import reproduction_report_path
 from amiga_reversing.disasm.target_metadata import load_target_metadata
 
 STATE_FILE_NAME = ".browser_state.json"
@@ -69,6 +71,7 @@ class ProjectRecord:
     updated_at: str
     manual_action_log_path: str | None = None
     review_state: ReviewState | None = None
+    review_items: tuple[dict[str, object], ...] = ()
     manual_state: dict[str, object] | None = None
     origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
 
@@ -208,6 +211,9 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         binary_source=binary_source,
         stronger_metadata=target_metadata,
     )
+    reproduction_review_items = _reproduction_review_items(target_dir)
+    review_items = (*manual_projection.review_items, *reproduction_review_items)
+    review_state = _combined_review_state(manual_projection.review_state, review_items)
     return ProjectRecord(
         id=project_id,
         name=target_dir.name,
@@ -230,10 +236,116 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
         manual_action_log_path=str(manual_action_log_path(target_dir)),
-        review_state=manual_projection.review_state,
+        review_state=review_state,
+        review_items=review_items,
         manual_state=manual_projection.to_dict(),
         origin=metadata.origin,
     )
+
+
+def _combined_review_state(
+    manual_state: ReviewState,
+    review_items: tuple[dict[str, object], ...],
+) -> ReviewState:
+    if manual_state == "blocked":
+        return "blocked"
+    open_items = tuple(item for item in review_items if item.get("state") == "open")
+    if any(item.get("review_blocker") is True for item in open_items):
+        return "blocked"
+    if manual_state == "needs_review" or open_items:
+        return "needs_review"
+    return "clear"
+
+
+def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...]:
+    report_path = reproduction_report_path(target_dir)
+    if not report_path.exists():
+        return ()
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return finalize_review_items((
+            {
+                "kind": "reproduction_mismatch",
+                "scope": "target",
+                "state": "open",
+                "review_blocker": True,
+                "message": f"Reproduction report cannot be checked: {exc}",
+                "source": "reproduction",
+            },
+        ))
+    if not isinstance(report, dict):
+        return finalize_review_items((
+            {
+                "kind": "reproduction_mismatch",
+                "scope": "target",
+                "state": "open",
+                "review_blocker": True,
+                "message": "Reproduction report cannot be checked",
+                "source": "reproduction",
+            },
+        ))
+    return finalize_review_items(tuple(_raw_reproduction_review_items(report)))
+
+
+def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, object]]:
+    comparison = report.get("comparison")
+    status = report.get("status")
+    if not isinstance(comparison, dict):
+        if status in {None, "not_ready", "exact"} and report.get("exact") is True:
+            return []
+        return [
+            {
+                "kind": "reproduction_mismatch",
+                "scope": "target",
+                "state": "open",
+                "review_blocker": True,
+                "status": status,
+                "message": f"Reproduction content exactness cannot be checked: {status}",
+                "source": "reproduction",
+            }
+        ]
+
+    file_structure_issue_kinds = _string_list(comparison.get("file_structure_issue_kinds"))
+    content_exact = comparison.get("content_exact")
+    full_file_exact = comparison.get("full_file_exact")
+    if content_exact is not True:
+        return [
+            {
+                "kind": "reproduction_mismatch",
+                "scope": "target",
+                "state": "open",
+                "review_blocker": True,
+                "status": status,
+                "comparison_status": comparison.get("status"),
+                "failure_kinds": _string_list(comparison.get("failure_kinds")),
+                "message": "Reproduction content exactness failed or could not be checked",
+                "source": "reproduction",
+            }
+        ]
+    if full_file_exact is True and not file_structure_issue_kinds:
+        return []
+
+    kind = "unsupported_container_shape" if "unsupported_container_shape" in file_structure_issue_kinds else "reproduction_mismatch"
+    return [
+        {
+            "kind": kind,
+            "scope": "target",
+            "state": "open",
+            "review_blocker": False,
+            "status": status,
+            "comparison_status": comparison.get("status"),
+            "file_structure_issue_kinds": file_structure_issue_kinds,
+            "message": "Reproduction content is exact but container shape differs",
+            "source": "reproduction",
+        }
+    ]
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def derive_project_name(filename: str) -> str:
