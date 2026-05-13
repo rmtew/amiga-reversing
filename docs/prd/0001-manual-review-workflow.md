@@ -90,6 +90,10 @@ Introduce a Manual Review workflow built from generated Manual Review Items and 
 7. [0001-007 Review State Rendering Export Warnings](../issues/0001-007-review-state-rendering-export-warnings.md)
 8. [0001-008 Delete Legacy Entity Support](../issues/0001-008-delete-legacy-entity-support.md)
 9. [0001-009 Target Regeneration And Cleanup](../issues/0001-009-target-regeneration-and-cleanup.md)
+10. [0001-010 Keep Live Blockers Blocked](../issues/0001-010-keep-live-blockers-blocked.md)
+11. [0001-011 Replay Undo Redo In File Order](../issues/0001-011-replay-undo-redo-in-file-order.md)
+12. [0001-012 Reject Reserved Manual Action Fields](../issues/0001-012-reject-reserved-manual-action-fields.md)
+13. [0001-013 Normalize Blocked Review State Projection](../issues/0001-013-normalize-blocked-review-state-projection.md)
 
 ## Out of Scope
 
