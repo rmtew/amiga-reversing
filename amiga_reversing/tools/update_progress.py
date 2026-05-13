@@ -1,5 +1,5 @@
 """
-Update progress.md from entities.jsonl.
+Legacy updater for progress.md from entities.jsonl.
 
 Reads all entities, computes statistics, and rewrites the progress file
 with current counts.
@@ -48,7 +48,9 @@ def get_binary_size() -> int | None:
 
 def main() -> None:
     import argparse
-    parser = argparse.ArgumentParser(description="Update progress.md from entities.jsonl")
+    parser = argparse.ArgumentParser(
+        description="Legacy progress.md updater for old entities.jsonl targets"
+    )
     parser.add_argument("--target-dir", "-t", default=".",
                         help="Target directory containing entities.jsonl")
     args = parser.parse_args()

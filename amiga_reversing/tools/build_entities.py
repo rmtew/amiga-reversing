@@ -1,4 +1,4 @@
-"""CLI wrapper for C-backed entity generation."""
+"""Legacy CLI wrapper for C-backed entity generation."""
 
 import argparse
 import sys
@@ -9,7 +9,7 @@ from amiga_reversing.disasm.entity_builder import build_entities
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build entities.jsonl from C backend binary analysis")
+        description="Legacy entities.jsonl generator; current workflows use C analysis facts and Manual Review")
     parser.add_argument("binary", help="Path to Amiga hunk executable")
     parser.add_argument("--output", "-o",
                         help="Output path (default: <target-dir>/entities.jsonl)")

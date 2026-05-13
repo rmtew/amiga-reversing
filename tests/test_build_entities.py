@@ -42,7 +42,7 @@ def test_build_entities_help_loads_cleanly() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "Build entities.jsonl from C backend binary analysis" in result.stdout
+    assert "Legacy entities.jsonl generator" in result.stdout
 
 
 def test_structured_prefix_entities_only_emit_when_requested() -> None:
