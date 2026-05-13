@@ -9,7 +9,11 @@ from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     build_target_identity,
 )
-from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
+from amiga_reversing.disasm.target_metadata import (
+    SeededCodeEntrypointMetadata,
+    TargetMetadata,
+    write_target_metadata,
+)
 
 
 def _append_jsonl(path: Path, records: list[dict[str, object]]) -> None:
@@ -169,6 +173,67 @@ def test_effective_metadata_ignores_required_manual_seeds_with_projection_confli
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["seeded_code_entrypoints"] == []
+    assert payload["seeded_entities"] == []
+
+
+def test_effective_metadata_preserves_stronger_code_entrypoint_over_conflicting_manual_data_seed(
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_entrypoints=(
+                SeededCodeEntrypointMetadata(
+                    addr=4,
+                    hunk=0,
+                    name="existing_entry",
+                    seed_origin="manual_analysis",
+                    review_status="validated",
+                    citation="target_metadata",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "text-range",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000002..$00000008",
+                    "data_role": "string",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_code_entrypoints"] == [
+        {
+            "addr": 4,
+            "citation": "target_metadata",
+            "comment": None,
+            "hunk": 0,
+            "name": "existing_entry",
+            "review_status": "validated",
+            "role": None,
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+        }
+    ]
     assert payload["seeded_entities"] == []
 
 

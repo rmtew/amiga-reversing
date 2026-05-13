@@ -9,6 +9,11 @@ from amiga_reversing.disasm.manual_actions import (
     build_target_identity,
     load_manual_projection,
 )
+from amiga_reversing.disasm.target_metadata import (
+    SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
+    TargetMetadata,
+)
 
 
 def _write_raw_source(target_dir: Path, binary_path: Path, payload: bytes = b"\x4e\x75") -> None:
@@ -195,6 +200,113 @@ def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> No
             "start": 4,
             "end": 5,
             "message": "Required manual seeds code-start and text-range conflict",
+        },
+    )
+
+
+def test_required_manual_data_seed_conflicts_with_stronger_code_entrypoint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "text-range",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000002..$00000008",
+                },
+            ),
+        ],
+    )
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_code_entrypoints=(
+            SeededCodeEntrypointMetadata(
+                addr=4,
+                hunk=0,
+                name="entry",
+                seed_origin="manual_analysis",
+                review_status="validated",
+                citation="target_metadata",
+            ),
+        ),
+    )
+
+    projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+
+    assert projection.review_state == "needs_review"
+    assert projection.review_items == (
+        {
+            "kind": "manual_seed_conflict",
+            "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000004",
+            "scope": "range",
+            "state": "open",
+            "seed_ids": ["text-range"],
+            "stronger_kind": "code",
+            "stronger_source": "seeded_code_entrypoint:h0:$00000004",
+            "stronger_name": "entry",
+            "hunk": 0,
+            "start": 4,
+            "end": 5,
+            "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000004",
+        },
+    )
+
+
+def test_required_manual_code_seed_conflicts_with_stronger_seeded_entity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={"seed_id": "code-start", "kind": "code", "mode": "required", "hunk": 0, "addr": 4},
+            ),
+        ],
+    )
+    metadata = TargetMetadata(
+        target_type="program",
+        entry_register_seeds=(),
+        seeded_entities=(
+            SeededEntityMetadata(
+                addr=2,
+                end=8,
+                hunk=0,
+                name="text",
+                seed_origin="manual_analysis",
+                review_status="validated",
+                citation="target_metadata",
+            ),
+        ),
+    )
+
+    projection = load_manual_projection(target_dir, stronger_metadata=metadata)
+
+    assert projection.review_items == (
+        {
+            "kind": "manual_seed_conflict",
+            "item_id": "manual_seed_conflict:code-start:seeded_entity:h0:$00000002",
+            "scope": "range",
+            "state": "open",
+            "seed_ids": ["code-start"],
+            "stronger_kind": "data",
+            "stronger_source": "seeded_entity:h0:$00000002",
+            "stronger_name": "text",
+            "hunk": 0,
+            "start": 4,
+            "end": 5,
+            "message": "Required manual seed code-start conflicts with stronger seeded_entity:h0:$00000002",
         },
     )
 

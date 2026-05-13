@@ -12,6 +12,7 @@ from amiga_reversing.disasm.binary_source import (
     HunkFileBinarySource,
     RawBinarySource,
 )
+from amiga_reversing.disasm.target_metadata import TargetMetadata
 
 MANUAL_ACTION_LOG_FILE_NAME = "manual_actions.jsonl"
 MANUAL_ACTION_LOG_VERSION = 1
@@ -232,6 +233,55 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
     return items
 
 
+def _manual_seed_metadata_conflict_items(
+    seeds: dict[str, dict[str, object]],
+    metadata: TargetMetadata | None,
+) -> list[dict[str, object]]:
+    if metadata is None:
+        return []
+    items: list[dict[str, object]] = []
+    stronger_ranges: list[tuple[str, str, int, int, int, str | None]] = []
+    for entrypoint in metadata.seeded_code_entrypoints:
+        stronger_id = f"seeded_code_entrypoint:h{entrypoint.hunk}:${entrypoint.addr:08x}"
+        stronger_ranges.append(("code", stronger_id, entrypoint.hunk, entrypoint.addr, entrypoint.addr + 1, entrypoint.name))
+    for entity in metadata.seeded_entities:
+        end = entity.end if entity.end is not None and entity.end > entity.addr else entity.addr + 1
+        stronger_id = f"seeded_entity:h{entity.hunk}:${entity.addr:08x}"
+        stronger_ranges.append(("data", stronger_id, entity.hunk, entity.addr, end, entity.name))
+
+    for seed in seeds.values():
+        seed_id = seed.get("seed_id")
+        seed_kind = seed.get("kind")
+        seed_range = _manual_seed_range(seed)
+        if not isinstance(seed_id, str) or not isinstance(seed_kind, str) or seed_range is None:
+            continue
+        if not _manual_seed_required(seed):
+            continue
+        seed_hunk, seed_start, seed_end = seed_range
+        for stronger_kind, stronger_id, stronger_hunk, stronger_start, stronger_end, stronger_name in stronger_ranges:
+            if seed_kind == stronger_kind:
+                continue
+            if seed_hunk != stronger_hunk or seed_start >= stronger_end or stronger_start >= seed_end:
+                continue
+            items.append(
+                {
+                    "kind": "manual_seed_conflict",
+                    "item_id": f"manual_seed_conflict:{seed_id}:{stronger_id}",
+                    "scope": "range",
+                    "state": "open",
+                    "seed_ids": [seed_id],
+                    "stronger_kind": stronger_kind,
+                    "stronger_source": stronger_id,
+                    "stronger_name": stronger_name,
+                    "hunk": seed_hunk,
+                    "start": max(seed_start, stronger_start),
+                    "end": min(seed_end, stronger_end),
+                    "message": f"Required manual seed {seed_id} conflicts with stronger {stronger_id}",
+                }
+            )
+    return items
+
+
 def _object(value: object, *, what: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{what} must be an object")
@@ -301,6 +351,7 @@ def _project_actions(
     *,
     pinned_target_identity: dict[str, object],
     current_target_identity: dict[str, object] | None,
+    stronger_metadata: TargetMetadata | None,
     actions: list[_ManualAction],
     review_items: list[dict[str, object]],
 ) -> ManualActionLogProjection:
@@ -345,6 +396,7 @@ def _project_actions(
             raise ValueError(f"Unsupported manual action kind: {action.kind}")
 
     review_items.extend(_manual_seed_conflict_items(seeds))
+    review_items.extend(_manual_seed_metadata_conflict_items(seeds, stronger_metadata))
     review_state: ReviewState = "needs_review" if review_items else "clear"
     return ManualActionLogProjection(
         review_state=review_state,
@@ -366,6 +418,7 @@ def load_manual_projection(
     target_dir: Path,
     *,
     binary_source: BinarySource | None = None,
+    stronger_metadata: TargetMetadata | None = None,
 ) -> ManualActionLogProjection:
     path = manual_action_log_path(target_dir)
     if not path.exists():
@@ -444,6 +497,7 @@ def load_manual_projection(
             path,
             pinned_target_identity=pinned_target_identity,
             current_target_identity=current_target_identity,
+            stronger_metadata=stronger_metadata,
             actions=actions,
             review_items=review_items,
         )

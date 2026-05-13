@@ -151,7 +151,11 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
 
 
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
-    projection = load_manual_projection(target_dir, binary_source=resolve_target_binary_source(target_dir))
+    projection = load_manual_projection(
+        target_dir,
+        binary_source=resolve_target_binary_source(target_dir),
+        stronger_metadata=metadata,
+    )
     conflicted_seed_ids: set[str] = set()
     for item in projection.review_items:
         if item.get("kind") != "manual_seed_conflict":
