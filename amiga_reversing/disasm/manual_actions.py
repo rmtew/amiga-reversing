@@ -160,6 +160,24 @@ def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]
         return [{"action": "repair_manual_action_log"}]
     if kind in {"reproduction_mismatch", "unsupported_container_shape"}:
         return [{"action": "open_reproduction_report"}, {"action": "rerun_round_trip_verification"}]
+    if kind == "orphan_code_candidate":
+        return [
+            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
+            {"action": "create_manual_seed", "seed_kind": "code", "mode": "required"},
+            {"action": "resolve_as_data_or_padding"},
+        ]
+    if kind == "unreconciled_data_range":
+        return [
+            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
+            {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
+            {"action": "resolve_as_opaque_data"},
+        ]
+    if kind == "suspicious_instruction_decode":
+        return [
+            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
+            {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
+            {"action": "acknowledge"},
+        ]
     return []
 
 
