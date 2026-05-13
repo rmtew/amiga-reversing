@@ -4138,7 +4138,16 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     M68kDiagSink diagnostics) {
   const char *array_end;
   const char *cursor;
+  const char *text_end;
+  char target_type[32];
   if (text == NULL || policy == NULL) return -1;
+  text_end = text + strlen(text);
+  target_type[0] = '\0';
+  if (!json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type))) {
+    platform_file_add_error(diagnostics.list, "failed parsing target metadata target_type");
+    return -1;
+  }
+  if (target_type[0] != '\0' && strcmp(target_type, "program") != 0) policy->disable_implicit_entry_points = 1U;
   cursor = json_find_array_local(text, "entry_register_seeds", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;

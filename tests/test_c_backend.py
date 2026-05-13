@@ -43,7 +43,12 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
+from amiga_reversing.disasm.manual_actions import (
+    MANUAL_ACTION_LOG_FILE_NAME,
+    build_target_identity,
+)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
     make_synthetic_atari_prg,
@@ -2385,6 +2390,89 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
     assert item["value_domain"] == "ascii"
     assert item["semantic_role"] == "string"
     assert item["semantic_role_flags"] == 128
+
+
+def test_real_dll_required_manual_code_seed_drives_c_analysis_without_implicit_scan(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-code-seed.bin"
+    source_text = """    SECTION section,code
+    dc.b $41,$42,$43,$44
+manual_start:
+    bsr.b helper
+    rts
+helper:
+    rts
+    dc.w 0
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind="hunk_file",
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="data", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_seed",
+                "seed": {
+                    "seed_id": "manual-start",
+                    "kind": "code",
+                    "mode": "required",
+                    "hunk": 0,
+                    "addr": 4,
+                    "name": "manual_start",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        analysis = analyze_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["implicit_entry_points"] is False
+    assert policy["entrypoints"] == [{"section_index": 0, "offset": 4}]
+    block_starts = {block["start_offset"] for block in analysis["sections"][0]["blocks"]}
+    assert 0 not in block_starts
+    assert {4, 8}.issubset(block_starts)
 
 
 def test_project_source_benchmark_uses_facts_v2(
