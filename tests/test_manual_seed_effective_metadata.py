@@ -237,6 +237,55 @@ def test_effective_metadata_preserves_stronger_code_entrypoint_over_conflicting_
     assert payload["seeded_entities"] == []
 
 
+def test_effective_metadata_ignores_manual_data_seed_conflicting_with_raw_entrypoint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = target_dir / "binary.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": str(binary_path),
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(binary_source),
+            },
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "entry-as-data",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000000..$00000002",
+                    "data_role": "string",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_entities"] == []
+
+
 def test_effective_metadata_ignores_manual_seeds_when_log_target_identity_mismatches(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

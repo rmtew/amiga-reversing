@@ -311,6 +311,55 @@ def test_required_manual_code_seed_conflicts_with_stronger_seeded_entity(tmp_pat
     )
 
 
+def test_required_manual_data_seed_conflicts_with_raw_entrypoint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "demo.bin"
+    _write_raw_source(target_dir, binary_path)
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(binary_source),
+            },
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "entry-as-data",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000000..$00000002",
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir, binary_source=binary_source)
+
+    assert projection.review_items == (
+        {
+            "kind": "manual_seed_conflict",
+            "item_id": "manual_seed_conflict:entry-as-data:source_entrypoint:h0:$00000000",
+            "scope": "range",
+            "state": "open",
+            "seed_ids": ["entry-as-data"],
+            "stronger_kind": "code",
+            "stronger_source": "source_entrypoint:h0:$00000000",
+            "stronger_name": "entrypoint",
+            "hunk": 0,
+            "start": 0,
+            "end": 1,
+            "message": "Required manual seed entry-as-data conflicts with stronger source_entrypoint:h0:$00000000",
+        },
+    )
+
+
 def test_malformed_manual_action_log_blocks_review(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

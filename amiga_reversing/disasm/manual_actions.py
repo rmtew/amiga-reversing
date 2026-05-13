@@ -282,6 +282,45 @@ def _manual_seed_metadata_conflict_items(
     return items
 
 
+def _manual_seed_binary_source_conflict_items(
+    seeds: dict[str, dict[str, object]],
+    binary_source: BinarySource | None,
+) -> list[dict[str, object]]:
+    if not isinstance(binary_source, RawBinarySource):
+        return []
+    entrypoint = binary_source.analysis_entrypoint
+    source_id = f"source_entrypoint:h0:${entrypoint:08x}"
+    items: list[dict[str, object]] = []
+    for seed in seeds.values():
+        seed_id = seed.get("seed_id")
+        seed_kind = seed.get("kind")
+        seed_range = _manual_seed_range(seed)
+        if not isinstance(seed_id, str) or seed_kind != "data" or seed_range is None:
+            continue
+        if not _manual_seed_required(seed):
+            continue
+        hunk, start, end = seed_range
+        if hunk != 0 or start > entrypoint or end <= entrypoint:
+            continue
+        items.append(
+            {
+                "kind": "manual_seed_conflict",
+                "item_id": f"manual_seed_conflict:{seed_id}:{source_id}",
+                "scope": "range",
+                "state": "open",
+                "seed_ids": [seed_id],
+                "stronger_kind": "code",
+                "stronger_source": source_id,
+                "stronger_name": "entrypoint",
+                "hunk": 0,
+                "start": entrypoint,
+                "end": entrypoint + 1,
+                "message": f"Required manual seed {seed_id} conflicts with stronger {source_id}",
+            }
+        )
+    return items
+
+
 def _object(value: object, *, what: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise ValueError(f"{what} must be an object")
@@ -351,6 +390,7 @@ def _project_actions(
     *,
     pinned_target_identity: dict[str, object],
     current_target_identity: dict[str, object] | None,
+    binary_source: BinarySource | None,
     stronger_metadata: TargetMetadata | None,
     actions: list[_ManualAction],
     review_items: list[dict[str, object]],
@@ -397,6 +437,7 @@ def _project_actions(
 
     review_items.extend(_manual_seed_conflict_items(seeds))
     review_items.extend(_manual_seed_metadata_conflict_items(seeds, stronger_metadata))
+    review_items.extend(_manual_seed_binary_source_conflict_items(seeds, binary_source))
     review_state: ReviewState = "needs_review" if review_items else "clear"
     return ManualActionLogProjection(
         review_state=review_state,
@@ -497,6 +538,7 @@ def load_manual_projection(
             path,
             pinned_target_identity=pinned_target_identity,
             current_target_identity=current_target_identity,
+            binary_source=binary_source,
             stronger_metadata=stronger_metadata,
             actions=actions,
             review_items=review_items,

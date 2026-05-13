@@ -944,7 +944,7 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
             entry_register_seeds=(),
             seeded_code_entrypoints=(
                 SeededCodeEntrypointMetadata(
-                    addr=0,
+                    addr=1,
                     hunk=0,
                     name="entry",
                     seed_origin="manual_analysis",
@@ -978,7 +978,7 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
                             "seed_id": "text-range",
                             "kind": "data",
                             "mode": "required",
-                            "range": "h0:$00000000..$00000002",
+                            "range": "h0:$00000001..$00000002",
                         },
                     },
                     sort_keys=True,
@@ -996,17 +996,17 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
     assert project.manual_state["review_items"] == (
         {
             "kind": "manual_seed_conflict",
-            "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000000",
+            "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000001",
             "scope": "range",
             "state": "open",
             "seed_ids": ["text-range"],
             "stronger_kind": "code",
-            "stronger_source": "seeded_code_entrypoint:h0:$00000000",
+            "stronger_source": "seeded_code_entrypoint:h0:$00000001",
             "stronger_name": "entry",
             "hunk": 0,
-            "start": 0,
-            "end": 1,
-            "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000000",
+            "start": 1,
+            "end": 2,
+            "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000001",
         },
     )
 
