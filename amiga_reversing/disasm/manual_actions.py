@@ -118,6 +118,73 @@ def _empty_projection(
     )
 
 
+def _review_item_id(item: dict[str, object]) -> str:
+    existing = item.get("item_id")
+    if isinstance(existing, str) and existing:
+        return existing
+    kind = item.get("kind")
+    scope = item.get("scope")
+    if scope == "range":
+        hunk = item.get("hunk")
+        start = item.get("start")
+        end = item.get("end")
+        hunk_int = hunk if isinstance(hunk, int) else 0
+        start_int = start if isinstance(start, int) else 0
+        end_int = end if isinstance(end, int) else 0
+        return f"{kind}:h{hunk_int}:${start_int:08x}-${end_int:08x}"
+    return f"{kind}:target"
+
+
+def _review_item_fingerprint(item: dict[str, object]) -> str:
+    evidence = {
+        key: value
+        for key, value in item.items()
+        if key not in {"state", "evidence_fingerprint", "review_confidence", "suggested_actions"}
+    }
+    encoded = json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]]:
+    kind = item.get("kind")
+    if kind == "manual_seed_conflict":
+        return [
+            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
+            {"action": "edit_manual_seed", "seed_ids": item.get("seed_ids")},
+        ]
+    if kind in {
+        "manual_action_log_inconsistency",
+        "manual_action_log_malformed",
+        "manual_action_log_target_mismatch",
+    }:
+        return [{"action": "repair_manual_action_log"}]
+    return []
+
+
+def _finalize_review_items(
+    items: list[dict[str, object]],
+    resolutions: tuple[dict[str, object], ...],
+) -> tuple[dict[str, object], ...]:
+    resolved_fingerprints: set[tuple[str, str]] = set()
+    for resolution in resolutions:
+        item_id = resolution.get("item_id")
+        evidence_fingerprint = resolution.get("evidence_fingerprint")
+        if isinstance(item_id, str) and isinstance(evidence_fingerprint, str):
+            resolved_fingerprints.add((item_id, evidence_fingerprint))
+
+    finalized: list[dict[str, object]] = []
+    for item in items:
+        item = dict(item)
+        item["item_id"] = _review_item_id(item)
+        item["evidence_fingerprint"] = _review_item_fingerprint(item)
+        item.setdefault("review_confidence", "high")
+        item.setdefault("suggested_actions", _suggested_review_actions(item))
+        if (str(item["item_id"]), str(item["evidence_fingerprint"])) in resolved_fingerprints:
+            item["state"] = "resolved"
+        finalized.append(item)
+    return tuple(finalized)
+
+
 def _blocked_projection(
     path: Path,
     *,
@@ -132,13 +199,14 @@ def _blocked_projection(
         "state": "open",
         "message": message,
     }
+    review_items = _finalize_review_items([item], ())
     return _empty_projection(
         path,
         pinned_target_identity=pinned_target_identity,
         current_target_identity=current_target_identity,
         review_state="blocked",
-        diagnostics=(item,),
-        review_items=(item,),
+        diagnostics=review_items,
+        review_items=review_items,
     )
 
 
@@ -438,7 +506,9 @@ def _project_actions(
     review_items.extend(_manual_seed_conflict_items(seeds))
     review_items.extend(_manual_seed_metadata_conflict_items(seeds, stronger_metadata))
     review_items.extend(_manual_seed_binary_source_conflict_items(seeds, binary_source))
-    review_state: ReviewState = "needs_review" if review_items else "clear"
+    finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
+    open_review_items = tuple(item for item in finalized_review_items if item.get("state") == "open")
+    review_state: ReviewState = "needs_review" if open_review_items else "clear"
     return ManualActionLogProjection(
         review_state=review_state,
         log_path=str(path),
@@ -450,8 +520,8 @@ def _project_actions(
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),
         inactive_action_ids=tuple(inactive_action_ids),
-        diagnostics=tuple(review_items),
-        review_items=tuple(review_items),
+        diagnostics=finalized_review_items,
+        review_items=finalized_review_items,
     )
 
 

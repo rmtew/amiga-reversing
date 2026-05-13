@@ -51,6 +51,15 @@ def _action(action_id: str, sequence: int, kind: str, **fields: object) -> dict[
     }
 
 
+def _assert_review_item_includes(item: dict[str, object], expected: dict[str, object]) -> None:
+    for key, value in expected.items():
+        assert item.get(key) == value
+    assert isinstance(item.get("evidence_fingerprint"), str)
+    assert len(str(item["evidence_fingerprint"])) == 64
+    assert item.get("review_confidence") == "high"
+    assert isinstance(item.get("suggested_actions"), list)
+
+
 def test_missing_manual_action_log_projects_empty_state(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -189,7 +198,9 @@ def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> No
     projection = load_manual_projection(target_dir)
 
     assert projection.review_state == "needs_review"
-    assert projection.review_items == (
+    assert len(projection.review_items) == 1
+    _assert_review_item_includes(
+        projection.review_items[0],
         {
             "kind": "manual_seed_conflict",
             "item_id": "manual_seed_conflict:code-start:text-range",
@@ -202,6 +213,63 @@ def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> No
             "message": "Required manual seeds code-start and text-range conflict",
         },
     )
+
+
+def test_manual_resolution_closes_only_matching_evidence_fingerprint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    log_path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
+
+    def records(code_addr: int, resolution: dict[str, object] | None = None) -> list[dict[str, object]]:
+        result = [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_seed",
+                seed={"seed_id": "code-start", "kind": "code", "mode": "required", "hunk": 0, "addr": code_addr},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_seed",
+                seed={
+                    "seed_id": "text-range",
+                    "kind": "data",
+                    "mode": "required",
+                    "range": "h0:$00000002..$00000008",
+                },
+            ),
+        ]
+        if resolution is not None:
+            result.append(_action("a3", 3, "resolve_review_item", resolution=resolution))
+        return result
+
+    _append_jsonl(log_path, records(4))
+    open_projection = load_manual_projection(target_dir)
+    item = open_projection.review_items[0]
+    item_id = item["item_id"]
+    evidence_fingerprint = item["evidence_fingerprint"]
+    assert open_projection.review_state == "needs_review"
+
+    resolution = {
+        "resolution_id": "r1",
+        "item_id": item_id,
+        "evidence_fingerprint": evidence_fingerprint,
+        "decision": "acknowledge",
+    }
+    _append_jsonl(log_path, records(4, resolution))
+    resolved_projection = load_manual_projection(target_dir)
+
+    assert resolved_projection.review_state == "clear"
+    assert resolved_projection.review_items[0]["state"] == "resolved"
+
+    _append_jsonl(log_path, records(6, resolution))
+    changed_projection = load_manual_projection(target_dir)
+
+    assert changed_projection.review_state == "needs_review"
+    assert changed_projection.review_items[0]["state"] == "open"
+    assert changed_projection.review_items[0]["evidence_fingerprint"] != evidence_fingerprint
 
 
 def test_required_manual_data_seed_conflicts_with_stronger_code_entrypoint(tmp_path: Path) -> None:
@@ -242,7 +310,9 @@ def test_required_manual_data_seed_conflicts_with_stronger_code_entrypoint(tmp_p
     projection = load_manual_projection(target_dir, stronger_metadata=metadata)
 
     assert projection.review_state == "needs_review"
-    assert projection.review_items == (
+    assert len(projection.review_items) == 1
+    _assert_review_item_includes(
+        projection.review_items[0],
         {
             "kind": "manual_seed_conflict",
             "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000004",
@@ -293,7 +363,9 @@ def test_required_manual_code_seed_conflicts_with_stronger_seeded_entity(tmp_pat
 
     projection = load_manual_projection(target_dir, stronger_metadata=metadata)
 
-    assert projection.review_items == (
+    assert len(projection.review_items) == 1
+    _assert_review_item_includes(
+        projection.review_items[0],
         {
             "kind": "manual_seed_conflict",
             "item_id": "manual_seed_conflict:code-start:seeded_entity:h0:$00000002",
@@ -342,7 +414,9 @@ def test_required_manual_data_seed_conflicts_with_raw_entrypoint(tmp_path: Path)
 
     projection = load_manual_projection(target_dir, binary_source=binary_source)
 
-    assert projection.review_items == (
+    assert len(projection.review_items) == 1
+    _assert_review_item_includes(
+        projection.review_items[0],
         {
             "kind": "manual_seed_conflict",
             "item_id": "manual_seed_conflict:entry-as-data:source_entrypoint:h0:$00000000",

@@ -993,22 +993,29 @@ def test_get_project_reports_manual_seed_conflict_with_target_metadata(tmp_path:
 
     assert project.review_state == "needs_review"
     assert project.manual_state is not None
-    assert project.manual_state["review_items"] == (
-        {
-            "kind": "manual_seed_conflict",
-            "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000001",
-            "scope": "range",
-            "state": "open",
-            "seed_ids": ["text-range"],
-            "stronger_kind": "code",
-            "stronger_source": "seeded_code_entrypoint:h0:$00000001",
-            "stronger_name": "entry",
-            "hunk": 0,
-            "start": 1,
-            "end": 2,
-            "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000001",
-        },
-    )
+    review_items = project.manual_state["review_items"]
+    assert isinstance(review_items, tuple)
+    assert len(review_items) == 1
+    item = review_items[0]
+    assert isinstance(item, dict)
+    for key, value in {
+        "kind": "manual_seed_conflict",
+        "item_id": "manual_seed_conflict:text-range:seeded_code_entrypoint:h0:$00000001",
+        "scope": "range",
+        "state": "open",
+        "seed_ids": ["text-range"],
+        "stronger_kind": "code",
+        "stronger_source": "seeded_code_entrypoint:h0:$00000001",
+        "stronger_name": "entry",
+        "hunk": 0,
+        "start": 1,
+        "end": 2,
+        "message": "Required manual seed text-range conflicts with stronger seeded_code_entrypoint:h0:$00000001",
+    }.items():
+        assert item.get(key) == value
+    assert isinstance(item.get("evidence_fingerprint"), str)
+    assert item.get("review_confidence") == "high"
+    assert isinstance(item.get("suggested_actions"), list)
 
 
 def test_create_project_does_not_create_legacy_entities_file(tmp_path: Path) -> None:
