@@ -178,6 +178,15 @@ def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]
             {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
             {"action": "acknowledge"},
         ]
+    if kind in {"manual_label_unreconciled", "manual_comment_unreconciled"}:
+        return [
+            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
+            {"action": "create_manual_seed", "mode": "required"},
+            {"action": "remove_manual_annotation"},
+            {"action": "acknowledge"},
+        ]
+    if kind == "label_scope_conflict":
+        return [{"action": "rename_manual_label"}, {"action": "change_label_scope"}, {"action": "remove_manual_label"}]
     return []
 
 
@@ -288,6 +297,64 @@ def _manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int] | None:
 def _manual_seed_required(seed: dict[str, object]) -> bool:
     mode = seed.get("mode")
     return mode is None or mode == "required"
+
+
+def _manual_label_conflict_items(labels: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    global_labels: dict[str, dict[str, object]] = {}
+    for label in labels.values():
+        label_id = label.get("label_id")
+        name = label.get("name")
+        scope = label.get("scope") or "global"
+        if not isinstance(label_id, str) or not isinstance(name, str):
+            continue
+        label_range = _manual_seed_range(label)
+        if scope == "local":
+            owner_id = label.get("owner_id") or label.get("owner_label_id")
+            if not isinstance(owner_id, str) or not owner_id:
+                hunk, start, end = label_range or (0, 0, 1)
+                items.append(
+                    {
+                        "kind": "label_scope_conflict",
+                        "item_id": f"label_scope_conflict:{label_id}:missing-owner",
+                        "scope": "range",
+                        "state": "open",
+                        "review_blocker": True,
+                        "label_ids": [label_id],
+                        "hunk": hunk,
+                        "start": start,
+                        "end": end,
+                        "message": f"Local manual label {label_id} has no explicit owner id",
+                    }
+                )
+            continue
+        if scope != "global":
+            continue
+        previous = global_labels.get(name)
+        if previous is None:
+            global_labels[name] = label
+            continue
+        previous_id = previous.get("label_id")
+        if not isinstance(previous_id, str):
+            continue
+        left_range = _manual_seed_range(previous)
+        right_range = label_range
+        hunk, start, end = right_range or left_range or (0, 0, 1)
+        items.append(
+            {
+                "kind": "label_scope_conflict",
+                "item_id": f"label_scope_conflict:{min(previous_id, label_id)}:{max(previous_id, label_id)}",
+                "scope": "range",
+                "state": "open",
+                "review_blocker": True,
+                "label_ids": [previous_id, label_id],
+                "hunk": hunk,
+                "start": start,
+                "end": end,
+                "message": f"Global manual label name {name!r} is not unique",
+            }
+        )
+    return items
 
 
 def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dict[str, object]]:
@@ -533,6 +600,7 @@ def _project_actions(
     review_items.extend(_manual_seed_conflict_items(seeds))
     review_items.extend(_manual_seed_metadata_conflict_items(seeds, stronger_metadata))
     review_items.extend(_manual_seed_binary_source_conflict_items(seeds, binary_source))
+    review_items.extend(_manual_label_conflict_items(labels))
     finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
     open_review_items = tuple(item for item in finalized_review_items if item.get("state") == "open")
     review_state: ReviewState = "needs_review" if open_review_items else "clear"

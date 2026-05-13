@@ -6,9 +6,12 @@ from amiga_reversing.disasm.manual_actions import finalize_review_items
 def analysis_review_items(
     analysis: dict[str, object],
     *,
+    manual_labels: tuple[dict[str, object], ...] = (),
+    manual_comments: tuple[dict[str, object], ...] = (),
     resolutions: tuple[dict[str, object], ...] = (),
 ) -> tuple[dict[str, object], ...]:
     items: list[dict[str, object]] = []
+    unreconciled_ranges: list[tuple[int, int, int]] = []
     policy_items = _structured_data_ranges(analysis)
     sections = analysis.get("sections")
     if not isinstance(sections, list):
@@ -20,7 +23,14 @@ def analysis_review_items(
         section_size = _int_field(section, "section_size", 0)
         items.extend(_orphan_code_items(section, section_index))
         items.extend(_suspicious_instruction_items(section, section_index))
-        items.extend(_unreconciled_data_items(section, section_index, section_size, policy_items))
+        unreconciled_items = _unreconciled_data_items(section, section_index, section_size, policy_items)
+        items.extend(unreconciled_items)
+        unreconciled_ranges.extend(
+            (section_index, _int_field(item, "start", 0), _int_field(item, "end", 0))
+            for item in unreconciled_items
+        )
+    items.extend(_manual_annotation_unreconciled_items(manual_labels, unreconciled_ranges, "label"))
+    items.extend(_manual_annotation_unreconciled_items(manual_comments, unreconciled_ranges, "comment"))
     return finalize_review_items(tuple(items), resolutions)
 
 
@@ -120,6 +130,74 @@ def _unreconciled_item(section_index: int, start: int, end: int) -> dict[str, ob
     }
 
 
+def _manual_annotation_unreconciled_items(
+    annotations: tuple[dict[str, object], ...],
+    unreconciled_ranges: list[tuple[int, int, int]],
+    annotation_kind: str,
+) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for annotation in annotations:
+        annotation_id = annotation.get(f"{annotation_kind}_id")
+        if not isinstance(annotation_id, str):
+            continue
+        parsed_range = _annotation_range(annotation)
+        if parsed_range is None:
+            continue
+        hunk, start, end = parsed_range
+        for gap_hunk, gap_start, gap_end in unreconciled_ranges:
+            if hunk != gap_hunk or start >= gap_end or gap_start >= end:
+                continue
+            item_kind = f"manual_{annotation_kind}_unreconciled"
+            items.append(
+                {
+                    "kind": item_kind,
+                    "item_id": f"{item_kind}:{annotation_id}",
+                    "scope": "range",
+                    "state": "open",
+                    f"{annotation_kind}_id": annotation_id,
+                    "hunk": hunk,
+                    "start": max(start, gap_start),
+                    "end": min(end, gap_end),
+                    "message": f"Manual {annotation_kind} annotates bytes that analysis has not classified",
+                    "source": "manual_action_log",
+                }
+            )
+            break
+    return items
+
+
+def _annotation_range(annotation: dict[str, object]) -> tuple[int, int, int] | None:
+    hunk = _int_field(annotation, "hunk", 0)
+    addr = _optional_int(annotation.get("addr"))
+    end = _optional_int(annotation.get("end"))
+    if addr is not None:
+        return hunk, addr, end if end is not None and end > addr else addr + 1
+    raw_range = annotation.get("range")
+    if not isinstance(raw_range, str):
+        return None
+    range_text = raw_range.strip()
+    if ":" in range_text:
+        hunk_text, range_text = range_text.split(":", 1)
+        if hunk_text.lower().startswith("h"):
+            try:
+                hunk = int(hunk_text[1:], 0)
+            except ValueError:
+                return None
+    if ".." in range_text:
+        start_text, end_text = range_text.split("..", 1)
+        try:
+            start = int(start_text.replace("$", "0x"), 0)
+            parsed_end = int(end_text.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+        return hunk, start, parsed_end if parsed_end > start else start + 1
+    try:
+        start = int(range_text.replace("$", "0x"), 0)
+    except ValueError:
+        return None
+    return hunk, start, start + 1
+
+
 def _ranges_from_blocks(section: dict[str, object]) -> list[tuple[int, int]]:
     blocks = section.get("blocks")
     if not isinstance(blocks, list):
@@ -186,3 +264,14 @@ def _merge_ranges(ranges: list[tuple[int, int]], section_size: int) -> list[tupl
 def _int_field(payload: dict[str, object], key: str, default: int) -> int:
     value = payload.get(key)
     return value if isinstance(value, int) and not isinstance(value, bool) else default
+
+
+def _optional_int(value: object) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+    return None

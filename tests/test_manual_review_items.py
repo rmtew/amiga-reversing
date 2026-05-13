@@ -119,3 +119,31 @@ def test_analysis_review_resolution_closes_matching_fingerprint_and_reopens_chan
 
     assert resolved_item["state"] == "resolved"
     assert changed_item["state"] == "open"
+
+
+def test_manual_label_and_comment_on_unreconciled_ranges_create_review_work() -> None:
+    analysis = {
+        "sections": [
+            {
+                "section_index": 0,
+                "section_size": 8,
+                "blocks": [{"start_offset": 0, "end_offset": 2}],
+            }
+        ]
+    }
+
+    items = analysis_review_items(
+        analysis,
+        manual_labels=(
+            {"label_id": "l1", "name": "maybe_table", "hunk": 0, "addr": 4},
+        ),
+        manual_comments=(
+            {"comment_id": "c1", "text": "looks like data", "range": "h0:$00000006..$00000008"},
+        ),
+    )
+
+    by_kind = {item["kind"]: item for item in items if item["kind"].startswith("manual_")}
+    assert by_kind["manual_label_unreconciled"]["label_id"] == "l1"
+    assert by_kind["manual_label_unreconciled"]["start"] == 4
+    assert by_kind["manual_comment_unreconciled"]["comment_id"] == "c1"
+    assert by_kind["manual_comment_unreconciled"]["start"] == 6

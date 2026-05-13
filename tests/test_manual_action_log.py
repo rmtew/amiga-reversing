@@ -168,6 +168,67 @@ def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Pa
     assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1"},)
 
 
+def test_duplicate_global_manual_labels_create_scope_conflict_review_work(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "name": "start", "scope": "global", "hunk": 0, "addr": 0},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_label",
+                label={"label_id": "l2", "name": "start", "scope": "global", "hunk": 0, "addr": 4},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "needs_review"
+    item = projection.review_items[0]
+    assert item["kind"] == "label_scope_conflict"
+    assert item["review_blocker"] is True
+    assert item["label_ids"] == ["l1", "l2"]
+    assert item["suggested_actions"] == [
+        {"action": "rename_manual_label"},
+        {"action": "change_label_scope"},
+        {"action": "remove_manual_label"},
+    ]
+
+
+def test_local_manual_label_without_owner_creates_scope_conflict_review_work(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "name": ".loop", "scope": "local", "hunk": 0, "addr": 4},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "needs_review"
+    item = projection.review_items[0]
+    assert item["kind"] == "label_scope_conflict"
+    assert item["item_id"] == "label_scope_conflict:l1:missing-owner"
+    assert item["review_blocker"] is True
+
+
 def test_required_manual_seed_conflicts_create_review_work(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
