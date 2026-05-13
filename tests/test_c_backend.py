@@ -2347,7 +2347,7 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
                         "end": 6,
                         "hunk": 0,
                         "name": "manual_text",
-                        "comment": "Manual string seed",
+                        "comment": "Manual string seed with enough detail to exceed the old parser scratch buffer",
                         "type": "data",
                         "subtype": "string",
                         "unit": "byte",
@@ -2384,7 +2384,7 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
     assert item["offset"] == 2
     assert item["size"] == 4
     assert item["kind"] == "string"
-    assert item["comment"] == "Manual string seed"
+    assert str(item["comment"]).startswith("Manual string seed with enough detail")
     assert item["label"] == "manual_text"
     assert item["field_type"] == "byte"
     assert item["value_domain"] == "ascii"

@@ -3387,7 +3387,8 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char unit[32];
   char encoding[32];
   char name[64];
-  char comment[64];
+  char comment[256];
+  char policy_comment[64];
   uint8_t kind;
   uint32_t role_flags;
   entity_type[0] = '\0';
@@ -3396,6 +3397,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   encoding[0] = '\0';
   name[0] = '\0';
   comment[0] = '\0';
+  policy_comment[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
       !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
@@ -3411,9 +3413,10 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   if (entity_type[0] != '\0' && strcmp(entity_type, "data") != 0) return 1;
   kind = metadata_seeded_entity_kind_local(subtype, unit);
   role_flags = metadata_seeded_entity_role_flags_local(subtype);
+  snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
   item_index = policy->structured_data_item_count;
   if (!policy_add_structured_data_item_section_local(policy, 1U, has_hunk ? hunk : 0U, addr, end - addr, kind,
-        comment)) {
+        policy_comment)) {
     return 0;
   }
   if (!policy_set_structured_data_item_metadata_local(policy, item_index, name, NULL, NULL, role_flags,
