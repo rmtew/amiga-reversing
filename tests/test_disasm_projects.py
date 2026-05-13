@@ -6,6 +6,10 @@ from pathlib import Path
 import pytest
 
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.manual_actions import (
+    MANUAL_ACTION_LOG_FILE_NAME,
+    build_target_identity,
+)
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.disasm.projects import (
     create_project,
@@ -825,6 +829,66 @@ def test_get_project_sets_parent_project_for_disk_entry_target(tmp_path: Path) -
     project = get_project("amiga_disk_demo_disk__amiga_hunk_run_12345678", project_root=project_root)
 
     assert project.parent_project_id == "amiga_disk_demo_disk"
+
+
+def test_get_project_exposes_manual_action_log_projection(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    bin_dir = project_root / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / "entities.jsonl").write_text("")
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
+    binary_path = bin_dir / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "bin/demo.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
+    assert binary_source is not None
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "record": "manual_action_log_header",
+                        "version": 1,
+                        "target_identity": build_target_identity(binary_source),
+                    },
+                    sort_keys=True,
+                ),
+                json.dumps(
+                    {
+                        "record": "manual_action",
+                        "action_id": "a1",
+                        "sequence": 1,
+                        "created_at": "2026-05-13T00:00:00+00:00",
+                        "kind": "create_manual_seed",
+                        "seed": {"seed_id": "s1", "kind": "code"},
+                    },
+                    sort_keys=True,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    project = get_project("demo", project_root=project_root)
+
+    assert project.manual_action_log_path == str(target_dir / MANUAL_ACTION_LOG_FILE_NAME)
+    assert project.review_state == "clear"
+    assert project.manual_state is not None
+    assert project.manual_state["seeds"] == ({"seed_id": "s1", "kind": "code"},)
 
 
 def test_create_project_creates_entities_file(tmp_path: Path) -> None:

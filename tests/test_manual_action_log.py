@@ -1,0 +1,190 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.manual_actions import (
+    MANUAL_ACTION_LOG_FILE_NAME,
+    build_target_identity,
+    load_manual_projection,
+)
+
+
+def _write_raw_source(target_dir: Path, binary_path: Path, payload: bytes = b"\x4e\x75") -> None:
+    binary_path.write_bytes(payload)
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": str(binary_path),
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _append_jsonl(path: Path, records: list[dict[str, object]]) -> None:
+    path.write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+
+def _action(action_id: str, sequence: int, kind: str, **fields: object) -> dict[str, object]:
+    return {
+        "record": "manual_action",
+        "action_id": action_id,
+        "sequence": sequence,
+        "created_at": f"2026-05-13T00:00:0{sequence}+00:00",
+        "kind": kind,
+        **fields,
+    }
+
+
+def test_missing_manual_action_log_projects_empty_state(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "clear"
+    assert projection.seeds == ()
+    assert projection.labels == ()
+    assert projection.comments == ()
+    assert projection.resolutions == ()
+    assert projection.active_action_ids == ()
+    assert projection.inactive_action_ids == ()
+
+
+def test_header_only_manual_action_log_pins_target_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    identity = {"schema_version": 1, "source_kind": "raw_binary", "original_sha256": "abc"}
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [{"record": "manual_action_log_header", "version": 1, "target_identity": identity}],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "clear"
+    assert projection.pinned_target_identity == identity
+    assert projection.seeds == ()
+
+
+def test_manual_action_log_replays_file_order_and_reports_sequence_inconsistency(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    log_path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
+    _append_jsonl(
+        log_path,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 2, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+            _action("a2", 1, "create_manual_label", label={"label_id": "l1", "name": "start"}),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "needs_review"
+    assert [seed["seed_id"] for seed in projection.seeds] == ["s1"]
+    assert [label["label_id"] for label in projection.labels] == ["l1"]
+    assert [item["kind"] for item in projection.review_items] == ["manual_action_log_inconsistency"]
+    assert projection.active_action_ids == ("a1", "a2")
+
+
+def test_manual_action_log_undo_and_redo_project_action_activity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+            _action("a2", 2, "undo_action", undoes_action_id="a1"),
+            _action("a3", 3, "redo_action", redoes_action_id="a1"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert [seed["seed_id"] for seed in projection.seeds] == ["s1"]
+    assert projection.active_action_ids == ("a1", "a2", "a3")
+    assert projection.inactive_action_ids == ()
+
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+            _action("a2", 2, "undo_action", undoes_action_id="a1"),
+        ],
+    )
+
+    undone_projection = load_manual_projection(target_dir)
+
+    assert undone_projection.seeds == ()
+    assert undone_projection.active_action_ids == ("a2",)
+    assert undone_projection.inactive_action_ids == ("a1",)
+
+
+def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_label", label={"label_id": "l1", "name": "start"}),
+            _action("a2", 2, "create_manual_comment", comment={"comment_id": "c1", "text": "entry"}),
+            _action("a3", 3, "resolve_review_item", resolution={"resolution_id": "r1", "item_id": "i1"}),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.labels == ({"label_id": "l1", "name": "start"},)
+    assert projection.comments == ({"comment_id": "c1", "text": "entry"},)
+    assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1"},)
+
+
+def test_malformed_manual_action_log_blocks_review(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text("{not json}\n", encoding="utf-8")
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "blocked"
+    assert projection.review_items[0]["kind"] == "manual_action_log_malformed"
+
+
+def test_manual_action_log_target_identity_mismatch_blocks_projection(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "demo.bin"
+    _write_raw_source(target_dir, binary_path)
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    current_identity = build_target_identity(binary_source)
+    stale_identity = {**current_identity, "original_sha256": "0" * 64}
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": stale_identity},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir, binary_source=binary_source)
+
+    assert projection.review_state == "blocked"
+    assert projection.seeds == ()
+    assert projection.review_items[0]["kind"] == "manual_action_log_target_mismatch"
+    assert projection.current_target_identity == current_identity

@@ -12,6 +12,11 @@ from amiga_reversing.disasm.binary_source import (
     is_internal_target,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.manual_actions import (
+    ReviewState,
+    load_manual_projection,
+    manual_action_log_path,
+)
 from amiga_reversing.disasm.project_ids import (
     disk_project_id,
     ensure_safe_project_id,
@@ -62,6 +67,9 @@ class ProjectRecord:
     target_type: str | None
     created_at: str
     updated_at: str
+    manual_action_log_path: str | None = None
+    review_state: ReviewState | None = None
+    manual_state: dict[str, object] | None = None
     origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
 
     def to_dict(self) -> dict[str, object]:
@@ -197,6 +205,7 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         raise FileNotFoundError(f"Missing entities.jsonl for target: {target_dir.name}")
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
+    manual_projection = load_manual_projection(target_dir, binary_source=binary_source)
     return ProjectRecord(
         id=project_id,
         name=target_dir.name,
@@ -218,12 +227,17 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         target_type=None if target_metadata is None else target_metadata.target_type,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
+        manual_action_log_path=str(manual_action_log_path(target_dir)),
+        review_state=manual_projection.review_state,
+        manual_state=manual_projection.to_dict(),
         origin=metadata.origin,
     )
 
 
 def derive_project_name(filename: str) -> str:
-    return hunk_target_id(normalize_filename_stem(Path(filename).stem))
+    result = hunk_target_id(normalize_filename_stem(Path(filename).stem))
+    assert isinstance(result, str)
+    return result
 
 
 def dedupe_project_name(base_name: str, project_root: Path = PROJECT_ROOT) -> str:
