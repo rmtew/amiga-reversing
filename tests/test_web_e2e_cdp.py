@@ -8,6 +8,7 @@ import threading
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import cast
@@ -485,6 +486,74 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("document.querySelector('.listing-code')?.textContent") == "start:"
         assert page.evaluate("location.pathname") == f"/{project.id}"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest.MonkeyPatch) -> None:
+    base_project = _binary_project("amiga_hunk_review")
+    project = replace(
+        base_project,
+        review_state="needs_review",
+        review_items=(
+            {
+                "kind": "label_scope_conflict",
+                "item_id": "label_scope_conflict:demo",
+                "scope": "range",
+                "state": "open",
+                "review_blocker": True,
+                "review_confidence": "high",
+                "hunk": 0,
+                "start": 2,
+                "end": 4,
+                "message": "Duplicate label",
+                "suggested_actions": [{"action": "rename_manual_label"}],
+            },
+            {
+                "kind": "unreconciled_data_range",
+                "item_id": "unreconciled:h0:00000004-00000008",
+                "scope": "range",
+                "state": "resolved",
+                "review_confidence": "medium",
+                "source": "analysis",
+                "hunk": 0,
+                "start": 4,
+                "end": 8,
+                "message": "Known data gap",
+                "suggested_actions": [{"action": "navigate"}],
+            },
+        ),
+    )
+    rows = [
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0),
+        ListingRow(row_id="r1", kind="instruction", text="moveq #0,d0\n", addr=0),
+        ListingRow(row_id="r2", kind="instruction", text="rts\n", addr=2),
+        ListingRow(row_id="r3", kind="data", text="dc.b $00,$01,$02,$03\n", addr=4),
+    ]
+    disasm_server._ASYNC_JOBS.clear()
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.project-open-button').length === 1")
+        page.click(".project-open-button")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 4")
+        page.click("#open-review")
+        page.wait_for_selector("#review-overlay .review-item")
+        assert "1 of 2 items" in page.text_content("#review-overlay")
+        assert "label scope conflict" in page.text_content("#review-overlay")
+        page.select_value("[data-review-filter='state']", "")
+        page.wait_for_expression("document.querySelector('#review-overlay .review-summary')?.textContent.includes('2 of 2')")
+        page.select_value("[data-review-filter='kind']", "unreconciled_data_range")
+        page.wait_for_expression("document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')")
+        assert "Known data gap" in page.text_content("#review-overlay")
+        page.click("#review-overlay .review-item-title")
+        page.wait_for_selector(".listing-row-focus")
+        assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.rowAddr") == "4"
         page.assert_no_errors()
 
 

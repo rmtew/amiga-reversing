@@ -98,6 +98,17 @@ const state = {
     job: null,
     selectedIssueEntry: null,
   },
+  manualReview: {
+    panelOpen: false,
+    filters: {
+      kind: "",
+      confidence: "",
+      state: "open",
+      section: "",
+      source: "",
+      range: "",
+    },
+  },
   analysisStatus: {
     text: "",
     state: "idle",
@@ -865,6 +876,277 @@ function reproIssues() {
     issue_index: issue.issue_index ?? index,
     issueIndex: issue.issueIndex ?? issue.issue_index ?? index,
   }));
+}
+
+function reviewItems() {
+  const items = Array.isArray(state.projectData?.project?.review_items)
+    ? state.projectData.project.review_items
+    : [];
+  return items.map((item, index) => ({
+    ...item,
+    review_index: index,
+  }));
+}
+
+function reviewItemAddress(item) {
+  const addr = Number(item?.start ?? item?.addr);
+  return Number.isFinite(addr) ? addr : null;
+}
+
+function reviewItemEnd(item) {
+  const end = Number(item?.end);
+  return Number.isFinite(end) ? end : null;
+}
+
+function reviewItemSection(item) {
+  const hunk = item?.hunk ?? item?.section_index;
+  return Number.isInteger(hunk) ? `h${hunk}` : "";
+}
+
+function reviewItemSource(item) {
+  return String(item?.source || item?.stronger_source || item?.record || "");
+}
+
+function reviewItemRangeText(item) {
+  const addr = reviewItemAddress(item);
+  const end = reviewItemEnd(item);
+  if (!Number.isFinite(addr)) {
+    return "target";
+  }
+  const section = reviewItemSection(item);
+  const prefix = section ? `${section}:` : "";
+  if (Number.isFinite(end) && end !== addr + 1) {
+    return `${prefix}${formatRowOffset(addr)}..${formatRowOffset(end)}`;
+  }
+  return `${prefix}${formatRowOffset(addr)}`;
+}
+
+function reviewItemSeverityRank(item) {
+  if (item?.state !== "open") {
+    return 4;
+  }
+  if (item?.review_blocker === true) {
+    return 0;
+  }
+  const kind = String(item?.kind || "");
+  if (kind.includes("mismatch") || kind.includes("conflict") || kind.includes("malformed")) {
+    return 1;
+  }
+  if (kind.includes("unreconciled") || kind.includes("suspicious") || kind.includes("orphan")) {
+    return 2;
+  }
+  return 3;
+}
+
+function sortedReviewItems(items = reviewItems()) {
+  return [...items].sort((left, right) => {
+    const severity = reviewItemSeverityRank(left) - reviewItemSeverityRank(right);
+    if (severity !== 0) {
+      return severity;
+    }
+    const leftScope = String(left.scope || "");
+    const rightScope = String(right.scope || "");
+    if (leftScope !== rightScope) {
+      return leftScope.localeCompare(rightScope);
+    }
+    const leftAddr = reviewItemAddress(left);
+    const rightAddr = reviewItemAddress(right);
+    if (Number.isFinite(leftAddr) && Number.isFinite(rightAddr) && leftAddr !== rightAddr) {
+      return leftAddr - rightAddr;
+    }
+    return String(left.item_id || "").localeCompare(String(right.item_id || ""));
+  });
+}
+
+function reviewFilterOptions(items, field) {
+  const values = new Set();
+  items.forEach((item) => {
+    let value = "";
+    if (field === "section") {
+      value = reviewItemSection(item);
+    } else if (field === "source") {
+      value = reviewItemSource(item);
+    } else if (field === "confidence") {
+      value = String(item.review_confidence || "");
+    } else {
+      value = String(item[field] || "");
+    }
+    if (value) {
+      values.add(value);
+    }
+  });
+  return [...values].sort((left, right) => left.localeCompare(right));
+}
+
+function reviewItemMatchesFilters(item) {
+  const filters = state.manualReview.filters;
+  if (filters.kind && String(item.kind || "") !== filters.kind) {
+    return false;
+  }
+  if (filters.confidence && String(item.review_confidence || "") !== filters.confidence) {
+    return false;
+  }
+  if (filters.state && String(item.state || "") !== filters.state) {
+    return false;
+  }
+  if (filters.section && reviewItemSection(item) !== filters.section) {
+    return false;
+  }
+  if (filters.source && reviewItemSource(item) !== filters.source) {
+    return false;
+  }
+  if (filters.range) {
+    const haystack = [
+      reviewItemRangeText(item),
+      item.item_id,
+      item.message,
+      item.kind,
+    ].map((value) => String(value || "").toLowerCase()).join(" ");
+    if (!haystack.includes(filters.range.toLowerCase())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function renderReviewSelect(name, label, values, value) {
+  const options = [`<option value="">All</option>`]
+    .concat(values.map((option) => (
+      `<option value="${escapeHtml(option)}"${option === value ? " selected" : ""}>${escapeHtml(option)}</option>`
+    )));
+  return `
+    <label>${escapeHtml(label)}
+      <select data-review-filter="${escapeHtml(name)}">${options.join("")}</select>
+    </label>
+  `;
+}
+
+function renderReviewSuggestedActions(item) {
+  const actions = Array.isArray(item.suggested_actions) ? item.suggested_actions : [];
+  if (!actions.length) {
+    return "";
+  }
+  return `
+    <div class="review-actions">
+      ${actions.map((action) => `<span>${escapeHtml(String(action.action || "action").replaceAll("_", " "))}</span>`).join("")}
+    </div>
+  `;
+}
+
+function renderReviewItem(item) {
+  const blocker = item.review_blocker === true ? '<span class="review-pill blocker">Blocker</span>' : "";
+  const statePill = `<span class="review-pill">${escapeHtml(String(item.state || "open"))}</span>`;
+  const confidence = item.review_confidence
+    ? `<span class="review-pill">${escapeHtml(String(item.review_confidence))}</span>`
+    : "";
+  const source = reviewItemSource(item);
+  return `
+    <div class="review-item" data-review-index="${item.review_index}">
+      <div class="review-item-main">
+        <button type="button" class="review-item-title" data-review-navigate="${item.review_index}">
+          <span>${escapeHtml(String(item.kind || "review_item").replaceAll("_", " "))}</span>
+          <span>${escapeHtml(reviewItemRangeText(item))}</span>
+        </button>
+        <div class="review-message">${escapeHtml(String(item.message || item.item_id || ""))}</div>
+        ${source ? `<div class="review-source">${escapeHtml(source)}</div>` : ""}
+        ${renderReviewSuggestedActions(item)}
+      </div>
+      <div class="review-pills">${blocker}${statePill}${confidence}</div>
+    </div>
+  `;
+}
+
+function renderManualReviewPanel() {
+  const existing = document.getElementById("review-overlay");
+  if (!state.manualReview.panelOpen) {
+    existing?.remove();
+    return;
+  }
+  const app = document.getElementById("app");
+  if (!app) {
+    return;
+  }
+  const items = sortedReviewItems();
+  const visible = items.filter(reviewItemMatchesFilters);
+  const filters = state.manualReview.filters;
+  const html = `
+    <div class="review-overlay" id="review-overlay">
+      <div class="review-panel">
+        <div class="review-header">
+          <div class="review-title">Manual Review</div>
+          <button type="button" class="review-close" data-review-close="1">Close</button>
+        </div>
+        <div class="review-summary">${visible.length} of ${items.length} items</div>
+        <div class="review-filters">
+          ${renderReviewSelect("kind", "Kind", reviewFilterOptions(items, "kind"), filters.kind)}
+          ${renderReviewSelect("confidence", "Confidence", reviewFilterOptions(items, "confidence"), filters.confidence)}
+          ${renderReviewSelect("state", "State", reviewFilterOptions(items, "state"), filters.state)}
+          ${renderReviewSelect("section", "Section", reviewFilterOptions(items, "section"), filters.section)}
+          ${renderReviewSelect("source", "Source", reviewFilterOptions(items, "source"), filters.source)}
+          <label>Range
+            <input type="search" data-review-filter="range" value="${escapeHtml(filters.range)}" placeholder="addr, kind, text">
+          </label>
+        </div>
+        <div class="review-list">
+          ${visible.length ? visible.map(renderReviewItem).join("") : '<div class="empty">No review items match.</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    app.insertAdjacentHTML("beforeend", html);
+  }
+  bindManualReviewPanel();
+}
+
+function openManualReviewPanel() {
+  state.manualReview.panelOpen = true;
+  renderManualReviewPanel();
+}
+
+function closeManualReviewPanel() {
+  state.manualReview.panelOpen = false;
+  renderManualReviewPanel();
+}
+
+async function navigateToReviewItem(item) {
+  if (!state.project || !item) {
+    return;
+  }
+  const addr = reviewItemAddress(item);
+  if (!Number.isFinite(addr)) {
+    return;
+  }
+  await jumpToListingAddr(state.project, addr);
+}
+
+function bindManualReviewPanel() {
+  const overlay = document.getElementById("review-overlay");
+  if (!overlay) {
+    return;
+  }
+  overlay.querySelector("[data-review-close]")?.addEventListener("click", closeManualReviewPanel);
+  overlay.querySelectorAll("[data-review-filter]").forEach((control) => {
+    control.addEventListener("change", () => {
+      state.manualReview.filters[control.dataset.reviewFilter] = control.value;
+      renderManualReviewPanel();
+    });
+    if (control instanceof HTMLInputElement) {
+      control.addEventListener("input", () => {
+        state.manualReview.filters[control.dataset.reviewFilter] = control.value;
+        renderManualReviewPanel();
+      });
+    }
+  });
+  overlay.querySelectorAll("[data-review-navigate]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.reviewNavigate);
+      const item = reviewItems().find((candidate) => candidate.review_index === index);
+      void navigateToReviewItem(item);
+    });
+  });
 }
 
 function sameIssueField(left, right) {
@@ -6408,6 +6690,7 @@ async function renderProject(projectId) {
           <button id="navigation-back" type="button" title="Back">Back</button>
           <button id="navigation-forward" type="button" title="Forward">Forward</button>
           <button id="open-navigation" type="button" title="Navigate">Navigate</button>
+          <button id="open-review" type="button" title="Manual Review">Review</button>
           <button id="open-stats" type="button" title="Stats">Stats</button>
           <button id="open-repro" type="button" title="Repro">Repro</button>
           <button id="exit-project" type="button">Project</button>
@@ -6466,9 +6749,19 @@ async function renderProject(projectId) {
   state.reproduction.reportKey = null;
   state.reproduction.job = null;
   state.reproduction.selectedIssueEntry = null;
+  state.manualReview.panelOpen = false;
+  state.manualReview.filters = {
+    kind: "",
+    confidence: "",
+    state: "open",
+    section: "",
+    source: "",
+    range: "",
+  };
   setAnalysisStatus("");
   renderStatsOverlay();
   renderReproPanel();
+  renderManualReviewPanel();
   renderNavigationOverlay();
   fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
     .catch(() => null);
@@ -6500,6 +6793,7 @@ async function renderProject(projectId) {
     document.getElementById("open-navigation")?.addEventListener("click", () => {
       void openNavigationOverlay();
     });
+    document.getElementById("open-review")?.addEventListener("click", openManualReviewPanel);
     document.getElementById("open-stats")?.addEventListener("click", openStatsOverlay);
     document.getElementById("open-repro")?.addEventListener("click", () => {
       void openReproPanel();
