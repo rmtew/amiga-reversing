@@ -82,6 +82,10 @@ def append_manual_action(
         )
     if not records or records[0].get("record") != "manual_action_log_header":
         raise ValueError("first record must be manual_action_log_header")
+    pinned_target_identity = _object(records[0].get("target_identity"), what="target_identity")
+    current_target_identity = build_target_identity(binary_source)
+    if pinned_target_identity != current_target_identity:
+        raise ValueError("Manual Action Log target identity does not match current target")
     max_sequence = 0
     for raw in records[1:]:
         if raw.get("record") != "manual_action":

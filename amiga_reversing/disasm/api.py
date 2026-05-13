@@ -34,6 +34,7 @@ class ListingWindowPayload(TypedDict):
     has_more_after: bool
     total_rows: int
     analysis_generation: NotRequired[str | None]
+    review_warnings: NotRequired[list[dict[str, object]]]
     rows: list[dict[str, object]]
 
 

@@ -361,6 +361,7 @@ function buildProjectBadges(project, projectData = null) {
         : `${formatTargetTypeLabel(targetType)} target not ready`,
     });
     badges.push(reproductionBadge(project.ready, projectData?.reproduction || null));
+    badges.push(reviewStateBadge(project));
   } else {
     badges.push({
       label: "disk",
@@ -388,6 +389,32 @@ function buildProjectBadges(project, projectData = null) {
     });
   }
   return badges;
+}
+
+function reviewStateBadge(project) {
+  const reviewState = project.review_state || "clear";
+  const items = Array.isArray(project.review_items) ? project.review_items : [];
+  const openItems = items.filter((item) => item && item.state === "open");
+  const blockers = openItems.filter((item) => item.review_blocker === true);
+  if (reviewState === "blocked") {
+    return {
+      label: "Blocked",
+      className: "project-badge-review-blocked",
+      title: `Review blocked by ${blockers.length || openItems.length} open item(s)`,
+    };
+  }
+  if (reviewState === "needs_review") {
+    return {
+      label: "Needs review",
+      className: "project-badge-review-needs-review",
+      title: `Manual review has ${openItems.length} open item(s)`,
+    };
+  }
+  return {
+    label: "Review clear",
+    className: "project-badge-review-clear",
+    title: "No open manual review items",
+  };
 }
 
 function renderProjectBadges(project, projectData = null) {

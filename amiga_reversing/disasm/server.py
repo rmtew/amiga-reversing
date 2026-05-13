@@ -109,6 +109,7 @@ class ProjectPayload(TypedDict):
     disk_manifest: NotRequired[dict[str, object]]
     target_state: NotRequired[dict[str, object]]
     reproduction: NotRequired[dict[str, object]]
+    review_warnings: NotRequired[list[dict[str, object]]]
 
 
 class ApiResponse(TypedDict):
@@ -183,6 +184,49 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     ):
         return artifact
     return None
+
+
+def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dict[str, object]]:
+    review_state = project.get("review_state")
+    if review_state not in {"blocked", "needs_review"}:
+        return []
+    raw_items = project.get("review_items")
+    items = [item for item in raw_items if isinstance(item, dict)] if isinstance(raw_items, list | tuple) else []
+    open_items = [item for item in items if item.get("state") == "open"]
+    blockers = [item for item in open_items if item.get("review_blocker") is True]
+    if review_state == "blocked":
+        message = f"Review is blocked by {len(blockers) or len(open_items)} live item(s); target cannot be rated clear."
+        severity = "error"
+    else:
+        message = f"Manual review has {len(open_items)} open item(s); target cannot be rated clear yet."
+        severity = "warning"
+    return [
+        {
+            "kind": "review_state",
+            "review_state": review_state,
+            "severity": severity,
+            "message": message,
+            "open_item_count": len(open_items),
+            "blocker_count": len(blockers),
+            "item_ids": [
+                item["item_id"]
+                for item in open_items[:10]
+                if isinstance(item.get("item_id"), str)
+            ],
+            "item_kinds": sorted({
+                item["kind"]
+                for item in open_items
+                if isinstance(item.get("kind"), str)
+            }),
+        }
+    ]
+
+
+def _review_warnings_for_project_name(project_name: str) -> list[dict[str, object]]:
+    project = get_project(project_name)
+    return _review_warnings_for_project_dict(
+        _project_dict_with_cached_analysis_review(project_name, project)
+    )
 
 
 def _project_listing_generation(project_name: str) -> str | None:
@@ -293,10 +337,14 @@ def _annotate_listing_payload(
         if row_issues:
             annotated_row["repro_issues"] = row_issues
         annotated_rows.append(annotated_row)
-    return {
+    result = {
         **payload,
         "rows": annotated_rows,
     }
+    review_warnings = _review_warnings_for_project_name(project_name)
+    if review_warnings:
+        result["review_warnings"] = review_warnings
+    return result
 
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
@@ -351,7 +399,7 @@ def _active_reproduction_job(
 
 
 def _reproduction_payload_with_job(
-    report: dict[str, object], job: AsyncJobPayload | None
+    report: dict[str, object], job: AsyncJobPayload | None, *, project_name: str | None = None
 ) -> dict[str, object]:
     payload = dict(report)
     if job is not None and job["status"] in {"queued", "building"}:
@@ -359,6 +407,10 @@ def _reproduction_payload_with_job(
         payload["active_job"] = dict(job)
     else:
         payload["refreshing"] = False
+    if project_name is not None:
+        review_warnings = _review_warnings_for_project_name(project_name)
+        if review_warnings:
+            payload["review_warnings"] = review_warnings
     return payload
 
 
@@ -383,7 +435,7 @@ def _current_reproduction_payload(
                 with contextlib.suppress(Exception):
                     report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
                 job = None
-    return _reproduction_payload_with_job(report, job)
+    return _reproduction_payload_with_job(report, job, project_name=project_name)
 
 
 def _overlay_listing_navigation_payload(
@@ -1171,7 +1223,11 @@ def _failed_project_create_job(error: str) -> AsyncJobPayload:
 
 def _project_payload(project_name: str) -> ProjectPayload:
     project = get_project(project_name)
-    payload: ProjectPayload = {"project": _project_dict_with_cached_analysis_review(project_name, project)}
+    project_dict = _project_dict_with_cached_analysis_review(project_name, project)
+    payload: ProjectPayload = {"project": project_dict}
+    review_warnings = _review_warnings_for_project_dict(project_dict)
+    if review_warnings:
+        payload["review_warnings"] = review_warnings
     if project.kind == "disk":
         manifest_path = project.manifest_path
         if manifest_path is None:
@@ -1494,7 +1550,13 @@ def route_request(
     body: dict[str, object] | None = None,
 ) -> ApiResponse:
     if method == "GET" and path == "/api/projects":
-        return {"ok": True, "data": [project.to_dict() for project in list_projects()]}
+        return {
+            "ok": True,
+            "data": [
+                _project_dict_with_cached_analysis_review(project.id, project)
+                for project in list_projects()
+            ],
+        }
     if method == "POST" and path == "/api/projects":
         if "media_base64" in (body or {}):
             job = _start_project_create_job(cast(dict[str, object], body or {}))

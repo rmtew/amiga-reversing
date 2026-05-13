@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -912,6 +913,47 @@ def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest
 
     assert project["review_state"] == "needs_review"
     assert review_items[0]["kind"] == "unreconciled_data_range"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_route_project_reproduction_and_listing_include_review_warnings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        review_state="blocked",
+        review_items=(
+            {
+                "kind": "manual_action_log_target_mismatch",
+                "item_id": "manual_action_log_target_mismatch:target",
+                "state": "open",
+                "review_blocker": True,
+                "message": "Manual Action Log target identity does not match current target",
+            },
+        ),
+    )
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "load_reproduction_report",
+        lambda project_name, project_root=None: {"target": project_name, "status": "exact", "stale": False},
+    )
+
+    project_payload = disasm_server.route_request("GET", "/api/projects/bloodwych", {})
+    project_data = cast(dict[str, object], project_payload["data"])
+    repro_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/reproduction", {})
+    listing_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/listing", {})
+
+    for data in (
+        project_data,
+        cast(dict[str, object], repro_payload["data"]),
+        cast(dict[str, object], listing_payload["data"]),
+    ):
+        warnings = cast(list[dict[str, object]], data["review_warnings"])
+        assert warnings[0]["review_state"] == "blocked"
+        assert warnings[0]["blocker_count"] == 1
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 

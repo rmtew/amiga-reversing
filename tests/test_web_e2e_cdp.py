@@ -494,7 +494,7 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
     base_project = _binary_project("amiga_hunk_review")
     project = replace(
         base_project,
-        review_state="needs_review",
+        review_state="blocked",
         review_items=(
             {
                 "kind": "label_scope_conflict",
@@ -540,8 +540,10 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.call("Page.navigate", {"url": base_url})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_expression("document.querySelectorAll('.project-open-button').length === 1")
+        assert "Blocked" in page.text_content(".project-open-button")
         page.click(".project-open-button")
         page.wait_for_expression("document.querySelectorAll('.listing-row').length === 4")
+        assert "Blocked" in page.text_content("#project-details")
         page.click("#open-review")
         page.wait_for_selector("#review-overlay .review-item")
         assert "1 of 2 items" in page.text_content("#review-overlay")

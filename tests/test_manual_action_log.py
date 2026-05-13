@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
@@ -662,3 +664,26 @@ def test_manual_action_log_target_identity_mismatch_blocks_projection(tmp_path: 
     assert projection.seeds == ()
     assert projection.review_items[0]["kind"] == "manual_action_log_target_mismatch"
     assert projection.current_target_identity == current_identity
+
+
+def test_append_manual_action_rejects_target_identity_mismatch(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "demo.bin"
+    _write_raw_source(target_dir, binary_path)
+    binary_source = resolve_target_binary_source(target_dir, project_root=tmp_path)
+    assert binary_source is not None
+    current_identity = build_target_identity(binary_source)
+    stale_identity = {**current_identity, "original_sha256": "0" * 64}
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [{"record": "manual_action_log_header", "version": 1, "target_identity": stale_identity}],
+    )
+
+    with pytest.raises(ValueError, match="target identity does not match"):
+        append_manual_action(
+            target_dir,
+            kind="create_manual_seed",
+            payload={"seed": {"seed_id": "s1", "kind": "code", "addr": 0}},
+            binary_source=binary_source,
+        )
