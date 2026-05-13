@@ -3661,7 +3661,7 @@ def test_real_dll_epic_runtime_absolute_raw_source_keeps_single_load_org() -> No
     assert "    ORG $0\n" not in source
 
 
-def test_real_dll_epic_bootblock_keeps_copied_runtime_destination_separate_from_load_org() -> None:
+def test_real_dll_epic_bootblock_does_not_materialize_load_address_org() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(
         "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootblock",
@@ -3669,13 +3669,22 @@ def test_real_dll_epic_bootblock_keeps_copied_runtime_destination_separate_from_
     )
 
     with effective_metadata_file(paths.target_dir) as metadata_path:
+        policy = effective_policy_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
         source, _profile = listing_artifact_source_text_with_c_backend_profile(
             paths.binary_source,
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
 
-    assert source.count("    ORG $70000\n") == 1
+    assert not any(item.get("name") == "bootblock" for item in policy["runtime_ranges"])
+    assert {"section_index": 0, "runtime_address": 0x7000C} not in policy["runtime_entry_points"]
+    assert "    ORG $70000\n" not in source
+    assert "boot_entry:\n" in source
+    assert 'dc.b "DOS",$00\t; NOTE: boot magic\n' in source
     assert "runtime_code_00000400\tEQU\t$400\n" in source
     assert "\tlea.l runtime_code_00000400.l,a1\n" in source
     assert "abs_0_0007008C-" not in source
@@ -4453,6 +4462,11 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         analysis_cache_path=tmp_path / "binary.analysis",
     )
 
+    policy = effective_policy_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )["analysis_policy"]
     source_text, _source_profile = listing_artifact_source_text_with_c_backend_profile(
         source,
         metadata_path=metadata_path,
@@ -4464,6 +4478,9 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         project_root=PROJECT_ROOT,
     )
 
+    assert policy["runtime_ranges"] == []
+    assert policy["runtime_entry_points"] == []
+    assert "    ORG $70000\n" not in source_text
     assert api_calls[(0, 16)]["function"] == "FindResident"
     assert "boot_entry:" in source_text
     assert (

@@ -333,14 +333,31 @@ def _temp_project_accessors(monkeypatch: pytest.MonkeyPatch, project_root: Path)
 def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: str) -> None:
     disk_root = project_root / "targets" / disk_project_id
     manifest_path = disk_root / "manifest.json"
+    local_target_id = "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40"
     decompression_path = (
         disk_root
         / "targets"
-        / "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40"
+        / local_target_id
         / "decompression.json"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    decompression = json.loads(decompression_path.read_text(encoding="utf-8"))
+    if decompression_path.exists():
+        decompression = json.loads(decompression_path.read_text(encoding="utf-8"))
+    else:
+        child_target_id = f"{disk_project_id}__{local_target_id}"
+        decompression = {
+            "child_entry_path": "Carrier::RNC1-old_00004c40",
+            "child_target_id": child_target_id,
+            "relationship": {
+                "kind": "derived_decompressed_payload",
+                "compressor": {"id": "RNC1-old", "name": "RNC1-old"},
+                "parent_target_id": f"{disk_project_id}__amiga_hunk_carrier_91b0ba24",
+                "packed_file_offset": 0x4C40,
+                "load_address": 0x4000,
+                "entrypoint": 0x4000,
+                "decompressed_size": 0x1000,
+            },
+        }
     relationship = decompression["relationship"]
     child_target_id = decompression["child_target_id"]
     targets = manifest["imported_targets"]
@@ -349,7 +366,7 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
             {
                 "binary_path": (
                     f"targets/{disk_project_id}/targets/"
-                    "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40/binary.bin"
+                    f"{local_target_id}/binary.bin"
                 ),
                 "derived_from": relationship,
                 "derived_targets": None,
@@ -357,7 +374,7 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
                 "target_name": child_target_id,
                 "target_path": (
                     f"targets/{disk_project_id}/targets/"
-                    "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40"
+                    f"{local_target_id}"
                 ),
                 "target_type": "raw_binary",
             }

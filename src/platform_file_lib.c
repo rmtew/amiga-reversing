@@ -3494,24 +3494,12 @@ static const char *json_find_object_field_local(const char *text, const char *ke
 static int append_metadata_bootblock_structure_local(const char *text, M68kAnalysisPolicy *policy) {
   const char *object_end = NULL;
   const char *object_start = json_find_object_field_local(text, "bootblock", &object_end);
-  uint32_t bootcode_offset = 0U, bootcode_size = 0U, load_address = 0U, entrypoint = 0U;
-  int has_bootcode_offset = 0, has_bootcode_size = 0, has_load_address = 0, has_entrypoint = 0;
+  uint32_t bootcode_offset = 0U;
+  int has_bootcode_offset = 0;
   if (object_start == NULL) return 1;
   policy->disable_implicit_entry_points = 1U;
-  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset) ||
-      !json_number_field_local(object_start, object_end, "bootcode_size", &bootcode_size, &has_bootcode_size) ||
-      !json_number_field_local(object_start, object_end, "load_address", &load_address, &has_load_address) ||
-      !json_number_field_local(object_start, object_end, "entrypoint", &entrypoint, &has_entrypoint))
+  if (!json_number_field_local(object_start, object_end, "bootcode_offset", &bootcode_offset, &has_bootcode_offset))
     return 0;
-  if (has_load_address && has_bootcode_offset) {
-    uint32_t source_end = 0U;
-    if (has_bootcode_size) {
-      if (bootcode_offset > UINT32_MAX - bootcode_size) return 0;
-      source_end = bootcode_offset + bootcode_size;
-    }
-    if (!policy_add_runtime_range_local(policy, 0U, 0U, source_end, load_address, "bootblock")) return 0;
-  }
-  if (has_entrypoint && !policy_add_runtime_entry_point_local(policy, 0U, entrypoint)) return 0;
   if (!has_bootcode_offset || bootcode_offset < 12U) return 1;
   return policy_add_entry_point_local(policy, 0U, bootcode_offset) &&
     policy_add_named_label_local(policy, 0U, bootcode_offset, "boot_entry") &&
