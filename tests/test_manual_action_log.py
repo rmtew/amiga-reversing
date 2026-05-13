@@ -153,6 +153,45 @@ def test_manual_action_log_undo_and_redo_project_action_activity(tmp_path: Path)
     assert undone_projection.inactive_action_ids == ("a1",)
 
 
+def test_manual_action_log_undo_does_not_affect_future_action(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "undo_action", undoes_action_id="a2"),
+            _action("a2", 2, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert [seed["seed_id"] for seed in projection.seeds] == ["s1"]
+    assert projection.active_action_ids == ("a1", "a2")
+    assert projection.inactive_action_ids == ()
+
+
+def test_manual_action_log_redo_before_undo_does_not_restore_later_undo(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "s1", "kind": "code"}),
+            _action("a2", 2, "redo_action", redoes_action_id="a1"),
+            _action("a3", 3, "undo_action", undoes_action_id="a1"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.seeds == ()
+    assert projection.active_action_ids == ("a2", "a3")
+    assert projection.inactive_action_ids == ("a1",)
+
+
 def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

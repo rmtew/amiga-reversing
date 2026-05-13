@@ -705,13 +705,17 @@ def _project_actions(
     review_items: list[dict[str, object]],
 ) -> ManualActionLogProjection:
     undone_action_ids: set[str] = set()
-    actions_by_id: dict[str, _ManualAction] = {}
+    seen_action_ids: set[str] = set()
     for action in actions:
-        actions_by_id[action.action_id] = action
         if action.kind == "undo_action":
-            undone_action_ids.add(_action_ref(action, "undoes_action_id"))
+            action_id = _action_ref(action, "undoes_action_id")
+            if action_id in seen_action_ids:
+                undone_action_ids.add(action_id)
         elif action.kind == "redo_action":
-            undone_action_ids.discard(_action_ref(action, "redoes_action_id"))
+            action_id = _action_ref(action, "redoes_action_id")
+            if action_id in seen_action_ids:
+                undone_action_ids.discard(action_id)
+        seen_action_ids.add(action.action_id)
 
     seeds: dict[str, dict[str, object]] = {}
     labels: dict[str, dict[str, object]] = {}
