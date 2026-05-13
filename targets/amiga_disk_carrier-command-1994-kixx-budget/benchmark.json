@@ -6,7 +6,6 @@
   "status": "ok",
   "elapsed_seconds": 0.9,
   "benchmark_bytes": 115679,
-  "entities_bytes": null,
   "disasm_bytes": 1309135,
   "benchmark_version": 1,
   "platform": "disk-project",
@@ -20,7 +19,6 @@
   "analysis": null,
   "render": null,
   "sections": null,
-  "entities": null,
   "error": null,
   "targets": {
     "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_bootblock": {
@@ -31,7 +29,6 @@
       "status": "ok",
       "elapsed_seconds": 0.05,
       "benchmark_bytes": 6068,
-      "entities_bytes": 0,
       "disasm_bytes": 605,
       "benchmark_version": 1,
       "platform": "amiga-raw",
@@ -65,15 +62,6 @@
         "text_bytes": 579
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -217,7 +205,6 @@
       "status": "ok",
       "elapsed_seconds": 0.06,
       "benchmark_bytes": 6077,
-      "entities_bytes": 0,
       "disasm_bytes": 837885,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -251,15 +238,6 @@
         "text_bytes": 825818
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -403,7 +381,6 @@
       "status": "ok",
       "elapsed_seconds": 0.02,
       "benchmark_bytes": 6055,
-      "entities_bytes": 0,
       "disasm_bytes": 5149,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -437,15 +414,6 @@
         "text_bytes": 4977
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -589,7 +557,6 @@
       "status": "ok",
       "elapsed_seconds": 0.18,
       "benchmark_bytes": 6131,
-      "entities_bytes": 0,
       "disasm_bytes": 73196,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -623,15 +590,6 @@
         "text_bytes": 69638
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -775,7 +733,6 @@
       "status": "ok",
       "elapsed_seconds": 0.04,
       "benchmark_bytes": 6108,
-      "entities_bytes": 0,
       "disasm_bytes": 16665,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -809,15 +766,6 @@
         "text_bytes": 15852
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -961,7 +909,6 @@
       "status": "ok",
       "elapsed_seconds": 0.01,
       "benchmark_bytes": 6053,
-      "entities_bytes": 0,
       "disasm_bytes": 3839,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -995,15 +942,6 @@
         "text_bytes": 3685
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -1147,7 +1085,6 @@
       "status": "ok",
       "elapsed_seconds": 0.03,
       "benchmark_bytes": 6100,
-      "entities_bytes": 0,
       "disasm_bytes": 15164,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -1181,15 +1118,6 @@
         "text_bytes": 14500
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -1333,7 +1261,6 @@
       "status": "ok",
       "elapsed_seconds": 0.01,
       "benchmark_bytes": 6060,
-      "entities_bytes": 0,
       "disasm_bytes": 12146,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -1367,15 +1294,6 @@
         "text_bytes": 11875
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -1519,7 +1437,6 @@
       "status": "ok",
       "elapsed_seconds": 0.03,
       "benchmark_bytes": 6106,
-      "entities_bytes": 0,
       "disasm_bytes": 18584,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -1553,15 +1470,6 @@
         "text_bytes": 17842
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -1705,7 +1613,6 @@
       "status": "ok",
       "elapsed_seconds": 0.03,
       "benchmark_bytes": 6111,
-      "entities_bytes": 0,
       "disasm_bytes": 26643,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -1739,15 +1646,6 @@
         "text_bytes": 25879
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -1891,7 +1789,6 @@
       "status": "ok",
       "elapsed_seconds": 0.01,
       "benchmark_bytes": 6066,
-      "entities_bytes": 0,
       "disasm_bytes": 8594,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -1925,15 +1822,6 @@
         "text_bytes": 8367
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -2077,7 +1965,6 @@
       "status": "ok",
       "elapsed_seconds": 0.02,
       "benchmark_bytes": 6082,
-      "entities_bytes": 0,
       "disasm_bytes": 109823,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -2111,15 +1998,6 @@
         "text_bytes": 107169
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -2263,7 +2141,6 @@
       "status": "ok",
       "elapsed_seconds": 0.02,
       "benchmark_bytes": 6123,
-      "entities_bytes": 0,
       "disasm_bytes": 12234,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -2297,15 +2174,6 @@
         "text_bytes": 11782
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -2449,7 +2317,6 @@
       "status": "ok",
       "elapsed_seconds": 0.01,
       "benchmark_bytes": 6080,
-      "entities_bytes": 0,
       "disasm_bytes": 24760,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -2483,15 +2350,6 @@
         "text_bytes": 24252
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -2635,7 +2493,6 @@
       "status": "ok",
       "elapsed_seconds": 0.02,
       "benchmark_bytes": 6071,
-      "entities_bytes": 0,
       "disasm_bytes": 10432,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -2669,15 +2526,6 @@
         "text_bytes": 9973
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -2821,7 +2669,6 @@
       "status": "ok",
       "elapsed_seconds": 0.01,
       "benchmark_bytes": 6070,
-      "entities_bytes": 0,
       "disasm_bytes": 19017,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -2855,15 +2702,6 @@
         "text_bytes": 18514
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -3007,7 +2845,6 @@
       "status": "ok",
       "elapsed_seconds": 0.09,
       "benchmark_bytes": 6134,
-      "entities_bytes": 0,
       "disasm_bytes": 36286,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -3041,15 +2878,6 @@
         "text_bytes": 34602
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -3193,7 +3021,6 @@
       "status": "ok",
       "elapsed_seconds": 0.11,
       "benchmark_bytes": 6128,
-      "entities_bytes": 0,
       "disasm_bytes": 75511,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -3227,15 +3054,6 @@
         "text_bytes": 72403
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -3379,7 +3197,6 @@
       "status": "ok",
       "elapsed_seconds": 0.02,
       "benchmark_bytes": 6056,
-      "entities_bytes": 0,
       "disasm_bytes": 2602,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -3413,15 +3230,6 @@
         "text_bytes": 2501
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {

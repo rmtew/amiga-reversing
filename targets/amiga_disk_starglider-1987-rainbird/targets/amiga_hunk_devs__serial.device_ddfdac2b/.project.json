@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-13T12:28:41.970717+00:00",
+  "origin": {
+    "entry_path": "devs/serial.device",
+    "kind": "disk_child",
+    "parent_disk_id": "starglider-1987-rainbird",
+    "source_path": "bin/Starglider (1987)(Rainbird).adf",
+    "target_role": "manifest_import_target",
+    "target_type": "device"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T12:28:41.970717+00:00"
+}

@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-13T12:28:41.970717+00:00",
+  "origin": {
+    "entry_path": "libs/icon.library",
+    "kind": "disk_child",
+    "parent_disk_id": "search-for-the-king-the-1991-accolade-disk-1-of-5",
+    "source_path": "bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf",
+    "target_role": "manifest_import_target",
+    "target_type": "library"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T12:28:41.970717+00:00"
+}

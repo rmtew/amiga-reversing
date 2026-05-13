@@ -611,7 +611,7 @@ Text-classified decompressed child target indexing:
 | `carrier/.../libs__icon.library_8bc90c0c.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
 | `carrier/.../libs__info.library_3fb9d33a.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
 | `carrier/.../libs__version.library_5059c1a5.s` | 1 | `RSSET LIB_SIZE`; resident library extension. |
-| `carrier/.../amiga_raw_carrier_rnc_00004c60.s` | 1 | `RSSET 0`; decompressed raw target app layout. Needs absolute load range metadata. |
+| `carrier/.../amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40.s` | 1 | `RSSET 0`; decompressed raw target app layout. Needs absolute load range metadata. |
 | `damocles/.../c__ed_fbb099a6.s` | 1 | `RSSET 0`; app-base storage. |
 | `damocles/.../damocles_53b24620.s` | 1 | `RSSET 0`; app-base storage. |
 | `damocles/.../devs__parallel.device_0b71ffaa.s` | 1 | `RSSET LIB_SIZE`; resident device extension. |

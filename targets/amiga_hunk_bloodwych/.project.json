@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-05-13T12:25:25.504407+00:00",
+  "origin": {
+    "filename": "Bloodwych439",
+    "kind": "workspace_file",
+    "label": "Bloodwych439",
+    "platform": "amiga-hunk",
+    "sha256": "ebc4b3116cb850b4fa81886e4c1c668cd8992f299b40f994c9a40c84009c8f15",
+    "size": 364644,
+    "source_path": "bin/Bloodwych439"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T12:25:25.504407+00:00"
+}

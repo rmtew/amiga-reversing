@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-05-13T12:25:25.504407+00:00",
+  "origin": {
+    "filename": "GenAm",
+    "kind": "workspace_file",
+    "label": "GenAm",
+    "platform": "amiga-hunk",
+    "sha256": "ad56b5d6a51a0da7338ad65600607c08aafe7d5db9b3965cd36fe35029aed3a8",
+    "size": 65440,
+    "source_path": "bin/GenAm"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T12:25:25.504407+00:00"
+}

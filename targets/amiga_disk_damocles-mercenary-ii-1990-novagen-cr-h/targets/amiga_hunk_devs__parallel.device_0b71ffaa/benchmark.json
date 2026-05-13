@@ -6,7 +6,6 @@
   "status": "ok",
   "elapsed_seconds": 0.03,
   "benchmark_bytes": 6249,
-  "entities_bytes": 0,
   "disasm_bytes": 10884,
   "benchmark_version": 1,
   "platform": "amiga-hunk",
@@ -42,15 +41,6 @@
     "text_bytes": 10396
   },
   "sections": null,
-  "entities": {
-    "entity_count": 0,
-    "code_entity_count": 0,
-    "data_entity_count": 0,
-    "bss_entity_count": 0,
-    "unknown_entity_count": 0,
-    "named_entity_count": 0,
-    "documented_entity_count": 0
-  },
   "error": null,
   "targets": null,
   "facts_v2": {

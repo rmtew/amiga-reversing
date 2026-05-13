@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 16384,
+  "kind": "raw_binary",
+  "load_address": 16384,
+  "parent_disk_id": "carrier-command-1994-kixx-budget",
+  "path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40/binary.bin"
+}

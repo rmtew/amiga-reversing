@@ -8,6 +8,7 @@ corpus/
 
 # Python venv
 .venv/
+*.egg-info/
 
 # Build artifacts
 bin/rebuilt/
@@ -31,14 +32,13 @@ bin/*
 resources/*
 !resources/.gitkeep
 
-# Per-target output (entities, disassembly, progress)
+# Per-target output (disassembly and benchmark artifacts)
 targets/*
 !targets/.gitkeep
 !targets/*/
 targets/*/*
 !targets/*/*.s
 !targets/*/benchmark.json
-!targets/amiga_hunk_genam/progress.md
 !targets/*/binary_path.txt
 !targets/*/source_disk.json
 !targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootblock/bootblock.s

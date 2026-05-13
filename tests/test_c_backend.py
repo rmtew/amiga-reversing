@@ -3637,7 +3637,7 @@ def test_real_dll_raw_runtime_absolute_entry_uses_execution_view(tmp_path: Path)
     finally:
         artifact.close()
 
-    assert "    ORG $400\nabs_0_00000400:\n\trts\n" in source
+    assert "    ORG $400\n\tdc.b $4E,$75\n\tdcb.b $E,$00\nabs_0_00000410:\n\trts\n" in source
     assert "abs_0_00000410:\n\trts\n" in source
     assert "loc_0_00000010:" not in source
 
@@ -3832,7 +3832,7 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
     )
 
     assert source_profile["facts_v2"]["asm_source_refused"] is False
-    assert views_by_runtime[0x20000]["materialization_reason_name"] == "overlaid_by_runtime_copy"
+    assert views_by_runtime[0x20000]["materialization_reason_name"] == "full_source_policy_load_view"
     assert views_by_runtime[0x300]["materialization_reason_name"] == "exit_to_larger_runtime_range"
     assert views_by_runtime[0x10000]["materialization_reason_name"] == "discovered_copy_entry"
     assert any(
@@ -4012,7 +4012,7 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
         project_root=PROJECT_ROOT,
     )
     org_index = next(index for index, row in enumerate(rows) if str(row["text"]).strip() == "ORG $400")
-    label_index = next(index for index, row in enumerate(rows) if row.get("label") == "abs_0_00000400")
+    label_index = next(index for index, row in enumerate(rows) if row.get("label") == "abs_0_00000410")
 
     assert rows[org_index]["kind"] == "directive"
     assert rows[org_index]["opcode_or_directive"] == "ORG"
@@ -5813,7 +5813,7 @@ def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     _requires_c_backend_dlls()
 
     paths = resolve_project_paths(
-        "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60",
+        "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40",
         project_root=PROJECT_ROOT,
     )
 
@@ -6686,7 +6686,7 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     assert "move.l d0,app_DOSBase(a2)" in rendered
     assert "movea.l $0004.w,a6" in rendered
     assert "resident.w,a6" not in rendered
-    assert "KNOWN: base A6=exec.library" in rendered
+    assert "base A6=exec.library:LIB" in rendered
     assert "KNOWN: base A6=icon.library" in rendered
     assert rendered.index('    INCLUDE "exec/libraries.i"\n') < rendered.index("    SECTION section_0,code\n")
     assert "icon_lib_open:\n\taddq.w #1,LIB_OPENCNT(a6)" in rendered

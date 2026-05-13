@@ -25,7 +25,7 @@ Stop treating `entities.jsonl` and `overrides.json` as required project files. P
 - Listing annotation reads missing entity files as empty optional legacy overlays.
 - Current disassembly CLI help points at binary analysis; remaining entity/progress tools are marked legacy.
 - Fixed startup-sequence `s:Run` parsing while validating import behavior.
-- Covered by `tests/test_disasm_projects.py`, `tests/test_import_adf.py`, `tests/test_disasm_annotations.py`, `tests/test_disasm_cli.py`, and `tests/test_build_entities.py::test_build_entities_help_loads_cleanly`.
+- Covered by `tests/test_disasm_projects.py`, `tests/test_import_adf.py`, and `tests/test_disasm_cli.py`.
 - Verified with focused pytest, ruff, mypy, `cmd /c src\precommit.bat`, and `M68K_RUN_BRAVE_CDP=1 uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
 
 ## Blocked by

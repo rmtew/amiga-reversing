@@ -298,7 +298,7 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
     decompression_path = (
         disk_root
         / "targets"
-        / "amiga_raw_carrier_rnc_00004c60"
+        / "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40"
         / "decompression.json"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -311,7 +311,7 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
             {
                 "binary_path": (
                     f"targets/{disk_project_id}/targets/"
-                    "amiga_raw_carrier_rnc_00004c60/binary.bin"
+                    "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40/binary.bin"
                 ),
                 "derived_from": relationship,
                 "derived_targets": None,
@@ -319,7 +319,7 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
                 "target_name": child_target_id,
                 "target_path": (
                     f"targets/{disk_project_id}/targets/"
-                    "amiga_raw_carrier_rnc_00004c60"
+                    "amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40"
                 ),
                 "target_type": "raw_binary",
             }

@@ -42,25 +42,26 @@ def test_web_app_surfaces_decompression_relationship_roles() -> None:
         / "app.js"
     ).read_text(encoding="utf-8")
 
-    assert "function appendPayloadRelationshipDetails(details, relationship)" in app_js
+    assert "function payloadRelationshipTooltip(relationship)" in app_js
     assert "function appendDerivedTargetSummary(details, target)" in app_js
     assert "relationship.payload_role" in app_js
     assert "relationship.payload_role_confidence" in app_js
     assert "relationship.parent_remains_active" in app_js
     assert "target.derived_targets" in app_js
     assert "decompressed payload" in app_js
-    assert "appendPayloadRelationshipDetails(details, origin);" in app_js
+    assert "payloadRelationshipTooltip(origin);" in app_js
     assert "appendDerivedTargetSummary(details, target);" in app_js
 
 
-def test_web_app_annotation_button_is_hover_only_and_has_fallback_entity() -> None:
+def test_web_app_annotation_controls_use_manual_review_actions() -> None:
     web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
     styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
 
-    assert "let entity;" in app_js
-    assert "catch (err)" in app_js
-    assert "fallbackEntity" in app_js
+    assert "fallbackEntity" not in app_js
+    assert "let entity;" not in app_js
+    assert 'actions.push({action: "remove_manual_annotation", label: "Remove annotation"});' in app_js
+    assert 'if (action === "remove_manual_annotation") {' in app_js
     assert ".listing-annotation-edit {\n  opacity: 0;" in styles_css
     assert ".listing-row:hover .listing-annotation-edit" in styles_css
     assert ".listing-row:focus-within .listing-annotation-edit" in styles_css

@@ -34,6 +34,11 @@ def resolve_project_dir(name: str, project_root: Path = PROJECT_ROOT) -> Path:
     for disk_dir in targets_dir.iterdir():
         if not disk_dir.is_dir():
             continue
+        prefix = f"{disk_dir.name}__"
+        if name.startswith(prefix):
+            local_target = disk_dir / "targets" / name[len(prefix):]
+            if local_target.exists():
+                return local_target
         manifest_path = disk_dir / "manifest.json"
         if not manifest_path.exists():
             continue

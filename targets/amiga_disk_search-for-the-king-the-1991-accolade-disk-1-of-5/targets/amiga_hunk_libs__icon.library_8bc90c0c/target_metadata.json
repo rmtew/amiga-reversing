@@ -1,0 +1,134 @@
+{
+  "absolute_code_labels": [],
+  "bootblock": null,
+  "custom_structs": [],
+  "entry_register_seeds": [],
+  "execution_views": [],
+  "library": {
+    "id_string": "icon 34.2 (22 Jun 1988)\r\n",
+    "library_name": "icon.library",
+    "public_function_count": 12,
+    "total_lvo_count": 19,
+    "version": 34
+  },
+  "resident": {
+    "auto_init": true,
+    "autoinit": {
+      "base_size": 46,
+      "init_func_offset": 328,
+      "init_struct_offset": 164,
+      "payload_offset": 72,
+      "vector_entries": [
+        {
+          "hunk": 0,
+          "offset": 220
+        },
+        {
+          "hunk": 0,
+          "offset": 234
+        },
+        {
+          "hunk": 0,
+          "offset": 256
+        },
+        {
+          "hunk": 0,
+          "offset": 324
+        },
+        {
+          "hunk": 0,
+          "offset": 410
+        },
+        {
+          "hunk": 0,
+          "offset": 424
+        },
+        {
+          "hunk": 0,
+          "offset": 442
+        },
+        {
+          "hunk": 0,
+          "offset": 460
+        },
+        {
+          "hunk": 0,
+          "offset": 478
+        },
+        {
+          "hunk": 0,
+          "offset": 492
+        },
+        {
+          "hunk": 0,
+          "offset": 506
+        },
+        {
+          "hunk": 0,
+          "offset": 518
+        },
+        {
+          "hunk": 0,
+          "offset": 536
+        },
+        {
+          "hunk": 0,
+          "offset": 460
+        },
+        {
+          "hunk": 0,
+          "offset": 550
+        },
+        {
+          "hunk": 0,
+          "offset": 564
+        },
+        {
+          "hunk": 0,
+          "offset": 578
+        },
+        {
+          "hunk": 0,
+          "offset": 592
+        }
+      ],
+      "vector_format": "offset32",
+      "vector_offsets": [
+        220,
+        234,
+        256,
+        324,
+        410,
+        424,
+        442,
+        460,
+        478,
+        492,
+        506,
+        518,
+        536,
+        460,
+        550,
+        564,
+        578,
+        592
+      ],
+      "vectors_offset": 88
+    },
+    "flags": 128,
+    "id_string": "icon 34.2 (22 Jun 1988)\r\n",
+    "init_offset": 72,
+    "matchword": 19196,
+    "name": "icon.library",
+    "node_type_name": "library",
+    "offset": 4,
+    "priority": 70,
+    "version": 34
+  },
+  "rsset_layout_regions": [],
+  "seeded_code_entrypoints": [],
+  "seeded_code_labels": [],
+  "seeded_entities": [],
+  "suppressed_seeded_items": [],
+  "target_type": "library"
+}

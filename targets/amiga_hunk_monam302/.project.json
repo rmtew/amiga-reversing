@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-05-13T12:25:25.504407+00:00",
+  "origin": {
+    "filename": "MonAm302",
+    "kind": "workspace_file",
+    "label": "MonAm302",
+    "platform": "amiga-hunk",
+    "sha256": "ac39902ce96f2e8ecf69c1672927f961dae72199bd8856f136031a12cc047b57",
+    "size": 36108,
+    "source_path": "bin/MonAm302"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T12:25:25.504407+00:00"
+}

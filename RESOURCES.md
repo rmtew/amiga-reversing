@@ -35,7 +35,7 @@ below.
 ## Game binaries (per-game)
 
 - **Directory:** `bin/`
-- **Used by:** `amiga_reversing.tools.build_entities`, `amiga_reversing.tools.gen_disasm`
+- **Used by:** `amiga_reversing.tools.gen_disasm`, `amiga_reversing.tools.benchmark_target`
 - **Source:** User-supplied. Amiga hunk-format executables to disassemble.
 
 ## Target binaries for analysis (optional)

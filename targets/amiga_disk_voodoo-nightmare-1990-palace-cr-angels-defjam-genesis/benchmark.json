@@ -6,7 +6,6 @@
   "status": "failed",
   "elapsed_seconds": 0.8,
   "benchmark_bytes": 12563,
-  "entities_bytes": null,
   "disasm_bytes": 60801,
   "benchmark_version": 1,
   "platform": "disk-project",
@@ -20,7 +19,6 @@
   "analysis": null,
   "render": null,
   "sections": null,
-  "entities": null,
   "error": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_f13_dc42311a: C backend DLL failed: facts_v2 asm source refused because structural invariants failed",
   "targets": {
     "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_raw_bootblock": {
@@ -31,7 +29,6 @@
       "status": "ok",
       "elapsed_seconds": 0.03,
       "benchmark_bytes": 6262,
-      "entities_bytes": 0,
       "disasm_bytes": 614,
       "benchmark_version": 1,
       "platform": "amiga-raw",
@@ -67,15 +64,6 @@
         "text_bytes": 588
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {
@@ -223,7 +211,6 @@
       "status": "failed",
       "elapsed_seconds": 0.39,
       "benchmark_bytes": null,
-      "entities_bytes": 0,
       "disasm_bytes": null,
       "benchmark_version": null,
       "platform": null,
@@ -232,15 +219,6 @@
       "analysis": null,
       "render": null,
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": "C backend DLL failed: facts_v2 asm source refused because structural invariants failed",
       "targets": null,
       "facts_v2": null
@@ -253,7 +231,6 @@
       "status": "ok",
       "elapsed_seconds": 0.1,
       "benchmark_bytes": 6301,
-      "entities_bytes": 0,
       "disasm_bytes": 60187,
       "benchmark_version": 1,
       "platform": "amiga-hunk",
@@ -289,15 +266,6 @@
         "text_bytes": 58161
       },
       "sections": null,
-      "entities": {
-        "entity_count": 0,
-        "code_entity_count": 0,
-        "data_entity_count": 0,
-        "bss_entity_count": 0,
-        "unknown_entity_count": 0,
-        "named_entity_count": 0,
-        "documented_entity_count": 0
-      },
       "error": null,
       "targets": null,
       "facts_v2": {

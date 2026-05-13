@@ -31,7 +31,7 @@ decompressed child:
 - Provider used:
   Ancient CLI, `RNC1: Rob Northen RNC1 Compressor (old)`
 - Child target:
-  `amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_rnc_00004c60`
+  `amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40`
 - Runtime view:
   load address `$4000`, entrypoint `$4000`
 
