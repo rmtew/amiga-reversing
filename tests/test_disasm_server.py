@@ -153,6 +153,20 @@ class _FakeCListingArtifact:
             {"generation": "fake"},
         )
 
+    def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return (
+            {
+                "sections": [
+                    {
+                        "section_index": 0,
+                        "section_size": 4,
+                        "blocks": [{"start_offset": 0, "end_offset": 2}],
+                    }
+                ]
+            },
+            {"generation": "fake-analysis"},
+        )
+
 
 class _RowsCListingArtifact:
     def __init__(
@@ -195,6 +209,9 @@ class _RowsCListingArtifact:
             app_slot_analysis=self.app_slot_analysis,
             type_flow_analysis=self.type_flow_analysis,
         ), {}
+
+    def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+        return {"sections": []}, {}
 
 
 def _seed_c_listing_artifact(
@@ -2322,6 +2339,7 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
     assert payload["ok"] is True
     assert artifact.navigation_calls == 1
     assert [entry["summary"] for entry in groups["labels"]] == ["from_c:"]
+    assert groups["manual-review"][0]["kind"] == "unreconciled_data_range"
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 

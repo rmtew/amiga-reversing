@@ -41,6 +41,7 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.manual_review_items import analysis_review_items
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.projects import (
@@ -384,6 +385,7 @@ def _current_reproduction_payload(
 def _overlay_listing_navigation_payload(
     project_name: str,
     payload: dict[str, object],
+    listing_artifact: CListingArtifact | None = None,
 ) -> dict[str, object]:
     groups = cast(dict[str, list[dict[str, object]]], payload.setdefault("groups", {}))
     for group_name in (
@@ -398,6 +400,7 @@ def _overlay_listing_navigation_payload(
         "app-slot-field-gaps",
         "app-slot-suggestions",
         "app-slot-api-args",
+        "manual-review",
         "labels",
         "comments",
     ):
@@ -409,6 +412,9 @@ def _overlay_listing_navigation_payload(
         payload["analysis_generation"] = _project_listing_generation(project_name)
     if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
         payload["type_flow_analysis"] = {}
+    if listing_artifact is not None:
+        analysis_payload, _ = listing_artifact.analysis_payload()
+        groups["manual-review"] = list(analysis_review_items(analysis_payload))
     payload["groups"] = groups
     return payload
 
@@ -1727,7 +1733,7 @@ def route_request(
                 navigation_payload, _ = listing_artifact.navigation_payload()
                 return {
                     "ok": True,
-                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload),
+                    "data": _overlay_listing_navigation_payload(project_name, navigation_payload, listing_artifact),
                 }
             raise ValueError(
                 f"C listing artifact not loaded for project: {project_name}"
