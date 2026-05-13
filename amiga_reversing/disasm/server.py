@@ -412,8 +412,9 @@ def _overlay_listing_navigation_payload(
         payload["analysis_generation"] = _project_listing_generation(project_name)
     if "type_flow_analysis" not in payload or not isinstance(payload.get("type_flow_analysis"), dict):
         payload["type_flow_analysis"] = {}
-    if listing_artifact is not None:
-        analysis_payload, _ = listing_artifact.analysis_payload()
+    analysis_payload_fn = getattr(listing_artifact, "analysis_payload", None)
+    if callable(analysis_payload_fn):
+        analysis_payload, _ = analysis_payload_fn()
         groups["manual-review"] = list(analysis_review_items(analysis_payload))
     payload["groups"] = groups
     return payload
@@ -1190,7 +1191,10 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
         return project_dict
-    analysis_payload, _ = artifact.analysis_payload()
+    analysis_payload_fn = getattr(artifact, "analysis_payload", None)
+    if not callable(analysis_payload_fn):
+        return project_dict
+    analysis_payload, _ = analysis_payload_fn()
     analysis_items = analysis_review_items(analysis_payload)
     if not analysis_items:
         return project_dict
