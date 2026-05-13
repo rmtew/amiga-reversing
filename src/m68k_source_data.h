@@ -16,6 +16,7 @@ typedef struct AsmDataItem {
     char expr[128];
     uint8_t *bytes;
     size_t byte_count;
+    uint32_t repeat_count;
 } AsmDataItem;
 
 typedef struct AsmSourceDataStmt {

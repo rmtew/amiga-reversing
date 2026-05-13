@@ -3794,6 +3794,16 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
         json.dumps(
             {
                 "target_type": "raw_binary",
+                "seeded_code_entrypoints": [
+                    {
+                        "addr": 0,
+                        "hunk": 0,
+                        "name": "start",
+                        "seed_origin": "manual",
+                        "review_status": "accepted",
+                        "citation": "test fixture entrypoint",
+                    }
+                ],
                 "execution_views": [
                     {
                         "source_start": 0,
@@ -3832,7 +3842,7 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
     )
 
     assert source_profile["facts_v2"]["asm_source_refused"] is False
-    assert views_by_runtime[0x20000]["materialization_reason_name"] == "full_source_policy_load_view"
+    assert views_by_runtime[0x20000]["materialization_reason_name"] == "overlaid_by_runtime_copy"
     assert views_by_runtime[0x300]["materialization_reason_name"] == "exit_to_larger_runtime_range"
     assert views_by_runtime[0x10000]["materialization_reason_name"] == "discovered_copy_entry"
     assert any(

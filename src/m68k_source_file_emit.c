@@ -39,8 +39,9 @@ static size_t data_statement_size(const AsmSourceDataStmt *data_stmt) {
   size_t total = 0;
   size_t index;
   for (index = 0; index < data_stmt->item_count; ++index) {
-    total += (data_stmt->items[index].kind == ASM_DATA_ITEM_STRING)
+    size_t item_size = (data_stmt->items[index].kind == ASM_DATA_ITEM_STRING)
       ? data_stmt->items[index].byte_count : data_stmt->width_bytes;
+    total += item_size * data_stmt->items[index].repeat_count;
   }
   return total;
 }
@@ -239,49 +240,52 @@ static int emit_data_statement(const AsmSourceFile *source, const AsmSourceStmt 
   (void)source;
   for (item_index = 0; item_index < stmt->u.data.item_count; ++item_index) {
     const AsmDataItem *item = &stmt->u.data.items[item_index];
-    if (item->kind == ASM_DATA_ITEM_STRING) {
-      if (stmt->u.data.width_bytes != 1U) {
-        source_emit_error(diagnostics, "string data only supported for DC.B");
-        return 0;
-      }
-      if (m68k_writer_bytes(writer, item->bytes, item->byte_count) != 0) return 0;
-      continue;
-    } else {
-      M68kSourceLinearExprParseResult parsed_expr;
-      M68kSourceLinearExprEvalResult evaluated_expr;
-      M68kSourceEmitExprContext expr_context;
-      M68kFixup fixup;
-      init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
-        stmt->logical_offset + (uint32_t)(writer->size - stmt->offset));
-      parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
-        &expr_context);
-      evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
-      if (!parsed_expr.ok || !evaluated_expr.ok) {
-        source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
-          (unsigned)stmt->line_number, item->expr);
-        return 0;
-      }
-      if (stmt->u.data.width_bytes == 1U) {
-        uint8_t byte_value = (uint8_t)evaluated_expr.value;
-        if (m68k_writer_u8(writer, byte_value) != 0) return 0;
-      } else if (stmt->u.data.width_bytes == 2U) {
-        if (m68k_writer_u16be(writer, (uint16_t)evaluated_expr.value) != 0) return 0;
+    uint32_t repeat_index;
+    for (repeat_index = 0; repeat_index < item->repeat_count; ++repeat_index) {
+      if (item->kind == ASM_DATA_ITEM_STRING) {
+        if (stmt->u.data.width_bytes != 1U) {
+          source_emit_error(diagnostics, "string data only supported for DC.B");
+          return 0;
+        }
+        if (m68k_writer_bytes(writer, item->bytes, item->byte_count) != 0) return 0;
+        continue;
       } else {
-        if (m68k_writer_u32be(writer, evaluated_expr.value) != 0) return 0;
-      }
-      if (evaluated_expr.reloc.ok) {
-        M68kFixupWidth width = (stmt->u.data.width_bytes == 4U)
-          ? M68K_FIXUP_WIDTH_32 : (stmt->u.data.width_bytes == 2U) ? M68K_FIXUP_WIDTH_16 : M68K_FIXUP_WIDTH_8;
-        if (!should_emit_internal_abs_fixup(source, width)) continue;
-        memset(&fixup, 0, sizeof(fixup));
-        fixup.section_index = stmt->section_index;
-        fixup.offset = (uint32_t)(writer->size - stmt->u.data.width_bytes);
-        fixup.kind = M68K_FIXUP_ABS;
-        fixup.width = width;
-        fixup.addend = (int32_t)evaluated_expr.value;
-        fixup.target_section_index = evaluated_expr.reloc.target_section;
-        fixup.has_target_section = 1;
-        if (!m68k_object_add_fixup(object, &fixup).ok) return 0;
+        M68kSourceLinearExprParseResult parsed_expr;
+        M68kSourceLinearExprEvalResult evaluated_expr;
+        M68kSourceEmitExprContext expr_context;
+        M68kFixup fixup;
+        init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
+          stmt->logical_offset + (uint32_t)(writer->size - stmt->offset));
+        parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
+          &expr_context);
+        evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
+        if (!parsed_expr.ok || !evaluated_expr.ok) {
+          source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
+            (unsigned)stmt->line_number, item->expr);
+          return 0;
+        }
+        if (stmt->u.data.width_bytes == 1U) {
+          uint8_t byte_value = (uint8_t)evaluated_expr.value;
+          if (m68k_writer_u8(writer, byte_value) != 0) return 0;
+        } else if (stmt->u.data.width_bytes == 2U) {
+          if (m68k_writer_u16be(writer, (uint16_t)evaluated_expr.value) != 0) return 0;
+        } else {
+          if (m68k_writer_u32be(writer, evaluated_expr.value) != 0) return 0;
+        }
+        if (evaluated_expr.reloc.ok) {
+          M68kFixupWidth width = (stmt->u.data.width_bytes == 4U)
+            ? M68K_FIXUP_WIDTH_32 : (stmt->u.data.width_bytes == 2U) ? M68K_FIXUP_WIDTH_16 : M68K_FIXUP_WIDTH_8;
+          if (!should_emit_internal_abs_fixup(source, width)) continue;
+          memset(&fixup, 0, sizeof(fixup));
+          fixup.section_index = stmt->section_index;
+          fixup.offset = (uint32_t)(writer->size - stmt->u.data.width_bytes);
+          fixup.kind = M68K_FIXUP_ABS;
+          fixup.width = width;
+          fixup.addend = (int32_t)evaluated_expr.value;
+          fixup.target_section_index = evaluated_expr.reloc.target_section;
+          fixup.has_target_section = 1;
+          if (!m68k_object_add_fixup(object, &fixup).ok) return 0;
+        }
       }
     }
   }
@@ -470,29 +474,32 @@ static int append_data_ir_statement(const AsmSourceFile *source, const AsmSource
     ? M68K_DATA_ITEM_BYTES : (stmt->u.data.width_bytes == 2U) ? M68K_DATA_ITEM_WORDS : M68K_DATA_ITEM_LONGS;
   for (item_index = 0; item_index < stmt->u.data.item_count; ++item_index) {
     const AsmDataItem *item = &stmt->u.data.items[item_index];
-    if (item->kind == ASM_DATA_ITEM_STRING) {
-      if (m68k_writer_bytes(&writer, item->bytes, item->byte_count) != 0) goto fail;
-    } else {
-      M68kSourceLinearExprParseResult parsed_expr;
-      M68kSourceLinearExprEvalResult evaluated_expr;
-      M68kSourceEmitExprContext expr_context;
-      init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
-        stmt->logical_offset + (uint32_t)writer.size);
-      parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
-        &expr_context);
-      evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
-      if (!parsed_expr.ok || !evaluated_expr.ok) {
-        source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
-          (unsigned)stmt->line_number, item->expr);
-        goto fail;
-      }
-      if (stmt->u.data.width_bytes == 1U) {
-        uint8_t byte_value = (uint8_t)evaluated_expr.value;
-        if (m68k_writer_u8(&writer, byte_value) != 0) goto fail;
-      } else if (stmt->u.data.width_bytes == 2U) {
-        if (m68k_writer_u16be(&writer, (uint16_t)evaluated_expr.value) != 0) goto fail;
-      } else if (m68k_writer_u32be(&writer, evaluated_expr.value) != 0) {
-        goto fail;
+    uint32_t repeat_index;
+    for (repeat_index = 0; repeat_index < item->repeat_count; ++repeat_index) {
+      if (item->kind == ASM_DATA_ITEM_STRING) {
+        if (m68k_writer_bytes(&writer, item->bytes, item->byte_count) != 0) goto fail;
+      } else {
+        M68kSourceLinearExprParseResult parsed_expr;
+        M68kSourceLinearExprEvalResult evaluated_expr;
+        M68kSourceEmitExprContext expr_context;
+        init_emit_expr_context(&expr_context, expr_lookup_symbol, expr_lookup_user_data,
+          stmt->logical_offset + (uint32_t)writer.size);
+        parsed_expr = m68k_source_parse_linear_expression(item->expr, 0, expr_lookup_symbol_with_current,
+          &expr_context);
+        evaluated_expr = m68k_source_evaluate_linear_expression(parsed_expr.expr);
+        if (!parsed_expr.ok || !evaluated_expr.ok) {
+          source_emit_errorf(diagnostics, "bad data expression at line %u: %s",
+            (unsigned)stmt->line_number, item->expr);
+          goto fail;
+        }
+        if (stmt->u.data.width_bytes == 1U) {
+          uint8_t byte_value = (uint8_t)evaluated_expr.value;
+          if (m68k_writer_u8(&writer, byte_value) != 0) goto fail;
+        } else if (stmt->u.data.width_bytes == 2U) {
+          if (m68k_writer_u16be(&writer, (uint16_t)evaluated_expr.value) != 0) goto fail;
+        } else if (m68k_writer_u32be(&writer, evaluated_expr.value) != 0) {
+          goto fail;
+        }
       }
     }
   }

@@ -317,6 +317,17 @@ static int source_data_append_item_callback(AsmSourceDataStmt *data_stmt,
   return m68k_source_model_append_data_item((AsmSourceFile *)user_data, data_stmt, item);
 }
 
+static AsmSourceStmt *previous_appendable_data_statement(AsmSourceFile *source,
+    size_t current_section_index, uint8_t width_bytes) {
+  AsmSourceStmt *stmt;
+  if (source == NULL || source->statement_count == 0U) return NULL;
+  stmt = &source->statements[source->statement_count - 1U];
+  if (stmt->kind != ASM_SOURCE_STMT_DATA) return NULL;
+  if (stmt->section_index != current_section_index) return NULL;
+  if (stmt->u.data.width_bytes != width_bytes) return NULL;
+  return stmt;
+}
+
 static int statement_is_fpu_id_alias_instruction(const char *text) {
   char line[128];
   char *cursor;
@@ -800,16 +811,20 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
       M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(directive0);
       if (data_directive.ok && data_directive.is_repeat == 0U) {
         M68kSourceModelIndexResult stmt_result;
-        AsmSourceStmt *stmt = NULL;
-        stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
-        if (!stmt_result.ok) {
-          source_line_reader_close(reader);
-          source_parse_errorf(diagnostics,
-                     "bad data directive at line %u: %s %s",
-                     (unsigned)line_number, token0, rest);
-          return 0;
+        AsmSourceStmt *stmt = previous_appendable_data_statement(source, current_section_index,
+          data_directive.width_bytes);
+        if (stmt == NULL) {
+          stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
+          if (!stmt_result.ok) {
+            source_line_reader_close(reader);
+            source_parse_errorf(diagnostics,
+                       "bad data directive at line %u: %s %s",
+                       (unsigned)line_number, token0, rest);
+            return 0;
+          }
+          stmt = &source->statements[stmt_result.index];
+          stmt->section_index = current_section_index;
         }
-        stmt = &source->statements[stmt_result.index];
         if (!m68k_source_parse_data_statement(token0, rest, &stmt->u.data, &data_parse_context)) {
           source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
@@ -817,21 +832,24 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
                      (unsigned)line_number, token0, rest);
           return 0;
         }
-        stmt->section_index = current_section_index;
         continue;
       }
       if (data_directive.ok && data_directive.is_repeat != 0U) {
         M68kSourceModelIndexResult stmt_result;
-        AsmSourceStmt *stmt = NULL;
-        stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
-        if (!stmt_result.ok) {
-          source_line_reader_close(reader);
-          source_parse_errorf(diagnostics,
-                     "bad data directive at line %u: %s %s",
-                     (unsigned)line_number, token0, rest);
-          return 0;
+        AsmSourceStmt *stmt = previous_appendable_data_statement(source, current_section_index,
+          data_directive.width_bytes);
+        if (stmt == NULL) {
+          stmt_result = m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
+          if (!stmt_result.ok) {
+            source_line_reader_close(reader);
+            source_parse_errorf(diagnostics,
+                       "bad data directive at line %u: %s %s",
+                       (unsigned)line_number, token0, rest);
+            return 0;
+          }
+          stmt = &source->statements[stmt_result.index];
+          stmt->section_index = current_section_index;
         }
-        stmt = &source->statements[stmt_result.index];
         if (!m68k_source_parse_dcb_statement(token0, rest, &stmt->u.data, &data_parse_context)) {
           source_line_reader_close(reader);
           source_parse_errorf(diagnostics,
@@ -839,7 +857,6 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
                      (unsigned)line_number, token0, rest);
           return 0;
         }
-        stmt->section_index = current_section_index;
         continue;
       }
     }

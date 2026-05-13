@@ -1277,6 +1277,36 @@ static int test_source_fpu_zero_disables_fpu_alias_instruction(void) {
   return 0;
 }
 
+static int test_source_dcb_preserves_large_repeat_without_expanding_items(void) {
+  AsmSourceFile source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "\tdc.b $11\n"
+    "\tdcb.b $E000,$00\n"
+    "\tdc.b $22\n";
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(2U, source.statement_count);
+  M68K_C_ASSERT_INT(ASM_SOURCE_STMT_DATA, source.statements[1].kind);
+  M68K_C_ASSERT_U32(3U, (uint32_t)source.statements[1].u.data.item_count);
+  M68K_C_ASSERT_U32(0xE000U, source.statements[1].u.data.items[1].repeat_count);
+  M68K_C_ASSERT_U32(0xE002U, source.statements[1].size);
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&source, &object, m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(0xE002U, object.sections[0].data_size);
+  M68K_C_ASSERT_U32(0x11U, object.sections[0].data[0]);
+  M68K_C_ASSERT_U32(0x00U, object.sections[0].data[0xE000U]);
+  M68K_C_ASSERT_U32(0x22U, object.sections[0].data[0xE001U]);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&source);
+  return 0;
+}
+
 static int test_source_org_sets_logical_pc_without_padding(void) {
   AsmSourceFile source;
   M68kObject object;
@@ -18933,6 +18963,8 @@ int m68k_c_ir_tests(void) {
       test_source_fpu_directive_uses_external_id_under_cpu_ceiling},
     {"source_fpu_zero_disables_fpu_alias_instruction",
       test_source_fpu_zero_disables_fpu_alias_instruction},
+    {"source_dcb_preserves_large_repeat_without_expanding_items",
+      test_source_dcb_preserves_large_repeat_without_expanding_items},
     {"source_org_sets_logical_pc_without_padding", test_source_org_sets_logical_pc_without_padding},
     {"decode_ir_negative_cache_preserves_higher_cpu_decode",
       test_decode_ir_negative_cache_preserves_higher_cpu_decode},
