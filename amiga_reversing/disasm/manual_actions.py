@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
 from amiga_reversing.disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from amiga_reversing.disasm.binary_source import (
@@ -24,7 +24,10 @@ RESERVED_MANUAL_ACTION_FIELDS = frozenset(
     {"record", "action_id", "sequence", "created_at", "kind"}
 )
 
-type ReviewState = Literal["clear", "needs_review", "blocked"]
+class ReviewState(StrEnum):
+    CLEAR = "clear"
+    NEEDS_REVIEW = "needs_review"
+    BLOCKED = "blocked"
 
 
 class ManualActionKind(StrEnum):
@@ -187,7 +190,7 @@ def _empty_projection(
     *,
     pinned_target_identity: dict[str, object] | None = None,
     current_target_identity: dict[str, object] | None = None,
-    review_state: ReviewState = "clear",
+    review_state: ReviewState = ReviewState.CLEAR,
     diagnostics: tuple[dict[str, object], ...] = (),
     review_items: tuple[dict[str, object], ...] = (),
 ) -> ManualActionLogProjection:
@@ -313,10 +316,10 @@ def _finalize_review_items(
 def _review_state_for_items(review_items: tuple[dict[str, object], ...]) -> ReviewState:
     open_review_items = tuple(item for item in review_items if item.get("state") == "open")
     if any(item.get("review_blocker") is True for item in open_review_items):
-        return "blocked"
+        return ReviewState.BLOCKED
     if open_review_items:
-        return "needs_review"
-    return "clear"
+        return ReviewState.NEEDS_REVIEW
+    return ReviewState.CLEAR
 
 
 def finalize_review_items(
@@ -345,7 +348,7 @@ def _blocked_projection(
         path,
         pinned_target_identity=pinned_target_identity,
         current_target_identity=current_target_identity,
-        review_state="blocked",
+        review_state=ReviewState.BLOCKED,
         diagnostics=review_items,
         review_items=review_items,
     )

@@ -39,6 +39,7 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.manual_actions import (
+    ReviewState,
     append_manual_action,
     validate_manual_action_payload,
 )
@@ -163,7 +164,7 @@ def _os_corrections_payload() -> dict[str, object]:
 
 
 def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
-    return type_catalog_from_c_backend(project_name)
+    return cast(list[dict[str, object]], type_catalog_from_c_backend(project_name))
 
 
 def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
@@ -204,15 +205,26 @@ def _cached_analysis_review_items(
     return items
 
 
+def _review_state_id(value: object) -> ReviewState | None:
+    if isinstance(value, ReviewState):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ReviewState(value)
+    except ValueError:
+        return None
+
+
 def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dict[str, object]]:
-    review_state = project.get("review_state")
-    if review_state not in {"blocked", "needs_review"}:
+    review_state = _review_state_id(project.get("review_state"))
+    if review_state not in {ReviewState.BLOCKED, ReviewState.NEEDS_REVIEW}:
         return []
     raw_items = project.get("review_items")
     items = [item for item in raw_items if isinstance(item, dict)] if isinstance(raw_items, list | tuple) else []
     open_items = [item for item in items if item.get("state") == "open"]
     blockers = [item for item in open_items if item.get("review_blocker") is True]
-    if review_state == "blocked":
+    if review_state is ReviewState.BLOCKED:
         message = f"Review is blocked by {len(blockers) or len(open_items)} live item(s); target cannot be rated clear."
         severity = "error"
     else:
@@ -318,8 +330,9 @@ def _validate_api_input_struct(
     input_name: str,
     struct_name: str,
 ) -> dict[str, object]:
-    return validate_api_input_struct_with_c_backend(
-        project_name, library, function, input_name, struct_name
+    return cast(
+        dict[str, object],
+        validate_api_input_struct_with_c_backend(project_name, library, function, input_name, struct_name),
     )
 
 
@@ -352,7 +365,7 @@ def _annotate_listing_payload(
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
     try:
-        report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
+        report = cast(dict[str, object], load_reproduction_report(project_name, project_root=PROJECT_ROOT))
     except (FileNotFoundError, ValueError, RuntimeError):
         return None
     if report.get("stale"):
@@ -366,7 +379,7 @@ def _active_reproduction_issues_by_row_index(
     report = _active_reproduction_report(project_name)
     if report is None:
         return {}
-    return issues_by_row_index(report)
+    return cast(dict[int, list[dict[str, object]]], issues_by_row_index(report))
 
 
 def _not_ready_reproduction_payload(
@@ -1274,11 +1287,11 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
     ]
     project_dict["review_items"] = review_items
     open_analysis_items = [item for item in analysis_items if item.get("state") == "open"]
-    if project_dict.get("review_state") != "blocked":
+    if _review_state_id(project_dict.get("review_state")) is not ReviewState.BLOCKED:
         if any(item.get("review_blocker") is True for item in open_analysis_items):
-            project_dict["review_state"] = "blocked"
+            project_dict["review_state"] = ReviewState.BLOCKED
         elif open_analysis_items:
-            project_dict["review_state"] = "needs_review"
+            project_dict["review_state"] = ReviewState.NEEDS_REVIEW
     return project_dict
 
 
@@ -1300,11 +1313,14 @@ def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str
         if not isinstance(target_name, str) or not isinstance(entry_path, str):
             continue
         target_index[entry_path.strip().strip("/").lower()] = target_name
-    return disk_browser.payload_from_project_manifest(
-        manifest_dict,
-        path,
-        content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
-        target_index=target_index,
+    return cast(
+        dict[str, object],
+        disk_browser.payload_from_project_manifest(
+            manifest_dict,
+            path,
+            content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
+            target_index=target_index,
+        ),
     )
 
 
@@ -1328,8 +1344,8 @@ def _project_disk_entry_content_payload(
                 project_root=PROJECT_ROOT,
             )
     except Exception as exc:
-        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry))
-    return disk_browser.content_payload_from_bytes(data)
+        return cast(dict[str, object], disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry)))
+    return cast(dict[str, object], disk_browser.content_payload_from_bytes(data))
 
 
 def resolve_static_response(path: str) -> StaticResponse:

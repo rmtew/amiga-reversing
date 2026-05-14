@@ -5,7 +5,7 @@ import shutil
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.binary_source import (
@@ -246,14 +246,14 @@ def _combined_review_state(
     manual_state: ReviewState,
     review_items: tuple[dict[str, object], ...],
 ) -> ReviewState:
-    if manual_state == "blocked":
-        return "blocked"
+    if manual_state is ReviewState.BLOCKED:
+        return ReviewState.BLOCKED
     open_items = tuple(item for item in review_items if item.get("state") == "open")
     if any(item.get("review_blocker") is True for item in open_items):
-        return "blocked"
-    if manual_state == "needs_review" or open_items:
-        return "needs_review"
-    return "clear"
+        return ReviewState.BLOCKED
+    if manual_state is ReviewState.NEEDS_REVIEW or open_items:
+        return ReviewState.NEEDS_REVIEW
+    return ReviewState.CLEAR
 
 
 def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...]:
@@ -263,7 +263,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
     try:
         report = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        return cast(tuple[dict[str, object], ...], finalize_review_items((
+        return finalize_review_items((
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
@@ -272,9 +272,9 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
                 "message": f"Reproduction report cannot be checked: {exc}",
                 "source": "reproduction",
             },
-        )))
+        ))
     if not isinstance(report, dict):
-        return cast(tuple[dict[str, object], ...], finalize_review_items((
+        return finalize_review_items((
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
@@ -283,8 +283,8 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
                 "message": "Reproduction report cannot be checked",
                 "source": "reproduction",
             },
-        )))
-    return cast(tuple[dict[str, object], ...], finalize_review_items(tuple(_raw_reproduction_review_items(report))))
+        ))
+    return finalize_review_items(tuple(_raw_reproduction_review_items(report)))
 
 
 def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[str, object], ...]:
@@ -330,7 +330,7 @@ def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[
                 "message": f"Decompressed payload requires review: {reason}",
             }
         )
-    return cast(tuple[dict[str, object], ...], finalize_review_items(tuple(items)))
+    return finalize_review_items(tuple(items))
 
 
 def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, object]]:
