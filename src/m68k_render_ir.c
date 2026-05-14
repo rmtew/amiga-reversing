@@ -5551,6 +5551,14 @@ static const char *external_runtime_address_ref_role(const M68kRenderLookup *loo
   return role != NULL && role[0] != '\0' ? role : NULL;
 }
 
+static const char *runtime_address_ref_sink_role(const M68kRenderLookup *lookup, const M68kFact *fact) {
+  const char *role;
+  if (lookup == NULL || lookup->object == NULL || fact == NULL || !fact->has_sink_address) return NULL;
+  role = platform_facts_v2_runtime_address_sink_data_class(lookup->object->platform_backend_kind,
+    fact->sink_address);
+  return role != NULL && role[0] != '\0' ? role : NULL;
+}
+
 static const char *lookup_external_runtime_address_role_by_value(const M68kRenderLookup *lookup,
     uint32_t runtime_address) {
   size_t index;
@@ -8094,6 +8102,20 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     if (operand->symbol_ref.has_name != 0U) continue;
     fact = lookup_runtime_address_ref_for_operand(lookup, section->section_index, candidate->offset, operand_index);
     if (fact == NULL) continue;
+    if (fact->has_sink_address && candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
+      const char *role;
+      uint32_t value = 0U;
+      char symbol[80];
+      if (operand_is_immediate_value_local(operand, &value) && value == fact->runtime_address) {
+        role = runtime_address_ref_sink_role(lookup, fact);
+        if (role != NULL &&
+            render_asm_define_runtime_address_symbol_once(preview, role, fact->runtime_address, symbol,
+              sizeof(symbol))) {
+          attach_amiga_platform_symbol(operand, symbol);
+          continue;
+        }
+      }
+    }
     if (fact->target_section_index >= lookup->section_count) {
       const char *role;
       uint32_t value = 0U;

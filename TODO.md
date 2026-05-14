@@ -4,17 +4,6 @@
 
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
-- Pandora observed improvement possibilities (target: `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`):
-  - Amiga platform runtime memory range inference:
-    ```
-    04cc 3b7c86400096   move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)
-    04d2 610002f8       bsr.w abs_0_000107CC
-    ...
-    07cc              abs_0_000107CC:
-    07cc 207c00077d00   movea.l #$77D00,a0
-    07d2 2b480050       move.l a0,$0050(a5)
-    ```
-    - The value set in `a0` should be registered as a runtime memory range and given an equate, and added to memory map.
 - Bloodwych observed improvement possibilities (target: `amiga_hunk_bloodwych`):
   - Web UI improvement possibilities for lookup tables samples:
     ```

@@ -513,6 +513,30 @@ static int trace_state_can_drive_indirect_control(const M68kFactsV2TraceState *s
   return 0;
 }
 
+static int trace_value_can_drive_runtime_sink(uint8_t platform_kind, const M68kFactsV2TraceValue *value) {
+  uint32_t displacement;
+  if (value == NULL ||
+      (value->kind != M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS && value->kind != M68K_FACTS_V2_TRACE_CONSTANT)) {
+    return 0;
+  }
+  for (displacement = 0U; displacement <= 0x1FEU; displacement += 2U) {
+    if (value->value <= UINT32_MAX - displacement &&
+        platform_facts_v2_is_runtime_address_sink(platform_kind, value->value + displacement)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int trace_state_can_drive_runtime_sink(uint8_t platform_kind, const M68kFactsV2TraceState *state) {
+  uint8_t reg;
+  if (state == NULL) return 0;
+  for (reg = 0U; reg < 8U; ++reg) {
+    if (trace_value_can_drive_runtime_sink(platform_kind, &state->a[reg])) return 1;
+  }
+  return 0;
+}
+
 static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, uint32_t offset,
     uint8_t confidence, uint32_t reason, size_t source_section_index, uint32_t source_offset,
     uint8_t has_runtime_address, uint32_t runtime_address, const M68kFactsV2TraceState *trace_state,
@@ -526,7 +550,7 @@ static int work_queue_push(M68kFactsV2WorkQueue *queue, size_t section_index, ui
   int carries_indirect_control_state;
   if (queue == NULL) return -1;
   carries_indirect_control_state = trace_state_can_drive_indirect_control(trace_state);
-  is_stateful = has_runtime_address != 0U || (allow_trace_variant && carries_indirect_control_state);
+  is_stateful = has_runtime_address != 0U || allow_trace_variant;
   state_variant_limit = allow_trace_variant && carries_indirect_control_state
     ? M68K_FACTS_V2_TRACE_INDIRECT_STATE_VARIANT_LIMIT
     : M68K_FACTS_V2_TRACE_STATE_VARIANT_LIMIT;
@@ -2580,7 +2604,7 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
       candidate->operand_count != 2U) {
     return 0;
   }
-  if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[1], &candidate->operands[1], &sink_address) ||
+  if (!trace_state_operand_runtime_address(state, candidate, 1U, &sink_address) ||
       !platform_facts_v2_is_runtime_address_sink(platform_kind, sink_address)) {
     return 0;
   }
@@ -2613,6 +2637,16 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
     M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND, target_offset, runtime_address, sink_address,
     M68K_FACT_CONFIDENCE_TOOL_INFERRED);
   if (ref_result < 0) return -1;
+  if (value->has_origin && value->origin_section_index == section_index) {
+    const M68kDecodeCandidate *origin_candidate = m68k_decode_ir_find_candidate_at_offset(section,
+      value->origin_offset);
+    if (origin_candidate != NULL && origin_candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
+      int origin_ref_result = append_runtime_address_ref_fact_with_sink(facts, value->origin_section_index,
+        value->origin_offset, value->origin_operand_index, target_offset, runtime_address, sink_address,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+      if (origin_ref_result < 0) return -1;
+    }
+  }
   if (ref_result == 0) return 0;
   if (append_xref_fact(facts, section_index, candidate->offset, target_offset,
       M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
@@ -3345,7 +3379,7 @@ static void trace_state_apply_known_effects(size_t section_index, const M68kDeco
       candidate->operand_count == 2U &&
       operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
       operand_is_address_register_direct(&candidate->operands[1], &reg)) {
-    trace_value_set_runtime_address(&state->a[reg], value);
+    trace_value_set_runtime_address_with_origin(&state->a[reg], value, section_index, candidate->offset, 0U);
   } else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && candidate->size_suffix == 'l' &&
       candidate->operand_count == 2U &&
       m68k_asm_operand_absolute_value(candidate->operand_kinds[0], &candidate->operands[0], &value) &&
@@ -8387,6 +8421,48 @@ static int target_prefix_uses_trace_indirect_control(M68kDecodeIR *decode, size_
   return 0;
 }
 
+static int target_prefix_uses_trace_runtime_sink(M68kDecodeIR *decode, const M68kFactsV2RelocationLookup *relocation_lookup,
+    const M68kRuntimeAddressSpace *runtime_addresses, M68kFactIR *facts, uint8_t platform_kind,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, size_t section_index, uint32_t target_offset,
+    const M68kFactsV2TraceState *trace_state, uint8_t max_cpu) {
+  const uint32_t scan_limit = 8U;
+  const M68kDecodeSectionIR *section;
+  M68kFactsV2TraceState state;
+  uint32_t cursor = target_offset;
+  uint32_t step;
+  if (decode == NULL || relocation_lookup == NULL || runtime_addresses == NULL || facts == NULL ||
+      accepted_start == NULL || accepted_bytes == NULL || trace_state == NULL ||
+      section_index >= decode->section_count || !trace_state_can_drive_runtime_sink(platform_kind, trace_state)) {
+    return 0;
+  }
+  section = &decode->sections[section_index];
+  state = *trace_state;
+  for (step = 0U; step < scan_limit && cursor < section->size; ++step) {
+    const M68kDecodeCandidate *candidate = NULL;
+    M68kFactsV2TraceState next_state;
+    uint32_t sink_address = 0U;
+    if (m68k_decode_ir_ensure_candidate_at(decode, section_index, cursor, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0 || candidate == NULL) {
+      return 0;
+    }
+    if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && candidate->size_suffix == 'l' &&
+        candidate->operand_count == 2U &&
+        (operand_is_data_register_direct(&candidate->operands[0], NULL) ||
+         operand_is_address_register_direct(&candidate->operands[0], NULL)) &&
+        trace_state_operand_runtime_address(&state, candidate, 1U, &sink_address) &&
+        platform_facts_v2_is_runtime_address_sink(platform_kind, sink_address)) {
+      return 1;
+    }
+    trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+    state = next_state;
+    if (!candidate_has_normal_fallthrough(candidate) || candidate_has_control_target_local(candidate)) return 0;
+    if (candidate->byte_count == 0U || candidate->byte_count > UINT32_MAX - cursor) return 0;
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
 static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kAnalysisPolicy *policy,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
@@ -8586,6 +8662,11 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
             target_trace_state, max_cpu)) {
           allow_trace_variant = 1U;
         }
+        if (target_prefix_uses_trace_runtime_sink(decode, relocation_lookup, runtime_addresses, facts,
+            object->platform_backend_kind, accepted_start, accepted_bytes, item.section_index, target_offset,
+            target_trace_state, max_cpu)) {
+          allow_trace_variant = 1U;
+        }
         if (target_has_runtime) {
           if (enqueue_code_start_runtime(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
@@ -8635,7 +8716,8 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         uint8_t fallthrough_has_runtime = 0U;
         uint32_t fallthrough_runtime = 0U;
         uint8_t fallthrough_allow_trace_variant = item.allow_trace_variant &&
-          trace_state_can_drive_indirect_control(&next_trace_state);
+          (trace_state_can_drive_indirect_control(&next_trace_state) ||
+           trace_state_can_drive_runtime_sink(object->platform_backend_kind, &next_trace_state));
         uint8_t fallthrough_confidence = is_conditional_branch_or_dbcc(candidate->mnemonic_id)
           ? M68K_FACT_CONFIDENCE_TOOL_INFERRED : M68K_FACT_CONFIDENCE_SPECULATIVE;
         if (item.has_runtime_address && item.runtime_address <= UINT32_MAX - candidate->byte_count) {

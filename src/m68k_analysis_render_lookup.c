@@ -6067,6 +6067,10 @@ static uint32_t runtime_address_ref_data_class_flags(const M68kRenderLookup *loo
       fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF || fact->section_index >= decode->section_count) {
     return 0U;
   }
+  if (fact->has_sink_address) {
+    return platform_facts_v2_runtime_address_sink_data_class_flags(lookup->object->platform_backend_kind,
+      fact->sink_address);
+  }
   section = &decode->sections[fact->section_index];
   candidate = find_candidate_at_offset_local(section, fact->offset);
   if (candidate == NULL ||
@@ -6090,6 +6094,10 @@ static int runtime_address_ref_sink_address(const M68kDecodeIR *decode, const M6
   if (decode == NULL || fact == NULL || out_sink_address == NULL ||
       fact->kind != M68K_FACT_RUNTIME_ADDRESS_REF || fact->section_index >= decode->section_count) {
     return 0;
+  }
+  if (fact->has_sink_address) {
+    *out_sink_address = fact->sink_address;
+    return 1;
   }
   section = &decode->sections[fact->section_index];
   candidate = find_candidate_at_offset_local(section, fact->offset);

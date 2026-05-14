@@ -10346,11 +10346,17 @@ static int test_facts_v2_render_asm_source_inherits_hardware_base_into_local_hel
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
-  uint8_t bytes[18] = {
+  int saw_origin_ref = 0;
+  int saw_sink_ref = 0;
+  size_t ref_index;
+  uint8_t bytes[28] = {
+    0x61u, 0x00u, 0x00u, 0x0Eu,
     0x4Bu, 0xF9u, 0x00u, 0xDFu, 0xF0u, 0x00u,
     0x61u, 0x00u, 0x00u, 0x04u,
     0x4Eu, 0x75u,
+    0x20u, 0x7Cu, 0x00u, 0x07u, 0x7Du, 0x00u,
     0x2Bu, 0x48u, 0x00u, 0x50u,
     0x4Eu, 0x75u
   };
@@ -10365,13 +10371,31 @@ static int test_facts_v2_render_asm_source_inherits_hardware_base_into_local_hel
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "blitter_source_00077D00\tEQU\t$77D00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tlea.l _custom.l,a5\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l #blitter_source_00077D00,a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l a0,bltapt(a5)") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l a0,$0050(a5)\n") == NULL);
+  M68K_C_ASSERT_U32(2U, source_analysis.sections[0].runtime_address_ref_count);
+  for (ref_index = 0; ref_index < source_analysis.sections[0].runtime_address_ref_count; ++ref_index) {
+    const M68kRuntimeAddressRefIR *ref = &source_analysis.sections[0].runtime_address_refs[ref_index];
+    M68K_C_ASSERT_U32(0x77D00U, ref->runtime_address);
+    M68K_C_ASSERT_U32(1U, ref->has_sink_address);
+    M68K_C_ASSERT_U32(0xDFF050U, ref->sink_address);
+    M68K_C_ASSERT_STR("blitter_source", ref->data_class);
+    if (ref->offset == 16U && ref->operand_index == 0U) {
+      saw_origin_ref = 1;
+    } else if (ref->offset == 22U && ref->operand_index == UINT32_MAX) {
+      saw_sink_ref = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_origin_ref);
+  M68K_C_ASSERT(saw_sink_ref);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
