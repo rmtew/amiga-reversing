@@ -130,6 +130,16 @@ typedef struct AmigaDiskRawTrackSourceSpan {
     uint32_t byte_length;
 } AmigaDiskRawTrackSourceSpan;
 
+typedef enum AmigaDiskBootloaderDecodeInputSourceKind {
+    AMIGA_DISK_BOOTLOADER_DECODE_INPUT_SOURCE_NONE = 0,
+    AMIGA_DISK_BOOTLOADER_DECODE_INPUT_SOURCE_CUSTOM_TRACK_DMA_BUFFER = 1
+} AmigaDiskBootloaderDecodeInputSourceKind;
+
+typedef enum AmigaDiskBootloaderDecodeRequiredSourceKind {
+    AMIGA_DISK_BOOTLOADER_DECODE_REQUIRED_SOURCE_NONE = 0,
+    AMIGA_DISK_BOOTLOADER_DECODE_REQUIRED_SOURCE_RAW_CUSTOM_TRACK_BYTES = 1
+} AmigaDiskBootloaderDecodeRequiredSourceKind;
+
 typedef enum AmigaDiskBootloaderHardwareAccessKind {
     AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_READ = 1,
     AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE = 2
@@ -189,8 +199,8 @@ typedef struct AmigaDiskBootloaderDecodeRegion {
     uint32_t input_consumed_byte_offset;
     uint8_t has_input_consumed_byte_length;
     uint32_t input_consumed_byte_length;
-    char *input_source_kind;
-    char *input_required_source_kind;
+    uint8_t input_source_kind;
+    uint8_t input_required_source_kind;
     AmigaDiskRawTrackSourceSpan *input_source_candidate_spans;
     size_t input_source_candidate_span_count;
     size_t input_source_candidate_span_capacity;
@@ -277,6 +287,8 @@ struct AmigaDiskAnalysis {
 };
 
 const char *amiga_disk_format_kind_name(AmigaDiskFormatKind kind);
+const char *amiga_disk_bootloader_decode_input_source_kind_name(uint8_t kind);
+const char *amiga_disk_bootloader_decode_required_source_kind_name(uint8_t kind);
 int amiga_disk_analysis_create(AmigaDiskAnalysis *analysis);
 void amiga_disk_analysis_destroy(AmigaDiskAnalysis *analysis);
 int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, M68kDiagSink diagnostics);

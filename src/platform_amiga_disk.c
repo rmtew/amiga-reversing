@@ -95,6 +95,24 @@ const char *amiga_disk_format_kind_name(AmigaDiskFormatKind kind) {
     }
 }
 
+const char *amiga_disk_bootloader_decode_input_source_kind_name(uint8_t kind) {
+    switch (kind) {
+        case AMIGA_DISK_BOOTLOADER_DECODE_INPUT_SOURCE_CUSTOM_TRACK_DMA_BUFFER:
+            return "custom_track_dma_buffer";
+        default:
+            return NULL;
+    }
+}
+
+const char *amiga_disk_bootloader_decode_required_source_kind_name(uint8_t kind) {
+    switch (kind) {
+        case AMIGA_DISK_BOOTLOADER_DECODE_REQUIRED_SOURCE_RAW_CUSTOM_TRACK_BYTES:
+            return "raw_custom_track_bytes";
+        default:
+            return NULL;
+    }
+}
+
 static uint32_t read_u32be(const unsigned char *data, size_t offset) {
     return ((uint32_t)data[offset] << 24)
         | ((uint32_t)data[offset + 1U] << 16)
@@ -475,17 +493,14 @@ static int append_bootloader_decode_region(AmigaDiskAnalysis *analysis, AmigaDis
     region->instruction_addr = setup->instruction_addr;
     region->has_input_buffer_addr = setup->has_buffer_addr;
     region->input_buffer_addr = setup->buffer_addr;
-    region->input_source_kind = arena_strdup(analysis->arena, "custom_track_dma_buffer");
-    region->input_required_source_kind = arena_strdup(analysis->arena, "raw_custom_track_bytes");
+    region->input_source_kind = AMIGA_DISK_BOOTLOADER_DECODE_INPUT_SOURCE_CUSTOM_TRACK_DMA_BUFFER;
+    region->input_required_source_kind = AMIGA_DISK_BOOTLOADER_DECODE_REQUIRED_SOURCE_RAW_CUSTOM_TRACK_BYTES;
     region->has_input_required_byte_length = setup->has_dsklen_dma_byte_length;
     region->input_required_byte_length = setup->dsklen_dma_byte_length;
     region->input_materializable = 1U;
     region->input_missing_reason = arena_strdup(analysis->arena, "custom_track_decode_mapping_unresolved");
     region->write_loop_addr = setup->has_buffer_scan_addr ? setup->buffer_scan_addr : setup->instruction_addr;
-    if (region->input_source_kind == NULL || region->input_required_source_kind == NULL ||
-        region->input_missing_reason == NULL) {
-        return -1;
-    }
+    if (region->input_missing_reason == NULL) return -1;
     if (append_decode_region_span(analysis, region, span->start_track, span->end_track, span->start_byte_offset,
             span->byte_length) != 0) {
         return -1;

@@ -815,6 +815,10 @@ static int append_bootloader_decode_regions_json(JsonBuilder *builder, const Ami
     if (json_builder_append(builder, ",\"decode_regions\":[") != 0) return -1;
     for (region_index = 0; region_index < stage->decode_region_count; ++region_index) {
         const AmigaDiskBootloaderDecodeRegion *region = &stage->decode_regions[region_index];
+        const char *input_source_kind_name =
+            amiga_disk_bootloader_decode_input_source_kind_name(region->input_source_kind);
+        const char *input_required_source_kind_name =
+            amiga_disk_bootloader_decode_required_source_kind_name(region->input_required_source_kind);
         size_t span_index;
         if (region_index != 0U && json_builder_append(builder, ",") != 0) return -1;
         if (json_builder_appendf(builder, "{\"instruction_addr\":%u,\"input_buffer_addr\":",
@@ -831,9 +835,12 @@ static int append_bootloader_decode_regions_json(JsonBuilder *builder, const Ami
             return -1;
         if (json_builder_append(builder, ",\"checksum_gate_addr\":null,\"checksum_gate_kind\":null") != 0) return -1;
         if (json_builder_append(builder, ",\"input_source_kind\":") != 0) return -1;
-        if (json_builder_append_json_string(builder, region->input_source_kind) != 0) return -1;
+        if (json_builder_append_json_string(builder, input_source_kind_name != NULL ? input_source_kind_name : "") != 0)
+            return -1;
         if (json_builder_append(builder, ",\"input_required_source_kind\":") != 0) return -1;
-        if (json_builder_append_json_string(builder, region->input_required_source_kind) != 0) return -1;
+        if (json_builder_append_json_string(builder,
+                input_required_source_kind_name != NULL ? input_required_source_kind_name : "") != 0)
+            return -1;
         if (json_builder_append(builder, ",\"input_source_candidates\":[],\"input_source_candidate_spans\":[") != 0)
             return -1;
         for (span_index = 0; span_index < region->input_source_candidate_span_count; ++span_index) {
