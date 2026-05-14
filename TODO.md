@@ -5,18 +5,6 @@
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
 - Pandora observed improvement possibilities (target: `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`):
-  - App slot bugs:
-    ```
-
-    app_07EE    RS.W    1
-    app_SIZEOF  EQU     __RS
-                RSSET   $028
-    app_0287    RS.B    1
-                RSSET   $07EF
-    app_07EF    RS.B    1
-    ```
-    - Despite having a full range above, two entries leak out and are separated. These clearly need to be reconciled
-      as either false positives or perhaps more likely placed within the one main app slot range.
   - Amiga platform custom register propagation failure:
     ```
     04cc 3b7c86400096   move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_BLITTER,dmacon(a5)

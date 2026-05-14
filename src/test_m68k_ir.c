@@ -13688,9 +13688,9 @@ static int test_facts_v2_render_asm_source_keeps_app_slot_aliases_in_rs_region(v
   M68K_C_ASSERT(alias_line != NULL);
   M68K_C_ASSERT(section_line != NULL);
   M68K_C_ASSERT(rsset_line < slot_line);
-  M68K_C_ASSERT(slot_line < app_sizeof_line);
-  M68K_C_ASSERT(app_sizeof_line < alias_rsset_line);
+  M68K_C_ASSERT(slot_line < alias_rsset_line);
   M68K_C_ASSERT(alias_rsset_line < alias_line);
+  M68K_C_ASSERT(alias_line < app_sizeof_line);
   M68K_C_ASSERT(alias_line < section_line);
   M68K_C_ASSERT(strstr(source, "app_0001 EQU $0001\n") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l app_0000(a4),d0\n") != NULL);

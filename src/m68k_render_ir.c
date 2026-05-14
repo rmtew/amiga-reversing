@@ -6219,6 +6219,19 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
   return 0;
 }
 
+static void render_app_rs_format_slot_directive(const M68kRenderAppRsSlot *slot, char *line, size_t line_size) {
+  if (slot == NULL || line == NULL || line_size == 0U) return;
+  if (slot->size == 4) {
+    snprintf(line, line_size, "%s RS.L 1\n", slot->name);
+  } else if (slot->size == 2 && (slot->displacement & 1) == 0) {
+    snprintf(line, line_size, "%s RS.W 1\n", slot->name);
+  } else if (slot->size == 1) {
+    snprintf(line, line_size, "%s RS.B 1\n", slot->name);
+  } else {
+    snprintf(line, line_size, "%s RS.B %d\n", slot->name, (int)slot->size);
+  }
+}
+
 static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     int32_t *out_value) {
   const M68kAnalysisPolicy *policy;
@@ -6416,6 +6429,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
   for (index = 0U; index < layout_count; ++index) {
     const M68kRenderAppRsLayout *layout = &layouts[index];
     size_t slot_index;
+    int emitted_alias = 0;
     if (layout->uses_lib_size != 0U) {
       if (!render_asm_include_for_amiga_symbol(preview, "LIB_SIZE")) {
         ++preview->asm_source_instruction_render_failures;
@@ -6438,20 +6452,32 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       }
       if (slot->alias != 0U) {
         continue;
-      } else if (slot->size == 4) {
-        snprintf(line, sizeof(line), "%s RS.L 1\n", slot->name);
-        cursor += 4;
-      } else if (slot->size == 1) {
-        snprintf(line, sizeof(line), "%s RS.B 1\n", slot->name);
-        cursor += 1;
-      } else if (slot->size == 2 && (cursor & 1) == 0) {
-        snprintf(line, sizeof(line), "%s RS.W 1\n", slot->name);
-        cursor += 2;
       } else {
-        snprintf(line, sizeof(line), "%s RS.B %d\n", slot->name, (int)slot->size);
+        render_app_rs_format_slot_directive(slot, line, sizeof(line));
         cursor += slot->size;
       }
       hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+    }
+    for (slot_index = layout->start_index; slot_index < layout->end_index; ++slot_index) {
+      const M68kRenderAppRsSlot *slot = &slots[slot_index];
+      if (slot->alias == 0U) continue;
+      snprintf(line, sizeof(line), "    RSSET $%04X\n",
+        (unsigned)((uint32_t)slot->displacement & 0xFFFFU));
+      hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+      render_app_rs_format_slot_directive(slot, line, sizeof(line));
+      hash_asm_text(preview, line);
+      ++preview->asm_source_lines;
+      emitted_alias = 1;
+    }
+    if (emitted_alias) {
+      if (layout->uses_lib_size != 0U && cursor == layout->base_offset) {
+        hash_asm_text(preview, "    RSSET LIB_SIZE\n");
+      } else {
+        snprintf(line, sizeof(line), "    RSSET $%04X\n", (unsigned)((uint32_t)cursor & 0xFFFFU));
+        hash_asm_text(preview, line);
+      }
       ++preview->asm_source_lines;
     }
     if (layout->sizeof_value > cursor) {
@@ -6462,25 +6488,6 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     snprintf(line, sizeof(line), "%s EQU __RS\n", layout->sizeof_symbol);
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
-    for (slot_index = layout->start_index; slot_index < layout->end_index; ++slot_index) {
-      const M68kRenderAppRsSlot *slot = &slots[slot_index];
-      if (slot->alias == 0U) continue;
-      snprintf(line, sizeof(line), "    RSSET $%04X\n",
-        (unsigned)((uint32_t)slot->displacement & 0xFFFFU));
-      hash_asm_text(preview, line);
-      ++preview->asm_source_lines;
-      if (slot->size == 4) {
-        snprintf(line, sizeof(line), "%s RS.L 1\n", slot->name);
-      } else if (slot->size == 2) {
-        snprintf(line, sizeof(line), "%s RS.W 1\n", slot->name);
-      } else if (slot->size == 1) {
-        snprintf(line, sizeof(line), "%s RS.B 1\n", slot->name);
-      } else {
-        snprintf(line, sizeof(line), "%s RS.B %d\n", slot->name, (int)slot->size);
-      }
-      hash_asm_text(preview, line);
-      ++preview->asm_source_lines;
-    }
     hash_asm_text(preview, "\n");
   }
   if (render_app_rs_append_layout_facts(source_analysis, slots, slot_count) != 0) {
