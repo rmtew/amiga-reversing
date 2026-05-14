@@ -1,9 +1,9 @@
 #include "m68k_source_data.h"
 #include "m68k_parse_util.h"
 #include "m68k_source_text_util.h"
+#include "util_arena.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int data_item_text_is_quoted(const char *text) {
@@ -19,7 +19,8 @@ static int parse_data_item_text_local(const char *text, AsmDataItem *out_item) {
   if (data_item_text_is_quoted(text)) {
     out_item->kind = ASM_DATA_ITEM_STRING;
     out_item->byte_count = length - 2U;
-    out_item->bytes = (uint8_t *)malloc(out_item->byte_count == 0U ? 1U : out_item->byte_count);
+    out_item->bytes = (uint8_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+      out_item->byte_count == 0U ? 1U : out_item->byte_count);
     if (out_item->bytes == NULL) return 0;
     if (out_item->byte_count != 0U) memcpy(out_item->bytes, text + 1, out_item->byte_count);
     return 1;
@@ -52,17 +53,17 @@ int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourc
   M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
   if (!data_directive.ok || data_directive.is_repeat != 0U) return 0;
   out_data->width_bytes = data_directive.width_bytes;
-  buffer = (char *)malloc(strlen(rest) + 1U);
+  buffer = (char *)m68k_allocator_alloc(m68k_allocator_heap(), strlen(rest) + 1U);
   if (buffer == NULL) return 0;
-  byte_buffer = (uint8_t *)malloc(strlen(rest) + 1U);
+  byte_buffer = (uint8_t *)m68k_allocator_alloc(m68k_allocator_heap(), strlen(rest) + 1U);
   if (byte_buffer == NULL) {
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
   strcpy(buffer, rest);
   if (!m68k_split_operands_in_place(buffer, items, 64U, &count)) {
-    free(byte_buffer);
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
   for (index = 0; index < count; ++index) {
@@ -77,8 +78,8 @@ int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourc
       }
     }
     if (!parse_data_item_text_local(item_text, &item)) {
-      free(byte_buffer);
-      free(buffer);
+      m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+      m68k_allocator_free(m68k_allocator_heap(), buffer);
       return 0;
     }
     if (data_directive.width_bytes == 1U && item.kind == ASM_DATA_ITEM_STRING) {
@@ -86,33 +87,33 @@ int m68k_source_parse_data_statement(const char *directive, char *rest, AsmSourc
         memcpy(byte_buffer + byte_count, item.bytes, item.byte_count);
         byte_count += item.byte_count;
       }
-      free(item.bytes);
+      m68k_allocator_free(m68k_allocator_heap(), item.bytes);
       continue;
     }
     if (byte_count != 0U) {
       if (!append_byte_data_item(out_data, byte_buffer, byte_count, context)) {
-        free(item.bytes);
-        free(byte_buffer);
-        free(buffer);
+        m68k_allocator_free(m68k_allocator_heap(), item.bytes);
+        m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+        m68k_allocator_free(m68k_allocator_heap(), buffer);
         return 0;
       }
       byte_count = 0U;
     }
     if (!context->append_item(out_data, &item, context->user_data)) {
-      free(item.bytes);
-      free(byte_buffer);
-      free(buffer);
+      m68k_allocator_free(m68k_allocator_heap(), item.bytes);
+      m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+      m68k_allocator_free(m68k_allocator_heap(), buffer);
       return 0;
     }
-    free(item.bytes);
+    m68k_allocator_free(m68k_allocator_heap(), item.bytes);
   }
   if (byte_count != 0U && !append_byte_data_item(out_data, byte_buffer, byte_count, context)) {
-    free(byte_buffer);
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
-  free(byte_buffer);
-  free(buffer);
+  m68k_allocator_free(m68k_allocator_heap(), byte_buffer);
+  m68k_allocator_free(m68k_allocator_heap(), buffer);
   return 1;
 }
 
@@ -127,31 +128,31 @@ int m68k_source_parse_dcb_statement(const char *directive, char *rest, AsmSource
   M68kParseDataDirectiveResult data_directive = m68k_parse_data_directive_token(m68k_parse_source_directive_token(directive));
   if (!data_directive.ok || data_directive.is_repeat == 0U) return 0;
   out_data->width_bytes = data_directive.width_bytes;
-  buffer = (char *)malloc(strlen(rest) + 1U);
+  buffer = (char *)m68k_allocator_alloc(m68k_allocator_heap(), strlen(rest) + 1U);
   if (buffer == NULL) return 0;
   strcpy(buffer, rest);
   count = m68k_split_delimited_in_place(buffer, ',', parts, sizeof(parts) / sizeof(parts[0]));
   if (count != 1U && count != 2U) {
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
   repeat_result = context->parse_constant(m68k_trim_in_place(parts[0]), context->user_data);
   if (!repeat_result.ok) {
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
   repeat_count = repeat_result.value;
   if (!parse_data_item_text_local(count == 2U ? m68k_trim_in_place(parts[1]) : "0", &item)) {
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
   item.repeat_count = repeat_count;
   if (!context->append_item(out_data, &item, context->user_data)) {
-    free(item.bytes);
-    free(buffer);
+    m68k_allocator_free(m68k_allocator_heap(), item.bytes);
+    m68k_allocator_free(m68k_allocator_heap(), buffer);
     return 0;
   }
-  free(item.bytes);
-  free(buffer);
+  m68k_allocator_free(m68k_allocator_heap(), item.bytes);
+  m68k_allocator_free(m68k_allocator_heap(), buffer);
   return 1;
 }
