@@ -114,10 +114,30 @@ static int copy_policy_text(char *dest, size_t dest_size, const char *source) {
   return 1;
 }
 
+typedef struct TextU8Map {
+  const char *name;
+  uint8_t id;
+} TextU8Map;
+
+static uint8_t text_u8_id_from_map_local(const TextU8Map *entries, size_t entry_count, const char *name,
+    uint8_t default_id) {
+  size_t index;
+  if (name == NULL || name[0] == '\0') return default_id;
+  for (index = 0U; index < entry_count; ++index) {
+    if (strcmp(name, entries[index].name) == 0) return entries[index].id;
+  }
+  return default_id;
+}
+
+static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
+  { "library_base", M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE },
+  { "struct_ptr", M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR },
+};
+
 static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
-  if (kind != NULL && strcmp(kind, "library_base") == 0) return M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
-  if (kind != NULL && strcmp(kind, "struct_ptr") == 0) return M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  return M68K_ANALYSIS_REGISTER_SEED_NONE;
+  return text_u8_id_from_map_local(ANALYSIS_REGISTER_SEED_KIND_NAMES,
+    sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES) / sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES[0]), kind,
+    M68K_ANALYSIS_REGISTER_SEED_NONE);
 }
 
 enum {
@@ -127,11 +147,16 @@ enum {
   METADATA_TARGET_TYPE_NON_PROGRAM = 3U
 };
 
+static const TextU8Map METADATA_TARGET_TYPE_NAMES[] = {
+  { "program", METADATA_TARGET_TYPE_PROGRAM },
+  { "bootblock", METADATA_TARGET_TYPE_BOOTBLOCK },
+};
+
 static uint8_t metadata_target_type_id_from_text_local(const char *target_type) {
   if (target_type == NULL || target_type[0] == '\0') return METADATA_TARGET_TYPE_UNKNOWN;
-  if (strcmp(target_type, "program") == 0) return METADATA_TARGET_TYPE_PROGRAM;
-  if (strcmp(target_type, "bootblock") == 0) return METADATA_TARGET_TYPE_BOOTBLOCK;
-  return METADATA_TARGET_TYPE_NON_PROGRAM;
+  return text_u8_id_from_map_local(METADATA_TARGET_TYPE_NAMES,
+    sizeof(METADATA_TARGET_TYPE_NAMES) / sizeof(METADATA_TARGET_TYPE_NAMES[0]), target_type,
+    METADATA_TARGET_TYPE_NON_PROGRAM);
 }
 
 static int metadata_target_type_disables_implicit_entries_local(uint8_t target_type_id) {
@@ -524,13 +549,15 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
 }
 
 static uint8_t rsset_layout_region_storage_kind_id_from_text_local(const char *storage_kind) {
-  if (storage_kind == NULL || storage_kind[0] == '\0') return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN;
-  if (strcmp(storage_kind, "struct_instance") == 0 ||
-      strcmp(storage_kind, "struct") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE;
-  if (strcmp(storage_kind, "struct_pointer") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER;
-  if (strcmp(storage_kind, "pointer") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER;
-  if (strcmp(storage_kind, "scalar") == 0) return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR;
-  return M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN;
+  static const TextU8Map storage_kind_names[] = {
+    { "struct_instance", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE },
+    { "struct", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE },
+    { "struct_pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER },
+    { "pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER },
+    { "scalar", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR },
+  };
+  return text_u8_id_from_map_local(storage_kind_names, sizeof(storage_kind_names) / sizeof(storage_kind_names[0]),
+    storage_kind, M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN);
 }
 
 static const char *rsset_layout_region_storage_kind_name_local(uint8_t storage_kind_id) {
