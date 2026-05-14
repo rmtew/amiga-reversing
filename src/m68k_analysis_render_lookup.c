@@ -10151,19 +10151,29 @@ static void update_open_library_store_scan_a6_state(const M68kDecodeCandidate *c
   }
 }
 
-static int open_library_store_scan_enqueue(uint32_t *queue_offsets, uint8_t *queue_a6_is_exec, size_t *queue_count,
-    const uint32_t *visited_offsets, const uint8_t *visited_a6_is_exec, size_t visited_count, uint32_t offset,
+static int open_library_store_scan_enqueue(uint32_t *queue_offsets, uint64_t *queue_a6_is_exec, size_t *queue_count,
+    const uint32_t *visited_offsets, uint64_t visited_a6_is_exec, size_t visited_count, uint32_t offset,
     int a6_is_exec) {
   size_t index;
   if (queue_offsets == NULL || queue_a6_is_exec == NULL || queue_count == NULL ||
-      visited_offsets == NULL || visited_a6_is_exec == NULL) return 0;
+      visited_offsets == NULL) return 0;
   for (index = 0U; index < visited_count; ++index)
-    if (visited_offsets[index] == offset && visited_a6_is_exec[index] == (uint8_t)(a6_is_exec != 0)) return 0;
+    if (visited_offsets[index] == offset &&
+        m68k_bitset_u64_has(visited_a6_is_exec, (uint8_t)index) == (a6_is_exec != 0)) {
+      return 0;
+    }
   for (index = 0U; index < *queue_count; ++index)
-    if (queue_offsets[index] == offset && queue_a6_is_exec[index] == (uint8_t)(a6_is_exec != 0)) return 0;
+    if (queue_offsets[index] == offset &&
+        m68k_bitset_u64_has(*queue_a6_is_exec, (uint8_t)index) == (a6_is_exec != 0)) {
+      return 0;
+    }
   if (*queue_count >= 64U) return 0;
   queue_offsets[*queue_count] = offset;
-  queue_a6_is_exec[*queue_count] = (uint8_t)(a6_is_exec != 0);
+  if (a6_is_exec) {
+    m68k_bitset_u64_set(queue_a6_is_exec, (uint8_t)*queue_count);
+  } else {
+    m68k_bitset_u64_clear(queue_a6_is_exec, (uint8_t)*queue_count);
+  }
   ++(*queue_count);
   return 1;
 }
@@ -10173,26 +10183,30 @@ static int render_lookup_add_open_library_result_app_base_slots(M68kRenderLookup
     const char *library_name) {
   uint32_t queue_offsets[64];
   uint32_t visited_offsets[64];
-  uint8_t queue_a6_is_exec[64];
-  uint8_t visited_a6_is_exec[64];
+  uint64_t queue_a6_is_exec = 0U;
+  uint64_t visited_a6_is_exec = 0U;
   size_t queue_head = 0U;
   size_t queue_count = 0U;
   size_t visited_count = 0U;
   int result = 0;
   if (lookup == NULL || section == NULL || accepted_start == NULL ||
       library_name == NULL || library_name[0] == '\0') return 0;
-  open_library_store_scan_enqueue(queue_offsets, queue_a6_is_exec, &queue_count,
+  open_library_store_scan_enqueue(queue_offsets, &queue_a6_is_exec, &queue_count,
     visited_offsets, visited_a6_is_exec, visited_count, start_offset, 1);
   while (queue_head < queue_count && visited_count < sizeof(visited_offsets) / sizeof(visited_offsets[0])) {
     uint32_t offset = queue_offsets[queue_head];
-    int a6_is_exec = queue_a6_is_exec[queue_head] != 0U;
+    int a6_is_exec = m68k_bitset_u64_has(queue_a6_is_exec, (uint8_t)queue_head);
     const M68kDecodeCandidate *candidate;
     int16_t displacement = 0;
     size_t target_index;
     int next_a6_is_exec;
     ++queue_head;
     visited_offsets[visited_count] = offset;
-    visited_a6_is_exec[visited_count] = (uint8_t)(a6_is_exec != 0);
+    if (a6_is_exec) {
+      m68k_bitset_u64_set(&visited_a6_is_exec, (uint8_t)visited_count);
+    } else {
+      m68k_bitset_u64_clear(&visited_a6_is_exec, (uint8_t)visited_count);
+    }
     ++visited_count;
     if (!accepted_start_at(section, accepted_start, offset)) continue;
     candidate = find_candidate_at_offset_local(section, offset);
@@ -10210,11 +10224,11 @@ static int render_lookup_add_open_library_result_app_base_slots(M68kRenderLookup
     for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
       const M68kDecodeTarget *target = &candidate->targets[target_index];
       if (target->has_section == 0U || target->section_index != section->section_index) continue;
-      open_library_store_scan_enqueue(queue_offsets, queue_a6_is_exec, &queue_count,
+      open_library_store_scan_enqueue(queue_offsets, &queue_a6_is_exec, &queue_count,
         visited_offsets, visited_a6_is_exec, visited_count, target->offset, next_a6_is_exec);
     }
     if (candidate_has_open_library_store_scan_fallthrough(candidate)) {
-      open_library_store_scan_enqueue(queue_offsets, queue_a6_is_exec, &queue_count,
+      open_library_store_scan_enqueue(queue_offsets, &queue_a6_is_exec, &queue_count,
         visited_offsets, visited_a6_is_exec, visited_count, candidate->offset + candidate->byte_count,
         next_a6_is_exec);
     }

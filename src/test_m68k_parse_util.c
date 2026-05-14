@@ -69,6 +69,22 @@ static int test_bitset_u32_helpers(void) {
   return 0;
 }
 
+static int test_bitset_u64_helpers(void) {
+  uint64_t bits = 0U;
+  M68K_C_ASSERT_INT(0, m68k_bitset_u64_has(bits, 3U));
+  m68k_bitset_u64_set(&bits, 3U);
+  m68k_bitset_u64_set(&bits, 63U);
+  M68K_C_ASSERT_INT(1, m68k_bitset_u64_has(bits, 3U));
+  M68K_C_ASSERT_INT(1, m68k_bitset_u64_has(bits, 63U));
+  m68k_bitset_u64_clear(&bits, 3U);
+  M68K_C_ASSERT_INT(0, m68k_bitset_u64_has(bits, 3U));
+  M68K_C_ASSERT_INT(1, m68k_bitset_u64_has(bits, 63U));
+  m68k_bitset_u64_set(&bits, 64U);
+  M68K_C_ASSERT_INT(0, m68k_bitset_u64_has(bits, 64U));
+  M68K_C_ASSERT(bits == (1ULL << 63U));
+  return 0;
+}
+
 static int test_parse_section_spec(void) {
   M68kSectionKind kind = M68K_SECTION_BSS;
   uint8_t mem_type = 0U;
@@ -279,6 +295,7 @@ int m68k_c_parse_util_tests(void) {
     {"sign_extend32", test_sign_extend32},
     {"popcount16", test_popcount16},
     {"bitset_u32_helpers", test_bitset_u32_helpers},
+    {"bitset_u64_helpers", test_bitset_u64_helpers},
     {"parse_number_u32", test_parse_number_u32},
     {"parse_cpu_name", test_parse_cpu_name},
     {"parse_section_spec", test_parse_section_spec},
