@@ -22,6 +22,7 @@ for module_name in (
     "amiga_reversing.tools.benchmark_target",
     "amiga_reversing.tools.genam_roundtrip",
     "amiga_reversing.tools.import_adf",
+    "amiga_reversing.tools.vasm_roundtrip",
     "amiga_reversing.tools.validate_target_seeded_metadata",
 ):
     importlib.import_module(module_name)

@@ -21,6 +21,7 @@ amiga-genam-roundtrip = "amiga_reversing.tools.genam_roundtrip:main"
 amiga-gen-disasm = "amiga_reversing.tools.gen_disasm:main"
 amiga-import-adf = "amiga_reversing.tools.import_adf:main"
 amiga-precommit = "amiga_reversing.tools.precommit:main"
+amiga-vasm-roundtrip = "amiga_reversing.tools.vasm_roundtrip:main"
 amiga-validate-target-seeded-metadata = "amiga_reversing.tools.validate_target_seeded_metadata:main"
 
 [dependency-groups]

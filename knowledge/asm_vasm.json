@@ -12,6 +12,7 @@
     "usage": "vasmm68k_mot [options] <source>",
     "output_formats": {
       "amiga_hunk": "-Fhunk",
+      "amiga_hunk_executable": "-Fhunkexe",
       "raw_binary": "-Fbin",
       "elf": "-Felf",
       "test_output": "-Ftest",
@@ -23,6 +24,8 @@
     "cpu_select": "-m68000",
     "no_optimization": "-no-opt",
     "quiet": "-quiet",
+    "no_symbols": "-nosym",
+    "kick1_hunks": "-kick1hunks",
     "output_file": "-o <filename>",
     "case_insensitive": "-nocase",
     "include_path": "-I<path>"

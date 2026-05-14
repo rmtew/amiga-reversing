@@ -10,15 +10,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
       example of this. We should be able to use `WinUAE` (providing configuration on disk and on command-line and so on)
       and drive sessions from the command-line to take advantage of a) ability to run a target in a realistic setting
       b) to use the debugger to analyse memory and other state c) direct execution using breakpoint and more.
-- Assembler correctness:
-  - We used to have the ability to specify what assembler to render for. This might have been removed. However if we
-    do any of the assembler correctness tasks that follow this entry we might want to bring it back.
-  - We used to use `vasm` for binaries but `Genam` for instance failed the binary exactness requirement because one of
-    the instructions (perhaps previously disassembled from `70ff4e75` preceding `h0_063E`?) used a byte constant but
-    encoded the full word. In theory correct in the reproduction sense, but not correct in the precise sense of what is
-    used. It would be good to use `vasm` for the roundtrip assembly again and try to do exact builds with that again to
-    guard against our disassembler/IR/assembler looping on our system-wide misinterpretations.
-  - We also have `Genam` accessible via `uv tool vamos` in theory. We should also be able to do a pass through that.    
 - Codebase auditing/global refactoring:
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
