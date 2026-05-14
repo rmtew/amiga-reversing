@@ -2,6 +2,7 @@
 #include "platform_atari_st.h"
 #include "platform_binary_io.h"
 #include "platform_common.h"
+#include "util_arena.h"
 #include "generated/atari_st_prg_file_runtime.h"
 
 #include <inttypes.h>
@@ -356,6 +357,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
     const AtariStPrgPlatformData *platform_data = (const AtariStPrgPlatformData *)object->platform_data;
     uint32_t *offsets = NULL;
     size_t offset_count = 0;
+    size_t offset_capacity = 0;
     size_t i;
     uint32_t previous = 0;
     for (i = 0; i < object->fixup_count; ++i) {
@@ -364,7 +366,7 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         if (fixup->section_index != text_index && fixup->section_index != data_index) continue;
         if (validate_writable_fixup(fixup, text_index, text_size, data_index, data_size, &image_offset) != 0) {
             if (atari_fixup_is_ignorable_local_encoding(fixup)) continue;
-            free(offsets);
+            m68k_allocator_free(m68k_allocator_heap(), offsets);
             m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
                 "Atari ST writer supports only TEXT/DATA absolute 32-bit fixups (section=%" PRIuPTR
                 " offset=%" PRIu32 " kind=%u width=%u has_target=%d has_symbol=%d)",
@@ -372,15 +374,38 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
                 fixup->has_target_section, fixup->has_symbol);
             return -1;
         }
-        offsets = (uint32_t *)realloc(offsets, (offset_count + 1U) * sizeof(*offsets));
-        if (offsets == NULL) {
-            platform_file_diag_error(diagnostics, "Out of memory");
-            return -1;
+        if (offset_count == offset_capacity) {
+            size_t next_capacity;
+            uint32_t *next_offsets;
+            if (offset_capacity == 0U) {
+                next_capacity = 16U;
+            } else {
+                if (offset_capacity > ((size_t)-1) / 2U) {
+                    m68k_allocator_free(m68k_allocator_heap(), offsets);
+                    platform_file_diag_error(diagnostics, "Out of memory");
+                    return -1;
+                }
+                next_capacity = offset_capacity * 2U;
+            }
+            if (next_capacity > ((size_t)-1) / sizeof(*offsets)) {
+                m68k_allocator_free(m68k_allocator_heap(), offsets);
+                platform_file_diag_error(diagnostics, "Out of memory");
+                return -1;
+            }
+            next_offsets = (uint32_t *)m68k_allocator_realloc_copy(m68k_allocator_heap(), offsets,
+                offset_capacity * sizeof(*offsets), next_capacity * sizeof(*offsets));
+            if (next_offsets == NULL) {
+                m68k_allocator_free(m68k_allocator_heap(), offsets);
+                platform_file_diag_error(diagnostics, "Out of memory");
+                return -1;
+            }
+            offsets = next_offsets;
+            offset_capacity = next_capacity;
         }
         offsets[offset_count++] = image_offset;
     }
     if (offset_count == 0U) {
-        free(offsets);
+        m68k_allocator_free(m68k_allocator_heap(), offsets);
         if (platform_data != NULL && platform_data->relocation_stream_size != 0U &&
             platform_data->relocation_stream_data != NULL) {
             return m68k_writer_bytes(writer, platform_data->relocation_stream_data,
@@ -391,13 +416,13 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
     if (platform_data != NULL &&
         platform_data->relocation_terminator_kind == M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF &&
         platform_data->relocation_stream_size != 0U && platform_data->relocation_stream_data != NULL) {
-        free(offsets);
+        m68k_allocator_free(m68k_allocator_heap(), offsets);
         return m68k_writer_bytes(writer, platform_data->relocation_stream_data,
             platform_data->relocation_stream_size);
     }
     qsort(offsets, offset_count, sizeof(*offsets), compare_u32);
     if (m68k_writer_u32be(writer, offsets[0]) != 0) {
-        free(offsets);
+        m68k_allocator_free(m68k_allocator_heap(), offsets);
         return -1;
     }
     previous = offsets[0];
@@ -405,23 +430,23 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         uint32_t delta = offsets[i] - previous;
         while (delta > 254U) {
             if (m68k_writer_u8(writer, 1U) != 0) {
-                free(offsets);
+                m68k_allocator_free(m68k_allocator_heap(), offsets);
                 return -1;
             }
             delta -= 254U;
         }
         if (delta == 0U) {
-            free(offsets);
+            m68k_allocator_free(m68k_allocator_heap(), offsets);
             platform_file_diag_error(diagnostics, "Atari ST writer does not support duplicate relocation offsets");
             return -1;
         }
         if (m68k_writer_u8(writer, (unsigned char)delta) != 0) {
-            free(offsets);
+            m68k_allocator_free(m68k_allocator_heap(), offsets);
             return -1;
         }
         previous = offsets[i];
     }
-    free(offsets);
+    m68k_allocator_free(m68k_allocator_heap(), offsets);
     return m68k_writer_u8(writer, 0U);
 }
 
