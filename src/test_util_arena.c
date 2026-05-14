@@ -22,21 +22,6 @@ typedef struct TestVirtualReservedArena {
   size_t commit_count;
 } TestVirtualReservedArena;
 
-typedef struct TestPoolFreeNode {
-  struct TestPoolFreeNode *next;
-} TestPoolFreeNode;
-
-typedef struct TestGrowablePool {
-  Arena *arena;
-  TestPoolFreeNode *free_list;
-  size_t object_size;
-  size_t objects_per_chunk;
-  size_t chunks;
-  size_t allocated_slots;
-  size_t live_slots;
-  size_t peak_live_slots;
-} TestGrowablePool;
-
 typedef struct TestPoolNode {
   uint32_t left;
   uint32_t right;
@@ -91,51 +76,6 @@ static void *test_virtual_arena_alloc(TestVirtualReservedArena *arena, size_t si
 
 static void test_virtual_arena_reset(TestVirtualReservedArena *arena) {
   if (arena != NULL) arena->used = 0U;
-}
-
-static void test_pool_init(TestGrowablePool *pool, Arena *arena, size_t object_size, size_t objects_per_chunk) {
-  memset(pool, 0, sizeof(*pool));
-  pool->arena = arena;
-  pool->object_size = test_align_up(object_size, sizeof(void *));
-  if (pool->object_size < sizeof(TestPoolFreeNode)) pool->object_size = sizeof(TestPoolFreeNode);
-  pool->objects_per_chunk = objects_per_chunk;
-}
-
-static int test_pool_grow(TestGrowablePool *pool) {
-  unsigned char *chunk;
-  size_t i;
-  if (pool == NULL || pool->arena == NULL || pool->object_size == 0U || pool->objects_per_chunk == 0U) return 0;
-  if (pool->objects_per_chunk > ((size_t)-1) / pool->object_size) return 0;
-  chunk = (unsigned char *)arena_alloc(pool->arena, pool->object_size * pool->objects_per_chunk);
-  if (chunk == NULL) return 0;
-  for (i = 0U; i < pool->objects_per_chunk; ++i) {
-    TestPoolFreeNode *node = (TestPoolFreeNode *)(chunk + (i * pool->object_size));
-    node->next = pool->free_list;
-    pool->free_list = node;
-  }
-  pool->chunks += 1U;
-  pool->allocated_slots += pool->objects_per_chunk;
-  return 1;
-}
-
-static void *test_pool_alloc(TestGrowablePool *pool) {
-  TestPoolFreeNode *node;
-  if (pool == NULL) return NULL;
-  if (pool->free_list == NULL && !test_pool_grow(pool)) return NULL;
-  node = pool->free_list;
-  pool->free_list = node->next;
-  pool->live_slots += 1U;
-  if (pool->live_slots > pool->peak_live_slots) pool->peak_live_slots = pool->live_slots;
-  return node;
-}
-
-static void test_pool_free(TestGrowablePool *pool, void *ptr) {
-  TestPoolFreeNode *node;
-  if (pool == NULL || ptr == NULL || pool->live_slots == 0U) return;
-  node = (TestPoolFreeNode *)ptr;
-  node->next = pool->free_list;
-  pool->free_list = node;
-  pool->live_slots -= 1U;
 }
 
 static int test_builder_appends_and_flattens_growth(void) {
@@ -249,15 +189,16 @@ static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
 static int test_growable_pool_reuses_fixed_size_nodes(void) {
   Arena *plain_arena = arena_create(64U);
   Arena *pool_arena = arena_create(64U);
-  TestGrowablePool pool;
+  ArenaPool pool;
+  ArenaPoolStats pool_stats;
   TestPoolNode *nodes[16];
   ArenaStats plain_stats;
-  ArenaStats pool_stats;
+  ArenaStats pool_arena_stats;
   size_t round;
   size_t i;
   M68K_C_ASSERT(plain_arena != NULL);
   M68K_C_ASSERT(pool_arena != NULL);
-  test_pool_init(&pool, pool_arena, sizeof(TestPoolNode), 16U);
+  M68K_C_ASSERT_INT(1, arena_pool_init(&pool, pool_arena, sizeof(TestPoolNode), 16U));
   for (round = 0U; round < 3U; ++round) {
     for (i = 0U; i < 16U; ++i) {
       TestPoolNode *node = (TestPoolNode *)arena_alloc(plain_arena, sizeof(TestPoolNode));
@@ -267,23 +208,38 @@ static int test_growable_pool_reuses_fixed_size_nodes(void) {
   }
   for (round = 0U; round < 3U; ++round) {
     for (i = 0U; i < 16U; ++i) {
-      nodes[i] = (TestPoolNode *)test_pool_alloc(&pool);
+      nodes[i] = (TestPoolNode *)arena_pool_alloc(&pool);
       M68K_C_ASSERT(nodes[i] != NULL);
       nodes[i]->left = (uint32_t)i;
     }
-    for (i = 0U; i < 16U; ++i) test_pool_free(&pool, nodes[i]);
-    M68K_C_ASSERT_U32(0U, (uint32_t)pool.live_slots);
+    for (i = 0U; i < 16U; ++i) arena_pool_free(&pool, nodes[i]);
+    M68K_C_ASSERT_U32(0U, (uint32_t)arena_pool_stats(&pool).live_slots);
   }
   plain_stats = arena_stats(plain_arena);
-  pool_stats = arena_stats(pool_arena);
+  pool_arena_stats = arena_stats(pool_arena);
+  pool_stats = arena_pool_stats(&pool);
   M68K_C_ASSERT_U32(768U, (uint32_t)plain_stats.current_used);
-  M68K_C_ASSERT_U32(256U, (uint32_t)pool_stats.current_used);
-  M68K_C_ASSERT_U32(1U, (uint32_t)pool.chunks);
-  M68K_C_ASSERT_U32(16U, (uint32_t)pool.allocated_slots);
-  M68K_C_ASSERT_U32(16U, (uint32_t)pool.peak_live_slots);
-  M68K_C_ASSERT(pool_stats.current_used < plain_stats.current_used);
+  M68K_C_ASSERT_U32(256U, (uint32_t)pool_arena_stats.current_used);
+  M68K_C_ASSERT_U32(1U, (uint32_t)pool_stats.chunk_count);
+  M68K_C_ASSERT_U32(16U, (uint32_t)pool_stats.allocated_slots);
+  M68K_C_ASSERT_U32(16U, (uint32_t)pool_stats.peak_live_slots);
+  M68K_C_ASSERT(pool_arena_stats.current_used < plain_stats.current_used);
   arena_destroy(pool_arena);
   arena_destroy(plain_arena);
+  return 0;
+}
+
+static int test_growable_pool_rejects_invalid_config(void) {
+  Arena *arena = arena_create(64U);
+  ArenaPool pool;
+  M68K_C_ASSERT(arena != NULL);
+  M68K_C_ASSERT_INT(0, arena_pool_init(&pool, arena, 0U, 16U));
+  M68K_C_ASSERT(pool.arena == NULL);
+  M68K_C_ASSERT_INT(0, arena_pool_init(&pool, arena, sizeof(TestPoolNode), 0U));
+  M68K_C_ASSERT(pool.arena == NULL);
+  M68K_C_ASSERT_INT(0, arena_pool_init(&pool, arena, (size_t)-1, 16U));
+  M68K_C_ASSERT(pool.arena == NULL);
+  arena_destroy(arena);
   return 0;
 }
 
@@ -349,6 +305,7 @@ int m68k_c_util_arena_tests(void) {
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
+    {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},
     {"decode_ir_result_arrays_use_result_arena", test_decode_ir_result_arrays_use_result_arena},
     {"fact_ir_result_arrays_use_result_arena", test_fact_ir_result_arrays_use_result_arena},
   };

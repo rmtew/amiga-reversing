@@ -17,6 +17,10 @@ typedef struct ArenaBlock {
   struct ArenaBlock *next;
 } ArenaBlock;
 
+struct ArenaPoolFreeNode {
+  struct ArenaPoolFreeNode *next;
+};
+
 struct ArenaBuilderChunk {
   struct ArenaBuilderChunk *next;
   size_t used;
@@ -256,6 +260,68 @@ ArenaStats arena_stats(const Arena *arena) {
   stats.peak_capacity = arena->peak_capacity;
   stats.current_block_count = arena->current_block_count;
   stats.total_block_count = arena->total_block_count;
+  return stats;
+}
+
+int arena_pool_init(ArenaPool *pool, Arena *arena, size_t object_size, size_t objects_per_chunk) {
+  size_t aligned_size;
+  if (pool == NULL) return 0;
+  memset(pool, 0, sizeof(*pool));
+  if (arena == NULL || object_size == 0U || objects_per_chunk == 0U) return 0;
+  aligned_size = arena_align_up(object_size);
+  if (aligned_size < object_size) return 0;
+  if (aligned_size < sizeof(ArenaPoolFreeNode)) aligned_size = sizeof(ArenaPoolFreeNode);
+  pool->arena = arena;
+  pool->object_size = aligned_size;
+  pool->objects_per_chunk = objects_per_chunk;
+  return 1;
+}
+
+static int arena_pool_grow(ArenaPool *pool) {
+  unsigned char *chunk;
+  size_t index;
+  if (pool == NULL || pool->arena == NULL || pool->object_size == 0U || pool->objects_per_chunk == 0U) return 0;
+  if (pool->objects_per_chunk > ((size_t)-1) / pool->object_size) return 0;
+  chunk = (unsigned char *)arena_alloc(pool->arena, pool->object_size * pool->objects_per_chunk);
+  if (chunk == NULL) return 0;
+  for (index = 0U; index < pool->objects_per_chunk; ++index) {
+    ArenaPoolFreeNode *node = (ArenaPoolFreeNode *)(chunk + (index * pool->object_size));
+    node->next = pool->free_list;
+    pool->free_list = node;
+  }
+  pool->chunk_count += 1U;
+  pool->allocated_slots += pool->objects_per_chunk;
+  return 1;
+}
+
+void *arena_pool_alloc(ArenaPool *pool) {
+  ArenaPoolFreeNode *node;
+  if (pool == NULL) return NULL;
+  if (pool->free_list == NULL && !arena_pool_grow(pool)) return NULL;
+  node = pool->free_list;
+  pool->free_list = node->next;
+  pool->live_slots += 1U;
+  if (pool->live_slots > pool->peak_live_slots) pool->peak_live_slots = pool->live_slots;
+  return node;
+}
+
+void arena_pool_free(ArenaPool *pool, void *ptr) {
+  ArenaPoolFreeNode *node;
+  if (pool == NULL || ptr == NULL || pool->live_slots == 0U) return;
+  node = (ArenaPoolFreeNode *)ptr;
+  node->next = pool->free_list;
+  pool->free_list = node;
+  pool->live_slots -= 1U;
+}
+
+ArenaPoolStats arena_pool_stats(const ArenaPool *pool) {
+  ArenaPoolStats stats;
+  memset(&stats, 0, sizeof(stats));
+  if (pool == NULL) return stats;
+  stats.chunk_count = pool->chunk_count;
+  stats.allocated_slots = pool->allocated_slots;
+  stats.live_slots = pool->live_slots;
+  stats.peak_live_slots = pool->peak_live_slots;
   return stats;
 }
 

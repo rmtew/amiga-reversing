@@ -19,6 +19,7 @@ typedef struct ArenaStats {
 } ArenaStats;
 
 typedef struct ArenaBuilderChunk ArenaBuilderChunk;
+typedef struct ArenaPoolFreeNode ArenaPoolFreeNode;
 
 typedef struct ArenaBuilder {
   Arena *arena;
@@ -28,6 +29,24 @@ typedef struct ArenaBuilder {
   size_t length;
   size_t chunk_capacity;
 } ArenaBuilder;
+
+typedef struct ArenaPool {
+  Arena *arena;
+  ArenaPoolFreeNode *free_list;
+  size_t object_size;
+  size_t objects_per_chunk;
+  size_t chunk_count;
+  size_t allocated_slots;
+  size_t live_slots;
+  size_t peak_live_slots;
+} ArenaPool;
+
+typedef struct ArenaPoolStats {
+  size_t chunk_count;
+  size_t allocated_slots;
+  size_t live_slots;
+  size_t peak_live_slots;
+} ArenaPoolStats;
 
 Arena *arena_create(size_t initial_capacity);
 void arena_destroy(Arena *arena);
@@ -49,6 +68,11 @@ void *arena_builder_append_uninit(ArenaBuilder *builder);
 int arena_builder_append(ArenaBuilder *builder, const void *item);
 int arena_builder_append_many(ArenaBuilder *builder, const void *items, size_t count);
 void *arena_builder_finalize(ArenaBuilder *builder, size_t *out_count);
+
+int arena_pool_init(ArenaPool *pool, Arena *arena, size_t object_size, size_t objects_per_chunk);
+void *arena_pool_alloc(ArenaPool *pool);
+void arena_pool_free(ArenaPool *pool, void *ptr);
+ArenaPoolStats arena_pool_stats(const ArenaPool *pool);
 
 #define ARENA_BUILDER_INIT_TYPED(builder, arena, type, chunk_capacity) \
   arena_builder_init((builder), (arena), sizeof(type), (chunk_capacity))
