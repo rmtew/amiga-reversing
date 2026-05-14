@@ -7877,7 +7877,7 @@ static int test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage(void
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020(pc),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020-(*+2)(pc),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp $00000080.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $20\n") == NULL);
@@ -7897,7 +7897,7 @@ static int test_facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage(void
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020(pc),a0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tlea.l loc_0_00000020-(*+2)(pc),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $20\n") == NULL);
   M68K_C_ASSERT(strstr(source, "    ORG $80\n") == NULL);

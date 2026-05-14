@@ -8553,6 +8553,62 @@ static int attach_known_external_runtime_address_symbols(M68kRenderIRPreview *pr
   return 1;
 }
 
+static int pc_relative_target_crosses_runtime_org(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t source_offset, uint32_t target_offset) {
+  size_t index;
+  uint32_t low, high;
+  if (lookup == NULL || lookup->runtime_address_ranges == NULL || source_offset == target_offset) return 0;
+  if (source_offset < target_offset) {
+    low = source_offset;
+    high = target_offset;
+  } else {
+    low = target_offset;
+    high = source_offset;
+  }
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+    if (range == NULL || range->kind != M68K_FACT_RUNTIME_ADDRESS_RANGE ||
+        range->section_index != section_index || !range->has_runtime_address ||
+        range->runtime_address == range->offset || !runtime_range_is_materialized(lookup, range)) {
+      continue;
+    }
+    if (range->offset > low && range->offset <= high) return 1;
+  }
+  return 0;
+}
+
+static void mark_cross_org_pc_relative_displacement_exprs(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  M68kAsmOperandValue asm_operands[M68K_DECODE_IR_MAX_OPERANDS];
+  size_t operand_index;
+  if (lookup == NULL || candidate == NULL || instruction == NULL) return;
+  if (candidate->operand_count > M68K_DECODE_IR_MAX_OPERANDS) return;
+  for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
+    asm_operands[operand_index] = candidate->operands[operand_index];
+    asm_operands[operand_index].kind = candidate->operand_kinds[operand_index];
+  }
+  for (operand_index = 0U; operand_index < instruction->operand_count &&
+       operand_index < candidate->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    size_t relative_base;
+    int64_t target;
+    if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U ||
+        operand->value.ea_reg != 2U || operand->symbol_ref.has_name == 0U ||
+        operand->symbol_ref.kind != M68K_IR_SYMBOL_REF_PC_REL || operand->symbol_ref.has_section == 0 ||
+        operand->symbol_ref.section_index != section_index || candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+        candidate->operands[operand_index].ea_mode != 7U || candidate->operands[operand_index].ea_reg != 2U) {
+      continue;
+    }
+    relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
+      candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
+    target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
+    if (relative_base > UINT32_MAX || target < 0 || target > UINT32_MAX) continue;
+    if (!pc_relative_target_crosses_runtime_org(lookup, section_index, candidate->offset, (uint32_t)target)) continue;
+    operand->symbol_ref.render_pc_relative_displacement_expr = 1U;
+    operand->symbol_ref.pc_relative_displacement_base_offset = (uint32_t)relative_base;
+  }
+}
+
 static int attach_absolute_stack_top_symbol(M68kRenderIRPreview *preview, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   uint8_t source_index;
@@ -9096,6 +9152,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
   apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
+  mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
   render_instruction = instruction;
   if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
       !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) {

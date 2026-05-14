@@ -122,6 +122,29 @@ static int parse_symbol_plus_addend(const M68kSymbolicParseContext *context, con
   return 1;
 }
 
+static int strip_pc_current_subtraction(char *prefix) {
+  char *minus = NULL;
+  char *cursor;
+  if (prefix == NULL || prefix[0] == '\0') return 0;
+  for (cursor = prefix; *cursor != '\0'; ++cursor) {
+    if (*cursor == '-') minus = cursor;
+  }
+  if (minus == NULL || strcmp(minus, "-(*)") == 0) {
+    if (minus != NULL) {
+      *minus = '\0';
+      return 1;
+    }
+    return 0;
+  }
+  if (strncmp(minus, "-(*+", 4) != 0) return 0;
+  cursor = minus + 4;
+  if (!isdigit((unsigned char)*cursor)) return 0;
+  while (isdigit((unsigned char)*cursor)) ++cursor;
+  if (strcmp(cursor, ")") != 0) return 0;
+  *minus = '\0';
+  return 1;
+}
+
 static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *context, const char *operand, char *out_rewritten,
     size_t out_rewritten_size, char *out_symbolic_name, size_t out_symbolic_name_size, int32_t *out_addend) {
   const char *paren = NULL;
@@ -129,12 +152,14 @@ static int rewrite_pc_relative_symbol_operand( const M68kSymbolicParseContext *c
   char prefix[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   if (context == NULL || operand == NULL || out_rewritten == NULL || out_symbolic_name == NULL || out_addend == NULL)
     return 0;
-  paren = strchr(operand, '(');
+  paren = strrchr(operand, '(');
   if (paren == NULL || paren == operand) return 0;
   if (!m68k_ascii_prefix_equal_ci(paren, "(pc")) return 0;
   prefix_len = (size_t)(paren - operand);
   if (prefix_len == 0U || prefix_len >= sizeof(prefix)) return 0;
   snprintf(prefix, sizeof(prefix), "%.*s", (int)prefix_len, operand);
+  (void)strip_pc_current_subtraction(prefix);
+  if (prefix[0] == '\0') return 0;
   if (!parse_symbol_plus_addend(context, prefix, out_symbolic_name, out_symbolic_name_size, out_addend)) return 0;
   snprintf(out_rewritten, out_rewritten_size, "$0%s", paren);
   return 1;

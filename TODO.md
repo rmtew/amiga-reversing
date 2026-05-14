@@ -37,21 +37,6 @@ Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles
       ```
       005c 4eea0040 jmp $0040(a2)
       ```
-    - Invalid double ORG with invalid non-absolute labelling:
-      ```
-      0058 41fa00f2   lea.l loc_2_0000014C(pc),a0
-      005c 4eea0040   jmp $0040(a2)
-      ...
-      006a            loc_2_0000006A:
-                ORG $100
-      006a            abs_2_00000100:
-      ...
-                ORG $14C
-      014c            loc_2_0000014C:
-      ```
-      - `ORG $14C` seems like a false positive perhaps created by the PC-relative label?
-      - `loc_2_0000014C` should be a local label created pre-jmp outside the abs range of the `ORG $100`?
-      - It does compile exact so maybe it reflects correctness issues with our assembler and might fail with `vasm`?
         
 
 ## Phase 6: Beyond Static Analysis

@@ -520,8 +520,16 @@ static int append_symbolic_ea_text(char *out_text, size_t out_text_size, size_t 
     return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
   if (operand->value.ea_mode == 2)
     return append_format(out_text, out_text_size, inout_used, "%s(a%u)", name, (unsigned)operand->value.ea_reg);
-  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2)
+  if (operand->value.ea_mode == 7 && operand->value.ea_reg == 2) {
+    if (operand->symbol_ref.render_pc_relative_displacement_expr != 0U) {
+      uint32_t base_offset = operand->symbol_ref.pc_relative_displacement_base_offset;
+      if (base_offset == 0U)
+        return append_format(out_text, out_text_size, inout_used, "%s-(*)(pc)", name);
+      return append_format(out_text, out_text_size, inout_used, "%s-(*+%u)(pc)", name,
+        (unsigned)base_offset);
+    }
     return append_format(out_text, out_text_size, inout_used, "%s(pc)", name);
+  }
   if (operand->value.ea_mode == 7 && operand->value.ea_reg == 3) {
     if (append_format(out_text, out_text_size, inout_used, "%s(pc,", name) != 0)
       return -1;

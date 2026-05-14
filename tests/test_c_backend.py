@@ -1080,7 +1080,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
         project_root=PROJECT_ROOT,
     )
     combined = analyze_source_with_c_artifact(binary_source, metadata_text=str(metadata_path), project_root=PROJECT_ROOT)
-    assert "\tlea.l loc_0_00000020(pc),a0\n" in source_text
+    assert "\tlea.l loc_0_00000020-(*+2)(pc),a0\n" in source_text
     assert "\tjmp $00000080.l\n" in source_text
     assert "loc_0_00000020:\n    ORG $100\nabs_0_00000100:\n" in source_text
     assert "    ORG $20\n" not in source_text
@@ -1124,7 +1124,7 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
 
     rows = combined["listing"]["rows"]
     row_texts = [str(row["text"]).rstrip("\n") for row in rows]
-    ref_index = next(index for index, text in enumerate(row_texts) if "lea.l loc_0_00000020(pc),a0" in text)
+    ref_index = next(index for index, text in enumerate(row_texts) if "lea.l loc_0_00000020-(*+2)(pc),a0" in text)
     storage_label_index = row_texts.index("loc_0_00000020:")
     org_index = row_texts.index("    ORG $100")
     runtime_label_index = row_texts.index("abs_0_00000100:")
@@ -5899,7 +5899,7 @@ def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:
     assert "loc_0_00009DA2:\n\tdc.b $52,$80,$4E,$75" not in source_text
 
 
-def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -> None:
+def test_real_dll_damocles_register_copied_target_promotes_decompressor_code(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
 
     paths = _requires_project_paths(
@@ -5942,7 +5942,38 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         "\tadda.l #$47368,a0\n"
         "\tlea.l runtime_address_000130B6.l,a1\n"
     ) in source_text
+    assert "\tlea.l loc_2_0000014C-(*+2)(pc),a0\n" in source_text
+    assert "\tlea.l loc_2_0000014C(pc),a0\n" not in source_text
     assert "\tdc.b $3D,$7C,$7F,$FF,$00,$9A,$4E,$73,$D1,$FC,$00,$04,$73,$68,$43,$F9\n" not in source_text
+
+    vasm = PROJECT_ROOT / "tools" / "vasmm68k_mot.exe"
+    if not vasm.exists():
+        pytest.skip("vasm is missing")
+    source_path = tmp_path / "damocles.s"
+    output_path = tmp_path / "damocles.hunk"
+    source_path.write_text(source_text, encoding="utf-8", newline="\n")
+    result = subprocess.run(
+        [
+            str(vasm),
+            "-Fhunkexe",
+            "-m68000",
+            "-no-opt",
+            "-quiet",
+            "-nosym",
+            "-kick1hunks",
+            "-I" + str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            "-o",
+            str(output_path),
+            str(source_path),
+        ],
+        cwd=PROJECT_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr
+    assert output_path.read_bytes() == paths.binary_source.read_bytes()
 
 
 def test_listing_analysis_reports_extracted_damocles_style_self_decruncher(tmp_path: Path) -> None:
