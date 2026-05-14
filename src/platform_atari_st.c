@@ -828,11 +828,34 @@ const M68kBackend M68K_BACKEND_ATARI_ST = {
     atari_st_write_file,
 };
 
-const M68kBackend *m68k_backend_by_name(const char *name) {
+typedef struct BackendNameMap {
+    const char *name;
+    const M68kBackend *backend;
+} BackendNameMap;
+
+static const BackendNameMap BACKEND_NAMES[] = {
+    {NULL, &M68K_BACKEND_AMIGA_HUNK},
+    {NULL, &M68K_BACKEND_ATARI_ST},
+};
+
+static const BackendNameMap RAW_BACKEND_NAMES[] = {
+    {"amiga-raw", &M68K_BACKEND_AMIGA_HUNK},
+    {"atari-st-raw", &M68K_BACKEND_ATARI_ST},
+};
+
+static const M68kBackend *backend_from_name_map(const BackendNameMap *entries, size_t entry_count,
+    const char *name) {
+    size_t index;
     if (name == NULL) return NULL;
-    if (strcmp(name, M68K_BACKEND_AMIGA_HUNK.name) == 0) return &M68K_BACKEND_AMIGA_HUNK;
-    if (strcmp(name, M68K_BACKEND_ATARI_ST.name) == 0) return &M68K_BACKEND_ATARI_ST;
+    for (index = 0U; index < entry_count; ++index) {
+        const char *entry_name = entries[index].name != NULL ? entries[index].name : entries[index].backend->name;
+        if (strcmp(name, entry_name) == 0) return entries[index].backend;
+    }
     return NULL;
+}
+
+const M68kBackend *m68k_backend_by_name(const char *name) {
+    return backend_from_name_map(BACKEND_NAMES, sizeof(BACKEND_NAMES) / sizeof(BACKEND_NAMES[0]), name);
 }
 
 M68kPlatformBackendKind m68k_backend_kind_by_name(const char *name) {
@@ -841,10 +864,7 @@ M68kPlatformBackendKind m68k_backend_kind_by_name(const char *name) {
 }
 
 const M68kBackend *m68k_raw_backend_by_name(const char *name) {
-    if (name == NULL) return NULL;
-    if (strcmp(name, "amiga-raw") == 0) return &M68K_BACKEND_AMIGA_HUNK;
-    if (strcmp(name, "atari-st-raw") == 0) return &M68K_BACKEND_ATARI_ST;
-    return NULL;
+    return backend_from_name_map(RAW_BACKEND_NAMES, sizeof(RAW_BACKEND_NAMES) / sizeof(RAW_BACKEND_NAMES[0]), name);
 }
 
 M68kPlatformBackendKind m68k_backend_kind_by_platform_name(const char *name) {
