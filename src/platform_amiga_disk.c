@@ -113,6 +113,15 @@ const char *amiga_disk_bootloader_decode_required_source_kind_name(uint8_t kind)
     }
 }
 
+const char *amiga_disk_bootloader_decode_input_missing_reason_name(uint8_t reason) {
+    switch (reason) {
+        case AMIGA_DISK_BOOTLOADER_DECODE_INPUT_MISSING_CUSTOM_TRACK_DECODE_MAPPING_UNRESOLVED:
+            return "custom_track_decode_mapping_unresolved";
+        default:
+            return NULL;
+    }
+}
+
 static uint32_t read_u32be(const unsigned char *data, size_t offset) {
     return ((uint32_t)data[offset] << 24)
         | ((uint32_t)data[offset + 1U] << 16)
@@ -498,9 +507,9 @@ static int append_bootloader_decode_region(AmigaDiskAnalysis *analysis, AmigaDis
     region->has_input_required_byte_length = setup->has_dsklen_dma_byte_length;
     region->input_required_byte_length = setup->dsklen_dma_byte_length;
     region->input_materializable = 1U;
-    region->input_missing_reason = arena_strdup(analysis->arena, "custom_track_decode_mapping_unresolved");
+    region->input_missing_reason =
+        AMIGA_DISK_BOOTLOADER_DECODE_INPUT_MISSING_CUSTOM_TRACK_DECODE_MAPPING_UNRESOLVED;
     region->write_loop_addr = setup->has_buffer_scan_addr ? setup->buffer_scan_addr : setup->instruction_addr;
-    if (region->input_missing_reason == NULL) return -1;
     if (append_decode_region_span(analysis, region, span->start_track, span->end_track, span->start_byte_offset,
             span->byte_length) != 0) {
         return -1;

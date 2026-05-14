@@ -819,6 +819,8 @@ static int append_bootloader_decode_regions_json(JsonBuilder *builder, const Ami
             amiga_disk_bootloader_decode_input_source_kind_name(region->input_source_kind);
         const char *input_required_source_kind_name =
             amiga_disk_bootloader_decode_required_source_kind_name(region->input_required_source_kind);
+        const char *input_missing_reason_name =
+            amiga_disk_bootloader_decode_input_missing_reason_name(region->input_missing_reason);
         size_t span_index;
         if (region_index != 0U && json_builder_append(builder, ",") != 0) return -1;
         if (json_builder_appendf(builder, "{\"instruction_addr\":%u,\"input_buffer_addr\":",
@@ -861,7 +863,9 @@ static int append_bootloader_decode_regions_json(JsonBuilder *builder, const Ami
                 region->input_materializable ? "true" : "false") != 0)
             return -1;
         if (json_builder_append(builder, ",\"input_missing_reason\":") != 0) return -1;
-        if (json_builder_append_json_string(builder, region->input_missing_reason) != 0) return -1;
+        if (json_builder_append_json_string(builder,
+                input_missing_reason_name != NULL ? input_missing_reason_name : "") != 0)
+            return -1;
         if (json_builder_append(builder, ",\"output_base_addr\":") != 0) return -1;
         if (append_nullable_u32_json(builder, region->has_output_base_addr, region->output_base_addr) != 0) return -1;
         if (json_builder_append(builder, ",\"output_addr\":") != 0) return -1;

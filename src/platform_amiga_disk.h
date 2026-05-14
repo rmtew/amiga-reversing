@@ -140,6 +140,11 @@ typedef enum AmigaDiskBootloaderDecodeRequiredSourceKind {
     AMIGA_DISK_BOOTLOADER_DECODE_REQUIRED_SOURCE_RAW_CUSTOM_TRACK_BYTES = 1
 } AmigaDiskBootloaderDecodeRequiredSourceKind;
 
+typedef enum AmigaDiskBootloaderDecodeInputMissingReason {
+    AMIGA_DISK_BOOTLOADER_DECODE_INPUT_MISSING_NONE = 0,
+    AMIGA_DISK_BOOTLOADER_DECODE_INPUT_MISSING_CUSTOM_TRACK_DECODE_MAPPING_UNRESOLVED = 1
+} AmigaDiskBootloaderDecodeInputMissingReason;
+
 typedef enum AmigaDiskBootloaderHardwareAccessKind {
     AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_READ = 1,
     AMIGA_DISK_BOOTLOADER_HARDWARE_ACCESS_WRITE = 2
@@ -209,7 +214,7 @@ typedef struct AmigaDiskBootloaderDecodeRegion {
     uint32_t input_concrete_byte_count;
     uint8_t input_complete;
     uint8_t input_materializable;
-    char *input_missing_reason;
+    uint8_t input_missing_reason;
     uint8_t has_output_base_addr;
     uint32_t output_base_addr;
     uint8_t has_output_addr;
@@ -289,6 +294,7 @@ struct AmigaDiskAnalysis {
 const char *amiga_disk_format_kind_name(AmigaDiskFormatKind kind);
 const char *amiga_disk_bootloader_decode_input_source_kind_name(uint8_t kind);
 const char *amiga_disk_bootloader_decode_required_source_kind_name(uint8_t kind);
+const char *amiga_disk_bootloader_decode_input_missing_reason_name(uint8_t reason);
 int amiga_disk_analysis_create(AmigaDiskAnalysis *analysis);
 void amiga_disk_analysis_destroy(AmigaDiskAnalysis *analysis);
 int amiga_disk_analyze_image(const char *path, AmigaDiskAnalysis *out_analysis, M68kDiagSink diagnostics);
