@@ -4,16 +4,19 @@
 
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
-- Emulation-based tracing:
-  - Local `WinUAE` usage (currently cloned to `resources/clone_common/WinUAE`):
-    - It is unclear why some things are the way they are in the disassembled source code. Orphaned code blocks are one
-      example of this. We should be able to use `WinUAE` (providing configuration on disk and on command-line and so on)
-      and drive sessions from the command-line to take advantage of a) ability to run a target in a realistic setting
-      b) to use the debugger to analyse memory and other state c) direct execution using breakpoint and more.
 - Codebase auditing/global refactoring:
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
     be using bitflags or enums to replace that.
+
+## Tracing
+
+- Deferred: WinUAE debugger-assisted tracing.
+  - Local WinUAE source is cloned at `resources/clone_common/WinUAE`, but no runnable `winuae64.exe` is present there.
+  - Keep the current `amiga_reversing.tools.winuae_session` launcher/startup-sequence helpers as groundwork only.
+  - Resume this when a usable WinUAE executable path is available. Then add deterministic `.uae` config generation,
+    host-directory mounting, debugger console logging, scripted breakpoints/runs, and trace/memory-state import back into
+    analysis facts.
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
