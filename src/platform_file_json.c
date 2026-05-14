@@ -2821,7 +2821,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
-    size_t effect_index, call_index, indirect_site_index, orphan_signal_index;
+    size_t effect_index, call_index, disk_read_index, indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
@@ -3305,6 +3305,29 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (call_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (append_recovered_platform_call_json(&builder, call) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"recovered_platform_disk_read_count\":%u,\"recovered_platform_disk_reads\":[",
+          (unsigned)section->recovered_platform_disk_read_count) != 0)
+      goto oom;
+    for (disk_read_index = 0; disk_read_index < section->recovered_platform_disk_read_count; ++disk_read_index) {
+      const M68kRecoveredPlatformDiskReadIR *read = &section->recovered_platform_disk_reads[disk_read_index];
+      if (disk_read_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"command_value\":%u,\"command_name\":",
+          (unsigned)read->offset, (unsigned)read->command_value) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, read->command_name != NULL ? read->command_name : "") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"disk_offset\":%u,\"byte_length\":%u,\"destination_addr\":%u,\"source_kind\":",
+          (unsigned)read->disk_offset, (unsigned)read->byte_length, (unsigned)read->destination_addr) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, read->source_kind != NULL ? read->source_kind : "") != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"recovered_string_ref_count\":%u,\"recovered_string_refs\":[",

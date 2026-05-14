@@ -20,11 +20,13 @@ from amiga_reversing.amiga_disk.models import (
     AdfAnalysis,
     BootloaderStage,
     DiskManifest,
+    FileImportTargetInfo,
     ImportedTarget,
 )
-from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.binary_source import resolve_target_binary_source, write_source_descriptor
 from amiga_reversing.disasm.c_backend import (
     analyze_binary_source_with_c_backend,
+    analyze_project_source_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
     materialize_recognized_unpacker_event_with_c_backend,
@@ -203,6 +205,127 @@ def _materialized_bootloader_disk_stage_targets(
             continue
         stage_targets.append((stage, disk_bytes[start:end]))
     return stage_targets
+
+
+def _bootblock_read_stage_metadata() -> dict[str, object]:
+    return {
+        "target_type": "bootloader_stage",
+        "entry_register_seeds": [
+            {
+                "entry_offset": None,
+                "register": "A6",
+                "kind": "library_base",
+                "library_name": "exec.library",
+                "struct_name": "LIB",
+                "context_name": None,
+                "note": "ExecBase",
+            },
+            {
+                "entry_offset": None,
+                "register": "A1",
+                "kind": "struct_ptr",
+                "library_name": None,
+                "struct_name": "IO",
+                "context_name": "trackdisk.device",
+                "note": "IOStdReq (open trackdisk.device)",
+            },
+        ],
+        "bootblock": None,
+        "resident": None,
+        "library": None,
+        "custom_structs": [],
+        "rsset_layout_regions": [],
+        "seeded_entities": [],
+        "seeded_code_labels": [],
+        "seeded_code_entrypoints": [],
+        "absolute_code_labels": [],
+        "execution_views": [],
+        "suppressed_seeded_items": [],
+    }
+
+
+def _bootblock_disk_read_stage_targets(
+    source_analysis: dict[str, object] | None,
+    disk_bytes: bytes,
+) -> list[tuple[FileImportTargetInfo, bytes]]:
+    if source_analysis is None:
+        return []
+    sections = source_analysis.get("sections")
+    if not isinstance(sections, list):
+        return []
+    stage_targets: list[tuple[FileImportTargetInfo, bytes]] = []
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        reads = section.get("recovered_platform_disk_reads")
+        if not isinstance(reads, list):
+            continue
+        for read in reads:
+            if not isinstance(read, dict):
+                continue
+            command_name = _str_field(read, "command_name")
+            source_kind = _str_field(read, "source_kind")
+            disk_offset = _int_field(read, "disk_offset")
+            byte_length = _int_field(read, "byte_length")
+            destination_addr = _int_field(read, "destination_addr")
+            instruction_offset = _int_field(read, "offset")
+            if (
+                command_name != "CMD_READ"
+                or source_kind != "logical_disk_offset"
+                or disk_offset is None
+                or byte_length is None
+                or destination_addr is None
+                or instruction_offset is None
+                or disk_offset < 0
+                or byte_length <= 0
+            ):
+                continue
+            end = disk_offset + byte_length
+            if end > len(disk_bytes):
+                continue
+            stage_index = len(stage_targets) + 1
+            stage_targets.append(
+                (
+                    FileImportTargetInfo(
+                        target_type="bootloader_stage",
+                        entry_path=f"bootloader/stage_{stage_index}",
+                        local_target_id=f"amiga_raw_bootloader_stage_{stage_index}",
+                        source={
+                            "kind": "raw_binary",
+                            "address_model": "runtime_absolute",
+                            "byte_offset": disk_offset,
+                            "byte_size": byte_length,
+                            "disk_byte_offset": disk_offset,
+                            "disk_byte_size": byte_length,
+                            "load_address": destination_addr,
+                            "entrypoint": destination_addr,
+                            "code_start_offset": 0,
+                            "source_kind": source_kind,
+                            "bootblock_read_instruction_offset": instruction_offset,
+                        },
+                        target_metadata=_bootblock_read_stage_metadata(),
+                    ),
+                    disk_bytes[disk_offset:end],
+                )
+            )
+    return stage_targets
+
+
+def _analyze_bootblock_source_for_disk_reads(
+    bootblock_target_dir: Path,
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    if not (project_root / "src" / "build" / "platform_file_lib.dll").exists():
+        return None
+    source = resolve_target_binary_source(bootblock_target_dir, project_root=project_root)
+    if source is None:
+        return None
+    return analyze_project_source_with_c_backend(
+        source,
+        metadata_path=bootblock_target_dir / "target_metadata.json",
+        project_root=project_root,
+    )
 
 
 def _unique_bootloader_raw_span_targets(
@@ -1893,6 +2016,10 @@ def create_disk_project(
             binary_path=f"{adf_file.as_posix()}::bootblock",
             target_type="bootblock",
         )
+        bootblock_source_analysis = _analyze_bootblock_source_for_disk_reads(
+            bootblock_target_dir,
+            project_root=project_root,
+        )
         for stage, stage_bytes in _materialized_bootloader_disk_stage_targets(analysis, disk_bytes):
             assert stage.import_target is not None
             assert stage.import_target.source is not None
@@ -1982,6 +2109,53 @@ def create_disk_project(
                 target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
                 entry_path=span_entry_path,
                 binary_path=f"{adf_file.as_posix()}::{span_entry_path}",
+                target_type=import_target.target_type,
+            )
+        for import_target, stage_bytes in _bootblock_disk_read_stage_targets(bootblock_source_analysis, disk_bytes):
+            assert import_target.source is not None
+            stage_entry_path = _import_target_required_text(
+                import_target.entry_path, "entry_path", import_target.target_type
+            )
+            local_target_name = _import_target_required_text(
+                import_target.local_target_id, "local_target_id", import_target.target_type
+            )
+            target_name = disk_child_project_id(resolved_disk_id, local_target_name)
+            if target_name in imported_targets_by_name:
+                continue
+            target_dir = disk_children_root / local_target_name
+            auto_discovered_target_names.add(target_name)
+            if target_dir.exists():
+                if not target_dir.is_dir():
+                    raise DiskAnalysisError(f"Target already exists: {target_name}")
+            else:
+                create_project_at_path(
+                    disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                    project_root=project_root,
+                    origin={
+                        "kind": "disk_child",
+                        "parent_disk_id": resolved_disk_id,
+                        "target_role": "bootloader_stage",
+                        "entry_path": stage_entry_path,
+                        "target_type": import_target.target_type,
+                        "source_path": adf_file.as_posix(),
+                    },
+                )
+                created_target_dirs.append(target_dir)
+            binary_path = target_dir / "binary.bin"
+            _write_bytes(binary_path, stage_bytes)
+            source_descriptor = dict(import_target.source)
+            source_descriptor.pop("byte_offset", None)
+            source_descriptor.pop("byte_size", None)
+            source_descriptor["path"] = binary_path.relative_to(project_root).as_posix()
+            source_descriptor["parent_disk_id"] = resolved_disk_id
+            write_source_descriptor(target_dir, source_descriptor)
+            write_target_metadata(target_dir, TargetMetadata.from_dict(import_target.target_metadata))
+            mark_project_updated(target_dir)
+            imported_targets_by_name[target_name] = ImportedTarget(
+                target_name=target_name,
+                target_path=disk_child_target_relpath(resolved_disk_id, local_target_name).as_posix(),
+                entry_path=stage_entry_path,
+                binary_path=f"{adf_file.as_posix()}::{stage_entry_path}",
                 target_type=import_target.target_type,
             )
         startup_parse_status = _startup_parse_status_payload(

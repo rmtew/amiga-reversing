@@ -1890,6 +1890,56 @@ int m68k_ir_section_analysis_set_recovered_platform_call_device_name(M68kSection
   return 0;
 }
 
+int m68k_ir_section_analysis_append_recovered_platform_disk_read(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint32_t command_value, const char *command_name, uint32_t disk_offset,
+    uint32_t byte_length, uint32_t destination_addr, const char *source_kind) {
+  size_t index;
+  char *copy_command_name;
+  char *copy_source_kind;
+  if (section_analysis == NULL || command_name == NULL || command_name[0] == '\0' ||
+      source_kind == NULL || source_kind[0] == '\0') {
+    return -1;
+  }
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_disk_read_count; ++index) {
+    const M68kRecoveredPlatformDiskReadIR *existing = &section_analysis->recovered_platform_disk_reads[index];
+    if (existing->offset == offset &&
+        existing->command_value == command_value &&
+        existing->disk_offset == disk_offset &&
+        existing->byte_length == byte_length &&
+        existing->destination_addr == destination_addr &&
+        existing->command_name != NULL && strcmp(existing->command_name, command_name) == 0 &&
+        existing->source_kind != NULL && strcmp(existing->source_kind, source_kind) == 0) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_platform_disk_reads =
+    (M68kRecoveredPlatformDiskReadIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->recovered_platform_disk_reads,
+      section_analysis->recovered_platform_disk_read_count,
+      &section_analysis->recovered_platform_disk_read_capacity,
+      4U, sizeof(*section_analysis->recovered_platform_disk_reads));
+  if (section_analysis->recovered_platform_disk_reads == NULL) return -1;
+  copy_command_name = arena_strdup(section_analysis->arena, command_name);
+  copy_source_kind = arena_strdup(section_analysis->arena, source_kind);
+  if (copy_command_name == NULL || copy_source_kind == NULL) return -1;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].offset = offset;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].command_value =
+    command_value;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].disk_offset =
+    disk_offset;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].byte_length =
+    byte_length;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].destination_addr =
+    destination_addr;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].command_name =
+    copy_command_name;
+  section_analysis->recovered_platform_disk_reads[section_analysis->recovered_platform_disk_read_count].source_kind =
+    copy_source_kind;
+  section_analysis->recovered_platform_disk_read_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset) {
   size_t index;
@@ -2567,6 +2617,15 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
           m68k_ir_section_analysis_destroy(&copy);
           return -1;
         }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_disk_read_count; ++index) {
+    const M68kRecoveredPlatformDiskReadIR *read = &section_analysis->recovered_platform_disk_reads[index];
+    if (m68k_ir_section_analysis_append_recovered_platform_disk_read(&copy, read->offset, read->command_value,
+        read->command_name, read->disk_offset, read->byte_length, read->destination_addr,
+        read->source_kind) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
   }
   for (index = 0; index < section_analysis->recovered_direct_section_call_count; ++index) {
     const M68kRecoveredDirectSectionCallIR *call = &section_analysis->recovered_direct_section_calls[index];

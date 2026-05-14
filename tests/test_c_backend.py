@@ -3787,6 +3787,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
     )
 
     typed_accesses = analysis["sections"][0]["recovered_platform_typed_accesses"]
+    disk_reads = analysis["sections"][0]["recovered_platform_disk_reads"]
     assert "\tmove.l #$400,IO_OFFSET(a1)\n" in rendered
     assert "\tmove.l #$4E00,IO_LENGTH(a1)\n" in rendered
     assert "\tmove.l #$1E200,IO_DATA(a1)\n" in rendered
@@ -3798,6 +3799,17 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
         "IO_COMMAND",
     }
     assert {access["type_provenance_kind"] for access in typed_accesses} == {"policy_seed"}
+    assert disk_reads == [
+        {
+            "offset": 62,
+            "command_value": 2,
+            "command_name": "CMD_READ",
+            "disk_offset": 0x400,
+            "byte_length": 0x4E00,
+            "destination_addr": 0x1E200,
+            "source_kind": "logical_disk_offset",
+        }
+    ]
     assert rebuilt == original
 
     overwritten_source = original_source.replace(
@@ -3814,7 +3826,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
     overwritten_binary_path = tmp_path / "bootblock_io_seed_overwritten.bin"
     overwritten_binary_path.write_bytes(overwritten)
     overwritten_rendered, _profile = listing_artifact_source_text_with_c_backend_profile(
-        RawBinarySource(
+        overwritten_binary_source := RawBinarySource(
             kind="raw_binary",
             path=overwritten_binary_path,
             address_model="local_offset",
@@ -3827,10 +3839,16 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
         metadata_path=metadata_path,
         project_root=PROJECT_ROOT,
     )
+    overwritten_analysis = analyze_project_source_with_c_backend(
+        overwritten_binary_source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
 
     assert "_LVODoIO(a6)" in overwritten_rendered
     assert "IO_COMMAND(a1)" not in overwritten_rendered
     assert "\tmove.w #$2,$001C(a1)\n" in overwritten_rendered
+    assert overwritten_analysis["sections"][0]["recovered_platform_disk_reads"] == []
 
 
 def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:

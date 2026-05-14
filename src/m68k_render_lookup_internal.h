@@ -262,6 +262,19 @@ typedef struct M68kRenderTypedMemoryBaseValue {
   uint32_t offset;
 } M68kRenderTypedMemoryBaseValue;
 
+typedef struct M68kRenderIoRequestSetupValue {
+  uint8_t known;
+  uint32_t value;
+  uint32_t source_offset;
+} M68kRenderIoRequestSetupValue;
+
+typedef struct M68kRenderIoRequestSetup {
+  M68kRenderIoRequestSetupValue command;
+  M68kRenderIoRequestSetupValue disk_offset;
+  M68kRenderIoRequestSetupValue byte_length;
+  M68kRenderIoRequestSetupValue destination;
+} M68kRenderIoRequestSetup;
+
 typedef struct M68kRenderTypedStackSlot {
   uint8_t known;
   int16_t displacement;
@@ -285,6 +298,7 @@ typedef struct M68kRenderTypedState {
   M68kRenderTypedAppAddressValue app_addr_regs[8];
   M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
   M68kRenderTypedMemoryBaseValue memory_base_regs[8];
+  M68kRenderIoRequestSetup io_request_setups[8];
   uint8_t addr_reg_alias_known[8];
   uint8_t addr_reg_alias_source[8];
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
@@ -348,6 +362,17 @@ typedef struct M68kRenderTypedAppSlot {
   size_t source_section_index;
   uint32_t source_offset;
 } M68kRenderTypedAppSlot;
+
+typedef struct M68kRenderBootblockDiskRead {
+  size_t section_index;
+  uint32_t offset;
+  uint32_t command_value;
+  uint32_t disk_offset;
+  uint32_t byte_length;
+  uint32_t destination_addr;
+  char command_name[32];
+  char source_kind[32];
+} M68kRenderBootblockDiskRead;
 
 enum {
   M68K_RENDER_TYPED_STORAGE_APP_SLOT = 1,
@@ -505,6 +530,9 @@ struct M68kRenderLookup {
   M68kRenderUnresolvedTypedAccess *unresolved_typed_accesses;
   size_t unresolved_typed_access_count;
   size_t unresolved_typed_access_capacity;
+  M68kRenderBootblockDiskRead *bootblock_disk_reads;
+  size_t bootblock_disk_read_count;
+  size_t bootblock_disk_read_capacity;
   M68kRenderTypedAppSlot *typed_app_slots;
   size_t typed_app_slot_count;
   size_t typed_app_slot_capacity;

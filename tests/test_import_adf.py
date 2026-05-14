@@ -1699,6 +1699,191 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
     assert metadata["entry_register_seeds"][1]["register"] == "A1"
 
 
+def test_import_adf_materializes_bootblock_disk_read_fact_stage(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_bytes = bytearray(b"\x00" * 0x600)
+    adf_bytes[0x400:0x404] = b"\x4E\x75\x4E\x75"
+    adf_path.write_bytes(bytes(adf_bytes))
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=3,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+        )
+
+    def fake_bootblock_analysis(
+        bootblock_target_dir: Path,
+        *,
+        project_root: Path,
+    ) -> dict[str, object]:
+        assert bootblock_target_dir == project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_raw_bootblock"
+        return {
+            "sections": [
+                {
+                    "recovered_platform_disk_reads": [
+                        {
+                            "offset": 0x3E,
+                            "command_value": 2,
+                            "command_name": "CMD_READ",
+                            "disk_offset": 0x400,
+                            "byte_length": 4,
+                            "destination_addr": 0x1E200,
+                            "source_kind": "logical_disk_offset",
+                        }
+                    ]
+                }
+            ]
+        }
+
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project._analyze_bootblock_source_for_disk_reads",
+        fake_bootblock_analysis,
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    stage_target = next(target for target in manifest.imported_targets if target.target_type == "bootloader_stage")
+    assert stage_target.target_name == "amiga_disk_demo__amiga_raw_bootloader_stage_1"
+    assert stage_target.entry_path == "bootloader/stage_1"
+    assert stage_target.binary_path == f"{adf_path.as_posix()}::bootloader/stage_1"
+    stage_dir = project_root / stage_target.target_path
+    assert (stage_dir / "binary.bin").read_bytes() == b"\x4E\x75\x4E\x75"
+    source = json.loads((stage_dir / "source_binary.json").read_text(encoding="utf-8"))
+    assert source["kind"] == "raw_binary"
+    assert source["address_model"] == "runtime_absolute"
+    assert source["load_address"] == 0x1E200
+    assert source["entrypoint"] == 0x1E200
+    assert source["code_start_offset"] == 0
+    assert source["parent_disk_id"] == "demo"
+    assert source["disk_byte_offset"] == 0x400
+    assert source["disk_byte_size"] == 4
+    assert source["source_kind"] == "logical_disk_offset"
+    assert source["bootblock_read_instruction_offset"] == 0x3E
+    metadata = json.loads((stage_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["target_type"] == "bootloader_stage"
+    manifest_payload = json.loads(
+        (project_root / "targets" / "amiga_disk_demo" / "manifest.json").read_text(encoding="utf-8")
+    )
+    manifest_stage = next(
+        target for target in manifest_payload["imported_targets"] if target["target_type"] == "bootloader_stage"
+    )
+    assert manifest_stage["target_name"] == "amiga_disk_demo__amiga_raw_bootloader_stage_1"
+    assert manifest_stage["entry_path"] == "bootloader/stage_1"
+
+
+def test_import_adf_does_not_materialize_incomplete_bootblock_disk_read_fact(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_bytes = b"\x00" * 0x600
+    adf_path.write_bytes(adf_bytes)
+
+    def fake_analyze_adf(
+        adf_file: str | Path,
+        *,
+        extract_dir: str | Path | None = None,
+        include_tracks: bool = False,
+    ) -> AdfAnalysis:
+        assert Path(adf_file) == adf_path
+        assert extract_dir is None
+        assert include_tracks is True
+        return AdfAnalysis(
+            disk_info=DiskInfo(
+                path=Path(adf_file).name,
+                size=len(adf_bytes),
+                variant="demo",
+                total_sectors=3,
+                sectors_per_track=1,
+                is_dos=False,
+            ),
+            boot_block=BootBlockInfo(
+                magic_ascii="DOS",
+                is_dos=True,
+                flags_byte=0,
+                fs_type="0",
+                fs_description="DOS\\0 - OFS",
+                checksum="0x00000000",
+                checksum_valid=True,
+                rootblock_ptr=0,
+                bootcode_size=1012,
+                bootcode_has_code=True,
+                bootcode_entropy=0.0,
+                import_target=_bootblock_import_target(),
+            ),
+            non_dos=NonDosInfo(
+                description="Custom format disk (non-AmigaDOS)",
+                bootcode_present=True,
+            ),
+        )
+
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_adf", fake_analyze_adf)
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project._analyze_bootblock_source_for_disk_reads",
+        lambda bootblock_target_dir, *, project_root: {
+            "sections": [
+                {
+                    "recovered_platform_disk_reads": [
+                        {
+                            "offset": 0x3E,
+                            "command_name": "CMD_READ",
+                            "disk_offset": 0x500,
+                            "byte_length": 0x200,
+                            "destination_addr": 0x1E200,
+                            "source_kind": "logical_disk_offset",
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+
+    manifest = import_adf(adf_path, project_root=project_root)
+
+    assert [target.target_type for target in manifest.imported_targets] == ["bootblock"]
+    assert not (project_root / "targets" / "amiga_disk_demo" / "targets" / "amiga_raw_bootloader_stage_1").exists()
+
+
 def test_import_adf_does_not_create_raw_target_without_bootloader_stage_import(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:

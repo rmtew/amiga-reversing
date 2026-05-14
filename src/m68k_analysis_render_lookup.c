@@ -132,6 +132,8 @@ static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_ind
 static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector_at(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t helper_offset,
     unsigned depth);
+static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
+    size_t *out_source_index, size_t *out_dest_index, const M68kSimFormMetadata **out_metadata);
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
@@ -718,6 +720,11 @@ static void typed_state_clear_addr_alias_for_reg(M68kRenderTypedState *state, ui
   }
 }
 
+static void typed_state_clear_io_request_setup(M68kRenderTypedState *state, uint8_t reg_index) {
+  if (state == NULL || reg_index >= 8U) return;
+  memset(&state->io_request_setups[reg_index], 0, sizeof(state->io_request_setups[reg_index]));
+}
+
 static void typed_state_set_addr_alias(M68kRenderTypedState *state, uint8_t dest_reg, uint8_t source_reg) {
   if (state == NULL || dest_reg >= 8U || source_reg >= 8U || dest_reg == source_reg) return;
   state->addr_reg_alias_known[dest_reg] = 1U;
@@ -736,6 +743,7 @@ static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind,
     state->app_addr_regs[reg_index].known = 0U;
     state->app_addr_regs[reg_index].displacement = 0;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
+    typed_state_clear_io_request_setup(state, reg_index);
     typed_state_clear_addr_alias_for_reg(state, reg_index);
     typed_state_clear_base_slots_for_base(state, reg_index);
   }
@@ -1849,6 +1857,131 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
   return 0;
 }
 
+static void typed_io_request_setup_value_set(M68kRenderIoRequestSetupValue *target,
+    uint32_t value, uint32_t source_offset) {
+  if (target == NULL) return;
+  target->known = 1U;
+  target->value = value;
+  target->source_offset = source_offset;
+}
+
+static void typed_state_record_io_request_immediate_store(M68kRenderTypedState *state,
+    const M68kInstructionIR *instruction, uint32_t offset) {
+  const M68kSimFormMetadata *metadata;
+  size_t source_index = 0U, dest_index = 0U;
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  uint32_t value = 0U;
+  AmigaOsResolvedStructFieldInfo field;
+  M68kRenderIoRequestSetup *setup;
+  if (state == NULL || instruction == NULL) return;
+  if (!instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata))
+    return;
+  (void)metadata;
+  if (!operand_is_immediate_value_local(&instruction->operands[source_index], &value) ||
+      !operand_is_address_displacement_local(&instruction->operands[dest_index], &base_reg, &displacement) ||
+      base_reg >= 8U || state->addr_regs[base_reg].known == 0U ||
+      state->addr_regs[base_reg].struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+      !amiga_os_resolve_struct_field_by_struct_id(state->addr_regs[base_reg].struct_id, displacement, 0, &field)) {
+    return;
+  }
+  setup = &state->io_request_setups[base_reg];
+  if (field.field_id == AMIGA_OS_FIELD_ID_IO_COMMAND) {
+    typed_io_request_setup_value_set(&setup->command, value, offset);
+  } else if (field.field_id == AMIGA_OS_FIELD_ID_IO_OFFSET) {
+    typed_io_request_setup_value_set(&setup->disk_offset, value, offset);
+  } else if (field.field_id == AMIGA_OS_FIELD_ID_IO_LENGTH) {
+    typed_io_request_setup_value_set(&setup->byte_length, value, offset);
+  } else if (field.field_id == AMIGA_OS_FIELD_ID_IO_DATA) {
+    typed_io_request_setup_value_set(&setup->destination, value, offset);
+  }
+}
+
+static int policy_seed_context_matches(const M68kAnalysisPolicy *policy, size_t section_index,
+    uint32_t offset, uint8_t reg_kind, uint8_t reg_index, const char *context_name) {
+  uint16_t index;
+  if (policy == NULL || context_name == NULL) return 0;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    if (seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR ||
+        seed->reg_kind != reg_kind || seed->reg_index != reg_index ||
+        strcmp(seed->context_name, context_name) != 0) {
+      continue;
+    }
+    if (seed->has_section_index && seed->section_index != (uint32_t)section_index) continue;
+    if (seed->has_entry_offset) {
+      if (seed->entry_offset != offset) continue;
+    } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
+    return 1;
+  }
+  return 0;
+}
+
+static int render_lookup_add_bootblock_disk_read(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint32_t command_value, uint32_t disk_offset, uint32_t byte_length,
+    uint32_t destination_addr) {
+  M68kRenderBootblockDiskRead *grown;
+  size_t index;
+  size_t next_capacity;
+  if (lookup == NULL || byte_length == 0U) return 0;
+  for (index = 0U; index < lookup->bootblock_disk_read_count; ++index) {
+    const M68kRenderBootblockDiskRead *read = &lookup->bootblock_disk_reads[index];
+    if (read->section_index == section_index && read->offset == offset &&
+        read->command_value == command_value && read->disk_offset == disk_offset &&
+        read->byte_length == byte_length && read->destination_addr == destination_addr) {
+      return 0;
+    }
+  }
+  if (lookup->bootblock_disk_read_count == lookup->bootblock_disk_read_capacity) {
+    next_capacity = lookup->bootblock_disk_read_capacity == 0U ? 4U : lookup->bootblock_disk_read_capacity * 2U;
+    grown = (M68kRenderBootblockDiskRead *)render_lookup_grow_array(lookup, lookup->bootblock_disk_reads,
+      lookup->bootblock_disk_read_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->bootblock_disk_reads = grown;
+    lookup->bootblock_disk_read_capacity = next_capacity;
+  }
+  memset(&lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count], 0,
+    sizeof(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count]));
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].section_index = section_index;
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].offset = offset;
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].command_value = command_value;
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].disk_offset = disk_offset;
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].byte_length = byte_length;
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].destination_addr = destination_addr;
+  snprintf(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].command_name,
+    sizeof(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].command_name), "CMD_READ");
+  snprintf(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].source_kind,
+    sizeof(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].source_kind), "logical_disk_offset");
+  ++lookup->bootblock_disk_read_count;
+  return 0;
+}
+
+static int render_lookup_record_bootblock_disk_read_call(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, const M68kRenderTypedState *state, const AmigaOsLibraryVectorInfo *vector) {
+  int32_t cmd_read_value = 0;
+  const M68kRenderIoRequestSetup *setup;
+  const M68kRenderTypedRegValue *ioreq;
+  if (lookup == NULL || state == NULL || vector == NULL || vector->lvo_symbol_id != AMIGA_OS_SYMBOL_ID_LVODOIO)
+    return 0;
+  if (!render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_CMD_READ, &cmd_read_value))
+    return 0;
+  ioreq = &state->addr_regs[1U];
+  if (ioreq->known == 0U || ioreq->struct_id != AMIGA_OS_STRUCT_ID_IO ||
+      ioreq->provenance.kind != M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED ||
+      !policy_seed_context_matches(lookup->policy, ioreq->provenance.section_index, ioreq->provenance.offset,
+        M68K_ANALYSIS_REGISTER_ADDRESS, 1U, "trackdisk.device")) {
+    return 0;
+  }
+  setup = &state->io_request_setups[1U];
+  if (setup->command.known == 0U || setup->disk_offset.known == 0U ||
+      setup->byte_length.known == 0U || setup->destination.known == 0U ||
+      setup->command.value != (uint32_t)cmd_read_value) {
+    return 0;
+  }
+  return render_lookup_add_bootblock_disk_read(lookup, section_index, offset, setup->command.value,
+    setup->disk_offset.value, setup->byte_length.value, setup->destination.value);
+}
+
 static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_t offset,
     M68kRenderTypedState *state, const AmigaOsCallInputInfo *input, int *io_changed) {
   uint8_t source_reg;
@@ -2329,6 +2462,21 @@ static int typed_memory_bases_equal(const M68kRenderTypedMemoryBaseValue *left,
   return left->known == right->known && left->section_index == right->section_index && left->offset == right->offset;
 }
 
+static int typed_io_request_values_equal(const M68kRenderIoRequestSetupValue *left,
+    const M68kRenderIoRequestSetupValue *right) {
+  if (left == NULL || right == NULL) return 0;
+  return left->known == right->known && left->value == right->value && left->source_offset == right->source_offset;
+}
+
+static int typed_io_request_setups_equal(const M68kRenderIoRequestSetup *left,
+    const M68kRenderIoRequestSetup *right) {
+  if (left == NULL || right == NULL) return 0;
+  return typed_io_request_values_equal(&left->command, &right->command) &&
+    typed_io_request_values_equal(&left->disk_offset, &right->disk_offset) &&
+    typed_io_request_values_equal(&left->byte_length, &right->byte_length) &&
+    typed_io_request_values_equal(&left->destination, &right->destination);
+}
+
 static int typed_stack_slots_equal(const M68kRenderTypedStackSlot *left,
     const M68kRenderTypedStackSlot *right) {
   if (left == NULL || right == NULL) return 0;
@@ -2369,6 +2517,7 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
     if (!typed_memory_bases_equal(&left->data_memory_base_regs[index], &right->data_memory_base_regs[index]))
       return 0;
     if (!typed_memory_bases_equal(&left->memory_base_regs[index], &right->memory_base_regs[index])) return 0;
+    if (!typed_io_request_setups_equal(&left->io_request_setups[index], &right->io_request_setups[index])) return 0;
     if (left->addr_reg_alias_known[index] != right->addr_reg_alias_known[index]) return 0;
     if (left->addr_reg_alias_known[index] != 0U &&
         left->addr_reg_alias_source[index] != right->addr_reg_alias_source[index]) {
@@ -2505,6 +2654,7 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     M68kRenderTypedAppAddressValue old_app = dest->app_addr_regs[index];
     M68kRenderTypedMemoryBaseValue old_data_memory_base = dest->data_memory_base_regs[index];
     M68kRenderTypedMemoryBaseValue old_memory_base = dest->memory_base_regs[index];
+    M68kRenderIoRequestSetup old_io_request_setup = dest->io_request_setups[index];
     uint8_t old_alias_known = dest->addr_reg_alias_known[index];
     uint8_t old_alias_source = dest->addr_reg_alias_source[index];
     changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index]);
@@ -2533,6 +2683,10 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       typed_memory_base_clear(&dest->memory_base_regs[index]);
     }
     if (!typed_memory_bases_equal(&old_memory_base, &dest->memory_base_regs[index])) changed = 1;
+    if (!typed_io_request_setups_equal(&dest->io_request_setups[index], &source->io_request_setups[index])) {
+      memset(&dest->io_request_setups[index], 0, sizeof(dest->io_request_setups[index]));
+    }
+    if (!typed_io_request_setups_equal(&old_io_request_setup, &dest->io_request_setups[index])) changed = 1;
     if (dest->addr_reg_alias_known[index] == 0U || source->addr_reg_alias_known[index] == 0U ||
         dest->addr_reg_alias_source[index] != source->addr_reg_alias_source[index]) {
       dest->addr_reg_alias_known[index] = 0U;
@@ -2866,6 +3020,12 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     out_platform_state, &instruction, &call_resolution);
   if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
       node->candidate->offset, record_typed_accesses, io_changed) != 0) {
+    return -1;
+  }
+  typed_state_record_io_request_immediate_store(out_typed_state, &instruction, node->candidate->offset);
+  if (record_typed_accesses &&
+      render_lookup_record_bootblock_disk_read_call(lookup, section->section_index, node->candidate->offset,
+      out_typed_state, chosen_vector) != 0) {
     return -1;
   }
   if (!record_typed_accesses &&
@@ -3948,6 +4108,25 @@ static int append_render_lookup_unresolved_typed_accesses_for_section(const M68k
         access->container_candidate_count, access->container_struct_name, access->container_field_expr,
         access->refinement_applied, access->refined_struct_name, access->provenance.kind,
         access->provenance.section_index, access->provenance.offset) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_render_lookup_bootblock_disk_reads_for_section(const M68kRenderLookup *lookup,
+    M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (lookup == NULL || section_analysis == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->bootblock_disk_read_count; ++index) {
+    const M68kRenderBootblockDiskRead *read = &lookup->bootblock_disk_reads[index];
+    if (read->section_index != section_analysis->section_index) continue;
+    if (m68k_ir_section_analysis_append_recovered_platform_disk_read(section_analysis,
+        read->offset, read->command_value, read->command_name, read->disk_offset,
+        read->byte_length, read->destination_addr, read->source_kind) != 0) {
       return -1;
     }
   }
@@ -10503,6 +10682,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_recovered_function_args_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_unresolved_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_bootblock_disk_reads_for_section(lookup, section_analysis) != 0) return -1;
   return 0;
 }
 
