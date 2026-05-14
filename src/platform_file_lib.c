@@ -7279,7 +7279,8 @@ static int listing_artifact_set_error(char **out_error, const M68kDiagList *diag
 
 static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *backend_name, const char *path,
     M68kDiagList *diagnostics) {
-  PlatformFileListingArtifact *artifact = (PlatformFileListingArtifact *)calloc(1U, sizeof(*artifact));
+  PlatformFileListingArtifact *artifact =
+    (PlatformFileListingArtifact *)m68k_allocator_calloc(m68k_allocator_heap(), 1U, sizeof(*artifact));
   if (artifact == NULL) {
     platform_file_add_error(diagnostics, "out of memory");
     return NULL;
@@ -8354,10 +8355,10 @@ void platform_file_facts_v2_listing_artifact_destroy(PlatformFileListingArtifact
   m68k_ir_source_analysis_destroy(&artifact->source_analysis);
   m68k_object_destroy(&artifact->object);
   arena_destroy(artifact->listing_index_arena);
-  free(artifact->backend_name);
-  free(artifact->path);
+  m68k_allocator_free(m68k_allocator_heap(), artifact->backend_name);
+  m68k_allocator_free(m68k_allocator_heap(), artifact->path);
   memset(artifact, 0, sizeof(*artifact));
-  free(artifact);
+  m68k_allocator_free(m68k_allocator_heap(), artifact);
 }
 
 int platform_file_type_catalog_json_alloc(const char *backend_name, char **out_text) {

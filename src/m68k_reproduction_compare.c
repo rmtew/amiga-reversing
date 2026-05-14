@@ -1,6 +1,6 @@
 #include "m68k_reproduction_compare.h"
+#include "util_arena.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 enum {
@@ -494,7 +494,7 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
   if (out_container_shape_flags != NULL) *out_container_shape_flags = 0U;
   if (left == NULL || right == NULL || left->fixup_count != right->fixup_count) return 0;
   if (left->fixup_count == 0U) return 1;
-  used = (uint8_t *)calloc(right->fixup_count, sizeof(*used));
+  used = (uint8_t *)m68k_allocator_calloc(m68k_allocator_heap(), right->fixup_count, sizeof(*used));
   if (used == NULL) return 0;
   for (left_index = 0U; left_index < left->fixup_count; ++left_index) {
     size_t right_index;
@@ -519,11 +519,11 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
       break;
     }
     if (!matched) {
-      free(used);
+      m68k_allocator_free(m68k_allocator_heap(), used);
       return 0;
     }
   }
-  free(used);
+  m68k_allocator_free(m68k_allocator_heap(), used);
   if (out_container_shape_flags != NULL) *out_container_shape_flags = container_shape_flags;
   return 1;
 }

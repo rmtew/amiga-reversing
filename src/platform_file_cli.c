@@ -3,7 +3,6 @@
 #include "m68k_parse_util.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static int write_benchmark_json_file(const char *benchmark_json_path, const char *benchmark_json);
@@ -352,7 +351,8 @@ static int write_text_file(const char *path, const char *text) {
 }
 
 int main(int argc, char **argv) {
-  M68kAnalysisPolicy *analysis_policy = NULL;
+  M68kAnalysisPolicy analysis_policy_storage;
+  M68kAnalysisPolicy *analysis_policy = &analysis_policy_storage;
   int argi;
   if (argc == 4 && strcmp(argv[1], "inspect-file") == 0) return inspect_file_to_stdout(argv[2], argv[3]);
   if (argc == 3 && strcmp(argv[1], "type-catalog") == 0) return type_catalog_to_stdout(argv[2]);
@@ -398,11 +398,6 @@ int main(int argc, char **argv) {
       return 2;
     }
     return decompress_packed_range_to_stdout(provider_id, provider_path, path, offset, size, output_path);
-  }
-  analysis_policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*analysis_policy));
-  if (analysis_policy == NULL) {
-    fprintf(stderr, "out of memory\n");
-    return 1;
   }
   if (argc == 4 && strcmp(argv[1], "analyze-file") == 0) {
     m68k_analysis_policy_init_default(analysis_policy);

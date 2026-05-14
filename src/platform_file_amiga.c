@@ -3913,7 +3913,8 @@ static int summarize_amiga_direct_local_success_outputs_at(const SectionAnalysis
     AmigaLocalSuccessSummaryCacheEntry *target_cache;
     int result = 0;
     if (arena == NULL) return 0;
-    target_cache = (AmigaLocalSuccessSummaryCacheEntry *)calloc(target_analysis->block_count, sizeof(*target_cache));
+    target_cache = (AmigaLocalSuccessSummaryCacheEntry *)arena_calloc(arena, target_analysis->block_count,
+      sizeof(*target_cache));
     if (target_cache != NULL &&
         section_analysis_context_init(&target_ctx, object, target_section_index, target_section,
           ctx->prior_section_analyses, ctx->prior_section_analysis_count, section_analysis_context_policy(ctx),
@@ -3921,7 +3922,6 @@ static int summarize_amiga_direct_local_success_outputs_at(const SectionAnalysis
       result = summarize_amiga_direct_local_success_outputs(&target_ctx, target_analysis, target_offset,
         target_cache, target_analysis->block_count, out_summary);
     }
-    free(target_cache);
     arena_destroy(arena);
     return result;
   }
