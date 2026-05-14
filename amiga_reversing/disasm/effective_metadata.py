@@ -9,6 +9,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from amiga_reversing.disasm.binary_source import (
+    RawAddressModel,
     RawBinarySource,
     resolve_target_binary_source,
 )
@@ -285,7 +286,7 @@ def _add_source_descriptor_execution_view(target_dir: Path, payload: dict[str, o
     binary_source = resolve_target_binary_source(target_dir)
     if not isinstance(binary_source, RawBinarySource):
         return
-    if binary_source.address_model != "runtime_absolute":
+    if binary_source.address_model is not RawAddressModel.RUNTIME_ABSOLUTE:
         return
     source_end = binary_source.path.stat().st_size
     if source_end <= 0:

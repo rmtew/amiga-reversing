@@ -24,8 +24,10 @@ from typing import cast
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
+    BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    RawAddressModel,
     RawBinarySource,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
@@ -72,7 +74,7 @@ def render_binary_source_with_c_backend(
 ) -> str:
     path = Path(binary_path)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=path,
         display_path=str(binary_path),
         analysis_cache_path=path.with_name(path.name + ".analysis"),
@@ -1626,7 +1628,7 @@ def _source_file_for_c_backend(
             binary_source.path,
             "amiga-raw",
             binary_source.analysis_entrypoint,
-            binary_source.load_address if binary_source.address_model == "runtime_absolute" else None,
+            binary_source.load_address if binary_source.address_model is RawAddressModel.RUNTIME_ABSOLUTE else None,
         )
         return
     raise UnsupportedCBackendProject(f"C backend does not support binary source: {binary_source.display_path}")

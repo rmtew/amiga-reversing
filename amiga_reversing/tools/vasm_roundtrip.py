@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import (
     listing_artifact_source_text_with_c_backend_profile,
 )
@@ -59,10 +60,10 @@ def _vasm_executable(project_root: Path) -> Path:
     raise FileNotFoundError("vasmm68k_mot.exe not found in tools/ or ext/vasm/")
 
 
-def _vasm_format_for_source_kind(source_kind: str) -> str:
-    if source_kind == "hunk_file":
+def _vasm_format_for_source_kind(source_kind: BinarySourceKind) -> str:
+    if source_kind is BinarySourceKind.HUNK_FILE:
         return "-Fhunkexe"
-    if source_kind == "raw_binary":
+    if source_kind is BinarySourceKind.RAW_BINARY:
         return "-Fbin"
     raise ValueError(f"vasm round-trip target must be file-backed, got {source_kind!r}")
 

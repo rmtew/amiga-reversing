@@ -4004,7 +4004,7 @@ def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_pat
     )
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
     source = HunkFileBinarySource(
-        kind="amiga_hunk",
+        kind="hunk_file",
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "runtime_ref_copied_entry.analysis",

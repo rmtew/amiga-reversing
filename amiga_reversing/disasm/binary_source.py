@@ -2,12 +2,25 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import Literal, cast
+from typing import cast
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_DESCRIPTOR_FILE_NAME = "source_binary.json"
 _DISK_ENTRY_BYTES_CACHE: dict[tuple[str, str, str, int, int], bytes] = {}
+
+
+class BinarySourceKind(StrEnum):
+    HUNK_FILE = "hunk_file"
+    DISK_ENTRY = "disk_entry"
+    RAW_BINARY = "raw_binary"
+
+
+class RawAddressModel(StrEnum):
+    LOCAL_OFFSET = "local_offset"
+    RUNTIME_ABSOLUTE = "runtime_absolute"
+
 
 def _json_object(value: object) -> dict[str, object]:
     if not isinstance(value, dict):
@@ -17,11 +30,14 @@ def _json_object(value: object) -> dict[str, object]:
 
 @dataclass(frozen=True, slots=True)
 class HunkFileBinarySource:
-    kind: Literal["hunk_file"]
+    kind: BinarySourceKind
     path: Path
     display_path: str
     analysis_cache_path: Path
     parent_disk_id: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
 
     def read_bytes(self) -> bytes:
         return self.path.read_bytes()
@@ -29,7 +45,7 @@ class HunkFileBinarySource:
 
 @dataclass(frozen=True, slots=True)
 class DiskEntryBinarySource:
-    kind: Literal["disk_entry"]
+    kind: BinarySourceKind
     disk_id: str
     adf_path: Path
     entry_path: str
@@ -37,6 +53,9 @@ class DiskEntryBinarySource:
     analysis_cache_path: Path
     parent_disk_id: str | None = None
     project_root: Path = PROJECT_ROOT
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
 
     def read_bytes(self) -> bytes:
         from amiga_reversing.disasm.c_backend import extract_disk_entry_with_c_backend
@@ -69,15 +88,19 @@ class DiskEntryBinarySource:
 
 @dataclass(frozen=True, slots=True)
 class RawBinarySource:
-    kind: Literal["raw_binary"]
+    kind: BinarySourceKind
     path: Path
-    address_model: Literal["local_offset", "runtime_absolute"]
+    address_model: RawAddressModel
     load_address: int
     entrypoint: int
     code_start_offset: int
     display_path: str
     analysis_cache_path: Path
     parent_disk_id: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
+        object.__setattr__(self, "address_model", RawAddressModel(self.address_model))
 
     def read_bytes(self) -> bytes:
         return self.path.read_bytes()
@@ -88,13 +111,13 @@ class RawBinarySource:
 
     @property
     def analysis_base_addr(self) -> int:
-        if self.address_model == "local_offset":
+        if self.address_model is RawAddressModel.LOCAL_OFFSET:
             return 0
         return self.load_address
 
     @property
     def analysis_entrypoint(self) -> int:
-        if self.address_model == "local_offset":
+        if self.address_model is RawAddressModel.LOCAL_OFFSET:
             return self.local_entrypoint
         return self.entrypoint
 
@@ -137,7 +160,7 @@ def _load_hunk_file_source(
     assert parent_disk_id is None or isinstance(parent_disk_id, str)
     resolved_path = _resolve_recorded_path(path, project_root)
     return HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=resolved_path,
         display_path=path,
         analysis_cache_path=target_dir / "binary.analysis",
@@ -160,7 +183,7 @@ def _load_disk_entry_source(
     assert parent_disk_id is None or isinstance(parent_disk_id, str)
     adf_path = _resolve_recorded_path(disk_path, project_root)
     return DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id=disk_id,
         adf_path=adf_path,
         entry_path=entry_path,
@@ -188,8 +211,10 @@ def _load_raw_binary_source(
     assert isinstance(entrypoint, int)
     assert isinstance(code_start_offset, int)
     assert isinstance(parent_disk_id, str) or parent_disk_id is None
-    if address_model not in ("local_offset", "runtime_absolute"):
-        raise ValueError(f"Unsupported raw binary address_model for target {target_dir.name}: {address_model}")
+    try:
+        address_model_id = RawAddressModel(address_model)
+    except ValueError:
+        raise ValueError(f"Unsupported raw binary address_model for target {target_dir.name}: {address_model}") from None
     if code_start_offset < 0:
         raise ValueError(f"Raw binary code_start_offset must be non-negative: {code_start_offset}")
     code_start_addr = load_address + code_start_offset
@@ -210,9 +235,9 @@ def _load_raw_binary_source(
             f"0x{code_start_addr:X}..0x{code_end_addr - 1:X}"
         )
     return RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=resolved_path,
-        address_model=cast(Literal["local_offset", "runtime_absolute"], address_model),
+        address_model=address_model_id,
         load_address=load_address,
         entrypoint=entrypoint,
         code_start_offset=code_start_offset,
@@ -230,13 +255,17 @@ def resolve_target_binary_source(target_dir: Path, project_root: Path = PROJECT_
     descriptor = _json_object(payload)
     kind = descriptor["kind"]
     assert isinstance(kind, str)
-    if kind == "hunk_file":
+    try:
+        kind_id = BinarySourceKind(kind)
+    except ValueError:
+        raise ValueError(f"Unsupported source_binary kind for target {target_dir.name}: {kind}") from None
+    if kind_id is BinarySourceKind.HUNK_FILE:
         return _load_hunk_file_source(descriptor, target_dir, project_root)
-    if kind == "disk_entry":
+    if kind_id is BinarySourceKind.DISK_ENTRY:
         return _load_disk_entry_source(descriptor, target_dir, project_root)
-    if kind == "raw_binary":
+    if kind_id is BinarySourceKind.RAW_BINARY:
         return _load_raw_binary_source(descriptor, target_dir, project_root)
-    raise ValueError(f"Unsupported source_binary kind for target {target_dir.name}: {kind}")
+    raise AssertionError(f"Unhandled source_binary kind: {kind_id}")
 
 
 def is_internal_target(target_dir: Path, project_root: Path = PROJECT_ROOT) -> bool:

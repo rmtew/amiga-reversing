@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
+from amiga_reversing.disasm.binary_source import DiskEntryBinarySource
 from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 
@@ -61,7 +62,7 @@ def _devpac_output_args(profile_name: str, out_name: str) -> list[str]:
 def roundtrip_genam_target(target: str) -> RoundTripResult:
     paths = resolve_project_paths(target, project_root=ROOT)
     binary_source = paths.binary_source
-    if binary_source.kind == "disk_entry":
+    if isinstance(binary_source, DiskEntryBinarySource):
         raise ValueError(f"GenAm round-trip target must be file-backed: {target}")
     target_dir = paths.target_dir
     source_path = target_dir / f"{Path(binary_source.display_path).stem}.s"
