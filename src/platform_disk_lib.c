@@ -104,23 +104,18 @@ static void platform_disk_add_error(M68kDiagList *diagnostics, const char *messa
     m68k_diag_add(m68k_diag_sink(diagnostics), M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED, message);
 }
 
-static char *duplicate_text_disk(const char *text) {
-    if (text == NULL) text = "";
-    return m68k_allocator_strdup(m68k_allocator_heap(), text);
-}
-
 static int disk_text_result_to_alloc(PlatformDiskTextResult *result, char **out_json) {
     const char *message;
     if (out_json == NULL) return -1;
     *out_json = NULL;
     if (result == NULL) {
-        *out_json = duplicate_text_disk("platform disk operation failed");
+        *out_json = m68k_platform_dup_string("platform disk operation failed");
         return -1;
     }
     if (m68k_diag_has_errors(&result->diagnostics) || result->text == NULL) {
         message = m68k_diag_first_message(&result->diagnostics);
         if (message == NULL || message[0] == '\0') message = "platform disk operation failed";
-        *out_json = duplicate_text_disk(message);
+        *out_json = m68k_platform_dup_string(message);
         free(result->text);
         result->text = NULL;
         return -1;
@@ -1439,7 +1434,7 @@ PLATFORM_DISK_API int platform_disk_extract_entry_path_bytes_alloc(const char *p
     if (m68k_diag_has_errors(&result.diagnostics) || result.data == NULL) {
         message = m68k_diag_first_message(&result.diagnostics);
         if (message == NULL || message[0] == '\0') message = "platform disk operation failed";
-        if (out_error != NULL) *out_error = duplicate_text_disk(message);
+        if (out_error != NULL) *out_error = m68k_platform_dup_string(message);
         platform_disk_free_bytes(result.data);
         return -1;
     }
