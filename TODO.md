@@ -22,23 +22,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
     against it at a later date.
   - ...
 
-### Damocles observations
-
-Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620`
-
-- Disk "damocles" target is not a standard decompression stub.
-  - Several indicators each alone differentiates from standard decompression with or without bootstrapping:
-    - Use of multiple hunks.
-    - Presence of multiple payloads.
-    - Non-trivial use of custom registers.
-- Disk "damocles" target analysis flaw indicators:
-  - Third hunk:
-    - Entrypoint not load address for $100 bootstrapped payload.
-      ```
-      005c 4eea0040 jmp $0040(a2)
-      ```
-        
-
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
