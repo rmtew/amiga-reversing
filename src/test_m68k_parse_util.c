@@ -1,5 +1,6 @@
 #include "m68k_c_unit_test.h"
 #include "json_builder.h"
+#include "m68k_bitset.h"
 #include "m68k_parse_util.h"
 #include "m68k_source_constant_expr.h"
 #include "m68k_source_expr.h"
@@ -48,6 +49,23 @@ static int test_parse_cpu_name(void) {
   M68K_C_ASSERT_INT(M68K_ASM_CPU_ANY, result.cpu);
   result = m68k_parse_cpu_name("68008");
   M68K_C_ASSERT(!result.ok);
+  return 0;
+}
+
+static int test_bitset_u32_helpers(void) {
+  uint32_t bits = 0U;
+  M68K_C_ASSERT_INT(0, m68k_bitset_u32_has(bits, 3U));
+  m68k_bitset_u32_set(&bits, 3U);
+  m68k_bitset_u32_set(&bits, 7U);
+  M68K_C_ASSERT_U32((1U << 3U) | (1U << 7U), bits);
+  M68K_C_ASSERT_INT(1, m68k_bitset_u32_has(bits, 3U));
+  M68K_C_ASSERT_INT(1, m68k_bitset_u32_has(bits, 7U));
+  m68k_bitset_u32_clear(&bits, 3U);
+  M68K_C_ASSERT_INT(0, m68k_bitset_u32_has(bits, 3U));
+  M68K_C_ASSERT_INT(1, m68k_bitset_u32_has(bits, 7U));
+  m68k_bitset_u32_set(&bits, 32U);
+  M68K_C_ASSERT_INT(0, m68k_bitset_u32_has(bits, 32U));
+  M68K_C_ASSERT_U32(1U << 7U, bits);
   return 0;
 }
 
@@ -260,6 +278,7 @@ int m68k_c_parse_util_tests(void) {
   static const M68kCTestCase cases[] = {
     {"sign_extend32", test_sign_extend32},
     {"popcount16", test_popcount16},
+    {"bitset_u32_helpers", test_bitset_u32_helpers},
     {"parse_number_u32", test_parse_number_u32},
     {"parse_cpu_name", test_parse_cpu_name},
     {"parse_section_spec", test_parse_section_spec},

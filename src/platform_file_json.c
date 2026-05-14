@@ -1,6 +1,7 @@
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
+#include "m68k_bitset.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_text_util.h"
 #include "generated/amiga_os_runtime.h"
@@ -4325,7 +4326,7 @@ static void *listing_arena_grow_array(Arena *arena, const void *old_items, size_
 typedef struct ListingAppSlotSummary {
   char symbol[64];
   int16_t displacement;
-  uint8_t base_regs[8];
+  uint32_t base_reg_mask;
   uint32_t access_read;
   uint32_t access_write;
   uint32_t access_read_write;
@@ -4732,7 +4733,7 @@ static int listing_app_slot_computed_address_register_copy(const M68kStatementIR
   return 1;
 }
 
-static void listing_app_slot_mark_written_address_registers(const M68kStatementIR *stmt, uint8_t written_regs[8]) {
+static void listing_app_slot_mark_written_address_registers(const M68kStatementIR *stmt, uint32_t *written_regs) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
   if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION || written_regs == NULL) return;
@@ -4750,7 +4751,7 @@ static void listing_app_slot_mark_written_address_registers(const M68kStatementI
         !is_address || reg >= 8U) {
       continue;
     }
-    written_regs[reg] = 1U;
+    m68k_bitset_u32_set(written_regs, reg);
   }
 }
 
@@ -4831,8 +4832,8 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
     const char *row_kind, int section_index, const M68kStatementIR *stmt,
     const M68kSourceAnalysisIR *source_analysis) {
   const M68kSectionAnalysisIR *section = NULL;
-  uint8_t set_regs[8] = {0};
-  uint8_t written_regs[8] = {0};
+  uint32_t set_regs = 0U;
+  uint32_t written_regs = 0U;
   size_t ref_index;
   if (analysis == NULL || !analysis->enabled || stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION ||
       source_analysis == NULL || section_index < 0 || (size_t)section_index >= source_analysis->section_count) {
@@ -4883,7 +4884,7 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
           source->last_row_index = row_index;
           source->addr = stmt->offset;
           listing_copy_text(source->stable_key, sizeof(source->stable_key), record.stable_key);
-          set_regs[target_reg] = 1U;
+          m68k_bitset_u32_set(&set_regs, target_reg);
         }
       }
     }
@@ -4902,7 +4903,7 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
         target->last_row_index = row_index;
         target->has_via_reg = 1U;
         target->via_reg = source_reg;
-        set_regs[target_reg] = 1U;
+        m68k_bitset_u32_set(&set_regs, target_reg);
       }
     }
   }
@@ -4915,13 +4916,14 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
       if (source != NULL && source->valid && adjusted >= INT16_MIN && adjusted <= INT16_MAX) {
         source->displacement = (int16_t)adjusted;
         source->last_row_index = row_index;
-        set_regs[target_reg] = 1U;
+        m68k_bitset_u32_set(&set_regs, target_reg);
       }
     }
   }
-  listing_app_slot_mark_written_address_registers(stmt, written_regs);
+  listing_app_slot_mark_written_address_registers(stmt, &written_regs);
   for (ref_index = 0U; ref_index < 8U; ++ref_index) {
-    if (written_regs[ref_index] && !set_regs[ref_index]) {
+    if (m68k_bitset_u32_has(written_regs, (uint8_t)ref_index) &&
+        !m68k_bitset_u32_has(set_regs, (uint8_t)ref_index)) {
       ListingAppSlotSource *source = listing_app_slot_source_for(analysis, section_index, (uint8_t)ref_index);
       if (source != NULL) memset(source, 0, sizeof(*source));
     }
@@ -4962,7 +4964,7 @@ static int listing_app_slot_field_ref_compare(const void *left_ptr, const void *
 static void listing_app_slot_summary_add_counts(ListingAppSlotSummary *summary, const ListingAppSlotRefRecord *ref) {
   if (summary == NULL || ref == NULL) return;
   ++summary->ref_count;
-  if (ref->base_reg < 8U) summary->base_regs[ref->base_reg] = 1U;
+  if (ref->base_reg < 8U) m68k_bitset_u32_set(&summary->base_reg_mask, ref->base_reg);
   switch (ref->access_kind) {
   case M68K_APP_SLOT_ACCESS_READ: ++summary->access_read; break;
   case M68K_APP_SLOT_ACCESS_WRITE: ++summary->access_write; break;
@@ -5060,13 +5062,13 @@ static int append_listing_count_object(JsonBuilder *builder, const char *first_n
   return json_builder_append(builder, "}");
 }
 
-static int append_listing_app_slot_base_registers(JsonBuilder *builder, const uint8_t base_regs[8]) {
+static int append_listing_app_slot_base_registers(JsonBuilder *builder, uint32_t base_reg_mask) {
   uint8_t reg;
   int emitted = 0;
   if (json_builder_append(builder, "[") != 0) return -1;
   for (reg = 0U; reg < 8U; ++reg) {
     char reg_name[4];
-    if (!base_regs[reg]) continue;
+    if (!m68k_bitset_u32_has(base_reg_mask, reg)) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     listing_register_name(reg_name, sizeof(reg_name), reg);
     if (json_builder_append_json_string(builder, reg_name) != 0) return -1;
@@ -5132,7 +5134,7 @@ static int append_listing_app_slot_slots_json(JsonBuilder *builder, const Listin
     if (json_builder_append_json_string(builder, summary->symbol) != 0) return -1;
     if (json_builder_appendf(builder, ",\"displacement\":%d,\"base_registers\":", (int)summary->displacement) != 0)
       return -1;
-    if (append_listing_app_slot_base_registers(builder, summary->base_regs) != 0) return -1;
+    if (append_listing_app_slot_base_registers(builder, summary->base_reg_mask) != 0) return -1;
     if (json_builder_appendf(builder, ",\"ref_count\":%u,\"access_counts\":", (unsigned)summary->ref_count) != 0)
       return -1;
     if (append_listing_count_object(builder, "read", summary->access_read, "write", summary->access_write,
@@ -7440,7 +7442,7 @@ static int append_listing_navigation_app_slots_json(JsonBuilder *builder,
       }
     }
     if (json_builder_append(builder, "],\"base_registers\":") != 0) return -1;
-    if (append_listing_app_slot_base_registers(builder, summary->base_regs) != 0) return -1;
+    if (append_listing_app_slot_base_registers(builder, summary->base_reg_mask) != 0) return -1;
     if (json_builder_append(builder, ",\"width_counts\":") != 0) return -1;
     if (append_listing_count_object(builder, "byte", summary->width_byte, "word", summary->width_word,
         "long", summary->width_long, "unknown", summary->width_unknown) != 0)
