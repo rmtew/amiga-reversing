@@ -12,16 +12,16 @@ This slice is complete when flows like Epic's read into `$1E200`, copy to `$864`
 
 ## Acceptance criteria
 
-- [ ] Analysis records post-read memory copy source, destination, and extent when the loop is proven.
-- [ ] Runtime-copy candidates are linked to materialized read-stage bytes where possible.
-- [ ] ORG is emitted only for runtime-copy ranges with concrete bytes and accepted entrypoint evidence.
-- [ ] Absolute handoff targets inside proven copied ranges render as navigable runtime labels or equates.
-- [ ] Weak low-memory helpers without full evidence do not emit ORG.
-- [ ] The Epic `$1E200 -> $864` copy and `$86C` handoff are covered by a real-target or focused regression.
-- [ ] Round-trip reproduction remains exact for affected regenerated source.
-- [ ] Relevant C backend tests pass.
-- [ ] CDP tests pass.
-- [ ] `cmd /c src\precommit.bat` passes.
+- [x] Analysis records post-read memory copy source, destination, and extent when the loop is proven.
+- [x] Runtime-copy candidates are linked to materialized read-stage bytes where possible.
+- [x] ORG is emitted only for runtime-copy ranges with concrete bytes and accepted entrypoint evidence.
+- [x] Absolute handoff targets inside proven copied ranges render as navigable runtime labels or equates.
+- [x] Weak low-memory helpers without full evidence do not emit ORG.
+- [x] The Epic `$1E200 -> $864` copy and `$86C` handoff are covered by a real-target or focused regression.
+- [x] Round-trip reproduction remains exact for affected regenerated source.
+- [x] Relevant C backend tests pass.
+- [x] CDP tests pass.
+- [x] `cmd /c src\precommit.bat` passes.
 
 ## Blocked by
 

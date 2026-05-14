@@ -374,6 +374,16 @@ typedef struct M68kRenderBootblockDiskRead {
   char source_kind[32];
 } M68kRenderBootblockDiskRead;
 
+typedef struct M68kRenderBootblockRuntimeCopy {
+  size_t section_index;
+  uint32_t offset;
+  uint32_t source_addr;
+  uint32_t destination_addr;
+  uint32_t byte_length;
+  uint32_t handoff_addr;
+  char source_kind[32];
+} M68kRenderBootblockRuntimeCopy;
+
 enum {
   M68K_RENDER_TYPED_STORAGE_APP_SLOT = 1,
   M68K_RENDER_TYPED_STORAGE_ABSOLUTE = 2,
@@ -533,6 +543,9 @@ struct M68kRenderLookup {
   M68kRenderBootblockDiskRead *bootblock_disk_reads;
   size_t bootblock_disk_read_count;
   size_t bootblock_disk_read_capacity;
+  M68kRenderBootblockRuntimeCopy *bootblock_runtime_copies;
+  size_t bootblock_runtime_copy_count;
+  size_t bootblock_runtime_copy_capacity;
   M68kRenderTypedAppSlot *typed_app_slots;
   size_t typed_app_slot_count;
   size_t typed_app_slot_capacity;

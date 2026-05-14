@@ -23,7 +23,10 @@ from amiga_reversing.amiga_disk.models import (
     FileImportTargetInfo,
     ImportedTarget,
 )
-from amiga_reversing.disasm.binary_source import resolve_target_binary_source, write_source_descriptor
+from amiga_reversing.disasm.binary_source import (
+    resolve_target_binary_source,
+    write_source_descriptor,
+)
 from amiga_reversing.disasm.c_backend import (
     analyze_binary_source_with_c_backend,
     analyze_project_source_with_c_backend,
@@ -244,6 +247,75 @@ def _bootblock_read_stage_metadata() -> dict[str, object]:
     }
 
 
+def _bootloader_stage_runtime_copy_execution_views(
+    stage: BootloaderStage,
+    analysis: AdfAnalysis,
+) -> list[dict[str, object]]:
+    if analysis.bootloader_analysis is None:
+        return []
+    views: list[dict[str, object]] = []
+    for copy_stage in analysis.bootloader_analysis.stages:
+        for copy in copy_stage.memory_copies:
+            if copy.byte_length <= 0 or copy.source_addr < stage.base_addr:
+                continue
+            source_start = copy.source_addr - stage.base_addr
+            source_end = source_start + copy.byte_length
+            dest_end = copy.destination_addr + copy.byte_length
+            handoff_target = copy_stage.handoff_target
+            if (
+                source_start < 0
+                or source_end > stage.size
+                or handoff_target is None
+                or handoff_target < copy.destination_addr
+                or handoff_target >= dest_end
+            ):
+                continue
+            views.append(
+                {
+                    "source_start": source_start,
+                    "source_end": source_end,
+                    "base_addr": copy.destination_addr,
+                    "name": "bootstrapped_code",
+                    "seed_origin": "autodoc",
+                    "review_status": "seeded",
+                    "citation": f"bootloader:{copy_stage.name}:runtime_copy:{copy.instruction_addr:08x}",
+                    "comment": (
+                        f"Bootloader copies ${copy.source_addr:08X}-${copy.source_addr + copy.byte_length - 1:08X} "
+                        f"to ${copy.destination_addr:08X} and hands off at ${handoff_target:08X}"
+                    ),
+                }
+            )
+    return views
+
+
+def _bootloader_stage_target_metadata(stage: BootloaderStage, analysis: AdfAnalysis) -> dict[str, object]:
+    assert stage.import_target is not None
+    metadata = dict(stage.import_target.target_metadata)
+    existing_views = metadata.get("execution_views")
+    views: list[object] = list(existing_views) if isinstance(existing_views, list) else []
+    existing_keys: set[tuple[int, int, int]] = set()
+    for view in views:
+        if not isinstance(view, dict):
+            continue
+        source_start = _int_field(view, "source_start")
+        source_end = _int_field(view, "source_end")
+        base_addr = _int_field(view, "base_addr")
+        if source_start is not None and source_end is not None and base_addr is not None:
+            existing_keys.add((source_start, source_end, base_addr))
+    for view in _bootloader_stage_runtime_copy_execution_views(stage, analysis):
+        key = (
+            int(view["source_start"]),
+            int(view["source_end"]),
+            int(view["base_addr"]),
+        )
+        if key in existing_keys:
+            continue
+        views.append(view)
+        existing_keys.add(key)
+    metadata["execution_views"] = views
+    return metadata
+
+
 def _bootblock_disk_read_stage_targets(
     source_analysis: dict[str, object] | None,
     disk_bytes: bytes,
@@ -254,6 +326,42 @@ def _bootblock_disk_read_stage_targets(
     if not isinstance(sections, list):
         return []
     stage_targets: list[tuple[FileImportTargetInfo, bytes]] = []
+    runtime_copies: list[dict[str, int | str]] = []
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        copies = section.get("recovered_platform_runtime_copies")
+        if not isinstance(copies, list):
+            continue
+        for copy in copies:
+            if not isinstance(copy, dict):
+                continue
+            source_kind = _str_field(copy, "source_kind")
+            source_addr = _int_field(copy, "source_addr")
+            destination_addr = _int_field(copy, "destination_addr")
+            byte_length = _int_field(copy, "byte_length")
+            handoff_addr = _int_field(copy, "handoff_addr")
+            instruction_offset = _int_field(copy, "offset")
+            if (
+                source_kind != "post_read_runtime_copy"
+                or source_addr is None
+                or destination_addr is None
+                or byte_length is None
+                or handoff_addr is None
+                or instruction_offset is None
+                or byte_length <= 0
+            ):
+                continue
+            runtime_copies.append(
+                {
+                    "source_addr": source_addr,
+                    "destination_addr": destination_addr,
+                    "byte_length": byte_length,
+                    "handoff_addr": handoff_addr,
+                    "instruction_offset": instruction_offset,
+                    "source_kind": source_kind,
+                }
+            )
     for section in sections:
         if not isinstance(section, dict):
             continue
@@ -283,6 +391,41 @@ def _bootblock_disk_read_stage_targets(
             end = disk_offset + byte_length
             if end > len(disk_bytes):
                 continue
+            metadata = _bootblock_read_stage_metadata()
+            execution_views: list[dict[str, object]] = []
+            read_end_addr = destination_addr + byte_length
+            for copy in runtime_copies:
+                copy_source_addr = int(copy["source_addr"])
+                copy_destination_addr = int(copy["destination_addr"])
+                copy_byte_length = int(copy["byte_length"])
+                copy_handoff_addr = int(copy["handoff_addr"])
+                copy_instruction_offset = int(copy["instruction_offset"])
+                copy_source_end = copy_source_addr + copy_byte_length
+                copy_destination_end = copy_destination_addr + copy_byte_length
+                if (
+                    copy_source_addr < destination_addr
+                    or copy_source_end > read_end_addr
+                    or copy_handoff_addr < copy_destination_addr
+                    or copy_handoff_addr >= copy_destination_end
+                ):
+                    continue
+                source_start = copy_source_addr - destination_addr
+                execution_views.append(
+                    {
+                        "source_start": source_start,
+                        "source_end": source_start + copy_byte_length,
+                        "base_addr": copy_destination_addr,
+                        "name": "bootstrapped_code",
+                        "seed_origin": "autodoc",
+                        "review_status": "seeded",
+                        "citation": f"bootblock:runtime_copy:{copy_instruction_offset:08x}",
+                        "comment": (
+                            f"Bootblock copies ${copy_source_addr:08X}-${copy_source_end - 1:08X} "
+                            f"to ${copy_destination_addr:08X} and hands off at ${copy_handoff_addr:08X}"
+                        ),
+                    }
+                )
+            metadata["execution_views"] = execution_views
             stage_index = len(stage_targets) + 1
             stage_targets.append(
                 (
@@ -303,7 +446,7 @@ def _bootblock_disk_read_stage_targets(
                             "source_kind": source_kind,
                             "bootblock_read_instruction_offset": instruction_offset,
                         },
-                        target_metadata=_bootblock_read_stage_metadata(),
+                        target_metadata=metadata,
                     ),
                     disk_bytes[disk_offset:end],
                 )
@@ -316,16 +459,25 @@ def _analyze_bootblock_source_for_disk_reads(
     *,
     project_root: Path,
 ) -> dict[str, object] | None:
-    if not (project_root / "src" / "build" / "platform_file_lib.dll").exists():
+    backend_project_root = project_root
+    if not (backend_project_root / "src" / "build" / "platform_file_lib.dll").exists():
+        backend_project_root = PROJECT_ROOT
+    if not (backend_project_root / "src" / "build" / "platform_file_lib.dll").exists():
         return None
-    source = resolve_target_binary_source(bootblock_target_dir, project_root=project_root)
+    try:
+        source = resolve_target_binary_source(bootblock_target_dir, project_root=project_root)
+    except (OSError, ValueError):
+        return None
     if source is None:
         return None
-    return analyze_project_source_with_c_backend(
-        source,
-        metadata_path=bootblock_target_dir / "target_metadata.json",
-        project_root=project_root,
-    )
+    try:
+        return analyze_project_source_with_c_backend(
+            source,
+            metadata_path=bootblock_target_dir / "target_metadata.json",
+            project_root=backend_project_root,
+        )
+    except (OSError, ValueError):
+        return None
 
 
 def _unique_bootloader_raw_span_targets(
@@ -2057,7 +2209,7 @@ def create_disk_project(
             source_descriptor["path"] = binary_path.relative_to(project_root).as_posix()
             source_descriptor["parent_disk_id"] = resolved_disk_id
             write_source_descriptor(target_dir, source_descriptor)
-            write_target_metadata(target_dir, TargetMetadata.from_dict(stage.import_target.target_metadata))
+            write_target_metadata(target_dir, TargetMetadata.from_dict(_bootloader_stage_target_metadata(stage, analysis)))
             mark_project_updated(target_dir)
             imported_targets_by_name[target_name] = ImportedTarget(
                 target_name=target_name,
@@ -2121,7 +2273,14 @@ def create_disk_project(
             )
             target_name = disk_child_project_id(resolved_disk_id, local_target_name)
             if target_name in imported_targets_by_name:
-                continue
+                stage_index = 1
+                while True:
+                    stage_entry_path = f"bootloader/stage_{stage_index}"
+                    local_target_name = f"amiga_raw_bootloader_stage_{stage_index}"
+                    target_name = disk_child_project_id(resolved_disk_id, local_target_name)
+                    if target_name not in imported_targets_by_name:
+                        break
+                    stage_index += 1
             target_dir = disk_children_root / local_target_name
             auto_discovered_target_names.add(target_name)
             if target_dir.exists():

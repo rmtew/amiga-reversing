@@ -1989,7 +1989,52 @@ def test_import_adf_ice_uses_c_bootloader_stage_materialization(tmp_path: Path) 
     assert source["entrypoint"] == 0x40000
 
 
-def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
+def test_import_adf_epic_materializes_post_read_copy_handoff_view(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    source_adf = repo_root / "bin" / "Epic (1992)(Ocean)(Disk 1 of 3)[cr FSN - BST].adf"
+    disk_cli = repo_root / "src" / "build" / "platform_disk_cli.exe"
+    if not source_adf.exists():
+        pytest.skip("Epic ADF fixture is not present")
+    if not disk_cli.exists():
+        pytest.skip("platform_disk_cli.exe is not built; run cmd /c src\\build.bat")
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / source_adf.name
+    shutil.copy2(source_adf, adf_path)
+
+    manifest = import_adf(adf_path, disk_id="epic", project_root=project_root)
+
+    read_stage = None
+    for target in manifest.imported_targets:
+        if target.target_type != "bootloader_stage":
+            continue
+        stage_dir = project_root / target.target_path
+        source = json.loads((stage_dir / "source_binary.json").read_text(encoding="utf-8"))
+        if source["load_address"] == 0x1E200:
+            read_stage = (target, source)
+            break
+    assert read_stage is not None
+    stage_target, source = read_stage
+    assert source["bootblock_read_instruction_offset"] == 0x58
+    assert stage_target.entry_path == "bootloader/stage_2"
+    stage_dir = project_root / stage_target.target_path
+    metadata = json.loads((stage_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["execution_views"] == [
+        {
+            "source_start": 0x1E00,
+            "source_end": 0x4E00,
+            "base_addr": 0x864,
+            "name": "bootstrapped_code",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "bootblock:runtime_copy:0000008c",
+            "comment": "Bootblock copies $00020000-$00022FFF to $00000864 and hands off at $0000086C",
+        }
+    ]
+
+
+def test_import_adf_materializes_bootloader_copy_handoff_as_execution_view(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     project_root = tmp_path
@@ -2123,6 +2168,21 @@ def test_import_adf_does_not_create_raw_target_for_bootloader_copied_stage(
     assert all(target.entry_path != "bootloader/stage_2" for target in manifest.imported_targets)
     assert [target.entry_path for target in manifest.imported_targets if target.target_type == "bootloader_stage"] == [
         "bootloader/stage_1"
+    ]
+    stage1_target = next(target for target in manifest.imported_targets if target.entry_path == "bootloader/stage_1")
+    stage1_dir = project_root / stage1_target.target_path
+    stage1_metadata = json.loads((stage1_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert stage1_metadata["execution_views"] == [
+        {
+            "source_start": 2,
+            "source_end": 6,
+            "base_addr": 0x6000,
+            "name": "bootstrapped_code",
+            "seed_origin": "autodoc",
+            "review_status": "seeded",
+            "citation": "bootloader:stage_2:runtime_copy:00040010",
+            "comment": "Bootloader copies $00040002-$00040005 to $00006000 and hands off at $00006000",
+        }
     ]
 
 

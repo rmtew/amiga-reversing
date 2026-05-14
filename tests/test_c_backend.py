@@ -3679,6 +3679,11 @@ def test_real_dll_epic_bootblock_does_not_materialize_load_address_org() -> None
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
+        analysis = analyze_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
 
     assert not any(item.get("name") == "bootblock" for item in policy["runtime_ranges"])
     assert {"section_index": 0, "runtime_address": 0x7000C} not in policy["runtime_entry_points"]
@@ -3688,6 +3693,16 @@ def test_real_dll_epic_bootblock_does_not_materialize_load_address_org() -> None
     assert "runtime_code_00000400\tEQU\t$400\n" in source
     assert "\tlea.l runtime_code_00000400.l,a1\n" in source
     assert "abs_0_0007008C-" not in source
+    assert analysis["sections"][0]["recovered_platform_runtime_copies"] == [
+        {
+            "offset": 0x8C,
+            "source_addr": 0x20000,
+            "destination_addr": 0x864,
+            "byte_length": 0x3000,
+            "handoff_addr": 0x86C,
+            "source_kind": "post_read_runtime_copy",
+        }
+    ]
 
 
 def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_path: Path) -> None:
@@ -3709,6 +3724,14 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
         "    move.w #$2,$001C(a1)\n"
         "    movea.l $0004.w,a6\n"
         "    jsr -456(a6)\n"
+        "    move.w #$3,d0\n"
+        "    lea.l $0001E202.l,a0\n"
+        "    lea.l $00000864.l,a1\n"
+        "copy_loop:\n"
+        "    move.b (a0)+,(a1)+\n"
+        "    dbf.w d0,copy_loop\n"
+        "    bsr.w helper\n"
+        "    jsr $00000866.l\n"
         "    rts\n"
         "helper:\n"
         "    rts\n"
@@ -3788,6 +3811,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
 
     typed_accesses = analysis["sections"][0]["recovered_platform_typed_accesses"]
     disk_reads = analysis["sections"][0]["recovered_platform_disk_reads"]
+    runtime_copies = analysis["sections"][0]["recovered_platform_runtime_copies"]
     assert "\tmove.l #$400,IO_OFFSET(a1)\n" in rendered
     assert "\tmove.l #$4E00,IO_LENGTH(a1)\n" in rendered
     assert "\tmove.l #$1E200,IO_DATA(a1)\n" in rendered
@@ -3808,6 +3832,16 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
             "byte_length": 0x4E00,
             "destination_addr": 0x1E200,
             "source_kind": "logical_disk_offset",
+        }
+    ]
+    assert runtime_copies == [
+        {
+            "offset": 66,
+            "source_addr": 0x1E202,
+            "destination_addr": 0x864,
+            "byte_length": 4,
+            "handoff_addr": 0x866,
+            "source_kind": "post_read_runtime_copy",
         }
     ]
     assert rebuilt == original
@@ -3849,6 +3883,7 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
     assert "IO_COMMAND(a1)" not in overwritten_rendered
     assert "\tmove.w #$2,$001C(a1)\n" in overwritten_rendered
     assert overwritten_analysis["sections"][0]["recovered_platform_disk_reads"] == []
+    assert overwritten_analysis["sections"][0]["recovered_platform_runtime_copies"] == []
 
 
 def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:

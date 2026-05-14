@@ -2821,7 +2821,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
-    size_t effect_index, call_index, disk_read_index, indirect_site_index, orphan_signal_index;
+    size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
@@ -3326,6 +3326,29 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           (unsigned)read->disk_offset, (unsigned)read->byte_length, (unsigned)read->destination_addr) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, read->source_kind != NULL ? read->source_kind : "") != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"recovered_platform_runtime_copy_count\":%u,\"recovered_platform_runtime_copies\":[",
+          (unsigned)section->recovered_platform_runtime_copy_count) != 0)
+      goto oom;
+    for (runtime_copy_index = 0; runtime_copy_index < section->recovered_platform_runtime_copy_count;
+         ++runtime_copy_index) {
+      const M68kRecoveredPlatformRuntimeCopyIR *runtime_copy =
+        &section->recovered_platform_runtime_copies[runtime_copy_index];
+      if (runtime_copy_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"source_addr\":%u,\"destination_addr\":%u,\"byte_length\":%u,"
+          "\"handoff_addr\":%u,\"source_kind\":",
+          (unsigned)runtime_copy->offset, (unsigned)runtime_copy->source_addr,
+          (unsigned)runtime_copy->destination_addr, (unsigned)runtime_copy->byte_length,
+          (unsigned)runtime_copy->handoff_addr) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          runtime_copy->source_kind != NULL ? runtime_copy->source_kind : "") != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;

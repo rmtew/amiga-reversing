@@ -1982,6 +1982,44 @@ static int render_lookup_record_bootblock_disk_read_call(M68kRenderLookup *looku
     setup->disk_offset.value, setup->byte_length.value, setup->destination.value);
 }
 
+static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint32_t source_addr, uint32_t destination_addr, uint32_t byte_length,
+    uint32_t handoff_addr) {
+  M68kRenderBootblockRuntimeCopy *grown;
+  size_t index;
+  size_t next_capacity;
+  if (lookup == NULL || byte_length == 0U) return 0;
+  for (index = 0U; index < lookup->bootblock_runtime_copy_count; ++index) {
+    const M68kRenderBootblockRuntimeCopy *copy = &lookup->bootblock_runtime_copies[index];
+    if (copy->section_index == section_index && copy->offset == offset &&
+        copy->source_addr == source_addr && copy->destination_addr == destination_addr &&
+        copy->byte_length == byte_length && copy->handoff_addr == handoff_addr) {
+      return 0;
+    }
+  }
+  if (lookup->bootblock_runtime_copy_count == lookup->bootblock_runtime_copy_capacity) {
+    next_capacity = lookup->bootblock_runtime_copy_capacity == 0U ? 4U : lookup->bootblock_runtime_copy_capacity * 2U;
+    grown = (M68kRenderBootblockRuntimeCopy *)render_lookup_grow_array(lookup, lookup->bootblock_runtime_copies,
+      lookup->bootblock_runtime_copy_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->bootblock_runtime_copies = grown;
+    lookup->bootblock_runtime_copy_capacity = next_capacity;
+  }
+  memset(&lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count], 0,
+    sizeof(lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count]));
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].section_index = section_index;
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].offset = offset;
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_addr = source_addr;
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].destination_addr = destination_addr;
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].byte_length = byte_length;
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].handoff_addr = handoff_addr;
+  snprintf(lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_kind,
+    sizeof(lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_kind),
+    "post_read_runtime_copy");
+  ++lookup->bootblock_runtime_copy_count;
+  return 0;
+}
+
 static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_t offset,
     M68kRenderTypedState *state, const AmigaOsCallInputInfo *input, int *io_changed) {
   uint8_t source_reg;
@@ -4127,6 +4165,25 @@ static int append_render_lookup_bootblock_disk_reads_for_section(const M68kRende
     if (m68k_ir_section_analysis_append_recovered_platform_disk_read(section_analysis,
         read->offset, read->command_value, read->command_name, read->disk_offset,
         read->byte_length, read->destination_addr, read->source_kind) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_render_lookup_bootblock_runtime_copies_for_section(const M68kRenderLookup *lookup,
+    M68kSectionAnalysisIR *section_analysis) {
+  size_t index;
+  if (lookup == NULL || section_analysis == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (index = 0U; index < lookup->bootblock_runtime_copy_count; ++index) {
+    const M68kRenderBootblockRuntimeCopy *copy = &lookup->bootblock_runtime_copies[index];
+    if (copy->section_index != section_analysis->section_index) continue;
+    if (m68k_ir_section_analysis_append_recovered_platform_runtime_copy(section_analysis,
+        copy->offset, copy->source_addr, copy->destination_addr, copy->byte_length,
+        copy->handoff_addr, copy->source_kind) != 0) {
       return -1;
     }
   }
@@ -6865,6 +6922,202 @@ static int instruction_loads_hardware_range_to_address_reg(const M68kDecodeCandi
   *out_range_offset = absolute - range->base_address - range->offset;
   *out_reg = dest_reg;
   return 1;
+}
+
+static const M68kDecodeCandidate *next_accepted_candidate_local(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const M68kDecodeCandidate *candidate) {
+  uint32_t next_offset;
+  if (section == NULL || accepted_start == NULL || candidate == NULL || candidate->byte_count == 0U) return NULL;
+  next_offset = candidate->offset + candidate->byte_count;
+  if (!accepted_start_at(section, accepted_start, next_offset)) return NULL;
+  return find_candidate_at_offset_local(section, next_offset);
+}
+
+static const M68kDecodeCandidate *next_decoded_fallthrough_candidate_local(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate) {
+  uint32_t next_offset;
+  if (section == NULL || candidate == NULL || candidate->byte_count == 0U) return NULL;
+  next_offset = candidate->offset + candidate->byte_count;
+  if (next_offset >= section->size) return NULL;
+  return find_candidate_at_offset_local(section, next_offset);
+}
+
+static int bootblock_runtime_copy_source_is_from_disk_read(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t source_addr, uint32_t byte_length) {
+  size_t index;
+  if (lookup == NULL || byte_length == 0U || source_addr > UINT32_MAX - byte_length) return 0;
+  for (index = 0U; index < lookup->bootblock_disk_read_count; ++index) {
+    const M68kRenderBootblockDiskRead *read = &lookup->bootblock_disk_reads[index];
+    if (read->section_index != section_index || read->byte_length == 0U ||
+        read->destination_addr > UINT32_MAX - read->byte_length) {
+      continue;
+    }
+    if (source_addr >= read->destination_addr &&
+        source_addr + byte_length <= read->destination_addr + read->byte_length) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int instruction_is_lea_absolute_to_address_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, uint32_t *out_absolute, uint8_t *out_reg) {
+  uint8_t dest_reg = 0U;
+  if (out_absolute != NULL) *out_absolute = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || instruction == NULL || out_absolute == NULL || out_reg == NULL ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_LEA || instruction->operand_count != 2U ||
+      !asm_candidate_operand_absolute_value(candidate, 0U, out_absolute) ||
+      !operand_address_register_index_local(&instruction->operands[1], &dest_reg)) {
+    return 0;
+  }
+  *out_reg = dest_reg;
+  return 1;
+}
+
+static int instruction_is_postincrement_runtime_copy(const M68kInstructionIR *instruction, uint8_t source_reg,
+    uint8_t dest_reg, uint32_t *out_item_size) {
+  uint8_t operand_source_reg = 0U, operand_dest_reg = 0U;
+  if (out_item_size != NULL) *out_item_size = 0U;
+  if (instruction == NULL || out_item_size == NULL ||
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE || instruction->operand_count != 2U ||
+      !operand_is_address_postincrement_local(&instruction->operands[0], &operand_source_reg) ||
+      !operand_is_address_postincrement_local(&instruction->operands[1], &operand_dest_reg) ||
+      operand_source_reg != source_reg || operand_dest_reg != dest_reg) {
+    return 0;
+  }
+  if (instruction->size_suffix == 'b') *out_item_size = 1U;
+  else if (instruction->size_suffix == 'w') *out_item_size = 2U;
+  else if (instruction->size_suffix == 'l') *out_item_size = 4U;
+  return *out_item_size != 0U;
+}
+
+static int instruction_is_dbf_to_loop(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, uint8_t count_reg, uint32_t loop_offset) {
+  M68kInstructionIR instruction;
+  size_t target_index;
+  uint8_t dbf_reg = 0U;
+  if (lookup == NULL || section == NULL || candidate == NULL ||
+      candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF ||
+      m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      instruction.operand_count < 2U ||
+      !operand_is_data_register_local(&instruction.operands[0], &dbf_reg) ||
+      dbf_reg != count_reg) {
+    return 0;
+  }
+  (void)lookup;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->has_section && target->section_index == section->section_index &&
+        target->offset == loop_offset) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int bootblock_runtime_copy_handoff_after_loop(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *dbf_candidate, uint32_t destination_addr, uint32_t byte_length,
+    uint32_t *out_handoff_addr) {
+  const M68kDecodeCandidate *candidate;
+  unsigned scan_count = 0U;
+  if (out_handoff_addr != NULL) *out_handoff_addr = 0U;
+  if (section == NULL || accepted_start == NULL || dbf_candidate == NULL || out_handoff_addr == NULL ||
+      byte_length == 0U || destination_addr > UINT32_MAX - byte_length) {
+    return 0;
+  }
+  (void)accepted_start;
+  candidate = next_decoded_fallthrough_candidate_local(section, dbf_candidate);
+  while (candidate != NULL && scan_count < 12U) {
+    uint32_t handoff_addr = 0U;
+    if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR || candidate->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+      M68kInstructionIR instruction;
+      int has_absolute_handoff =
+        asm_candidate_operand_absolute_value(candidate, 0U, &handoff_addr);
+      if (!has_absolute_handoff && m68k_decode_candidate_to_instruction(candidate, &instruction) == 0 &&
+          instruction.operand_count == 1U) {
+        has_absolute_handoff = operand_absolute_offset_local(&instruction.operands[0], &handoff_addr);
+      }
+      if (has_absolute_handoff &&
+          handoff_addr >= destination_addr && handoff_addr < destination_addr + byte_length) {
+        *out_handoff_addr = handoff_addr;
+        return 1;
+      }
+    }
+    if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_RTS || candidate->mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
+        candidate->mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
+      return 0;
+    }
+    candidate = next_decoded_fallthrough_candidate_local(section, candidate);
+    ++scan_count;
+  }
+  return 0;
+}
+
+static int render_lookup_infer_bootblock_runtime_copies(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      lookup->bootblock_disk_read_count == 0U) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *count_candidate = &section->candidates[candidate_index];
+      const M68kDecodeCandidate *source_lea_candidate;
+      const M68kDecodeCandidate *dest_lea_candidate;
+      const M68kDecodeCandidate *copy_candidate;
+      const M68kDecodeCandidate *dbf_candidate;
+      M68kInstructionIR count_instruction, source_lea_instruction, dest_lea_instruction, copy_instruction;
+      uint32_t count_value = 0U, source_addr = 0U, destination_addr = 0U, item_size = 0U, byte_length = 0U;
+      uint32_t handoff_addr = 0U;
+      uint8_t count_reg = 0U, source_reg = 0U, dest_reg = 0U;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], count_candidate) ||
+          m68k_decode_candidate_to_instruction(count_candidate, &count_instruction) != 0 ||
+          count_instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+          count_instruction.size_suffix != 'w' || count_instruction.operand_count != 2U ||
+          !operand_is_immediate_value_local(&count_instruction.operands[0], &count_value) ||
+          !operand_is_data_register_local(&count_instruction.operands[1], &count_reg)) {
+        continue;
+      }
+      source_lea_candidate = next_accepted_candidate_local(section, accepted_start[section_index], count_candidate);
+      dest_lea_candidate = next_accepted_candidate_local(section, accepted_start[section_index], source_lea_candidate);
+      copy_candidate = next_accepted_candidate_local(section, accepted_start[section_index], dest_lea_candidate);
+      dbf_candidate = next_accepted_candidate_local(section, accepted_start[section_index], copy_candidate);
+      if (source_lea_candidate == NULL || dest_lea_candidate == NULL || copy_candidate == NULL ||
+          dbf_candidate == NULL ||
+          m68k_decode_candidate_to_instruction(source_lea_candidate, &source_lea_instruction) != 0 ||
+          m68k_decode_candidate_to_instruction(dest_lea_candidate, &dest_lea_instruction) != 0 ||
+          m68k_decode_candidate_to_instruction(copy_candidate, &copy_instruction) != 0 ||
+          !instruction_is_lea_absolute_to_address_reg(source_lea_candidate, &source_lea_instruction, &source_addr,
+            &source_reg) ||
+          !instruction_is_lea_absolute_to_address_reg(dest_lea_candidate, &dest_lea_instruction, &destination_addr,
+            &dest_reg) ||
+          !instruction_is_postincrement_runtime_copy(&copy_instruction, source_reg, dest_reg, &item_size) ||
+          count_value > (UINT32_MAX / item_size) - 1U) {
+        continue;
+      }
+      byte_length = (count_value + 1U) * item_size;
+      if (!instruction_is_dbf_to_loop(lookup, section, dbf_candidate, count_reg, copy_candidate->offset)) {
+        continue;
+      }
+      if (!bootblock_runtime_copy_source_is_from_disk_read(lookup, section->section_index, source_addr, byte_length)) {
+        continue;
+      }
+      if (!bootblock_runtime_copy_handoff_after_loop(section, accepted_start[section_index], dbf_candidate,
+            destination_addr, byte_length, &handoff_addr)) {
+        continue;
+      }
+      if (render_lookup_add_bootblock_runtime_copy(lookup, section->section_index, count_candidate->offset,
+          source_addr, destination_addr, byte_length, handoff_addr) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
 }
 
 static void hardware_range_pointer_state_update_after_instruction(M68kRenderHardwareRangePointerState *state,
@@ -10634,6 +10887,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_runtime_sink_immediate_refs(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
+  if (render_lookup_infer_bootblock_runtime_copies(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_call_comment_seconds = elapsed_seconds_local(start, end);
   start = clock();
@@ -10683,6 +10937,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   if (append_render_lookup_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_unresolved_typed_accesses_for_section(lookup, section_analysis) != 0) return -1;
   if (append_render_lookup_bootblock_disk_reads_for_section(lookup, section_analysis) != 0) return -1;
+  if (append_render_lookup_bootblock_runtime_copies_for_section(lookup, section_analysis) != 0) return -1;
   return 0;
 }
 

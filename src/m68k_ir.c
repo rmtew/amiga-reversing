@@ -1940,6 +1940,51 @@ int m68k_ir_section_analysis_append_recovered_platform_disk_read(M68kSectionAnal
   return 0;
 }
 
+int m68k_ir_section_analysis_append_recovered_platform_runtime_copy(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, uint32_t source_addr, uint32_t destination_addr, uint32_t byte_length,
+    uint32_t handoff_addr, const char *source_kind) {
+  size_t index;
+  char *copy_source_kind;
+  if (section_analysis == NULL || source_kind == NULL || source_kind[0] == '\0' || byte_length == 0U) {
+    return -1;
+  }
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_runtime_copy_count; ++index) {
+    const M68kRecoveredPlatformRuntimeCopyIR *existing = &section_analysis->recovered_platform_runtime_copies[index];
+    if (existing->offset == offset &&
+        existing->source_addr == source_addr &&
+        existing->destination_addr == destination_addr &&
+        existing->byte_length == byte_length &&
+        existing->handoff_addr == handoff_addr &&
+        existing->source_kind != NULL && strcmp(existing->source_kind, source_kind) == 0) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_platform_runtime_copies =
+    (M68kRecoveredPlatformRuntimeCopyIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->recovered_platform_runtime_copies,
+      section_analysis->recovered_platform_runtime_copy_count,
+      &section_analysis->recovered_platform_runtime_copy_capacity,
+      4U, sizeof(*section_analysis->recovered_platform_runtime_copies));
+  if (section_analysis->recovered_platform_runtime_copies == NULL) return -1;
+  copy_source_kind = arena_strdup(section_analysis->arena, source_kind);
+  if (copy_source_kind == NULL) return -1;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count].offset =
+    offset;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count]
+    .source_addr = source_addr;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count]
+    .destination_addr = destination_addr;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count]
+    .byte_length = byte_length;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count]
+    .handoff_addr = handoff_addr;
+  section_analysis->recovered_platform_runtime_copies[section_analysis->recovered_platform_runtime_copy_count]
+    .source_kind = copy_source_kind;
+  section_analysis->recovered_platform_runtime_copy_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset) {
   size_t index;
@@ -2623,6 +2668,16 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
     if (m68k_ir_section_analysis_append_recovered_platform_disk_read(&copy, read->offset, read->command_value,
         read->command_name, read->disk_offset, read->byte_length, read->destination_addr,
         read->source_kind) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_runtime_copy_count; ++index) {
+    const M68kRecoveredPlatformRuntimeCopyIR *runtime_copy =
+      &section_analysis->recovered_platform_runtime_copies[index];
+    if (m68k_ir_section_analysis_append_recovered_platform_runtime_copy(&copy, runtime_copy->offset,
+        runtime_copy->source_addr, runtime_copy->destination_addr, runtime_copy->byte_length,
+        runtime_copy->handoff_addr, runtime_copy->source_kind) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
