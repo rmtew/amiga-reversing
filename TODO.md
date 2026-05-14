@@ -29,16 +29,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
     - Despite the typed amiga platform `_custom` value of `a5` being used in the caller, it is not in the `callee`.
     - The value set in `a0` should be registered as a runtime memory range and given an equate, and added to memory map.
 - Bloodwych observed improvement possibilities (target: `amiga_hunk_bloodwych`):
-  - General analysis failure: address not checked and resolved as code reference sample.
-    - Note that this should touch 8 interrupt addresses and a) make `$8CC8` a symbol and b) ensure it is code.
-    ```
-    0188 203c00008cc8 move.l #$8CC8,d0
-    018e 41f80060     lea.l m68k_vector_spurious_interrupt.w,a0
-    0192 7207         moveq.l #7,d1
-    0194          abs_0_00000538:
-    0194 20c0         move.l d0,(a0)+
-    0196 51c9fffc     dbf.w d1,abs_0_00000538
-    ```
   - Web UI improvement possibilities for lookup tables samples:
     ```
       020e abs_0_000005B2:

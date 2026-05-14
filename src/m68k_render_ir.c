@@ -2730,6 +2730,7 @@ static void apply_exact_byte_immediate_render_values(M68kInstructionIR *instruct
     uint16_t raw_word;
     if (sites[site_index].byte_offset + 1U >= raw_size) continue;
     if (operand_index >= instruction->operand_count) continue;
+    if (instruction->operands[operand_index].symbol_ref.has_name != 0U) continue;
     raw_word = m68k_read_u16be(raw_bytes + sites[site_index].byte_offset);
     if ((raw_word & 0xFF00U) == 0U) continue;
     if ((raw_word & 0x00FFU) != (instruction->operands[operand_index].value.value & 0xFFU)) continue;
@@ -8029,12 +8030,25 @@ static int amiga_abs_exec_base_load_should_stay_absolute(const M68kRenderLookup 
       fact->runtime_address)) {
     return 0;
   }
+  if (fact->target_section_index < lookup->section_count && fact->runtime_address == fact->target_offset &&
+      lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
+    return 0;
+  }
   if (operand_index != 0U || instruction->operand_count < 2U) return 0;
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) {
     return 0;
   }
   return operand_absolute_offset_local(operand, &absolute) && absolute == fact->runtime_address;
+}
+
+static int operand_is_memory_reference_for_overlap_guard(const M68kOperandIR *operand) {
+  if (operand == NULL ||
+      (operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA)) {
+    return 0;
+  }
+  if (operand->value.ea_mode == 0U || operand->value.ea_mode == 1U) return 0;
+  return !(operand->value.ea_mode == 7U && operand->value.ea_reg == 4U);
 }
 
 static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
@@ -8069,7 +8083,8 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
     {
       uint32_t target_runtime_address = fact->runtime_address;
       int has_materialized_target = lookup_source_has_materialized_runtime_address(lookup,
-        fact->target_section_index, fact->target_offset, fact->runtime_address);
+        fact->target_section_index, fact->target_offset, fact->runtime_address) ||
+        fact->runtime_address == fact->target_offset;
       if (!has_materialized_target &&
           lookup_source_runtime_address(lookup, fact->target_section_index, fact->target_offset,
             &target_runtime_address) && target_runtime_address != fact->runtime_address &&
@@ -8111,6 +8126,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
         continue;
       }
       if (fact->target_section_index == section->section_index && metadata != NULL && operand_index < 4U &&
+          operand_is_memory_reference_for_overlap_guard(operand) &&
           (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
            metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) &&
           accepted_byte_range_overlaps(section, accepted_bytes, fact->target_offset,

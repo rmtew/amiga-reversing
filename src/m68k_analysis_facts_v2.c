@@ -4729,7 +4729,7 @@ static int candidate_stores_trace_to_callback_vector(size_t section_index, const
     }
   }
   if (!candidate_is_long_data_register_postincrement_store(store_candidate, &data_reg, &address_reg)) return 0;
-  if (trace_state->d[data_reg].kind != M68K_FACTS_V2_TRACE_CONSTANT ||
+  if (!trace_value_is_same_section_control_address(&trace_state->d[data_reg], section_index) ||
       trace_state->a[address_reg].kind != M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS) {
     return 0;
   }
@@ -4887,6 +4887,56 @@ static int enqueue_same_section_control_trace_target(M68kDecodeIR *decode, M68kF
   return 0;
 }
 
+static int append_trace_origin_runtime_control_ref(M68kDecodeIR *decode, M68kFactIR *facts,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, uint8_t max_cpu, size_t section_index,
+    const M68kFactsV2TraceValue *target_value, const M68kRuntimeAddressSpace *runtime_addresses,
+    uint8_t confidence) {
+  const M68kDecodeSectionIR *section;
+  const M68kDecodeCandidate *target_candidate = NULL;
+  uint32_t target_offset = 0U;
+  uint32_t runtime_address = 0U;
+  int ref_result;
+  if (decode == NULL || facts == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      target_value == NULL || !target_value->has_origin || section_index >= decode->section_count ||
+      target_value->origin_section_index != section_index) {
+    return 0;
+  }
+  section = &decode->sections[section_index];
+  if (target_value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET) {
+    if (target_value->section_index != section_index) return 0;
+    target_offset = target_value->value;
+    runtime_address = target_offset;
+    (void)runtime_address_space_source_to_runtime_near(runtime_addresses, section_index, target_offset, 0U, 0U,
+      &runtime_address);
+  } else if (target_value->kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS ||
+      target_value->kind == M68K_FACTS_V2_TRACE_CONSTANT) {
+    runtime_address = target_value->value;
+    if (!runtime_address_space_translate(runtime_addresses, section_index, runtime_address, section->size,
+        &target_offset)) {
+      if (runtime_address >= section->size) return 0;
+      target_offset = runtime_address;
+    }
+  } else {
+    return 0;
+  }
+  if (target_offset >= section->size || (target_offset & 1U) != 0U ||
+      accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
+        target_offset)) {
+    return 0;
+  }
+  if (m68k_decode_ir_ensure_candidate_at(decode, section_index, target_offset, max_cpu, &target_candidate,
+      m68k_diag_sink(NULL)) != 0) {
+    return -1;
+  }
+  if (target_candidate == NULL) return 0;
+  ref_result = append_runtime_address_ref_fact(facts, section_index, target_value->origin_offset,
+    target_value->origin_operand_index, target_offset, runtime_address, confidence);
+  if (ref_result < 0) return -1;
+  if (append_xref_fact(facts, section_index, target_value->origin_offset, target_offset, confidence) != 0)
+    return -1;
+  return m68k_fact_ir_require_label(facts, section_index, target_offset, confidence);
+}
+
 static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, uint8_t platform_kind, size_t section_index,
@@ -4906,6 +4956,9 @@ static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactI
   }
   if (candidate_stores_trace_to_callback_vector(section_index, section, candidate, platform_kind, trace_state,
       &target_value)) {
+    if (append_trace_origin_runtime_control_ref(decode, facts, accepted_start, accepted_bytes, max_cpu,
+        section_index, &target_value, runtime_addresses, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+      return -1;
     return enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
       profile, max_cpu, section_index, candidate, &target_value, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
       runtime_addresses, trace_state);

@@ -8168,7 +8168,8 @@ static int test_facts_v2_detects_register_copied_interrupt_vector_store_target(v
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmove.l #$18,d1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$18,d1\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #loc_0_00000018,d1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l d2,m68k_vector_illegal_instruction.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tnop\n\trte\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tdc.b $4E,$71,$4E,$73") == NULL);
@@ -8220,6 +8221,7 @@ static int test_facts_v2_detects_interrupt_vector_fill_target(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   uint8_t bytes[28] = {
     0x20u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x18u,
@@ -8241,14 +8243,22 @@ static int test_facts_v2_detects_interrupt_vector_fill_target(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, source_analysis.sections[0].runtime_address_ref_count);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].runtime_address_refs[0].offset);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].runtime_address_refs[0].operand_index);
+  M68K_C_ASSERT_U32(0x18U, source_analysis.sections[0].runtime_address_refs[0].target_offset);
+  M68K_C_ASSERT_U32(0x18U, source_analysis.sections[0].runtime_address_refs[0].runtime_address);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$18,d0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #loc_0_00000018,d0\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\trte\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000018:\n\tdc.b $4E,$73,$4E,$75") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.interior_conflicts_unresolved);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

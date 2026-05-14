@@ -152,7 +152,7 @@ abs_0_0000050E:
 	move.w d0,$0002(a0)
 	addq.w #8,a0
 	dbf.w d1,abs_0_0000050E
-	move.l #$8CC8,d0
+	move.l #abs_0_00008CC8,d0
 	lea.l m68k_vector_spurious_interrupt.w,a0
 	moveq.l #7,d1
 abs_0_00000538:
