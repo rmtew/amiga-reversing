@@ -192,6 +192,42 @@ static int test_allocator_arena_uses_arena_storage(void) {
   return 0;
 }
 
+static int test_allocator_duplicates_memory_and_text(void) {
+  M68kAllocator heap = m68k_allocator_heap();
+  const unsigned char bytes[] = {1U, 2U, 3U};
+  unsigned char *bytes_copy = (unsigned char *)m68k_allocator_memdup(heap, bytes, sizeof(bytes));
+  char *text_copy = m68k_allocator_strdup(heap, "allocator text");
+  M68K_C_ASSERT(bytes_copy != NULL);
+  M68K_C_ASSERT(text_copy != NULL);
+  M68K_C_ASSERT(bytes_copy != bytes);
+  M68K_C_ASSERT_U32(1U, bytes_copy[0]);
+  M68K_C_ASSERT_U32(2U, bytes_copy[1]);
+  M68K_C_ASSERT_U32(3U, bytes_copy[2]);
+  M68K_C_ASSERT_STR("allocator text", text_copy);
+  m68k_allocator_free(heap, text_copy);
+  m68k_allocator_free(heap, bytes_copy);
+  return 0;
+}
+
+static int test_allocator_arena_strdup_uses_arena_storage(void) {
+  Arena *arena = arena_create(64U);
+  M68kAllocator allocator;
+  ArenaStats before;
+  ArenaStats after;
+  char *text;
+  M68K_C_ASSERT(arena != NULL);
+  allocator = m68k_allocator_arena(arena);
+  before = arena_stats(arena);
+  text = m68k_allocator_strdup(allocator, "arena text");
+  after = arena_stats(arena);
+  M68K_C_ASSERT_STR("arena text", text);
+  M68K_C_ASSERT(after.current_used > before.current_used);
+  m68k_allocator_free(allocator, text);
+  M68K_C_ASSERT_U32((uint32_t)after.current_used, (uint32_t)arena_stats(arena).current_used);
+  arena_destroy(arena);
+  return 0;
+}
+
 static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
   TestVirtualReservedArena arena;
   unsigned char *first;
@@ -336,6 +372,8 @@ int m68k_c_util_arena_tests(void) {
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
     {"allocator_heap_allocates_and_frees", test_allocator_heap_allocates_and_frees},
     {"allocator_arena_uses_arena_storage", test_allocator_arena_uses_arena_storage},
+    {"allocator_duplicates_memory_and_text", test_allocator_duplicates_memory_and_text},
+    {"allocator_arena_strdup_uses_arena_storage", test_allocator_arena_strdup_uses_arena_storage},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
     {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},

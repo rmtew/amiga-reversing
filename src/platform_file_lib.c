@@ -52,14 +52,7 @@ static int write_bytes_to_path_local(const char *path, const unsigned char *data
 static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason);
 
 static char *duplicate_text_local(const char *text) {
-  size_t length;
-  char *copy;
-  if (text == NULL) text = "";
-  length = strlen(text);
-  copy = (char *)malloc(length + 1U);
-  if (copy == NULL) return NULL;
-  memcpy(copy, text, length + 1U);
-  return copy;
+  return m68k_allocator_strdup(m68k_allocator_heap(), text);
 }
 
 static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text) {

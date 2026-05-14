@@ -314,6 +314,23 @@ void *m68k_allocator_calloc(M68kAllocator allocator, size_t count, size_t size) 
   return ptr;
 }
 
+void *m68k_allocator_memdup(M68kAllocator allocator, const void *data, size_t size) {
+  void *copy;
+  if (size == 0U) return m68k_allocator_alloc(allocator, 1U);
+  if (data == NULL) return NULL;
+  copy = m68k_allocator_alloc(allocator, size);
+  if (copy == NULL) return NULL;
+  memcpy(copy, data, size);
+  return copy;
+}
+
+char *m68k_allocator_strdup(M68kAllocator allocator, const char *text) {
+  size_t length;
+  if (text == NULL) text = "";
+  length = strlen(text);
+  return (char *)m68k_allocator_memdup(allocator, text, length + 1U);
+}
+
 void m68k_allocator_free(M68kAllocator allocator, void *ptr) {
   if (allocator.free != NULL && ptr != NULL) allocator.free(allocator.context, ptr);
 }
