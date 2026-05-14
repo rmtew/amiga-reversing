@@ -4,7 +4,6 @@
 const char *const AMIGA_APP_BASE_TAG = "__amiga_app_base__";
 
 #include <ctype.h>
-#include <stdlib.h>
 #include <time.h>
 
 #define AMIGA_BASE_SLOT_TAG_CAPACITY 64U
@@ -4111,19 +4110,31 @@ static int acquire_amiga_local_success_summary_workspace(const SectionAnalysisCo
     return 0;
   }
   memset(temp_workspace, 0, sizeof(*temp_workspace));
-  temp_workspace->entry_states = (AmigaCallEffectRegState *)malloc(block_count * sizeof(*temp_workspace->entry_states));
-  temp_workspace->entry_const_known = (uint32_t *)malloc(block_count * sizeof(*temp_workspace->entry_const_known));
-  temp_workspace->entry_const_values = (int32_t (*)[8])malloc(block_count * sizeof(*temp_workspace->entry_const_values));
-  temp_workspace->entry_known = (uint8_t *)malloc(block_count * sizeof(*temp_workspace->entry_known));
-  temp_workspace->pending = (size_t *)malloc(block_count * sizeof(*temp_workspace->pending));
+  if (block_count > ((size_t)-1) / sizeof(*temp_workspace->entry_states) ||
+      block_count > ((size_t)-1) / sizeof(*temp_workspace->entry_const_known) ||
+      block_count > ((size_t)-1) / sizeof(*temp_workspace->entry_const_values) ||
+      block_count > ((size_t)-1) / sizeof(*temp_workspace->entry_known) ||
+      block_count > ((size_t)-1) / sizeof(*temp_workspace->pending)) {
+    return -1;
+  }
+  temp_workspace->entry_states = (AmigaCallEffectRegState *)m68k_allocator_alloc(m68k_allocator_heap(),
+    block_count * sizeof(*temp_workspace->entry_states));
+  temp_workspace->entry_const_known = (uint32_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+    block_count * sizeof(*temp_workspace->entry_const_known));
+  temp_workspace->entry_const_values = (int32_t (*)[8])m68k_allocator_alloc(m68k_allocator_heap(),
+    block_count * sizeof(*temp_workspace->entry_const_values));
+  temp_workspace->entry_known = (uint8_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+    block_count * sizeof(*temp_workspace->entry_known));
+  temp_workspace->pending = (size_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+    block_count * sizeof(*temp_workspace->pending));
   if (temp_workspace->entry_states == NULL || temp_workspace->entry_const_known == NULL ||
       temp_workspace->entry_const_values == NULL || temp_workspace->entry_known == NULL ||
       temp_workspace->pending == NULL) {
-    free(temp_workspace->entry_states);
-    free(temp_workspace->entry_const_known);
-    free(temp_workspace->entry_const_values);
-    free(temp_workspace->entry_known);
-    free(temp_workspace->pending);
+    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_states);
+    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_const_known);
+    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_const_values);
+    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_known);
+    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->pending);
     memset(temp_workspace, 0, sizeof(*temp_workspace));
     return -1;
   }
@@ -4139,11 +4150,11 @@ static void release_amiga_local_success_summary_workspace(AmigaPlatformCache *ca
     AmigaLocalSuccessSummaryWorkspace *workspace, int is_temp) {
   if (workspace == NULL) return;
   if (is_temp) {
-    free(workspace->entry_states);
-    free(workspace->entry_const_known);
-    free(workspace->entry_const_values);
-    free(workspace->entry_known);
-    free(workspace->pending);
+    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_states);
+    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_const_known);
+    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_const_values);
+    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_known);
+    m68k_allocator_free(m68k_allocator_heap(), workspace->pending);
     memset(workspace, 0, sizeof(*workspace));
     return;
   }
