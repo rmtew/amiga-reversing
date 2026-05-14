@@ -1,21 +1,18 @@
 #include "m68k_source_model.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-static int grow_items(M68kAllocator allocator, void **items, size_t item_size, size_t *capacity,
-    size_t count_needed) {
+static int grow_items(void **items, size_t item_size, size_t *capacity, size_t count_needed) {
   size_t next_capacity = (*capacity == 0U) ? 16U : *capacity;
-  size_t old_size;
   void *grown = NULL;
   while (next_capacity < count_needed) {
     if (next_capacity > ((size_t)-1) / 2U) return 0;
     next_capacity *= 2U;
   }
   if (item_size != 0U && next_capacity > ((size_t)-1) / item_size) return 0;
-  if (item_size != 0U && *capacity > ((size_t)-1) / item_size) return 0;
-  old_size = item_size * *capacity;
-  grown = m68k_allocator_realloc_copy(allocator, *items, old_size, item_size * next_capacity);
+  grown = realloc(*items, item_size * next_capacity);
   if (grown == NULL) return 0;
   *items = grown;
   *capacity = next_capacity;
@@ -61,9 +58,9 @@ static int source_symbol_index_reserve(AsmSourceFile *source, size_t count_neede
   }
   if (source->symbol_index_capacity >= next_capacity) return 1;
   if (next_capacity > ((size_t)-1) / sizeof(*slots)) return 0;
-  slots = (size_t *)m68k_allocator_calloc(m68k_allocator_heap(), next_capacity, sizeof(*slots));
+  slots = (size_t *)calloc(next_capacity, sizeof(*slots));
   if (slots == NULL) return 0;
-  m68k_allocator_free(m68k_allocator_heap(), source->symbol_index_slots);
+  free(source->symbol_index_slots);
   source->symbol_index_slots = slots;
   source->symbol_index_capacity = next_capacity;
   for (index = 0U; index < source->symbol_count; ++index) {
@@ -212,7 +209,7 @@ M68kSourceModelIndexResult m68k_source_model_append_section(AsmSourceFile *sourc
       return result;
     }
   }
-  if (!grow_items(m68k_allocator_heap(), (void **)&source->sections, sizeof(*source->sections),
+  if (!grow_items((void **)&source->sections, sizeof(*source->sections),
     &source->section_capacity,
     source->section_count + 1U)) return result;
   memset(&source->sections[source->section_count], 0, sizeof(*source->sections));
@@ -241,7 +238,7 @@ M68kSourceModelIndexResult m68k_source_model_ensure_symbol(AsmSourceFile *source
     return result;
   }
   if (!source_symbol_index_reserve(source, source->symbol_count + 1U)) return result;
-  if (!grow_items(m68k_allocator_heap(), (void **)&source->symbols, sizeof(*source->symbols),
+  if (!grow_items((void **)&source->symbols, sizeof(*source->symbols),
     &source->symbol_capacity,
     source->symbol_count + 1U)) return result;
   memset(&source->symbols[source->symbol_count], 0, sizeof(*source->symbols));
@@ -289,7 +286,7 @@ int m68k_source_model_set_label_value(AsmSourceFile *source, const char *name, s
 M68kSourceModelIndexResult m68k_source_model_append_statement(AsmSourceFile *source, AsmSourceStmtKind kind,
     size_t line_number) {
   M68kSourceModelIndexResult result = {0};
-  if (!grow_items(m68k_allocator_heap(), (void **)&source->statements, sizeof(*source->statements),
+  if (!grow_items((void **)&source->statements, sizeof(*source->statements),
     &source->statement_capacity,
     source->statement_count + 1U)) return result;
   memset(&source->statements[source->statement_count], 0, sizeof(*source->statements));
@@ -305,7 +302,7 @@ int m68k_source_model_append_data_item(AsmSourceFile *source, AsmSourceDataStmt 
     const AsmDataItem *item) {
   AsmDataItem copy;
   if (source == NULL || source->arena == NULL || data_stmt == NULL || item == NULL) return 0;
-  if (!grow_items(m68k_allocator_heap(), (void **)&data_stmt->items, sizeof(*data_stmt->items),
+  if (!grow_items((void **)&data_stmt->items, sizeof(*data_stmt->items),
     &data_stmt->item_capacity,
     data_stmt->item_count + 1U)) return 0;
   copy = *item;
@@ -325,13 +322,13 @@ void m68k_source_model_free(AsmSourceFile *source) {
   arena = source->arena;
   for (statement_index = 0U; statement_index < source->statement_count; ++statement_index) {
     if (source->statements[statement_index].kind == ASM_SOURCE_STMT_DATA) {
-      m68k_allocator_free(m68k_allocator_heap(), source->statements[statement_index].u.data.items);
+      free(source->statements[statement_index].u.data.items);
     }
   }
-  m68k_allocator_free(m68k_allocator_heap(), source->sections);
-  m68k_allocator_free(m68k_allocator_heap(), source->symbols);
-  m68k_allocator_free(m68k_allocator_heap(), source->symbol_index_slots);
-  m68k_allocator_free(m68k_allocator_heap(), source->statements);
+  free(source->sections);
+  free(source->symbols);
+  free(source->symbol_index_slots);
+  free(source->statements);
   memset(source, 0, sizeof(*source));
   arena_destroy(arena);
 }
