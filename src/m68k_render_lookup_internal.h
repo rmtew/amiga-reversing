@@ -33,21 +33,21 @@ typedef struct M68kRenderPlatformLocalBaseSlot {
 } M68kRenderPlatformLocalBaseSlot;
 
 typedef struct M68kRenderPlatformState {
-  uint8_t data_base_known[8];
+  uint32_t data_base_known;
   uint16_t data_base_id[8];
   char data_base_library[8][64];
-  uint8_t address_base_known[8];
+  uint32_t address_base_known;
   uint16_t address_base_id[8];
   char address_base_library[8][64];
-  uint8_t address_hardware_base_known[8];
+  uint32_t address_hardware_base_known;
   uint16_t address_hardware_base_id[8];
-  uint8_t data_app_base_known[8];
-  uint8_t address_app_base_known[8];
-  uint8_t data_layout_base_known[8];
+  uint32_t data_app_base_known;
+  uint32_t address_app_base_known;
+  uint32_t data_layout_base_known;
   char data_layout_base_symbol[8][64];
-  uint8_t address_layout_base_known[8];
+  uint32_t address_layout_base_known;
   char address_layout_base_symbol[8][64];
-  uint8_t data_lvo_known[8];
+  uint32_t data_lvo_known;
   int16_t data_lvo[8];
   M68kRenderPlatformLocalBaseSlot local_base_slots[32];
 } M68kRenderPlatformState;

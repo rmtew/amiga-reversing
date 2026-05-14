@@ -14,9 +14,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
     be using bitflags or enums to replace that.
-  - A loose approach to arrays of booleans (likely uint8_t per flag) has been used as an implementation approach
-    and it should use bitarrays instead at compile-time. The best approach might be #define and similar, although C99
-    might provide compile-time approaches. This should be formalised in a common .c/.h location and used from there.
 - One interesting facet of arena usage is that we have custom methods that work on arena memory. There is a good
   argument here to expand that for all our allocations, where for instance instead of using an arena we provide an
   allocator that happens to be an arena. It might also be worth abstracting it further to a context object that

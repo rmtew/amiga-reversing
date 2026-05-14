@@ -663,7 +663,7 @@ static int render_lookup_infer_amiga_call_hardware_base_seed_pass(M68kRenderLook
           candidate_direct_control_target(lookup, section->section_index, candidate, &target_section_index,
             &target_offset)) {
         for (reg_index = 0U; reg_index < 8U; ++reg_index) {
-          if (platform_state.address_hardware_base_known[reg_index] &&
+          if (m68k_bitset_u32_has(platform_state.address_hardware_base_known, reg_index) &&
               render_lookup_add_inferred_hardware_base_seed(lookup, target_section_index, target_offset,
                 reg_index, platform_state.address_hardware_base_id[reg_index], out_changed) != 0) {
             return -1;
@@ -1261,12 +1261,12 @@ static uint16_t typed_struct_id_for_base_slot_operand(const M68kRenderLookup *lo
     return AMIGA_OS_STRUCT_ID_NONE;
   }
   if (platform_state != NULL) {
-    if (platform_state->address_app_base_known[base_reg]) {
+    if (m68k_bitset_u32_has(platform_state->address_app_base_known, base_reg)) {
       uint16_t output_struct_id = lookup_typed_output_slot_struct_id(lookup, displacement);
       if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
       return lookup_app_base_field_slot_struct_id(lookup, displacement);
     }
-    if (platform_state->address_base_known[base_reg]) {
+    if (m68k_bitset_u32_has(platform_state->address_base_known, base_reg)) {
       return lookup_base_field_slot_struct_id(lookup, platform_state->address_base_library[base_reg], displacement);
     }
     if (base_reg == 6U) return lookup_app_base_field_slot_struct_id(lookup, displacement);
@@ -2850,39 +2850,44 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
   return changed;
 }
 
-static void platform_state_merge_register_name(uint8_t *dest_known, char *dest_name, size_t dest_name_size,
-    uint8_t source_known, const char *source_name, int *io_changed) {
+static void platform_state_merge_register_name(uint32_t *dest_known, uint8_t reg_index, char *dest_name,
+    size_t dest_name_size, uint32_t source_known, const char *source_name, int *io_changed) {
   if (dest_known == NULL || dest_name == NULL || source_name == NULL || io_changed == NULL) return;
-  if (*dest_known == 0U || source_known == 0U || strcmp(dest_name, source_name) != 0) {
-    if (*dest_known != 0U || dest_name[0] != '\0') *io_changed = 1;
-    *dest_known = 0U;
+  if (!m68k_bitset_u32_has(*dest_known, reg_index) || !m68k_bitset_u32_has(source_known, reg_index) ||
+      strcmp(dest_name, source_name) != 0) {
+    if (m68k_bitset_u32_has(*dest_known, reg_index) || dest_name[0] != '\0') *io_changed = 1;
+    m68k_bitset_u32_clear(dest_known, reg_index);
     if (dest_name_size != 0U) dest_name[0] = '\0';
   }
 }
 
-static void platform_state_merge_register_base(uint8_t *dest_known, uint16_t *dest_base_id, char *dest_name,
-    size_t dest_name_size, uint8_t source_known, uint16_t source_base_id, const char *source_name,
-    int *io_changed) {
+static void platform_state_merge_register_base(uint32_t *dest_known, uint8_t reg_index, uint16_t *dest_base_id,
+    char *dest_name, size_t dest_name_size, uint32_t source_known, uint16_t source_base_id,
+    const char *source_name, int *io_changed) {
   if (dest_known == NULL || dest_base_id == NULL || dest_name == NULL || source_name == NULL ||
       io_changed == NULL) {
     return;
   }
-  if (*dest_known == 0U || source_known == 0U || *dest_base_id != source_base_id) {
-    if (*dest_known != 0U || *dest_base_id != 0U || dest_name[0] != '\0') *io_changed = 1;
-    *dest_known = 0U;
+  if (!m68k_bitset_u32_has(*dest_known, reg_index) || !m68k_bitset_u32_has(source_known, reg_index) ||
+      *dest_base_id != source_base_id) {
+    if (m68k_bitset_u32_has(*dest_known, reg_index) || *dest_base_id != 0U || dest_name[0] != '\0')
+      *io_changed = 1;
+    m68k_bitset_u32_clear(dest_known, reg_index);
     *dest_base_id = 0U;
     if (dest_name_size != 0U) dest_name[0] = '\0';
     return;
   }
-  platform_state_merge_register_name(dest_known, dest_name, dest_name_size, source_known, source_name, io_changed);
+  platform_state_merge_register_name(dest_known, reg_index, dest_name, dest_name_size, source_known, source_name,
+    io_changed);
 }
 
-static void platform_state_merge_register_id(uint8_t *dest_known, uint16_t *dest_id, uint8_t source_known,
+static void platform_state_merge_register_id(uint32_t *dest_known, uint8_t reg_index, uint16_t *dest_id, uint32_t source_known,
     uint16_t source_id, int *io_changed) {
   if (dest_known == NULL || dest_id == NULL || io_changed == NULL) return;
-  if (*dest_known == 0U || source_known == 0U || *dest_id != source_id) {
-    if (*dest_known != 0U || *dest_id != 0U) *io_changed = 1;
-    *dest_known = 0U;
+  if (!m68k_bitset_u32_has(*dest_known, reg_index) || !m68k_bitset_u32_has(source_known, reg_index) ||
+      *dest_id != source_id) {
+    if (m68k_bitset_u32_has(*dest_known, reg_index) || *dest_id != 0U) *io_changed = 1;
+    m68k_bitset_u32_clear(dest_known, reg_index);
     *dest_id = 0U;
   }
 }
@@ -2894,31 +2899,37 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
   if (dest == NULL || source == NULL) return 0;
   old_state = *dest;
   for (index = 0U; index < 8U; ++index) {
-    platform_state_merge_register_base(&dest->data_base_known[index], &dest->data_base_id[index],
-      dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known[index],
+    platform_state_merge_register_base(&dest->data_base_known, (uint8_t)index, &dest->data_base_id[index],
+      dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known,
       source->data_base_id[index], source->data_base_library[index], &changed);
-    platform_state_merge_register_base(&dest->address_base_known[index], &dest->address_base_id[index],
+    platform_state_merge_register_base(&dest->address_base_known, (uint8_t)index, &dest->address_base_id[index],
       dest->address_base_library[index], sizeof(dest->address_base_library[index]),
-      source->address_base_known[index], source->address_base_id[index], source->address_base_library[index],
+      source->address_base_known, source->address_base_id[index], source->address_base_library[index],
       &changed);
-    platform_state_merge_register_id(&dest->address_hardware_base_known[index],
-      &dest->address_hardware_base_id[index], source->address_hardware_base_known[index],
+    platform_state_merge_register_id(&dest->address_hardware_base_known, (uint8_t)index,
+      &dest->address_hardware_base_id[index], source->address_hardware_base_known,
       source->address_hardware_base_id[index], &changed);
-    platform_state_merge_register_name(&dest->data_layout_base_known[index], dest->data_layout_base_symbol[index],
-      sizeof(dest->data_layout_base_symbol[index]), source->data_layout_base_known[index],
+    platform_state_merge_register_name(&dest->data_layout_base_known, (uint8_t)index,
+      dest->data_layout_base_symbol[index], sizeof(dest->data_layout_base_symbol[index]),
+      source->data_layout_base_known,
       source->data_layout_base_symbol[index], &changed);
-    platform_state_merge_register_name(&dest->address_layout_base_known[index],
+    platform_state_merge_register_name(&dest->address_layout_base_known, (uint8_t)index,
       dest->address_layout_base_symbol[index], sizeof(dest->address_layout_base_symbol[index]),
-      source->address_layout_base_known[index], source->address_layout_base_symbol[index], &changed);
-    if (dest->data_app_base_known[index] != 0U && source->data_app_base_known[index] == 0U)
-      dest->data_app_base_known[index] = 0U;
-    if (dest->address_app_base_known[index] != 0U && source->address_app_base_known[index] == 0U)
-      dest->address_app_base_known[index] = 0U;
+      source->address_layout_base_known, source->address_layout_base_symbol[index], &changed);
+    if (m68k_bitset_u32_has(dest->data_app_base_known, (uint8_t)index) &&
+        !m68k_bitset_u32_has(source->data_app_base_known, (uint8_t)index)) {
+      m68k_bitset_u32_clear(&dest->data_app_base_known, (uint8_t)index);
+    }
+    if (m68k_bitset_u32_has(dest->address_app_base_known, (uint8_t)index) &&
+        !m68k_bitset_u32_has(source->address_app_base_known, (uint8_t)index)) {
+      m68k_bitset_u32_clear(&dest->address_app_base_known, (uint8_t)index);
+    }
   }
   for (index = 0U; index < 8U; ++index) {
-    if (dest->data_lvo_known[index] == 0U || source->data_lvo_known[index] == 0U ||
+    if (!m68k_bitset_u32_has(dest->data_lvo_known, (uint8_t)index) ||
+        !m68k_bitset_u32_has(source->data_lvo_known, (uint8_t)index) ||
         dest->data_lvo[index] != source->data_lvo[index]) {
-      dest->data_lvo_known[index] = 0U;
+      m68k_bitset_u32_clear(&dest->data_lvo_known, (uint8_t)index);
       dest->data_lvo[index] = 0;
     }
   }
@@ -3194,7 +3205,7 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     return -1;
   }
   if (allow_lookup_storage && instruction_stores_typed_reg_to_a6_slot(out_typed_state, &instruction,
-      out_platform_state->address_base_known[6U] != 0U, &slot_displacement, &stored_output) &&
+      m68k_bitset_u32_has(out_platform_state->address_base_known, 6U), &slot_displacement, &stored_output) &&
       render_lookup_add_typed_slot_effect(lookup, section->section_index, node->candidate->offset,
         slot_displacement, stored_output) != 0) {
     return -1;
@@ -3527,7 +3538,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
         uint8_t base_reg = 0U;
         int16_t displacement = 0;
         if (operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
-            &displacement) && base_reg < 8U && (state.address_base_known[base_reg] ||
+            &displacement) && base_reg < 8U && (m68k_bitset_u32_has(state.address_base_known, base_reg) ||
             m68k_bitset_u32_has(seen_library_base, base_reg))) {
           return 1;
         }
@@ -3535,7 +3546,8 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
       platform_state_update_data_lvo_after_instruction(&state, &instruction);
       platform_state_update_after_instruction(&state, lookup, &instruction);
       for (operand_index = 0U; operand_index < 8U; ++operand_index)
-        if (state.address_base_known[operand_index]) m68k_bitset_u32_set(&seen_library_base, (uint8_t)operand_index);
+        if (m68k_bitset_u32_has(state.address_base_known, (uint8_t)operand_index))
+          m68k_bitset_u32_set(&seen_library_base, (uint8_t)operand_index);
     }
   }
   return 0;
@@ -10409,9 +10421,9 @@ static int displacement_is_custom_hardware_offset(int16_t displacement) {
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
     int16_t displacement) {
   if (state == NULL || base_reg >= 8U) return 0;
-  if (state->address_hardware_base_known[base_reg]) return 0;
-  if (state->address_app_base_known[base_reg]) return 1;
-  if (state->address_base_known[base_reg])
+  if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) return 0;
+  if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) return 1;
+  if (m68k_bitset_u32_has(state->address_base_known, base_reg))
     return library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement);
   return base_reg == 6U && !displacement_is_custom_hardware_offset(displacement);
 }
@@ -10949,7 +10961,7 @@ static const AmigaOsHardwareRegisterInfo *render_lookup_resolve_hardware_registe
   if (operand == NULL) return NULL;
   if (operand_absolute_offset_local(operand, &absolute)) return amiga_os_find_hardware_register_by_cpu_address(absolute);
   if (state != NULL && operand_is_address_memory_local(operand, &base_reg, &displacement) && base_reg < 8U &&
-      state->address_hardware_base_known[base_reg]) {
+      m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) {
     return amiga_os_find_hardware_register_by_base_id_offset(state->address_hardware_base_id[base_reg],
       (uint32_t)(uint16_t)displacement);
   }

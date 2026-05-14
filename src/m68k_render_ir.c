@@ -732,13 +732,13 @@ static void render_asm_label(M68kRenderIRPreview *preview, const M68kRenderLooku
 static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_t reg_index) {
   size_t index;
   if (state == NULL || reg_index >= 8U) return;
-  state->address_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_base_known, reg_index);
   state->address_base_id[reg_index] = 0U;
   state->address_base_library[reg_index][0] = '\0';
-  state->address_hardware_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_hardware_base_known, reg_index);
   state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
-  state->address_app_base_known[reg_index] = 0U;
-  state->address_layout_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_app_base_known, reg_index);
+  m68k_bitset_u32_clear(&state->address_layout_base_known, reg_index);
   state->address_layout_base_symbol[reg_index][0] = '\0';
   for (index = 0U; index < sizeof(state->local_base_slots) / sizeof(state->local_base_slots[0]); ++index) {
     if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
@@ -748,22 +748,22 @@ static void platform_state_clear_register(M68kRenderPlatformState *state, uint8_
 
 static void platform_state_clear_data_library(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->data_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = 0U;
   state->data_base_library[reg_index][0] = '\0';
-  state->data_layout_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->data_layout_base_known, reg_index);
   state->data_layout_base_symbol[reg_index][0] = '\0';
   platform_state_clear_data_lvo(state, reg_index);
 }
 
 static void platform_state_clear_all_data_libraries(M68kRenderPlatformState *state) {
   if (state == NULL) return;
-  memset(state->data_base_known, 0, sizeof(state->data_base_known));
+  state->data_base_known = 0U;
   memset(state->data_base_id, 0, sizeof(state->data_base_id));
   memset(state->data_base_library, 0, sizeof(state->data_base_library));
-  memset(state->data_layout_base_known, 0, sizeof(state->data_layout_base_known));
+  state->data_layout_base_known = 0U;
   memset(state->data_layout_base_symbol, 0, sizeof(state->data_layout_base_symbol));
-  memset(state->data_lvo_known, 0, sizeof(state->data_lvo_known));
+  state->data_lvo_known = 0U;
   memset(state->data_lvo, 0, sizeof(state->data_lvo));
 }
 
@@ -774,61 +774,61 @@ static void platform_state_clear_all_local_base_slots(M68kRenderPlatformState *s
 
 static void platform_state_clear_address_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->address_app_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_app_base_known, reg_index);
 }
 
 static void platform_state_clear_address_layout_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->address_layout_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_layout_base_known, reg_index);
   state->address_layout_base_symbol[reg_index][0] = '\0';
 }
 
 static void platform_state_clear_address_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->address_hardware_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_hardware_base_known, reg_index);
   state->address_hardware_base_id[reg_index] = AMIGA_OS_HARDWARE_BASE_ID_NONE;
 }
 
 static void platform_state_clear_all_hardware_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
-  memset(state->address_hardware_base_known, 0, sizeof(state->address_hardware_base_known));
+  state->address_hardware_base_known = 0U;
   memset(state->address_hardware_base_id, 0, sizeof(state->address_hardware_base_id));
 }
 
 static void platform_state_clear_data_app_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->data_app_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->data_app_base_known, reg_index);
   platform_state_clear_data_lvo(state, reg_index);
 }
 
 static void platform_state_clear_data_layout_base(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->data_layout_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->data_layout_base_known, reg_index);
   state->data_layout_base_symbol[reg_index][0] = '\0';
   platform_state_clear_data_lvo(state, reg_index);
 }
 
 static void platform_state_clear_all_app_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
-  memset(state->data_app_base_known, 0, sizeof(state->data_app_base_known));
-  memset(state->address_app_base_known, 0, sizeof(state->address_app_base_known));
-  memset(state->data_lvo_known, 0, sizeof(state->data_lvo_known));
+  state->data_app_base_known = 0U;
+  state->address_app_base_known = 0U;
+  state->data_lvo_known = 0U;
   memset(state->data_lvo, 0, sizeof(state->data_lvo));
 }
 
 static void platform_state_clear_all_layout_bases(M68kRenderPlatformState *state) {
   if (state == NULL) return;
-  memset(state->data_layout_base_known, 0, sizeof(state->data_layout_base_known));
+  state->data_layout_base_known = 0U;
   memset(state->data_layout_base_symbol, 0, sizeof(state->data_layout_base_symbol));
-  memset(state->address_layout_base_known, 0, sizeof(state->address_layout_base_known));
+  state->address_layout_base_known = 0U;
   memset(state->address_layout_base_symbol, 0, sizeof(state->address_layout_base_symbol));
-  memset(state->data_lvo_known, 0, sizeof(state->data_lvo_known));
+  state->data_lvo_known = 0U;
   memset(state->data_lvo, 0, sizeof(state->data_lvo));
 }
 
 void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
-  state->data_lvo_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->data_lvo_known, reg_index);
   state->data_lvo[reg_index] = 0;
 }
 
@@ -865,9 +865,9 @@ static void platform_state_set_register_library(M68kRenderPlatformState *state, 
     if (state->local_base_slots[index].valid && state->local_base_slots[index].base_reg == reg_index)
       state->local_base_slots[index].valid = 0U;
   }
-  state->address_base_known[reg_index] = 1U;
+  m68k_bitset_u32_set(&state->address_base_known, reg_index);
   state->address_base_id[reg_index] = base_id;
-  state->address_app_base_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->address_app_base_known, reg_index);
   platform_state_clear_address_layout_base(state, reg_index);
   platform_state_clear_address_hardware_base(state, reg_index);
   snprintf(state->address_base_library[reg_index], sizeof(state->address_base_library[reg_index]), "%s",
@@ -880,7 +880,7 @@ static void platform_state_set_data_library(M68kRenderPlatformState *state, uint
   const char *canonical_library_name = platform_library_name_from_base_id(base_id);
   if (state == NULL || reg_index >= 8U || library_name == NULL || library_name[0] == '\0') return;
   if (canonical_library_name == NULL || canonical_library_name[0] == '\0') return;
-  state->data_base_known[reg_index] = 1U;
+  m68k_bitset_u32_set(&state->data_base_known, reg_index);
   state->data_base_id[reg_index] = base_id;
   snprintf(state->data_base_library[reg_index], sizeof(state->data_base_library[reg_index]), "%s",
     canonical_library_name);
@@ -961,9 +961,9 @@ static const char *platform_state_operand_library(const M68kRenderPlatformState 
     const M68kOperandIR *operand) {
   uint8_t reg = 0U;
   if (state == NULL || operand == NULL) return NULL;
-  if (operand_is_data_register_local(operand, &reg) && state->data_base_known[reg])
+  if (operand_is_data_register_local(operand, &reg) && m68k_bitset_u32_has(state->data_base_known, reg))
     return platform_library_name_from_base_id(state->data_base_id[reg]);
-  if (operand_address_register_index_local(operand, &reg) && state->address_base_known[reg])
+  if (operand_address_register_index_local(operand, &reg) && m68k_bitset_u32_has(state->address_base_known, reg))
     return platform_library_name_from_base_id(state->address_base_id[reg]);
   return NULL;
 }
@@ -988,10 +988,10 @@ static void platform_state_set_register_app_base(M68kRenderPlatformState *state,
   if (state == NULL || reg_index >= 8U) return;
   if (reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
     platform_state_clear_data_library(state, reg_index);
-    state->data_app_base_known[reg_index] = 1U;
+    m68k_bitset_u32_set(&state->data_app_base_known, reg_index);
   } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
     platform_state_clear_register(state, reg_index);
-    state->address_app_base_known[reg_index] = 1U;
+    m68k_bitset_u32_set(&state->address_app_base_known, reg_index);
   }
 }
 
@@ -1001,12 +1001,12 @@ static void platform_state_set_register_layout_base(M68kRenderPlatformState *sta
   if (reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
     platform_state_clear_data_library(state, reg_index);
     platform_state_clear_data_app_base(state, reg_index);
-    state->data_layout_base_known[reg_index] = 1U;
+    m68k_bitset_u32_set(&state->data_layout_base_known, reg_index);
     snprintf(state->data_layout_base_symbol[reg_index], sizeof(state->data_layout_base_symbol[reg_index]), "%s",
       base_symbol);
   } else if (reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
     platform_state_clear_register(state, reg_index);
-    state->address_layout_base_known[reg_index] = 1U;
+    m68k_bitset_u32_set(&state->address_layout_base_known, reg_index);
     snprintf(state->address_layout_base_symbol[reg_index], sizeof(state->address_layout_base_symbol[reg_index]),
       "%s", base_symbol);
   }
@@ -1019,7 +1019,7 @@ static void platform_state_set_register_hardware_base(M68kRenderPlatformState *s
   base_id = amiga_os_hardware_base_id(base_symbol);
   if (base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return;
   platform_state_clear_register(state, reg_index);
-  state->address_hardware_base_known[reg_index] = 1U;
+  m68k_bitset_u32_set(&state->address_hardware_base_known, reg_index);
   state->address_hardware_base_id[reg_index] = base_id;
 }
 
@@ -2870,8 +2870,10 @@ static int platform_state_operand_is_app_base(const M68kRenderPlatformState *sta
     const M68kOperandIR *operand) {
   uint8_t reg = 0U;
   if (state == NULL || operand == NULL) return 0;
-  if (operand_is_data_register_local(operand, &reg) && reg < 8U && state->data_app_base_known[reg]) return 1;
-  if (operand_address_register_index_local(operand, &reg) && reg < 8U && state->address_app_base_known[reg])
+  if (operand_is_data_register_local(operand, &reg) && reg < 8U &&
+      m68k_bitset_u32_has(state->data_app_base_known, reg)) return 1;
+  if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
+      m68k_bitset_u32_has(state->address_app_base_known, reg))
     return 1;
   return 0;
 }
@@ -2880,9 +2882,11 @@ static const char *platform_state_operand_layout_base_symbol(const M68kRenderPla
     const M68kOperandIR *operand) {
   uint8_t reg = 0U;
   if (state == NULL || operand == NULL) return NULL;
-  if (operand_is_data_register_local(operand, &reg) && reg < 8U && state->data_layout_base_known[reg])
+  if (operand_is_data_register_local(operand, &reg) && reg < 8U &&
+      m68k_bitset_u32_has(state->data_layout_base_known, reg))
     return state->data_layout_base_symbol[reg];
-  if (operand_address_register_index_local(operand, &reg) && reg < 8U && state->address_layout_base_known[reg])
+  if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
+      m68k_bitset_u32_has(state->address_layout_base_known, reg))
     return state->address_layout_base_symbol[reg];
   return NULL;
 }
@@ -2894,7 +2898,7 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
   const char *base_symbol;
   if (operand == NULL) return NULL;
   if (operand_address_register_index_local(operand, &reg) && reg < 8U &&
-      state != NULL && state->address_hardware_base_known[reg]) {
+      state != NULL && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
     return amiga_os_hardware_base_symbol(state->address_hardware_base_id[reg]);
   }
   if (operand->symbol_ref.has_name != 0U) {
@@ -3124,7 +3128,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
       if (operand_is_address_displacement_local(&instruction->operands[0], &base_reg, &displacement) &&
-          state->address_base_known[base_reg]) {
+          m68k_bitset_u32_has(state->address_base_known, base_reg)) {
         library_name = lookup_base_field_slot_library(lookup, state->address_base_library[base_reg], displacement);
       }
       if (library_name == NULL && operand_is_address_displacement_local(&instruction->operands[0], &base_reg,
@@ -3141,7 +3145,7 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     if (library_name == NULL && instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
       uint8_t base_reg = 0U;
       int16_t displacement = 0;
-      if (!state->address_base_known[6U] &&
+      if (!m68k_bitset_u32_has(state->address_base_known, 6U) &&
           operand_is_address_displacement_local(&instruction->operands[0], &base_reg, &displacement) &&
           base_reg == 6U) {
         library_name = lookup_app_base_field_slot_library(lookup, displacement);
@@ -3171,7 +3175,7 @@ void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *
     return;
   }
   platform_state_clear_data_library(state, 0U);
-  if (amiga_vector_is_open_library_result(vector) && state->address_base_known[1U])
+  if (amiga_vector_is_open_library_result(vector) && m68k_bitset_u32_has(state->address_base_known, 1U))
     platform_state_set_data_library(state, 0U, state->address_base_library[1U]);
 }
 
@@ -3186,7 +3190,7 @@ const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRende
       instruction->mnemonic_id != M68K_ASM_MNEMONIC_JMP)
     return NULL;
   if (instruction->operand_count != 1U) return NULL;
-  if (!state->address_base_known[6]) return NULL;
+  if (!m68k_bitset_u32_has(state->address_base_known, 6U)) return NULL;
   operand = &instruction->operands[0];
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 5U || operand->value.ea_reg != 6U)
     return NULL;
@@ -3408,7 +3412,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
     char symbol_name[64];
     if (operand->symbol_ref.has_name != 0U) continue;
     if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-        state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+        state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
         displacement >= 0) {
       hardware_register = amiga_os_find_hardware_register_by_base_id_offset(
         state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
@@ -3492,7 +3496,7 @@ static const AmigaOsHardwareRegisterInfo *resolve_amiga_hardware_register_operan
   uint32_t value = 0U;
   if (operand == NULL) return NULL;
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-      state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+      state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
       displacement >= 0) {
     return amiga_os_find_hardware_register_by_base_id_offset(state->address_hardware_base_id[base_reg],
       (uint32_t)(uint16_t)displacement);
@@ -3508,7 +3512,7 @@ static const AmigaOsHardwareRegisterFieldInfo *resolve_amiga_hardware_register_f
   uint32_t value = 0U;
   if (operand == NULL) return NULL;
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-      state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+      state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
       displacement >= 0) {
     return amiga_os_find_hardware_register_field_by_base_id_offset(state->address_hardware_base_id[base_reg],
       (uint32_t)(uint16_t)displacement);
@@ -3525,7 +3529,7 @@ static const AmigaOsHardwareRegisterRangeInfo *resolve_amiga_hardware_register_r
   if (out_offset != NULL) *out_offset = 0U;
   if (operand == NULL) return NULL;
   if (operand_is_address_displacement_local(operand, &base_reg, &displacement) &&
-      state != NULL && base_reg < 8U && state->address_hardware_base_known[base_reg] &&
+      state != NULL && base_reg < 8U && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg) &&
       displacement >= 0) {
     if (out_offset != NULL) *out_offset = (uint32_t)(uint16_t)displacement;
     return amiga_os_find_hardware_register_range_by_base_id_offset(state->address_hardware_base_id[base_reg],
@@ -3831,14 +3835,14 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     int32_t field_offset = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
-    if (state->address_hardware_base_known[base_reg]) continue;
-    if (state->address_app_base_known[base_reg]) {
+    if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
+    if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
           field_expr, sizeof(field_expr), &field_offset) &&
           !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {
         continue;
       }
-    } else if (state->address_base_known[base_reg]) {
+    } else if (m68k_bitset_u32_has(state->address_base_known, base_reg)) {
       if (!library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement) ||
           (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
             field_expr, sizeof(field_expr), &field_offset) &&
@@ -3848,7 +3852,7 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
           continue;
         }
       }
-    } else if (state->address_layout_base_known[base_reg]) {
+    } else if (m68k_bitset_u32_has(state->address_layout_base_known, base_reg)) {
       if (!lookup_base_field_slot_symbol_name(lookup, state->address_layout_base_symbol[base_reg], displacement,
           symbol_name, sizeof(symbol_name))) {
         continue;
@@ -3998,7 +4002,7 @@ void platform_state_update_data_lvo_after_instruction(M68kRenderPlatformState *s
   uint8_t reg_index;
   if (state == NULL || instruction == NULL) return;
   if (instruction_loads_data_immediate(instruction, &reg, &lvo) && lvo < 0) {
-    state->data_lvo_known[reg] = 1U;
+    m68k_bitset_u32_set(&state->data_lvo_known, reg);
     state->data_lvo[reg] = lvo;
     return;
   }
@@ -4083,7 +4087,7 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_indexed_wrapper_call_vector(
   if (base_name == NULL || base_name[0] == '\0') return NULL;
   if (!lookup_indexed_vector_wrapper_index_reg(lookup, wrapper_section_index, wrapper_offset, &index_reg))
     return NULL;
-  if (!state->data_lvo_known[index_reg]) return NULL;
+  if (!m68k_bitset_u32_has(state->data_lvo_known, index_reg)) return NULL;
   return amiga_os_find_library_vector(base_name, state->data_lvo[index_reg]);
 }
 
