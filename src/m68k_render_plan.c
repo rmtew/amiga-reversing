@@ -6,7 +6,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 static Arena *render_plan_arena(M68kRenderPlan *plan) {
@@ -397,7 +396,7 @@ int m68k_render_plan_emit_rows_alloc(const M68kRenderPlan *plan, size_t first_ro
     if (total_size > ((size_t)-1) - plan->rows[index].byte_count) return -1;
     total_size += plan->rows[index].byte_count;
   }
-  text = (char *)malloc(total_size);
+  text = (char *)m68k_allocator_alloc(m68k_allocator_heap(), total_size);
   if (text == NULL) return -1;
   cursor = text;
   for (index = first_row; index < end_row; ++index) {
@@ -416,7 +415,7 @@ static uint32_t render_plan_min_u32(uint32_t left, uint32_t right) {
 static int render_plan_alloc_empty_text(char **out_text) {
   char *text;
   if (out_text == NULL) return -1;
-  text = (char *)malloc(1U);
+  text = (char *)m68k_allocator_alloc(m68k_allocator_heap(), 1U);
   if (text == NULL) return -1;
   text[0] = '\0';
   *out_text = text;
@@ -461,7 +460,7 @@ int m68k_render_plan_emit_line_window_alloc(const M68kRenderPlan *plan, uint32_t
       ++subline;
     }
   }
-  text = (char *)malloc(total_size);
+  text = (char *)m68k_allocator_alloc(m68k_allocator_heap(), total_size);
   if (text == NULL) return -1;
   out_cursor = text;
   for (row_index = (size_t)(first_row - plan->rows); row_index < plan->row_count; ++row_index) {
@@ -635,7 +634,7 @@ int m68k_render_plan_build_text_lines(const char *text, uint32_t kind, uint32_t 
 }
 
 void m68k_render_plan_free_text(char *text) {
-  free(text);
+  m68k_allocator_free(m68k_allocator_heap(), text);
 }
 
 static const char *render_plan_section_name(const M68kSectionIR *section, size_t section_index,
