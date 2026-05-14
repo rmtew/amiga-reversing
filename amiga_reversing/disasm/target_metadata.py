@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 from .amiga_metadata import ResidentAutoinitMetadata
+from .binary_source import BinarySourceKind
 
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
 TARGET_SEEDED_METADATA_FILE_NAME = "target_seeded_metadata.json"
@@ -780,14 +781,23 @@ def target_corrections_path(target_dir: Path) -> Path:
     return target_dir / TARGET_CORRECTIONS_FILE_NAME
 
 
+def _binary_source_kind_id(source_kind: BinarySourceKind | str) -> BinarySourceKind | None:
+    if isinstance(source_kind, BinarySourceKind):
+        return source_kind
+    try:
+        return BinarySourceKind(source_kind)
+    except ValueError:
+        return None
+
+
 def require_target_metadata(
     metadata: TargetMetadata | None,
     *,
     target_dir: Path | None,
-    source_kind: str,
+    source_kind: BinarySourceKind | str,
     parent_disk_id: str | None,
 ) -> TargetMetadata | None:
-    if source_kind == "raw_binary" and metadata is None:
+    if _binary_source_kind_id(source_kind) is BinarySourceKind.RAW_BINARY and metadata is None:
         raise ValueError(f"Missing target_metadata.json for raw binary target: {target_dir}")
     if parent_disk_id is not None and metadata is None:
         raise ValueError(f"Missing target_metadata.json for internal target: {target_dir}")
@@ -797,7 +807,7 @@ def require_target_metadata(
 def load_required_target_metadata(
     *,
     target_dir: Path | None,
-    source_kind: str,
+    source_kind: BinarySourceKind | str,
     parent_disk_id: str | None,
 ) -> TargetMetadata | None:
     return require_target_metadata(

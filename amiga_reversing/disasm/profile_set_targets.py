@@ -11,7 +11,10 @@ from typing import cast
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.amiga_disk.project import create_disk_project
-from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    write_source_descriptor,
+)
 from amiga_reversing.disasm.c_backend import inspect_disk_with_c_backend
 from amiga_reversing.disasm.project_ids import (
     ensure_safe_project_id,
@@ -216,7 +219,7 @@ def _copy_existing_binary_targets(project_root: Path, *, repo_root: Path, limit:
         if limit is not None and len(target_names) >= limit:
             break
         source_payload = cast(dict[str, object], json.loads(source_path.read_text(encoding="utf-8")))
-        if source_payload.get("kind") == "raw_binary":
+        if _source_payload_kind(source_payload) is BinarySourceKind.RAW_BINARY:
             continue
         source_payload = _absolute_source_payload(source_payload, repo_root=repo_root)
         target_name = _integration_target_name("existing", f"{index}-{source_path.parent}")
@@ -349,7 +352,7 @@ def _import_amiga_disk_targets(
     return [
         target_name
         for target_name in target_names
-        if _target_source_kind(project_root, target_name) != "raw_binary"
+        if _target_source_kind(project_root, target_name) is not BinarySourceKind.RAW_BINARY
     ]
 
 
@@ -396,7 +399,17 @@ def _import_atari_disk_targets(
     return target_names
 
 
-def _target_source_kind(project_root: Path, target_name: str) -> str | None:
+def _source_payload_kind(payload: dict[str, object]) -> BinarySourceKind | None:
+    kind = payload.get("kind")
+    if not isinstance(kind, str):
+        return None
+    try:
+        return BinarySourceKind(kind)
+    except ValueError:
+        return None
+
+
+def _target_source_kind(project_root: Path, target_name: str) -> BinarySourceKind | None:
     source_path = project_root / "targets" / target_name / "source_binary.json"
     if not source_path.exists():
         for manifest_path in (project_root / "targets").glob("*/manifest.json"):
@@ -411,13 +424,13 @@ def _target_source_kind(project_root: Path, target_name: str) -> str | None:
     if not source_path.exists():
         return None
     payload = cast(dict[str, object], json.loads(source_path.read_text(encoding="utf-8")))
-    kind = payload.get("kind")
-    return kind if isinstance(kind, str) else None
+    return _source_payload_kind(payload)
+
 
 def _integration_target_name(prefix: str, label: str) -> str:
     stem = normalize_filename_stem(Path(label).stem)[:36]
     digest = hashlib.sha1(label.encode("utf-8")).hexdigest()[:10]
-    return ensure_safe_project_id(f"{prefix}_{stem}_{digest}")
+    return cast(str, ensure_safe_project_id(f"{prefix}_{stem}_{digest}"))
 
 
 def _empty_metadata() -> TargetMetadata:
