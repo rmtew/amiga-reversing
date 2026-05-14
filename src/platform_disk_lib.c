@@ -105,14 +105,8 @@ static void platform_disk_add_error(M68kDiagList *diagnostics, const char *messa
 }
 
 static char *duplicate_text_disk(const char *text) {
-    size_t length;
-    char *copy;
     if (text == NULL) text = "";
-    length = strlen(text);
-    copy = (char *)malloc(length + 1U);
-    if (copy == NULL) return NULL;
-    memcpy(copy, text, length + 1U);
-    return copy;
+    return m68k_allocator_strdup(m68k_allocator_heap(), text);
 }
 
 static int disk_text_result_to_alloc(PlatformDiskTextResult *result, char **out_json) {
