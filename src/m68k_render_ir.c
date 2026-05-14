@@ -1557,10 +1557,21 @@ static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, u
   }
 }
 
+static void render_asm_dc_w_values(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+    uint32_t size, const char *comment);
+
 static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, size_t section_index,
     const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size, const char *comment) {
   uint32_t cursor = 0U;
   if (preview == NULL || section == NULL || section->data == NULL) return;
+  if ((offset & 1U) == 0U && size == 2U && section->data[offset] == 0U && section->data[offset + 1U] == 0U) {
+    M68kRenderPlanRow *row;
+    begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
+    render_asm_dc_w_values(preview, section->data, offset, size, comment);
+    row = finish_asm_source_plan_row(preview, section->section_index, offset, size, 1);
+    set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset, size);
+    return;
+  }
   while (cursor < size) {
     M68kRenderPlanRow *row;
     uint8_t is_dcb = 0U;
@@ -2518,7 +2529,14 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
           cursor == 0U ? comment_text : NULL);
       }
     }
-    if (cursor < available) render_asm_dc_b(preview, section->data, item->offset + cursor, available - cursor, NULL);
+    if (cursor < available) {
+      uint32_t tail_offset = item->offset + cursor;
+      uint32_t tail_size = available - cursor;
+      if ((tail_offset & 1U) == 0U && (tail_size & 1U) == 0U)
+        render_asm_dc_w_values(preview, section->data, tail_offset, tail_size, NULL);
+      else
+        render_asm_dc_b(preview, section->data, tail_offset, tail_size, NULL);
+    }
     return;
   }
   if (available == item->size && structured_data_item_is_word_relative_lookup_table(item) &&

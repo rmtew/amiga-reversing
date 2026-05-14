@@ -1853,6 +1853,104 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   return 0;
 }
 
+static int test_facts_v2_pointer_table_aligned_tail_renders_words(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[16] = {
+    0x4Eu, 0x75u,
+    0x00u, 0x00u, 0x00u, 0x0Cu,
+    0x00u, 0x00u, 0x00u, 0x0Eu,
+    0x00u, 0x00u,
+    0x4Eu, 0x75u,
+    0x4Eu, 0x75u
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.data = bytes;
+  section.size = sizeof(bytes);
+  section.kind = M68K_SECTION_CODE;
+  section.data_size = sizeof(bytes);
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 3U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 12U;
+  policy.entry_points[2].has_section_index = 1U;
+  policy.entry_points[2].section_index = 0U;
+  policy.entry_points[2].offset = 14U;
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 2U;
+  policy.structured_data_items[0].size = 10U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000C\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000E\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_aligned_two_byte_zero_raw_span_renders_word(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[6] = {
+    0x4Eu, 0x75u,
+    0x00u, 0x00u,
+    0x4Eu, 0x75u
+  };
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.data = bytes;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.kind = M68K_SECTION_CODE;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 2U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  policy.entry_points[1].has_section_index = 1U;
+  policy.entry_points[1].section_index = 0U;
+  policy.entry_points[1].offset = 4U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $0000\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_data_ascii_span_auto_classifies_ff_string(void) {
   M68kObject object;
   M68kSection section;
@@ -19139,6 +19237,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_genam_indexed_word_read_stays_unclassified_data},
     {"facts_v2_indexed_local_base_auto_classifies_pointer_table",
       test_facts_v2_indexed_local_base_auto_classifies_pointer_table},
+    {"facts_v2_pointer_table_aligned_tail_renders_words",
+      test_facts_v2_pointer_table_aligned_tail_renders_words},
+    {"facts_v2_aligned_two_byte_zero_raw_span_renders_word",
+      test_facts_v2_aligned_two_byte_zero_raw_span_renders_word},
     {"decode_ir_keeps_odd_branch_target_for_analysis", test_decode_ir_keeps_odd_branch_target_for_analysis},
     {"fact_ir_label_creation_dedupes", test_fact_ir_label_creation_dedupes},
     {"facts_v2_profile_collects_decode_and_label_facts", test_facts_v2_profile_collects_decode_and_label_facts},

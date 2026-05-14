@@ -16,7 +16,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
       0222 0000                               dc.b $00,$00
     ```
       - Labels are not treated like `m68k_vector_spurious_interrupt` above (no link, no navigate lookup integration).
-      - Trailing word should likely be `.w`.
     ```
       5548                  abs_0_000058EC:
       5548 0000               dc.w abs_0_000058F4-abs_0_000058F4

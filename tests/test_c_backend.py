@@ -1608,7 +1608,7 @@ def test_pc_relative_relocation_backed_entry_splits_speculative_decode(tmp_path:
 
     assert "jsr loc_1_00000004(pc)" in source
     assert "loc_1_00000004:" in source
-    assert "dc.b $00,$00" in source.lower()
+    assert "dc.w $0000" in source.lower()
     assert "ori.b #$75,d0" not in source.lower()
 
     result = subprocess.run(
