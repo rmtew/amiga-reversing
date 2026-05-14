@@ -20,7 +20,6 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -293,15 +292,15 @@ static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, co
     M68kRenderPlanRow *row = NULL;
     if (line_end == NULL) return 0;
     line_length = (size_t)(line_end - line_start) + 1U;
-    line_text = (char *)malloc(line_length + 1U);
+    line_text = (char *)m68k_allocator_alloc(m68k_allocator_heap(), line_length + 1U);
     if (line_text == NULL) return 0;
     memcpy(line_text, line_start, line_length);
     line_text[line_length] = '\0';
     if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, line_text, &row) != 0) {
-      free(line_text);
+      m68k_allocator_free(m68k_allocator_heap(), line_text);
       return 0;
     }
-    free(line_text);
+    m68k_allocator_free(m68k_allocator_heap(), line_text);
     copy_asm_source_plan_row_metadata(row, source);
     m68k_render_plan_row_set_source_range(row, source->source_section_index,
       source->source_offset + (line_index * entry_size), entry_size);
@@ -396,7 +395,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
       return 0;
     }
   }
-  free(preview->asm_source_text);
+  m68k_allocator_free(m68k_allocator_heap(), preview->asm_source_text);
   preview->asm_source_text = NULL;
   preview->asm_source_text_capacity = 0U;
   if (emit_source_text) {
@@ -9266,7 +9265,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   arena_destroy(preview->asm_source_header_arena);
   arena_destroy(preview->scratch_arena);
-  free(preview->asm_source_text);
+  m68k_allocator_free(m68k_allocator_heap(), preview->asm_source_text);
   m68k_render_plan_row_builder_destroy(&preview->asm_source_row_builder);
   m68k_render_plan_destroy(&preview->asm_source_plan);
   memset(preview, 0, sizeof(*preview));
