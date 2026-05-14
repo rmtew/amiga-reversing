@@ -3532,32 +3532,113 @@ static int policy_add_structured_data_item_local(M68kAnalysisPolicy *policy, uin
   return policy_add_structured_data_item_section_local(policy, 0U, 0U, offset, size, kind, comment);
 }
 
-static uint8_t metadata_seeded_entity_kind_local(const char *subtype, const char *unit) {
-  if (subtype != NULL && strcmp(subtype, "string") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_STRING;
-  if (subtype != NULL && strcmp(subtype, "pointer_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
-  if (unit != NULL && strcmp(unit, "word") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+typedef enum MetadataSeededEntityTypeId {
+  METADATA_SEEDED_ENTITY_TYPE_DATA = 0,
+  METADATA_SEEDED_ENTITY_TYPE_IGNORED = 1
+} MetadataSeededEntityTypeId;
+
+typedef enum MetadataSeededEntitySubtypeId {
+  METADATA_SEEDED_ENTITY_SUBTYPE_NONE = 0,
+  METADATA_SEEDED_ENTITY_SUBTYPE_COPPER_LIST,
+  METADATA_SEEDED_ENTITY_SUBTYPE_PALETTE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING,
+  METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP,
+  METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_STRING,
+  METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE,
+  METADATA_SEEDED_ENTITY_SUBTYPE_STRING_CONTROL_STREAM
+} MetadataSeededEntitySubtypeId;
+
+typedef enum MetadataSeededEntityUnitId {
+  METADATA_SEEDED_ENTITY_UNIT_BYTES = 0,
+  METADATA_SEEDED_ENTITY_UNIT_WORDS,
+  METADATA_SEEDED_ENTITY_UNIT_LONGS
+} MetadataSeededEntityUnitId;
+
+typedef struct MetadataSeededEntityClassification {
+  MetadataSeededEntityTypeId type_id;
+  MetadataSeededEntitySubtypeId subtype_id;
+  MetadataSeededEntityUnitId unit_id;
+  uint8_t structured_kind;
+  uint8_t is_pointer;
+  uint32_t role_flags;
+} MetadataSeededEntityClassification;
+
+static MetadataSeededEntityTypeId metadata_seeded_entity_type_id_from_text_local(const char *entity_type) {
+  if (entity_type == NULL || entity_type[0] == '\0' || strcmp(entity_type, "data") == 0)
+    return METADATA_SEEDED_ENTITY_TYPE_DATA;
+  return METADATA_SEEDED_ENTITY_TYPE_IGNORED;
+}
+
+static MetadataSeededEntitySubtypeId metadata_seeded_entity_subtype_id_from_text_local(const char *subtype) {
+  if (subtype == NULL || subtype[0] == '\0') return METADATA_SEEDED_ENTITY_SUBTYPE_NONE;
+  if (strcmp(subtype, "copper_list") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_COPPER_LIST;
+  if (strcmp(subtype, "palette") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_PALETTE;
+  if (strcmp(subtype, "pointer_table") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE;
+  if (strcmp(subtype, "lookup_table") == 0 || strcmp(subtype, "scalar_table") == 0)
+    return METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE;
+  if (strcmp(subtype, "length_prefixed_string") == 0)
+    return METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING;
+  if (strcmp(subtype, "bitmap") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP;
+  if (strcmp(subtype, "sound_sample") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE;
+  if (strcmp(subtype, "string") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_STRING;
+  if (strcmp(subtype, "audio_table") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE;
+  if (strcmp(subtype, "sprite") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE;
+  if (strcmp(subtype, "string_control_stream") == 0)
+    return METADATA_SEEDED_ENTITY_SUBTYPE_STRING_CONTROL_STREAM;
+  return METADATA_SEEDED_ENTITY_SUBTYPE_NONE;
+}
+
+static MetadataSeededEntityUnitId metadata_seeded_entity_unit_id_from_text_local(const char *unit) {
+  if (unit != NULL && strcmp(unit, "word") == 0) return METADATA_SEEDED_ENTITY_UNIT_WORDS;
   if (unit != NULL && (strcmp(unit, "long") == 0 || strcmp(unit, "pointer") == 0))
-    return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+    return METADATA_SEEDED_ENTITY_UNIT_LONGS;
+  return METADATA_SEEDED_ENTITY_UNIT_BYTES;
+}
+
+static uint32_t metadata_seeded_entity_role_flags_from_subtype_id_local(MetadataSeededEntitySubtypeId subtype_id) {
+  switch (subtype_id) {
+    case METADATA_SEEDED_ENTITY_SUBTYPE_COPPER_LIST: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_PALETTE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_STRING: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE: return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_STRING_CONTROL_STREAM:
+      return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM;
+    case METADATA_SEEDED_ENTITY_SUBTYPE_NONE: break;
+  }
+  return 0U;
+}
+
+static uint8_t metadata_seeded_entity_kind_from_ids_local(MetadataSeededEntitySubtypeId subtype_id,
+    MetadataSeededEntityUnitId unit_id) {
+  if (subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_STRING) return M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  if (subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE) return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  if (unit_id == METADATA_SEEDED_ENTITY_UNIT_WORDS) return M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  if (unit_id == METADATA_SEEDED_ENTITY_UNIT_LONGS) return M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
   return M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
 }
 
-static uint32_t metadata_seeded_entity_role_flags_local(const char *subtype) {
-  if (subtype == NULL || subtype[0] == '\0') return 0U;
-  if (strcmp(subtype, "copper_list") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST;
-  if (strcmp(subtype, "palette") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE;
-  if (strcmp(subtype, "pointer_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
-  if (strcmp(subtype, "lookup_table") == 0 || strcmp(subtype, "scalar_table") == 0)
-    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
-  if (strcmp(subtype, "length_prefixed_string") == 0)
-    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING;
-  if (strcmp(subtype, "bitmap") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP;
-  if (strcmp(subtype, "sound_sample") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE;
-  if (strcmp(subtype, "string") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
-  if (strcmp(subtype, "audio_table") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE;
-  if (strcmp(subtype, "sprite") == 0) return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE;
-  if (strcmp(subtype, "string_control_stream") == 0)
-    return M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM;
-  return 0U;
+static MetadataSeededEntityClassification metadata_seeded_entity_classify_local(const char *entity_type,
+    const char *subtype, const char *unit) {
+  MetadataSeededEntityClassification classification;
+  classification.type_id = metadata_seeded_entity_type_id_from_text_local(entity_type);
+  classification.subtype_id = metadata_seeded_entity_subtype_id_from_text_local(subtype);
+  classification.unit_id = metadata_seeded_entity_unit_id_from_text_local(unit);
+  classification.structured_kind =
+    metadata_seeded_entity_kind_from_ids_local(classification.subtype_id, classification.unit_id);
+  classification.is_pointer = (uint8_t)(classification.subtype_id == METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE);
+  classification.role_flags = metadata_seeded_entity_role_flags_from_subtype_id_local(classification.subtype_id);
+  return classification;
 }
 
 static int append_metadata_seeded_entity_local(const char *object_start, const char *object_end,
@@ -3576,8 +3657,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char name[64];
   char comment[256];
   char policy_comment[64];
-  uint8_t kind;
-  uint32_t role_flags;
+  MetadataSeededEntityClassification classification;
   entity_type[0] = '\0';
   subtype[0] = '\0';
   unit[0] = '\0';
@@ -3597,17 +3677,16 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
     return 0;
   }
   if (!has_addr || !has_end || end <= addr) return 1;
-  if (entity_type[0] != '\0' && strcmp(entity_type, "data") != 0) return 1;
-  kind = metadata_seeded_entity_kind_local(subtype, unit);
-  role_flags = metadata_seeded_entity_role_flags_local(subtype);
+  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit);
+  if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
   snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
   item_index = policy->structured_data_item_count;
-  if (!policy_add_structured_data_item_section_local(policy, 1U, has_hunk ? hunk : 0U, addr, end - addr, kind,
-        policy_comment)) {
+  if (!policy_add_structured_data_item_section_local(policy, 1U, has_hunk ? hunk : 0U, addr, end - addr,
+        classification.structured_kind, policy_comment)) {
     return 0;
   }
-  if (!policy_set_structured_data_item_metadata_local(policy, item_index, name, NULL, NULL, role_flags,
-        (uint8_t)(strcmp(subtype, "pointer_table") == 0))) {
+  if (!policy_set_structured_data_item_metadata_local(policy, item_index, name, NULL, NULL, classification.role_flags,
+        classification.is_pointer)) {
     return 0;
   }
   if (name[0] != '\0' && !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, addr, name)) return 0;

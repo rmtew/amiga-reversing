@@ -2404,6 +2404,75 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
     assert item["semantic_role_flags"] == 128
 
 
+def test_real_dll_seeded_entity_metadata_classifies_pointer_table_once(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "seeded-pointer-table.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(bytes.fromhex("4e750000000000000000"))
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "seeded_entities": [
+                    {
+                        "addr": 2,
+                        "end": 10,
+                        "hunk": 0,
+                        "name": "manual_jump_table",
+                        "type": "data",
+                        "subtype": "pointer_table",
+                        "unit": "pointer",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    },
+                    {
+                        "addr": 0,
+                        "end": 2,
+                        "hunk": 0,
+                        "name": "ignored_code_seed",
+                        "type": "code",
+                        "subtype": "pointer_table",
+                        "unit": "pointer",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "binary.analysis",
+    )
+
+    policy = effective_policy_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )["analysis_policy"]
+
+    assert len(policy["structured_data_items"]) == 1
+    item = policy["structured_data_items"][0]
+    assert item["section_index"] == 0
+    assert item["offset"] == 2
+    assert item["size"] == 8
+    assert item["kind"] == "longs"
+    assert item["label"] == "manual_jump_table"
+    assert item["field_type"] == "pointer"
+    assert item["semantic_role"] == "pointer_table"
+    assert item["semantic_role_flags"] == 4
+
+
 def test_real_dll_required_manual_code_seed_drives_c_analysis_without_implicit_scan(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
