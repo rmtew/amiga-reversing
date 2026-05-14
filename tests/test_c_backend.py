@@ -5663,6 +5663,41 @@ def test_real_dll_bloodwych_detects_runtime_copy_loader() -> None:
     assert len(refs_by_source) == 14
 
 
+def test_real_dll_bloodwych_listing_rows_use_per_entry_table_ranges() -> None:
+    _requires_c_backend_dlls()
+    rows, _, _ = build_project_listing_rows_profile_with_c_artifact(
+        "amiga_hunk_bloodwych",
+        project_root=PROJECT_ROOT,
+    )
+    data_rows = {str(row["text"]).strip(): row for row in rows if row["kind"] == "data"}
+
+    first_pointer = data_rows["dc.l abs_0_00008E84\t; pointer_table"]
+    second_pointer = data_rows["dc.l abs_0_00008F14"]
+    first_word = data_rows["dc.w abs_0_000058F4-abs_0_000058F4\t; lookup_table"]
+    second_word = data_rows["dc.w abs_0_0000590C-abs_0_000058F4"]
+
+    assert (first_pointer["start_offset"], first_pointer["end_offset"], first_pointer["bytes"]) == (
+        0x20E,
+        0x212,
+        "00008e84",
+    )
+    assert (second_pointer["start_offset"], second_pointer["end_offset"], second_pointer["bytes"]) == (
+        0x212,
+        0x216,
+        "00008f14",
+    )
+    assert (first_word["start_offset"], first_word["end_offset"], first_word["bytes"]) == (
+        0x5548,
+        0x554A,
+        "0000",
+    )
+    assert (second_word["start_offset"], second_word["end_offset"], second_word["bytes"]) == (
+        0x554A,
+        0x554C,
+        "0018",
+    )
+
+
 def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
     _requires_c_backend_dlls()
 

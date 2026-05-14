@@ -214,11 +214,8 @@ static int compare_asm_source_include_paths(const void *left, const void *right)
 
 static void recompute_asm_source_plan_metrics(M68kRenderIRPreview *preview, const M68kRenderPlan *plan);
 
-static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRenderPlanRow *source) {
-  M68kRenderPlanRow *row = NULL;
-  if (dest == NULL || source == NULL) return 0;
-  if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
-    return 0;
+static void copy_asm_source_plan_row_metadata(M68kRenderPlanRow *row, const M68kRenderPlanRow *source) {
+  if (row == NULL || source == NULL) return;
   row->directive_line_mask = source->directive_line_mask;
   row->label_line_mask = source->label_line_mask;
   memcpy(row->label_line_source_offsets, source->label_line_source_offsets,
@@ -241,6 +238,93 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
       source->statement_kind == M68K_STATEMENT_INSTRUCTION ? &source->statement_instruction : NULL,
       source->source_bytes, source->source_byte_count);
   }
+}
+
+static int data_plan_line_has_single_value(const char *line_start, size_t line_length) {
+  size_t index;
+  if (line_start == NULL || line_length < 6U) return 0;
+  if (line_start[0] != '\t' || line_start[1] != 'd' || line_start[2] != 'c' || line_start[3] != '.')
+    return 0;
+  for (index = 0U; index < line_length; ++index) {
+    if (line_start[index] == ',') return 0;
+  }
+  return 1;
+}
+
+static int asm_source_plan_data_row_has_split_source_lines(const M68kRenderPlanRow *source,
+    uint32_t *out_entry_size) {
+  const char *cursor;
+  uint32_t line_count = 0U;
+  if (out_entry_size != NULL) *out_entry_size = 0U;
+  if (source == NULL || source->kind != M68K_RENDER_PLAN_ROW_DATA || !source->has_source_range ||
+      source->line_count <= 1U || source->source_size == 0U ||
+      (source->source_size % source->line_count) != 0U || source->directive_line_mask != 0U ||
+      source->label_line_mask != 0U || source->text == NULL) {
+    return 0;
+  }
+  cursor = source->text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    const char *line_end = strchr(cursor, '\n');
+    size_t line_length;
+    if (line_end == NULL) return 0;
+    line_length = (size_t)(line_end - line_start);
+    if (!data_plan_line_has_single_value(line_start, line_length)) return 0;
+    ++line_count;
+    cursor = line_end + 1;
+  }
+  if (line_count != source->line_count) return 0;
+  if (out_entry_size != NULL) *out_entry_size = source->source_size / source->line_count;
+  return 1;
+}
+
+static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, const M68kRenderPlanRow *source,
+    uint32_t entry_size) {
+  const char *cursor;
+  uint32_t line_index = 0U;
+  if (dest == NULL || source == NULL || source->text == NULL || entry_size == 0U) return 0;
+  cursor = source->text;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    const char *line_end = strchr(cursor, '\n');
+    size_t line_length;
+    char *line_text;
+    M68kRenderPlanRow *row = NULL;
+    if (line_end == NULL) return 0;
+    line_length = (size_t)(line_end - line_start) + 1U;
+    line_text = (char *)malloc(line_length + 1U);
+    if (line_text == NULL) return 0;
+    memcpy(line_text, line_start, line_length);
+    line_text[line_length] = '\0';
+    if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, line_text, &row) != 0) {
+      free(line_text);
+      return 0;
+    }
+    free(line_text);
+    copy_asm_source_plan_row_metadata(row, source);
+    m68k_render_plan_row_set_source_range(row, source->source_section_index,
+      source->source_offset + (line_index * entry_size), entry_size);
+    if (source->has_statement_metadata && source->statement_kind == M68K_STATEMENT_DATA &&
+        entry_size <= M68K_STATEMENT_SOURCE_BYTES_MAX &&
+        source->source_byte_count >= (line_index + 1U) * entry_size) {
+      m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL,
+        source->source_bytes + (line_index * entry_size), entry_size);
+    }
+    ++line_index;
+    cursor = line_end + 1;
+  }
+  return line_index == source->line_count;
+}
+
+static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRenderPlanRow *source) {
+  M68kRenderPlanRow *row = NULL;
+  uint32_t split_entry_size = 0U;
+  if (dest == NULL || source == NULL) return 0;
+  if (asm_source_plan_data_row_has_split_source_lines(source, &split_entry_size))
+    return append_asm_source_plan_split_data_row_copies(dest, source, split_entry_size);
+  if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
+    return 0;
+  copy_asm_source_plan_row_metadata(row, source);
   return 1;
 }
 
