@@ -47,6 +47,7 @@ from amiga_reversing.disasm.manual_review_items import analysis_review_items
 from amiga_reversing.disasm.project_ids import derive_disk_id_from_stem, disk_project_id
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.projects import (
+    ProjectKind,
     ProjectRecord,
     create_project,
     dedupe_project_name,
@@ -1132,7 +1133,7 @@ def _start_reproduction_job_if_needed(project_name: str) -> AsyncJobPayload | No
         project = get_project(project_name)
     except FileNotFoundError:
         return None
-    if project.kind != "binary" or not project.ready:
+    if project.kind is not ProjectKind.BINARY or not project.ready:
         return None
     if "reproduction-unresolved" in _reproduction_cache_key(project_name):
         return None
@@ -1254,7 +1255,7 @@ def _project_payload(project_name: str) -> ProjectPayload:
     review_warnings = _review_warnings_for_project_dict(project_dict)
     if review_warnings:
         payload["review_warnings"] = review_warnings
-    if project.kind == "disk":
+    if project.kind is ProjectKind.DISK:
         manifest_path = project.manifest_path
         if manifest_path is None:
             raise ValueError(f"Disk project {project_name} is missing manifest_path")
@@ -1267,7 +1268,7 @@ def _project_payload(project_name: str) -> ProjectPayload:
                     payload["target_state"] = cast(dict[str, object], json.load(handle))
             except Exception:
                 payload["target_state"] = {}
-    elif project.kind == "binary" and project.ready:
+    elif project.kind is ProjectKind.BINARY and project.ready:
         payload["reproduction"] = _current_reproduction_payload(project_name)
     return payload
 
@@ -1297,7 +1298,7 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
 
 def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str, object]:
     project = get_project(project_name)
-    if project.kind != "disk":
+    if project.kind is not ProjectKind.DISK:
         raise ValueError(f"Project {project_name} is not a disk project")
     manifest_path = project.manifest_path
     if manifest_path is None:
@@ -1744,7 +1745,7 @@ def route_request(
             return {"ok": True, "data": _type_catalog_payload(project_name)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
             project = get_project(project_name)
-            if project.kind != "binary":
+            if project.kind is not ProjectKind.BINARY:
                 raise ValueError(
                     f"Project {project_name} does not expose target reproduction"
                 )
@@ -1767,7 +1768,7 @@ def route_request(
             and parts[4] == "run"
         ):
             project = get_project(project_name)
-            if project.kind != "binary" or not project.ready:
+            if project.kind is not ProjectKind.BINARY or not project.ready:
                 raise ValueError(
                     f"Project {project_name} is not ready for target reproduction"
                 )
@@ -1785,7 +1786,7 @@ def route_request(
             return {"ok": True, "data": _job_payload(job_id)}
         if method == "POST" and len(parts) == 4 and parts[3] == "target-edits":
             project = get_project(project_name)
-            if project.kind != "binary" or not project.ready:
+            if project.kind is not ProjectKind.BINARY or not project.ready:
                 raise ValueError(
                     f"Project {project_name} is not ready for target metadata edits"
                 )
@@ -1798,7 +1799,7 @@ def route_request(
             return {"ok": True, "data": {"edit": edit}}
         if method == "POST" and len(parts) == 4 and parts[3] == "manual-actions":
             project = get_project(project_name)
-            if project.kind != "binary" or not project.ready:
+            if project.kind is not ProjectKind.BINARY or not project.ready:
                 raise ValueError(
                     f"Project {project_name} is not ready for manual review actions"
                 )
@@ -1829,7 +1830,7 @@ def route_request(
             return {"ok": True, "data": {"action": action}}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
-            if project.kind != "binary":
+            if project.kind is not ProjectKind.BINARY:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -1909,7 +1910,7 @@ def route_request(
             and parts[4] == "navigation"
         ):
             project = get_project(project_name)
-            if project.kind != "binary":
+            if project.kind is not ProjectKind.BINARY:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -1930,7 +1931,7 @@ def route_request(
             and parts[4] == "open"
         ):
             project = get_project(project_name)
-            if project.kind != "binary":
+            if project.kind is not ProjectKind.BINARY:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )

@@ -4,8 +4,8 @@ import json
 import shutil
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Literal
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.binary_source import (
@@ -38,6 +38,11 @@ PROJECT_METADATA_SCHEMA_VERSION = 2
 DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER = 6
 
 
+class ProjectKind(StrEnum):
+    BINARY = "binary"
+    DISK = "disk"
+
+
 @dataclass(frozen=True, slots=True)
 class BrowserState:
     recent_projects: dict[str, str]
@@ -55,7 +60,7 @@ class ProjectMetadata:
 class ProjectRecord:
     id: str
     name: str
-    kind: Literal["binary", "disk"]
+    kind: ProjectKind
     target_dir: str
     output_path: str | None
     binary_path: str | None
@@ -74,6 +79,9 @@ class ProjectRecord:
     review_items: tuple[dict[str, object], ...] = ()
     manual_state: dict[str, object] | None = None
     origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", ProjectKind(self.kind))
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)
@@ -217,7 +225,7 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
     return ProjectRecord(
         id=project_id,
         name=target_dir.name,
-        kind="binary",
+        kind=ProjectKind.BINARY,
         target_dir=str(target_dir),
         output_path=str(output_candidates[0]) if len(output_candidates) == 1 else None,
         binary_path=None if binary_source is None else binary_source.display_path,
@@ -421,7 +429,7 @@ def _disk_project_record(disk_dir: Path, state: BrowserState) -> ProjectRecord:
     return ProjectRecord(
         id=project_id,
         name=manifest.disk_id,
-        kind="disk",
+        kind=ProjectKind.DISK,
         target_dir=str(disk_dir),
         output_path=None,
         binary_path=None,
@@ -517,7 +525,7 @@ def delete_project(project_name: str, project_root: Path = PROJECT_ROOT) -> None
     project = get_project(project_name, project_root=project_root)
     state = _load_state(project_root)
     state.recent_projects.pop(project_name, None)
-    if project.kind == "disk":
+    if project.kind is ProjectKind.DISK:
         assert project.manifest_path is not None
         manifest = DiskManifest.load(Path(project.manifest_path))
         if manifest.bootblock_target_name is not None:
