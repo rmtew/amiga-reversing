@@ -6623,7 +6623,7 @@ static int json_builder_append_repro_compare_diagnostics(JsonBuilder *builder,
 static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *backend_name,
     const M68kBackend *backend, const M68kObject *original_object, const unsigned char *rebuilt_data,
     size_t rebuilt_size, const unsigned char *compare_data, size_t compare_size,
-    const M68kAssemblerPolicy *assembler_policy) {
+    const M68kAssemblerPolicy *assembler_policy, Arena *workflow_arena) {
   M68kReproductionCompareResult result;
   m68k_reproduction_compare_init_result(&result);
   (void)backend_name;
@@ -6637,6 +6637,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
     context.rebuilt_size = rebuilt_size;
     context.backend_kind = original_object != NULL ? original_object->platform_backend_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
     context.assembler_policy = assembler_policy;
+    context.workflow_arena = workflow_arena;
     m68k_reproduction_compare(&context, &result);
     return result;
   }
@@ -6654,6 +6655,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
       context.rebuilt_size = rebuilt_size;
       context.backend_kind = original_object->platform_backend_kind;
       context.assembler_policy = assembler_policy;
+      context.workflow_arena = workflow_arena;
       m68k_reproduction_compare(&context, &result);
       return result;
     }
@@ -6666,6 +6668,7 @@ static M68kReproductionCompareResult facts_v2_direct_compare_result(const char *
     context.assembler_policy = assembler_policy;
     context.original_object = original_object;
     context.rebuilt_object = &rebuilt_object;
+    context.workflow_arena = workflow_arena;
     m68k_reproduction_compare(&context, &result);
     m68k_object_destroy(&rebuilt_object);
   }
@@ -7361,7 +7364,8 @@ static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifa
 static int facts_v2_direct_write_object_alloc(const char *backend_name, const M68kBackend *backend,
     const M68kObject *object, const char *output_path, uint32_t source_bytes, unsigned char **out_data,
     size_t *out_size, const unsigned char *compare_data, size_t compare_size, char **out_direct_profile_json,
-    char **out_error, const M68kAssemblerPolicy *assembler_policy, M68kDiagList *diagnostics) {
+    char **out_error, const M68kAssemblerPolicy *assembler_policy, Arena *workflow_arena,
+    M68kDiagList *diagnostics) {
   clock_t total_start = clock();
   clock_t phase_start;
   double write_buffer_seconds = 0.0;
@@ -7437,7 +7441,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   if (compare_data != NULL) {
     phase_start = clock();
     compare_result = facts_v2_direct_compare_result(backend_name, backend, object, data, size, compare_data,
-      compare_size, assembler_policy);
+      compare_size, assembler_policy, workflow_arena);
     compare_seconds += elapsed_seconds(phase_start, clock());
   }
   *out_direct_profile_json = facts_v2_direct_rebuild_profile_json_alloc(backend_name, source_bytes,
@@ -7458,7 +7462,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
     const M68kBackend *backend, const M68kObject *object, const M68kAnalysisPolicy *analysis_policy,
     const char *output_path, unsigned char **out_data, size_t *out_size, char **out_source_profile_json,
     char **out_direct_profile_json, const unsigned char *compare_data, size_t compare_size, char **out_error,
-    M68kDiagList *diagnostics) {
+    Arena *workflow_arena, M68kDiagList *diagnostics) {
   M68kFactsV2Profile source_profile;
   M68kAssemblerPolicy assembler_policy;
   M68kReproductionCompareResult not_compared;
@@ -7513,7 +7517,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   }
   return facts_v2_direct_write_object_alloc(backend_name, backend, object, output_path,
     source_profile.asm_source_bytes, out_data, out_size, compare_data, compare_size, out_direct_profile_json,
-    out_error, &assembler_policy, diagnostics);
+    out_error, &assembler_policy, workflow_arena, diagnostics);
 }
 
 static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *backend_name, const char *path,
@@ -7557,7 +7561,7 @@ static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *b
     goto cleanup;
   result = facts_v2_direct_rebuild_object_alloc(backend_name, path, backend, &workflow.object, analysis_policy,
     output_path, out_data, out_size, out_source_profile_json, out_direct_profile_json, compare_data, compare_size,
-    out_error, &diagnostics);
+    out_error, workflow.arena, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7624,7 +7628,7 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
   result = facts_v2_direct_rebuild_object_alloc(backend_name, display_path != NULL ? display_path : "", backend,
     &workflow.object, analysis_policy, output_path, out_data, out_size, out_source_profile_json,
     out_direct_profile_json, compare_original ? data : NULL, compare_original ? size : 0U, out_error,
-    &diagnostics);
+    workflow.arena, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7655,7 +7659,7 @@ int platform_file_facts_v2_direct_rebuild_compare_buffer_bytes_profile_alloc(con
 static int platform_file_reproduction_compare_object_common_alloc(const char *backend_name,
     const M68kBackend *backend, const M68kObject *object, const unsigned char *original_data,
     size_t original_size, const unsigned char *rebuilt_data, size_t rebuilt_size, char **out_compare_profile_json,
-    char **out_error, M68kDiagList *diagnostics) {
+    char **out_error, Arena *workflow_arena, M68kDiagList *diagnostics) {
   M68kAssemblerPolicy assembler_policy;
   M68kReproductionCompareResult compare_result;
   clock_t compare_start;
@@ -7670,7 +7674,7 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
   m68k_assembler_policy_derive_preservation(object, &assembler_policy);
   compare_start = clock();
   compare_result = facts_v2_direct_compare_result(backend_name, backend, object, rebuilt_data, rebuilt_size,
-    original_data, original_size, &assembler_policy);
+    original_data, original_size, &assembler_policy, workflow_arena);
   compare_seconds = elapsed_seconds(compare_start, clock());
   *out_compare_profile_json = facts_v2_reproduction_compare_profile_json_alloc(backend_name, original_size,
     rebuilt_size > UINT32_MAX ? UINT32_MAX : (uint32_t)rebuilt_size, compare_result, compare_seconds,
@@ -7708,7 +7712,8 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
   if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&diagnostics)) != 0) goto cleanup;
   workflow.object_loaded = 1U;
   result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &workflow.object,
-    original_data, original_size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
+    original_data, original_size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error,
+    workflow.arena, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {
@@ -7745,7 +7750,7 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
     goto cleanup;
   workflow.object_loaded = 1U;
   result = platform_file_reproduction_compare_object_common_alloc(backend_name, backend, &workflow.object, data,
-    size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, &diagnostics);
+    size, rebuilt_data, rebuilt_size, out_compare_profile_json, out_error, workflow.arena, &diagnostics);
 
 cleanup:
   if (result != 0 && *out_error == NULL) {

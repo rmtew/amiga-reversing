@@ -486,16 +486,23 @@ static uint32_t fixup_container_shape_diff_flags(size_t left_index, size_t right
   return flags;
 }
 
-static int objects_have_same_relocation_semantics(const M68kObject *left, const M68kObject *right,
-    uint32_t *out_container_shape_flags, M68kReproductionCompareResult *result) {
+static int objects_have_same_relocation_semantics(Arena *workflow_arena, const M68kObject *left,
+    const M68kObject *right, uint32_t *out_container_shape_flags,
+    M68kReproductionCompareResult *result) {
+  ArenaMark scratch_mark;
   uint8_t *used;
   size_t left_index;
   uint32_t container_shape_flags = 0U;
   if (out_container_shape_flags != NULL) *out_container_shape_flags = 0U;
   if (left == NULL || right == NULL || left->fixup_count != right->fixup_count) return 0;
   if (left->fixup_count == 0U) return 1;
-  used = (uint8_t *)m68k_allocator_calloc(m68k_allocator_heap(), right->fixup_count, sizeof(*used));
-  if (used == NULL) return 0;
+  if (workflow_arena == NULL) return 0;
+  scratch_mark = arena_mark(workflow_arena);
+  used = (uint8_t *)arena_calloc(workflow_arena, right->fixup_count, sizeof(*used));
+  if (used == NULL) {
+    arena_rewind(workflow_arena, scratch_mark);
+    return 0;
+  }
   for (left_index = 0U; left_index < left->fixup_count; ++left_index) {
     size_t right_index;
     int matched = 0;
@@ -519,11 +526,11 @@ static int objects_have_same_relocation_semantics(const M68kObject *left, const 
       break;
     }
     if (!matched) {
-      m68k_allocator_free(m68k_allocator_heap(), used);
+      arena_rewind(workflow_arena, scratch_mark);
       return 0;
     }
   }
-  m68k_allocator_free(m68k_allocator_heap(), used);
+  arena_rewind(workflow_arena, scratch_mark);
   if (out_container_shape_flags != NULL) *out_container_shape_flags = container_shape_flags;
   return 1;
 }
@@ -537,7 +544,7 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
     M68kReproductionCompareResult *result) {
   m68k_reproduction_compare_init_result(result);
   if (context == NULL || result == NULL || context->original_bytes == NULL ||
-      context->rebuilt_bytes == NULL) {
+      context->rebuilt_bytes == NULL || context->workflow_arena == NULL) {
     if (result != NULL) {
       result->status_id = M68K_REPRO_COMPARE_STATUS_INVALID_ARGUMENT;
       result->diagnostic_id = M68K_REPRO_COMPARE_DIAG_INVALID_ARGUMENT;
@@ -569,8 +576,8 @@ int m68k_reproduction_compare(const M68kReproductionCompareContext *context,
       objects_have_same_payload_semantics(context->original_object, context->rebuilt_object)) {
     uint32_t relocation_shape_flags = 0U;
     result->issue_group_flags &= ~M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF;
-    if (!objects_have_same_relocation_semantics(context->original_object, context->rebuilt_object,
-        &relocation_shape_flags, result)) {
+    if (!objects_have_same_relocation_semantics(context->workflow_arena, context->original_object,
+        context->rebuilt_object, &relocation_shape_flags, result)) {
       result->issue_group_flags |= M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF;
       return 0;
     }

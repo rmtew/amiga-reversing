@@ -35,6 +35,18 @@ static int add_compare_section_fixup(M68kObject *object, uint32_t offset, uint32
   return m68k_object_add_fixup(object, &fixup).ok ? 0 : -1;
 }
 
+static int run_reproduction_compare_for_test(M68kReproductionCompareContext *context,
+    M68kReproductionCompareResult *result) {
+  Arena *arena = arena_create(4096U);
+  int compare_result;
+  if (arena == NULL) return -1;
+  context->workflow_arena = arena;
+  compare_result = m68k_reproduction_compare(context, result);
+  context->workflow_arena = NULL;
+  arena_destroy(arena);
+  return compare_result;
+}
+
 static int test_container_metadata_tracks_overflow_separately(void) {
   M68kObject object;
   uint32_t i;
@@ -250,14 +262,14 @@ static int test_reproduction_compare_raw_exact_and_grouped_mismatch(void) {
   context.rebuilt_bytes = original;
   context.rebuilt_size = sizeof(original);
   context.backend_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_FULL_FILE_EXACT, result.status_id);
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE, result.exactness_id);
   M68K_C_ASSERT_U32(0U, result.issue_group_flags);
 
   context.rebuilt_bytes = rebuilt;
   context.rebuilt_size = sizeof(rebuilt);
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_MISMATCH, result.status_id);
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_MISMATCH, result.exactness_id);
   M68K_C_ASSERT_U32(1U, result.has_first_diff);
@@ -301,7 +313,7 @@ static int test_reproduction_compare_hunk_content_exact_container_difference(voi
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_CONTENT, result.exactness_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U);
@@ -322,7 +334,7 @@ static int test_reproduction_compare_hunk_exact_match_reports_full_file_exact(vo
   context.rebuilt_bytes = bytes;
   context.rebuilt_size = sizeof(bytes);
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_FULL_FILE_EXACT, result.status_id);
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_FULL_FILE, result.exactness_id);
   M68K_C_ASSERT_U32(0U, result.issue_group_flags);
@@ -353,7 +365,7 @@ static int test_reproduction_compare_hunk_changed_fixup_set_blocks_content_exact
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_MISMATCH, result.status_id);
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_EXACTNESS_MISMATCH, result.exactness_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF) != 0U);
@@ -391,7 +403,7 @@ static int test_reproduction_compare_hunk_reordered_fixups_are_file_structure_is
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_ORDER_DIFF) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_RELOCATION_DIFF) == 0U);
@@ -433,7 +445,7 @@ static int test_reproduction_compare_hunk_regrouped_fixups_reports_policy_diverg
   context.assembler_policy = &policy;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_HUNK_RELOCATION_GROUP_DIFF) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE) != 0U);
@@ -463,7 +475,7 @@ static int test_reproduction_compare_hunk_unsupported_container_shape_is_distinc
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE) == 0U);
@@ -494,7 +506,7 @@ static int test_reproduction_compare_reports_unsupported_shape_with_payload_mism
   context.backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_MISMATCH, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTENT_DIFF) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_UNSUPPORTED_CONTAINER_SHAPE) != 0U);
@@ -597,7 +609,7 @@ static int test_reproduction_compare_atari_content_exact_reports_policy_divergen
   context.assembler_policy = &policy;
   context.original_object = &original_object;
   context.rebuilt_object = &rebuilt_object;
-  M68K_C_ASSERT_INT(0, m68k_reproduction_compare(&context, &result));
+  M68K_C_ASSERT_INT(0, run_reproduction_compare_for_test(&context, &result));
   M68K_C_ASSERT_U32(M68K_REPRO_COMPARE_STATUS_CONTENT_EXACT, result.status_id);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_POLICY_DIVERGENCE) != 0U);
   M68K_C_ASSERT((result.issue_group_flags & M68K_REPRO_COMPARE_ISSUE_CONTAINER_SHAPE_DIFF) != 0U);

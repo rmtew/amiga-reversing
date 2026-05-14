@@ -3,6 +3,7 @@
 
 #include "m68k_assembler_policy.h"
 #include "m68k_object.h"
+#include "util_arena.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -106,6 +107,7 @@ typedef struct M68kReproductionCompareContext {
   const M68kAssemblerPolicy *assembler_policy;
   const M68kObject *original_object;
   const M68kObject *rebuilt_object;
+  Arena *workflow_arena;
 } M68kReproductionCompareContext;
 
 void m68k_reproduction_compare_init_result(M68kReproductionCompareResult *result);
