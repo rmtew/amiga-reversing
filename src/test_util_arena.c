@@ -264,7 +264,7 @@ static int test_binary_writer_build_uses_allocator(void) {
   M68K_C_ASSERT_INT(0, m68k_writer_u16be(&writer, 0x3456U));
   heap_bytes = m68k_writer_build(&writer);
   before = arena_stats(arena);
-  arena_bytes = m68k_writer_build_alloc(&writer, m68k_allocator_arena(arena));
+  arena_bytes = m68k_writer_build_arena(&writer, arena);
   after = arena_stats(arena);
   M68K_C_ASSERT(heap_bytes != NULL);
   M68K_C_ASSERT(arena_bytes != NULL);

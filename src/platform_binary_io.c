@@ -1,5 +1,6 @@
 #include "platform_binary_io.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #define M68K_WRITER_CHUNK_SIZE 1024U
@@ -162,13 +163,10 @@ int m68k_writer_bytes(M68kBinaryWriter *writer, const unsigned char *data,
     return append_bytes(writer, data, size);
 }
 
-unsigned char *m68k_writer_build_alloc(const M68kBinaryWriter *writer, M68kAllocator allocator) {
+static unsigned char *m68k_writer_copy_to_buffer(const M68kBinaryWriter *writer, unsigned char *data) {
     M68kBinaryWriterChunk *chunk;
-    unsigned char *data;
     size_t offset = 0U;
-    if (writer == NULL) return NULL;
-    data = (unsigned char *)m68k_allocator_alloc(allocator, writer->size == 0U ? 1U : writer->size);
-    if (data == NULL) return NULL;
+    if (writer == NULL || data == NULL) return NULL;
     for (chunk = writer->state != NULL ? writer->state->head : NULL; chunk != NULL; chunk = chunk->next) {
         if (chunk->used != 0U) {
             memcpy(data + offset, chunk->data, chunk->used);
@@ -179,11 +177,17 @@ unsigned char *m68k_writer_build_alloc(const M68kBinaryWriter *writer, M68kAlloc
 }
 
 unsigned char *m68k_writer_build(const M68kBinaryWriter *writer) {
-    return m68k_writer_build_alloc(writer, m68k_allocator_heap());
+    unsigned char *data;
+    if (writer == NULL) return NULL;
+    data = (unsigned char *)malloc(writer->size == 0U ? 1U : writer->size);
+    return m68k_writer_copy_to_buffer(writer, data);
 }
 
 unsigned char *m68k_writer_build_arena(const M68kBinaryWriter *writer, Arena *arena) {
-    return m68k_writer_build_alloc(writer, m68k_allocator_arena(arena));
+    unsigned char *data;
+    if (writer == NULL || arena == NULL) return NULL;
+    data = (unsigned char *)arena_alloc(arena, writer->size == 0U ? 1U : writer->size);
+    return m68k_writer_copy_to_buffer(writer, data);
 }
 
 void m68k_writer_destroy(M68kBinaryWriter *writer) {
