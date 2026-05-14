@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from amiga_reversing.disasm.manual_actions import (
     ReviewConfidence,
+    ReviewItemKind,
     ReviewItemState,
     finalize_review_items,
 )
@@ -69,7 +70,7 @@ def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, 
         if not isinstance(reason, str) or not reason:
             reason = "needs_review_blocker"
         item = {
-            "kind": "decompression_blocker",
+            "kind": ReviewItemKind.DECOMPRESSION_BLOCKER,
             "item_id": f"decompression_blocker:{event_id}",
             "scope": "range",
             "state": ReviewItemState.OPEN,
@@ -108,7 +109,7 @@ def _orphan_code_items(section: dict[str, object], section_index: int) -> list[d
         size = max(1, _int_field(signal, "size", 2))
         items.append(
             {
-                "kind": "orphan_code_candidate",
+                "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
                 "scope": "range",
                 "state": ReviewItemState.OPEN,
                 "hunk": section_index,
@@ -136,7 +137,7 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
         size = max(1, _int_field(violation, "size", 2))
         items.append(
             {
-                "kind": "suspicious_instruction_decode",
+                "kind": ReviewItemKind.SUSPICIOUS_INSTRUCTION_DECODE,
                 "scope": "range",
                 "state": ReviewItemState.OPEN,
                 "hunk": section_index,
@@ -177,7 +178,7 @@ def _unreconciled_data_items(
 
 def _unreconciled_item(section_index: int, start: int, end: int) -> dict[str, object]:
     return {
-        "kind": "unreconciled_data_range",
+        "kind": ReviewItemKind.UNRECONCILED_DATA_RANGE,
         "scope": "range",
         "state": ReviewItemState.OPEN,
         "hunk": section_index,
@@ -206,7 +207,11 @@ def _manual_annotation_unreconciled_items(
         for gap_hunk, gap_start, gap_end in unreconciled_ranges:
             if hunk != gap_hunk or start >= gap_end or gap_start >= end:
                 continue
-            item_kind = f"manual_{annotation_kind}_unreconciled"
+            item_kind = (
+                ReviewItemKind.MANUAL_LABEL_UNRECONCILED
+                if annotation_kind == "label"
+                else ReviewItemKind.MANUAL_COMMENT_UNRECONCILED
+            )
             items.append(
                 {
                     "kind": item_kind,

@@ -13,7 +13,7 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm.manual_actions import load_manual_projection
+from amiga_reversing.disasm.manual_actions import ReviewItemKind, load_manual_projection, review_item_kind
 from amiga_reversing.disasm.target_metadata import (
     EntryCommentMetadata,
     SeededCodeEntrypointMetadata,
@@ -220,11 +220,12 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     conflicted_seed_ids: set[str] = set()
     conflicted_label_ids: set[str] = set()
     for item in projection.review_items:
-        if item.get("kind") == "manual_seed_conflict":
+        kind = review_item_kind(item.get("kind"))
+        if kind is ReviewItemKind.MANUAL_SEED_CONFLICT:
             seed_ids = item.get("seed_ids")
             if isinstance(seed_ids, list | tuple):
                 conflicted_seed_ids.update(seed_id for seed_id in seed_ids if isinstance(seed_id, str))
-        elif item.get("kind") == "label_scope_conflict":
+        elif kind is ReviewItemKind.LABEL_SCOPE_CONFLICT:
             label_ids = item.get("label_ids")
             if isinstance(label_ids, list | tuple):
                 conflicted_label_ids.update(label_id for label_id in label_ids if isinstance(label_id, str))

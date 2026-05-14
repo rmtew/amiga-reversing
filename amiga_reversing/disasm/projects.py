@@ -13,6 +13,7 @@ from amiga_reversing.disasm.binary_source import (
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.manual_actions import (
+    ReviewItemKind,
     ReviewItemState,
     ReviewState,
     finalize_review_items,
@@ -275,7 +276,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
     except (OSError, json.JSONDecodeError) as exc:
         return finalize_review_items((
             {
-                "kind": "reproduction_mismatch",
+                "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
                 "scope": "target",
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
@@ -286,7 +287,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
     if not isinstance(report, dict):
         return finalize_review_items((
             {
-                "kind": "reproduction_mismatch",
+                "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
                 "scope": "target",
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
@@ -326,7 +327,7 @@ def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[
             event_id = f"decompression:{source_section}:{source_offset}:{reason}"
         items.append(
             {
-                "kind": "decompression_blocker",
+                "kind": ReviewItemKind.DECOMPRESSION_BLOCKER,
                 "item_id": f"decompression_blocker:{event_id}",
                 "scope": "range" if isinstance(source_section, int) and isinstance(source_offset, int) else "target",
                 "state": ReviewItemState.OPEN,
@@ -351,7 +352,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
             return []
         return [
             {
-                "kind": "reproduction_mismatch",
+                "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
                 "scope": "target",
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
@@ -367,7 +368,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
     if content_exact is not True:
         return [
             {
-                "kind": "reproduction_mismatch",
+                "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
                 "scope": "target",
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
@@ -381,7 +382,11 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
     if full_file_exact is True and not file_structure_issue_kinds:
         return []
 
-    kind = "unsupported_container_shape" if "unsupported_container_shape" in file_structure_issue_kinds else "reproduction_mismatch"
+    kind = (
+        ReviewItemKind.UNSUPPORTED_CONTAINER_SHAPE
+        if ReviewItemKind.UNSUPPORTED_CONTAINER_SHAPE in file_structure_issue_kinds
+        else ReviewItemKind.REPRODUCTION_MISMATCH
+    )
     return [
         {
             "kind": kind,

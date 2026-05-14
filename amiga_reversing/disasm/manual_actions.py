@@ -41,6 +41,22 @@ class ReviewConfidence(StrEnum):
     HIGH = "high"
 
 
+class ReviewItemKind(StrEnum):
+    MANUAL_SEED_CONFLICT = "manual_seed_conflict"
+    MANUAL_ACTION_LOG_INCONSISTENCY = "manual_action_log_inconsistency"
+    MANUAL_ACTION_LOG_MALFORMED = "manual_action_log_malformed"
+    MANUAL_ACTION_LOG_TARGET_MISMATCH = "manual_action_log_target_mismatch"
+    REPRODUCTION_MISMATCH = "reproduction_mismatch"
+    UNSUPPORTED_CONTAINER_SHAPE = "unsupported_container_shape"
+    ORPHAN_CODE_CANDIDATE = "orphan_code_candidate"
+    UNRECONCILED_DATA_RANGE = "unreconciled_data_range"
+    SUSPICIOUS_INSTRUCTION_DECODE = "suspicious_instruction_decode"
+    MANUAL_LABEL_UNRECONCILED = "manual_label_unreconciled"
+    MANUAL_COMMENT_UNRECONCILED = "manual_comment_unreconciled"
+    LABEL_SCOPE_CONFLICT = "label_scope_conflict"
+    DECOMPRESSION_BLOCKER = "decompression_blocker"
+
+
 def review_item_state(value: object) -> ReviewItemState | None:
     if isinstance(value, ReviewItemState):
         return value
@@ -54,6 +70,17 @@ def review_item_state(value: object) -> ReviewItemState | None:
 
 def review_item_is_open(item: dict[str, object]) -> bool:
     return review_item_state(item.get("state")) is ReviewItemState.OPEN
+
+
+def review_item_kind(value: object) -> ReviewItemKind | None:
+    if isinstance(value, ReviewItemKind):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ReviewItemKind(value)
+    except ValueError:
+        return None
 
 
 class ManualActionKind(StrEnum):
@@ -264,46 +291,46 @@ def _review_item_fingerprint(item: dict[str, object]) -> str:
 
 
 def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]]:
-    kind = item.get("kind")
-    if kind == "manual_seed_conflict":
+    kind = review_item_kind(item.get("kind"))
+    if kind is ReviewItemKind.MANUAL_SEED_CONFLICT:
         return [
             {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
             {"action": "edit_manual_seed", "seed_ids": item.get("seed_ids")},
         ]
     if kind in {
-        "manual_action_log_inconsistency",
-        "manual_action_log_malformed",
-        "manual_action_log_target_mismatch",
+        ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY,
+        ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
+        ReviewItemKind.MANUAL_ACTION_LOG_TARGET_MISMATCH,
     }:
         return [{"action": "repair_manual_action_log"}]
-    if kind in {"reproduction_mismatch", "unsupported_container_shape"}:
+    if kind in {ReviewItemKind.REPRODUCTION_MISMATCH, ReviewItemKind.UNSUPPORTED_CONTAINER_SHAPE}:
         return [{"action": "open_reproduction_report"}, {"action": "rerun_round_trip_verification"}]
-    if kind == "orphan_code_candidate":
+    if kind is ReviewItemKind.ORPHAN_CODE_CANDIDATE:
         return [
             {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
             {"action": "create_manual_seed", "seed_kind": "code", "mode": "required"},
             {"action": "resolve_as_data_or_padding"},
         ]
-    if kind == "unreconciled_data_range":
+    if kind is ReviewItemKind.UNRECONCILED_DATA_RANGE:
         return [
             {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
             {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
             {"action": "resolve_as_opaque_data"},
         ]
-    if kind == "suspicious_instruction_decode":
+    if kind is ReviewItemKind.SUSPICIOUS_INSTRUCTION_DECODE:
         return [
             {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
             {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
             {"action": "acknowledge"},
         ]
-    if kind in {"manual_label_unreconciled", "manual_comment_unreconciled"}:
+    if kind in {ReviewItemKind.MANUAL_LABEL_UNRECONCILED, ReviewItemKind.MANUAL_COMMENT_UNRECONCILED}:
         return [
             {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
             {"action": "create_manual_seed", "mode": "required"},
             {"action": "remove_manual_annotation"},
             {"action": "acknowledge"},
         ]
-    if kind == "label_scope_conflict":
+    if kind is ReviewItemKind.LABEL_SCOPE_CONFLICT:
         return [{"action": "rename_manual_label"}, {"action": "change_label_scope"}, {"action": "remove_manual_label"}]
     return []
 
@@ -358,7 +385,7 @@ def finalize_review_items(
 def _blocked_projection(
     path: Path,
     *,
-    kind: str,
+    kind: ReviewItemKind,
     message: str,
     pinned_target_identity: dict[str, object] | None = None,
     current_target_identity: dict[str, object] | None = None,
@@ -380,7 +407,7 @@ def _blocked_projection(
     )
 
 
-def _needs_review_item(kind: str, message: str) -> dict[str, object]:
+def _needs_review_item(kind: ReviewItemKind, message: str) -> dict[str, object]:
     return {"kind": kind, "scope": "target", "state": ReviewItemState.OPEN, "message": message}
 
 
@@ -469,7 +496,7 @@ def _manual_label_conflict_items(
             if not isinstance(owner_id, str) or not owner_id:
                 items.append(
                     {
-                        "kind": "label_scope_conflict",
+                        "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:missing-owner",
                         "scope": "range",
                         "state": ReviewItemState.OPEN,
@@ -490,7 +517,7 @@ def _manual_label_conflict_items(
             ):
                 items.append(
                     {
-                        "kind": "label_scope_conflict",
+                        "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:unsupported-local-profile",
                         "scope": "range",
                         "state": ReviewItemState.OPEN,
@@ -509,7 +536,7 @@ def _manual_label_conflict_items(
             if name in reserved_local_names:
                 items.append(
                     {
-                        "kind": "label_scope_conflict",
+                        "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:reserved-local-name",
                         "scope": "range",
                         "state": ReviewItemState.OPEN,
@@ -528,7 +555,7 @@ def _manual_label_conflict_items(
             hunk, start, end = label_range or (0, 0, 1)
             items.append(
                 {
-                    "kind": "label_scope_conflict",
+                    "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                     "item_id": f"label_scope_conflict:{label_id}:metadata-collision",
                     "scope": "range",
                     "state": ReviewItemState.OPEN,
@@ -552,7 +579,7 @@ def _manual_label_conflict_items(
         hunk, start, end = right_range or left_range or (0, 0, 1)
         items.append(
             {
-                "kind": "label_scope_conflict",
+                "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                 "item_id": f"label_scope_conflict:{min(previous_id, label_id)}:{max(previous_id, label_id)}",
                 "scope": "range",
                 "state": ReviewItemState.OPEN,
@@ -591,7 +618,7 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
             item_id = f"manual_seed_conflict:{min(left_id, right_id)}:{max(left_id, right_id)}"
             items.append(
                 {
-                    "kind": "manual_seed_conflict",
+                    "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                     "item_id": item_id,
                     "scope": "range",
                     "state": ReviewItemState.OPEN,
@@ -638,7 +665,7 @@ def _manual_seed_metadata_conflict_items(
                 continue
             items.append(
                 {
-                    "kind": "manual_seed_conflict",
+                    "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                     "item_id": f"manual_seed_conflict:{seed_id}:{stronger_id}",
                     "scope": "range",
                     "state": ReviewItemState.OPEN,
@@ -678,7 +705,7 @@ def _manual_seed_binary_source_conflict_items(
             continue
         items.append(
             {
-                "kind": "manual_seed_conflict",
+                "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                 "item_id": f"manual_seed_conflict:{seed_id}:{source_id}",
                 "scope": "range",
                 "state": ReviewItemState.OPEN,
@@ -866,14 +893,14 @@ def load_manual_projection(
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         return _blocked_projection(
             path,
-            kind="manual_action_log_malformed",
+            kind=ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
             message=str(exc),
         )
 
     if not records:
         return _blocked_projection(
             path,
-            kind="manual_action_log_malformed",
+            kind=ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
             message="Manual Action Log exists but has no header",
         )
 
@@ -888,7 +915,7 @@ def load_manual_projection(
     except ValueError as exc:
         return _blocked_projection(
             path,
-            kind="manual_action_log_malformed",
+            kind=ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
             message=str(exc),
         )
 
@@ -896,7 +923,7 @@ def load_manual_projection(
     if current_target_identity is not None and pinned_target_identity != current_target_identity:
         return _blocked_projection(
             path,
-            kind="manual_action_log_target_mismatch",
+            kind=ReviewItemKind.MANUAL_ACTION_LOG_TARGET_MISMATCH,
             message="Manual Action Log target identity does not match current target",
             pinned_target_identity=pinned_target_identity,
             current_target_identity=current_target_identity,
@@ -916,7 +943,7 @@ def load_manual_projection(
             if action.sequence != expected_sequence and not reported_sequence_inconsistency:
                 review_items.append(
                     _needs_review_item(
-                        "manual_action_log_inconsistency",
+                        ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY,
                         f"Action {action.action_id} has sequence {action.sequence}; expected {expected_sequence}",
                     )
                 )
@@ -936,7 +963,7 @@ def load_manual_projection(
     except ValueError as exc:
         return _blocked_projection(
             path,
-            kind="manual_action_log_malformed",
+            kind=ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
             message=str(exc),
             pinned_target_identity=pinned_target_identity,
             current_target_identity=current_target_identity,
