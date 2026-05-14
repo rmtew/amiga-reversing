@@ -32,17 +32,7 @@ Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles
     - Presence of multiple payloads.
     - Non-trivial use of custom registers.
 - Disk "damocles" target analysis flaw indicators:
-  - Second hunk:
-    - Non equated runtime address for tetragon decompression start address:
-      ```
-      002a 43f90004f92b lea.l $0004F92B.l,a1    
-      ```
   - Third hunk:
-    - Non-equated runtime addresses for post-pass RLE start and end addresses:
-      ```
-      00d0 41f900040000 lea.l $00040000.l,a0
-      00d6 45f900050000 lea.l $00050000.l,a2
-      ```
     - Entrypoint not load address for $100 bootstrapped payload.
       ```
       005c 4eea0040 jmp $0040(a2)

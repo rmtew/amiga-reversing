@@ -5918,6 +5918,15 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
     assert "\tadda.l loc_1_00000012+2(pc),a0\n" in source_text
     assert "\tmovea.l $C4(pc),a4\n" not in source_text
     assert "\tadda.l -$C(pc),a0\n" not in source_text
+    assert "runtime_address_0004F92B\tEQU\t$4F92B\n" in source_text
+    assert "\tlea.l runtime_address_0004F92B.l,a1\n" in source_text
+    assert "\tlea.l $0004F92B.l,a1\n" not in source_text
+    assert "runtime_address_00040000\tEQU\t$40000\n" in source_text
+    assert "runtime_address_00050000\tEQU\t$50000\n" in source_text
+    assert "\tlea.l runtime_address_00040000.l,a0\n" in source_text
+    assert "\tlea.l runtime_address_00050000.l,a2\n" in source_text
+    assert "\tlea.l $00040000.l,a0\n" not in source_text
+    assert "\tlea.l $00050000.l,a2\n" not in source_text
     assert "\tlea.l abs_2_00000100.l,a1\n" in source_text
     assert (
         "loc_2_0000006A:\n"
@@ -5925,13 +5934,13 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
         "abs_2_00000100:\n"
         "\tmoveq.l #-83,d7\n"
         "\tlea.l $00001000.l,a0\n"
-        "\tlea.l $0007FFFF.l,a2\n"
+        "\tlea.l runtime_address_0007FFFF.l,a2\n"
     ) in source_text
     assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
     assert (
         "abs_2_00000140:\n"
         "\tadda.l #$47368,a0\n"
-        "\tlea.l $000130B6.l,a1\n"
+        "\tlea.l runtime_address_000130B6.l,a1\n"
     ) in source_text
     assert "\tdc.b $3D,$7C,$7F,$FF,$00,$9A,$4E,$73,$D1,$FC,$00,$04,$73,$68,$43,$F9\n" not in source_text
 

@@ -5599,6 +5599,20 @@ static const char *lookup_external_runtime_address_role_by_value(const M68kRende
   return NULL;
 }
 
+static int lookup_inferred_runtime_address_value_has_data_class(const M68kRenderLookup *lookup,
+    uint32_t runtime_address) {
+  size_t index;
+  if (lookup == NULL || runtime_address == 0U) return 0;
+  for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
+    const M68kRenderInferredRuntimeAddressRef *entry = &lookup->inferred_runtime_address_refs[index];
+    if (entry->ref.has_runtime_address && entry->ref.runtime_address == runtime_address &&
+        entry->data_class_flags != 0U) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int runtime_alias_label_seen_before(const M68kRenderLookup *lookup, size_t current_index,
     size_t section_index, uint32_t offset, uint32_t runtime_address) {
   size_t index;
@@ -8356,6 +8370,28 @@ static int instruction_immediate_operand_stores_long_to_memory(const M68kInstruc
   return metadata->operand_access_kinds[dest_index] == M68K_SIM_ACCESS_MEMORY_WRITE;
 }
 
+static int instruction_operand_is_unmapped_runtime_address_literal(const M68kInstructionIR *instruction,
+    size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint8_t dest_reg = 0U;
+  if (instruction == NULL || operand_index >= instruction->operand_count || operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET ||
+      metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_ADDRESS ||
+      metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
+    return 1;
+  }
+  if (metadata->operation_type != M68K_SIM_OP_MOVE || metadata->source_operand_index != operand_index ||
+      metadata->dest_operand_index >= instruction->operand_count) {
+    return 0;
+  }
+  dest_index = metadata->dest_operand_index;
+  return operand_address_register_index_local(&instruction->operands[dest_index], &dest_reg);
+}
+
 static int attach_existing_materialized_runtime_immediate_symbols(const M68kRenderLookup *lookup,
     size_t section_index, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -8380,6 +8416,35 @@ static int attach_existing_materialized_runtime_immediate_symbols(const M68kRend
     operand->symbol_ref.section_index = section_index;
     format_runtime_asm_label(lookup, operand->symbol_ref.name, sizeof(operand->symbol_ref.name),
       section_index, source_offset, runtime_address);
+  }
+  return 1;
+}
+
+static int attach_unmapped_absolute_runtime_address_symbols(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (preview == NULL || lookup == NULL || instruction == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t value = 0U;
+    char symbol[80];
+    if (operand->symbol_ref.has_name != 0U ||
+        !instruction_operand_is_unmapped_runtime_address_literal(instruction, operand_index) ||
+        (!operand_is_immediate_value_local(operand, &value) && !operand_absolute_offset_local(operand, &value))) {
+      continue;
+    }
+    if (value < 0x10000U || m68k_cpu_find_exception_vector_by_address(value) != NULL ||
+        lookup_external_runtime_address_role_by_value(lookup, value) != NULL ||
+        lookup_inferred_runtime_address_value_has_data_class(lookup, value) ||
+        amiga_os_find_hardware_base_symbol_by_address(value) != NULL ||
+        amiga_os_find_hardware_register_by_cpu_address(value) != NULL ||
+        amiga_os_find_hardware_register_field_by_cpu_address(value) != NULL ||
+        amiga_os_find_hardware_register_range_by_cpu_address(value) != NULL) {
+      continue;
+    }
+    if (!render_asm_define_runtime_address_symbol_once(preview, "runtime_address", value, symbol, sizeof(symbol)))
+      return 0;
+    attach_generic_symbol(operand, symbol);
   }
   return 1;
 }
@@ -9018,6 +9083,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
+  if (!attach_unmapped_absolute_runtime_address_symbols(preview, lookup, &instruction)) return 0;
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
