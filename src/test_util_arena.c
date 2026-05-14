@@ -161,6 +161,37 @@ static int test_builder_rewind_discards_chunks_and_finalized_storage(void) {
   return 0;
 }
 
+static int test_allocator_heap_allocates_and_frees(void) {
+  M68kAllocator allocator = m68k_allocator_heap();
+  uint32_t *values = (uint32_t *)m68k_allocator_calloc(allocator, 3U, sizeof(*values));
+  M68K_C_ASSERT(values != NULL);
+  M68K_C_ASSERT_U32(0U, values[0]);
+  values[1] = 42U;
+  M68K_C_ASSERT_U32(42U, values[1]);
+  m68k_allocator_free(allocator, values);
+  return 0;
+}
+
+static int test_allocator_arena_uses_arena_storage(void) {
+  Arena *arena = arena_create(64U);
+  M68kAllocator allocator;
+  ArenaStats before;
+  ArenaStats after;
+  uint32_t *values;
+  M68K_C_ASSERT(arena != NULL);
+  allocator = m68k_allocator_arena(arena);
+  before = arena_stats(arena);
+  values = (uint32_t *)m68k_allocator_calloc(allocator, 4U, sizeof(*values));
+  after = arena_stats(arena);
+  M68K_C_ASSERT(values != NULL);
+  M68K_C_ASSERT_U32(0U, values[0]);
+  M68K_C_ASSERT(after.current_used > before.current_used);
+  m68k_allocator_free(allocator, values);
+  M68K_C_ASSERT_U32((uint32_t)after.current_used, (uint32_t)arena_stats(arena).current_used);
+  arena_destroy(arena);
+  return 0;
+}
+
 static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
   TestVirtualReservedArena arena;
   unsigned char *first;
@@ -303,6 +334,8 @@ int m68k_c_util_arena_tests(void) {
     {"builder_zero_length_finalize_is_arena_owned", test_builder_zero_length_finalize_is_arena_owned},
     {"builder_typed_pair_append_uninit", test_builder_typed_pair_append_uninit},
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
+    {"allocator_heap_allocates_and_frees", test_allocator_heap_allocates_and_frees},
+    {"allocator_arena_uses_arena_storage", test_allocator_arena_uses_arena_storage},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
     {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},

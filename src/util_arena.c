@@ -263,6 +263,61 @@ ArenaStats arena_stats(const Arena *arena) {
   return stats;
 }
 
+static void *m68k_heap_allocator_alloc(void *context, size_t size) {
+  (void)context;
+  if (size == 0U) return NULL;
+  return malloc(size);
+}
+
+static void m68k_heap_allocator_free(void *context, void *ptr) {
+  (void)context;
+  free(ptr);
+}
+
+static void *m68k_arena_allocator_alloc(void *context, size_t size) {
+  return arena_alloc((Arena *)context, size);
+}
+
+static void m68k_arena_allocator_free(void *context, void *ptr) {
+  (void)context;
+  (void)ptr;
+}
+
+M68kAllocator m68k_allocator_heap(void) {
+  M68kAllocator allocator;
+  allocator.context = NULL;
+  allocator.alloc = m68k_heap_allocator_alloc;
+  allocator.free = m68k_heap_allocator_free;
+  return allocator;
+}
+
+M68kAllocator m68k_allocator_arena(Arena *arena) {
+  M68kAllocator allocator;
+  allocator.context = arena;
+  allocator.alloc = arena != NULL ? m68k_arena_allocator_alloc : NULL;
+  allocator.free = m68k_arena_allocator_free;
+  return allocator;
+}
+
+void *m68k_allocator_alloc(M68kAllocator allocator, size_t size) {
+  if (allocator.alloc == NULL || size == 0U) return NULL;
+  return allocator.alloc(allocator.context, size);
+}
+
+void *m68k_allocator_calloc(M68kAllocator allocator, size_t count, size_t size) {
+  size_t total;
+  void *ptr;
+  if (count != 0U && size > ((size_t)-1) / count) return NULL;
+  total = count * size;
+  ptr = m68k_allocator_alloc(allocator, total);
+  if (ptr != NULL) memset(ptr, 0, total);
+  return ptr;
+}
+
+void m68k_allocator_free(M68kAllocator allocator, void *ptr) {
+  if (allocator.free != NULL && ptr != NULL) allocator.free(allocator.context, ptr);
+}
+
 int arena_pool_init(ArenaPool *pool, Arena *arena, size_t object_size, size_t objects_per_chunk) {
   size_t aligned_size;
   if (pool == NULL) return 0;

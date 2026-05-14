@@ -83,6 +83,7 @@ static int json_builder_appendfv(JsonBuilder *builder, const char *fmt, va_list 
     char stack_buffer[JSON_BUILDER_FORMAT_STACK_SIZE];
     char *heap_buffer = NULL;
     char *buffer = stack_buffer;
+    M68kAllocator heap_allocator = m68k_allocator_heap();
     va_list copy;
     int written;
     size_t length;
@@ -92,22 +93,22 @@ static int json_builder_appendfv(JsonBuilder *builder, const char *fmt, va_list 
     if (written < 0) return -1;
     length = (size_t)written;
     if (length >= sizeof(stack_buffer)) {
-        heap_buffer = (char *)malloc(length + 1U);
+        heap_buffer = (char *)m68k_allocator_alloc(heap_allocator, length + 1U);
         if (heap_buffer == NULL) return -1;
         va_copy(copy, args);
         written = vsnprintf(heap_buffer, length + 1U, fmt, copy);
         va_end(copy);
         if (written < 0) {
-            free(heap_buffer);
+            m68k_allocator_free(heap_allocator, heap_buffer);
             return -1;
         }
         buffer = heap_buffer;
     }
     if (append_bytes(builder, buffer, length) != 0) {
-        free(heap_buffer);
+        m68k_allocator_free(heap_allocator, heap_buffer);
         return -1;
     }
-    free(heap_buffer);
+    m68k_allocator_free(heap_allocator, heap_buffer);
     return 0;
 }
 
@@ -182,13 +183,15 @@ static char *json_builder_copy_text(JsonBuilder *builder, char *data) {
 }
 
 char *json_builder_build(JsonBuilder *builder) {
+    M68kAllocator heap_allocator = m68k_allocator_heap();
     if (builder == NULL || builder->size == (size_t)-1) return NULL;
-    return json_builder_copy_text(builder, (char *)malloc(builder->size + 1U));
+    return json_builder_copy_text(builder, (char *)m68k_allocator_alloc(heap_allocator, builder->size + 1U));
 }
 
 char *json_builder_build_arena(JsonBuilder *builder, Arena *arena) {
+    M68kAllocator arena_allocator = m68k_allocator_arena(arena);
     if (builder == NULL || arena == NULL || builder->size == (size_t)-1) return NULL;
-    return json_builder_copy_text(builder, (char *)arena_alloc(arena, builder->size + 1U));
+    return json_builder_copy_text(builder, (char *)m68k_allocator_alloc(arena_allocator, builder->size + 1U));
 }
 
 void json_builder_destroy(JsonBuilder *builder) {

@@ -4,6 +4,15 @@
 #include <stddef.h>
 
 typedef struct Arena Arena;
+typedef void *(*M68kAllocatorAllocFn)(void *context, size_t size);
+typedef void (*M68kAllocatorFreeFn)(void *context, void *ptr);
+
+typedef struct M68kAllocator {
+  void *context;
+  M68kAllocatorAllocFn alloc;
+  M68kAllocatorFreeFn free;
+} M68kAllocator;
+
 typedef struct ArenaMark {
   void *block;
   size_t used;
@@ -60,6 +69,12 @@ ArenaMark arena_mark(Arena *arena);
 void arena_rewind(Arena *arena, ArenaMark mark);
 void arena_reset(Arena *arena);
 ArenaStats arena_stats(const Arena *arena);
+
+M68kAllocator m68k_allocator_heap(void);
+M68kAllocator m68k_allocator_arena(Arena *arena);
+void *m68k_allocator_alloc(M68kAllocator allocator, size_t size);
+void *m68k_allocator_calloc(M68kAllocator allocator, size_t count, size_t size);
+void m68k_allocator_free(M68kAllocator allocator, void *ptr);
 
 int arena_builder_init(ArenaBuilder *builder, Arena *arena, size_t item_size, size_t chunk_capacity);
 size_t arena_builder_length(const ArenaBuilder *builder);
