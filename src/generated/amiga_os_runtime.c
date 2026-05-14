@@ -20331,25 +20331,25 @@ static const uint16_t g_amiga_os_trivial_naming_functions[] = {
 };
 
 static const AmigaOsResidentVectorPrefixInfo g_amiga_os_resident_vector_prefixes[] = {
-  { "device", 0u, AMIGA_OS_SYMBOL_ID_LIB_OPEN },
-  { "device", 1u, AMIGA_OS_SYMBOL_ID_LIB_CLOSE },
-  { "device", 2u, AMIGA_OS_SYMBOL_ID_LIB_EXPUNGE },
-  { "device", 3u, AMIGA_OS_SYMBOL_ID_LIB_EXTFUNC },
-  { "device", 4u, AMIGA_OS_SYMBOL_ID_DEV_BEGINIO },
-  { "device", 5u, AMIGA_OS_SYMBOL_ID_DEV_ABORTIO },
-  { "library", 0u, AMIGA_OS_SYMBOL_ID_LIB_OPEN },
-  { "library", 1u, AMIGA_OS_SYMBOL_ID_LIB_CLOSE },
-  { "library", 2u, AMIGA_OS_SYMBOL_ID_LIB_EXPUNGE },
-  { "library", 3u, AMIGA_OS_SYMBOL_ID_LIB_EXTFUNC },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 0u, AMIGA_OS_SYMBOL_ID_LIB_OPEN },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 1u, AMIGA_OS_SYMBOL_ID_LIB_CLOSE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 2u, AMIGA_OS_SYMBOL_ID_LIB_EXPUNGE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 3u, AMIGA_OS_SYMBOL_ID_LIB_EXTFUNC },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 4u, AMIGA_OS_SYMBOL_ID_DEV_BEGINIO },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, 5u, AMIGA_OS_SYMBOL_ID_DEV_ABORTIO },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, 0u, AMIGA_OS_SYMBOL_ID_LIB_OPEN },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, 1u, AMIGA_OS_SYMBOL_ID_LIB_CLOSE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, 2u, AMIGA_OS_SYMBOL_ID_LIB_EXPUNGE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, 3u, AMIGA_OS_SYMBOL_ID_LIB_EXTFUNC },
 };
 
 static const AmigaOsResidentEntrySeedInfo g_amiga_os_resident_entry_seeds[] = {
-  { "device", "DEV_ABORTIO", "A1", "struct_ptr", NULL, AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_IOSTDREQ, AMIGA_OS_SYMBOL_ID_NONE },
-  { "device", "DEV_BEGINIO", "A1", "struct_ptr", NULL, AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_IOSTDREQ, AMIGA_OS_SYMBOL_ID_NONE },
-  { "device", "init", "D0", "library_base", "current_target", AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
-  { "device", "init", "A6", "library_base", "fixed", AMIGA_OS_LIBRARY_ID_EXEC_LIBRARY, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
-  { "library", "init", "D0", "library_base", "current_target", AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
-  { "library", "init", "A6", "library_base", "fixed", AMIGA_OS_LIBRARY_ID_EXEC_LIBRARY, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, "DEV_ABORTIO", "A1", "struct_ptr", NULL, AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_IOSTDREQ, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, "DEV_BEGINIO", "A1", "struct_ptr", NULL, AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_IOSTDREQ, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, "init", "D0", "library_base", "current_target", AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE, "init", "A6", "library_base", "fixed", AMIGA_OS_LIBRARY_ID_EXEC_LIBRARY, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, "init", "D0", "library_base", "current_target", AMIGA_OS_LIBRARY_ID_NONE, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
+  { AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY, "init", "A6", "library_base", "fixed", AMIGA_OS_LIBRARY_ID_EXEC_LIBRARY, AMIGA_OS_STRUCT_ID_NONE, AMIGA_OS_SYMBOL_ID_NONE },
 };
 
 static const AmigaOsConstantInfo g_amiga_os_constants[] = {
@@ -36511,6 +36511,22 @@ int amiga_os_is_trivial_naming_function_id(uint16_t function_id) {
 
 const char *amiga_os_generic_naming_prefix(void) {
   return "call_";
+}
+
+const char *amiga_os_resident_target_type_name(uint8_t target_type_id) {
+  switch (target_type_id) {
+    case AMIGA_OS_RESIDENT_TARGET_TYPE_NONE: return NULL;
+    case AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE: return "device";
+    case AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY: return "library";
+    default: return NULL;
+  }
+}
+
+uint8_t amiga_os_resident_target_type_id(const char *target_type) {
+  if (target_type == NULL || target_type[0] == '\0') return AMIGA_OS_RESIDENT_TARGET_TYPE_NONE;
+  if (strcmp(target_type, "device") == 0) return AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE;
+  if (strcmp(target_type, "library") == 0) return AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY;
+  return AMIGA_OS_RESIDENT_TARGET_TYPE_NONE;
 }
 
 const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index) {

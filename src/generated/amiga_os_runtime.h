@@ -19,6 +19,13 @@ typedef enum AmigaOsRegisterKind {
   AMIGA_OS_REGISTER_ADDRESS = 2
 } AmigaOsRegisterKind;
 
+typedef enum AmigaOsResidentTargetType {
+  AMIGA_OS_RESIDENT_TARGET_TYPE_NONE = 0,
+  AMIGA_OS_RESIDENT_TARGET_TYPE_DEVICE = 1,
+  AMIGA_OS_RESIDENT_TARGET_TYPE_LIBRARY = 2,
+  AMIGA_OS_RESIDENT_TARGET_TYPE_COUNT = 3
+} AmigaOsResidentTargetType;
+
 typedef enum AmigaOsValueDomainKind {
   AMIGA_OS_VALUE_DOMAIN_KIND_NONE = 0,
   AMIGA_OS_VALUE_DOMAIN_KIND_ENUM = 1,
@@ -14731,13 +14738,13 @@ typedef struct AmigaOsNamingPatternInfo {
 } AmigaOsNamingPatternInfo;
 
 typedef struct AmigaOsResidentVectorPrefixInfo {
-  const char *target_type;
+  uint8_t target_type_id;
   uint8_t slot_index;
   uint16_t symbol_id;
 } AmigaOsResidentVectorPrefixInfo;
 
 typedef struct AmigaOsResidentEntrySeedInfo {
-  const char *target_type;
+  uint8_t target_type_id;
   const char *role;
   const char *register_name;
   const char *kind;
@@ -14848,6 +14855,8 @@ const char *amiga_os_find_symbol_include(const char *symbol_name);
 const AmigaOsNamingPatternInfo *amiga_os_naming_pattern_at(size_t index);
 int amiga_os_is_trivial_naming_function_id(uint16_t function_id);
 const char *amiga_os_generic_naming_prefix(void);
+const char *amiga_os_resident_target_type_name(uint8_t target_type_id);
+uint8_t amiga_os_resident_target_type_id(const char *target_type);
 const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);
 const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);
 const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);

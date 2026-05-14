@@ -1422,7 +1422,8 @@ static int append_amiga_os_metadata_catalog_json(JsonBuilder *builder) {
     if (symbol_name == NULL) continue;
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"target_type\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, entry->target_type) != 0) return -1;
+    if (json_builder_append_json_string(builder, amiga_os_resident_target_type_name(entry->target_type_id)) != 0)
+      return -1;
     if (json_builder_appendf(builder, ",\"slot_index\":%u,\"symbol\":", (unsigned)entry->slot_index) != 0)
       return -1;
     if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
@@ -1434,7 +1435,8 @@ static int append_amiga_os_metadata_catalog_json(JsonBuilder *builder) {
     if (seed == NULL) continue;
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"target_type\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, seed->target_type) != 0) return -1;
+    if (json_builder_append_json_string(builder, amiga_os_resident_target_type_name(seed->target_type_id)) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"role\":") != 0) return -1;
     if (json_builder_append_json_string(builder, seed->role) != 0) return -1;
     if (json_builder_append(builder, ",\"register\":") != 0) return -1;

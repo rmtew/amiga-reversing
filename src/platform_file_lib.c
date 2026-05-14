@@ -4171,6 +4171,7 @@ static int policy_add_resident_vector_entrypoint_local(M68kAnalysisPolicy *polic
     const char *library_name, uint32_t library_version, uint32_t *inout_next_private_ordinal,
     uint32_t *inout_first_code_offset, uint32_t first_code_hunk) {
   char label_name[64];
+  uint8_t target_type_id = amiga_os_resident_target_type_id(target_type);
   label_name[0] = '\0';
   if (policy == NULL || entry == NULL) return 0;
   if (inout_first_code_offset != NULL && entry->hunk == first_code_hunk &&
@@ -4190,9 +4191,7 @@ static int policy_add_resident_vector_entrypoint_local(M68kAnalysisPolicy *polic
     for (prefix_index = 0U; prefix_index < AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT; ++prefix_index) {
       const AmigaOsResidentVectorPrefixInfo *prefix = amiga_os_resident_vector_prefix_at(prefix_index);
       const char *symbol;
-      if (prefix == NULL || prefix->slot_index != vector_index || target_type == NULL ||
-          strcmp(prefix->target_type, target_type) != 0)
-        continue;
+      if (prefix == NULL || prefix->slot_index != vector_index || prefix->target_type_id != target_type_id) continue;
       {
         char base_label[64];
         char library_label[32];
@@ -5028,11 +5027,12 @@ static int policy_decode_target_is_instruction_local(const M68kObject *object, c
 
 static uint32_t resident_vector_prefix_count_local(const char *target_type) {
   size_t prefix_index;
+  uint8_t target_type_id = amiga_os_resident_target_type_id(target_type);
   uint32_t count = 0U;
-  if (target_type == NULL || target_type[0] == '\0') return 0U;
+  if (target_type_id == AMIGA_OS_RESIDENT_TARGET_TYPE_NONE) return 0U;
   for (prefix_index = 0U; prefix_index < AMIGA_OS_RESIDENT_VECTOR_PREFIX_COUNT; ++prefix_index) {
     const AmigaOsResidentVectorPrefixInfo *prefix = amiga_os_resident_vector_prefix_at(prefix_index);
-    if (prefix == NULL || strcmp(prefix->target_type, target_type) != 0) continue;
+    if (prefix == NULL || prefix->target_type_id != target_type_id) continue;
     if (prefix->slot_index + 1U > count) count = prefix->slot_index + 1U;
   }
   return count;

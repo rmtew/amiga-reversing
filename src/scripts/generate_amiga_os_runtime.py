@@ -207,6 +207,19 @@ def resident_entry_seed_rows(includes_payload: dict) -> list[dict[str, str | Non
     return rows
 
 
+def resident_target_type_names(
+    resident_prefix_rows: list[tuple[str, int, str]],
+    resident_seed_rows: list[dict[str, str | None]],
+) -> list[str]:
+    names = {target_type for target_type, _, _ in resident_prefix_rows if target_type}
+    names.update(str(seed["target_type"]) for seed in resident_seed_rows if seed.get("target_type"))
+    return sorted(names)
+
+
+def resident_target_type_enum_literal(target_type: str) -> str:
+    return f"AMIGA_OS_RESIDENT_TARGET_TYPE_{enum_token(target_type)}"
+
+
 def parse_register_name(name: str | None) -> tuple[int, int]:
     if not isinstance(name, str) or len(name) != 2:
         return AMIGA_REGISTER_KIND_NONE, 0
@@ -1789,6 +1802,7 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
     naming_pattern_rows = naming_patterns(naming_rules_payload)
     resident_prefix_rows = resident_vector_prefix_rows(includes_payload)
     resident_seed_rows = resident_entry_seed_rows(includes_payload)
+    resident_target_types = resident_target_type_names(resident_prefix_rows, resident_seed_rows)
     naming_function_limit = max(
         (len(pattern.get("functions", [])) for pattern in naming_pattern_rows if isinstance(pattern.get("functions"), list)),
         default=0,
@@ -1824,6 +1838,15 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "  AMIGA_OS_REGISTER_DATA = 1,",
         "  AMIGA_OS_REGISTER_ADDRESS = 2",
         "} AmigaOsRegisterKind;",
+        "",
+        "typedef enum AmigaOsResidentTargetType {",
+        "  AMIGA_OS_RESIDENT_TARGET_TYPE_NONE = 0,",
+    ])
+    for index, target_type in enumerate(resident_target_types, start=1):
+        lines.append(f"  {resident_target_type_enum_literal(target_type)} = {index},")
+    lines.extend([
+        f"  AMIGA_OS_RESIDENT_TARGET_TYPE_COUNT = {len(resident_target_types) + 1}",
+        "} AmigaOsResidentTargetType;",
         "",
         "typedef enum AmigaOsValueDomainKind {",
         "  AMIGA_OS_VALUE_DOMAIN_KIND_NONE = 0,",
@@ -2002,13 +2025,13 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "} AmigaOsNamingPatternInfo;",
         "",
         "typedef struct AmigaOsResidentVectorPrefixInfo {",
-        "  const char *target_type;",
+        "  uint8_t target_type_id;",
         "  uint8_t slot_index;",
         "  uint16_t symbol_id;",
         "} AmigaOsResidentVectorPrefixInfo;",
         "",
         "typedef struct AmigaOsResidentEntrySeedInfo {",
-        "  const char *target_type;",
+        "  uint8_t target_type_id;",
         "  const char *role;",
         "  const char *register_name;",
         "  const char *kind;",
@@ -2119,6 +2142,8 @@ def write_header(rows: list[tuple[str, str, int, str, dict]],
         "const AmigaOsNamingPatternInfo *amiga_os_naming_pattern_at(size_t index);",
         "int amiga_os_is_trivial_naming_function_id(uint16_t function_id);",
         "const char *amiga_os_generic_naming_prefix(void);",
+        "const char *amiga_os_resident_target_type_name(uint8_t target_type_id);",
+        "uint8_t amiga_os_resident_target_type_id(const char *target_type);",
         "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index);",
         "const AmigaOsResidentEntrySeedInfo *amiga_os_resident_entry_seed_at(size_t index);",
         "const AmigaOsHardwareRegisterInfo *amiga_os_hardware_register_at(size_t index);",
@@ -2210,6 +2235,7 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
     trivial_naming_functions = naming_trivial_functions(naming_rules_payload)
     resident_prefix_rows = resident_vector_prefix_rows(includes_payload)
     resident_seed_rows = resident_entry_seed_rows(includes_payload)
+    resident_target_types = resident_target_type_names(resident_prefix_rows, resident_seed_rows)
     flat_input_rows: list[tuple[str, str | None, str | None, str | None, str | None, str | None, int]] = []
     lines = [
         "/* Generated Amiga OS runtime metadata. Do not edit directly. */",
@@ -2553,8 +2579,8 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         ]
     )
     for target_type, slot_index, symbol_name in resident_prefix_rows:
-        lines.append("  { \"%s\", %du, %s }," % (
-            c_string(target_type),
+        lines.append("  { %s, %du, %s }," % (
+            resident_target_type_enum_literal(target_type),
             slot_index,
             name_id_literal(name_domain_meta, "symbol", symbol_name)))
     lines.extend(
@@ -2565,8 +2591,8 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
         ]
     )
     for seed in resident_seed_rows:
-        lines.append("  { \"%s\", \"%s\", \"%s\", \"%s\", %s, %s, %s, %s }," % (
-            c_string(str(seed["target_type"])),
+        lines.append("  { %s, \"%s\", \"%s\", \"%s\", %s, %s, %s, %s }," % (
+            resident_target_type_enum_literal(str(seed["target_type"])),
             c_string(str(seed["role"])),
             c_string(str(seed["register"])),
             c_string(str(seed["kind"])),
@@ -2751,6 +2777,33 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "",
             "const char *amiga_os_generic_naming_prefix(void) {",
             "  return \"%s\";" % c_string(str(naming_rules_payload.get("generic_prefix", ""))),
+            "}",
+            "",
+            "const char *amiga_os_resident_target_type_name(uint8_t target_type_id) {",
+            "  switch (target_type_id) {",
+            "    case AMIGA_OS_RESIDENT_TARGET_TYPE_NONE: return NULL;",
+        ]
+    )
+    for target_type in resident_target_types:
+        lines.append(
+            "    case %s: return \"%s\";" % (resident_target_type_enum_literal(target_type), c_string(target_type)))
+    lines.extend(
+        [
+            "    default: return NULL;",
+            "  }",
+            "}",
+            "",
+            "uint8_t amiga_os_resident_target_type_id(const char *target_type) {",
+            "  if (target_type == NULL || target_type[0] == '\\0') return AMIGA_OS_RESIDENT_TARGET_TYPE_NONE;",
+        ]
+    )
+    for target_type in resident_target_types:
+        lines.append(
+            "  if (strcmp(target_type, \"%s\") == 0) return %s;" %
+            (c_string(target_type), resident_target_type_enum_literal(target_type)))
+    lines.extend(
+        [
+            "  return AMIGA_OS_RESIDENT_TARGET_TYPE_NONE;",
             "}",
             "",
             "const AmigaOsResidentVectorPrefixInfo *amiga_os_resident_vector_prefix_at(size_t index) {",
