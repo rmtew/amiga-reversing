@@ -114,6 +114,12 @@ static int copy_policy_text(char *dest, size_t dest_size, const char *source) {
   return 1;
 }
 
+static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
+  if (kind != NULL && strcmp(kind, "library_base") == 0) return M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  if (kind != NULL && strcmp(kind, "struct_ptr") == 0) return M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+  return M68K_ANALYSIS_REGISTER_SEED_NONE;
+}
+
 static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   const char *name);
 static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
@@ -122,6 +128,9 @@ static int policy_add_runtime_range_local(M68kAnalysisPolicy *policy, uint32_t s
   uint32_t source_start, uint32_t source_end, uint32_t base_addr, const char *name);
 static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t runtime_address);
+static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+  uint8_t has_entry_offset, const char *register_name, uint8_t seed_kind, const char *name, const char *type_name,
+  const char *context_name);
 static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint32_t offset, uint8_t size,
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
@@ -167,13 +176,8 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
   } else {
     return 0;
   }
-  if (strcmp(parts[2], "library_base") == 0) {
-    seed->kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
-  } else if (strcmp(parts[2], "struct_ptr") == 0) {
-    seed->kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  } else {
-    return 0;
-  }
+  seed->kind = analysis_register_seed_kind_id_from_text_local(parts[2]);
+  if (seed->kind == M68K_ANALYSIS_REGISTER_SEED_NONE) return 0;
   if (!copy_policy_text(seed->name, sizeof(seed->name), parts[3])) return 0;
   if (part_count > 4U && !copy_policy_text(seed->type_name, sizeof(seed->type_name), parts[4])) return 0;
   if (part_count > 5U && !copy_policy_text(seed->context_name, sizeof(seed->context_name), parts[5])) return 0;
@@ -374,15 +378,14 @@ static const char *json_next_object_local(const char *cursor, const char *end, c
 
 static int append_metadata_register_seed_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
-  char entry_text[32];
   char register_name[8];
   char kind[32];
   char name[64];
   char struct_name[64];
   char context_name[64];
-  char seed_arg[256];
   uint32_t entry_offset = 0U;
   uint32_t hunk = 0U;
+  uint8_t seed_kind;
   int has_entry_offset = 0;
   int has_hunk = 0;
   if (!json_number_field_local(object_start, object_end, "entry_offset", &entry_offset, &has_entry_offset) ||
@@ -393,23 +396,17 @@ static int append_metadata_register_seed_local(const char *object_start, const c
       !json_optional_string_field_local(object_start, object_end, "context_name", context_name, sizeof(context_name))) {
     return 0;
   }
-  if (strcmp(kind, "library_base") == 0) {
+  seed_kind = analysis_register_seed_kind_id_from_text_local(kind);
+  if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) {
     if (!json_optional_string_field_local(object_start, object_end, "library_name", name, sizeof(name))) return 0;
-  } else {
+  } else if (seed_kind == M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR) {
     if (!json_optional_string_field_local(object_start, object_end, "note", name, sizeof(name))) return 0;
+  } else {
+    return kind[0] == '\0';
   }
   if (register_name[0] == '\0' || kind[0] == '\0' || name[0] == '\0') return 1;
-  if (has_entry_offset) snprintf(entry_text, sizeof(entry_text), "%u", (unsigned)entry_offset);
-  else copy_policy_text(entry_text, sizeof(entry_text), "*");
-  snprintf(seed_arg, sizeof(seed_arg), "%s:%s:%s:%s:%s:%s", entry_text, register_name, kind, name, struct_name,
-    context_name);
-  {
-    uint16_t seed_index = policy->register_seed_count;
-    if (!platform_file_analysis_policy_add_register_seed_arg(policy, seed_arg)) return 0;
-    policy->register_seeds[seed_index].has_section_index = 1U;
-    policy->register_seeds[seed_index].section_index = has_hunk ? hunk : 0U;
-  }
-  return 1;
+  return policy_add_register_seed_local(policy, has_hunk ? hunk : 0U, has_entry_offset ? entry_offset : 0U,
+    has_entry_offset ? 1U : 0U, register_name, seed_kind, name, struct_name, context_name);
 }
 
 static int append_metadata_entry_point_local(const char *object_start, const char *object_end,
@@ -3308,15 +3305,15 @@ static void policy_remove_register_seeds_at_local(M68kAnalysisPolicy *policy, ui
 }
 
 static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
-    const char *register_name, const char *kind, const char *name, const char *type_name, const char *context_name) {
-  char seed_arg[256];
+    uint8_t has_entry_offset, const char *register_name, uint8_t seed_kind, const char *name, const char *type_name,
+    const char *context_name) {
   uint16_t seed_index;
   uint8_t reg_kind;
   uint8_t reg_index;
-  uint8_t seed_kind;
   uint16_t index;
   if (policy == NULL || policy->register_seed_count >= M68K_ANALYSIS_REGISTER_SEED_LIMIT) return 0;
   if (register_name == NULL || register_name[0] == '\0') return 0;
+  if (name == NULL || seed_kind == M68K_ANALYSIS_REGISTER_SEED_NONE) return 0;
   if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' && register_name[1] <= '7' &&
       register_name[2] == '\0') {
     reg_kind = M68K_ANALYSIS_REGISTER_DATA;
@@ -3328,13 +3325,11 @@ static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t s
   } else {
     return 0;
   }
-  if (kind != NULL && strcmp(kind, "library_base") == 0) seed_kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
-  else if (kind != NULL && strcmp(kind, "struct_ptr") == 0) seed_kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
-  else return 0;
   for (index = 0U; index < policy->register_seed_count; ++index) {
     const M68kAnalysisRegisterSeed *existing = &policy->register_seeds[index];
     if (existing->has_section_index && existing->section_index == section_index &&
-        existing->has_entry_offset && existing->entry_offset == offset &&
+        existing->has_entry_offset == has_entry_offset &&
+        (!has_entry_offset || existing->entry_offset == offset) &&
         existing->reg_kind == reg_kind && existing->reg_index == reg_index && existing->kind == seed_kind &&
         strcmp(existing->name, name != NULL ? name : "") == 0 &&
         strcmp(existing->type_name, type_name != NULL ? type_name : "") == 0 &&
@@ -3342,11 +3337,23 @@ static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t s
       return 1;
   }
   seed_index = policy->register_seed_count;
-  snprintf(seed_arg, sizeof(seed_arg), "%u:%s:%s:%s:%s:%s", (unsigned)offset, register_name, kind, name,
-    type_name != NULL ? type_name : "", context_name != NULL ? context_name : "");
-  if (!platform_file_analysis_policy_add_register_seed_arg(policy, seed_arg)) return 0;
+  memset(&policy->register_seeds[seed_index], 0, sizeof(policy->register_seeds[seed_index]));
+  policy->register_seeds[seed_index].has_entry_offset = has_entry_offset;
+  policy->register_seeds[seed_index].entry_offset = has_entry_offset ? offset : 0U;
   policy->register_seeds[seed_index].has_section_index = 1U;
   policy->register_seeds[seed_index].section_index = section_index;
+  policy->register_seeds[seed_index].reg_kind = reg_kind;
+  policy->register_seeds[seed_index].reg_index = reg_index;
+  policy->register_seeds[seed_index].kind = seed_kind;
+  if (!copy_policy_text(policy->register_seeds[seed_index].name,
+      sizeof(policy->register_seeds[seed_index].name), name) ||
+      !copy_policy_text(policy->register_seeds[seed_index].type_name,
+        sizeof(policy->register_seeds[seed_index].type_name), type_name) ||
+      !copy_policy_text(policy->register_seeds[seed_index].context_name,
+        sizeof(policy->register_seeds[seed_index].context_name), context_name)) {
+    return 0;
+  }
+  policy->register_seed_count += 1U;
   return 1;
 }
 
@@ -3446,7 +3453,8 @@ static int policy_add_amiga_lvo_argument_seeds_local(M68kAnalysisPolicy *policy,
     type_name = amiga_call_value_type_name_local(input->type_id, input->struct_id);
     if (arg_name == NULL || arg_name[0] == '\0') arg_name = reg_name;
     if (type_name == NULL || type_name[0] == '\0') continue;
-    if (!policy_add_register_seed_local(policy, section_index, offset, reg_name, "struct_ptr", arg_name, type_name, ""))
+    if (!policy_add_register_seed_local(policy, section_index, offset, 1U, reg_name,
+        M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR, arg_name, type_name, ""))
       return 0;
   }
   return 1;
@@ -4060,8 +4068,8 @@ static int policy_add_resident_vector_entrypoint_local(M68kAnalysisPolicy *polic
   if (library_name != NULL && library_name[0] != '\0') {
     const char *base_struct_name = amiga_os_find_library_base_struct_name(library_name);
     if (base_struct_name == NULL || base_struct_name[0] == '\0') base_struct_name = "LIB";
-    if (!policy_add_register_seed_local(policy, entry->hunk, entry->offset, "A6", "library_base", library_name,
-          base_struct_name, ""))
+    if (!policy_add_register_seed_local(policy, entry->hunk, entry->offset, 1U, "A6",
+          M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE, library_name, base_struct_name, ""))
       return 0;
   }
   {
@@ -4305,13 +4313,14 @@ static int append_metadata_resident_autoinit_structure_local(const char *autoini
     if (first_code_offset == UINT32_MAX || init_func_offset < first_code_offset) first_code_offset = init_func_offset;
     if (!policy_add_entry_point_local(policy, hunk, init_func_offset)) return 0;
     if (!policy_add_named_label_local(policy, hunk, init_func_offset, "resident_init") ||
-        !policy_add_register_seed_local(policy, hunk, init_func_offset, "D0", "library_base", "__amiga_app_base__", "",
-          "") ||
-        !policy_add_register_seed_local(policy, hunk, init_func_offset, "D0", "struct_ptr", "__amiga_app_base__",
-          app_base_struct_name, "") ||
-        !policy_add_register_seed_local(policy, hunk, init_func_offset, "A0", "struct_ptr", "seglist", "BPTR", "") ||
-        !policy_add_register_seed_local(policy, hunk, init_func_offset, "A6", "library_base", "exec.library",
-          exec_base_struct_name, ""))
+        !policy_add_register_seed_local(policy, hunk, init_func_offset, 1U, "D0",
+          M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE, "__amiga_app_base__", "", "") ||
+        !policy_add_register_seed_local(policy, hunk, init_func_offset, 1U, "D0",
+          M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR, "__amiga_app_base__", app_base_struct_name, "") ||
+        !policy_add_register_seed_local(policy, hunk, init_func_offset, 1U, "A0",
+          M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR, "seglist", "BPTR", "") ||
+        !policy_add_register_seed_local(policy, hunk, init_func_offset, 1U, "A6",
+          M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE, "exec.library", exec_base_struct_name, ""))
       return 0;
   }
   if (has_vectors_offset && !policy_add_named_label_local(policy, hunk, vectors_offset, "resident_vectors")) return 0;
