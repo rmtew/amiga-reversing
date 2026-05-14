@@ -392,6 +392,21 @@ def _append_carrier_decompressed_fixture(project_root: Path, disk_project_id: st
     relationship = decompression["relationship"]
     child_target_id = decompression["child_target_id"]
     targets = manifest["imported_targets"]
+    parent_target_id = relationship.get("parent_target") or relationship.get("parent_target_id")
+    for target in targets:
+        if target.get("target_name") != parent_target_id:
+            continue
+        target["derived_targets"] = [
+            {
+                "kind": "decompressed_payload",
+                "target_name": child_target_id,
+                "provider_id": "fixture",
+                "codec_id": "RNC1-old",
+                "payload_role": "primary_program",
+                "parent_remains_active": "false",
+            }
+        ]
+        break
     if not any(target["target_name"] == child_target_id for target in targets):
         targets.append(
             {
@@ -2969,6 +2984,41 @@ def test_brave_cdp_disk_project_shows_decompressed_child_target(
                 && button.textContent.includes('$4000'))
             """,
             timeout=15.0,
+        )
+        page.wait_for_expression(
+            """
+            Array.from(document.querySelectorAll('.disk-target-button'))
+              .some((button) => button.textContent.includes('Carrier')
+                && !button.textContent.toLowerCase().includes('carrier::rnc1-old_00004c40')
+                && button.textContent.includes('stub'))
+            """,
+            timeout=15.0,
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_disk_project_does_not_stub_badge_multi_payload_parent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disk_project_id = "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h"
+    parent_target_id = f"{disk_project_id}__amiga_hunk_damocles_53b24620"
+    disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(
+        disasm_server,
+        "mark_project_opened",
+        lambda project_name: project_store.get_project(project_name),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{disk_project_id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression(
+            f"document.querySelector('[data-project-id=\"{parent_target_id}\"]') !== null",
+            timeout=15.0,
+        )
+        assert not page.evaluate(
+            f"document.querySelector('[data-project-id=\"{parent_target_id}\"]')?.textContent.includes('stub')"
         )
         page.assert_no_errors()
 

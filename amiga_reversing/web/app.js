@@ -6337,12 +6337,36 @@ function renderTargetTypeBadgeLabel(targetType) {
   return formatTargetTypeLabel(targetType).toUpperCase();
 }
 
+function decompressedDerivedTargets(target) {
+  const derivedTargets = target && Array.isArray(target.derived_targets) ? target.derived_targets : [];
+  return derivedTargets.filter((item) => item && item.kind === "decompressed_payload");
+}
+
+function isStandardDecompressionStubTarget(target) {
+  const derivedTargets = target && Array.isArray(target.derived_targets) ? target.derived_targets : [];
+  const decompressedTargets = decompressedDerivedTargets(target);
+  if (derivedTargets.length !== 1 || decompressedTargets.length !== 1) {
+    return false;
+  }
+  const relationship = decompressedTargets[0];
+  return relationship.payload_role === "primary_program"
+    && String(relationship.parent_remains_active).toLowerCase() === "false";
+}
+
+function renderDiskTargetBadgeLabels(target) {
+  const badges = [renderTargetTypeBadgeLabel(target.target_type)];
+  if (isStandardDecompressionStubTarget(target)) {
+    badges.push("stub");
+  }
+  return badges;
+}
+
 function appendDerivedTargetSummary(details, target) {
   const derivedTargets = target.derived_targets;
   if (!Array.isArray(derivedTargets) || !derivedTargets.length) {
     return;
   }
-  const decompressedTargets = derivedTargets.filter((item) => item && item.kind === "decompressed_payload");
+  const decompressedTargets = decompressedDerivedTargets(target);
   if (!decompressedTargets.length) {
     details.push(`${derivedTargets.length} derived targets`);
     return;
@@ -6354,7 +6378,7 @@ function derivedTargetsRelationshipTooltip(target) {
   if (!Array.isArray(derivedTargets) || !derivedTargets.length) {
     return "";
   }
-  const decompressedTargets = derivedTargets.filter((item) => item && item.kind === "decompressed_payload");
+  const decompressedTargets = decompressedDerivedTargets(target);
   const lines = [];
   if (decompressedTargets.length) {
     lines.push(`${decompressedTargets.length} decompressed payload${decompressedTargets.length === 1 ? "" : "s"}`);
@@ -6462,7 +6486,7 @@ function renderDiskTargetMetadata(target, entry, payloadNode = null) {
     const tooltip = derivedTargetsRelationshipTooltip(target);
     appendDerivedTargetSummary(details, target);
     return {
-      metadata: `${renderInlineBadges([renderTargetTypeBadgeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`.trim(),
+      metadata: `${renderInlineBadges(renderDiskTargetBadgeLabels(target))} ${escapeHtml(details.join(" | "))}`.trim(),
       tooltip: tooltip || "",
     };
   }
@@ -6489,7 +6513,7 @@ function renderDiskTargetMetadata(target, entry, payloadNode = null) {
   }
   appendDerivedTargetSummary(details, target);
   return {
-    metadata: `${renderInlineBadges([renderTargetTypeBadgeLabel(target.target_type)])} ${escapeHtml(details.join(" | "))}`.trim(),
+    metadata: `${renderInlineBadges(renderDiskTargetBadgeLabels(target))} ${escapeHtml(details.join(" | "))}`.trim(),
     tooltip: derivedTargetsRelationshipTooltip(target),
   };
 }

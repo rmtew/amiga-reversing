@@ -34,7 +34,6 @@ Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles
     - Use of multiple hunks.
     - Presence of multiple payloads.
     - Non-trivial use of custom registers.
-  - We should perhaps flag stub decompressors with "stub" badge.
 - Disk "damocles" target analysis flaw indicators:
   - Second hunk:
     - Unresolved PC-relative labels:
