@@ -3690,6 +3690,149 @@ def test_real_dll_epic_bootblock_does_not_materialize_load_address_org() -> None
     assert "abs_0_0007008C-" not in source
 
 
+def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    original_source = (
+        "    SECTION section,code\n"
+        '    dc.b "DOS",$00\n'
+        "    dc.l 0\n"
+        "    dc.l 0\n"
+        "boot_entry:\n"
+        "    lea.l saved_io(pc),a2\n"
+        "    move.l a1,(a2)\n"
+        "    bsr.w helper\n"
+        "    lea.l saved_io(pc),a5\n"
+        "    movea.l (a5),a1\n"
+        "    move.l #$400,$002C(a1)\n"
+        "    move.l #$4E00,$0024(a1)\n"
+        "    move.l #$1E200,$0028(a1)\n"
+        "    move.w #$2,$001C(a1)\n"
+        "    movea.l $0004.w,a6\n"
+        "    jsr -456(a6)\n"
+        "    rts\n"
+        "helper:\n"
+        "    rts\n"
+        "saved_io:\n"
+        "    dc.l 0\n"
+    )
+    include_dir = PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"
+    original, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        original_source,
+        include_dir=include_dir,
+        project_root=PROJECT_ROOT,
+    )
+    binary_path = tmp_path / "bootblock_io_seed.bin"
+    metadata_path = tmp_path / "target_metadata.json"
+    binary_path.write_bytes(original)
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "bootblock",
+                "entry_register_seeds": [
+                    {
+                        "entry_offset": None,
+                        "hunk": 0,
+                        "register": "A6",
+                        "kind": "library_base",
+                        "library_name": "exec.library",
+                        "struct_name": "LIB",
+                        "context_name": None,
+                    },
+                    {
+                        "entry_offset": None,
+                        "hunk": 0,
+                        "register": "A1",
+                        "kind": "struct_ptr",
+                        "note": "IOStdReq",
+                        "struct_name": "IO",
+                        "context_name": "trackdisk.device",
+                    },
+                ],
+                "bootblock": {
+                    "entrypoint": 0x7000C,
+                    "load_address": 0x70000,
+                    "bootcode_offset": 0x0C,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = RawBinarySource(
+        kind="raw_binary",
+        path=binary_path,
+        address_model="local_offset",
+        load_address=0x70000,
+        entrypoint=0x7000C,
+        code_start_offset=0x0C,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "bootblock_io_seed.analysis",
+    )
+
+    rendered, _profile = listing_artifact_source_text_with_c_backend_profile(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    analysis = analyze_project_source_with_c_backend(
+        source,
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+    rebuilt, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        rendered,
+        include_dir=include_dir,
+        project_root=PROJECT_ROOT,
+    )
+
+    typed_accesses = analysis["sections"][0]["recovered_platform_typed_accesses"]
+    assert "\tmove.l #$400,IO_OFFSET(a1)\n" in rendered
+    assert "\tmove.l #$4E00,IO_LENGTH(a1)\n" in rendered
+    assert "\tmove.l #$1E200,IO_DATA(a1)\n" in rendered
+    assert "\tmove.w #$2,IO_COMMAND(a1)\n" in rendered
+    assert {access["field_name"] for access in typed_accesses} == {
+        "IO_OFFSET",
+        "IO_LENGTH",
+        "IO_DATA",
+        "IO_COMMAND",
+    }
+    assert {access["type_provenance_kind"] for access in typed_accesses} == {"policy_seed"}
+    assert rebuilt == original
+
+    overwritten_source = original_source.replace(
+        "    bsr.w helper\n",
+        "    clr.l (a2)\n"
+        "    bsr.w helper\n",
+    )
+    overwritten, _ = assemble_platform_source_text_with_c_backend(
+        "amiga-raw",
+        overwritten_source,
+        include_dir=include_dir,
+        project_root=PROJECT_ROOT,
+    )
+    overwritten_binary_path = tmp_path / "bootblock_io_seed_overwritten.bin"
+    overwritten_binary_path.write_bytes(overwritten)
+    overwritten_rendered, _profile = listing_artifact_source_text_with_c_backend_profile(
+        RawBinarySource(
+            kind="raw_binary",
+            path=overwritten_binary_path,
+            address_model="local_offset",
+            load_address=0x70000,
+            entrypoint=0x7000C,
+            code_start_offset=0x0C,
+            display_path=str(overwritten_binary_path),
+            analysis_cache_path=tmp_path / "bootblock_io_seed_overwritten.analysis",
+        ),
+        metadata_path=metadata_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    assert "_LVODoIO(a6)" in overwritten_rendered
+    assert "IO_COMMAND(a1)" not in overwritten_rendered
+    assert "\tmove.w #$2,$001C(a1)\n" in overwritten_rendered
+
+
 def test_real_dll_ice_bootloader_stage_recovers_copied_runtime_payload_without_bad_addend() -> None:
     _requires_c_backend_dlls()
     paths = resolve_project_paths(

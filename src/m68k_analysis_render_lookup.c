@@ -653,6 +653,7 @@ static uint8_t typed_provenance_rank(uint8_t kind) {
   switch (kind) {
   case M68K_RENDER_TYPED_PROVENANCE_API_OUTPUT:
   case M68K_RENDER_TYPED_PROVENANCE_API_INPUT:
+  case M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED:
     return 70U;
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_POINTER:
   case M68K_RENDER_TYPED_PROVENANCE_FIELD_ADDRESS:
@@ -787,6 +788,42 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->app_addr_regs[reg_index].displacement = 0;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
     typed_state_clear_addr_alias_for_reg(state, reg_index);
+  }
+}
+
+static const char *typed_policy_seed_struct_name(const M68kAnalysisRegisterSeed *seed) {
+  if (seed == NULL) return NULL;
+  if (seed->type_name[0] != '\0') return seed->type_name;
+  if (seed->name[0] != '\0') return seed->name;
+  return NULL;
+}
+
+static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
+    const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
+  uint16_t index;
+  if (state == NULL || policy == NULL) return;
+  for (index = 0U; index < policy->register_seed_count && index < M68K_ANALYSIS_REGISTER_SEED_LIMIT; ++index) {
+    const M68kAnalysisRegisterSeed *seed = &policy->register_seeds[index];
+    const char *struct_name;
+    uint16_t struct_id;
+    M68kRenderTypedProvenance provenance;
+    if (seed->has_section_index && seed->section_index != (uint32_t)section_index) continue;
+    if (seed->has_entry_offset) {
+      if (seed->entry_offset != offset) continue;
+    } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
+    if ((seed->kind != M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR &&
+         seed->kind != M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE) ||
+        seed->reg_index >= 8U ||
+        (seed->reg_kind != M68K_ANALYSIS_REGISTER_DATA &&
+         seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS)) {
+      continue;
+    }
+    struct_name = typed_policy_seed_struct_name(seed);
+    if (struct_name == NULL || struct_name[0] == '\0') continue;
+    struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, struct_name);
+    if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) == NULL) continue;
+    provenance = typed_provenance_make(M68K_RENDER_TYPED_PROVENANCE_POLICY_SEED, section_index, offset);
+    typed_state_set_reg_struct_id(state, seed->reg_kind, seed->reg_index, struct_id, &provenance);
   }
 }
 
@@ -2818,6 +2855,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   }
   *out_typed_state = node->typed_in;
   *out_platform_state = node->platform_in;
+  typed_state_apply_policy_register_seeds(out_typed_state, lookup->policy, section->section_index,
+    node->candidate->offset);
   platform_state_apply_policy_register_seeds(out_platform_state, lookup->policy, section->section_index,
     node->candidate->offset);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
