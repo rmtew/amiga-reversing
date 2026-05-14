@@ -14,10 +14,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
     be using bitflags or enums to replace that.
-- Remove the obsolete `M68kAllocator` facade now that production call sites are gone:
-  - Delete `m68k_allocator_heap()`, `m68k_allocator_free()`, and related generic allocator API from `util_arena`.
-  - Remove the allocator-facade tests from `test_util_arena.c`.
-  - Keep only explicit arena, arena-builder, and direct public-boundary allocation APIs.
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.

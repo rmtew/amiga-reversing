@@ -4,14 +4,6 @@
 #include <stddef.h>
 
 typedef struct Arena Arena;
-typedef void *(*M68kAllocatorAllocFn)(void *context, size_t size);
-typedef void (*M68kAllocatorFreeFn)(void *context, void *ptr);
-
-typedef struct M68kAllocator {
-  void *context;
-  M68kAllocatorAllocFn alloc;
-  M68kAllocatorFreeFn free;
-} M68kAllocator;
 
 typedef struct ArenaMark {
   void *block;
@@ -69,15 +61,6 @@ ArenaMark arena_mark(Arena *arena);
 void arena_rewind(Arena *arena, ArenaMark mark);
 void arena_reset(Arena *arena);
 ArenaStats arena_stats(const Arena *arena);
-
-M68kAllocator m68k_allocator_heap(void);
-M68kAllocator m68k_allocator_arena(Arena *arena);
-void *m68k_allocator_alloc(M68kAllocator allocator, size_t size);
-void *m68k_allocator_calloc(M68kAllocator allocator, size_t count, size_t size);
-void *m68k_allocator_memdup(M68kAllocator allocator, const void *data, size_t size);
-void *m68k_allocator_realloc_copy(M68kAllocator allocator, void *old_data, size_t old_size, size_t new_size);
-char *m68k_allocator_strdup(M68kAllocator allocator, const char *text);
-void m68k_allocator_free(M68kAllocator allocator, void *ptr);
 
 int arena_builder_init(ArenaBuilder *builder, Arena *arena, size_t item_size, size_t chunk_capacity);
 size_t arena_builder_length(const ArenaBuilder *builder);

@@ -5,6 +5,7 @@
 #include "platform_binary_io.h"
 #include "util_arena.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 
@@ -162,96 +163,7 @@ static int test_builder_rewind_discards_chunks_and_finalized_storage(void) {
   return 0;
 }
 
-static int test_allocator_heap_allocates_and_frees(void) {
-  M68kAllocator allocator = m68k_allocator_heap();
-  uint32_t *values = (uint32_t *)m68k_allocator_calloc(allocator, 3U, sizeof(*values));
-  M68K_C_ASSERT(values != NULL);
-  M68K_C_ASSERT_U32(0U, values[0]);
-  values[1] = 42U;
-  M68K_C_ASSERT_U32(42U, values[1]);
-  m68k_allocator_free(allocator, values);
-  return 0;
-}
-
-static int test_allocator_arena_uses_arena_storage(void) {
-  Arena *arena = arena_create(64U);
-  M68kAllocator allocator;
-  ArenaStats before;
-  ArenaStats after;
-  uint32_t *values;
-  M68K_C_ASSERT(arena != NULL);
-  allocator = m68k_allocator_arena(arena);
-  before = arena_stats(arena);
-  values = (uint32_t *)m68k_allocator_calloc(allocator, 4U, sizeof(*values));
-  after = arena_stats(arena);
-  M68K_C_ASSERT(values != NULL);
-  M68K_C_ASSERT_U32(0U, values[0]);
-  M68K_C_ASSERT(after.current_used > before.current_used);
-  m68k_allocator_free(allocator, values);
-  M68K_C_ASSERT_U32((uint32_t)after.current_used, (uint32_t)arena_stats(arena).current_used);
-  arena_destroy(arena);
-  return 0;
-}
-
-static int test_allocator_duplicates_memory_and_text(void) {
-  M68kAllocator heap = m68k_allocator_heap();
-  const unsigned char bytes[] = {1U, 2U, 3U};
-  unsigned char *bytes_copy = (unsigned char *)m68k_allocator_memdup(heap, bytes, sizeof(bytes));
-  char *text_copy = m68k_allocator_strdup(heap, "allocator text");
-  M68K_C_ASSERT(bytes_copy != NULL);
-  M68K_C_ASSERT(text_copy != NULL);
-  M68K_C_ASSERT(bytes_copy != bytes);
-  M68K_C_ASSERT_U32(1U, bytes_copy[0]);
-  M68K_C_ASSERT_U32(2U, bytes_copy[1]);
-  M68K_C_ASSERT_U32(3U, bytes_copy[2]);
-  M68K_C_ASSERT_STR("allocator text", text_copy);
-  m68k_allocator_free(heap, text_copy);
-  m68k_allocator_free(heap, bytes_copy);
-  return 0;
-}
-
-static int test_allocator_realloc_copy_preserves_prefix(void) {
-  M68kAllocator heap = m68k_allocator_heap();
-  unsigned char *bytes = (unsigned char *)m68k_allocator_memdup(heap, "abc", 4U);
-  unsigned char *grown;
-  unsigned char *shrunk;
-  M68K_C_ASSERT(bytes != NULL);
-  grown = (unsigned char *)m68k_allocator_realloc_copy(heap, bytes, 4U, 8U);
-  M68K_C_ASSERT(grown != NULL);
-  M68K_C_ASSERT_U32('a', grown[0]);
-  M68K_C_ASSERT_U32('b', grown[1]);
-  M68K_C_ASSERT_U32('c', grown[2]);
-  M68K_C_ASSERT_U32(0U, grown[3]);
-  grown[4] = 'd';
-  shrunk = (unsigned char *)m68k_allocator_realloc_copy(heap, grown, 8U, 3U);
-  M68K_C_ASSERT(shrunk != NULL);
-  M68K_C_ASSERT_U32('a', shrunk[0]);
-  M68K_C_ASSERT_U32('b', shrunk[1]);
-  M68K_C_ASSERT_U32('c', shrunk[2]);
-  m68k_allocator_free(heap, shrunk);
-  return 0;
-}
-
-static int test_allocator_arena_strdup_uses_arena_storage(void) {
-  Arena *arena = arena_create(64U);
-  M68kAllocator allocator;
-  ArenaStats before;
-  ArenaStats after;
-  char *text;
-  M68K_C_ASSERT(arena != NULL);
-  allocator = m68k_allocator_arena(arena);
-  before = arena_stats(arena);
-  text = m68k_allocator_strdup(allocator, "arena text");
-  after = arena_stats(arena);
-  M68K_C_ASSERT_STR("arena text", text);
-  M68K_C_ASSERT(after.current_used > before.current_used);
-  m68k_allocator_free(allocator, text);
-  M68K_C_ASSERT_U32((uint32_t)after.current_used, (uint32_t)arena_stats(arena).current_used);
-  arena_destroy(arena);
-  return 0;
-}
-
-static int test_binary_writer_build_uses_allocator(void) {
+static int test_binary_writer_build_returns_caller_freed_heap_bytes(void) {
   M68kBinaryWriter writer;
   Arena *arena = arena_create(64U);
   unsigned char *heap_bytes;
@@ -276,7 +188,7 @@ static int test_binary_writer_build_uses_allocator(void) {
   M68K_C_ASSERT_U32(0x34U, arena_bytes[1]);
   M68K_C_ASSERT_U32(0x56U, arena_bytes[2]);
   M68K_C_ASSERT(after.current_used > before.current_used);
-  m68k_allocator_free(m68k_allocator_heap(), heap_bytes);
+  free(heap_bytes);
   m68k_writer_destroy(&writer);
   arena_destroy(arena);
   return 0;
@@ -424,12 +336,7 @@ int m68k_c_util_arena_tests(void) {
     {"builder_zero_length_finalize_is_arena_owned", test_builder_zero_length_finalize_is_arena_owned},
     {"builder_typed_pair_append_uninit", test_builder_typed_pair_append_uninit},
     {"builder_rewind_discards_chunks_and_finalized_storage", test_builder_rewind_discards_chunks_and_finalized_storage},
-    {"allocator_heap_allocates_and_frees", test_allocator_heap_allocates_and_frees},
-    {"allocator_arena_uses_arena_storage", test_allocator_arena_uses_arena_storage},
-    {"allocator_duplicates_memory_and_text", test_allocator_duplicates_memory_and_text},
-    {"allocator_realloc_copy_preserves_prefix", test_allocator_realloc_copy_preserves_prefix},
-    {"allocator_arena_strdup_uses_arena_storage", test_allocator_arena_strdup_uses_arena_storage},
-    {"binary_writer_build_uses_allocator", test_binary_writer_build_uses_allocator},
+    {"binary_writer_build_returns_caller_freed_heap_bytes", test_binary_writer_build_returns_caller_freed_heap_bytes},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
     {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},
