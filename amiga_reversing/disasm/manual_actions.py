@@ -5,6 +5,7 @@ import json
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Literal, cast
 
@@ -24,6 +25,27 @@ RESERVED_MANUAL_ACTION_FIELDS = frozenset(
 )
 
 type ReviewState = Literal["clear", "needs_review", "blocked"]
+
+
+class ManualActionKind(StrEnum):
+    CREATE_MANUAL_SEED = "create_manual_seed"
+    REMOVE_MANUAL_SEED = "remove_manual_seed"
+    CREATE_MANUAL_LABEL = "create_manual_label"
+    REMOVE_MANUAL_LABEL = "remove_manual_label"
+    CREATE_MANUAL_COMMENT = "create_manual_comment"
+    REMOVE_MANUAL_COMMENT = "remove_manual_comment"
+    RESOLVE_REVIEW_ITEM = "resolve_review_item"
+    UNDO_ACTION = "undo_action"
+    REDO_ACTION = "redo_action"
+
+
+def _manual_action_kind_id(kind: ManualActionKind | str) -> ManualActionKind:
+    if isinstance(kind, ManualActionKind):
+        return kind
+    try:
+        return ManualActionKind(kind)
+    except ValueError:
+        raise ValueError(f"Unsupported manual action kind: {kind}") from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,7 +74,7 @@ class _ManualAction:
     action_id: str
     sequence: int
     created_at: str
-    kind: str
+    kind: ManualActionKind
     payload: dict[str, object]
 
 
@@ -63,10 +85,11 @@ def manual_action_log_path(target_dir: Path) -> Path:
 def append_manual_action(
     target_dir: Path,
     *,
-    kind: str,
+    kind: ManualActionKind | str,
     payload: dict[str, object],
     binary_source: BinarySource,
 ) -> dict[str, object]:
+    kind_id = _manual_action_kind_id(kind)
     validate_manual_action_payload(payload)
     path = manual_action_log_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -102,7 +125,7 @@ def append_manual_action(
         "action_id": f"manual-{uuid.uuid4().hex}",
         "sequence": max_sequence + 1,
         "created_at": datetime.now(UTC).isoformat(),
-        "kind": kind,
+        "kind": kind_id,
         **payload,
     }
     records.append(action)
@@ -670,7 +693,7 @@ def _parse_action(raw: dict[str, object]) -> _ManualAction:
     action_id = _str_field(raw, "action_id", what="manual action")
     sequence = _int_field(raw, "sequence", what="manual action")
     created_at = _str_field(raw, "created_at", what="manual action")
-    kind = _str_field(raw, "kind", what="manual action")
+    kind = _manual_action_kind_id(_str_field(raw, "kind", what="manual action"))
     return _ManualAction(
         action_id=action_id,
         sequence=sequence,
@@ -685,7 +708,7 @@ def _action_object(action: _ManualAction, field_name: str) -> dict[str, object]:
 
 
 def _action_ref(action: _ManualAction, field_name: str) -> str:
-    return _str_field(action.payload, field_name, what=action.kind)
+    return _str_field(action.payload, field_name, what=str(action.kind))
 
 
 def _put_by_id(
@@ -722,11 +745,11 @@ def _project_actions(
     undone_action_ids: set[str] = set()
     seen_action_ids: set[str] = set()
     for action in actions:
-        if action.kind == "undo_action":
+        if action.kind is ManualActionKind.UNDO_ACTION:
             action_id = _action_ref(action, "undoes_action_id")
             if action_id in seen_action_ids:
                 undone_action_ids.add(action_id)
-        elif action.kind == "redo_action":
+        elif action.kind is ManualActionKind.REDO_ACTION:
             action_id = _action_ref(action, "redoes_action_id")
             if action_id in seen_action_ids:
                 undone_action_ids.discard(action_id)
@@ -744,21 +767,21 @@ def _project_actions(
             inactive_action_ids.append(action.action_id)
             continue
         active_action_ids.append(action.action_id)
-        if action.kind == "create_manual_seed":
+        if action.kind is ManualActionKind.CREATE_MANUAL_SEED:
             _put_by_id(seeds, _action_object(action, "seed"), "seed_id")
-        elif action.kind == "remove_manual_seed":
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
-        elif action.kind == "create_manual_label":
+        elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
             _put_by_id(labels, _action_object(action, "label"), "label_id")
-        elif action.kind == "remove_manual_label":
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
             _drop_by_id(labels, action, "label_id")
-        elif action.kind == "create_manual_comment":
+        elif action.kind is ManualActionKind.CREATE_MANUAL_COMMENT:
             _put_by_id(comments, _action_object(action, "comment"), "comment_id")
-        elif action.kind == "remove_manual_comment":
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_COMMENT:
             _drop_by_id(comments, action, "comment_id")
-        elif action.kind == "resolve_review_item":
+        elif action.kind is ManualActionKind.RESOLVE_REVIEW_ITEM:
             _put_by_id(resolutions, _action_object(action, "resolution"), "resolution_id")
-        elif action.kind in {"undo_action", "redo_action"}:
+        elif action.kind in {ManualActionKind.UNDO_ACTION, ManualActionKind.REDO_ACTION}:
             pass
         else:
             raise ValueError(f"Unsupported manual action kind: {action.kind}")
