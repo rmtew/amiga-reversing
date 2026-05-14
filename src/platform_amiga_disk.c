@@ -337,8 +337,8 @@ static int append_track_span(AmigaDiskAnalysis *analysis, uint32_t start_track, 
     return 0;
 }
 
-static int append_bootloader_stage(AmigaDiskAnalysis *analysis, const char *name, uint32_t base_addr, uint32_t entry_addr,
-    uint32_t disk_offset, uint32_t byte_length, uint8_t has_disk_read) {
+static int append_bootloader_stage(AmigaDiskAnalysis *analysis, uint8_t kind, const char *name, uint32_t base_addr,
+    uint32_t entry_addr, uint32_t disk_offset, uint32_t byte_length, uint8_t has_disk_read) {
     AmigaDiskBootloaderStage *grown;
     char *name_copy;
     grown = (AmigaDiskBootloaderStage *)analysis_grow_array(analysis, analysis->bootloader_stages,
@@ -348,6 +348,7 @@ static int append_bootloader_stage(AmigaDiskAnalysis *analysis, const char *name
     name_copy = arena_strdup(analysis->arena, name);
     if (name_copy == NULL) return -1;
     memset(&analysis->bootloader_stages[analysis->bootloader_stage_count], 0, sizeof(*analysis->bootloader_stages));
+    analysis->bootloader_stages[analysis->bootloader_stage_count].kind = kind;
     analysis->bootloader_stages[analysis->bootloader_stage_count].name = name_copy;
     analysis->bootloader_stages[analysis->bootloader_stage_count].base_addr = base_addr;
     analysis->bootloader_stages[analysis->bootloader_stage_count].entry_addr = entry_addr;
@@ -589,7 +590,8 @@ static int populate_bootloader_analysis(const DiskContext *ctx, AmigaDiskAnalysi
         analysis->track_size_bytes * AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_MATERIALIZATION_TRACKS;
     size_t i;
     if (!analysis->bootcode_has_code || analysis->track_size_bytes == 0U) return 0;
-    if (append_bootloader_stage(analysis, "boot", AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_DEFAULT_LOAD_ADDRESS,
+    if (append_bootloader_stage(analysis, AMIGA_DISK_BOOTLOADER_STAGE_BOOT, "boot",
+            AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_DEFAULT_LOAD_ADDRESS,
             AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_DEFAULT_LOAD_ADDRESS + AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_ENTRY_OFFSET,
             bootcode_offset, analysis->bootcode_size, 0U) != 0) {
         return -1;
@@ -610,7 +612,8 @@ static int populate_bootloader_analysis(const DiskContext *ctx, AmigaDiskAnalysi
     if (stage_end <= boot_block_bytes || stage_end > ctx->size) return 0;
     if (disk_has_valid_dos_filesystem(ctx)) return 0;
     if (!block_range_has_nonzero(ctx->data, boot_block_bytes, stage_end)) return 0;
-    if (append_bootloader_stage(analysis, "stage_1", AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS,
+    if (append_bootloader_stage(analysis, AMIGA_DISK_BOOTLOADER_STAGE_MATERIALIZED_STAGE, "stage_1",
+            AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS,
             AMIGA_DISK_FILE_CONSTRAINTS_BOOTLOADER_STAGE_DEFAULT_LOAD_ADDRESS, (uint32_t)boot_block_bytes,
             stage_end - (uint32_t)boot_block_bytes, 1U) != 0) {
         return -1;

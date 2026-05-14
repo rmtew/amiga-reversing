@@ -95,7 +95,13 @@ typedef struct AmigaDiskTrackSpan {
     uint32_t end_track;
 } AmigaDiskTrackSpan;
 
+typedef enum AmigaDiskBootloaderStageKind {
+    AMIGA_DISK_BOOTLOADER_STAGE_BOOT = 1,
+    AMIGA_DISK_BOOTLOADER_STAGE_MATERIALIZED_STAGE = 2
+} AmigaDiskBootloaderStageKind;
+
 typedef struct AmigaDiskBootloaderStage {
+    uint8_t kind;
     char *name;
     uint32_t base_addr;
     uint32_t entry_addr;

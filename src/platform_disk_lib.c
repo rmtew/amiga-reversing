@@ -748,7 +748,8 @@ static int append_amiga_trackloader_analysis_json(JsonBuilder *builder, const Am
 }
 
 static int append_bootloader_stage_import_target_json(JsonBuilder *builder, const AmigaDiskBootloaderStage *stage) {
-    if (stage == NULL || !stage->materialized || !stage->has_disk_read || strcmp(stage->name, "boot") == 0) {
+    if (stage == NULL || !stage->materialized || !stage->has_disk_read ||
+        stage->kind == AMIGA_DISK_BOOTLOADER_STAGE_BOOT) {
         return json_builder_append(builder, "null");
     }
     if (json_builder_append(builder, "{\"target_type\":\"bootloader_stage\",\"entry_path\":\"bootloader/") != 0)
@@ -766,7 +767,7 @@ static int append_bootloader_stage_import_target_json(JsonBuilder *builder, cons
         return -1;
     if (json_builder_append(builder, ",\"target_metadata\":{\"target_type\":\"bootloader_stage\"") != 0) return -1;
     if (json_builder_append(builder, ",\"entry_register_seeds\":") != 0) return -1;
-    if (strcmp(stage->name, "stage_1") == 0) {
+    if (stage->kind == AMIGA_DISK_BOOTLOADER_STAGE_MATERIALIZED_STAGE) {
         if (append_boot_entry_register_seeds_json(builder) != 0) return -1;
     } else if (json_builder_append(builder, "[]") != 0) {
         return -1;
