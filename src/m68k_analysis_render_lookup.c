@@ -1,4 +1,5 @@
 #include "m68k_render_lookup_internal.h"
+#include "m68k_bitset.h"
 
 #include <time.h>
 
@@ -3504,7 +3505,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderPlatformState state;
-    uint8_t seen_library_base[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+    uint32_t seen_library_base = 0U;
     size_t candidate_index;
     memset(&state, 0, sizeof(state));
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
@@ -3521,14 +3522,14 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
         int16_t displacement = 0;
         if (operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
             &displacement) && base_reg < 8U && (state.address_base_known[base_reg] ||
-            seen_library_base[base_reg])) {
+            m68k_bitset_u32_has(seen_library_base, base_reg))) {
           return 1;
         }
       }
       platform_state_update_data_lvo_after_instruction(&state, &instruction);
       platform_state_update_after_instruction(&state, lookup, &instruction);
       for (operand_index = 0U; operand_index < 8U; ++operand_index)
-        if (state.address_base_known[operand_index]) seen_library_base[operand_index] = 1U;
+        if (state.address_base_known[operand_index]) m68k_bitset_u32_set(&seen_library_base, (uint8_t)operand_index);
     }
   }
   return 0;

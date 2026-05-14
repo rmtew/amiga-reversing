@@ -1,6 +1,7 @@
 #include "m68k_render_lookup_internal.h"
 
 #include "m68k_assembler.h"
+#include "m68k_bitset.h"
 #include "m68k_disassembler.h"
 #include "m68k_instruction_spec.h"
 #include "m68k_ir_codec.h"
@@ -1179,7 +1180,7 @@ static void render_asm_file_comment_line(M68kRenderIRPreview *preview, const cha
 static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *policy, size_t section_index,
     uint32_t offset, char *message, size_t message_size) {
   size_t used = 0U;
-  uint8_t emitted[2][8] = {{0}};
+  uint32_t emitted[2] = {0U, 0U};
   uint16_t index;
   if (message == NULL || message_size == 0U) return 0;
   message[0] = '\0';
@@ -1194,8 +1195,8 @@ static int format_policy_register_seed_comment_local(const M68kAnalysisPolicy *p
     } else if (!policy->has_entry_offset || section_index != 0U || policy->entry_offset != offset) continue;
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_DATA && seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) continue;
     if (seed->reg_index >= 8U || seed->name[0] == '\0') continue;
-    if (emitted[seed->reg_kind - 1U][seed->reg_index]) continue;
-    emitted[seed->reg_kind - 1U][seed->reg_index] = 1U;
+    if (m68k_bitset_u32_has(emitted[seed->reg_kind - 1U], seed->reg_index)) continue;
+    m68k_bitset_u32_set(&emitted[seed->reg_kind - 1U], seed->reg_index);
     snprintf(reg_name, sizeof(reg_name), "%c%u",
       seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 'A' : 'D', (unsigned)seed->reg_index);
     kind_text = seed->kind == M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE ? "base" : "type";
