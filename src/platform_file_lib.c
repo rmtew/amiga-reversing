@@ -6,6 +6,7 @@
 #include "m68k_assembler.h"
 #include "m68k_assembler_policy.h"
 #include "m68k_backend.h"
+#include "m68k_bitset.h"
 #include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
 #include "m68k_instruction_spec.h"
@@ -1921,7 +1922,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata, uint8_t a_known[8],
     uint32_t a_values[8], PlatformRuntimeWriteObservation *writes, size_t write_capacity,
     size_t *io_write_count) {
-  uint8_t invalidated[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+  uint32_t invalidated = 0U;
   size_t operand_index;
   if (candidate == NULL || instruction == NULL || metadata == NULL || a_known == NULL || a_values == NULL ||
       writes == NULL || io_write_count == NULL) {
@@ -1931,7 +1932,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     uint8_t reg = 0U;
     if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
         instruction_operand_address_register_local(&instruction->operands[operand_index], &reg)) {
-      invalidated[reg] = 1U;
+      m68k_bitset_u32_set(&invalidated, reg);
     }
   }
   if (metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
@@ -1944,7 +1945,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
           a_values, &address)) {
       a_known[reg] = 1U;
       a_values[reg] = address;
-      invalidated[reg] = 0U;
+      m68k_bitset_u32_clear(&invalidated, reg);
     }
   }
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
@@ -1989,7 +1990,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     }
   }
   for (operand_index = 0U; operand_index < 8U; ++operand_index) {
-    if (invalidated[operand_index]) a_known[operand_index] = 0U;
+    if (m68k_bitset_u32_has(invalidated, (uint8_t)operand_index)) a_known[operand_index] = 0U;
   }
 }
 
