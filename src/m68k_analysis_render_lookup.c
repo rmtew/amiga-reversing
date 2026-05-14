@@ -814,11 +814,12 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
 static void typed_state_clear_addr_alias_for_reg(M68kRenderTypedState *state, uint8_t reg_index) {
   uint8_t index;
   if (state == NULL || reg_index >= 8U) return;
-  state->addr_reg_alias_known[reg_index] = 0U;
+  m68k_bitset_u32_clear(&state->addr_reg_alias_known, reg_index);
   state->addr_reg_alias_source[reg_index] = 0U;
   for (index = 0U; index < 8U; ++index) {
-    if (state->addr_reg_alias_known[index] != 0U && state->addr_reg_alias_source[index] == reg_index) {
-      state->addr_reg_alias_known[index] = 0U;
+    if (m68k_bitset_u32_has(state->addr_reg_alias_known, index) &&
+        state->addr_reg_alias_source[index] == reg_index) {
+      m68k_bitset_u32_clear(&state->addr_reg_alias_known, index);
       state->addr_reg_alias_source[index] = 0U;
     }
   }
@@ -831,7 +832,7 @@ static void typed_state_clear_io_request_setup(M68kRenderTypedState *state, uint
 
 static void typed_state_set_addr_alias(M68kRenderTypedState *state, uint8_t dest_reg, uint8_t source_reg) {
   if (state == NULL || dest_reg >= 8U || source_reg >= 8U || dest_reg == source_reg) return;
-  state->addr_reg_alias_known[dest_reg] = 1U;
+  m68k_bitset_u32_set(&state->addr_reg_alias_known, dest_reg);
   state->addr_reg_alias_source[dest_reg] = source_reg;
 }
 
@@ -2131,7 +2132,7 @@ static void typed_flow_apply_call_input_alias_type(size_t section_index, uint32_
   M68kRenderTypedProvenance provenance;
   if (state == NULL || input == NULL || input->struct_id == AMIGA_OS_STRUCT_ID_NONE ||
       input->reg_kind != AMIGA_OS_REGISTER_ADDRESS || input->reg_index >= 8U ||
-      state->addr_reg_alias_known[input->reg_index] == 0U) {
+      !m68k_bitset_u32_has(state->addr_reg_alias_known, input->reg_index)) {
     return;
   }
   source_reg = state->addr_reg_alias_source[input->reg_index];
@@ -2464,7 +2465,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
     source_is_direct_addr_reg = operand_address_register_index_local(source_operand, &source_addr_reg);
     source_alias_reg = source_addr_reg;
     if (source_is_direct_addr_reg && source_addr_reg < 8U &&
-        state->addr_reg_alias_known[source_addr_reg] != 0U) {
+        m68k_bitset_u32_has(state->addr_reg_alias_known, source_addr_reg)) {
       source_alias_reg = state->addr_reg_alias_source[source_addr_reg];
     }
     source_tracks_plain_addr_alias =
@@ -2551,7 +2552,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, co
           &source_displacement) && source_base_reg < 8U && source_displacement == 0 &&
           !state->addr_regs[source_base_reg].known && !state->app_addr_regs[source_base_reg].known &&
           !state->memory_base_regs[source_base_reg].known) {
-        source_alias_reg = state->addr_reg_alias_known[source_base_reg] != 0U ?
+        source_alias_reg = m68k_bitset_u32_has(state->addr_reg_alias_known, source_base_reg) ?
           state->addr_reg_alias_source[source_base_reg] : source_base_reg;
         if (source_alias_reg < 8U && dest_reg != source_alias_reg)
           typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
@@ -2660,8 +2661,11 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
       return 0;
     if (!typed_memory_bases_equal(&left->memory_base_regs[index], &right->memory_base_regs[index])) return 0;
     if (!typed_io_request_setups_equal(&left->io_request_setups[index], &right->io_request_setups[index])) return 0;
-    if (left->addr_reg_alias_known[index] != right->addr_reg_alias_known[index]) return 0;
-    if (left->addr_reg_alias_known[index] != 0U &&
+    if (m68k_bitset_u32_has(left->addr_reg_alias_known, (uint8_t)index) !=
+        m68k_bitset_u32_has(right->addr_reg_alias_known, (uint8_t)index)) {
+      return 0;
+    }
+    if (m68k_bitset_u32_has(left->addr_reg_alias_known, (uint8_t)index) &&
         left->addr_reg_alias_source[index] != right->addr_reg_alias_source[index]) {
       return 0;
     }
@@ -2797,7 +2801,7 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     M68kRenderTypedMemoryBaseValue old_data_memory_base = dest->data_memory_base_regs[index];
     M68kRenderTypedMemoryBaseValue old_memory_base = dest->memory_base_regs[index];
     M68kRenderIoRequestSetup old_io_request_setup = dest->io_request_setups[index];
-    uint8_t old_alias_known = dest->addr_reg_alias_known[index];
+    int old_alias_known = m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index);
     uint8_t old_alias_source = dest->addr_reg_alias_source[index];
     changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index]);
     changed |= typed_reg_merge(&dest->addr_regs[index], &source->addr_regs[index]);
@@ -2829,13 +2833,15 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       memset(&dest->io_request_setups[index], 0, sizeof(dest->io_request_setups[index]));
     }
     if (!typed_io_request_setups_equal(&old_io_request_setup, &dest->io_request_setups[index])) changed = 1;
-    if (dest->addr_reg_alias_known[index] == 0U || source->addr_reg_alias_known[index] == 0U ||
+    if (!m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) ||
+        !m68k_bitset_u32_has(source->addr_reg_alias_known, (uint8_t)index) ||
         dest->addr_reg_alias_source[index] != source->addr_reg_alias_source[index]) {
-      dest->addr_reg_alias_known[index] = 0U;
+      m68k_bitset_u32_clear(&dest->addr_reg_alias_known, (uint8_t)index);
       dest->addr_reg_alias_source[index] = 0U;
     }
-    if (old_alias_known != dest->addr_reg_alias_known[index] ||
-        (dest->addr_reg_alias_known[index] != 0U && old_alias_source != dest->addr_reg_alias_source[index])) {
+    if (old_alias_known != m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) ||
+        (m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) &&
+          old_alias_source != dest->addr_reg_alias_source[index])) {
       changed = 1;
     }
   }

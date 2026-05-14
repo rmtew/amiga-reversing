@@ -307,7 +307,7 @@ typedef struct M68kRenderTypedState {
   M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
   M68kRenderTypedMemoryBaseValue memory_base_regs[8];
   M68kRenderIoRequestSetup io_request_setups[8];
-  uint8_t addr_reg_alias_known[8];
+  uint32_t addr_reg_alias_known;
   uint8_t addr_reg_alias_source[8];
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
