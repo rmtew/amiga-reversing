@@ -78,7 +78,7 @@ static int render_plan_row_builder_reserve(M68kRenderPlanRowBuilder *builder, si
     if (capacity > ((size_t)-1) / 2U) return -1;
     capacity *= 2U;
   }
-  text = (char *)realloc(builder->text, capacity);
+  text = (char *)m68k_allocator_realloc_copy(m68k_allocator_heap(), builder->text, builder->capacity, capacity);
   if (text == NULL) return -1;
   builder->text = text;
   builder->capacity = capacity;
@@ -160,7 +160,7 @@ void m68k_render_plan_row_builder_init(M68kRenderPlanRowBuilder *builder) {
 
 void m68k_render_plan_row_builder_destroy(M68kRenderPlanRowBuilder *builder) {
   if (builder == NULL) return;
-  free(builder->text);
+  m68k_allocator_free(m68k_allocator_heap(), builder->text);
   memset(builder, 0, sizeof(*builder));
 }
 

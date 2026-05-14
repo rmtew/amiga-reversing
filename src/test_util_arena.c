@@ -210,6 +210,28 @@ static int test_allocator_duplicates_memory_and_text(void) {
   return 0;
 }
 
+static int test_allocator_realloc_copy_preserves_prefix(void) {
+  M68kAllocator heap = m68k_allocator_heap();
+  unsigned char *bytes = (unsigned char *)m68k_allocator_memdup(heap, "abc", 4U);
+  unsigned char *grown;
+  unsigned char *shrunk;
+  M68K_C_ASSERT(bytes != NULL);
+  grown = (unsigned char *)m68k_allocator_realloc_copy(heap, bytes, 4U, 8U);
+  M68K_C_ASSERT(grown != NULL);
+  M68K_C_ASSERT_U32('a', grown[0]);
+  M68K_C_ASSERT_U32('b', grown[1]);
+  M68K_C_ASSERT_U32('c', grown[2]);
+  M68K_C_ASSERT_U32(0U, grown[3]);
+  grown[4] = 'd';
+  shrunk = (unsigned char *)m68k_allocator_realloc_copy(heap, grown, 8U, 3U);
+  M68K_C_ASSERT(shrunk != NULL);
+  M68K_C_ASSERT_U32('a', shrunk[0]);
+  M68K_C_ASSERT_U32('b', shrunk[1]);
+  M68K_C_ASSERT_U32('c', shrunk[2]);
+  m68k_allocator_free(heap, shrunk);
+  return 0;
+}
+
 static int test_allocator_arena_strdup_uses_arena_storage(void) {
   Arena *arena = arena_create(64U);
   M68kAllocator allocator;
@@ -405,6 +427,7 @@ int m68k_c_util_arena_tests(void) {
     {"allocator_heap_allocates_and_frees", test_allocator_heap_allocates_and_frees},
     {"allocator_arena_uses_arena_storage", test_allocator_arena_uses_arena_storage},
     {"allocator_duplicates_memory_and_text", test_allocator_duplicates_memory_and_text},
+    {"allocator_realloc_copy_preserves_prefix", test_allocator_realloc_copy_preserves_prefix},
     {"allocator_arena_strdup_uses_arena_storage", test_allocator_arena_strdup_uses_arena_storage},
     {"binary_writer_build_uses_allocator", test_binary_writer_build_uses_allocator},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},

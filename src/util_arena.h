@@ -75,6 +75,7 @@ M68kAllocator m68k_allocator_arena(Arena *arena);
 void *m68k_allocator_alloc(M68kAllocator allocator, size_t size);
 void *m68k_allocator_calloc(M68kAllocator allocator, size_t count, size_t size);
 void *m68k_allocator_memdup(M68kAllocator allocator, const void *data, size_t size);
+void *m68k_allocator_realloc_copy(M68kAllocator allocator, void *old_data, size_t old_size, size_t new_size);
 char *m68k_allocator_strdup(M68kAllocator allocator, const char *text);
 void m68k_allocator_free(M68kAllocator allocator, void *ptr);
 
