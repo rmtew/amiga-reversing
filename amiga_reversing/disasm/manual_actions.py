@@ -57,6 +57,20 @@ class ReviewItemKind(StrEnum):
     DECOMPRESSION_BLOCKER = "decompression_blocker"
 
 
+class ManualSeedKind(StrEnum):
+    CODE = "code"
+    DATA = "data"
+
+
+class ManualSeedMode(StrEnum):
+    REQUIRED = "required"
+
+
+class ManualLabelScope(StrEnum):
+    GLOBAL = "global"
+    LOCAL = "local"
+
+
 def review_item_state(value: object) -> ReviewItemState | None:
     if isinstance(value, ReviewItemState):
         return value
@@ -79,6 +93,39 @@ def review_item_kind(value: object) -> ReviewItemKind | None:
         return None
     try:
         return ReviewItemKind(value)
+    except ValueError:
+        return None
+
+
+def manual_seed_kind(value: object) -> ManualSeedKind | None:
+    if isinstance(value, ManualSeedKind):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ManualSeedKind(value)
+    except ValueError:
+        return None
+
+
+def manual_seed_mode(value: object) -> ManualSeedMode | None:
+    if isinstance(value, ManualSeedMode):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ManualSeedMode(value)
+    except ValueError:
+        return None
+
+
+def manual_label_scope(value: object) -> ManualLabelScope | None:
+    if isinstance(value, ManualLabelScope):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ManualLabelScope(value)
     except ValueError:
         return None
 
@@ -457,7 +504,7 @@ def _manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int] | None:
 
 def _manual_seed_required(seed: dict[str, object]) -> bool:
     mode = seed.get("mode")
-    return mode is None or mode == "required"
+    return mode is None or manual_seed_mode(mode) is ManualSeedMode.REQUIRED
 
 
 def _metadata_global_label_names(metadata: TargetMetadata | None) -> set[str]:
@@ -486,11 +533,12 @@ def _manual_label_conflict_items(
     for label in labels.values():
         label_id = label.get("label_id")
         name = label.get("name")
-        scope = label.get("scope") or "global"
+        raw_scope = label.get("scope")
+        scope = manual_label_scope(raw_scope) if raw_scope is not None else ManualLabelScope.GLOBAL
         if not isinstance(label_id, str) or not isinstance(name, str):
             continue
         label_range = _manual_seed_range(label)
-        if scope == "local":
+        if scope is ManualLabelScope.LOCAL:
             owner_id = label.get("owner_id") or label.get("owner_label_id")
             hunk, start, end = label_range or (0, 0, 1)
             if not isinstance(owner_id, str) or not owner_id:
@@ -549,7 +597,7 @@ def _manual_label_conflict_items(
                     }
                 )
             continue
-        if scope != "global":
+        if scope is not ManualLabelScope.GLOBAL:
             continue
         if name in metadata_names:
             hunk, start, end = label_range or (0, 0, 1)
@@ -599,17 +647,17 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
     values = list(seeds.values())
     for left_index, left in enumerate(values):
         left_id = left.get("seed_id")
-        left_kind = left.get("kind")
+        left_kind = manual_seed_kind(left.get("kind"))
         left_range = _manual_seed_range(left)
-        if not isinstance(left_id, str) or not isinstance(left_kind, str) or left_range is None:
+        if not isinstance(left_id, str) or left_kind is None or left_range is None:
             continue
         if not _manual_seed_required(left):
             continue
         for right in values[left_index + 1:]:
             right_id = right.get("seed_id")
-            right_kind = right.get("kind")
+            right_kind = manual_seed_kind(right.get("kind"))
             right_range = _manual_seed_range(right)
-            if not isinstance(right_id, str) or not isinstance(right_kind, str) or right_range is None:
+            if not isinstance(right_id, str) or right_kind is None or right_range is None:
                 continue
             if not _manual_seed_required(right) or right_kind == left_kind:
                 continue
@@ -640,20 +688,27 @@ def _manual_seed_metadata_conflict_items(
     if metadata is None:
         return []
     items: list[dict[str, object]] = []
-    stronger_ranges: list[tuple[str, str, int, int, int, str | None]] = []
+    stronger_ranges: list[tuple[ManualSeedKind, str, int, int, int, str | None]] = []
     for entrypoint in metadata.seeded_code_entrypoints:
         stronger_id = f"seeded_code_entrypoint:h{entrypoint.hunk}:${entrypoint.addr:08x}"
-        stronger_ranges.append(("code", stronger_id, entrypoint.hunk, entrypoint.addr, entrypoint.addr + 1, entrypoint.name))
+        stronger_ranges.append((
+            ManualSeedKind.CODE,
+            stronger_id,
+            entrypoint.hunk,
+            entrypoint.addr,
+            entrypoint.addr + 1,
+            entrypoint.name,
+        ))
     for entity in metadata.seeded_entities:
         end = entity.end if entity.end is not None and entity.end > entity.addr else entity.addr + 1
         stronger_id = f"seeded_entity:h{entity.hunk}:${entity.addr:08x}"
-        stronger_ranges.append(("data", stronger_id, entity.hunk, entity.addr, end, entity.name))
+        stronger_ranges.append((ManualSeedKind.DATA, stronger_id, entity.hunk, entity.addr, end, entity.name))
 
     for seed in seeds.values():
         seed_id = seed.get("seed_id")
-        seed_kind = seed.get("kind")
+        seed_kind = manual_seed_kind(seed.get("kind"))
         seed_range = _manual_seed_range(seed)
-        if not isinstance(seed_id, str) or not isinstance(seed_kind, str) or seed_range is None:
+        if not isinstance(seed_id, str) or seed_kind is None or seed_range is None:
             continue
         if not _manual_seed_required(seed):
             continue
@@ -694,9 +749,9 @@ def _manual_seed_binary_source_conflict_items(
     items: list[dict[str, object]] = []
     for seed in seeds.values():
         seed_id = seed.get("seed_id")
-        seed_kind = seed.get("kind")
+        seed_kind = manual_seed_kind(seed.get("kind"))
         seed_range = _manual_seed_range(seed)
-        if not isinstance(seed_id, str) or seed_kind != "data" or seed_range is None:
+        if not isinstance(seed_id, str) or seed_kind is not ManualSeedKind.DATA or seed_range is None:
             continue
         if not _manual_seed_required(seed):
             continue

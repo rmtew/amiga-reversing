@@ -13,7 +13,17 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm.manual_actions import ReviewItemKind, load_manual_projection, review_item_kind
+from amiga_reversing.disasm.manual_actions import (
+    ManualLabelScope,
+    ManualSeedKind,
+    ManualSeedMode,
+    ReviewItemKind,
+    load_manual_projection,
+    manual_label_scope,
+    manual_seed_kind,
+    manual_seed_mode,
+    review_item_kind,
+)
 from amiga_reversing.disasm.target_metadata import (
     EntryCommentMetadata,
     SeededCodeEntrypointMetadata,
@@ -169,7 +179,7 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
 
 
 def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMetadata | None:
-    if _manual_seed_text(label, "scope") == "local":
+    if manual_label_scope(label.get("scope")) is ManualLabelScope.LOCAL:
         return None
     parsed_range = _parse_manual_seed_range(label)
     if parsed_range is None:
@@ -231,7 +241,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 conflicted_label_ids.update(label_id for label_id in label_ids if isinstance(label_id, str))
     required_seeds = tuple(
         seed for seed in projection.seeds
-        if seed.get("mode") == "required" or seed.get("mode") is None
+        if manual_seed_mode(seed.get("mode")) is ManualSeedMode.REQUIRED or seed.get("mode") is None
         if seed.get("seed_id") not in conflicted_seed_ids
     )
     labels = tuple(
@@ -248,12 +258,12 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     seeded_code_entrypoints = list(metadata.seeded_code_entrypoints)
     entry_comments = list(metadata.entry_comments)
     for seed in required_seeds:
-        seed_kind = _manual_seed_text(seed, "kind")
-        if seed_kind == "code":
+        seed_kind = manual_seed_kind(seed.get("kind"))
+        if seed_kind is ManualSeedKind.CODE:
             entrypoint = _manual_seed_to_code_entrypoint(seed)
             if entrypoint is not None:
                 seeded_code_entrypoints.append(entrypoint)
-        elif seed_kind == "data":
+        elif seed_kind is ManualSeedKind.DATA:
             entity = _manual_seed_to_data_entity(seed)
             if entity is not None:
                 seeded_entities.append(entity)
