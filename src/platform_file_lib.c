@@ -112,8 +112,23 @@ typedef struct TextU8Map {
   uint8_t id;
 } TextU8Map;
 
+typedef struct TextU16Map {
+  const char *name;
+  uint16_t id;
+} TextU16Map;
+
 static uint8_t text_u8_id_from_map_local(const TextU8Map *entries, size_t entry_count, const char *name,
     uint8_t default_id) {
+  size_t index;
+  if (name == NULL || name[0] == '\0') return default_id;
+  for (index = 0U; index < entry_count; ++index) {
+    if (strcmp(name, entries[index].name) == 0) return entries[index].id;
+  }
+  return default_id;
+}
+
+static uint16_t text_u16_id_from_map_local(const TextU16Map *entries, size_t entry_count, const char *name,
+    uint16_t default_id) {
   size_t index;
   if (name == NULL || name[0] == '\0') return default_id;
   for (index = 0U; index < entry_count; ++index) {
@@ -131,6 +146,32 @@ static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) 
   return text_u8_id_from_map_local(ANALYSIS_REGISTER_SEED_KIND_NAMES,
     sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES) / sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES[0]), kind,
     M68K_ANALYSIS_REGISTER_SEED_NONE);
+}
+
+static const TextU16Map STRUCTURED_DATA_PLATFORM_KIND_NAMES[] = {
+  { "resident_autoinit", M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT },
+};
+
+static uint16_t structured_data_platform_kind_id_from_text_local(const char *struct_name) {
+  return text_u16_id_from_map_local(STRUCTURED_DATA_PLATFORM_KIND_NAMES,
+    sizeof(STRUCTURED_DATA_PLATFORM_KIND_NAMES) / sizeof(STRUCTURED_DATA_PLATFORM_KIND_NAMES[0]), struct_name,
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE);
+}
+
+static const TextU16Map RESIDENT_AUTOINIT_PLATFORM_FIELD_NAMES[] = {
+  { "resident_base_size", M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE },
+  { "resident_vectors", M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_VECTORS },
+  { "resident_init_struct", M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_STRUCT },
+  { "resident_init_function", M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_FUNCTION },
+};
+
+static uint16_t structured_data_platform_field_id_from_text_local(uint16_t platform_kind_id,
+    const char *field_name) {
+  if (platform_kind_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT)
+    return M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE;
+  return text_u16_id_from_map_local(RESIDENT_AUTOINIT_PLATFORM_FIELD_NAMES,
+    sizeof(RESIDENT_AUTOINIT_PLATFORM_FIELD_NAMES) / sizeof(RESIDENT_AUTOINIT_PLATFORM_FIELD_NAMES[0]), field_name,
+    M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE);
 }
 
 enum {
@@ -3526,17 +3567,9 @@ static int policy_set_structured_data_item_metadata_local(M68kAnalysisPolicy *po
   if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, item->struct_id) == NULL) item->struct_id = AMIGA_OS_STRUCT_ID_NONE;
   item->field_id = amiga_os_name_id(M68K_PLATFORM_NAME_FIELD, field_name);
   if (amiga_os_name(M68K_PLATFORM_NAME_FIELD, item->field_id) == NULL) item->field_id = AMIGA_OS_FIELD_ID_NONE;
-  if (struct_name != NULL && strcmp(struct_name, "resident_autoinit") == 0) {
-    item->platform_kind_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT;
-    if (field_name != NULL && strcmp(field_name, "resident_base_size") == 0)
-      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE;
-    else if (field_name != NULL && strcmp(field_name, "resident_vectors") == 0)
-      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_VECTORS;
-    else if (field_name != NULL && strcmp(field_name, "resident_init_struct") == 0)
-      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_STRUCT;
-    else if (field_name != NULL && strcmp(field_name, "resident_init_function") == 0)
-      item->platform_field_id = M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_FUNCTION;
-  }
+  item->platform_kind_id = structured_data_platform_kind_id_from_text_local(struct_name);
+  item->platform_field_id =
+    structured_data_platform_field_id_from_text_local(item->platform_kind_id, field_name);
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   return copy_policy_text(item->label, sizeof(item->label), label) &&
     copy_policy_text(item->struct_name, sizeof(item->struct_name), struct_name) &&
