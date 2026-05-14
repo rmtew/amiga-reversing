@@ -1387,6 +1387,26 @@ static uint32_t repeated_byte_run_length(const uint8_t *data, uint32_t offset, u
   return count;
 }
 
+static uint32_t render_asm_dc_b_chunk_size(const uint8_t *data, uint32_t offset, uint32_t size,
+    uint8_t *out_dcb) {
+  enum { DCB_MIN_REPEAT = 8U };
+  uint32_t line_count = size;
+  uint32_t index;
+  uint32_t repeat_count;
+  if (out_dcb != NULL) *out_dcb = 0U;
+  if (data == NULL || size == 0U) return 0U;
+  repeat_count = repeated_byte_run_length(data, offset, size);
+  if (repeat_count >= DCB_MIN_REPEAT) {
+    if (out_dcb != NULL) *out_dcb = 1U;
+    return repeat_count;
+  }
+  if (line_count > 16U) line_count = 16U;
+  for (index = 1U; index < line_count; ++index) {
+    if (repeated_byte_run_length(data, offset + index, size - index) >= DCB_MIN_REPEAT) return index;
+  }
+  return line_count;
+}
+
 static void render_asm_dcb_b(M68kRenderIRPreview *preview, uint32_t count, uint8_t value,
     const char *comment) {
   char line[128];
@@ -1399,41 +1419,55 @@ static void render_asm_dcb_b(M68kRenderIRPreview *preview, uint32_t count, uint8
   ++preview->asm_source_lines;
 }
 
+static void render_asm_dc_b_values_line(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+    uint32_t count, const char *comment) {
+  uint32_t index;
+  if (preview == NULL || data == NULL || count == 0U) return;
+  hash_asm_text(preview, "\tdc.b ");
+  for (index = 0U; index < count; ++index) {
+    char token[8];
+    if (index != 0U) hash_asm_text(preview, ",");
+    snprintf(token, sizeof(token), "$%02X", (unsigned)data[offset + index]);
+    hash_asm_text(preview, token);
+  }
+  if (comment != NULL && comment[0] != '\0') {
+    hash_asm_text(preview, "\t; ");
+    hash_asm_text(preview, comment);
+  }
+  hash_asm_text(preview, "\n");
+  ++preview->asm_source_lines;
+}
+
 static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment) {
-  enum { DCB_MIN_REPEAT = 8U };
   uint32_t cursor = 0U;
   if (preview == NULL || data == NULL) return;
   while (cursor < size) {
-    uint32_t line_count = size - cursor;
-    uint32_t index;
-    uint32_t repeat_count = repeated_byte_run_length(data, offset + cursor, size - cursor);
-    if (repeat_count >= DCB_MIN_REPEAT) {
-      render_asm_dcb_b(preview, repeat_count, data[offset + cursor], comment);
-      cursor += repeat_count;
-      continue;
-    }
-    if (line_count > 16U) line_count = 16U;
-    for (index = 1U; index < line_count; ++index) {
-      if (repeated_byte_run_length(data, offset + cursor + index, size - cursor - index) >= DCB_MIN_REPEAT) {
-        line_count = index;
-        break;
-      }
-    }
-    hash_asm_text(preview, "\tdc.b ");
-    for (index = 0U; index < line_count; ++index) {
-      char token[8];
-      if (index != 0U) hash_asm_text(preview, ",");
-      snprintf(token, sizeof(token), "$%02X", (unsigned)data[offset + cursor + index]);
-      hash_asm_text(preview, token);
-    }
-    if (comment != NULL && comment[0] != '\0') {
-      hash_asm_text(preview, "\t; ");
-      hash_asm_text(preview, comment);
-    }
-    hash_asm_text(preview, "\n");
-    ++preview->asm_source_lines;
-    cursor += line_count;
+    uint8_t is_dcb = 0U;
+    uint32_t chunk_size = render_asm_dc_b_chunk_size(data, offset + cursor, size - cursor, &is_dcb);
+    if (chunk_size == 0U) return;
+    if (is_dcb) render_asm_dcb_b(preview, chunk_size, data[offset + cursor], comment);
+    else render_asm_dc_b_values_line(preview, data, offset + cursor, chunk_size, comment);
+    cursor += chunk_size;
+  }
+}
+
+static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, size_t section_index,
+    const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || section == NULL || section->data == NULL) return;
+  while (cursor < size) {
+    M68kRenderPlanRow *row;
+    uint8_t is_dcb = 0U;
+    uint32_t chunk_size = render_asm_dc_b_chunk_size(section->data, offset + cursor, size - cursor, &is_dcb);
+    if (chunk_size == 0U) return;
+    begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
+    if (is_dcb) render_asm_dcb_b(preview, chunk_size, section->data[offset + cursor], comment);
+    else render_asm_dc_b_values_line(preview, section->data, offset + cursor, chunk_size, comment);
+    row = finish_asm_source_plan_row(preview, section->section_index, offset + cursor, chunk_size, 1);
+    set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset + cursor,
+      chunk_size);
+    cursor += chunk_size;
   }
 }
 
@@ -9195,18 +9229,23 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                 offset - start, 0U);
               if (render_asm_source) {
                 M68kRenderPlanRow *row;
-                begin_asm_source_plan_row(out_preview,
-                  initialized_span ? M68K_RENDER_PLAN_ROW_DATA : M68K_RENDER_PLAN_ROW_RESERVE,
+                begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE,
                   (uint32_t)section_index);
                 render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, start, &asm_logical_pc);
+                finish_asm_source_plan_row(out_preview, section->section_index, start, 0U, 1);
+                begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);
                 render_asm_comment_line(out_preview,
                   lookup_instruction_comment(&lookup, section->section_index, start));
-                if (initialized_span) render_asm_dc_b(out_preview, section->data, start, offset - start, NULL);
-                else render_asm_ds_best_fit(out_preview, start, offset - start);
-                row = finish_asm_source_plan_row(out_preview, section->section_index, start, offset - start, 1);
-                set_asm_source_plan_row_statement_from_section(row,
-                  initialized_span ? M68K_STATEMENT_DATA : M68K_STATEMENT_RESERVE, NULL, section, start,
-                  offset - start);
+                finish_asm_source_plan_row(out_preview, section->section_index, start, 0U, 1);
+                if (initialized_span) {
+                  render_asm_data_dc_b_plan_rows(out_preview, section_index, section, start, offset - start, NULL);
+                } else {
+                  begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RESERVE, (uint32_t)section_index);
+                  render_asm_ds_best_fit(out_preview, start, offset - start);
+                  row = finish_asm_source_plan_row(out_preview, section->section_index, start, offset - start, 1);
+                  set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_RESERVE, NULL, section, start,
+                    offset - start);
+                }
                 asm_logical_pc += offset - start;
               }
               }

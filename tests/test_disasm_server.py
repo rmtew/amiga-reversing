@@ -198,6 +198,22 @@ class _RowsCListingArtifact:
     def addr_window_payload(self, *, addr: int | None, before: int, after: int):
         return _test_listing_addr_window_payload(self.rows, addr, before=before, after=after, api_calls_by_row_id=self.api_calls_by_row_id), {}
 
+    def row_for_source_offset(self, *, section_index: int | None, offset: int):
+        if section_index is None:
+            return None
+        for index, row in enumerate(self.rows):
+            if row.section_index != section_index:
+                continue
+            start = row.start_offset if row.start_offset is not None else row.addr
+            if start is None:
+                continue
+            end = row.end_offset if row.end_offset is not None else start + 1
+            if start <= offset < end or start == offset:
+                serialized = dict(serialize_row(row))
+                serialized["row_index"] = index
+                return serialized
+        return None
+
     def anchor_window_payload(self, *, anchor_code: str, count: int):
         start = _test_listing_anchor_code_start(self.rows, anchor_code)
         return _test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id), {}
@@ -767,6 +783,58 @@ def test_route_listing_reuses_cached_analysis_review_items(
     assert artifact.analysis_calls == 1
 
 
+def test_route_listing_section_offset_uses_hunk_local_row(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(row_id="h0", kind="instruction", text="rts\n", addr=0, section_index=0, start_offset=0, end_offset=2),
+        ListingRow(
+            row_id="h1",
+            kind="instruction",
+            text="moveq.l #0,d0\n",
+            addr=0x14C,
+            section_index=1,
+            start_offset=0x14C,
+            end_offset=0x14E,
+        ),
+        ListingRow(row_id="gap", kind="directive", text="    SECTION section_2,code\n"),
+        ListingRow(
+            row_id="h2-before",
+            kind="instruction",
+            text="nop\n",
+            addr=0x148,
+            section_index=2,
+            start_offset=0x148,
+            end_offset=0x14A,
+        ),
+        ListingRow(
+            row_id="h2-target",
+            kind="instruction",
+            text="jmp $0040(a2)\n",
+            addr=0x14C,
+            section_index=2,
+            start_offset=0x14C,
+            end_offset=0x150,
+        ),
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"section_index": ["2"], "source_offset": [str(0x14C)], "before": ["1"], "after": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    returned_rows = cast(list[dict[str, object]], data["rows"])
+
+    assert "h1" not in [row["row_id"] for row in returned_rows]
+    assert returned_rows[-1]["row_id"] == "h2-target"
+    assert returned_rows[-1]["section_index"] == 2
+
+
 def _disk_manifest_payload() -> dict[str, object]:
     return {
         "schema_version": 1,
@@ -937,6 +1005,49 @@ def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest
 
     assert project["review_state"] == "needs_review"
     assert review_items[0]["kind"] == "unreconciled_data_range"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_route_project_overlays_cached_analysis_review_blocker(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DecompressionBlockerArtifact(_FakeCListingArtifact):
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {
+                    "sections": [],
+                    "decompression_events": [
+                        {
+                            "event_id": "damocles-tetragon-child-2",
+                            "status_id": 6,
+                            "status": "needs_review_blocker",
+                            "reason": "invalid_decompressed_entrypoint",
+                            "source_section": 2,
+                            "source_section_offset": 0x2A,
+                        }
+                    ],
+                },
+                {"generation": "fake-analysis"},
+            )
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", DecompressionBlockerArtifact())
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "_current_reproduction_payload",
+        lambda project_name: {"status": "not_ready"},
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych", {})
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
+    review_items = cast(list[dict[str, object]], project["review_items"])
+
+    assert project["review_state"] == "blocked"
+    assert review_items[0]["kind"] == "decompression_blocker"
+    assert review_items[0]["review_blocker"] is True
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 

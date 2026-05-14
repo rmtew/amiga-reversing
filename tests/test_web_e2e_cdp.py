@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -285,6 +286,22 @@ class _FakeCListingArtifact:
         )
         payload["analysis_generation"] = "full"
         return payload, {}
+
+    def row_for_source_offset(self, *, section_index: int | None, offset: int) -> dict[str, object] | None:
+        if section_index is None:
+            return None
+        for index, row in enumerate(self.rows):
+            if row.section_index != section_index:
+                continue
+            start = row.start_offset if row.start_offset is not None else row.addr
+            if start is None:
+                continue
+            end = row.end_offset if row.end_offset is not None else start + 1
+            if start <= offset < end or start == offset:
+                serialized = dict(serialize_row(row))
+                serialized["row_index"] = index
+                return serialized
+        return None
 
     def anchor_window_payload(self, *, anchor_code: str, count: int) -> tuple[dict[str, object], dict[str, object]]:
         start = 0
@@ -576,17 +593,24 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         ),
     )
     rows = [
-        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0),
-        ListingRow(row_id="r1", kind="instruction", text="moveq #0,d0\n", addr=0),
-        ListingRow(row_id="r2", kind="instruction", text="rts\n", addr=2),
-        ListingRow(row_id="r3", kind="data", text="dc.b $00,$01,$02,$03\n", addr=4),
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, section_index=0, start_offset=0, end_offset=0),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="moveq #0,d0\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=2,
+        ),
+        ListingRow(row_id="r2", kind="instruction", text="rts\n", addr=2, section_index=0, start_offset=2, end_offset=4),
+        ListingRow(row_id="r3", kind="data", text="dc.b $00,$01,$02,$03\n", addr=4, section_index=0, start_offset=4, end_offset=8),
     ]
     disasm_server._ASYNC_JOBS.clear()
     _cache_full_project_rows(project.id, rows)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
-
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": base_url})
         page.wait_for_event("Page.loadEventFired")
@@ -607,6 +631,338 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.click("#review-overlay .review-item-title")
         page.wait_for_selector(".listing-row-focus")
         assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.rowAddr") == "4"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_listing_ready_refreshes_analysis_review_badge(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_analysis_review")
+    rows = [
+        *[
+            ListingRow(
+                row_id=f"h0-{index}",
+                kind="instruction",
+                text="nop\n",
+                addr=index * 2,
+                section_index=0,
+                start_offset=index * 2,
+                end_offset=index * 2 + 2,
+            )
+            for index in range(320)
+        ],
+        ListingRow(row_id="section-2", kind="directive", text="    SECTION section_2,code\n"),
+        ListingRow(
+            row_id="h2-target",
+            kind="instruction",
+            text="jmp $0040(a2)\n",
+            addr=0x14C,
+            section_index=2,
+            start_offset=0x14C,
+            end_offset=0x150,
+        ),
+        ListingRow(
+            row_id="h2-after",
+            kind="instruction",
+            text="rts\n",
+            addr=0x150,
+            section_index=2,
+            start_offset=0x150,
+            end_offset=0x152,
+        ),
+    ]
+
+    class AnalysisBlockerArtifact(_FakeCListingArtifact):
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {
+                    "sections": [],
+                    "decompression_events": [
+                        {
+                            "event_id": "child-2",
+                            "status_id": 6,
+                            "status": "needs_review_blocker",
+                            "reason": "invalid_decompressed_entrypoint",
+                            "source_section": 2,
+                            "source_section_offset": 0x14C,
+                        }
+                    ],
+                },
+                {},
+            )
+
+    def build_listing_artifact(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
+        artifact = AnalysisBlockerArtifact(rows, project_name=project_name)
+        return len(rows), {}, artifact
+
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", build_listing_artifact)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length > 0")
+        page.wait_for_expression(
+            "document.querySelector('#project-details')?.textContent.includes('Blocked')",
+            timeout=10.0,
+        )
+        page.click("#open-review")
+        page.wait_for_expression(
+            "document.querySelector('#review-overlay')?.textContent.includes('decompression blocker')",
+            timeout=10.0,
+        )
+        page.click("#review-overlay [data-review-action='navigate']")
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.startOffset === '332'",
+            timeout=10.0,
+        )
+        assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.sectionIndex") == "2"
+        assert page.evaluate(
+            """
+            (() => {
+              const viewport = document.querySelector('#listing-viewport');
+              const row = document.querySelector('.listing-row-focus');
+              if (!viewport || !row) return false;
+              const viewportRect = viewport.getBoundingClientRect();
+              const rowRect = row.getBoundingClientRect();
+              return rowRect.top >= viewportRect.top && rowRect.bottom <= viewportRect.bottom;
+            })()
+            """
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_review_history_refill")
+    h1_rows = [
+        ListingRow(
+            row_id=f"h1-{index}",
+            kind="instruction",
+            text="nop\n",
+            addr=index * 2,
+            section_index=1,
+            start_offset=index * 2,
+            end_offset=index * 2 + 2,
+            stable_key=f"h1-{index}",
+        )
+        for index in range(260)
+    ]
+    h2_rows = [
+        ListingRow(
+            row_id=f"h2-{index}",
+            kind="instruction",
+            text="nop\n",
+            addr=0x100 + index * 2,
+            section_index=2,
+            start_offset=0x100 + index * 2,
+            end_offset=0x100 + index * 2 + 2,
+            stable_key=f"h2-{index}",
+        )
+        for index in range(80)
+    ]
+    rows = [*h1_rows, *h2_rows]
+
+    project = replace(
+        project,
+        review_state="blocked",
+        review_items=(
+            {
+                "kind": "unreconciled_data_range",
+                "item_id": "unreconciled_data_range:h1:$000000c4:$000000ce",
+                "scope": "range",
+                "state": "open",
+                "review_confidence": "low",
+                "hunk": 1,
+                "start": 0xC4,
+                "end": 0xCE,
+                "message": "Range has no accepted code, data, metadata, policy, or manual seed evidence",
+            },
+            {
+                "kind": "decompression_blocker",
+                "item_id": "decompression_blocker:h2:$0000014c",
+                "scope": "range",
+                "state": "open",
+                "review_blocker": True,
+                "review_confidence": "high",
+                "hunk": 2,
+                "start": 0x14C,
+                "end": 0x14D,
+                "message": "Decompressed payload requires manual review before parent can be clear",
+            },
+        ),
+    )
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length > 0")
+        page.click("#open-review")
+        page.wait_for_expression(
+            "document.querySelector('#review-overlay')?.textContent.includes('decompression blocker')",
+            timeout=10.0,
+        )
+        page.click("#review-overlay .review-item:nth-child(2) [data-review-action='navigate']")
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.sectionIndex === '1'",
+            timeout=10.0,
+        )
+        page.evaluate(
+            """
+            (() => {
+              const item = Array.from(document.querySelectorAll('#review-overlay .review-item'))
+                .find((node) => node.textContent.includes('decompression blocker'));
+              const button = item?.querySelector('[data-review-action="navigate"]');
+              if (!button) throw new Error('missing decompression blocker navigate');
+              button.click();
+              return true;
+            })()
+            """
+        )
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.sectionIndex === '2'",
+            timeout=10.0,
+        )
+        page.click("#navigation-back")
+        page.wait_for_expression(
+            "document.querySelector('.listing-row-focus')?.dataset.sectionIndex === '1'",
+            timeout=10.0,
+        )
+        time.sleep(0.2)
+        metrics = page.evaluate(
+            """
+            (() => {
+              const viewport = document.querySelector('#listing-viewport');
+              const rows = Array.from(document.querySelectorAll('#listing-viewport .listing-row'));
+              const viewportRect = viewport?.getBoundingClientRect();
+              const visibleRows = rows.filter((row) => {
+                const rect = row.getBoundingClientRect();
+                return viewportRect && rect.bottom > viewportRect.top && rect.top < viewportRect.bottom;
+              });
+              const maxVisibleBottom = Math.max(...visibleRows.map((row) => row.getBoundingClientRect().bottom));
+              return {
+                rowCount: rows.length,
+                visibleCount: visibleRows.length,
+                firstIndex: rows[0]?.dataset.rowIndex || null,
+                lastIndex: rows[rows.length - 1]?.dataset.rowIndex || null,
+                focusIndex: document.querySelector('.listing-row-focus')?.dataset.rowIndex || null,
+                focusSection: document.querySelector('.listing-row-focus')?.dataset.sectionIndex || null,
+                scrollTop: viewport?.scrollTop ?? null,
+                clientHeight: viewport?.clientHeight ?? null,
+                scrollHeight: viewport?.scrollHeight ?? null,
+                firstTop: rows[0]?.getBoundingClientRect().top ?? null,
+                lastBottom: rows[rows.length - 1]?.getBoundingClientRect().bottom ?? null,
+                viewportBottom: viewportRect?.bottom ?? null,
+                maxVisibleBottom,
+              };
+            })()
+            """
+        )
+        assert metrics["rowCount"] >= 40 and metrics["maxVisibleBottom"] >= metrics["viewportBottom"] - 30, metrics
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    project = _binary_project("amiga_hunk_manual_seed_refresh")
+    rows = [
+        ListingRow(row_id="r0", kind="label", text="start:\n", addr=0, section_index=0, start_offset=0, end_offset=0),
+        ListingRow(row_id="r1", kind="data", text="dc.b $00,$01,$02,$03\n", addr=0, section_index=0, start_offset=0, end_offset=4),
+    ]
+    build_calls = 0
+    second_build_entered = threading.Event()
+    release_second_build = threading.Event()
+    appended_actions: list[dict[str, object]] = []
+
+    class AnalysisArtifact(_FakeCListingArtifact):
+        def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return (
+                {
+                    "sections": [{"section_index": 0, "section_size": 8, "blocks": []}],
+                    "decompression_events": [
+                        {
+                            "event_id": "still-blocked",
+                            "status_id": 6,
+                            "status": "needs_review_blocker",
+                            "reason": "invalid_decompressed_entrypoint",
+                            "source_section": 0,
+                            "source_section_offset": 4,
+                        }
+                    ],
+                },
+                {},
+            )
+
+    def build_listing_artifact(project_name: str) -> tuple[int, dict[str, object], _FakeCListingArtifact]:
+        nonlocal build_calls
+        build_calls += 1
+        if build_calls == 2:
+            second_build_entered.set()
+            assert release_second_build.wait(timeout=10.0)
+        artifact = AnalysisArtifact(rows, project_name=project_name)
+        return len(rows), {}, artifact
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, **payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "stable-cache")
+    monkeypatch.setattr(disasm_server, "build_project_listing_artifact_profile", build_listing_artifact)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression(
+            "document.querySelector('#project-details')?.textContent.includes('Blocked')",
+            timeout=10.0,
+        )
+        page.click("#open-review")
+        page.wait_for_expression(
+            "document.querySelector('#review-overlay')?.textContent.includes('unreconciled data range')",
+            timeout=10.0,
+        )
+        page.select_value("[data-review-filter='kind']", "unreconciled_data_range")
+        page.wait_for_expression("document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')")
+        page.click("#review-overlay [data-review-action='create_manual_seed'][data-data-role='string']")
+        if not second_build_entered.wait(timeout=10.0):
+            page.assert_no_errors()
+            raise AssertionError("manual seed did not trigger listing rebuild")
+        assert appended_actions and appended_actions[0]["kind"] == "create_manual_seed"
+        assert "Review clear" not in page.text_content("#project-details")
+        assert "0 of 0" not in page.text_content("#review-overlay")
+        release_second_build.set()
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline and project.id not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE:
+            time.sleep(0.05)
+        assert project.id in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
+        page.wait_for_expression(
+            "document.querySelector('#project-details')?.textContent.includes('Blocked')",
+            timeout=10.0,
+        )
+        page.wait_for_expression(
+            "document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')",
+            timeout=10.0,
+        )
+        assert "Review clear" not in page.text_content("#project-details")
+        assert "0 of 0" not in page.text_content("#review-overlay")
         page.assert_no_errors()
 
 

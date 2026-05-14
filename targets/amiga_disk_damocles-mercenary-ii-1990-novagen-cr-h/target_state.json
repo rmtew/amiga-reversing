@@ -1,8 +1,47 @@
 {
   "candidate_rejects": [],
   "import_mode": "amiga_dos_startup_sequence",
-  "imported_at": "2026-05-13T19:57:00+00:00",
-  "payload_nodes": [],
+  "imported_at": "2026-05-14T06:00:48+00:00",
+  "payload_nodes": [
+    {
+      "codec": "tetragon",
+      "crc32": null,
+      "decode_status": "ok",
+      "decoded_size": 65536,
+      "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_01_000000c4",
+      "media_hint": "raw",
+      "origin": "auto",
+      "parent_file_id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+      "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_damocles_53b24620_native_tetragon_01_000000c4",
+      "reason_code": null,
+      "reason_detail": null,
+      "source_file_offset": null,
+      "source_hunk_offset": 256,
+      "source_offset": 256,
+      "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+      "source_size": null,
+      "state": "added"
+    },
+    {
+      "codec": "tetragon",
+      "crc32": null,
+      "decode_status": "ok",
+      "decoded_size": 504138,
+      "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
+      "media_hint": "raw",
+      "origin": "auto",
+      "parent_file_id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+      "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
+      "reason_code": null,
+      "reason_detail": null,
+      "source_file_offset": null,
+      "source_hunk_offset": 332,
+      "source_offset": 332,
+      "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+      "source_size": null,
+      "state": "added"
+    }
+  ],
   "schema_version": 1,
   "startup_sequence_parse": {
     "command": null,
@@ -36,7 +75,7 @@
     {
       "added_by_import": true,
       "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566",
-      "imported_at": "2026-05-13T19:57:00+00:00",
+      "imported_at": "2026-05-14T06:00:48+00:00",
       "origin": "auto",
       "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_menu_252a2566",
       "reason_code": null,
@@ -46,7 +85,7 @@
     {
       "added_by_import": true,
       "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_trio_6d66c94c",
-      "imported_at": "2026-05-13T19:57:00+00:00",
+      "imported_at": "2026-05-14T06:00:48+00:00",
       "origin": "auto",
       "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_trio_6d66c94c",
       "reason_code": null,
@@ -56,9 +95,39 @@
     {
       "added_by_import": true,
       "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_bootblock",
-      "imported_at": "2026-05-13T19:57:00+00:00",
+      "imported_at": "2026-05-14T06:00:48+00:00",
       "origin": "auto",
       "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": false,
+      "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+      "imported_at": "2026-05-14T06:00:48+00:00",
+      "origin": "manual",
+      "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_hunk_damocles_53b24620",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_01_000000c4",
+      "imported_at": "2026-05-14T06:00:48+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_damocles_53b24620_native_tetragon_01_000000c4",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
+      "imported_at": "2026-05-14T06:00:48+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
       "reason_code": null,
       "reason_detail": null,
       "state": "added"

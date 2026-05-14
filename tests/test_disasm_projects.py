@@ -1039,6 +1039,55 @@ def test_get_project_blocks_on_reproduction_content_mismatch(tmp_path: Path) -> 
     ]
 
 
+def test_get_project_blocks_on_decompression_review_event(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "demo"
+    bin_dir = project_root / "bin"
+    target_dir.mkdir(parents=True)
+    bin_dir.mkdir()
+    (target_dir / ".project.json").write_text(json.dumps(_project_metadata_payload()))
+    binary_path = bin_dir / "demo.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "address_model": "local_offset",
+                "path": "bin/demo.bin",
+                "load_address": 0x70000,
+                "entrypoint": 0x70000,
+                "code_start_offset": 0,
+            }
+        )
+    )
+    (target_dir / "binary.analysis").write_text(
+        json.dumps(
+            {
+                "decompression_events": [
+                    {
+                        "event_id": "decompression:recognized_unpacker:section:2:00000060:tetragon",
+                        "status_id": 6,
+                        "status": "needs_review_blocker",
+                        "reason": "invalid_decompressed_entrypoint",
+                        "source_section": 2,
+                        "source_section_offset": 0x60,
+                    }
+                ]
+            }
+        )
+    )
+
+    project = get_project("demo", project_root=project_root)
+
+    assert project.review_state == "blocked"
+    assert len(project.review_items) == 1
+    item = project.review_items[0]
+    assert item["kind"] == "decompression_blocker"
+    assert item["review_blocker"] is True
+    assert item["event_id"] == "decompression:recognized_unpacker:section:2:00000060:tetragon"
+    assert item["reason"] == "invalid_decompressed_entrypoint"
+
+
 def test_get_project_reports_container_only_reproduction_difference_without_blocking(tmp_path: Path) -> None:
     project_root = tmp_path
     target_dir = project_root / "targets" / "demo"

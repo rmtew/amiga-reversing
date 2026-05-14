@@ -1273,8 +1273,12 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
         *analysis_items,
     ]
     project_dict["review_items"] = review_items
-    if project_dict.get("review_state") != "blocked" and any(item.get("state") == "open" for item in analysis_items):
-        project_dict["review_state"] = "needs_review"
+    open_analysis_items = [item for item in analysis_items if item.get("state") == "open"]
+    if project_dict.get("review_state") != "blocked":
+        if any(item.get("review_blocker") is True for item in open_analysis_items):
+            project_dict["review_state"] = "blocked"
+        elif open_analysis_items:
+            project_dict["review_state"] = "needs_review"
     return project_dict
 
 
@@ -1822,6 +1826,8 @@ def route_request(
                 )
             start = _parse_int_arg(query, "start")
             count = _parse_int_arg(query, "count")
+            section_index = _parse_int_arg(query, "section_index")
+            source_offset = _parse_int_arg(query, "source_offset")
             anchor_code_values = query.get("anchor_code")
             anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
             if anchor_code:
@@ -1829,6 +1835,22 @@ def route_request(
                     anchor_code=anchor_code,
                     count=count or 240,
                 )
+            elif section_index is not None and source_offset is not None:
+                artifact_row_lookup = getattr(listing_artifact, "row_for_source_offset", None)
+                if artifact_row_lookup is None:
+                    payload = _empty_listing_payload(source_offset)
+                else:
+                    row = artifact_row_lookup(section_index=section_index, offset=source_offset)
+                    row_index = row.get("row_index") if isinstance(row, dict) else None
+                    if isinstance(row_index, int):
+                        before = _parse_int_arg(query, "before", 80) or 80
+                        after = _parse_int_arg(query, "after", 200) or 200
+                        payload, _ = listing_artifact.window_payload(
+                            start=max(0, row_index - before),
+                            count=before + after + 1,
+                        )
+                    else:
+                        payload = _empty_listing_payload(source_offset)
             elif start is not None or count is not None:
                 payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
             else:

@@ -11202,6 +11202,69 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  M68kFactIR facts;
+  M68kRenderIRPreview preview;
+  uint8_t *accepted_start[1];
+  uint8_t *accepted_bytes[1];
+  uint8_t start_map[40];
+  uint8_t byte_map[40];
+  uint8_t bytes[40];
+  size_t index;
+  size_t data_row_count = 0U;
+  const M68kRenderPlanRow *mid_row;
+  const uint32_t expected_offsets[3] = {0U, 16U, 32U};
+  const uint32_t expected_sizes[3] = {16U, 16U, 8U};
+
+  memset(&section, 0, sizeof(section));
+  memset(start_map, 0, sizeof(start_map));
+  memset(byte_map, 0, sizeof(byte_map));
+  for (index = 0U; index < sizeof(bytes); ++index) bytes[index] = (uint8_t)(index + 1U);
+  accepted_start[0] = start_map;
+  accepted_bytes[0] = byte_map;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  m68k_fact_ir_init(&facts);
+  m68k_render_ir_preview_init(&preview);
+
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  for (index = 0U; index < preview.asm_source_plan.row_count; ++index) {
+    const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[index];
+    if (row->kind != M68K_RENDER_PLAN_ROW_DATA) continue;
+    M68K_C_ASSERT(data_row_count < 3U);
+    M68K_C_ASSERT_U32(expected_offsets[data_row_count], row->source_offset);
+    M68K_C_ASSERT_U32(expected_sizes[data_row_count], row->source_size);
+    M68K_C_ASSERT_U32(1U, row->line_count);
+    data_row_count++;
+  }
+  M68K_C_ASSERT_U32(3U, (uint32_t)data_row_count);
+  mid_row = m68k_render_plan_find_row_for_source_offset(&preview.asm_source_plan, 0U, 24U);
+  M68K_C_ASSERT(mid_row != NULL);
+  M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_DATA, mid_row->kind);
+  M68K_C_ASSERT_U32(16U, mid_row->source_offset);
+  M68K_C_ASSERT_U32(16U, mid_row->source_size);
+  M68K_C_ASSERT(strstr(mid_row->text, "\tdc.b $11,$12,$13,$14") != NULL);
+
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_fact_ir_destroy(&facts);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_listing_json_uses_render_plan_data_class(void) {
   M68kRenderPlan render_plan;
   M68kRenderPlanRow *row = NULL;
@@ -19289,6 +19352,8 @@ int m68k_c_ir_tests(void) {
     {"listing_json_classifies_org_subline_as_directive", test_listing_json_classifies_org_subline_as_directive},
     {"render_plan_marks_emitted_org_subline_as_directive",
       test_render_plan_marks_emitted_org_subline_as_directive},
+    {"facts_v2_render_asm_source_splits_raw_data_plan_rows",
+      test_facts_v2_render_asm_source_splits_raw_data_plan_rows},
     {"listing_json_uses_render_plan_data_class", test_listing_json_uses_render_plan_data_class},
     {"listing_json_uses_render_plan_data_class_flags", test_listing_json_uses_render_plan_data_class_flags},
     {"listing_navigation_uses_render_plan_data_class", test_listing_navigation_uses_render_plan_data_class},

@@ -57,6 +57,35 @@ def test_analysis_review_items_emit_orphan_unreconciled_and_suspicious_items() -
         assert isinstance(item["suggested_actions"], list)
 
 
+def test_analysis_review_items_emit_decompression_blocker_without_sections() -> None:
+    items = analysis_review_items(
+        {
+            "decompression_events": [
+                {
+                    "event_id": "damocles-tetragon-child-2",
+                    "status_id": 6,
+                    "status": "needs_review_blocker",
+                    "reason": "invalid_decompressed_entrypoint",
+                    "source_section": 2,
+                    "source_section_offset": 0x2A,
+                    "decompressed_entrypoint": 0x59484,
+                    "target_name": "amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
+                }
+            ]
+        }
+    )
+
+    item = items[0]
+    assert item["kind"] == "decompression_blocker"
+    assert item["item_id"] == "decompression_blocker:damocles-tetragon-child-2"
+    assert item["review_blocker"] is True
+    assert item["hunk"] == 2
+    assert item["start"] == 0x2A
+    assert item["reason"] == "invalid_decompressed_entrypoint"
+    assert item["decompressed_entrypoint"] == 0x59484
+    assert item["state"] == "open"
+
+
 def test_analysis_review_item_fingerprint_changes_with_supporting_facts() -> None:
     base = {
         "sections": [

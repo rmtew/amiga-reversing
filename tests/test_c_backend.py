@@ -47,7 +47,11 @@ from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     build_target_identity,
 )
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.project_paths import (
+    PROJECT_ROOT,
+    ProjectPaths,
+    resolve_project_paths,
+)
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
@@ -68,6 +72,13 @@ def _requires_c_backend_dlls() -> None:
     build_dir = PROJECT_ROOT / "src" / "build"
     if not (build_dir / "platform_file_lib.dll").exists() or not (build_dir / "platform_disk_lib.dll").exists():
         pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")
+
+
+def _requires_project_paths(target_name: str) -> ProjectPaths:
+    try:
+        return resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    except FileNotFoundError as exc:
+        pytest.skip(f"Target fixture is not materialized by the current import policy: {target_name} ({exc})")
 
 
 def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(
@@ -687,6 +698,7 @@ def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path:
 
 
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
+    _requires_project_paths(target_name)
     payload = analyze_project_with_c_artifact(target_name, project_root=PROJECT_ROOT)
     assert isinstance(payload, dict)
     return payload
@@ -4112,7 +4124,7 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
 def test_real_dll_starglider_replays_common_indirect_stub_trace_variants() -> None:
     _requires_c_backend_dlls()
     target_name = "amiga_disk_starglider-1987-rainbird__amiga_hunk_libs__mathieeedoubbas.library_3d4e4903"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -5786,9 +5798,8 @@ def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:
 def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths(
+    paths = _requires_project_paths(
         "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
-        project_root=PROJECT_ROOT,
     )
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -5917,10 +5928,7 @@ def test_real_dll_carrier_decompression_suggestions_require_runtime_metadata() -
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_carrier_91b0ba24"
     combined = _facts_v2_listing_analysis_for_project(target_name)
-    paths = resolve_project_paths(
-        target_name,
-        project_root=PROJECT_ROOT,
-    )
+    paths = _requires_project_paths(target_name)
     payloads = combined["analysis"]["packed_payloads"]
     suggestions = combined["analysis"]["derived_target_suggestions"]
     events = combined["analysis"]["decompression_events"]
@@ -6035,9 +6043,8 @@ def test_real_dll_pandora_bk_provider_wrapper_promotes_absolute_payload() -> Non
 def test_real_dll_carrier_decompressed_child_raw_reproduction() -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths(
+    paths = _requires_project_paths(
         "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_carrier_91b0ba24_rnc1_old_00_00004c40",
-        project_root=PROJECT_ROOT,
     )
 
     source_text, source_profile = listing_artifact_source_text_with_c_backend_profile(
@@ -6087,6 +6094,8 @@ def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     assert by_section[1]["entrypoint"] == 0x40000
     assert by_section[1]["status"] == "materializable"
     assert by_section[1]["payload_role"] == "primary_program"
+    assert by_section[1]["entry_validation_valid"] is True
+    assert by_section[1]["entry_validation_unsupported_instruction_demotes"] == 0
     assert by_section[2]["source_section_offset"] == 0x14C
     assert by_section[2]["compressed_source_section_offset"] == 0x14C
     assert by_section[2]["compressed_source_section_end_offset"] == 0x474B4
@@ -6094,16 +6103,20 @@ def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     assert by_section[2]["postpass_source_end_address"] == 0x7FFFF
     assert by_section[2]["postpass_escape_byte"] == 0xAD
     assert by_section[2]["target_start_address"] == 0x1000
-    assert by_section[2]["target_end_address"] == 0x7C14A
-    assert by_section[2]["compressed_source_consumed_section_offset"] == 0x13C4C
+    assert by_section[2]["target_end_address"] == 0x789C9
+    assert by_section[2]["compressed_source_consumed_section_offset"] == 0x13D40
     assert by_section[2]["postpass_source_consumed_address"] == 0x7FFFF
-    assert by_section[2]["decompressed_size"] == 0x7B14A
+    assert by_section[2]["decompressed_size"] == 0x779C9
     assert by_section[2]["decompressed_sha256"] == (
-        "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8"
+        "3c8656ece7d5b1c8d56cd51a8399cf9b6c22775d1a7c3e67517fae9bb5876b65"
     )
     assert by_section[2]["entrypoint"] == 0x59484
-    assert by_section[2]["status"] == "materializable"
-    assert by_section[2]["payload_role"] == "primary_program"
+    assert by_section[2]["status"] == "needs_review_blocker"
+    assert by_section[2]["reason"] == "invalid_decompressed_entrypoint"
+    assert by_section[2]["payload_role"] == "unknown_runtime_payload"
+    assert by_section[2]["entry_validation_valid"] is False
+    assert by_section[2]["entry_validation_accepted_instructions"] == 7
+    assert by_section[2]["entry_validation_unsupported_instruction_demotes"] == 1
     assert by_section[2]["copied_stub_storage_offset"] == 0x6A
     assert by_section[2]["copied_stub_runtime_address"] == 0x100
     assert by_section[2]["copied_stub_transfer_offset"] == 0x40
@@ -6158,6 +6171,31 @@ def test_real_dll_damocles_tetragon_native_materialization(tmp_path: Path) -> No
     )
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert rebuilt == output
+
+
+def test_real_dll_damocles_tetragon_rejects_invalid_entry_materialization(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+
+    parent_path = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
+    analysis = analyze_binary_source_with_c_backend(parent_path, project_root=PROJECT_ROOT)
+    event = next(
+        item
+        for item in analysis["decompression_events"]
+        if item.get("codec_id") == "tetragon" and item.get("source_section") == 2
+    )
+    output_path = tmp_path / "damocles_hunk2_tetragon.bin"
+
+    assert event["status"] == "needs_review_blocker"
+    assert event["entry_validation_valid"] is False
+    with pytest.raises(RuntimeError, match="recognized unpacker event has no materializable native output"):
+        materialize_recognized_unpacker_event_with_c_backend(
+            "amiga-hunk",
+            parent_path,
+            event["event_id"],
+            output_path,
+            project_root=PROJECT_ROOT,
+        )
+    assert not output_path.exists()
 
 
 def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
@@ -6278,7 +6316,7 @@ def test_real_dll_voodoo_trainer_decompression_comparator(
 def test_real_dll_serial_device_app_slot_widths_stay_evidence_backed(target_name: str) -> None:
     _requires_c_backend_dlls()
 
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6343,7 +6381,7 @@ def test_real_dll_carrier_clipboard_relocation_backed_jump_templates_are_code() 
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__clipboard.device_2e6f0d10"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6366,7 +6404,7 @@ def test_real_dll_carrier_serial_device_renders_non_autoinit_vectors() -> None:
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__serial.device_ddfdac2b"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6384,7 +6422,7 @@ def test_real_dll_carrier_ramdrive_relocation_backed_template_seeds_target_code(
     _requires_c_backend_dlls()
 
     target_name = "amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c"
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
         metadata_path=paths.target_dir / "target_metadata.json",
@@ -6856,10 +6894,11 @@ def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:
 
 def test_real_dll_renders_icon_library_resident_structure() -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths(
-        "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
-        project_root=PROJECT_ROOT,
+    target_name = (
+        "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__"
+        "amiga_hunk_libs__icon.library_8bc90c0c"
     )
+    paths = _requires_project_paths(target_name)
 
     rendered = render_project_source_with_c_backend(
         paths.binary_source,
@@ -6943,10 +6982,7 @@ def test_real_dll_renders_icon_library_resident_structure() -> None:
     assert "hunk1_0092 EQU" not in rendered
     assert "hunk1_00BC EQU" not in rendered
 
-    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
-        "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_libs__icon.library_8bc90c0c",
-        project_root=PROJECT_ROOT,
-    )
+    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(target_name, project_root=PROJECT_ROOT)
     refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
     assert refs_by_text["move.l a6,app_ExecBase(a2)"] == [
         {"symbol": "app_ExecBase", "displacement": 34, "base_register": "A2", "operand_index": 1, "access": "write"}
@@ -6974,6 +7010,7 @@ def test_real_dll_listing_rows_keep_icon_lvo_comments_on_entrypoints() -> None:
         "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__"
         "amiga_hunk_libs__icon.library_8bc90c0c"
     )
+    _requires_project_paths(project_name)
 
     rows, _, _ = build_project_listing_rows_profile_with_c_artifact(
         project_name,
@@ -7269,7 +7306,7 @@ def test_non_autoinit_resident_make_library_vectors_seed_device_entrypoints(tmp_
 )
 def test_real_dll_non_autoinit_resident_vectors_seed_device_entrypoints(target_name: str, prefix: str) -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
+    paths = _requires_project_paths(target_name)
 
     rendered = render_project_source_with_c_backend(
         paths.binary_source,

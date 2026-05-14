@@ -5,7 +5,7 @@ import shutil
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.binary_source import (
@@ -35,6 +35,7 @@ from amiga_reversing.disasm.target_metadata import load_target_metadata
 STATE_FILE_NAME = ".browser_state.json"
 PROJECT_METADATA_FILE_NAME = ".project.json"
 PROJECT_METADATA_SCHEMA_VERSION = 2
+DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,7 +211,8 @@ def _binary_project_record(project_id: str, target_dir: Path, state: BrowserStat
         stronger_metadata=target_metadata,
     )
     reproduction_review_items = _reproduction_review_items(target_dir)
-    review_items = (*manual_projection.review_items, *reproduction_review_items)
+    decompression_review_items = _decompression_review_items(binary_source.analysis_cache_path if binary_source else None)
+    review_items = (*manual_projection.review_items, *reproduction_review_items, *decompression_review_items)
     review_state = _combined_review_state(manual_projection.review_state, review_items)
     return ProjectRecord(
         id=project_id,
@@ -261,7 +263,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
     try:
         report = json.loads(report_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        return finalize_review_items((
+        return cast(tuple[dict[str, object], ...], finalize_review_items((
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
@@ -270,9 +272,9 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
                 "message": f"Reproduction report cannot be checked: {exc}",
                 "source": "reproduction",
             },
-        ))
+        )))
     if not isinstance(report, dict):
-        return finalize_review_items((
+        return cast(tuple[dict[str, object], ...], finalize_review_items((
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
@@ -281,8 +283,54 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
                 "message": "Reproduction report cannot be checked",
                 "source": "reproduction",
             },
-        ))
-    return finalize_review_items(tuple(_raw_reproduction_review_items(report)))
+        )))
+    return cast(tuple[dict[str, object], ...], finalize_review_items(tuple(_raw_reproduction_review_items(report))))
+
+
+def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[str, object], ...]:
+    if analysis_cache_path is None or not analysis_cache_path.exists():
+        return ()
+    try:
+        payload = json.loads(analysis_cache_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return ()
+    if not isinstance(payload, dict):
+        return ()
+    analysis = payload.get("analysis")
+    if isinstance(analysis, dict):
+        payload = analysis
+    events = payload.get("decompression_events")
+    if not isinstance(events, list):
+        return ()
+    items: list[dict[str, object]] = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        if event.get("status_id") != DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER:
+            continue
+        event_id = event.get("event_id")
+        source_section = event.get("source_section")
+        source_offset = event.get("source_section_offset")
+        reason = event.get("reason") if isinstance(event.get("reason"), str) else "needs_review_blocker"
+        if not isinstance(event_id, str) or not event_id:
+            event_id = f"decompression:{source_section}:{source_offset}:{reason}"
+        items.append(
+            {
+                "kind": "decompression_blocker",
+                "item_id": f"decompression_blocker:{event_id}",
+                "scope": "range" if isinstance(source_section, int) and isinstance(source_offset, int) else "target",
+                "state": "open",
+                "review_blocker": True,
+                "source": "decompression",
+                "event_id": event_id,
+                "reason": reason,
+                "hunk": source_section if isinstance(source_section, int) else 0,
+                "start": source_offset if isinstance(source_offset, int) else 0,
+                "end": source_offset + 1 if isinstance(source_offset, int) else 1,
+                "message": f"Decompressed payload requires review: {reason}",
+            }
+        )
+    return cast(tuple[dict[str, object], ...], finalize_review_items(tuple(items)))
 
 
 def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, object]]:

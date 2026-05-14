@@ -893,6 +893,7 @@ static const char *decompression_status_name_local(uint8_t status) {
     case PLATFORM_DECOMPRESSION_STATUS_NEEDS_RUNTIME_METADATA: return "needs_runtime_metadata";
     case PLATFORM_DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH: return "needs_simulated_decrunch";
     case PLATFORM_DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED: return "simulated_output_observed";
+    case PLATFORM_DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER: return "needs_review_blocker";
     default: return "unknown";
   }
 }
@@ -920,6 +921,7 @@ static const char *decompression_reason_name_local(uint8_t reason) {
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_BAD_ARGUMENT: return "simulated_bad_argument";
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_NO_OUTPUT_RANGE: return "simulated_no_output_range";
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_UNKNOWN_STOP: return "simulated_unknown_stop";
+    case PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT: return "invalid_decompressed_entrypoint";
     default: return "unknown";
   }
 }
@@ -1027,12 +1029,19 @@ typedef struct PlatformRecognizedUnpackerEvent {
   uint32_t copied_stub_storage_offset;
   uint32_t copied_stub_runtime_address;
   uint32_t copied_stub_transfer_offset;
+  uint32_t lz_long_reference_bit_count;
+  uint32_t entry_validation_accepted_instructions;
+  uint32_t entry_validation_unsupported_instruction_demotes;
+  uint32_t entry_validation_required_instruction_failures;
+  uint32_t entry_validation_code_start_control_targets;
   char codec_id[64];
   char codec_name[160];
   char provider_id[32];
   char decompressed_sha256[65];
   uint8_t postpass_escape_byte;
   uint8_t native_unpack_validated;
+  uint8_t entry_validation_attempted;
+  uint8_t entry_validation_valid;
   uint8_t has_copied_stub;
   uint8_t has_copied_stub_transfer;
 } PlatformRecognizedUnpackerEvent;
@@ -1347,6 +1356,56 @@ static int recognized_unpacker_postpass_escape_byte_local(const M68kDecodeSectio
   return 0;
 }
 
+static int recognized_unpacker_moveq_d1_immediate_local(const M68kDecodeCandidate *candidate,
+    uint32_t *out_value) {
+  if (out_value != NULL) *out_value = 0U;
+  if (candidate == NULL || out_value == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVEQ ||
+      candidate->operand_count != 2U) {
+    return 0;
+  }
+  if (candidate->operands[0].kind != M68K_ASM_OPERAND_IMM ||
+      candidate->operands[1].kind != M68K_ASM_OPERAND_DN ||
+      candidate->operands[1].reg != 1U) {
+    return 0;
+  }
+  *out_value = candidate->operands[0].value;
+  return 1;
+}
+
+static uint32_t recognized_tetragon_long_reference_bit_count_local(const M68kDecodeSectionIR *decode_section,
+    uint32_t marker_end, uint32_t code_end) {
+  size_t candidate_index;
+  if (decode_section == NULL || marker_end >= code_end) return 0U;
+  for (candidate_index = 0U; candidate_index < decode_section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &decode_section->candidates[candidate_index];
+    const M68kDecodeCandidate *previous = NULL;
+    size_t previous_index;
+    size_t target_index;
+    uint32_t value;
+    if (candidate->offset < marker_end || candidate->offset >= code_end ||
+        candidate->mnemonic_id != M68K_ASM_MNEMONIC_BRA) {
+      continue;
+    }
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if (target->kind == M68K_DECODE_TARGET_BRANCH && target->offset < candidate->offset) break;
+    }
+    if (target_index >= candidate->target_count) continue;
+    for (previous_index = 0U; previous_index < decode_section->candidate_count; ++previous_index) {
+      const M68kDecodeCandidate *candidate_previous = &decode_section->candidates[previous_index];
+      if (candidate_previous->offset < marker_end || candidate_previous->offset >= code_end) continue;
+      if (candidate_previous->offset + candidate_previous->byte_count == candidate->offset) {
+        previous = candidate_previous;
+        break;
+      }
+    }
+    if (recognized_unpacker_moveq_d1_immediate_local(previous, &value) && (value == 8U || value == 11U)) {
+      return value;
+    }
+  }
+  return 0U;
+}
+
 static int tetragon_bit_reader_next_local(PlatformTetragonBitReader *reader, uint8_t *out_bit) {
   uint8_t bit;
   uint32_t loaded;
@@ -1526,6 +1585,64 @@ static int recognized_tetragon_unpack_postpass_local(const PlatformRecognizedUnp
   return 1;
 }
 
+static int recognized_unpacker_validate_entrypoint_local(PlatformRecognizedUnpackerEvent *event,
+    const uint8_t *data) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult add_result;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  uint32_t entry_offset;
+  int ok = 0;
+  if (event == NULL || data == NULL || event->decompressed_size == 0U ||
+      event->entrypoint < event->target_start_address) {
+    return 0;
+  }
+  entry_offset = event->entrypoint - event->target_start_address;
+  if (entry_offset >= event->decompressed_size) return 0;
+  event->entry_validation_attempted = 1U;
+  event->entry_validation_valid = 0U;
+  memset(&object, 0, sizeof(object));
+  memset(&section, 0, sizeof(section));
+  memset(&profile, 0, sizeof(profile));
+  if (m68k_object_create(&object) != 0) return 0;
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.name = "recognized_unpacker_payload";
+  section.kind = M68K_SECTION_CODE;
+  section.size = event->decompressed_size;
+  section.data = (uint8_t *)data;
+  section.data_size = event->decompressed_size;
+  add_result = m68k_object_add_section(&object, &section);
+  if (!add_result.ok) goto cleanup;
+  m68k_object_mark_no_container(&object);
+  m68k_analysis_policy_init_default(&policy);
+  policy.disable_implicit_entry_points = 1U;
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = event->decompressed_size;
+  policy.runtime_ranges[0].runtime_address = event->target_start_address;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = event->entrypoint;
+  if (m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)) != 0)
+    goto cleanup;
+  event->entry_validation_accepted_instructions = profile.accepted_instructions;
+  event->entry_validation_unsupported_instruction_demotes = profile.unsupported_instruction_demotes;
+  event->entry_validation_required_instruction_failures = profile.required_instruction_failures;
+  event->entry_validation_code_start_control_targets = profile.code_start_control_targets;
+  event->entry_validation_valid = (uint8_t)(profile.accepted_instructions != 0U &&
+    profile.unsupported_instruction_demotes == 0U && profile.required_instruction_failures == 0U);
+  ok = 1;
+
+cleanup:
+  m68k_object_destroy(&object);
+  return ok;
+}
+
 static int recognized_tetragon_try_unpack_event_local(Arena *arena, const M68kDecodeSectionIR *decode_section,
     PlatformRecognizedUnpackerEvent *event, const char *output_path, M68kDiagList *diagnostics) {
   ArenaMark mark;
@@ -1540,7 +1657,13 @@ static int recognized_tetragon_try_unpack_event_local(Arena *arena, const M68kDe
     arena_rewind(arena, mark);
     return 0;
   }
-  if (!recognized_tetragon_unpack_lz_stage_local(decode_section, event, memory,
+  if (event->lz_long_reference_bit_count != 0U) {
+    if (!recognized_tetragon_unpack_lz_stage_local(decode_section, event, memory,
+        PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT, event->lz_long_reference_bit_count, &compressed_consumed)) {
+      arena_rewind(arena, mark);
+      return 0;
+    }
+  } else if (!recognized_tetragon_unpack_lz_stage_local(decode_section, event, memory,
       PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT, 11U, &compressed_consumed)) {
     memset(memory, 0, PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT);
     if (!recognized_tetragon_unpack_lz_stage_local(decode_section, event, memory,
@@ -1563,6 +1686,11 @@ static int recognized_tetragon_try_unpack_event_local(Arena *arena, const M68kDe
   event->decompressed_size = target_end - event->target_start_address;
   (void)m68k_platform_sha256_hex(memory + event->target_start_address, event->decompressed_size,
     event->decompressed_sha256);
+  if (!recognized_unpacker_validate_entrypoint_local(event, memory + event->target_start_address) ||
+      !event->entry_validation_valid) {
+    arena_rewind(arena, mark);
+    return 1;
+  }
   if (output_path != NULL && output_path[0] != '\0' &&
       write_bytes_to_path_local(output_path, memory + event->target_start_address,
         event->decompressed_size, diagnostics) != 0) {
@@ -1649,6 +1777,8 @@ static int collect_recognized_tetragon_events_for_section_local(const M68kDecode
     event.target_start_address = target_start_address;
     event.entrypoint = entrypoint;
     event.postpass_escape_byte = escape_byte;
+    event.lz_long_reference_bit_count = recognized_tetragon_long_reference_bit_count_local(decode_section,
+      marker_end, code_end);
     snprintf(event.codec_id, sizeof(event.codec_id), "tetragon");
     snprintf(event.codec_name, sizeof(event.codec_name), "Tetragon target-owned unpacker");
     snprintf(event.provider_id, sizeof(event.provider_id), "c-tetragon-signature");
@@ -2515,9 +2645,12 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
   if (builder == NULL || event == NULL) return -1;
   make_recognized_unpacker_event_id_local(event_id, sizeof(event_id), event);
   status = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_STATUS_MATERIALIZABLE :
-    PLATFORM_DECOMPRESSION_STATUS_IDENTIFIED;
+    (event->entry_validation_attempted && !event->entry_validation_valid ?
+      PLATFORM_DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER : PLATFORM_DECOMPRESSION_STATUS_IDENTIFIED);
   reason = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_VALIDATED :
-    PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE;
+    (event->entry_validation_attempted && !event->entry_validation_valid ?
+      PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT :
+      PLATFORM_DECOMPRESSION_REASON_RECOGNIZED_UNPACKER_SIGNATURE);
   payload_role = event->native_unpack_validated ? PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM :
     PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD;
   payload_confidence = event->native_unpack_validated ?
@@ -2584,7 +2717,22 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
           (unsigned)event->copied_stub_transfer_offset) != 0)
       return -1;
   }
-  if (event->native_unpack_validated) {
+  if (event->entry_validation_attempted) {
+    if (json_builder_appendf(builder,
+        ",\"entry_validation_attempted\":true,\"entry_validation_valid\":%s,"
+        "\"entry_validation_accepted_instructions\":%u,"
+        "\"entry_validation_unsupported_instruction_demotes\":%u,"
+        "\"entry_validation_required_instruction_failures\":%u,"
+        "\"entry_validation_code_start_control_targets\":%u",
+        event->entry_validation_valid ? "true" : "false",
+        (unsigned)event->entry_validation_accepted_instructions,
+        (unsigned)event->entry_validation_unsupported_instruction_demotes,
+        (unsigned)event->entry_validation_required_instruction_failures,
+        (unsigned)event->entry_validation_code_start_control_targets) != 0) {
+      return -1;
+    }
+  }
+  if (event->native_unpack_validated || event->entry_validation_attempted) {
     if (json_builder_appendf(builder,
         ",\"compressed_source_consumed_section_offset\":%u,"
         "\"postpass_source_consumed_address\":%u,\"target_end_address\":%u,"

@@ -181,7 +181,6 @@ Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles
       - `ORG $14C` seems like a false positive perhaps created by the PC-relative label?
       - `loc_2_0000014C` should be a local label created pre-jmp outside the abs range of the `ORG $100`?
       - It does compile exact so maybe it reflects correctness issues with our assembler and might fail with `vasm`?
-    - The decompressed payload 
         
 
 ## Phase 6: Beyond Static Analysis

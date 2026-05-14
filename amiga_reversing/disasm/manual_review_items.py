@@ -12,10 +12,11 @@ def analysis_review_items(
 ) -> tuple[dict[str, object], ...]:
     items: list[dict[str, object]] = []
     unreconciled_ranges: list[tuple[int, int, int]] = []
+    items.extend(_decompression_blocker_items(analysis))
     policy_items = _structured_data_ranges(analysis)
     sections = analysis.get("sections")
     if not isinstance(sections, list):
-        return ()
+        return finalize_review_items(tuple(items), resolutions)
     for section in sections:
         if not isinstance(section, dict):
             continue
@@ -32,6 +33,60 @@ def analysis_review_items(
     items.extend(_manual_annotation_unreconciled_items(manual_labels, unreconciled_ranges, "label"))
     items.extend(_manual_annotation_unreconciled_items(manual_comments, unreconciled_ranges, "comment"))
     return finalize_review_items(tuple(items), resolutions)
+
+
+def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, object]]:
+    events = analysis.get("decompression_events")
+    if not isinstance(events, list):
+        return []
+    items: list[dict[str, object]] = []
+    for index, event in enumerate(events):
+        if not isinstance(event, dict):
+            continue
+        status = event.get("status")
+        status_id = _optional_int(event.get("status_id"))
+        if status != "needs_review_blocker" and status_id != 6:
+            continue
+        hunk = (
+            _optional_int(event.get("source_section"))
+            or _optional_int(event.get("decompressor_code_section"))
+            or 0
+        )
+        start = (
+            _optional_int(event.get("source_section_offset"))
+            or _optional_int(event.get("unpacker_marker_offset"))
+            or _optional_int(event.get("decompressor_entry_offset"))
+            or 0
+        )
+        event_id = event.get("event_id")
+        if not isinstance(event_id, str) or not event_id:
+            event_id = f"decompression_event_{index}"
+        reason = event.get("reason")
+        if not isinstance(reason, str) or not reason:
+            reason = "needs_review_blocker"
+        item = {
+            "kind": "decompression_blocker",
+            "item_id": f"decompression_blocker:{event_id}",
+            "scope": "range",
+            "state": "open",
+            "review_blocker": True,
+            "hunk": hunk,
+            "start": start,
+            "end": start + 1,
+            "review_confidence": "high",
+            "event_id": event_id,
+            "reason": reason,
+            "message": "Decompressed payload requires manual review before parent can be clear",
+            "source": "analysis",
+        }
+        entrypoint = event.get("decompressed_entrypoint")
+        if entrypoint is not None:
+            item["decompressed_entrypoint"] = entrypoint
+        target_name = event.get("target_name")
+        if isinstance(target_name, str) and target_name:
+            item["target_name"] = target_name
+        items.append(item)
+    return items
 
 
 def _orphan_code_items(section: dict[str, object], section_index: int) -> list[dict[str, object]]:

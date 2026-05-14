@@ -64,6 +64,7 @@ const state = {
     inFlightWindow: null,
     fetchAbortController: null,
     suppressScrollFetch: false,
+    scrollSuppressionToken: 0,
   },
   listingColumns: {
     offset: 64,
@@ -465,6 +466,23 @@ function refreshProjectBadges() {
     return;
   }
   detailsNode.innerHTML = renderProjectBadges(state.projectData.project, state.projectData);
+}
+
+async function refreshProjectPayload(projectId, token = null) {
+  const projectData = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}`);
+  if (token !== null && token !== state.loadingToken) {
+    return null;
+  }
+  if (state.project !== projectId) {
+    return null;
+  }
+  state.projectData = projectData;
+  state.reproduction.report = projectData.reproduction || null;
+  state.reproduction.reportKey = reproductionReportKey(state.reproduction.report);
+  refreshProjectBadges();
+  renderManualReviewPanel();
+  renderReproPanel();
+  return projectData;
 }
 
 function formatProjectTimestamp(timestamp, emptyText) {
@@ -1180,7 +1198,20 @@ async function navigateToReviewItem(item) {
   if (!Number.isFinite(addr)) {
     return;
   }
-  await jumpToListingAddr(state.project, addr);
+  const origin = captureViewportAnchor();
+  let jumped = false;
+  const sectionIndex = Number(item?.hunk ?? item?.section_index);
+  if (Number.isInteger(sectionIndex)) {
+    jumped = await jumpToListingSectionOffset(state.project, sectionIndex, addr);
+  } else {
+    jumped = await jumpToListingAddr(state.project, addr);
+  }
+  const current = captureViewportAnchor();
+  if (jumped && origin && current && !navigationEntriesSameLocation(origin, current)) {
+    state.navigation.historyBack.push(origin);
+    state.navigation.historyForward = [];
+    state.navigation.currentLocation = current;
+  }
 }
 
 function reviewItemSeedPayload(item, button) {
@@ -1220,7 +1251,7 @@ function reviewResolutionPayload(item, disposition) {
   };
 }
 
-async function postManualReviewAction(payload) {
+async function postManualReviewAction(payload, options = {}) {
   if (!state.project) {
     return null;
   }
@@ -1229,10 +1260,41 @@ async function postManualReviewAction(payload) {
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload),
   });
-  state.projectData = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}`);
-  renderManualReviewPanel();
-  refreshProjectBadges();
+  if (options.refreshProject !== false) {
+    await refreshProjectPayload(state.project);
+  }
   return result;
+}
+
+async function refreshAnalysisAfterManualMetadataAction(projectId, item) {
+  const token = state.loadingToken;
+  const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
+    method: "POST",
+  });
+  await waitForAsyncJob(
+    (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
+    job,
+    token,
+    (currentJob) => setAnalysisStatus(getJobPhaseLabel(currentJob), "running"),
+  );
+  if (token !== state.loadingToken) {
+    return;
+  }
+  await refreshListingAtCurrentAddressAnchor(projectId, token);
+  if (token !== state.loadingToken) {
+    return;
+  }
+  await refreshProjectPayload(projectId, token);
+  if (token !== state.loadingToken) {
+    return;
+  }
+  await loadNavigationEntries(projectId);
+  renderNavigationOverlay();
+  const addr = reviewItemAddress(item);
+  const sectionIndex = Number(item?.hunk ?? item?.section_index);
+  if (Number.isInteger(sectionIndex) && Number.isFinite(addr)) {
+    await jumpToListingSectionOffset(projectId, sectionIndex, addr);
+  }
 }
 
 async function applyReviewAction(item, button) {
@@ -1254,16 +1316,18 @@ async function applyReviewAction(item, button) {
     if (!seed) {
       return;
     }
-    await postManualReviewAction({kind: "create_manual_seed", seed});
+    await postManualReviewAction({kind: "create_manual_seed", seed}, {refreshProject: false});
+    await refreshAnalysisAfterManualMetadataAction(state.project, item);
     setAnalysisStatus("Manual seed saved", "ready", 2000);
     return;
   }
   if (action === "remove_manual_annotation") {
     if (item.label_id) {
-      await postManualReviewAction({kind: "remove_manual_label", label_id: item.label_id});
+      await postManualReviewAction({kind: "remove_manual_label", label_id: item.label_id}, {refreshProject: false});
     } else if (item.comment_id) {
-      await postManualReviewAction({kind: "remove_manual_comment", comment_id: item.comment_id});
+      await postManualReviewAction({kind: "remove_manual_comment", comment_id: item.comment_id}, {refreshProject: false});
     }
+    await refreshAnalysisAfterManualMetadataAction(state.project, item);
     setAnalysisStatus("Manual annotation removed", "ready", 2000);
     return;
   }
@@ -4118,6 +4182,25 @@ function cancelScheduledListingScrollFetch() {
   state.virtualListing.pendingWindow = null;
 }
 
+function beginListingScrollSuppression() {
+  cancelScheduledListingScrollFetch();
+  state.virtualListing.suppressScrollFetch = true;
+  state.virtualListing.scrollSuppressionToken += 1;
+  return state.virtualListing.scrollSuppressionToken;
+}
+
+function releaseListingScrollSuppression(projectId, viewport, token) {
+  window.setTimeout(() => {
+    if (token !== state.virtualListing.scrollSuppressionToken) {
+      return;
+    }
+    state.virtualListing.suppressScrollFetch = false;
+    if (state.project === projectId && viewport instanceof HTMLElement && viewport.isConnected) {
+      scheduleListingWindowForScroll(projectId, viewport);
+    }
+  }, 80);
+}
+
 function scrollListingViewport(projectId, direction) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement)) {
@@ -4321,6 +4404,10 @@ async function handleListingArtifactReady(payload, token = null) {
   }
   setAnalysisStatus("Applying analysis", "running");
   const listing = await refreshListingAtCurrentAddressAnchor(state.project, token);
+  if (token !== null && token !== state.loadingToken) {
+    return;
+  }
+  await refreshProjectPayload(state.project, token);
   if (token !== null && token !== state.loadingToken) {
     return;
   }
@@ -5889,6 +5976,11 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   if (options.anchorCode) {
     params.set("anchor_code", String(options.anchorCode).trim());
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
+  } else if (Number.isInteger(options.sectionIndex) && Number.isFinite(options.sourceOffset)) {
+    params.set("section_index", String(options.sectionIndex));
+    params.set("source_offset", String(options.sourceOffset));
+    params.set("before", String(before));
+    params.set("after", String(after));
   } else if (options.start !== null && options.start !== undefined) {
     params.set("start", String(options.start));
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
@@ -5989,6 +6081,24 @@ function selectBestListingRow(viewport, addr, matchText = null, stableKey = null
     }
   }
   return labelRows[0] || rows[0];
+}
+
+function selectListingRowBySectionOffset(viewport, sectionIndex, offset) {
+  if (!viewport || !Number.isInteger(sectionIndex) || !Number.isFinite(offset)) {
+    return null;
+  }
+  const rows = Array.from(viewport.querySelectorAll(`[data-section-index="${String(sectionIndex)}"]`));
+  for (const row of rows) {
+    const start = Number(row.dataset.startOffset);
+    const end = Number(row.dataset.endOffset);
+    if (!Number.isFinite(start)) {
+      continue;
+    }
+    if ((Number.isFinite(end) && start <= offset && offset < end) || start === offset) {
+      return row;
+    }
+  }
+  return null;
 }
 
 function scrollRowIntoView(viewport, addr, block = "center", matchText = null, stableKey = null, rowIndex = null) {
@@ -6886,7 +6996,7 @@ async function importDiskProjectFile(projectId, entryPath) {
 async function jumpToListingAddr(projectId, addr, matchText = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
-    return;
+    return false;
   }
   if (!scrollRowIntoView(viewport, addr, "center", matchText)) {
     const visibleRows = listingVisibleRowCount(viewport);
@@ -6899,37 +7009,69 @@ async function jumpToListingAddr(projectId, addr, matchText = null) {
   }
   const row = selectBestListingRow(viewport, addr, matchText);
   if (!row) {
-    return;
+    return false;
   }
   focusListingRow(row);
+  return true;
+}
+
+async function jumpToListingSectionOffset(projectId, sectionIndex, offset) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement) || !Number.isInteger(sectionIndex) || !Number.isFinite(offset)) {
+    return false;
+  }
+  const suppressionToken = beginListingScrollSuppression();
+  try {
+    let row = selectListingRowBySectionOffset(viewport, sectionIndex, offset);
+    if (!row) {
+      const visibleRows = listingVisibleRowCount(viewport);
+      const count = clampListingWindowCount(visibleRows * 3);
+      await loadListingWindow(projectId, null, visibleRows, count - visibleRows, {
+        sectionIndex,
+        sourceOffset: offset,
+      });
+      row = selectListingRowBySectionOffset(viewport, sectionIndex, offset);
+    }
+    if (!row) {
+      return false;
+    }
+    const rowIndex = Number(row.dataset.rowIndex);
+    if (Number.isFinite(rowIndex)) {
+      const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+      viewport.scrollTop = Math.max(0, (rowIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
+    } else {
+      row.scrollIntoView({block: "center", behavior: "auto"});
+    }
+    focusListingRow(row);
+    return true;
+  } finally {
+    releaseListingScrollSuppression(projectId, viewport, suppressionToken);
+  }
 }
 
 async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, stableKey = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !Number.isFinite(rowIndex)) {
-    await jumpToListingAddr(projectId, addr, matchText);
-    return;
+    return jumpToListingAddr(projectId, addr, matchText);
   }
   const visibleRows = listingVisibleRowCount(viewport);
   const count = listingFetchCount(viewport);
   const targetIndex = Math.floor(rowIndex);
   const start = Math.max(0, targetIndex - visibleRows);
   const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
-  cancelScheduledListingScrollFetch();
-  state.virtualListing.suppressScrollFetch = true;
+  const suppressionToken = beginListingScrollSuppression();
   try {
     viewport.scrollTop = Math.max(0, (targetIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
     await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true});
     scrollRowIntoView(viewport, addr, "center", matchText, stableKey, targetIndex);
     const row = selectBestListingRow(viewport, addr, matchText, stableKey, targetIndex);
     if (!row) {
-      return;
+      return false;
     }
     focusListingRow(row);
+    return true;
   } finally {
-    window.setTimeout(() => {
-      state.virtualListing.suppressScrollFetch = false;
-    }, 80);
+    releaseListingScrollSuppression(projectId, viewport, suppressionToken);
   }
 }
 
@@ -6941,11 +7083,9 @@ async function jumpToNavigationEntry(projectId, entry) {
   const stableKey = entry.stableKey || entry.stable_key || null;
   const rowIndex = navigationEntryRowIndex(entry);
   if (rowIndex !== null) {
-    await jumpToListingIndex(projectId, rowIndex, entry.addr, matchText, stableKey);
-    return true;
+    return jumpToListingIndex(projectId, rowIndex, entry.addr, matchText, stableKey);
   }
-  await jumpToListingAddr(projectId, entry.addr, matchText);
-  return true;
+  return jumpToListingAddr(projectId, entry.addr, matchText);
 }
 
 async function jumpToListingSymbol(projectId, symbolName) {
@@ -7124,6 +7264,10 @@ async function renderProject(projectId) {
       token,
       (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob)),
     );
+    await refreshProjectPayload(projectId, token);
+    if (token !== state.loadingToken) {
+      return;
+    }
     if (state.virtualListing.generation && state.virtualListing.generation !== "full") {
       await refreshListingAtCurrentAddressAnchor(projectId, token);
     } else if (state.virtualListing.generation !== "full") {
