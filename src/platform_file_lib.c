@@ -120,6 +120,24 @@ static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) 
   return M68K_ANALYSIS_REGISTER_SEED_NONE;
 }
 
+enum {
+  METADATA_TARGET_TYPE_UNKNOWN = 0U,
+  METADATA_TARGET_TYPE_PROGRAM = 1U,
+  METADATA_TARGET_TYPE_BOOTBLOCK = 2U,
+  METADATA_TARGET_TYPE_NON_PROGRAM = 3U
+};
+
+static uint8_t metadata_target_type_id_from_text_local(const char *target_type) {
+  if (target_type == NULL || target_type[0] == '\0') return METADATA_TARGET_TYPE_UNKNOWN;
+  if (strcmp(target_type, "program") == 0) return METADATA_TARGET_TYPE_PROGRAM;
+  if (strcmp(target_type, "bootblock") == 0) return METADATA_TARGET_TYPE_BOOTBLOCK;
+  return METADATA_TARGET_TYPE_NON_PROGRAM;
+}
+
+static int metadata_target_type_disables_implicit_entries_local(uint8_t target_type_id) {
+  return target_type_id != METADATA_TARGET_TYPE_UNKNOWN && target_type_id != METADATA_TARGET_TYPE_PROGRAM;
+}
+
 static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   const char *name);
 static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
@@ -4409,6 +4427,7 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
   const char *cursor;
   const char *text_end;
   char target_type[32];
+  uint8_t target_type_id;
   if (text == NULL || policy == NULL) return -1;
   text_end = text + strlen(text);
   target_type[0] = '\0';
@@ -4416,7 +4435,10 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     platform_file_add_error(diagnostics.list, "failed parsing target metadata target_type");
     return -1;
   }
-  if (target_type[0] != '\0' && strcmp(target_type, "program") != 0) policy->disable_implicit_entry_points = 1U;
+  target_type_id = metadata_target_type_id_from_text_local(target_type);
+  if (metadata_target_type_disables_implicit_entries_local(target_type_id)) {
+    policy->disable_implicit_entry_points = 1U;
+  }
   cursor = json_find_array_local(text, "entry_register_seeds", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -4533,15 +4555,17 @@ static int metadata_text_has_amiga_policy_local(const char *text) {
   const char *resident_end;
   const char *text_end;
   char target_type[32];
+  uint8_t target_type_id;
   if (text == NULL) return 0;
   if (json_find_object_field_local(text, "resident", &resident_end) != NULL) return 1;
   array_start = json_find_array_local(text, "rsset_layout_regions", &array_end);
   if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
   text_end = text + strlen(text);
   target_type[0] = '\0';
-  if (json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type)) &&
-      strcmp(target_type, "bootblock") == 0)
-    return 1;
+  if (json_optional_string_field_local(text, text_end, "target_type", target_type, sizeof(target_type))) {
+    target_type_id = metadata_target_type_id_from_text_local(target_type);
+    if (target_type_id == METADATA_TARGET_TYPE_BOOTBLOCK) return 1;
+  }
   return 0;
 }
 
@@ -5313,6 +5337,7 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
     const M68kObject *object, char *target_type, size_t target_type_size, M68kDiagList *diagnostics) {
   char *inspect_json = NULL;
   char inspected_target_type[64];
+  uint8_t inspected_target_type_id;
   const char *backend_name = backend != NULL ? backend->name : NULL;
   inspected_target_type[0] = '\0';
   if (policy == NULL || object == NULL) return 0;
@@ -5327,7 +5352,8 @@ static int enrich_policy_from_object_target_info_local(M68kAnalysisPolicy *polic
     inspected_target_type, sizeof(inspected_target_type));
   if (target_type != NULL && target_type_size != 0U && target_type[0] == '\0' && inspected_target_type[0] != '\0')
     (void)copy_policy_text(target_type, target_type_size, inspected_target_type);
-  if (inspected_target_type[0] != '\0' && strcmp(inspected_target_type, "program") != 0)
+  inspected_target_type_id = metadata_target_type_id_from_text_local(inspected_target_type);
+  if (metadata_target_type_disables_implicit_entries_local(inspected_target_type_id))
     policy->disable_implicit_entry_points = 1U;
   if (platform_name_uses_amiga_metadata_policy_local(backend_name)) {
     M68kDiagList ignored_diagnostics;
