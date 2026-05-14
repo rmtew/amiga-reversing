@@ -92,7 +92,7 @@ Make bootblock analysis keep storage offsets, boot ROM load addresses, and prove
 
 ## Further Notes
 
-1. Status: ready-for-agent.
+1. Status: implemented.
 2. This PRD follows the existing rule that ORG is for proven source-level runtime views, not for hiding missing analysis.
 3. The first implementation slice should remove the false bootblock `$70000` ORG while preserving boot entry and header rendering.
 4. The second slice should improve IO request field symbolization and `DoIO` read inference.
