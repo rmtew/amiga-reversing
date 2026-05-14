@@ -278,29 +278,32 @@ static int asm_source_plan_data_row_has_split_source_lines(const M68kRenderPlanR
   return 1;
 }
 
-static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, const M68kRenderPlanRow *source,
-    uint32_t entry_size) {
+static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, Arena *scratch_arena,
+    const M68kRenderPlanRow *source, uint32_t entry_size) {
   const char *cursor;
   uint32_t line_index = 0U;
-  if (dest == NULL || source == NULL || source->text == NULL || entry_size == 0U) return 0;
+  if (dest == NULL || scratch_arena == NULL || source == NULL || source->text == NULL || entry_size == 0U)
+    return 0;
   cursor = source->text;
   while (*cursor != '\0') {
     const char *line_start = cursor;
     const char *line_end = strchr(cursor, '\n');
     size_t line_length;
+    ArenaMark mark;
     char *line_text;
     M68kRenderPlanRow *row = NULL;
     if (line_end == NULL) return 0;
     line_length = (size_t)(line_end - line_start) + 1U;
-    line_text = (char *)m68k_allocator_alloc(m68k_allocator_heap(), line_length + 1U);
+    mark = arena_mark(scratch_arena);
+    line_text = (char *)arena_alloc(scratch_arena, line_length + 1U);
     if (line_text == NULL) return 0;
     memcpy(line_text, line_start, line_length);
     line_text[line_length] = '\0';
     if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, line_text, &row) != 0) {
-      m68k_allocator_free(m68k_allocator_heap(), line_text);
+      arena_rewind(scratch_arena, mark);
       return 0;
     }
-    m68k_allocator_free(m68k_allocator_heap(), line_text);
+    arena_rewind(scratch_arena, mark);
     copy_asm_source_plan_row_metadata(row, source);
     m68k_render_plan_row_set_source_range(row, source->source_section_index,
       source->source_offset + (line_index * entry_size), entry_size);
@@ -316,12 +319,13 @@ static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, co
   return line_index == source->line_count;
 }
 
-static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRenderPlanRow *source) {
+static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, Arena *scratch_arena,
+    const M68kRenderPlanRow *source) {
   M68kRenderPlanRow *row = NULL;
   uint32_t split_entry_size = 0U;
   if (dest == NULL || source == NULL) return 0;
   if (asm_source_plan_data_row_has_split_source_lines(source, &split_entry_size))
-    return append_asm_source_plan_split_data_row_copies(dest, source, split_entry_size);
+    return append_asm_source_plan_split_data_row_copies(dest, scratch_arena, source, split_entry_size);
   if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
     return 0;
   copy_asm_source_plan_row_metadata(row, source);
@@ -330,11 +334,14 @@ static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, const M68kRende
 
 static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int emit_source_text) {
   M68kRenderPlan final_plan;
+  Arena *scratch_arena;
   char *include_paths[M68K_RENDER_ASM_INCLUDE_LIMIT];
   char *source_text = NULL;
   size_t row_index;
   uint16_t index;
   if (preview == NULL) return 0;
+  scratch_arena = render_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) return 0;
   if (preview->asm_source_row_builder.active) cancel_asm_source_plan_row(preview);
   if (preview->asm_source_plan.total_bytes != (size_t)preview->asm_source_bytes) return 0;
   m68k_render_plan_init(&final_plan);
@@ -344,7 +351,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
         row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
       continue;
     }
-    if (!append_asm_source_plan_row_copy(&final_plan, row)) {
+    if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
       m68k_render_plan_destroy(&final_plan);
       return 0;
     }
@@ -370,7 +377,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
     const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
     if (row->start_byte >= (size_t)preview->asm_source_body_start_byte) continue;
     if (row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC) continue;
-    if (!append_asm_source_plan_row_copy(&final_plan, row)) {
+    if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
       m68k_render_plan_destroy(&final_plan);
       return 0;
     }
@@ -390,12 +397,12 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
     if (row->start_byte < (size_t)preview->asm_source_body_start_byte) continue;
-    if (!append_asm_source_plan_row_copy(&final_plan, row)) {
+    if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
       m68k_render_plan_destroy(&final_plan);
       return 0;
     }
   }
-  m68k_allocator_free(m68k_allocator_heap(), preview->asm_source_text);
+  m68k_render_plan_free_text(preview->asm_source_text);
   preview->asm_source_text = NULL;
   preview->asm_source_text_capacity = 0U;
   if (emit_source_text) {
@@ -9265,7 +9272,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   arena_destroy(preview->asm_source_header_arena);
   arena_destroy(preview->scratch_arena);
-  m68k_allocator_free(m68k_allocator_heap(), preview->asm_source_text);
+  m68k_render_plan_free_text(preview->asm_source_text);
   m68k_render_plan_row_builder_destroy(&preview->asm_source_row_builder);
   m68k_render_plan_destroy(&preview->asm_source_plan);
   memset(preview, 0, sizeof(*preview));
