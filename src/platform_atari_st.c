@@ -821,6 +821,7 @@ static int atari_st_write_file(const char *path, const M68kObject *object, M68kD
 
 const M68kBackend M68K_BACKEND_ATARI_ST = {
     "atari-st",
+    M68K_PLATFORM_BACKEND_ATARI_ST,
     atari_st_read_file,
     atari_st_read_buffer,
     atari_st_write_buffer,

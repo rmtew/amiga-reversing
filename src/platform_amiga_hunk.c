@@ -266,6 +266,7 @@ static int ensure_amiga_hunk_platform_data(M68kObject *object, AmigaHunkPlatform
 
 const M68kBackend M68K_BACKEND_AMIGA_HUNK = {
     "amiga-hunk",
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK,
     amiga_hunk_read_file,
     amiga_hunk_read_buffer,
     amiga_hunk_write_buffer,

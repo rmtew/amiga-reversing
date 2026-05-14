@@ -69,6 +69,14 @@ static int test_no_container_metadata_uses_numeric_ids(void) {
   return 0;
 }
 
+static int test_backend_definitions_expose_platform_ids(void) {
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_AMIGA_HUNK, M68K_BACKEND_AMIGA_HUNK.platform_kind);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_ATARI_ST, M68K_BACKEND_ATARI_ST.platform_kind);
+  M68K_C_ASSERT(m68k_backend_by_name(M68K_BACKEND_AMIGA_HUNK.name) == &M68K_BACKEND_AMIGA_HUNK);
+  M68K_C_ASSERT(m68k_backend_by_name(M68K_BACKEND_ATARI_ST.name) == &M68K_BACKEND_ATARI_ST);
+  return 0;
+}
+
 static int test_hunk_loader_records_payload_and_relocation_metadata(void) {
   static const unsigned char hunk[] = {
     0x00, 0x00, 0x03, 0xF3,
@@ -596,6 +604,7 @@ int m68k_c_container_metadata_tests(void) {
   static const M68kCTestCase cases[] = {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
     {"no_container_metadata_uses_numeric_ids", test_no_container_metadata_uses_numeric_ids},
+    {"backend_definitions_expose_platform_ids", test_backend_definitions_expose_platform_ids},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
     {"ideal_assembler_policy_has_no_preservation_metadata", test_ideal_assembler_policy_has_no_preservation_metadata},

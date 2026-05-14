@@ -8,6 +8,7 @@
 
 typedef struct M68kBackend {
   const char *name;
+  M68kPlatformBackendKind platform_kind;
   int (*read_file)(const char *path, M68kObject *out_object, M68kDiagSink diagnostics);
   int (*read_buffer)(const unsigned char *data, size_t size, M68kObject *out_object, M68kDiagSink diagnostics);
   int (*write_buffer)(const M68kObject *object, unsigned char **out_data, size_t *out_size, M68kDiagSink diagnostics);
