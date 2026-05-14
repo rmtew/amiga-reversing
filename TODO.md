@@ -54,9 +54,10 @@ Some of these may be in non-updated source in targets/, they need checking for e
       - Trailing word should likely be `.w`.
     ```
       5548                  abs_0_000058EC:
-      5548 0000001802360064   dc.w abs_0_000058F4-abs_0_000058F4,abs_0_0000590C-abs_0_000058F4,abs_0_00005B2A-abs_0_000058F4,abs_0_00005958-abs_0_000058F4
+      5548 0000               dc.w abs_0_000058F4-abs_0_000058F4
+      554a 0018               dc.w abs_0_0000590C-abs_0_000058F4
     ```
-      - Each entry should be on separate line (also with linkage/navigate integration).
+      - Verify/finish link/navigate integration for word-relative lookup table labels.
   - Web UI improvement possibilities for ORG sections (or sections known to be bootstraped to addresses)
     ```
     | 5d5e | | abs_0_00006102: |

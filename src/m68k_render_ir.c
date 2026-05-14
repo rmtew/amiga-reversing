@@ -1870,25 +1870,19 @@ static int render_asm_word_relative_lookup_table(M68kRenderIRPreview *preview,
     return 0;
   }
   while (cursor + 2U <= available) {
-    uint32_t line_count = (available - cursor) / 2U;
-    uint32_t index;
-    if (line_count > 4U) line_count = 4U;
+    char expr[192];
+    uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor);
     hash_asm_text(preview, "\tdc.w ");
-    for (index = 0U; index < line_count; ++index) {
-      char expr[192];
-      uint16_t raw_word = m68k_read_u16be(section->data + item->offset + cursor + (index * 2U));
-      if (!format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr)))
-        snprintf(expr, sizeof(expr), "$%04X", (unsigned)raw_word);
-      if (index != 0U) hash_asm_text(preview, ",");
-      hash_asm_text(preview, expr);
-    }
-    if (comment != NULL && comment[0] != '\0') {
+    if (!format_word_relative_lookup_table_expr(lookup, item, raw_word, expr, sizeof(expr)))
+      snprintf(expr, sizeof(expr), "$%04X", (unsigned)raw_word);
+    hash_asm_text(preview, expr);
+    if (cursor == 0U && comment != NULL && comment[0] != '\0') {
       hash_asm_text(preview, "\t; ");
       hash_asm_text(preview, comment);
     }
     hash_asm_text(preview, "\n");
     ++preview->asm_source_lines;
-    cursor += line_count * 2U;
+    cursor += 2U;
   }
   return cursor == available;
 }

@@ -6323,7 +6323,8 @@ static int test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targe
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000016-loc_0_00000016,loc_0_0000001A-loc_0_00000016\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000016-loc_0_00000016\t; lookup_table\n"
+    "\tdc.w loc_0_0000001A-loc_0_00000016\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000016:\n\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000001A:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
@@ -6389,7 +6390,8 @@ static int test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets(voi
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_0000000C-loc_0_00000008,loc_0_00000010-loc_0_00000008\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_0000000C-loc_0_00000008\t; lookup_table\n"
+    "\tdc.w loc_0_00000010-loc_0_00000008\n") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
@@ -6443,7 +6445,8 @@ static int test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targ
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000010-loc_0_0000000C,loc_0_00000014-loc_0_0000000C\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000010-loc_0_0000000C\t; lookup_table\n"
+    "\tdc.w loc_0_00000014-loc_0_0000000C\n") != NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
     const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
@@ -6500,7 +6503,8 @@ static int test_facts_v2_address_indexed_word_load_uses_signed_table_displacemen
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000016-loc_0_00000006,loc_0_0000001A-loc_0_00000006\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000016-loc_0_00000006\t; lookup_table\n"
+    "\tdc.w loc_0_0000001A-loc_0_00000006\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $0010,$0014") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000016:\n\tmoveq.l #1,d1\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000001A:\n\tmoveq.l #2,d1\n\trts\n") != NULL);
@@ -6566,11 +6570,13 @@ static int test_facts_v2_biased_pc_indexed_word_load_keeps_leading_table_entry(v
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "loc_0_0000000A:\n\tdc.w loc_0_00000016-loc_0_0000000C\t; lookup_table\n"
-    "loc_0_0000000C:\n\tdc.w loc_0_0000002E-loc_0_0000000C,"
-    "loc_0_0000001C-loc_0_0000000C,loc_0_0000003A-loc_0_0000000C,"
-    "loc_0_00000034-loc_0_0000000C\t; lookup_table\n"
-    "\tdc.w loc_0_0000002E-loc_0_0000000C\t; lookup_table\n") != NULL);
+    "loc_0_0000000A:\n\tdc.w loc_0_00000016-loc_0_0000000C\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "loc_0_0000000C:\n\tdc.w loc_0_0000002E-loc_0_0000000C\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_0000001C-loc_0_0000000C\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_0000003A-loc_0_0000000C\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_00000034-loc_0_0000000C\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_0000002E-loc_0_0000000C\t; lookup_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $000A\t; lookup_table\n") == NULL);
   for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
       ++code_start_index) {
@@ -7115,7 +7121,8 @@ static int test_facts_v2_word_dispatch_promotes_far_relative_targets(void) {
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000016-loc_0_00000016,loc_0_0000101A-loc_0_00000016\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000016-loc_0_00000016\t; lookup_table\n"
+    "\tdc.w loc_0_0000101A-loc_0_00000016\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $1004") == NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000101A:\n\tmoveq.l #2,d0\n\trts\n") != NULL);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
@@ -7382,7 +7389,8 @@ static int test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary(void) {
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000040-loc_0_00000040,loc_0_00001042-loc_0_00000040\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000040-loc_0_00000040\t; lookup_table\n"
+    "\tdc.w loc_0_00001042-loc_0_00000040\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000140:") == NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_00000040-loc_0_00000040,loc_0_00000040-loc_0_00000040") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -7452,7 +7460,8 @@ static int test_facts_v2_pc_word_dispatch_renders_labels_across_saved_register(v
   M68K_C_ASSERT(strstr(source, "\tmove.l d0,-(a7)\n\tjsr (a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000020(pc,d1.w),a0\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000030-loc_0_00000030,loc_0_00000040-loc_0_00000030") != NULL);
+    "\tdc.w loc_0_00000030-loc_0_00000030\t; lookup_table\n"
+    "\tdc.w loc_0_00000040-loc_0_00000030\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0010\t; lookup_table\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -7524,7 +7533,8 @@ static int test_facts_v2_pc_word_dispatch_renders_labels_across_address_preservi
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tbsr.w loc_0_00000014\n\tjmp (a0)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000030-loc_0_00000030,loc_0_00000040-loc_0_00000030") != NULL);
+    "\tdc.w loc_0_00000030-loc_0_00000030\t; lookup_table\n"
+    "\tdc.w loc_0_00000040-loc_0_00000030\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0010\t; lookup_table\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
@@ -7584,7 +7594,10 @@ static int test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table(void)
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tjmp (a1)\n") != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w abs_0_00000116-abs_0_00000116,abs_0_0000011A-abs_0_00000116\t; lookup_table\n") != NULL);
+    "\tdc.w abs_0_00000116-abs_0_00000116\t; lookup_table\n"
+    "\tdc.w abs_0_0000011A-abs_0_00000116\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w abs_0_00000116-abs_0_00000116,abs_0_0000011A-abs_0_00000116") == NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $00,$00,$00,$04") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #1,d0\n\trts\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmoveq.l #2,d0\n\trts\n") != NULL);
@@ -9060,7 +9073,11 @@ static int test_facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicat
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source,
-    "\tdc.w loc_0_00000008-loc_0_00000008,loc_0_0000000C-loc_0_00000008,$2222\t; lookup_table\n") != NULL);
+    "\tdc.w loc_0_00000008-loc_0_00000008\t; lookup_table\n"
+    "\tdc.w loc_0_0000000C-loc_0_00000008\n"
+    "\tdc.w $2222\n") != NULL);
+  M68K_C_ASSERT(strstr(source,
+    "\tdc.w loc_0_00000008-loc_0_00000008,loc_0_0000000C-loc_0_00000008,$2222") == NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0004,$2222") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);

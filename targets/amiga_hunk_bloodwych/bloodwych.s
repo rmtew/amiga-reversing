@@ -1434,8 +1434,11 @@ abs_0_00001596:
 	adda.w $0(a0,d1.w),a1
 	jmp (a1)
 abs_0_000015AE:
-	dc.w abs_0_0000166A-abs_0_0000166A,abs_0_000015D6-abs_0_0000166A,abs_0_0000175A-abs_0_0000166A,abs_0_000015B8-abs_0_0000166A	; lookup_table
-	dc.w abs_0_00001664-abs_0_0000166A	; lookup_table
+	dc.w abs_0_0000166A-abs_0_0000166A	; lookup_table
+	dc.w abs_0_000015D6-abs_0_0000166A
+	dc.w abs_0_0000175A-abs_0_0000166A
+	dc.w abs_0_000015B8-abs_0_0000166A
+	dc.w abs_0_00001664-abs_0_0000166A
 abs_0_000015B8:
 	bsr.w abs_0_000055AC
 	andi.w #15,d0
@@ -3494,13 +3497,33 @@ abs_0_00002C98:
 	ori.b #10,$0003(a4)
 	rts
 abs_0_00002CAE:
-	dc.w abs_0_00002CE4-abs_0_00002CE4,abs_0_00002C96-abs_0_00002CE4,abs_0_00002C96-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_00002C96-abs_0_00002CE4,abs_0_00002C96-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_00002DA6-abs_0_00002CE4,abs_0_00002DAC-abs_0_00002CE4,abs_0_00002DBE-abs_0_00002CE4,abs_0_00002DEE-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_00002DBE-abs_0_00002CE4,abs_0_00002DEE-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_00002DA6-abs_0_00002CE4,abs_0_00002DF8-abs_0_00002CE4,abs_0_00002E12-abs_0_00002CE4,abs_0_00002F24-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_00002F50-abs_0_00002CE4,abs_0_00002FC4-abs_0_00002CE4,abs_0_0000307E-abs_0_00002CE4,abs_0_0000309A-abs_0_00002CE4	; lookup_table
-	dc.w abs_0_000030B4-abs_0_00002CE4,abs_0_00002DA6-abs_0_00002CE4,abs_0_000030D2-abs_0_00002CE4	; lookup_table
+	dc.w abs_0_00002CE4-abs_0_00002CE4	; lookup_table
+	dc.w abs_0_00002C96-abs_0_00002CE4
+	dc.w abs_0_00002C96-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002C96-abs_0_00002CE4
+	dc.w abs_0_00002C96-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DAC-abs_0_00002CE4
+	dc.w abs_0_00002DBE-abs_0_00002CE4
+	dc.w abs_0_00002DEE-abs_0_00002CE4
+	dc.w abs_0_00002DBE-abs_0_00002CE4
+	dc.w abs_0_00002DEE-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_00002DF8-abs_0_00002CE4
+	dc.w abs_0_00002E12-abs_0_00002CE4
+	dc.w abs_0_00002F24-abs_0_00002CE4
+	dc.w abs_0_00002F50-abs_0_00002CE4
+	dc.w abs_0_00002FC4-abs_0_00002CE4
+	dc.w abs_0_0000307E-abs_0_00002CE4
+	dc.w abs_0_0000309A-abs_0_00002CE4
+	dc.w abs_0_000030B4-abs_0_00002CE4
+	dc.w abs_0_00002DA6-abs_0_00002CE4
+	dc.w abs_0_000030D2-abs_0_00002CE4
 abs_0_00002CE4:
 	tst.b $0007(a4)
 	bmi.w abs_0_00002DA6
@@ -3623,7 +3646,10 @@ abs_0_00002E36:
 	adda.w abs_0_00002E4A(pc,d2.w),a0
 	jmp (a0)
 abs_0_00002E4A:
-	dc.w abs_0_00002E5C-abs_0_00002E5C,abs_0_00002E82-abs_0_00002E5C,abs_0_00002EE4-abs_0_00002E5C,abs_0_00002E5C-abs_0_00002E5C	; lookup_table
+	dc.w abs_0_00002E5C-abs_0_00002E5C	; lookup_table
+	dc.w abs_0_00002E82-abs_0_00002E5C
+	dc.w abs_0_00002EE4-abs_0_00002E5C
+	dc.w abs_0_00002E5C-abs_0_00002E5C
 abs_0_00002E52:
 	move.b #$8,$0000(a4)
 	bra.w abs_0_00002DA6
@@ -4001,9 +4027,15 @@ abs_0_0000338E:
 	adda.w abs_0_000033A0(pc,d0.w),a0
 	jmp (a0)
 abs_0_000033A0:
-	dc.w abs_0_000033B2-abs_0_000033B2,abs_0_000033EE-abs_0_000033B2,abs_0_00004150-abs_0_000033B2,abs_0_000040E4-abs_0_000033B2	; lookup_table
-	dc.w abs_0_00003F60-abs_0_000033B2,abs_0_00004144-abs_0_000033B2,abs_0_00003F5C-abs_0_000033B2,abs_0_00003E9C-abs_0_000033B2	; lookup_table
-	dc.w abs_0_000034CC-abs_0_000033B2	; lookup_table
+	dc.w abs_0_000033B2-abs_0_000033B2	; lookup_table
+	dc.w abs_0_000033EE-abs_0_000033B2
+	dc.w abs_0_00004150-abs_0_000033B2
+	dc.w abs_0_000040E4-abs_0_000033B2
+	dc.w abs_0_00003F60-abs_0_000033B2
+	dc.w abs_0_00004144-abs_0_000033B2
+	dc.w abs_0_00003F5C-abs_0_000033B2
+	dc.w abs_0_00003E9C-abs_0_000033B2
+	dc.w abs_0_000034CC-abs_0_000033B2
 abs_0_000033B2:
 	clr.b $004E(a5)
 	addq.w #1,d1
@@ -4127,13 +4159,33 @@ abs_0_00003510:
 	bsr.w abs_0_000055AC
 	jmp (a0)
 abs_0_00003526:
-	dc.w abs_0_0000355C-abs_0_0000355C,abs_0_0000356A-abs_0_0000355C,abs_0_00003572-abs_0_0000355C,abs_0_0000357A-abs_0_0000355C	; lookup_table
-	dc.w abs_0_00003586-abs_0_0000355C,abs_0_0000358E-abs_0_0000355C,abs_0_00003596-abs_0_0000355C,abs_0_00003604-abs_0_0000355C	; lookup_table
-	dc.w abs_0_0000363E-abs_0_0000355C,abs_0_0000364A-abs_0_0000355C,abs_0_000036F0-abs_0_0000355C,abs_0_000036FC-abs_0_0000355C	; lookup_table
-	dc.w abs_0_0000371E-abs_0_0000355C,abs_0_00003744-abs_0_0000355C,abs_0_00003772-abs_0_0000355C,abs_0_0000377E-abs_0_0000355C	; lookup_table
-	dc.w abs_0_0000378A-abs_0_0000355C,abs_0_00003796-abs_0_0000355C,abs_0_0000382C-abs_0_0000355C,abs_0_000038A4-abs_0_0000355C	; lookup_table
-	dc.w abs_0_000038B6-abs_0_0000355C,abs_0_00003874-abs_0_0000355C,abs_0_00003918-abs_0_0000355C,abs_0_00003924-abs_0_0000355C	; lookup_table
-	dc.w abs_0_00003A0E-abs_0_0000355C,abs_0_00003A52-abs_0_0000355C,abs_0_00003568-abs_0_0000355C	; lookup_table
+	dc.w abs_0_0000355C-abs_0_0000355C	; lookup_table
+	dc.w abs_0_0000356A-abs_0_0000355C
+	dc.w abs_0_00003572-abs_0_0000355C
+	dc.w abs_0_0000357A-abs_0_0000355C
+	dc.w abs_0_00003586-abs_0_0000355C
+	dc.w abs_0_0000358E-abs_0_0000355C
+	dc.w abs_0_00003596-abs_0_0000355C
+	dc.w abs_0_00003604-abs_0_0000355C
+	dc.w abs_0_0000363E-abs_0_0000355C
+	dc.w abs_0_0000364A-abs_0_0000355C
+	dc.w abs_0_000036F0-abs_0_0000355C
+	dc.w abs_0_000036FC-abs_0_0000355C
+	dc.w abs_0_0000371E-abs_0_0000355C
+	dc.w abs_0_00003744-abs_0_0000355C
+	dc.w abs_0_00003772-abs_0_0000355C
+	dc.w abs_0_0000377E-abs_0_0000355C
+	dc.w abs_0_0000378A-abs_0_0000355C
+	dc.w abs_0_00003796-abs_0_0000355C
+	dc.w abs_0_0000382C-abs_0_0000355C
+	dc.w abs_0_000038A4-abs_0_0000355C
+	dc.w abs_0_000038B6-abs_0_0000355C
+	dc.w abs_0_00003874-abs_0_0000355C
+	dc.w abs_0_00003918-abs_0_0000355C
+	dc.w abs_0_00003924-abs_0_0000355C
+	dc.w abs_0_00003A0E-abs_0_0000355C
+	dc.w abs_0_00003A52-abs_0_0000355C
+	dc.w abs_0_00003568-abs_0_0000355C
 abs_0_0000355C:
 	lea.l abs_0_00003E83.l,a6
 	jmp abs_0_0000D03A.l
@@ -5902,14 +5954,38 @@ abs_0_00004FEE:
 abs_0_00004FFE:
 	dc.b "SPELL FIZZLED",$FF	; string
 abs_0_0000500C:
-	dc.w abs_0_0000505C-abs_0_0000505C,abs_0_0000507E-abs_0_0000505C,abs_0_00005086-abs_0_0000505C,abs_0_0000508E-abs_0_0000505C	; lookup_table
-	dc.w abs_0_000050BE-abs_0_0000505C,abs_0_000050C2-abs_0_0000505C,abs_0_00005136-abs_0_0000505C,abs_0_00005152-abs_0_0000505C	; lookup_table
-	dc.w abs_0_00005158-abs_0_0000505C,abs_0_00005162-abs_0_0000505C,abs_0_00005168-abs_0_0000505C,abs_0_00005170-abs_0_0000505C	; lookup_table
-	dc.w abs_0_000051D0-abs_0_0000505C,abs_0_000051D8-abs_0_0000505C,abs_0_000051DE-abs_0_0000505C,abs_0_000051E4-abs_0_0000505C	; lookup_table
-	dc.w abs_0_00005226-abs_0_0000505C,abs_0_0000522C-abs_0_0000505C,abs_0_0000527E-abs_0_0000505C,abs_0_000052B4-abs_0_0000505C	; lookup_table
-	dc.w abs_0_000052F4-abs_0_0000505C,abs_0_000052FC-abs_0_0000505C,abs_0_00005302-abs_0_0000505C,abs_0_00005308-abs_0_0000505C	; lookup_table
-	dc.w abs_0_0000530E-abs_0_0000505C,abs_0_0000531C-abs_0_0000505C,abs_0_0000541C-abs_0_0000505C,abs_0_0000546E-abs_0_0000505C	; lookup_table
-	dc.w abs_0_00005476-abs_0_0000505C,abs_0_000054E6-abs_0_0000505C,abs_0_000054EC-abs_0_0000505C,abs_0_000054FA-abs_0_0000505C	; lookup_table
+	dc.w abs_0_0000505C-abs_0_0000505C	; lookup_table
+	dc.w abs_0_0000507E-abs_0_0000505C
+	dc.w abs_0_00005086-abs_0_0000505C
+	dc.w abs_0_0000508E-abs_0_0000505C
+	dc.w abs_0_000050BE-abs_0_0000505C
+	dc.w abs_0_000050C2-abs_0_0000505C
+	dc.w abs_0_00005136-abs_0_0000505C
+	dc.w abs_0_00005152-abs_0_0000505C
+	dc.w abs_0_00005158-abs_0_0000505C
+	dc.w abs_0_00005162-abs_0_0000505C
+	dc.w abs_0_00005168-abs_0_0000505C
+	dc.w abs_0_00005170-abs_0_0000505C
+	dc.w abs_0_000051D0-abs_0_0000505C
+	dc.w abs_0_000051D8-abs_0_0000505C
+	dc.w abs_0_000051DE-abs_0_0000505C
+	dc.w abs_0_000051E4-abs_0_0000505C
+	dc.w abs_0_00005226-abs_0_0000505C
+	dc.w abs_0_0000522C-abs_0_0000505C
+	dc.w abs_0_0000527E-abs_0_0000505C
+	dc.w abs_0_000052B4-abs_0_0000505C
+	dc.w abs_0_000052F4-abs_0_0000505C
+	dc.w abs_0_000052FC-abs_0_0000505C
+	dc.w abs_0_00005302-abs_0_0000505C
+	dc.w abs_0_00005308-abs_0_0000505C
+	dc.w abs_0_0000530E-abs_0_0000505C
+	dc.w abs_0_0000531C-abs_0_0000505C
+	dc.w abs_0_0000541C-abs_0_0000505C
+	dc.w abs_0_0000546E-abs_0_0000505C
+	dc.w abs_0_00005476-abs_0_0000505C
+	dc.w abs_0_000054E6-abs_0_0000505C
+	dc.w abs_0_000054EC-abs_0_0000505C
+	dc.w abs_0_000054FA-abs_0_0000505C
 abs_0_0000504C:
 	dc.b "SPELL FAILED",$FF	; string
 	dc.b $00
@@ -6726,7 +6802,10 @@ abs_0_00005894:
 abs_0_000058EA:
 	rts
 abs_0_000058EC:
-	dc.w abs_0_000058F4-abs_0_000058F4,abs_0_0000590C-abs_0_000058F4,abs_0_00005B2A-abs_0_000058F4,abs_0_00005958-abs_0_000058F4	; lookup_table
+	dc.w abs_0_000058F4-abs_0_000058F4	; lookup_table
+	dc.w abs_0_0000590C-abs_0_000058F4
+	dc.w abs_0_00005B2A-abs_0_000058F4
+	dc.w abs_0_00005958-abs_0_000058F4
 abs_0_000058F4:
 	move.w $0004(a5),d1
 	sub.w $0008(a5),d1
@@ -6791,8 +6870,14 @@ abs_0_00005986:
 	moveq.l #5,d0
 	bra.w abs_0_000088BE
 abs_0_000059BE:
-	dc.w abs_0_000059CE-abs_0_000059CE,abs_0_000059F2-abs_0_000059CE,abs_0_00005A38-abs_0_000059CE,abs_0_00005A58-abs_0_000059CE	; lookup_table
-	dc.w abs_0_000059F0-abs_0_000059CE,abs_0_00005AAE-abs_0_000059CE,abs_0_000059F0-abs_0_000059CE,abs_0_00005AA6-abs_0_000059CE	; lookup_table
+	dc.w abs_0_000059CE-abs_0_000059CE	; lookup_table
+	dc.w abs_0_000059F2-abs_0_000059CE
+	dc.w abs_0_00005A38-abs_0_000059CE
+	dc.w abs_0_00005A58-abs_0_000059CE
+	dc.w abs_0_000059F0-abs_0_000059CE
+	dc.w abs_0_00005AAE-abs_0_000059CE
+	dc.w abs_0_000059F0-abs_0_000059CE
+	dc.w abs_0_00005AA6-abs_0_000059CE
 abs_0_000059CE:
 	moveq.l #5,d4
 	moveq.l #18,d6
@@ -6912,8 +6997,14 @@ abs_0_00005B2A:
 abs_0_00005B66:
 	rts
 abs_0_00005B68:
-	dc.w abs_0_00005B66-abs_0_00005B66,abs_0_00005D12-abs_0_00005B66,abs_0_00005CFC-abs_0_00005B66,abs_0_00007746-abs_0_00005B66	; lookup_table
-	dc.w abs_0_000076B4-abs_0_00005B66,abs_0_0000776C-abs_0_00005B66,abs_0_00007768-abs_0_00005B66,abs_0_00007758-abs_0_00005B66	; lookup_table
+	dc.w abs_0_00005B66-abs_0_00005B66	; lookup_table
+	dc.w abs_0_00005D12-abs_0_00005B66
+	dc.w abs_0_00005CFC-abs_0_00005B66
+	dc.w abs_0_00007746-abs_0_00005B66
+	dc.w abs_0_000076B4-abs_0_00005B66
+	dc.w abs_0_0000776C-abs_0_00005B66
+	dc.w abs_0_00007768-abs_0_00005B66
+	dc.w abs_0_00007758-abs_0_00005B66
 abs_0_00005B78:
 	dc.b $00,$00,$00,$00,$02,$00,$01,$08,$02,$00,$11,$01,$02,$00,$06,$07
 	dc.b $02,$00,$02,$0C,$02,$00,$01,$09,$04,$00,$09,$01
@@ -8062,7 +8153,10 @@ abs_0_00006914:
 	bsr.w abs_0_00007FF8
 	bra.w abs_0_00006C34
 abs_0_00006952:
-	dc.w abs_0_0000695A-abs_0_0000695A,abs_0_00006976-abs_0_0000695A,abs_0_00006962-abs_0_0000695A,abs_0_0000696A-abs_0_0000695A	; lookup_table
+	dc.w abs_0_0000695A-abs_0_0000695A	; lookup_table
+	dc.w abs_0_00006976-abs_0_0000695A
+	dc.w abs_0_00006962-abs_0_0000695A
+	dc.w abs_0_0000696A-abs_0_0000695A
 abs_0_0000695A:
 	move.b $0006(a4),$0005(a4)
 	rts
@@ -8645,14 +8739,37 @@ abs_0_00007012:
 abs_0_00007016:
 	rts
 abs_0_00007018:
-	dc.w abs_0_00007016-abs_0_00007016,abs_0_00007712-abs_0_00007016,abs_0_0000771A-abs_0_00007016,abs_0_00007746-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007800-abs_0_00007016,abs_0_000078F0-abs_0_00007016,abs_0_000076D2-abs_0_00007016,abs_0_000076EA-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007702-abs_0_00007016,abs_0_00007454-abs_0_00007016,abs_0_000073E6-abs_0_00007016,abs_0_00005D12-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007734-abs_0_00007016,abs_0_0000776C-abs_0_00007016,abs_0_0000777E-abs_0_00007016,abs_0_00005CF8-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007796-abs_0_00007016,abs_0_000077D6-abs_0_00007016,abs_0_00007768-abs_0_00007016,abs_0_00007386-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007356-abs_0_00007016,abs_0_00007686-abs_0_00007016,abs_0_000076B4-abs_0_00007016,abs_0_00005CFC-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007728-abs_0_00007016,abs_0_0000763C-abs_0_00007016,abs_0_0000778A-abs_0_00007016,abs_0_00007758-abs_0_00007016	; lookup_table
-	dc.w abs_0_00007630-abs_0_00007016,abs_0_0000751A-abs_0_00007016,abs_0_00007502-abs_0_00007016	; lookup_table
+	dc.w abs_0_00007016-abs_0_00007016	; lookup_table
+	dc.w abs_0_00007712-abs_0_00007016
+	dc.w abs_0_0000771A-abs_0_00007016
+	dc.w abs_0_00007746-abs_0_00007016
+	dc.w abs_0_00007800-abs_0_00007016
+	dc.w abs_0_000078F0-abs_0_00007016
+	dc.w abs_0_000076D2-abs_0_00007016
+	dc.w abs_0_000076EA-abs_0_00007016
+	dc.w abs_0_00007702-abs_0_00007016
+	dc.w abs_0_00007454-abs_0_00007016
+	dc.w abs_0_000073E6-abs_0_00007016
+	dc.w abs_0_00005D12-abs_0_00007016
+	dc.w abs_0_00007734-abs_0_00007016
+	dc.w abs_0_0000776C-abs_0_00007016
+	dc.w abs_0_0000777E-abs_0_00007016
+	dc.w abs_0_00005CF8-abs_0_00007016
+	dc.w abs_0_00007796-abs_0_00007016
+	dc.w abs_0_000077D6-abs_0_00007016
+	dc.w abs_0_00007768-abs_0_00007016
+	dc.w abs_0_00007386-abs_0_00007016
+	dc.w abs_0_00007356-abs_0_00007016
+	dc.w abs_0_00007686-abs_0_00007016
+	dc.w abs_0_000076B4-abs_0_00007016
+	dc.w abs_0_00005CFC-abs_0_00007016
+	dc.w abs_0_00007728-abs_0_00007016
+	dc.w abs_0_0000763C-abs_0_00007016
+	dc.w abs_0_0000778A-abs_0_00007016
+	dc.w abs_0_00007758-abs_0_00007016
+	dc.w abs_0_00007630-abs_0_00007016
+	dc.w abs_0_0000751A-abs_0_00007016
+	dc.w abs_0_00007502-abs_0_00007016
 abs_0_00007056:
 	dc.b $00,$00,$00,$00,$02,$00,$00,$00,$04,$00,$00,$00,$06,$00,$0E,$06
 	dc.b $08,$00,$00,$00,$0A,$00,$00,$00,$0C,$00,$00,$00,$0E,$00,$00,$00
@@ -12753,8 +12870,11 @@ abs_0_0000A70A:
 	adda.w $0(a1,d2.w),a1
 	jmp (a1)
 abs_0_0000A73A:
-	dc.w abs_0_0000A50A-abs_0_0000A73A,abs_0_00009EFA-abs_0_0000A73A,abs_0_0000A34C-abs_0_0000A73A,abs_0_0000A330-abs_0_0000A73A	; lookup_table
-	dc.w abs_0_0000A53C-abs_0_0000A73A	; lookup_table
+	dc.w abs_0_0000A50A-abs_0_0000A73A	; lookup_table
+	dc.w abs_0_00009EFA-abs_0_0000A73A
+	dc.w abs_0_0000A34C-abs_0_0000A73A
+	dc.w abs_0_0000A330-abs_0_0000A73A
+	dc.w abs_0_0000A53C-abs_0_0000A73A
 abs_0_0000A744:
 	moveq.l #0,d2
 	move.b -$0017(a3),d2

@@ -6765,39 +6765,53 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nabs_0_00008950:\n" in source_text
     assert (
         "abs_0_000015AE:\n"
-        "\tdc.w abs_0_0000166A-abs_0_0000166A,abs_0_000015D6-abs_0_0000166A,"
-        "abs_0_0000175A-abs_0_0000166A,abs_0_000015B8-abs_0_0000166A\t; lookup_table\n"
-        "\tdc.w abs_0_00001664-abs_0_0000166A\t; lookup_table\n"
+        "\tdc.w abs_0_0000166A-abs_0_0000166A\t; lookup_table\n"
+        "\tdc.w abs_0_000015D6-abs_0_0000166A\n"
+        "\tdc.w abs_0_0000175A-abs_0_0000166A\n"
+        "\tdc.w abs_0_000015B8-abs_0_0000166A\n"
+        "\tdc.w abs_0_00001664-abs_0_0000166A\n"
     ) in source_text
     assert (
         "abs_0_0000A73A:\n"
-        "\tdc.w abs_0_0000A50A-abs_0_0000A73A,abs_0_00009EFA-abs_0_0000A73A,"
-        "abs_0_0000A34C-abs_0_0000A73A,abs_0_0000A330-abs_0_0000A73A\t; lookup_table\n"
-        "\tdc.w abs_0_0000A53C-abs_0_0000A73A\t; lookup_table\n"
+        "\tdc.w abs_0_0000A50A-abs_0_0000A73A\t; lookup_table\n"
+        "\tdc.w abs_0_00009EFA-abs_0_0000A73A\n"
+        "\tdc.w abs_0_0000A34C-abs_0_0000A73A\n"
+        "\tdc.w abs_0_0000A330-abs_0_0000A73A\n"
+        "\tdc.w abs_0_0000A53C-abs_0_0000A73A\n"
     ) in source_text
     assert (
         "abs_0_00002E4A:\n"
-        "\tdc.w abs_0_00002E5C-abs_0_00002E5C,abs_0_00002E82-abs_0_00002E5C,"
-        "abs_0_00002EE4-abs_0_00002E5C,abs_0_00002E5C-abs_0_00002E5C\t; lookup_table\n"
+        "\tdc.w abs_0_00002E5C-abs_0_00002E5C\t; lookup_table\n"
+        "\tdc.w abs_0_00002E82-abs_0_00002E5C\n"
+        "\tdc.w abs_0_00002EE4-abs_0_00002E5C\n"
+        "\tdc.w abs_0_00002E5C-abs_0_00002E5C\n"
     ) in source_text
     assert (
         "abs_0_00003526:\n"
-        "\tdc.w abs_0_0000355C-abs_0_0000355C,abs_0_0000356A-abs_0_0000355C,"
-        "abs_0_00003572-abs_0_0000355C,abs_0_0000357A-abs_0_0000355C\t; lookup_table\n"
+        "\tdc.w abs_0_0000355C-abs_0_0000355C\t; lookup_table\n"
+        "\tdc.w abs_0_0000356A-abs_0_0000355C\n"
+        "\tdc.w abs_0_00003572-abs_0_0000355C\n"
+        "\tdc.w abs_0_0000357A-abs_0_0000355C\n"
     ) in source_text
     assert "\tdc.w $0000,$000E,$0016,$001E\t; lookup_table\n" not in source_text
     assert (
         "abs_0_00005B68:\n"
-        "\tdc.w abs_0_00005B66-abs_0_00005B66,abs_0_00005D12-abs_0_00005B66,"
-        "abs_0_00005CFC-abs_0_00005B66,abs_0_00007746-abs_0_00005B66\t; lookup_table\n"
-        "\tdc.w abs_0_000076B4-abs_0_00005B66,abs_0_0000776C-abs_0_00005B66,"
-        "abs_0_00007768-abs_0_00005B66,abs_0_00007758-abs_0_00005B66\t; lookup_table\n"
+        "\tdc.w abs_0_00005B66-abs_0_00005B66\t; lookup_table\n"
+        "\tdc.w abs_0_00005D12-abs_0_00005B66\n"
+        "\tdc.w abs_0_00005CFC-abs_0_00005B66\n"
+        "\tdc.w abs_0_00007746-abs_0_00005B66\n"
+        "\tdc.w abs_0_000076B4-abs_0_00005B66\n"
+        "\tdc.w abs_0_0000776C-abs_0_00005B66\n"
+        "\tdc.w abs_0_00007768-abs_0_00005B66\n"
+        "\tdc.w abs_0_00007758-abs_0_00005B66\n"
     ) in source_text
     assert "\tdc.w $1B4E,$1C06,$1C02,$1BF2\t; lookup_table\n" not in source_text
     assert (
         "abs_0_00007018:\n"
-        "\tdc.w abs_0_00007016-abs_0_00007016,abs_0_00007712-abs_0_00007016,"
-        "abs_0_0000771A-abs_0_00007016,abs_0_00007746-abs_0_00007016\t; lookup_table\n"
+        "\tdc.w abs_0_00007016-abs_0_00007016\t; lookup_table\n"
+        "\tdc.w abs_0_00007712-abs_0_00007016\n"
+        "\tdc.w abs_0_0000771A-abs_0_00007016\n"
+        "\tdc.w abs_0_00007746-abs_0_00007016\n"
     ) in source_text
     assert "\tdc.w $0000,$06FC,$0704,$0730\t; lookup_table\n" not in source_text
     assert "abs_0_00005C6E:\n" not in source_text
@@ -6805,11 +6819,15 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     assert "\tsubi.w #20,d1\n\tbcs.b abs_0_00002E76\n" in source_text
     assert (
         "abs_0_000033A0:\n"
-        "\tdc.w abs_0_000033B2-abs_0_000033B2,abs_0_000033EE-abs_0_000033B2,"
-        "abs_0_00004150-abs_0_000033B2,abs_0_000040E4-abs_0_000033B2\t; lookup_table\n"
-        "\tdc.w abs_0_00003F60-abs_0_000033B2,abs_0_00004144-abs_0_000033B2,"
-        "abs_0_00003F5C-abs_0_000033B2,abs_0_00003E9C-abs_0_000033B2\t; lookup_table\n"
-        "\tdc.w abs_0_000034CC-abs_0_000033B2\t; lookup_table\n"
+        "\tdc.w abs_0_000033B2-abs_0_000033B2\t; lookup_table\n"
+        "\tdc.w abs_0_000033EE-abs_0_000033B2\n"
+        "\tdc.w abs_0_00004150-abs_0_000033B2\n"
+        "\tdc.w abs_0_000040E4-abs_0_000033B2\n"
+        "\tdc.w abs_0_00003F60-abs_0_000033B2\n"
+        "\tdc.w abs_0_00004144-abs_0_000033B2\n"
+        "\tdc.w abs_0_00003F5C-abs_0_000033B2\n"
+        "\tdc.w abs_0_00003E9C-abs_0_000033B2\n"
+        "\tdc.w abs_0_000034CC-abs_0_000033B2\n"
     ) in source_text
     assert (
         "\tlea.l abs_0_0000C266-4.l,a0\n"
