@@ -7480,6 +7480,49 @@ static int materialize_safe_required_labels(const M68kDecodeIR *decode, uint8_t 
   return 0;
 }
 
+static int materialize_pc_relative_interior_data_anchors(const M68kDecodeIR *decode,
+    const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup) {
+  size_t section_index;
+  if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      facts == NULL || label_lookup == NULL) {
+    return -1;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      size_t target_index;
+      if (candidate->offset >= section->size || !accepted_start[section_index][candidate->offset]) continue;
+      for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+        const M68kDecodeTarget *target = &candidate->targets[target_index];
+        const M68kDecodeCandidate *anchor;
+        if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section ||
+            target->section_index != section_index || !target->has_operand ||
+            target->operand_index >= candidate->operand_count ||
+            (candidate->operand_kinds[target->operand_index] != M68K_ASM_OPERAND_EA &&
+              candidate->operand_kinds[target->operand_index] != M68K_ASM_OPERAND_BF_EA) ||
+            candidate->operands[target->operand_index].ea_mode != 7U ||
+            candidate->operands[target->operand_index].ea_reg != 2U ||
+            !accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
+              target->offset)) {
+          continue;
+        }
+        anchor = accepted_candidate_index_covering(accepted_index, accepted_start[section_index],
+          section_index, target->offset, 1);
+        if (anchor == NULL || anchor->offset >= target->offset) continue;
+        if (label_lookup_create_label(label_lookup, facts, section_index, anchor->offset,
+            M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
+          return -1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static int labelled_entry_decodes_terminal_api_wrapper(M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
     uint8_t platform_kind, uint8_t **accepted_bytes, uint32_t offset, uint8_t max_cpu) {
   uint32_t cursor = offset;
@@ -9070,6 +9113,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   start = clock();
   fail_stage = "required label materialization";
+  if (accepted_candidate_index_build(&accepted_index, &decode, accepted_start, workflow.arena) != 0) goto fail;
+  if (materialize_pc_relative_interior_data_anchors(&decode, &accepted_index, accepted_start, accepted_bytes,
+      &facts, &label_lookup) != 0) {
+    goto fail;
+  }
+  accepted_candidate_index_destroy(&accepted_index);
   if (materialize_safe_required_labels(&decode, accepted_start, accepted_bytes, &facts, &label_lookup) != 0)
     goto fail;
   {

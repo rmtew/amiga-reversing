@@ -8015,6 +8015,74 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
   return 0;
 }
 
+static const M68kDecodeCandidate *accepted_candidate_covering_offset_local(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t offset) {
+  size_t lo = 0U;
+  size_t hi;
+  const M68kDecodeCandidate *candidate;
+  uint32_t candidate_end;
+  if (section == NULL || accepted_start == NULL || offset >= section->size ||
+      section->candidate_count == 0U) {
+    return NULL;
+  }
+  hi = section->candidate_count;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) / 2U);
+    if (section->candidates[mid].offset <= offset) lo = mid + 1U;
+    else hi = mid;
+  }
+  while (lo > 0U) {
+    --lo;
+    candidate = &section->candidates[lo];
+    if (candidate->offset >= section->size || !accepted_start[candidate->offset]) continue;
+    if (candidate->offset > offset) continue;
+    if (candidate->byte_count == 0U || candidate->offset > UINT32_MAX - candidate->byte_count) continue;
+    candidate_end = candidate->offset + candidate->byte_count;
+    if (offset > candidate->offset && offset < candidate_end) return candidate;
+    if (candidate->offset + 32U < offset) break;
+  }
+  return NULL;
+}
+
+static int attach_pc_relative_interior_data_anchor_symbols(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    M68kInstructionIR *instruction) {
+  size_t target_index;
+  if (lookup == NULL || section == NULL || accepted_start == NULL || candidate == NULL || instruction == NULL)
+    return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    const M68kDecodeCandidate *anchor;
+    M68kOperandIR *operand;
+    int64_t addend;
+    if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section ||
+        target->section_index != section->section_index || !target->has_operand ||
+        target->operand_index >= instruction->operand_count) {
+      continue;
+    }
+    operand = &instruction->operands[target->operand_index];
+    if ((operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
+        operand->value.ea_mode != 7U || operand->value.ea_reg != 2U ||
+        operand->symbol_ref.has_name != 0U ||
+        symbol_ref_kind_for_operand(operand) != M68K_IR_SYMBOL_REF_PC_REL) {
+      continue;
+    }
+    anchor = accepted_candidate_covering_offset_local(section, accepted_start, target->offset);
+    if (anchor == NULL || !lookup_has_renderable_label(lookup, section->section_index, anchor->offset)) continue;
+    addend = (int64_t)(uint64_t)target->offset - (int64_t)(uint64_t)anchor->offset;
+    if (addend < INT32_MIN || addend > INT32_MAX) continue;
+    m68k_ir_symbol_ref_init(&operand->symbol_ref);
+    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_PC_REL;
+    operand->symbol_ref.has_name = 1U;
+    operand->symbol_ref.name_is_generated = format_rendered_asm_label_with_generation(lookup,
+      operand->symbol_ref.name, sizeof(operand->symbol_ref.name), section->section_index, anchor->offset);
+    operand->symbol_ref.has_section = 1;
+    operand->symbol_ref.section_index = section->section_index;
+    operand->symbol_ref.addend = (int32_t)addend;
+  }
+  return 0;
+}
+
 static const M68kDecodeCandidate *find_previous_accepted_candidate_local(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate) {
   size_t index;
@@ -8911,6 +8979,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   }
   (void)attach_absolute_word_control_symbols(lookup, section->section_index, candidate, &instruction);
   (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate, &instruction);
+  (void)attach_pc_relative_interior_data_anchor_symbols(lookup, section, accepted_start, candidate, &instruction);
   if (!attach_amiga_loadseg_segment_link_slot_symbol(preview, lookup, section, accepted_start, candidate,
       &instruction)) {
     return 0;

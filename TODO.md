@@ -33,16 +33,6 @@ Target: `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles
     - Non-trivial use of custom registers.
 - Disk "damocles" target analysis flaw indicators:
   - Second hunk:
-    - Unresolved PC-relative labels:
-      ```
-      000c 287a00c4 movea.l $C4(pc),a4
-      ...
-      001e d1fafff4 adda.l -$C(pc),a0
-      ```
-      - This is likely because the `$c4` is picking the address to use out of the `lea` instruction leading what
-        looks like a RLE post-pass. And the `-$C` is perhaps picking out the offset. If we have PC-relative references
-        we are failing like this, we should perhaps put a label on the given instruction and do an intra-instruction
-        addend to the numeric value within it. This way there's no inter-instruction addend and no chance of drift.
     - Non equated runtime address for tetragon decompression start address:
       ```
       002a 43f90004f92b lea.l $0004F92B.l,a1    

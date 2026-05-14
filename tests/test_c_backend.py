@@ -5914,6 +5914,10 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code() -
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert "stack_top_00000800\tEQU\t$800\n" in source_text
     assert "\tlea.l stack_top_00000800.l,a7\n" in source_text
+    assert "\tmovea.l loc_1_000000D0+2(pc),a4\n" in source_text
+    assert "\tadda.l loc_1_00000012+2(pc),a0\n" in source_text
+    assert "\tmovea.l $C4(pc),a4\n" not in source_text
+    assert "\tadda.l -$C(pc),a0\n" not in source_text
     assert "\tlea.l abs_2_00000100.l,a1\n" in source_text
     assert (
         "loc_2_0000006A:\n"
