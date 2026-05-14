@@ -1885,12 +1885,12 @@ static int instruction_operand_address_register_local(const M68kOperandIR *opera
   return 1;
 }
 
-static int runtime_address_from_operand_local(const M68kOperandIR *operand, const uint8_t a_known[8],
+static int runtime_address_from_operand_local(const M68kOperandIR *operand, uint32_t a_known,
     const uint32_t a_values[8], uint32_t *out_address) {
   uint8_t shape, reg;
   int64_t address;
   if (out_address != NULL) *out_address = 0U;
-  if (operand == NULL || a_known == NULL || a_values == NULL || out_address == NULL) return 0;
+  if (operand == NULL || a_values == NULL || out_address == NULL) return 0;
   shape = m68k_instruction_operand_decoded_ea_shape(operand);
   if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) == 1U) {
     *out_address = operand->value.value;
@@ -1899,13 +1899,13 @@ static int runtime_address_from_operand_local(const M68kOperandIR *operand, cons
   if (operand->kind == M68K_ASM_OPERAND_IND || operand->kind == M68K_ASM_OPERAND_POSTINC ||
       operand->kind == M68K_ASM_OPERAND_PREDEC) {
     reg = operand->value.reg;
-    if (reg >= 8U || !a_known[reg]) return 0;
+    if (reg >= 8U || !m68k_bitset_u32_has(a_known, reg)) return 0;
     *out_address = a_values[reg];
     return 1;
   }
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U) return 0;
   reg = operand->value.ea_reg;
-  if (!a_known[reg]) return 0;
+  if (!m68k_bitset_u32_has(a_known, reg)) return 0;
   address = (int64_t)(uint64_t)a_values[reg];
   if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_INDEX) {
     address += (int64_t)(int16_t)(operand->value.value & 0xFFFFU);
@@ -1919,7 +1919,7 @@ static int runtime_address_from_operand_local(const M68kOperandIR *operand, cons
 }
 
 static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata, uint8_t a_known[8],
+    const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata, uint32_t *a_known,
     uint32_t a_values[8], PlatformRuntimeWriteObservation *writes, size_t write_capacity,
     size_t *io_write_count) {
   uint32_t invalidated = 0U;
@@ -1941,9 +1941,9 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     uint8_t reg = 0U;
     uint32_t address = 0U;
     if (instruction_operand_address_register_local(&instruction->operands[metadata->dest_operand_index], &reg) &&
-        runtime_address_from_operand_local(&instruction->operands[metadata->source_operand_index], a_known,
+        runtime_address_from_operand_local(&instruction->operands[metadata->source_operand_index], *a_known,
           a_values, &address)) {
-      a_known[reg] = 1U;
+      m68k_bitset_u32_set(a_known, reg);
       a_values[reg] = address;
       m68k_bitset_u32_clear(&invalidated, reg);
     }
@@ -1953,7 +1953,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     uint32_t width = candidate_write_width_local(candidate);
     uint8_t reg = 0U;
     if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
-        width != 0U && runtime_address_from_operand_local(&instruction->operands[operand_index], a_known,
+        width != 0U && runtime_address_from_operand_local(&instruction->operands[operand_index], *a_known,
           a_values, &address) &&
         address >= 0x1000U && address <= UINT32_MAX - width && *io_write_count < write_capacity) {
       writes[*io_write_count].start = address;
@@ -1977,20 +1977,21 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
         reg = instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA ?
           instruction->operands[operand_index].value.ea_reg : instruction->operands[operand_index].value.reg;
         if (reg >= 8U) continue;
-        if (a_known[reg] && width != 0U) {
+        if (m68k_bitset_u32_has(*a_known, reg) && width != 0U) {
           if (update == M68K_SIM_EA_UPDATE_POSTINCREMENT && a_values[reg] <= UINT32_MAX - width) {
             a_values[reg] += width;
           } else if (update == M68K_SIM_EA_UPDATE_PREDECREMENT && a_values[reg] >= width) {
             a_values[reg] -= width;
           } else {
-            a_known[reg] = 0U;
+            m68k_bitset_u32_clear(a_known, reg);
           }
         }
       }
     }
   }
   for (operand_index = 0U; operand_index < 8U; ++operand_index) {
-    if (m68k_bitset_u32_has(invalidated, (uint8_t)operand_index)) a_known[operand_index] = 0U;
+    if (m68k_bitset_u32_has(invalidated, (uint8_t)operand_index))
+      m68k_bitset_u32_clear(a_known, (uint8_t)operand_index);
   }
 }
 
@@ -2486,7 +2487,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
   const M68kSection *object_section;
   const M68kDecodeSectionIR *decode_section;
   const M68kSectionAnalysisIR *section_analysis;
-  uint8_t a_known[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+  uint32_t a_known = 0U;
   uint32_t a_values[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
   PlatformRuntimeWriteObservation writes[64];
   size_t write_count = 0U;
@@ -2518,7 +2519,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     uint8_t parent_remains_active = 1U;
     if (section_analysis->certain_code_start[offset] == 0U) continue;
     if (previous_end != UINT32_MAX && offset != previous_end && offset != bridge_target) {
-      memset(a_known, 0, sizeof(a_known));
+      a_known = 0U;
       memset(a_values, 0, sizeof(a_values));
       memset(writes, 0, sizeof(writes));
       write_count = 0U;
@@ -2538,7 +2539,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     if (metadata == NULL) continue;
     if (!same_section_unconditional_bridge_target_local(candidate, metadata, section_index, &bridge_target))
       bridge_target = UINT32_MAX;
-    trace_runtime_writes_from_candidate_local(candidate, &instruction, metadata, a_known, a_values, writes,
+    trace_runtime_writes_from_candidate_local(candidate, &instruction, metadata, &a_known, a_values, writes,
       sizeof(writes) / sizeof(writes[0]), &write_count);
     if (runtime_transfer_target_from_candidate_local(decode_section, section_analysis, candidate, &target,
         &parent_remains_active) &&
