@@ -1,4 +1,5 @@
 #include "platform_file_internal.h"
+#include "m68k_bitset.h"
 
 const char *const AMIGA_APP_BASE_TAG = "__amiga_app_base__";
 
@@ -6061,34 +6062,38 @@ int platform_amiga_format_instruction_comment(const SectionAnalysisContext *ctx,
 
 static int resolve_amiga_address_reg_info_cached_local(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t reg, int include_section_slots,
-    AmigaResolvedAddressRegInfo *cached_values, uint8_t *cache_known, uint8_t *cache_resolved,
+    AmigaResolvedAddressRegInfo *cached_values, uint32_t *cache_known, uint32_t *cache_resolved,
     AmigaResolvedAddressRegInfo *out_info) {
   if (out_info != NULL) init_amiga_value_provenance(out_info);
   if (cached_values == NULL || cache_known == NULL || cache_resolved == NULL || out_info == NULL || reg >= 8U)
     return 0;
-  if (cache_known[reg] == 0U) {
-    cache_resolved[reg] = (uint8_t)(resolve_amiga_address_reg_info(ctx, section_analysis, offset, reg,
-      include_section_slots, &cached_values[reg]) != 0);
-    cache_known[reg] = 1U;
+  if (!m68k_bitset_u32_has(*cache_known, reg)) {
+    if (resolve_amiga_address_reg_info(ctx, section_analysis, offset, reg, include_section_slots,
+        &cached_values[reg]) != 0) {
+      m68k_bitset_u32_set(cache_resolved, reg);
+    }
+    m68k_bitset_u32_set(cache_known, reg);
   }
-  if (cache_resolved[reg] == 0U) return 0;
+  if (!m68k_bitset_u32_has(*cache_resolved, reg)) return 0;
   *out_info = cached_values[reg];
   return 1;
 }
 
 static int resolve_amiga_data_reg_info_cached_local(const SectionAnalysisContext *ctx,
     const M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t reg, int include_section_slots,
-    AmigaResolvedDataRegInfo *cached_values, uint8_t *cache_known, uint8_t *cache_resolved,
+    AmigaResolvedDataRegInfo *cached_values, uint32_t *cache_known, uint32_t *cache_resolved,
     AmigaResolvedDataRegInfo *out_info) {
   if (out_info != NULL) init_amiga_value_provenance(out_info);
   if (cached_values == NULL || cache_known == NULL || cache_resolved == NULL || out_info == NULL || reg >= 8U)
     return 0;
-  if (cache_known[reg] == 0U) {
-    cache_resolved[reg] = (uint8_t)(resolve_amiga_data_reg_info(ctx, section_analysis, offset, reg,
-      include_section_slots, &cached_values[reg]) != 0);
-    cache_known[reg] = 1U;
+  if (!m68k_bitset_u32_has(*cache_known, reg)) {
+    if (resolve_amiga_data_reg_info(ctx, section_analysis, offset, reg, include_section_slots,
+        &cached_values[reg]) != 0) {
+      m68k_bitset_u32_set(cache_resolved, reg);
+    }
+    m68k_bitset_u32_set(cache_known, reg);
   }
-  if (cache_resolved[reg] == 0U) return 0;
+  if (!m68k_bitset_u32_has(*cache_resolved, reg)) return 0;
   *out_info = cached_values[reg];
   return 1;
 }
@@ -6103,11 +6108,11 @@ int platform_amiga_annotate_instruction_symbol_refs(const SectionAnalysisContext
   int has_unnamed_immediate;
   int annotated = 0;
   AmigaResolvedAddressRegInfo cached_addr_reg_info[8];
-  uint8_t cached_addr_reg_known[8] = {0};
-  uint8_t cached_addr_reg_resolved[8] = {0};
+  uint32_t cached_addr_reg_known = 0U;
+  uint32_t cached_addr_reg_resolved = 0U;
   AmigaResolvedDataRegInfo cached_data_reg_info[8];
-  uint8_t cached_data_reg_known[8] = {0};
-  uint8_t cached_data_reg_resolved[8] = {0};
+  uint32_t cached_data_reg_known = 0U;
+  uint32_t cached_data_reg_resolved = 0U;
   AmigaSymbolProfileCounters *symbol_profile = NULL;
   if (ctx == NULL || section_analysis == NULL) return 0;
   if (section_analysis_context_object(ctx) == NULL ||
@@ -6168,13 +6173,13 @@ try_struct_field:
       if (symbol_profile != NULL) {
         clock_t profile_start = clock();
         resolved = resolve_amiga_address_reg_info_cached_local(ctx, section_analysis, offset, base_reg, 1,
-          cached_addr_reg_info, cached_addr_reg_known, cached_addr_reg_resolved, &info);
+          cached_addr_reg_info, &cached_addr_reg_known, &cached_addr_reg_resolved, &info);
         symbol_profile->operand_addr_resolve_seconds += amiga_profile_elapsed_seconds(profile_start, clock());
         ++symbol_profile->operand_addr_resolve_calls;
         if (resolved) ++symbol_profile->operand_addr_resolve_hits;
       } else {
         resolved = resolve_amiga_address_reg_info_cached_local(ctx, section_analysis, offset, base_reg, 1,
-          cached_addr_reg_info, cached_addr_reg_known, cached_addr_reg_resolved, &info);
+          cached_addr_reg_info, &cached_addr_reg_known, &cached_addr_reg_resolved, &info);
       }
       if (resolved) {
       container_type = amiga_value_provenance_type_name_local(&info) != NULL
@@ -6355,13 +6360,13 @@ try_struct_field:
         if (symbol_profile != NULL) {
           clock_t profile_start = clock();
           resolved = resolve_amiga_data_reg_info_cached_local(ctx, section_analysis, offset, reg_index, 1,
-            cached_data_reg_info, cached_data_reg_known, cached_data_reg_resolved, &data_info);
+            cached_data_reg_info, &cached_data_reg_known, &cached_data_reg_resolved, &data_info);
           symbol_profile->unnamed_reg_resolve_seconds += amiga_profile_elapsed_seconds(profile_start, clock());
           ++symbol_profile->unnamed_reg_resolve_calls;
           if (resolved) ++symbol_profile->unnamed_reg_resolve_hits;
         } else {
           resolved = resolve_amiga_data_reg_info_cached_local(ctx, section_analysis, offset, reg_index, 1,
-            cached_data_reg_info, cached_data_reg_known, cached_data_reg_resolved, &data_info);
+            cached_data_reg_info, &cached_data_reg_known, &cached_data_reg_resolved, &data_info);
         }
         if (resolved && amiga_value_provenance_value_domain_name_local(&data_info) != NULL) {
           field_domain_name = amiga_value_provenance_value_domain_name_local(&data_info);
@@ -6373,13 +6378,13 @@ try_struct_field:
         if (symbol_profile != NULL) {
           clock_t profile_start = clock();
           resolved = resolve_amiga_address_reg_info_cached_local(ctx, section_analysis, offset, reg_index, 1,
-            cached_addr_reg_info, cached_addr_reg_known, cached_addr_reg_resolved, &addr_info);
+            cached_addr_reg_info, &cached_addr_reg_known, &cached_addr_reg_resolved, &addr_info);
           symbol_profile->unnamed_reg_resolve_seconds += amiga_profile_elapsed_seconds(profile_start, clock());
           ++symbol_profile->unnamed_reg_resolve_calls;
           if (resolved) ++symbol_profile->unnamed_reg_resolve_hits;
         } else {
           resolved = resolve_amiga_address_reg_info_cached_local(ctx, section_analysis, offset, reg_index, 1,
-            cached_addr_reg_info, cached_addr_reg_known, cached_addr_reg_resolved, &addr_info);
+            cached_addr_reg_info, &cached_addr_reg_known, &cached_addr_reg_resolved, &addr_info);
         }
         if (resolved && amiga_value_provenance_value_domain_name_local(&addr_info) != NULL) {
           field_domain_name = amiga_value_provenance_value_domain_name_local(&addr_info);
