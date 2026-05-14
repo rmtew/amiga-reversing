@@ -458,6 +458,7 @@ static int render_lookup_collect_recovered_function_args_from_wrapper(M68kRender
     candidate = find_candidate_at_offset_local(section, cursor);
     if (candidate == NULL || candidate->byte_count == 0U) break;
     platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
+    platform_state_apply_lookup_register_seeds(&state, lookup, section->section_index, cursor);
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
     vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
@@ -520,6 +521,8 @@ static int render_lookup_infer_amiga_recovered_local_call_summaries(M68kRenderLo
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+        candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
       wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, &platform_state, section, candidate);
@@ -566,6 +569,8 @@ static int render_lookup_infer_amiga_recovered_function_args(M68kRenderLookup *l
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+        candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
       wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, &platform_state, section, candidate);
@@ -582,6 +587,104 @@ static int render_lookup_infer_amiga_recovered_function_args(M68kRenderLookup *l
       platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
       platform_state_update_after_instruction(&platform_state, lookup, &instruction);
     }
+  }
+  return 0;
+}
+
+static int render_lookup_add_inferred_hardware_base_seed(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t reg_index, uint16_t hardware_base_id, uint8_t *out_changed) {
+  M68kRenderInferredHardwareBaseSeed *grown;
+  M68kRenderInferredHardwareBaseSeed *entry;
+  size_t next_capacity;
+  size_t index;
+  if (lookup == NULL || reg_index >= 8U || hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) return 0;
+  for (index = 0U; index < lookup->inferred_hardware_base_seed_count; ++index) {
+    M68kRenderInferredHardwareBaseSeed *existing = &lookup->inferred_hardware_base_seeds[index];
+    if (existing->section_index != section_index || existing->offset != offset ||
+        existing->reg_index != reg_index) {
+      continue;
+    }
+    if (existing->hardware_base_id != hardware_base_id && existing->conflicted == 0U) {
+      existing->conflicted = 1U;
+      if (out_changed != NULL) *out_changed = 1U;
+    }
+    return 0;
+  }
+  if (lookup->inferred_hardware_base_seed_count == lookup->inferred_hardware_base_seed_capacity) {
+    next_capacity = lookup->inferred_hardware_base_seed_capacity == 0U ? 16U :
+      lookup->inferred_hardware_base_seed_capacity * 2U;
+    grown = (M68kRenderInferredHardwareBaseSeed *)render_lookup_grow_array(lookup,
+      lookup->inferred_hardware_base_seeds, lookup->inferred_hardware_base_seed_count, sizeof(*grown),
+      next_capacity);
+    if (grown == NULL) return -1;
+    lookup->inferred_hardware_base_seeds = grown;
+    lookup->inferred_hardware_base_seed_capacity = next_capacity;
+  }
+  entry = &lookup->inferred_hardware_base_seeds[lookup->inferred_hardware_base_seed_count];
+  memset(entry, 0, sizeof(*entry));
+  entry->section_index = section_index;
+  entry->offset = offset;
+  entry->reg_index = reg_index;
+  entry->hardware_base_id = hardware_base_id;
+  ++lookup->inferred_hardware_base_seed_count;
+  if (out_changed != NULL) *out_changed = 1U;
+  return 0;
+}
+
+static int render_lookup_infer_amiga_call_hardware_base_seed_pass(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t *out_changed) {
+  size_t section_index;
+  if (out_changed != NULL) *out_changed = 0U;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    M68kRenderPlatformState platform_state;
+    size_t candidate_index;
+    memset(&platform_state, 0, sizeof(platform_state));
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      M68kInstructionIR instruction;
+      size_t target_section_index = 0U;
+      uint32_t target_offset = 0U;
+      uint8_t reg_index;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
+      platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
+        candidate->offset);
+      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+        candidate->offset);
+      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
+      if ((candidate->mnemonic_id == M68K_ASM_MNEMONIC_BSR ||
+           candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR) &&
+          candidate_direct_control_target(lookup, section->section_index, candidate, &target_section_index,
+            &target_offset)) {
+        for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+          if (platform_state.address_hardware_base_known[reg_index] &&
+              render_lookup_add_inferred_hardware_base_seed(lookup, target_section_index, target_offset,
+                reg_index, platform_state.address_hardware_base_id[reg_index], out_changed) != 0) {
+            return -1;
+          }
+        }
+      }
+      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
+      platform_state_update_after_instruction(&platform_state, lookup, &instruction);
+    }
+  }
+  return 0;
+}
+
+static int render_lookup_infer_amiga_call_hardware_base_seeds(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+  uint8_t changed = 0U;
+  if (render_lookup_infer_amiga_call_hardware_base_seed_pass(lookup, decode, accepted_start, &changed) != 0)
+    return -1;
+  while (changed != 0U) {
+    changed = 0U;
+    if (render_lookup_infer_amiga_call_hardware_base_seed_pass(lookup, decode, accepted_start, &changed) != 0)
+      return -1;
   }
   return 0;
 }
@@ -2935,6 +3038,8 @@ static int typed_flow_infer_local_helper_output_reg_at(const M68kRenderLookup *l
     if (candidate == NULL || candidate->byte_count == 0U) break;
     platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
       candidate->offset);
+    platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+      candidate->offset);
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
     if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_RTS) {
@@ -3050,6 +3155,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   typed_state_apply_policy_register_seeds(out_typed_state, lookup->policy, section->section_index,
     node->candidate->offset);
   platform_state_apply_policy_register_seeds(out_platform_state, lookup->policy, section->section_index,
+    node->candidate->offset);
+  platform_state_apply_lookup_register_seeds(out_platform_state, lookup, section->section_index,
     node->candidate->offset);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
   attach_known_instruction_relocations(lookup, section->section_index, node->candidate, &instruction);
@@ -3408,6 +3515,7 @@ static int decode_has_library_base_operand_use(const M68kRenderLookup *lookup, c
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&state, lookup, section->section_index, candidate->offset);
       for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
         uint8_t base_reg = 0U;
         int16_t displacement = 0;
@@ -10302,6 +10410,7 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&state, lookup, section->section_index, candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
         uint8_t base_reg = 0U;
@@ -10695,6 +10804,7 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
     candidate = find_candidate_at_offset_local(section, cursor);
     if (candidate == NULL || candidate->byte_count == 0U) break;
     platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
+    platform_state_apply_lookup_register_seeds(&state, lookup, section->section_index, cursor);
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
     vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
@@ -10772,6 +10882,8 @@ int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, cons
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+        candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
       platform_vector = attach_amiga_lvo_symbol_if_known(&platform_state, &instruction);
@@ -10838,6 +10950,8 @@ static int render_lookup_infer_amiga_runtime_sink_immediate_refs(M68kRenderLooku
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&platform_state, lookup->policy, section->section_index,
         candidate->offset);
+      platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index,
+        candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
       if (instruction_move_operand_indices_from_metadata(&instruction, &source_index, &dest_index, &metadata) &&
           metadata != NULL && instruction.size_suffix == 'l' &&
@@ -10867,6 +10981,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   start = clock();
   if (render_lookup_seed_policy_rsset_layout_regions(lookup) != 0) return -1;
   if (render_lookup_infer_global_base_slots(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_infer_amiga_call_hardware_base_seeds(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_base_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();

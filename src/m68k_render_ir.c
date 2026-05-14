@@ -1120,7 +1120,28 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
       continue;
     }
     if (seed->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS || seed->reg_index >= 8U) continue;
+    if (amiga_os_hardware_base_id(seed->name) != AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      platform_state_set_register_hardware_base(state, seed->reg_index, seed->name);
+      continue;
+    }
     platform_state_set_register_library(state, seed->reg_index, seed->name);
+  }
+}
+
+void platform_state_apply_lookup_register_seeds(M68kRenderPlatformState *state,
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  size_t index;
+  if (state == NULL || lookup == NULL) return;
+  for (index = 0U; index < lookup->inferred_hardware_base_seed_count; ++index) {
+    const M68kRenderInferredHardwareBaseSeed *seed = &lookup->inferred_hardware_base_seeds[index];
+    const char *base_symbol;
+    if (seed->conflicted != 0U || seed->section_index != section_index || seed->offset != offset ||
+        seed->reg_index >= 8U || seed->hardware_base_id == AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      continue;
+    }
+    base_symbol = amiga_os_hardware_base_symbol(seed->hardware_base_id);
+    if (base_symbol != NULL && base_symbol[0] != '\0')
+      platform_state_set_register_hardware_base(state, seed->reg_index, base_symbol);
   }
 }
 
@@ -9109,6 +9130,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     while (offset < render_extent) {
       if (render_asm_source) {
         platform_state_apply_policy_register_seeds(&platform_state, policy, section->section_index, offset);
+        platform_state_apply_lookup_register_seeds(&platform_state, &lookup, section->section_index, offset);
         begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);
         render_asm_policy_entry_comments(out_preview, policy, section->section_index, offset);
         render_asm_policy_register_seed_comment(out_preview, policy, section->section_index, offset);
