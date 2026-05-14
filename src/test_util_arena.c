@@ -2,6 +2,7 @@
 #include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
 #include "m68k_object.h"
+#include "platform_binary_io.h"
 #include "util_arena.h"
 
 #include <string.h>
@@ -228,6 +229,37 @@ static int test_allocator_arena_strdup_uses_arena_storage(void) {
   return 0;
 }
 
+static int test_binary_writer_build_uses_allocator(void) {
+  M68kBinaryWriter writer;
+  Arena *arena = arena_create(64U);
+  unsigned char *heap_bytes;
+  unsigned char *arena_bytes;
+  ArenaStats before;
+  ArenaStats after;
+  M68K_C_ASSERT(arena != NULL);
+  M68K_C_ASSERT_INT(0, m68k_writer_create(&writer));
+  M68K_C_ASSERT_INT(0, m68k_writer_u8(&writer, 0x12U));
+  M68K_C_ASSERT_INT(0, m68k_writer_u16be(&writer, 0x3456U));
+  heap_bytes = m68k_writer_build(&writer);
+  before = arena_stats(arena);
+  arena_bytes = m68k_writer_build_alloc(&writer, m68k_allocator_arena(arena));
+  after = arena_stats(arena);
+  M68K_C_ASSERT(heap_bytes != NULL);
+  M68K_C_ASSERT(arena_bytes != NULL);
+  M68K_C_ASSERT(heap_bytes != arena_bytes);
+  M68K_C_ASSERT_U32(0x12U, heap_bytes[0]);
+  M68K_C_ASSERT_U32(0x34U, heap_bytes[1]);
+  M68K_C_ASSERT_U32(0x56U, heap_bytes[2]);
+  M68K_C_ASSERT_U32(0x12U, arena_bytes[0]);
+  M68K_C_ASSERT_U32(0x34U, arena_bytes[1]);
+  M68K_C_ASSERT_U32(0x56U, arena_bytes[2]);
+  M68K_C_ASSERT(after.current_used > before.current_used);
+  m68k_allocator_free(m68k_allocator_heap(), heap_bytes);
+  m68k_writer_destroy(&writer);
+  arena_destroy(arena);
+  return 0;
+}
+
 static int test_virtual_reserved_arena_prototype_commits_on_demand(void) {
   TestVirtualReservedArena arena;
   unsigned char *first;
@@ -374,6 +406,7 @@ int m68k_c_util_arena_tests(void) {
     {"allocator_arena_uses_arena_storage", test_allocator_arena_uses_arena_storage},
     {"allocator_duplicates_memory_and_text", test_allocator_duplicates_memory_and_text},
     {"allocator_arena_strdup_uses_arena_storage", test_allocator_arena_strdup_uses_arena_storage},
+    {"binary_writer_build_uses_allocator", test_binary_writer_build_uses_allocator},
     {"virtual_reserved_arena_prototype_commits_on_demand", test_virtual_reserved_arena_prototype_commits_on_demand},
     {"growable_pool_reuses_fixed_size_nodes", test_growable_pool_reuses_fixed_size_nodes},
     {"growable_pool_rejects_invalid_config", test_growable_pool_rejects_invalid_config},
