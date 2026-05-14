@@ -51,22 +51,18 @@ static int write_bytes_to_path_local(const char *path, const unsigned char *data
     M68kDiagList *diagnostics);
 static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason);
 
-static char *duplicate_text_local(const char *text) {
-  return m68k_allocator_strdup(m68k_allocator_heap(), text);
-}
-
 static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text) {
   const char *message;
   if (out_text == NULL) return -1;
   *out_text = NULL;
   if (result == NULL) {
-    *out_text = duplicate_text_local("platform file operation failed");
+    *out_text = m68k_platform_dup_string("platform file operation failed");
     return -1;
   }
   if (m68k_diag_has_errors(&result->diagnostics) || result->text == NULL) {
     message = m68k_diag_first_message(&result->diagnostics);
     if (message == NULL || message[0] == '\0') message = "platform file operation failed";
-    *out_text = duplicate_text_local(message);
+    *out_text = m68k_platform_dup_string(message);
     platform_file_free_text(result->text);
     result->text = NULL;
     return -1;
@@ -4753,7 +4749,7 @@ static int configure_analysis_policy_for_alloc(M68kAnalysisPolicy *policy, const
     return -1;
   }
   if (entry_offsets == NULL || entry_offsets[0] == '\0') return 0;
-  offsets_copy = duplicate_text_local(entry_offsets);
+  offsets_copy = m68k_platform_dup_string(entry_offsets);
   if (offsets_copy == NULL) {
     platform_file_add_error(diagnostics, "out of memory");
     return -1;
@@ -5851,7 +5847,7 @@ oom:
   json_builder_destroy(&builder);
   if (object_loaded) m68k_object_destroy(&object);
   arena_destroy(scratch_arena);
-  *out_text = duplicate_text_local("out of memory");
+  *out_text = m68k_platform_dup_string("out of memory");
   return -1;
 }
 
@@ -6449,7 +6445,7 @@ PlatformFileBufferResult platform_file_roundtrip_buffer(const char *backend_name
 static char *assembler_profile_json_alloc_local(const M68kPlatformAssembleProfile *profile) {
   JsonBuilder builder;
   char *text;
-  if (profile == NULL) return duplicate_text_local("{}");
+  if (profile == NULL) return m68k_platform_dup_string("{}");
   if (json_builder_create(&builder) != 0) return NULL;
   if (json_builder_appendf(&builder,
       "{\"assemble_c_api\":true"
@@ -6856,13 +6852,13 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
   m68k_diag_list_reset(&diagnostics);
   cpu_result = m68k_parse_cpu_name(target_cpu_name != NULL ? target_cpu_name : "");
   if (!cpu_result.ok) {
-    *out_error = duplicate_text_local("unknown cpu");
+    *out_error = m68k_platform_dup_string("unknown cpu");
     *out_profile_json = assembler_profile_json_alloc_local(&profile);
     return -1;
   }
   if (m68k_raw_backend_by_name(backend_name) != NULL) {
     if (source_text == NULL) {
-      *out_error = duplicate_text_local("raw output backend requires source text");
+      *out_error = m68k_platform_dup_string("raw output backend requires source text");
       *out_profile_json = assembler_profile_json_alloc_local(&profile);
       return -1;
     }
@@ -6874,7 +6870,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
       free(*out_data);
       *out_data = NULL;
       *out_size = 0U;
-      *out_error = duplicate_text_local("out of memory");
+      *out_error = m68k_platform_dup_string("out of memory");
       return -1;
     }
     if (result != 0) {
@@ -6883,7 +6879,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
       free(*out_data);
       *out_data = NULL;
       *out_size = 0U;
-      *out_error = duplicate_text_local(message);
+      *out_error = m68k_platform_dup_string(message);
       return -1;
     }
     return 0;
@@ -6909,7 +6905,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     free(*out_data);
     *out_data = NULL;
     *out_size = 0U;
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   if (result != 0) {
@@ -6918,7 +6914,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     free(*out_data);
     *out_data = NULL;
     *out_size = 0U;
-    *out_error = duplicate_text_local(message);
+    *out_error = m68k_platform_dup_string(message);
     return -1;
   }
   return 0;
@@ -7273,7 +7269,7 @@ static int listing_artifact_set_error(char **out_error, const M68kDiagList *diag
   if (out_error == NULL) return -1;
   message = m68k_diag_first_message(diagnostics);
   if (message == NULL || message[0] == '\0') message = fallback != NULL ? fallback : "listing artifact failed";
-  *out_error = duplicate_text_local(message);
+  *out_error = m68k_platform_dup_string(message);
   return -1;
 }
 
@@ -7285,8 +7281,8 @@ static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *back
     platform_file_add_error(diagnostics, "out of memory");
     return NULL;
   }
-  artifact->backend_name = duplicate_text_local(backend_name);
-  artifact->path = duplicate_text_local(path);
+  artifact->backend_name = m68k_platform_dup_string(backend_name);
+  artifact->path = m68k_platform_dup_string(path);
   if (artifact->backend_name == NULL || artifact->path == NULL) {
     platform_file_add_error(diagnostics, "out of memory");
     platform_file_facts_v2_listing_artifact_destroy(artifact);
@@ -7385,14 +7381,14 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
   m68k_reproduction_compare_init_result(&compare_result);
   temp_path[0] = '\0';
   if (backend == NULL || object == NULL) {
-    *out_error = duplicate_text_local("unknown platform file backend");
+    *out_error = m68k_platform_dup_string("unknown platform file backend");
     return -1;
   }
   if (backend->write_buffer != NULL) {
     phase_start = clock();
     if (backend->write_buffer(object, &data, &size, m68k_diag_sink(diagnostics)) != 0) {
       const char *message = m68k_diag_first_message(diagnostics);
-      *out_error = duplicate_text_local(message != NULL ? message : "direct rebuild write_buffer failed");
+      *out_error = m68k_platform_dup_string(message != NULL ? message : "direct rebuild write_buffer failed");
       return -1;
     }
     write_buffer_seconds += elapsed_seconds(phase_start, clock());
@@ -7401,7 +7397,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
       if (write_bytes_to_path_local(output_path, data, size, diagnostics) != 0) {
         const char *message = m68k_diag_first_message(diagnostics);
         free(data);
-        *out_error = duplicate_text_local(message != NULL ? message : "direct rebuild write failed");
+        *out_error = m68k_platform_dup_string(message != NULL ? message : "direct rebuild write failed");
         return -1;
       }
       write_file_seconds += elapsed_seconds(phase_start, clock());
@@ -7411,7 +7407,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
     if (read_path == NULL || read_path[0] == '\0') {
       if (write_object_to_temp_file(backend, object, temp_path, sizeof(temp_path), m68k_diag_sink(diagnostics)) != 0) {
         const char *message = m68k_diag_first_message(diagnostics);
-        *out_error = duplicate_text_local(message != NULL ? message : "direct rebuild write failed");
+        *out_error = m68k_platform_dup_string(message != NULL ? message : "direct rebuild write failed");
         return -1;
       }
       read_path = temp_path;
@@ -7422,7 +7418,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
       if (backend->write_file(read_path, object, m68k_diag_sink(diagnostics)) != 0) {
         const char *message = m68k_diag_first_message(diagnostics);
         remove(read_path);
-        *out_error = duplicate_text_local(message != NULL ? message : "direct rebuild write failed");
+        *out_error = m68k_platform_dup_string(message != NULL ? message : "direct rebuild write failed");
         return -1;
       }
       write_file_seconds += elapsed_seconds(phase_start, clock());
@@ -7430,12 +7426,12 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
     if (read_file_to_buffer(read_path, &data, &size, m68k_diag_sink(diagnostics)) != 0) {
       const char *message = m68k_diag_first_message(diagnostics);
       if (remove_read_path) remove(read_path);
-      *out_error = duplicate_text_local(message != NULL ? message : "direct rebuild read failed");
+      *out_error = m68k_platform_dup_string(message != NULL ? message : "direct rebuild read failed");
       return -1;
     }
     if (remove_read_path) remove(read_path);
   } else {
-    *out_error = duplicate_text_local("platform backend cannot write direct rebuild output");
+    *out_error = m68k_platform_dup_string("platform backend cannot write direct rebuild output");
     return -1;
   }
   if (compare_data != NULL) {
@@ -7450,7 +7446,7 @@ static int facts_v2_direct_write_object_alloc(const char *backend_name, const M6
     diagnostics);
   if (*out_direct_profile_json == NULL) {
     free(data);
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   *out_data = data;
@@ -7484,14 +7480,14 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
   if (m68k_facts_v2_collect_direct_rebuild_profile(object, analysis_policy, &source_profile,
       m68k_diag_sink(diagnostics)) != 0) {
     const char *message = m68k_diag_first_message(diagnostics);
-    *out_error = duplicate_text_local(message != NULL ? message : "facts_v2 source profile failed");
+    *out_error = m68k_platform_dup_string(message != NULL ? message : "facts_v2 source profile failed");
     return -1;
   }
   source_end = clock();
   source_profile_json = facts_v2_asm_source_profile_json_alloc(backend_name, path, &source_profile,
     elapsed_seconds(source_start, source_end), diagnostics);
   if (source_profile_json == NULL) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   *out_source_profile_json = source_profile_json;
@@ -7500,7 +7496,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
       source_profile.asm_source_bytes, 0U, 1, "source_refused", 0.0, 0.0, 0U, not_compared, 0.0, 0.0,
       &assembler_policy, diagnostics);
     if (*out_direct_profile_json == NULL) {
-      *out_error = duplicate_text_local("out of memory");
+      *out_error = m68k_platform_dup_string("out of memory");
       return -1;
     }
     return 0;
@@ -7510,7 +7506,7 @@ static int facts_v2_direct_rebuild_object_alloc(const char *backend_name, const 
       source_profile.asm_source_bytes, 0U, 1, "lossy_numeric_hunk_relocations", 0.0, 0.0, 0,
       not_compared, 0.0, 0.0, &assembler_policy, diagnostics);
     if (*out_direct_profile_json == NULL) {
-      *out_error = duplicate_text_local("out of memory");
+      *out_error = m68k_platform_dup_string("out of memory");
       return -1;
     }
     return 0;
@@ -7542,7 +7538,7 @@ static int platform_file_facts_v2_direct_rebuild_path_common_alloc(const char *b
   m68k_diag_list_reset(&diagnostics);
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   analysis_policy = workflow.analysis_policy;
@@ -7567,7 +7563,7 @@ cleanup:
   if (result != 0 && *out_error == NULL) {
     const char *message = m68k_diag_first_message(&diagnostics);
     if (message == NULL || message[0] == '\0') message = "facts_v2 direct rebuild failed";
-    *out_error = duplicate_text_local(message);
+    *out_error = m68k_platform_dup_string(message);
   }
   free(compare_data);
   platform_file_workflow_destroy(&workflow);
@@ -7609,7 +7605,7 @@ static int platform_file_facts_v2_direct_rebuild_buffer_common_alloc(const char 
   m68k_diag_list_reset(&diagnostics);
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   analysis_policy = workflow.analysis_policy;
@@ -7634,7 +7630,7 @@ cleanup:
   if (result != 0 && *out_error == NULL) {
     const char *message = m68k_diag_first_message(&diagnostics);
     if (message == NULL || message[0] == '\0') message = "facts_v2 direct rebuild failed";
-    *out_error = duplicate_text_local(message);
+    *out_error = m68k_platform_dup_string(message);
   }
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -7668,7 +7664,7 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
   *out_compare_profile_json = NULL;
   *out_error = NULL;
   if (backend == NULL || object == NULL || original_data == NULL || rebuilt_data == NULL) {
-    *out_error = duplicate_text_local("invalid reproduction compare input");
+    *out_error = m68k_platform_dup_string("invalid reproduction compare input");
     return -1;
   }
   m68k_assembler_policy_derive_preservation(object, &assembler_policy);
@@ -7680,7 +7676,7 @@ static int platform_file_reproduction_compare_object_common_alloc(const char *ba
     rebuilt_size > UINT32_MAX ? UINT32_MAX : (uint32_t)rebuilt_size, compare_result, compare_seconds,
     &assembler_policy, diagnostics);
   if (*out_compare_profile_json == NULL) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   return 0;
@@ -7702,7 +7698,7 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
   m68k_diag_list_reset(&diagnostics);
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   analysis_policy = workflow.analysis_policy;
@@ -7717,7 +7713,7 @@ int platform_file_reproduction_compare_path_bytes_profile_alloc(const char *back
 cleanup:
   if (result != 0 && *out_error == NULL) {
     const char *message = m68k_diag_first_message(&diagnostics);
-    *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
+    *out_error = m68k_platform_dup_string(message != NULL ? message : "reproduction compare failed");
   }
   free(original_data);
   platform_file_workflow_destroy(&workflow);
@@ -7739,7 +7735,7 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
   m68k_diag_list_reset(&diagnostics);
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &diagnostics) != 0) {
-    *out_error = duplicate_text_local("out of memory");
+    *out_error = m68k_platform_dup_string("out of memory");
     return -1;
   }
   analysis_policy = workflow.analysis_policy;
@@ -7754,7 +7750,7 @@ int platform_file_reproduction_compare_buffer_bytes_profile_alloc(const char *ba
 cleanup:
   if (result != 0 && *out_error == NULL) {
     const char *message = m68k_diag_first_message(&diagnostics);
-    *out_error = duplicate_text_local(message != NULL ? message : "reproduction compare failed");
+    *out_error = m68k_platform_dup_string(message != NULL ? message : "reproduction compare failed");
   }
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -7770,7 +7766,7 @@ int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name
   if (out_artifact != NULL) *out_artifact = NULL;
   if (out_error != NULL) *out_error = NULL;
   if (out_artifact == NULL || out_error == NULL || backend_name == NULL || path == NULL) {
-    if (out_error != NULL) *out_error = duplicate_text_local("invalid listing artifact request");
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid listing artifact request");
     return -1;
   }
   artifact = listing_artifact_alloc_base(backend_name, path, &diagnostics);
@@ -7803,7 +7799,7 @@ int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform
   if (out_artifact != NULL) *out_artifact = NULL;
   if (out_error != NULL) *out_error = NULL;
   if (out_artifact == NULL || out_error == NULL || platform_name == NULL || path == NULL) {
-    if (out_error != NULL) *out_error = duplicate_text_local("invalid listing artifact request");
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid listing artifact request");
     return -1;
   }
   artifact = listing_artifact_alloc_base(platform_name, path, &diagnostics);
