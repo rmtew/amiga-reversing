@@ -143,6 +143,9 @@ typedef struct AmigaLocalSuccessSummaryWorkspace {
   uint8_t *entry_known;
   size_t *pending;
   size_t pending_capacity;
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
+  uint8_t has_scratch_mark;
   uint8_t in_use;
 } AmigaLocalSuccessSummaryWorkspace;
 
@@ -4117,24 +4120,23 @@ static int acquire_amiga_local_success_summary_workspace(const SectionAnalysisCo
       block_count > ((size_t)-1) / sizeof(*temp_workspace->pending)) {
     return -1;
   }
-  temp_workspace->entry_states = (AmigaCallEffectRegState *)m68k_allocator_alloc(m68k_allocator_heap(),
+  temp_workspace->scratch_arena = arena;
+  temp_workspace->scratch_mark = arena_mark(arena);
+  temp_workspace->has_scratch_mark = 1U;
+  temp_workspace->entry_states = (AmigaCallEffectRegState *)arena_alloc(arena,
     block_count * sizeof(*temp_workspace->entry_states));
-  temp_workspace->entry_const_known = (uint32_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+  temp_workspace->entry_const_known = (uint32_t *)arena_alloc(arena,
     block_count * sizeof(*temp_workspace->entry_const_known));
-  temp_workspace->entry_const_values = (int32_t (*)[8])m68k_allocator_alloc(m68k_allocator_heap(),
+  temp_workspace->entry_const_values = (int32_t (*)[8])arena_alloc(arena,
     block_count * sizeof(*temp_workspace->entry_const_values));
-  temp_workspace->entry_known = (uint8_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+  temp_workspace->entry_known = (uint8_t *)arena_alloc(arena,
     block_count * sizeof(*temp_workspace->entry_known));
-  temp_workspace->pending = (size_t *)m68k_allocator_alloc(m68k_allocator_heap(),
+  temp_workspace->pending = (size_t *)arena_alloc(arena,
     block_count * sizeof(*temp_workspace->pending));
   if (temp_workspace->entry_states == NULL || temp_workspace->entry_const_known == NULL ||
       temp_workspace->entry_const_values == NULL || temp_workspace->entry_known == NULL ||
       temp_workspace->pending == NULL) {
-    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_states);
-    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_const_known);
-    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_const_values);
-    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->entry_known);
-    m68k_allocator_free(m68k_allocator_heap(), temp_workspace->pending);
+    arena_rewind(arena, temp_workspace->scratch_mark);
     memset(temp_workspace, 0, sizeof(*temp_workspace));
     return -1;
   }
@@ -4150,11 +4152,8 @@ static void release_amiga_local_success_summary_workspace(AmigaPlatformCache *ca
     AmigaLocalSuccessSummaryWorkspace *workspace, int is_temp) {
   if (workspace == NULL) return;
   if (is_temp) {
-    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_states);
-    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_const_known);
-    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_const_values);
-    m68k_allocator_free(m68k_allocator_heap(), workspace->entry_known);
-    m68k_allocator_free(m68k_allocator_heap(), workspace->pending);
+    if (workspace->scratch_arena != NULL && workspace->has_scratch_mark)
+      arena_rewind(workspace->scratch_arena, workspace->scratch_mark);
     memset(workspace, 0, sizeof(*workspace));
     return;
   }
