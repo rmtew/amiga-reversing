@@ -8,10 +8,10 @@
 #include "m68k_source_include.h"
 #include "m68k_source_text_util.h"
 #include "m68k_symbolic_parse.h"
+#include "util_arena.h"
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -174,13 +174,13 @@ static int parse_hex_blob(const char *text, uint8_t **out_data, uint32_t *out_si
   if ((digit_count & 1U) != 0U) return 0;
   byte_count = digit_count / 2U;
   if (byte_count > UINT32_MAX) return 0;
-  data = (uint8_t *)malloc(byte_count == 0U ? 1U : byte_count);
+  data = (uint8_t *)m68k_allocator_alloc(m68k_allocator_heap(), byte_count == 0U ? 1U : byte_count);
   if (data == NULL) return 0;
   for (index = 0U; index < byte_count; ++index) {
     uint8_t hi = 0U;
     uint8_t lo = 0U;
     if (!parse_hex_nibble(cursor[index * 2U], &hi) || !parse_hex_nibble(cursor[index * 2U + 1U], &lo)) {
-      free(data);
+      m68k_allocator_free(m68k_allocator_heap(), data);
       return 0;
     }
     data[index] = (uint8_t)((hi << 4) | lo);
@@ -690,12 +690,12 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
           return 0;
         }
         if (!append_atari_symbol_table_chunk(source, symbol_table, symbol_table_size, 0)) {
-          free(symbol_table);
+          m68k_allocator_free(m68k_allocator_heap(), symbol_table);
           source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
-        free(symbol_table);
+        m68k_allocator_free(m68k_allocator_heap(), symbol_table);
         continue;
       }
       if (m68k_ascii_prefix_equal_ci(head_text, symbol_prefix)) {
@@ -709,12 +709,12 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
           return 0;
         }
         if (!append_atari_symbol_table_chunk(source, symbol_table, symbol_table_size, 1)) {
-          free(symbol_table);
+          m68k_allocator_free(m68k_allocator_heap(), symbol_table);
           source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
-        free(symbol_table);
+        m68k_allocator_free(m68k_allocator_heap(), symbol_table);
         continue;
       }
       if (m68k_ascii_prefix_equal_ci(head_text, reloc_append_prefix)) {
@@ -728,12 +728,12 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
           return 0;
         }
         if (!append_atari_relocation_stream_chunk(source, relocation_stream, relocation_stream_size, 0)) {
-          free(relocation_stream);
+          m68k_allocator_free(m68k_allocator_heap(), relocation_stream);
           source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
-        free(relocation_stream);
+        m68k_allocator_free(m68k_allocator_heap(), relocation_stream);
         continue;
       }
       if (m68k_ascii_prefix_equal_ci(head_text, reloc_prefix)) {
@@ -747,12 +747,12 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
           return 0;
         }
         if (!append_atari_relocation_stream_chunk(source, relocation_stream, relocation_stream_size, 1)) {
-          free(relocation_stream);
+          m68k_allocator_free(m68k_allocator_heap(), relocation_stream);
           source_line_reader_close(reader);
           source_parse_error(diagnostics, "out of memory");
           return 0;
         }
-        free(relocation_stream);
+        m68k_allocator_free(m68k_allocator_heap(), relocation_stream);
         continue;
       }
     }
