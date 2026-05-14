@@ -14,13 +14,17 @@ Some of these may be in non-updated source in targets/, they need checking for e
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
     be using bitflags or enums to replace that.
-- One interesting facet of arena usage is that we have custom methods that work on arena memory. There is a good
-  argument here to expand that for all our allocations, where for instance instead of using an arena we provide an
-  allocator that happens to be an arena. It might also be worth abstracting it further to a context object that
-  happens to have the preferred allocator as it's default allocator.
-  - We should strongly consider using platform-specific allocations bypassing the C runtime with a view to not linking
-    against it at a later date.
-  - ...
+- Refocus C allocation cleanup around explicit lifetime ownership instead of expanding the generic allocator facade.
+  The current `M68kAllocator`/`m68k_allocator_heap()` direction hides `malloc/free` without specifying ownership and
+  should not spread further.
+  - Remove production `m68k_allocator_heap()` call sites in focused ownership clusters.
+  - Move each cluster to an explicit Workflow Arena, Result Arena, model-owned arena, or public-edge Caller-Freed Output
+    Buffer contract.
+  - Introduce Workflow Context only where a top-level workflow needs to pass multiple workflow-owned concerns, not as a
+    generic allocator bag.
+  - Keep local temporary allocation on Workflow Arena Scratch Marks unless a measured workflow justifies another arena
+    form.
+  - Keep heap/OS allocation isolated to arena backing storage or unavoidable public/platform boundaries.
 
 ## Phase 6: Beyond Static Analysis
 

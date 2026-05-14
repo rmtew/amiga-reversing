@@ -52,6 +52,10 @@ _Avoid_: Container layout when referring to record representation choices
 The C-owned state used to compare original bytes and rebuilt bytes under a selected backend and reproduction policy.
 _Avoid_: HUNK-specific fixer context
 
+**Workflow Context**:
+Top-level C workflow state passed through a repository-owned operation; it may carry arenas and later workflow-local services, but it is not a generic allocator bag.
+_Avoid_: Allocator context, hidden global state
+
 **Workflow Arena**:
 C-owned temporary memory for one top-level C workflow call, destroyed before the call returns and never used for returned artifacts.
 _Avoid_: Global scratch arena, process scratch arena, returned artifact arena
@@ -176,9 +180,18 @@ _Avoid_: Help text
 - Standalone **Assembly** uses an ideal/default **Assembler Policy** unless the caller overrides selected policy values.
 - **Reproduction Comparison** consumes original bytes and rebuilt bytes.
 - **Reproduction Comparison** runs inside a **Reproduction Comparison Context**.
+- A **Workflow Context** carries explicit workflow-owned state through a top-level C operation.
+- A **Workflow Context** does not own returned persistent data; persistent results live in a **Result Arena**, caller-provided arena, or model-owned arena chosen by the API contract.
+- A **Workflow Context** is introduced only where a top-level workflow needs multiple workflow-owned concerns; existing **Workflow Arena** parameters remain valid when they express the full contract.
 - A **Workflow Arena** supplies temporary C memory within one top-level workflow call.
 - A **Scratch Mark** creates a nested temporary lifetime inside a **Workflow Arena**.
+- Scratch allocation uses **Scratch Marks** on the current **Workflow Arena** unless a measured workflow needs a separate arena form.
 - A **Result Arena** owns internal pointers inside one C result object.
+- Repository-owned C APIs prefer explicit **Workflow Context**, **Workflow Arena**, or **Result Arena** parameters over generic allocator parameters.
+- Production C code does not add generic heap-backed allocator facade usage; allocation cleanup replaces it with explicit lifetime ownership rather than accepting it as transition debt.
+- Existing heap-backed allocator facade call sites are removed in focused ownership clusters, and each cluster must move to an explicit **Workflow Arena**, **Result Arena**, model-owned arena, or **Caller-Freed Output Buffer** contract.
+- **Caller-Freed Output Buffers** remain valid at Python, CLI, or public C API edges, but repository-owned internals do not introduce new caller-freed buffers.
+- For internal persistent returned data, the caller chooses the destination arena or passes an object/model that owns the destination arena.
 - An **Arena Builder** is a reusable building block for append-style collections in either a **Workflow Arena** or **Result Arena**.
 - A **Caller-Freed Output Buffer** must not point into a **Workflow Arena** or **Result Arena**.
 - C modules that allocate internal pointers choose a **Workflow Arena** or **Result Arena** explicitly at their interface.
