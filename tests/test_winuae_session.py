@@ -41,6 +41,16 @@ def test_write_cmd_file_forwards_extra_args(tmp_path: Path) -> None:
     assert cmd_path.read_text(encoding="utf-8") == f"@echo off\nwinuae64.exe -cli={tmp_path}\\cli %*\n"
 
 
+def test_write_startup_sequence_creates_boot_script(tmp_path: Path) -> None:
+    startup_path = winuae_session.write_startup_sequence(
+        tmp_path / "cli",
+        ["cd dh0:work", "run >nil: target"],
+    )
+
+    assert startup_path == tmp_path / "cli" / "S" / "startup-sequence"
+    assert startup_path.read_text(encoding="ascii") == "cd dh0:work\nrun >nil: target\n"
+
+
 def test_main_prints_and_writes_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     cmd_path = tmp_path / "session.cmd"
     result = winuae_session.main(
@@ -53,9 +63,12 @@ def test_main_prints_and_writes_command(tmp_path: Path, capsys: pytest.CaptureFi
             "--show-gui",
             "--cmd-out",
             str(cmd_path),
+            "--startup-command",
+            "echo ready",
         ]
     )
 
     assert result == 0
     assert capsys.readouterr().out == f"winuae64.exe -cli={tmp_path}\\cli\n"
     assert cmd_path.read_text(encoding="utf-8") == f"@echo off\nwinuae64.exe -cli={tmp_path}\\cli %*\n"
+    assert (tmp_path / "cli" / "S" / "startup-sequence").read_text(encoding="ascii") == "echo ready\n"

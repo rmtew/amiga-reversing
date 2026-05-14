@@ -39,6 +39,13 @@ def write_cmd_file(path: Path, session: WinUaeSession) -> None:
     path.write_text(f"@echo off\n{command_line(session.command())} %*\n", encoding="utf-8", newline="\r\n")
 
 
+def write_startup_sequence(cli_root: Path, commands: list[str]) -> Path:
+    startup_path = cli_root / "S" / "startup-sequence"
+    startup_path.parent.mkdir(parents=True, exist_ok=True)
+    startup_path.write_text("".join(f"{command}\n" for command in commands), encoding="ascii", newline="\n")
+    return startup_path
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build a WinUAE CLI/debugger session command.")
     parser.add_argument("--winuae", type=Path, default=DEFAULT_WINUAE_EXE)
@@ -47,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-debugger", action="store_true")
     parser.add_argument("--show-gui", action="store_true")
     parser.add_argument("--cmd-out", type=Path)
+    parser.add_argument("--startup-command", action="append", default=[])
     return parser
 
 
@@ -63,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
     line = command_line(session.command())
     if args.cmd_out is not None:
         write_cmd_file(args.cmd_out, session)
+    if args.startup_command:
+        write_startup_sequence(args.cli_root, args.startup_command)
     print(line)
     return 0
 
