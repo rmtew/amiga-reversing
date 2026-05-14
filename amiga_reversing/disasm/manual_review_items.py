@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from amiga_reversing.disasm.manual_actions import finalize_review_items
+from amiga_reversing.disasm.manual_actions import ReviewItemState, finalize_review_items
 
 
 def analysis_review_items(
@@ -68,7 +68,7 @@ def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, 
             "kind": "decompression_blocker",
             "item_id": f"decompression_blocker:{event_id}",
             "scope": "range",
-            "state": "open",
+            "state": ReviewItemState.OPEN,
             "review_blocker": True,
             "hunk": hunk,
             "start": start,
@@ -106,7 +106,7 @@ def _orphan_code_items(section: dict[str, object], section_index: int) -> list[d
             {
                 "kind": "orphan_code_candidate",
                 "scope": "range",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "hunk": section_index,
                 "start": start,
                 "end": start + size,
@@ -134,7 +134,7 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
             {
                 "kind": "suspicious_instruction_decode",
                 "scope": "range",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "hunk": section_index,
                 "start": start,
                 "end": start + size,
@@ -175,7 +175,7 @@ def _unreconciled_item(section_index: int, start: int, end: int) -> dict[str, ob
     return {
         "kind": "unreconciled_data_range",
         "scope": "range",
-        "state": "open",
+        "state": ReviewItemState.OPEN,
         "hunk": section_index,
         "start": start,
         "end": end,
@@ -208,7 +208,7 @@ def _manual_annotation_unreconciled_items(
                     "kind": item_kind,
                     "item_id": f"{item_kind}:{annotation_id}",
                     "scope": "range",
-                    "state": "open",
+                    "state": ReviewItemState.OPEN,
                     f"{annotation_kind}_id": annotation_id,
                     "hunk": hunk,
                     "start": max(start, gap_start),

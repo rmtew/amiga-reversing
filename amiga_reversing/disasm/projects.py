@@ -13,10 +13,12 @@ from amiga_reversing.disasm.binary_source import (
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.manual_actions import (
+    ReviewItemState,
     ReviewState,
     finalize_review_items,
     load_manual_projection,
     manual_action_log_path,
+    review_item_is_open,
 )
 from amiga_reversing.disasm.project_ids import (
     disk_project_id,
@@ -256,7 +258,7 @@ def _combined_review_state(
 ) -> ReviewState:
     if manual_state is ReviewState.BLOCKED:
         return ReviewState.BLOCKED
-    open_items = tuple(item for item in review_items if item.get("state") == "open")
+    open_items = tuple(item for item in review_items if review_item_is_open(item))
     if any(item.get("review_blocker") is True for item in open_items):
         return ReviewState.BLOCKED
     if manual_state is ReviewState.NEEDS_REVIEW or open_items:
@@ -275,7 +277,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "message": f"Reproduction report cannot be checked: {exc}",
                 "source": "reproduction",
@@ -286,7 +288,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "message": "Reproduction report cannot be checked",
                 "source": "reproduction",
@@ -327,7 +329,7 @@ def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[
                 "kind": "decompression_blocker",
                 "item_id": f"decompression_blocker:{event_id}",
                 "scope": "range" if isinstance(source_section, int) and isinstance(source_offset, int) else "target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "source": "decompression",
                 "event_id": event_id,
@@ -351,7 +353,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "status": status,
                 "message": f"Reproduction content exactness cannot be checked: {status}",
@@ -367,7 +369,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
             {
                 "kind": "reproduction_mismatch",
                 "scope": "target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "status": status,
                 "comparison_status": comparison.get("status"),
@@ -384,7 +386,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
         {
             "kind": kind,
             "scope": "target",
-            "state": "open",
+            "state": ReviewItemState.OPEN,
             "review_blocker": False,
             "status": status,
             "comparison_status": comparison.get("status"),

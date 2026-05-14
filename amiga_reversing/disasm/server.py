@@ -41,6 +41,7 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.manual_actions import (
     ReviewState,
     append_manual_action,
+    review_item_is_open,
     validate_manual_action_payload,
 )
 from amiga_reversing.disasm.manual_review_items import analysis_review_items
@@ -223,7 +224,7 @@ def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dic
         return []
     raw_items = project.get("review_items")
     items = [item for item in raw_items if isinstance(item, dict)] if isinstance(raw_items, list | tuple) else []
-    open_items = [item for item in items if item.get("state") == "open"]
+    open_items = [item for item in items if review_item_is_open(item)]
     blockers = [item for item in open_items if item.get("review_blocker") is True]
     if review_state is ReviewState.BLOCKED:
         message = f"Review is blocked by {len(blockers) or len(open_items)} live item(s); target cannot be rated clear."
@@ -1287,7 +1288,7 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
         *analysis_items,
     ]
     project_dict["review_items"] = review_items
-    open_analysis_items = [item for item in analysis_items if item.get("state") == "open"]
+    open_analysis_items = [item for item in analysis_items if review_item_is_open(item)]
     if _review_state_id(project_dict.get("review_state")) is not ReviewState.BLOCKED:
         if any(item.get("review_blocker") is True for item in open_analysis_items):
             project_dict["review_state"] = ReviewState.BLOCKED

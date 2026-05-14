@@ -30,6 +30,26 @@ class ReviewState(StrEnum):
     BLOCKED = "blocked"
 
 
+class ReviewItemState(StrEnum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+
+
+def review_item_state(value: object) -> ReviewItemState | None:
+    if isinstance(value, ReviewItemState):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return ReviewItemState(value)
+    except ValueError:
+        return None
+
+
+def review_item_is_open(item: dict[str, object]) -> bool:
+    return review_item_state(item.get("state")) is ReviewItemState.OPEN
+
+
 class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEED = "create_manual_seed"
     REMOVE_MANUAL_SEED = "remove_manual_seed"
@@ -306,7 +326,7 @@ def _finalize_review_items(
             if item.get("review_blocker") is True:
                 item["acknowledged"] = True
             else:
-                item["state"] = "resolved"
+                item["state"] = ReviewItemState.RESOLVED
         elif str(item["item_id"]) in resolved_item_ids:
             item["changed_since_resolution"] = True
         finalized.append(item)
@@ -314,7 +334,7 @@ def _finalize_review_items(
 
 
 def _review_state_for_items(review_items: tuple[dict[str, object], ...]) -> ReviewState:
-    open_review_items = tuple(item for item in review_items if item.get("state") == "open")
+    open_review_items = tuple(item for item in review_items if review_item_is_open(item))
     if any(item.get("review_blocker") is True for item in open_review_items):
         return ReviewState.BLOCKED
     if open_review_items:
@@ -340,7 +360,7 @@ def _blocked_projection(
     item: dict[str, object] = {
         "kind": kind,
         "scope": "target",
-        "state": "open",
+        "state": ReviewItemState.OPEN,
         "message": message,
     }
     review_items = _finalize_review_items([item], ())
@@ -355,7 +375,7 @@ def _blocked_projection(
 
 
 def _needs_review_item(kind: str, message: str) -> dict[str, object]:
-    return {"kind": kind, "scope": "target", "state": "open", "message": message}
+    return {"kind": kind, "scope": "target", "state": ReviewItemState.OPEN, "message": message}
 
 
 def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
@@ -446,7 +466,7 @@ def _manual_label_conflict_items(
                         "kind": "label_scope_conflict",
                         "item_id": f"label_scope_conflict:{label_id}:missing-owner",
                         "scope": "range",
-                        "state": "open",
+                        "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
                         "hunk": hunk,
@@ -467,7 +487,7 @@ def _manual_label_conflict_items(
                         "kind": "label_scope_conflict",
                         "item_id": f"label_scope_conflict:{label_id}:unsupported-local-profile",
                         "scope": "range",
-                        "state": "open",
+                        "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
                         "hunk": hunk,
@@ -486,7 +506,7 @@ def _manual_label_conflict_items(
                         "kind": "label_scope_conflict",
                         "item_id": f"label_scope_conflict:{label_id}:reserved-local-name",
                         "scope": "range",
-                        "state": "open",
+                        "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
                         "hunk": hunk,
@@ -505,7 +525,7 @@ def _manual_label_conflict_items(
                     "kind": "label_scope_conflict",
                     "item_id": f"label_scope_conflict:{label_id}:metadata-collision",
                     "scope": "range",
-                    "state": "open",
+                    "state": ReviewItemState.OPEN,
                     "review_blocker": False,
                     "label_ids": [label_id],
                     "hunk": hunk,
@@ -529,7 +549,7 @@ def _manual_label_conflict_items(
                 "kind": "label_scope_conflict",
                 "item_id": f"label_scope_conflict:{min(previous_id, label_id)}:{max(previous_id, label_id)}",
                 "scope": "range",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "label_ids": [previous_id, label_id],
                 "hunk": hunk,
@@ -568,7 +588,7 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
                     "kind": "manual_seed_conflict",
                     "item_id": item_id,
                     "scope": "range",
-                    "state": "open",
+                    "state": ReviewItemState.OPEN,
                     "review_blocker": True,
                     "seed_ids": [left_id, right_id],
                     "hunk": left_range[0],
@@ -615,7 +635,7 @@ def _manual_seed_metadata_conflict_items(
                     "kind": "manual_seed_conflict",
                     "item_id": f"manual_seed_conflict:{seed_id}:{stronger_id}",
                     "scope": "range",
-                    "state": "open",
+                    "state": ReviewItemState.OPEN,
                     "review_blocker": True,
                     "seed_ids": [seed_id],
                     "stronger_kind": stronger_kind,
@@ -655,7 +675,7 @@ def _manual_seed_binary_source_conflict_items(
                 "kind": "manual_seed_conflict",
                 "item_id": f"manual_seed_conflict:{seed_id}:{source_id}",
                 "scope": "range",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "seed_ids": [seed_id],
                 "stronger_kind": "code",
