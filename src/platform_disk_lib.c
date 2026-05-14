@@ -19,6 +19,33 @@
 #define AMIGA_DISK_CONTENT_CLASSIFY_MAX_BYTES (1024U * 1024U)
 #define PLATFORM_DISK_WORKFLOW_ARENA_SIZE 16384U
 
+typedef enum PlatformDiskKind {
+    PLATFORM_DISK_KIND_UNKNOWN = 0,
+    PLATFORM_DISK_KIND_AMIGA,
+    PLATFORM_DISK_KIND_ATARI_ST
+} PlatformDiskKind;
+
+typedef struct PlatformDiskName {
+    const char *name;
+    PlatformDiskKind kind;
+} PlatformDiskName;
+
+static const PlatformDiskName PLATFORM_DISK_NAMES[] = {
+    {"amiga-disk", PLATFORM_DISK_KIND_AMIGA},
+    {"amiga", PLATFORM_DISK_KIND_AMIGA},
+    {"atari-st-disk", PLATFORM_DISK_KIND_ATARI_ST},
+    {"atari-st", PLATFORM_DISK_KIND_ATARI_ST},
+};
+
+static PlatformDiskKind platform_disk_kind_from_name(const char *platform_name) {
+    size_t index;
+    if (platform_name == NULL || platform_name[0] == '\0') return PLATFORM_DISK_KIND_UNKNOWN;
+    for (index = 0U; index < sizeof(PLATFORM_DISK_NAMES) / sizeof(PLATFORM_DISK_NAMES[0]); ++index) {
+        if (_stricmp(platform_name, PLATFORM_DISK_NAMES[index].name) == 0) return PLATFORM_DISK_NAMES[index].kind;
+    }
+    return PLATFORM_DISK_KIND_UNKNOWN;
+}
+
 static int is_leap_year(uint32_t year) {
     return (year % 4U == 0U && year % 100U != 0U) || (year % 400U == 0U);
 }
@@ -1342,12 +1369,15 @@ static int atari_st_disk_inspect(const char *path, const unsigned char *data, si
 
 static int disk_inspect(const char *platform_name, const char *path, const unsigned char *data, size_t size,
     char **out_json, M68kDiagSink diagnostics) {
-    if (_stricmp(platform_name, "amiga-disk") == 0 || _stricmp(platform_name, "amiga") == 0)
-        return amiga_disk_inspect(path, data, size, out_json, diagnostics);
-    if (_stricmp(platform_name, "atari-st-disk") == 0 || _stricmp(platform_name, "atari-st") == 0)
-        return atari_st_disk_inspect(path, data, size, out_json, diagnostics);
-    platform_disk_add_error(diagnostics.list, "unknown disk platform");
-    return -1;
+    switch (platform_disk_kind_from_name(platform_name)) {
+        case PLATFORM_DISK_KIND_AMIGA:
+            return amiga_disk_inspect(path, data, size, out_json, diagnostics);
+        case PLATFORM_DISK_KIND_ATARI_ST:
+            return atari_st_disk_inspect(path, data, size, out_json, diagnostics);
+        default:
+            platform_disk_add_error(diagnostics.list, "unknown disk platform");
+            return -1;
+    }
 }
 
 PLATFORM_DISK_API PlatformDiskTextResult platform_disk_inspect_path_json(const char *platform_name, const char *path) {
@@ -1381,14 +1411,18 @@ PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_entry_path(cons
         arena_destroy(workflow_arena);
         return result;
     }
-    if (_stricmp(platform_name, "amiga-disk") == 0 || _stricmp(platform_name, "amiga") == 0) {
-        extract_amiga_entry_from_buffer(image, image_size, entry_path, &result.data, &result.size,
-            m68k_diag_sink(&result.diagnostics));
-    } else if (_stricmp(platform_name, "atari-st-disk") == 0 || _stricmp(platform_name, "atari-st") == 0) {
-        extract_atari_entry_from_buffer(image, image_size, entry_path, &result.data, &result.size,
-            m68k_diag_sink(&result.diagnostics));
-    } else {
-        platform_disk_add_error(&result.diagnostics, "unknown disk platform");
+    switch (platform_disk_kind_from_name(platform_name)) {
+        case PLATFORM_DISK_KIND_AMIGA:
+            extract_amiga_entry_from_buffer(image, image_size, entry_path, &result.data, &result.size,
+                m68k_diag_sink(&result.diagnostics));
+            break;
+        case PLATFORM_DISK_KIND_ATARI_ST:
+            extract_atari_entry_from_buffer(image, image_size, entry_path, &result.data, &result.size,
+                m68k_diag_sink(&result.diagnostics));
+            break;
+        default:
+            platform_disk_add_error(&result.diagnostics, "unknown disk platform");
+            break;
     }
     arena_destroy(workflow_arena);
     return result;
