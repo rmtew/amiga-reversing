@@ -3595,35 +3595,76 @@ typedef struct MetadataSeededEntityClassification {
   uint32_t role_flags;
 } MetadataSeededEntityClassification;
 
+typedef struct MetadataSeededEntityTypeName {
+  const char *name;
+  MetadataSeededEntityTypeId id;
+} MetadataSeededEntityTypeName;
+
+typedef struct MetadataSeededEntitySubtypeName {
+  const char *name;
+  MetadataSeededEntitySubtypeId id;
+} MetadataSeededEntitySubtypeName;
+
+typedef struct MetadataSeededEntityUnitName {
+  const char *name;
+  MetadataSeededEntityUnitId id;
+} MetadataSeededEntityUnitName;
+
+static const MetadataSeededEntityTypeName METADATA_SEEDED_ENTITY_TYPE_NAMES[] = {
+  { "data", METADATA_SEEDED_ENTITY_TYPE_DATA },
+};
+
+static const MetadataSeededEntitySubtypeName METADATA_SEEDED_ENTITY_SUBTYPE_NAMES[] = {
+  { "copper_list", METADATA_SEEDED_ENTITY_SUBTYPE_COPPER_LIST },
+  { "palette", METADATA_SEEDED_ENTITY_SUBTYPE_PALETTE },
+  { "pointer_table", METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE },
+  { "lookup_table", METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE },
+  { "scalar_table", METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE },
+  { "length_prefixed_string", METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING },
+  { "bitmap", METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP },
+  { "sound_sample", METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE },
+  { "string", METADATA_SEEDED_ENTITY_SUBTYPE_STRING },
+  { "audio_table", METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE },
+  { "sprite", METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE },
+  { "string_control_stream", METADATA_SEEDED_ENTITY_SUBTYPE_STRING_CONTROL_STREAM },
+};
+
+static const MetadataSeededEntityUnitName METADATA_SEEDED_ENTITY_UNIT_NAMES[] = {
+  { "word", METADATA_SEEDED_ENTITY_UNIT_WORDS },
+  { "long", METADATA_SEEDED_ENTITY_UNIT_LONGS },
+  { "pointer", METADATA_SEEDED_ENTITY_UNIT_LONGS },
+};
+
 static MetadataSeededEntityTypeId metadata_seeded_entity_type_id_from_text_local(const char *entity_type) {
-  if (entity_type == NULL || entity_type[0] == '\0' || strcmp(entity_type, "data") == 0)
-    return METADATA_SEEDED_ENTITY_TYPE_DATA;
+  size_t index;
+  if (entity_type == NULL || entity_type[0] == '\0') return METADATA_SEEDED_ENTITY_TYPE_DATA;
+  for (index = 0U; index < sizeof(METADATA_SEEDED_ENTITY_TYPE_NAMES) / sizeof(METADATA_SEEDED_ENTITY_TYPE_NAMES[0]);
+       ++index) {
+    if (strcmp(entity_type, METADATA_SEEDED_ENTITY_TYPE_NAMES[index].name) == 0)
+      return METADATA_SEEDED_ENTITY_TYPE_NAMES[index].id;
+  }
   return METADATA_SEEDED_ENTITY_TYPE_IGNORED;
 }
 
 static MetadataSeededEntitySubtypeId metadata_seeded_entity_subtype_id_from_text_local(const char *subtype) {
+  size_t index;
   if (subtype == NULL || subtype[0] == '\0') return METADATA_SEEDED_ENTITY_SUBTYPE_NONE;
-  if (strcmp(subtype, "copper_list") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_COPPER_LIST;
-  if (strcmp(subtype, "palette") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_PALETTE;
-  if (strcmp(subtype, "pointer_table") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_POINTER_TABLE;
-  if (strcmp(subtype, "lookup_table") == 0 || strcmp(subtype, "scalar_table") == 0)
-    return METADATA_SEEDED_ENTITY_SUBTYPE_LOOKUP_TABLE;
-  if (strcmp(subtype, "length_prefixed_string") == 0)
-    return METADATA_SEEDED_ENTITY_SUBTYPE_LENGTH_PREFIXED_STRING;
-  if (strcmp(subtype, "bitmap") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_BITMAP;
-  if (strcmp(subtype, "sound_sample") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_SOUND_SAMPLE;
-  if (strcmp(subtype, "string") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_STRING;
-  if (strcmp(subtype, "audio_table") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_AUDIO_TABLE;
-  if (strcmp(subtype, "sprite") == 0) return METADATA_SEEDED_ENTITY_SUBTYPE_SPRITE;
-  if (strcmp(subtype, "string_control_stream") == 0)
-    return METADATA_SEEDED_ENTITY_SUBTYPE_STRING_CONTROL_STREAM;
+  for (index = 0U; index < sizeof(METADATA_SEEDED_ENTITY_SUBTYPE_NAMES) / sizeof(METADATA_SEEDED_ENTITY_SUBTYPE_NAMES[0]);
+       ++index) {
+    if (strcmp(subtype, METADATA_SEEDED_ENTITY_SUBTYPE_NAMES[index].name) == 0)
+      return METADATA_SEEDED_ENTITY_SUBTYPE_NAMES[index].id;
+  }
   return METADATA_SEEDED_ENTITY_SUBTYPE_NONE;
 }
 
 static MetadataSeededEntityUnitId metadata_seeded_entity_unit_id_from_text_local(const char *unit) {
-  if (unit != NULL && strcmp(unit, "word") == 0) return METADATA_SEEDED_ENTITY_UNIT_WORDS;
-  if (unit != NULL && (strcmp(unit, "long") == 0 || strcmp(unit, "pointer") == 0))
-    return METADATA_SEEDED_ENTITY_UNIT_LONGS;
+  size_t index;
+  if (unit == NULL || unit[0] == '\0') return METADATA_SEEDED_ENTITY_UNIT_BYTES;
+  for (index = 0U; index < sizeof(METADATA_SEEDED_ENTITY_UNIT_NAMES) / sizeof(METADATA_SEEDED_ENTITY_UNIT_NAMES[0]);
+       ++index) {
+    if (strcmp(unit, METADATA_SEEDED_ENTITY_UNIT_NAMES[index].name) == 0)
+      return METADATA_SEEDED_ENTITY_UNIT_NAMES[index].id;
+  }
   return METADATA_SEEDED_ENTITY_UNIT_BYTES;
 }
 
