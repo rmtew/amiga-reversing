@@ -348,6 +348,46 @@ static int test_recovered_indirect_source_pattern_ids(void) {
   return 0;
 }
 
+static int test_recovered_platform_transfer_source_kind_uses_ids(void) {
+  Arena *arena = arena_create(1024U);
+  M68kSectionAnalysisIR section;
+
+  M68K_C_ASSERT(arena != NULL);
+  M68K_C_ASSERT_STR("logical_disk_offset",
+    m68k_recovered_platform_transfer_source_kind_name(
+      M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET));
+  M68K_C_ASSERT_STR("post_read_runtime_copy",
+    m68k_recovered_platform_transfer_source_kind_name(
+      M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY));
+  M68K_C_ASSERT(m68k_recovered_platform_transfer_source_kind_name(
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE) == NULL);
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section, arena));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_disk_read(
+    &section, 4U, 2U, "CMD_READ", 0x400U, 0x200U, 0x1000U,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_disk_read(
+    &section, 4U, 2U, "CMD_READ", 0x400U, 0x200U, 0x1000U,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section.recovered_platform_disk_read_count);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET,
+    section.recovered_platform_disk_reads[0].source_kind);
+
+  M68K_C_ASSERT_INT(-1, m68k_ir_section_analysis_append_recovered_platform_runtime_copy(
+    &section, 8U, 0x20000U, 0x864U, 4U, 0x866U,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_runtime_copy(
+    &section, 8U, 0x20000U, 0x864U, 4U, 0x866U,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section.recovered_platform_runtime_copy_count);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY,
+    section.recovered_platform_runtime_copies[0].source_kind);
+
+  m68k_ir_section_analysis_destroy(&section);
+  arena_destroy(arena);
+  return 0;
+}
+
 static int test_section_append_statement_copies_data(void) {
   M68kSectionIR section;
   M68kStatementIR statement;
@@ -19185,6 +19225,8 @@ int m68k_c_ir_tests(void) {
     {"structured_data_role_flags_setter_owns_display_text",
       test_structured_data_role_flags_setter_owns_display_text},
     {"recovered_indirect_source_pattern_ids", test_recovered_indirect_source_pattern_ids},
+    {"recovered_platform_transfer_source_kind_uses_ids",
+      test_recovered_platform_transfer_source_kind_uses_ids},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
     {"source_analysis_append_section_copies_recovered_dispatches",

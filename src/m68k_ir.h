@@ -842,6 +842,12 @@ typedef struct M68kRecoveredPlatformCallIR {
   char *device_name;
 } M68kRecoveredPlatformCallIR;
 
+typedef enum M68kRecoveredPlatformTransferSourceKind {
+  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE = 0,
+  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET = 1,
+  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY = 2
+} M68kRecoveredPlatformTransferSourceKind;
+
 typedef struct M68kRecoveredPlatformDiskReadIR {
   uint32_t offset;
   uint32_t command_value;
@@ -849,7 +855,7 @@ typedef struct M68kRecoveredPlatformDiskReadIR {
   uint32_t byte_length;
   uint32_t destination_addr;
   char *command_name;
-  char *source_kind;
+  uint8_t source_kind;
 } M68kRecoveredPlatformDiskReadIR;
 
 typedef struct M68kRecoveredPlatformRuntimeCopyIR {
@@ -858,7 +864,7 @@ typedef struct M68kRecoveredPlatformRuntimeCopyIR {
   uint32_t destination_addr;
   uint32_t byte_length;
   uint32_t handoff_addr;
-  char *source_kind;
+  uint8_t source_kind;
 } M68kRecoveredPlatformRuntimeCopyIR;
 
 typedef struct M68kRecoveredDirectSectionCallIR {
@@ -1176,6 +1182,7 @@ const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
+const char *m68k_recovered_platform_transfer_source_kind_name(uint8_t source_kind);
 int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
@@ -1271,10 +1278,10 @@ int m68k_ir_section_analysis_set_recovered_platform_call_device_name(M68kSection
     uint32_t offset, uint8_t kind, const char *device_name);
 int m68k_ir_section_analysis_append_recovered_platform_disk_read(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, uint32_t command_value, const char *command_name, uint32_t disk_offset,
-    uint32_t byte_length, uint32_t destination_addr, const char *source_kind);
+    uint32_t byte_length, uint32_t destination_addr, uint8_t source_kind);
 int m68k_ir_section_analysis_append_recovered_platform_runtime_copy(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, uint32_t source_addr, uint32_t destination_addr, uint32_t byte_length,
-    uint32_t handoff_addr, const char *source_kind);
+    uint32_t handoff_addr, uint8_t source_kind);
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset);
 int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,

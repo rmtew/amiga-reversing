@@ -2055,8 +2055,8 @@ static int render_lookup_add_bootblock_disk_read(M68kRenderLookup *lookup, size_
   lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].destination_addr = destination_addr;
   snprintf(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].command_name,
     sizeof(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].command_name), "CMD_READ");
-  snprintf(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].source_kind,
-    sizeof(lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].source_kind), "logical_disk_offset");
+  lookup->bootblock_disk_reads[lookup->bootblock_disk_read_count].source_kind =
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET;
   ++lookup->bootblock_disk_read_count;
   return 0;
 }
@@ -2118,9 +2118,8 @@ static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, si
   lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].destination_addr = destination_addr;
   lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].byte_length = byte_length;
   lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].handoff_addr = handoff_addr;
-  snprintf(lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_kind,
-    sizeof(lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_kind),
-    "post_read_runtime_copy");
+  lookup->bootblock_runtime_copies[lookup->bootblock_runtime_copy_count].source_kind =
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY;
   ++lookup->bootblock_runtime_copy_count;
   return 0;
 }

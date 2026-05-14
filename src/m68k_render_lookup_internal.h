@@ -379,7 +379,7 @@ typedef struct M68kRenderBootblockDiskRead {
   uint32_t byte_length;
   uint32_t destination_addr;
   char command_name[32];
-  char source_kind[32];
+  uint8_t source_kind;
 } M68kRenderBootblockDiskRead;
 
 typedef struct M68kRenderBootblockRuntimeCopy {
@@ -389,7 +389,7 @@ typedef struct M68kRenderBootblockRuntimeCopy {
   uint32_t destination_addr;
   uint32_t byte_length;
   uint32_t handoff_addr;
-  char source_kind[32];
+  uint8_t source_kind;
 } M68kRenderBootblockRuntimeCopy;
 
 enum {

@@ -3314,6 +3314,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     for (disk_read_index = 0; disk_read_index < section->recovered_platform_disk_read_count; ++disk_read_index) {
       const M68kRecoveredPlatformDiskReadIR *read = &section->recovered_platform_disk_reads[disk_read_index];
+      const char *source_kind_name = m68k_recovered_platform_transfer_source_kind_name(read->source_kind);
       if (disk_read_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -3326,7 +3327,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           ",\"disk_offset\":%u,\"byte_length\":%u,\"destination_addr\":%u,\"source_kind\":",
           (unsigned)read->disk_offset, (unsigned)read->byte_length, (unsigned)read->destination_addr) != 0)
         goto oom;
-      if (json_builder_append_json_string(&builder, read->source_kind != NULL ? read->source_kind : "") != 0)
+      if (json_builder_append_json_string(&builder, source_kind_name != NULL ? source_kind_name : "") != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
@@ -3339,6 +3340,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
          ++runtime_copy_index) {
       const M68kRecoveredPlatformRuntimeCopyIR *runtime_copy =
         &section->recovered_platform_runtime_copies[runtime_copy_index];
+      const char *source_kind_name = m68k_recovered_platform_transfer_source_kind_name(runtime_copy->source_kind);
       if (runtime_copy_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (json_builder_appendf(&builder,
@@ -3348,8 +3350,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           (unsigned)runtime_copy->destination_addr, (unsigned)runtime_copy->byte_length,
           (unsigned)runtime_copy->handoff_addr) != 0)
         goto oom;
-      if (json_builder_append_json_string(&builder,
-          runtime_copy->source_kind != NULL ? runtime_copy->source_kind : "") != 0)
+      if (json_builder_append_json_string(&builder, source_kind_name != NULL ? source_kind_name : "") != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
