@@ -1148,6 +1148,12 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc.argtypes = [
+        c_void_p,
+        c_uint32,
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_anchor_window_json_alloc.argtypes = [
         c_void_p,
         c_char_p,
@@ -1487,6 +1493,28 @@ class CListingArtifact:
                     1,
                     max(0, section_index),
                     max(0, offset),
+                )
+            ),
+        )
+        if combined.get("found") is not True:
+            return None
+        listing_window = cast(dict[str, object], combined.get("listing", {}))
+        rows = _c_listing_row_dicts(listing_window.get("rows", []))
+        if not rows:
+            return None
+        row = dict(rows[0])
+        row_index = combined.get("row_index")
+        if isinstance(row_index, int):
+            row["row_index"] = row_index
+        return row
+
+    def row_for_runtime_address(self, *, address: int) -> dict[str, object] | None:
+        combined = cast(
+            dict[str, object],
+            json.loads(
+                self._text_from_artifact_call(
+                    self._dll.platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc,
+                    max(0, address),
                 )
             ),
         )

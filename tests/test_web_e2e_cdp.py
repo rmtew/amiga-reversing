@@ -303,6 +303,20 @@ class _FakeCListingArtifact:
                 return serialized
         return None
 
+    def row_for_runtime_address(self, *, address: int) -> dict[str, object] | None:
+        for index, row in enumerate(self.rows):
+            start = row.runtime_address
+            if start is None:
+                continue
+            source_start = row.start_offset if row.start_offset is not None else row.addr
+            source_end = row.end_offset if row.end_offset is not None else None
+            end = start + max(1, source_end - source_start) if source_start is not None and source_end is not None else start + 1
+            if start <= address < end or start == address:
+                serialized = dict(serialize_row(row))
+                serialized["row_index"] = index
+                return serialized
+        return None
+
     def anchor_window_payload(self, *, anchor_code: str, count: int) -> tuple[dict[str, object], dict[str, object]]:
         start = 0
         needle = anchor_code.strip()
@@ -2533,6 +2547,9 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
             kind="instruction",
             text="rts\n",
             addr=2,
+            start_offset=2,
+            end_offset=4,
+            runtime_address=0x6102,
             bytes=b"\x4e\x75",
             opcode_or_directive="rts",
         ),
@@ -2617,9 +2634,10 @@ def test_brave_cdp_listing_layout_aligns_globals_and_shows_bytes(
         assert long_label_clipped
         assert rs_visible_delta < 4
         assert page.evaluate("document.querySelector('.listing-row-global .listing-offset')?.offsetParent !== null")
+        assert page.evaluate("document.querySelector('.listing-row-instruction .listing-runtime')?.textContent === '6102'")
         assert page.evaluate("document.querySelector('.listing-row-instruction .listing-bytes')?.textContent === '4e75'")
         assert page.evaluate("document.querySelector('.listing-row-data .listing-bytes')?.textContent === '1234'")
-        assert page.evaluate("document.querySelectorAll('.listing-column-resizer').length >= 3")
+        assert page.evaluate("document.querySelectorAll('.listing-column-resizer').length >= 4")
         assert page.evaluate(
             "getComputedStyle(document.querySelector('.listing-row-instruction .listing-bytes')).borderRightStyle === 'solid'"
         )
@@ -2688,6 +2706,58 @@ def test_brave_cdp_navigation_buttons_move_history(monkeypatch: pytest.MonkeyPat
         page.wait_for_expression(
             "Array.from(document.querySelectorAll('[data-row-addr=\"8\"]')).some((row) => row.classList.contains('listing-row-focus'))"
         )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_navigation_jumps_to_runtime_address(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_runtime_nav")
+    rows = [
+        ListingRow(
+            row_id=f"r{index}",
+            kind="instruction",
+            text="nop\n",
+            addr=index * 2,
+            section_index=0,
+            start_offset=index * 2,
+            end_offset=index * 2 + 2,
+            runtime_address=0x4000 + index * 2,
+        )
+        for index in range(320)
+    ]
+    target_index = 260
+    rows[target_index] = ListingRow(
+        row_id="runtime-target",
+        kind="instruction",
+        text="rts\n",
+        addr=target_index * 2,
+        section_index=0,
+        start_offset=target_index * 2,
+        end_offset=target_index * 2 + 2,
+        runtime_address=0x6102,
+        stable_key="runtime-target",
+    )
+    disasm_server._ASYNC_JOBS.clear()
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector(".listing-row-instruction")
+        assert not page.evaluate("document.querySelector('[data-row-stable-key=\"runtime-target\"]')")
+        page.click("#open-navigation")
+        page.wait_for_selector("[data-navigation-address-input='1']")
+        page.fill("[data-navigation-address-input='1']", "$6102")
+        page.click(".navigation-address-submit")
+        page.wait_for_expression(
+            "document.querySelector('[data-row-stable-key=\"runtime-target\"]')?.classList.contains('listing-row-focus')"
+        )
+        assert page.evaluate(
+            "document.querySelector('[data-row-stable-key=\"runtime-target\"] .listing-runtime')?.textContent"
+        ) == "6102"
         page.assert_no_errors()
 
 

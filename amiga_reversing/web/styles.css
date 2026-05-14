@@ -1161,13 +1161,13 @@ body {
 
 .listing-scroll-spacer {
   position: relative;
-  min-width: calc(var(--listing-offset-width, 64px) + var(--listing-bytes-width, 180px) + var(--listing-code-width, 520px) + 360px);
+  min-width: calc(var(--listing-offset-width, 64px) + var(--listing-runtime-width, 72px) + var(--listing-bytes-width, 180px) + var(--listing-code-width, 520px) + 360px);
 }
 
 .listing-row-layer {
   position: absolute;
   inset: 0 auto auto 0;
-  min-width: max(100%, calc(var(--listing-offset-width, 64px) + var(--listing-bytes-width, 180px) + var(--listing-code-width, 520px) + 360px));
+  min-width: max(100%, calc(var(--listing-offset-width, 64px) + var(--listing-runtime-width, 72px) + var(--listing-bytes-width, 180px) + var(--listing-code-width, 520px) + 360px));
   will-change: transform;
 }
 
@@ -1231,7 +1231,7 @@ body {
 
 .listing-row {
   display: grid;
-  grid-template-columns: var(--listing-offset-width, 64px) var(--listing-bytes-width, 180px) minmax(var(--listing-code-width, 520px), 1fr) minmax(220px, 420px);
+  grid-template-columns: var(--listing-offset-width, 64px) var(--listing-runtime-width, 72px) var(--listing-bytes-width, 180px) minmax(var(--listing-code-width, 520px), 1fr) minmax(220px, 420px);
   gap: 0;
   align-items: center;
   padding: 0;
@@ -1257,6 +1257,7 @@ body {
 }
 
 .listing-offset,
+.listing-runtime,
 .listing-bytes,
 .listing-code,
 .listing-comment {
@@ -1270,6 +1271,7 @@ body {
 }
 
 .listing-offset,
+.listing-runtime,
 .listing-bytes {
   color: #666;
 }
@@ -1296,12 +1298,17 @@ body {
 }
 
 .listing-column-resizer-bytes {
+  grid-column: 3;
+  justify-self: end;
+}
+
+.listing-column-resizer-runtime {
   grid-column: 2;
   justify-self: end;
 }
 
 .listing-column-resizer-code {
-  grid-column: 3;
+  grid-column: 4;
   justify-self: end;
 }
 
@@ -1508,6 +1515,8 @@ body {
 
 .navigation-close,
 .navigation-class-select,
+.navigation-address-input,
+.navigation-address-submit,
 .navigation-item {
   font: inherit;
 }
@@ -1528,6 +1537,31 @@ body {
   padding: 8px 10px;
   border: 1px solid #7a7a7a;
   background: #fff;
+}
+
+.navigation-address-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.navigation-address-label {
+  display: grid;
+  gap: 6px;
+}
+
+.navigation-address-input {
+  padding: 8px 10px;
+  border: 1px solid #7a7a7a;
+  background: #fff;
+}
+
+.navigation-address-submit {
+  padding: 8px 12px;
+  border: 1px solid #7a7a7a;
+  background: #fff;
+  cursor: pointer;
 }
 
 .navigation-summary,

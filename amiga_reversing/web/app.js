@@ -68,6 +68,7 @@ const state = {
   },
   listingColumns: {
     offset: 64,
+    runtime: 72,
     bytes: 180,
     code: 520,
     drag: null,
@@ -127,6 +128,7 @@ const LISTING_OVERSCAN_SCREENS = 4;
 const STATS_MAX_FETCH_SAMPLES = 240;
 const LISTING_COLUMN_MIN_WIDTHS = {
   offset: 48,
+  runtime: 56,
   bytes: 80,
   code: 260,
 };
@@ -3474,6 +3476,27 @@ function formatRowOffset(addr) {
   return addr.toString(16).padStart(4, "0");
 }
 
+function formatListingRuntimeAddress(row) {
+  const address = Number(row?.runtime_address);
+  if (!Number.isFinite(address)) {
+    return "";
+  }
+  return address.toString(16).padStart(4, "0");
+}
+
+function parseListingAddress(text) {
+  const raw = String(text || "").trim();
+  if (!raw) {
+    return null;
+  }
+  const normalized = raw.replace(/^[$]/, "").replace(/^0x/i, "");
+  if (!/^[0-9a-f]+$/i.test(normalized)) {
+    return null;
+  }
+  const value = Number.parseInt(normalized, 16);
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
 function formatByteOffset(addr) {
   const value = Number(addr);
   if (!Number.isFinite(value)) {
@@ -4017,15 +4040,29 @@ function renderUnresolvedTypedAccessBadges(row) {
 }
 
 function listingColumnStyle() {
-  return `--listing-offset-width:${state.listingColumns.offset}px;--listing-bytes-width:${state.listingColumns.bytes}px;--listing-code-width:${state.listingColumns.code}px;`;
+  return `--listing-offset-width:${state.listingColumns.offset}px;--listing-runtime-width:${state.listingColumns.runtime}px;--listing-bytes-width:${state.listingColumns.bytes}px;--listing-code-width:${state.listingColumns.code}px;`;
 }
 
 function applyListingColumnWidths() {
   document.querySelectorAll(".listing-row-layer, .listing-scroll-spacer").forEach((element) => {
     element.style.setProperty("--listing-offset-width", `${state.listingColumns.offset}px`);
+    element.style.setProperty("--listing-runtime-width", `${state.listingColumns.runtime}px`);
     element.style.setProperty("--listing-bytes-width", `${state.listingColumns.bytes}px`);
     element.style.setProperty("--listing-code-width", `${state.listingColumns.code}px`);
   });
+}
+
+function listingRowRuntimeEnd(row) {
+  const runtimeAddress = Number(row?.runtime_address);
+  if (!Number.isFinite(runtimeAddress)) {
+    return null;
+  }
+  const start = Number(row?.start_offset);
+  const end = Number(row?.end_offset);
+  if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+    return runtimeAddress + (end - start);
+  }
+  return runtimeAddress + 1;
 }
 
 function renderListingRows(rows, globalStart = 0) {
@@ -4045,14 +4082,18 @@ function renderListingRows(rows, globalStart = 0) {
       ${row.section_index !== null && row.section_index !== undefined ? `data-section-index="${escapeHtml(String(row.section_index))}"` : ""}
       ${row.start_offset !== null && row.start_offset !== undefined ? `data-start-offset="${escapeHtml(String(row.start_offset))}"` : ""}
       ${row.end_offset !== null && row.end_offset !== undefined ? `data-end-offset="${escapeHtml(String(row.end_offset))}"` : ""}
+      ${row.runtime_address !== null && row.runtime_address !== undefined ? `data-runtime-address="${escapeHtml(String(row.runtime_address))}"` : ""}
+      ${listingRowRuntimeEnd(row) !== null ? `data-runtime-end-address="${escapeHtml(String(listingRowRuntimeEnd(row)))}"` : ""}
       ${row.structured_data?.struct_name ? `data-struct-name="${escapeHtml(row.structured_data.struct_name)}"` : ""}
       ${row.structured_data?.field_name ? `data-struct-field="${escapeHtml(row.structured_data.field_name)}"` : ""}
     >
       <span class="listing-offset">${escapeHtml(formatRowOffset(row.addr))}</span>
+      <span class="listing-runtime">${escapeHtml(formatListingRuntimeAddress(row))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
       <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
+      <span class="listing-column-resizer listing-column-resizer-runtime" data-listing-column-resize="runtime" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
     </div>
@@ -5551,6 +5592,13 @@ function renderNavigationOverlay() {
             ${classOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${value === selectedClass ? " selected" : ""}>${escapeHtml(label)}</option>`).join("")}
           </select>
         </label>
+        <form class="navigation-address-form" data-navigation-address-form="1">
+          <label class="navigation-address-label">
+            <span>Runtime Address</span>
+            <input class="navigation-address-input" data-navigation-address-input="1" type="text" inputmode="text" placeholder="$6102">
+          </label>
+          <button type="submit" class="navigation-address-submit">Jump</button>
+        </form>
         <div class="navigation-summary-row">
           <div class="navigation-summary">${escapeHtml(navigationSummaryText(entries))}</div>
           ${renderNavigationBack()}
@@ -5714,6 +5762,15 @@ function bindNavigationOverlay() {
   if (!overlay) {
     return;
   }
+  overlay.querySelector("[data-navigation-address-form='1']")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = overlay.querySelector("[data-navigation-address-input='1']");
+    const address = parseListingAddress(input instanceof HTMLInputElement ? input.value : "");
+    if (address === null || !state.project) {
+      return;
+    }
+    void jumpToListingRuntimeAddress(state.project, address);
+  });
   overlay.querySelector("[data-navigation-close='1']")?.addEventListener("click", () => {
     closeNavigationOverlay();
   });
@@ -5981,6 +6038,10 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     params.set("source_offset", String(options.sourceOffset));
     params.set("before", String(before));
     params.set("after", String(after));
+  } else if (Number.isFinite(options.runtimeAddress)) {
+    params.set("runtime_address", String(options.runtimeAddress));
+    params.set("before", String(before));
+    params.set("after", String(after));
   } else if (options.start !== null && options.start !== undefined) {
     params.set("start", String(options.start));
     params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
@@ -6095,6 +6156,24 @@ function selectListingRowBySectionOffset(viewport, sectionIndex, offset) {
       continue;
     }
     if ((Number.isFinite(end) && start <= offset && offset < end) || start === offset) {
+      return row;
+    }
+  }
+  return null;
+}
+
+function selectListingRowByRuntimeAddress(viewport, address) {
+  if (!viewport || !Number.isFinite(address)) {
+    return null;
+  }
+  const rows = Array.from(viewport.querySelectorAll("[data-runtime-address]"));
+  for (const row of rows) {
+    const start = Number(row.dataset.runtimeAddress);
+    const end = Number(row.dataset.runtimeEndAddress);
+    if (!Number.isFinite(start)) {
+      continue;
+    }
+    if ((Number.isFinite(end) && start <= address && address < end) || start === address) {
       return row;
     }
   }
@@ -7049,6 +7128,39 @@ async function jumpToListingSectionOffset(projectId, sectionIndex, offset) {
   }
 }
 
+async function jumpToListingRuntimeAddress(projectId, address) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement) || !Number.isFinite(address)) {
+    return false;
+  }
+  const suppressionToken = beginListingScrollSuppression();
+  try {
+    let row = selectListingRowByRuntimeAddress(viewport, address);
+    if (!row) {
+      const visibleRows = listingVisibleRowCount(viewport);
+      const count = clampListingWindowCount(visibleRows * 3);
+      await loadListingWindow(projectId, null, visibleRows, count - visibleRows, {
+        runtimeAddress: address,
+      });
+      row = selectListingRowByRuntimeAddress(viewport, address);
+    }
+    if (!row) {
+      return false;
+    }
+    const rowIndex = Number(row.dataset.rowIndex);
+    if (Number.isFinite(rowIndex)) {
+      const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+      viewport.scrollTop = Math.max(0, (rowIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
+    } else {
+      row.scrollIntoView({block: "center", behavior: "auto"});
+    }
+    focusListingRow(row);
+    return true;
+  } finally {
+    releaseListingScrollSuppression(projectId, viewport, suppressionToken);
+  }
+}
+
 async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, stableKey = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !Number.isFinite(rowIndex)) {
@@ -7368,8 +7480,9 @@ function beginListingColumnResize(event) {
       const rect = rowLayer.getBoundingClientRect();
       const boundaries = [
         ["offset", rect.left + state.listingColumns.offset],
-        ["bytes", rect.left + state.listingColumns.offset + state.listingColumns.bytes],
-        ["code", rect.left + state.listingColumns.offset + state.listingColumns.bytes + state.listingColumns.code],
+        ["runtime", rect.left + state.listingColumns.offset + state.listingColumns.runtime],
+        ["bytes", rect.left + state.listingColumns.offset + state.listingColumns.runtime + state.listingColumns.bytes],
+        ["code", rect.left + state.listingColumns.offset + state.listingColumns.runtime + state.listingColumns.bytes + state.listingColumns.code],
       ];
       const nearest = boundaries.find(([_column, x]) => Math.abs(event.clientX - x) <= 16);
       if (nearest && event.clientY >= rect.top && event.clientY <= rect.bottom) {

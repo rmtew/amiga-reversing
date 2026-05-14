@@ -4,15 +4,6 @@
 
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
-- Bloodwych observed improvement possibilities (target: `amiga_hunk_bloodwych`):
-  - Web UI improvement possibilities for ORG sections (or sections known to be bootstraped to addresses)
-    ```
-    | 5d5e | | abs_0_00006102: |
-    ```
-    - For these targets there would be value in a new column between hunk offset and hex value where we showed the
-      execution/bootstrap address. While it is implied by the label, it is insufficient for user browsing.
-    - Similarly a jump to address function in the web UI would be useful. Maybe alter the Navigate button or popup
-      in some way to also offer that functionality for suitable targets.
 - Bootblock regressions (amiga platform specific):
   - Why bootblocks are treated as a $70000 absolute target is unclear. They should be assumed to be position
     independent unless they bootstrap to absolute addresses internally:

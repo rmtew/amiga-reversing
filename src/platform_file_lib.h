@@ -91,6 +91,8 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_a
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(
     PlatformFileListingArtifact *artifact, int has_section, uint32_t section_index, uint32_t offset,
     char **out_text);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(
+    PlatformFileListingArtifact *artifact, uint32_t address, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_anchor_window_json_alloc(
     PlatformFileListingArtifact *artifact, const char *anchor_code, uint32_t count, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_text_profile_alloc(

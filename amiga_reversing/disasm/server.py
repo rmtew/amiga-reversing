@@ -1828,6 +1828,7 @@ def route_request(
             count = _parse_int_arg(query, "count")
             section_index = _parse_int_arg(query, "section_index")
             source_offset = _parse_int_arg(query, "source_offset")
+            runtime_address = _parse_int_arg(query, "runtime_address")
             anchor_code_values = query.get("anchor_code")
             anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
             if anchor_code:
@@ -1851,6 +1852,22 @@ def route_request(
                         )
                     else:
                         payload = _empty_listing_payload(source_offset)
+            elif runtime_address is not None:
+                artifact_row_lookup = getattr(listing_artifact, "row_for_runtime_address", None)
+                if artifact_row_lookup is None:
+                    payload = _empty_listing_payload(runtime_address)
+                else:
+                    row = artifact_row_lookup(address=runtime_address)
+                    row_index = row.get("row_index") if isinstance(row, dict) else None
+                    if isinstance(row_index, int):
+                        before = _parse_int_arg(query, "before", 80) or 80
+                        after = _parse_int_arg(query, "after", 200) or 200
+                        payload, _ = listing_artifact.window_payload(
+                            start=max(0, row_index - before),
+                            count=before + after + 1,
+                        )
+                    else:
+                        payload = _empty_listing_payload(runtime_address)
             elif start is not None or count is not None:
                 payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
             else:
