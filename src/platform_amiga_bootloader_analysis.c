@@ -1,5 +1,6 @@
 #include "platform_amiga_bootloader_analysis.h"
 #include "generated/amiga_os_runtime.h"
+#include "m68k_bitset.h"
 #include "m68k_ir_codec.h"
 
 #include <string.h>
@@ -218,11 +219,11 @@ static int bootloader_operand_immediate_value(const M68kOperandIR *operand, uint
     return 0;
 }
 
-static int bootloader_operand_constant_value(const M68kOperandIR *operand, const uint8_t *data_reg_known,
+static int bootloader_operand_constant_value(const M68kOperandIR *operand, uint32_t data_reg_known,
     const uint32_t *data_regs, uint32_t *out_value) {
     uint8_t reg;
     if (bootloader_operand_immediate_value(operand, out_value)) return 1;
-    if (bootloader_operand_data_reg_index(operand, &reg) && data_reg_known[reg]) {
+    if (bootloader_operand_data_reg_index(operand, &reg) && m68k_bitset_u32_has(data_reg_known, reg)) {
         *out_value = data_regs[reg];
         return 1;
     }
@@ -277,7 +278,7 @@ static int bootloader_mnemonic_ends_path(uint8_t mnemonic_id) {
 }
 
 static void bootloader_update_address_registers(const M68kInstructionIR *instruction, uint32_t instruction_addr,
-    uint32_t *address_regs, const uint8_t *data_reg_known, const uint32_t *data_regs) {
+    uint32_t *address_regs, uint32_t data_reg_known, const uint32_t *data_regs) {
     uint32_t address;
     const M68kOperandIR *source;
     const M68kOperandIR *dest;
@@ -293,12 +294,13 @@ static void bootloader_update_address_registers(const M68kInstructionIR *instruc
     if (source->kind == M68K_ASM_OPERAND_EA && source->value.ea_mode == 7U && source->value.ea_reg == 2U) {
         address_regs[dest->value.reg] = (uint32_t)((int32_t)instruction_addr + 2 + sign_extend16(source->value.value));
     } else if (bootloader_operand_absolute_address(source, address_regs, &address)) address_regs[dest->value.reg] = address;
-    else if (bootloader_operand_data_reg_index(source, &source_reg) && data_reg_known[source_reg])
+    else if (bootloader_operand_data_reg_index(source, &source_reg) &&
+        m68k_bitset_u32_has(data_reg_known, source_reg))
         address_regs[dest->value.reg] = data_regs[source_reg];
     else if (source->kind == M68K_ASM_OPERAND_IMM) address_regs[dest->value.reg] = source->value.value;
 }
 
-static void bootloader_update_data_registers(const M68kInstructionIR *instruction, uint8_t *data_reg_known,
+static void bootloader_update_data_registers(const M68kInstructionIR *instruction, uint32_t *data_reg_known,
     uint32_t *data_regs) {
     uint8_t dest_reg;
     uint32_t source_value;
@@ -309,74 +311,74 @@ static void bootloader_update_data_registers(const M68kInstructionIR *instructio
         bootloader_operand_data_reg_index(&instruction->operands[1], &dest_reg) &&
         bootloader_operand_immediate_value(&instruction->operands[0], &source_value)) {
         data_regs[dest_reg] = (uint32_t)(int32_t)(int8_t)(source_value & 0xFFU);
-        data_reg_known[dest_reg] = 1U;
+        m68k_bitset_u32_set(data_reg_known, dest_reg);
         return;
     }
     if (instruction->operand_count < 2U || !bootloader_operand_data_reg_index(&instruction->operands[1], &dest_reg)) return;
     old_value = data_regs[dest_reg];
     switch (instruction->mnemonic_id) {
         case M68K_ASM_MNEMONIC_MOVE:
-            if (bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value)) {
+            if (bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value)) {
                 data_regs[dest_reg] = (old_value & ~mask) | (source_value & mask);
-                data_reg_known[dest_reg] = 1U;
+                m68k_bitset_u32_set(data_reg_known, dest_reg);
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_ADD:
         case M68K_ASM_MNEMONIC_ADDI:
         case M68K_ASM_MNEMONIC_ADDQ:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value)) {
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value)) {
                 data_regs[dest_reg] = (old_value & ~mask) | ((old_value + source_value) & mask);
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_SUB:
         case M68K_ASM_MNEMONIC_SUBI:
         case M68K_ASM_MNEMONIC_SUBQ:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value)) {
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value)) {
                 data_regs[dest_reg] = (old_value & ~mask) | ((old_value - source_value) & mask);
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_AND:
         case M68K_ASM_MNEMONIC_ANDI:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value)) {
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value)) {
                 data_regs[dest_reg] = old_value & source_value & mask;
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_OR:
         case M68K_ASM_MNEMONIC_ORI:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value)) {
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value)) {
                 data_regs[dest_reg] = (old_value | source_value) & mask;
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_LSL:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value) &&
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value) &&
                 source_value < 32U) {
                 data_regs[dest_reg] = (old_value << source_value) & mask;
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         case M68K_ASM_MNEMONIC_LSR:
-            if (data_reg_known[dest_reg] &&
-                bootloader_operand_constant_value(&instruction->operands[0], data_reg_known, data_regs, &source_value) &&
+            if (m68k_bitset_u32_has(*data_reg_known, dest_reg) &&
+                bootloader_operand_constant_value(&instruction->operands[0], *data_reg_known, data_regs, &source_value) &&
                 source_value < 32U) {
                 data_regs[dest_reg] = (old_value & mask) >> source_value;
             } else {
-                data_reg_known[dest_reg] = 0U;
+                m68k_bitset_u32_clear(data_reg_known, dest_reg);
             }
             break;
         default:
@@ -389,7 +391,7 @@ typedef struct BootloaderDecodeQueueItem {
     uint32_t runtime_addr;
     uint32_t address_regs[8];
     uint32_t data_regs[8];
-    uint8_t data_reg_known[8];
+    uint32_t data_reg_known;
     uint8_t has_code_alias;
     uint32_t code_alias_source_addr;
     uint32_t code_alias_dest_addr;
@@ -397,7 +399,7 @@ typedef struct BootloaderDecodeQueueItem {
 } BootloaderDecodeQueueItem;
 
 static int append_bootloader_decode_queue_item(AmigaDiskAnalysis *analysis, BootloaderDecodeQueueItem **items,
-    size_t *count, size_t *capacity, size_t offset, const uint32_t *address_regs, const uint8_t *data_reg_known,
+    size_t *count, size_t *capacity, size_t offset, const uint32_t *address_regs, uint32_t data_reg_known,
     const uint32_t *data_regs, const BootloaderDecodeQueueItem *state) {
     BootloaderDecodeQueueItem *grown;
     if ((offset & 1U) != 0U) return 0;
@@ -408,7 +410,7 @@ static int append_bootloader_decode_queue_item(AmigaDiskAnalysis *analysis, Boot
     (*items)[*count].runtime_addr = state != NULL ? state->runtime_addr : 0U;
     memcpy((*items)[*count].address_regs, address_regs, sizeof((*items)[*count].address_regs));
     memcpy((*items)[*count].data_regs, data_regs, sizeof((*items)[*count].data_regs));
-    memcpy((*items)[*count].data_reg_known, data_reg_known, sizeof((*items)[*count].data_reg_known));
+    (*items)[*count].data_reg_known = data_reg_known;
     (*items)[*count].has_code_alias = state != NULL ? state->has_code_alias : 0U;
     (*items)[*count].code_alias_source_addr = state != NULL ? state->code_alias_source_addr : 0U;
     (*items)[*count].code_alias_dest_addr = state != NULL ? state->code_alias_dest_addr : 0U;
@@ -436,7 +438,7 @@ static int bootloader_stage_offset_for_runtime_address(const AmigaDiskBootloader
 
 static int enqueue_bootloader_code_address(AmigaDiskAnalysis *analysis, const AmigaDiskBootloaderStage *stage,
     BootloaderDecodeQueueItem **queue, size_t *queue_count, size_t *queue_capacity, uint32_t address,
-    const uint32_t *address_regs, const uint8_t *data_reg_known, const uint32_t *data_regs,
+    const uint32_t *address_regs, uint32_t data_reg_known, const uint32_t *data_regs,
     const BootloaderDecodeQueueItem *state) {
     size_t target_offset;
     uint32_t runtime_addr;
@@ -450,7 +452,7 @@ static int enqueue_bootloader_code_address(AmigaDiskAnalysis *analysis, const Am
 
 static int enqueue_bootloader_fallthrough(AmigaDiskAnalysis *analysis, const AmigaDiskBootloaderStage *stage,
     BootloaderDecodeQueueItem **queue, size_t *queue_count, size_t *queue_capacity, size_t offset,
-    const M68kInstructionIR *instruction, const uint32_t *address_regs, const uint8_t *data_reg_known,
+    const M68kInstructionIR *instruction, const uint32_t *address_regs, uint32_t data_reg_known,
     const uint32_t *data_regs, const BootloaderDecodeQueueItem *state) {
     size_t next_offset = offset + instruction->byte_count;
     BootloaderDecodeQueueItem queued_state;
@@ -464,7 +466,7 @@ static int enqueue_bootloader_fallthrough(AmigaDiskAnalysis *analysis, const Ami
 }
 
 static void bootloader_update_code_alias(const AmigaDiskBootloaderStage *stage, const M68kInstructionIR *instruction,
-    BootloaderDecodeQueueItem *state, const uint32_t *address_regs, const uint8_t *data_reg_known,
+    BootloaderDecodeQueueItem *state, const uint32_t *address_regs, uint32_t data_reg_known,
     const uint32_t *data_regs) {
     uint8_t source_reg;
     uint8_t dest_reg;
@@ -480,12 +482,12 @@ static void bootloader_update_code_alias(const AmigaDiskBootloaderStage *stage, 
     state->has_code_alias = 1U;
     state->code_alias_source_addr = address_regs[source_reg];
     state->code_alias_dest_addr = address_regs[dest_reg];
-    state->code_alias_length = data_reg_known[0] ? (data_regs[0] + 1U) * 4U : stage->size;
+    state->code_alias_length = m68k_bitset_u32_has(data_reg_known, 0U) ? (data_regs[0] + 1U) * 4U : stage->size;
 }
 
 static int analyze_bootloader_instruction_accesses(AmigaDiskAnalysis *analysis, AmigaDiskBootloaderStage *stage,
     const M68kInstructionIR *instruction, uint32_t instruction_addr, const uint32_t *address_regs,
-    const uint8_t *data_reg_known, const uint32_t *data_regs) {
+    uint32_t data_reg_known, const uint32_t *data_regs) {
     size_t operand_index;
     for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
         const M68kOperandIR *operand = &instruction->operands[operand_index];
@@ -519,7 +521,7 @@ static int analyze_bootloader_instruction_accesses(AmigaDiskAnalysis *analysis, 
 
 static int enqueue_bootloader_successors(AmigaDiskAnalysis *analysis, AmigaDiskBootloaderStage *stage,
     BootloaderDecodeQueueItem **queue, size_t *queue_count, size_t *queue_capacity, size_t offset,
-    const M68kInstructionIR *instruction, const uint32_t *address_regs, const uint8_t *data_reg_known,
+    const M68kInstructionIR *instruction, const uint32_t *address_regs, uint32_t data_reg_known,
     const uint32_t *data_regs, const BootloaderDecodeQueueItem *state) {
     uint32_t instruction_addr = state != NULL && state->runtime_addr != 0U ? state->runtime_addr : stage->base_addr + (uint32_t)offset;
     uint32_t target_addr = 0U;
@@ -571,7 +573,7 @@ int amiga_disk_analyze_bootloader_stage_bytes(AmigaDiskAnalysis *analysis, Amiga
     uint8_t *visited;
     size_t entry_offset = 0U;
     uint32_t zero_regs[8] = {0};
-    uint8_t zero_known[8] = {0};
+    uint32_t zero_known = 0U;
     BootloaderDecodeQueueItem initial_state = {0};
     if (size == 0U) return 0;
     visited = (uint8_t *)arena_alloc(analysis->arena, size);
@@ -587,11 +589,11 @@ int amiga_disk_analyze_bootloader_stage_bytes(AmigaDiskAnalysis *analysis, Amiga
         M68kInstructionIR instruction;
         uint32_t address_regs[8];
         uint32_t data_regs[8];
-        uint8_t data_reg_known[8];
+        uint32_t data_reg_known;
         if (item.offset + 2U > size || visited[item.offset]) continue;
         memcpy(address_regs, item.address_regs, sizeof(address_regs));
         memcpy(data_regs, item.data_regs, sizeof(data_regs));
-        memcpy(data_reg_known, item.data_reg_known, sizeof(data_reg_known));
+        data_reg_known = item.data_reg_known;
         m68k_diag_list_reset(&diagnostics);
         instruction = m68k_ir_decode_one(data + item.offset, size - item.offset, M68K_ASM_CPU_68000, m68k_diag_sink(&diagnostics));
         if (instruction.byte_count == 0U || item.offset + instruction.byte_count > size) continue;
@@ -606,7 +608,7 @@ int amiga_disk_analyze_bootloader_stage_bytes(AmigaDiskAnalysis *analysis, Amiga
             return -1;
         }
         bootloader_update_code_alias(stage, &instruction, &item, address_regs, data_reg_known, data_regs);
-        bootloader_update_data_registers(&instruction, data_reg_known, data_regs);
+        bootloader_update_data_registers(&instruction, &data_reg_known, data_regs);
         if (enqueue_bootloader_successors(analysis, stage, &queue, &queue_count, &queue_capacity, item.offset, &instruction,
                 address_regs, data_reg_known, data_regs, &item) != 0) {
             return -1;
