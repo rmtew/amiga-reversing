@@ -352,21 +352,25 @@ static int compare_u32(const void *lhs, const void *rhs) {
     return 0;
 }
 
-static int write_relocation_stream(Writer *writer, const M68kObject *object, size_t text_index, uint32_t text_size,
-    size_t data_index, uint32_t data_size, M68kDiagSink diagnostics) {
+static int write_relocation_stream(Writer *writer, Arena *scratch_arena, const M68kObject *object,
+    size_t text_index, uint32_t text_size, size_t data_index, uint32_t data_size, M68kDiagSink diagnostics) {
     const AtariStPrgPlatformData *platform_data = (const AtariStPrgPlatformData *)object->platform_data;
+    ArenaBuilder offset_builder;
     uint32_t *offsets = NULL;
     size_t offset_count = 0;
-    size_t offset_capacity = 0;
     size_t i;
     uint32_t previous = 0;
+    if (scratch_arena == NULL ||
+        !ARENA_BUILDER_INIT_TYPED(&offset_builder, scratch_arena, uint32_t, 16U)) {
+        platform_file_diag_error(diagnostics, "Out of memory");
+        return -1;
+    }
     for (i = 0; i < object->fixup_count; ++i) {
         uint32_t image_offset = 0;
         const M68kFixup *fixup = &object->fixups[i];
         if (fixup->section_index != text_index && fixup->section_index != data_index) continue;
         if (validate_writable_fixup(fixup, text_index, text_size, data_index, data_size, &image_offset) != 0) {
             if (atari_fixup_is_ignorable_local_encoding(fixup)) continue;
-            m68k_allocator_free(m68k_allocator_heap(), offsets);
             m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
                 "Atari ST writer supports only TEXT/DATA absolute 32-bit fixups (section=%" PRIuPTR
                 " offset=%" PRIu32 " kind=%u width=%u has_target=%d has_symbol=%d)",
@@ -374,38 +378,21 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
                 fixup->has_target_section, fixup->has_symbol);
             return -1;
         }
-        if (offset_count == offset_capacity) {
-            size_t next_capacity;
-            uint32_t *next_offsets;
-            if (offset_capacity == 0U) {
-                next_capacity = 16U;
-            } else {
-                if (offset_capacity > ((size_t)-1) / 2U) {
-                    m68k_allocator_free(m68k_allocator_heap(), offsets);
-                    platform_file_diag_error(diagnostics, "Out of memory");
-                    return -1;
-                }
-                next_capacity = offset_capacity * 2U;
-            }
-            if (next_capacity > ((size_t)-1) / sizeof(*offsets)) {
-                m68k_allocator_free(m68k_allocator_heap(), offsets);
+        {
+            uint32_t *offset_slot = ARENA_BUILDER_APPEND_TYPED(&offset_builder, uint32_t);
+            if (offset_slot == NULL) {
                 platform_file_diag_error(diagnostics, "Out of memory");
                 return -1;
             }
-            next_offsets = (uint32_t *)m68k_allocator_realloc_copy(m68k_allocator_heap(), offsets,
-                offset_capacity * sizeof(*offsets), next_capacity * sizeof(*offsets));
-            if (next_offsets == NULL) {
-                m68k_allocator_free(m68k_allocator_heap(), offsets);
-                platform_file_diag_error(diagnostics, "Out of memory");
-                return -1;
-            }
-            offsets = next_offsets;
-            offset_capacity = next_capacity;
+            *offset_slot = image_offset;
         }
-        offsets[offset_count++] = image_offset;
+    }
+    offsets = ARENA_BUILDER_FINALIZE_TYPED(&offset_builder, uint32_t, &offset_count);
+    if (offsets == NULL && offset_count != 0U) {
+        platform_file_diag_error(diagnostics, "Out of memory");
+        return -1;
     }
     if (offset_count == 0U) {
-        m68k_allocator_free(m68k_allocator_heap(), offsets);
         if (platform_data != NULL && platform_data->relocation_stream_size != 0U &&
             platform_data->relocation_stream_data != NULL) {
             return m68k_writer_bytes(writer, platform_data->relocation_stream_data,
@@ -416,13 +403,11 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
     if (platform_data != NULL &&
         platform_data->relocation_terminator_kind == M68K_ATARI_ST_PRG_RELOCATION_TERMINATOR_EOF &&
         platform_data->relocation_stream_size != 0U && platform_data->relocation_stream_data != NULL) {
-        m68k_allocator_free(m68k_allocator_heap(), offsets);
         return m68k_writer_bytes(writer, platform_data->relocation_stream_data,
             platform_data->relocation_stream_size);
     }
     qsort(offsets, offset_count, sizeof(*offsets), compare_u32);
     if (m68k_writer_u32be(writer, offsets[0]) != 0) {
-        m68k_allocator_free(m68k_allocator_heap(), offsets);
         return -1;
     }
     previous = offsets[0];
@@ -430,23 +415,19 @@ static int write_relocation_stream(Writer *writer, const M68kObject *object, siz
         uint32_t delta = offsets[i] - previous;
         while (delta > 254U) {
             if (m68k_writer_u8(writer, 1U) != 0) {
-                m68k_allocator_free(m68k_allocator_heap(), offsets);
                 return -1;
             }
             delta -= 254U;
         }
         if (delta == 0U) {
-            m68k_allocator_free(m68k_allocator_heap(), offsets);
             platform_file_diag_error(diagnostics, "Atari ST writer does not support duplicate relocation offsets");
             return -1;
         }
         if (m68k_writer_u8(writer, (unsigned char)delta) != 0) {
-            m68k_allocator_free(m68k_allocator_heap(), offsets);
             return -1;
         }
         previous = offsets[i];
     }
-    m68k_allocator_free(m68k_allocator_heap(), offsets);
     return m68k_writer_u8(writer, 0U);
 }
 
@@ -737,6 +718,7 @@ static int atari_st_write_buffer(const M68kObject *object, unsigned char **out_d
     size_t data_index = 0;
     size_t bss_index = 0;
     Writer writer;
+    Arena *scratch_arena = NULL;
     unsigned char *writer_data = NULL;
     unsigned char *text_payload = NULL;
     unsigned char *data_payload = NULL;
@@ -772,6 +754,12 @@ static int atari_st_write_buffer(const M68kObject *object, unsigned char **out_d
         platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
+    scratch_arena = arena_create(4096U);
+    if (scratch_arena == NULL) {
+        m68k_writer_destroy(&writer);
+        platform_file_diag_error(diagnostics, "Out of memory");
+        return -1;
+    }
     if (platform_data != NULL) {
         symbol_table_type = platform_data->symbol_table_type;
         program_flags = platform_data->program_flags;
@@ -779,6 +767,7 @@ static int atari_st_write_buffer(const M68kObject *object, unsigned char **out_d
     }
     if (build_atari_section_payloads_for_write(object, text_section, text_index, data_section, data_index,
             bss_section, bss_index, &text_payload, &data_payload, diagnostics) != 0) {
+        arena_destroy(scratch_arena);
         m68k_writer_destroy(&writer);
         return -1;
     }
@@ -796,6 +785,7 @@ static int atari_st_write_buffer(const M68kObject *object, unsigned char **out_d
             && m68k_writer_bytes(&writer, platform_data->symbol_table_data, platform_data->symbol_table_size) != 0)) {
         free(text_payload);
         free(data_payload);
+        arena_destroy(scratch_arena);
         m68k_writer_destroy(&writer);
         platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
@@ -804,19 +794,22 @@ static int atari_st_write_buffer(const M68kObject *object, unsigned char **out_d
     free(data_payload);
     text_payload = NULL;
     data_payload = NULL;
-    if (write_relocation_stream(&writer, object, text_index, text_section->data_size, data_index, data_section->data_size,
-            diagnostics) != 0) {
+    if (write_relocation_stream(&writer, scratch_arena, object, text_index, text_section->data_size, data_index,
+            data_section->data_size, diagnostics) != 0) {
+        arena_destroy(scratch_arena);
         m68k_writer_destroy(&writer);
         return -1;
     }
     writer_data = m68k_writer_build(&writer);
     if (writer.size != 0U && writer_data == NULL) {
+        arena_destroy(scratch_arena);
         m68k_writer_destroy(&writer);
         platform_file_diag_error(diagnostics, "Out of memory");
         return -1;
     }
     *out_data = writer_data;
     *out_size = writer.size;
+    arena_destroy(scratch_arena);
     m68k_writer_destroy(&writer);
     (void)bss_index;
     return 0;
