@@ -139,7 +139,7 @@ typedef struct AmigaLocalSuccessSummaryWorkspace {
   const M68kSectionAnalysisIR *section_analysis;
   size_t block_count;
   AmigaCallEffectRegState *entry_states;
-  uint8_t (*entry_const_known)[8];
+  uint32_t *entry_const_known;
   int32_t (*entry_const_values)[8];
   uint8_t *entry_known;
   size_t *pending;
@@ -3645,31 +3645,31 @@ static int format_amiga_value_domain_symbolic_value(const char *domain_name, int
   return 0;
 }
 
-static void clear_local_data_const_state(uint8_t *known, int32_t *values) {
+static void clear_local_data_const_state(uint32_t *known, int32_t *values) {
   size_t index;
   if (known == NULL || values == NULL) return;
+  *known = 0U;
   for (index = 0U; index < 8U; ++index) {
-    known[index] = 0U;
     values[index] = 0;
   }
 }
 
-static void copy_local_data_const_state(uint8_t *dst_known, int32_t *dst_values,
-    const uint8_t *src_known, const int32_t *src_values) {
-  if (dst_known == NULL || dst_values == NULL || src_known == NULL || src_values == NULL) return;
-  memcpy(dst_known, src_known, 8U * sizeof(*dst_known));
+static void copy_local_data_const_state(uint32_t *dst_known, int32_t *dst_values, uint32_t src_known,
+    const int32_t *src_values) {
+  if (dst_known == NULL || dst_values == NULL || src_values == NULL) return;
+  *dst_known = src_known;
   memcpy(dst_values, src_values, 8U * sizeof(*dst_values));
 }
 
-static int join_local_data_const_state(uint8_t *dst_known, int32_t *dst_values,
-    const uint8_t *src_known, const int32_t *src_values) {
+static int join_local_data_const_state(uint32_t *dst_known, int32_t *dst_values, uint32_t src_known,
+    const int32_t *src_values) {
   int changed = 0;
   uint8_t reg;
-  if (dst_known == NULL || dst_values == NULL || src_known == NULL || src_values == NULL) return 0;
+  if (dst_known == NULL || dst_values == NULL || src_values == NULL) return 0;
   for (reg = 0U; reg < 8U; ++reg) {
-    if (!dst_known[reg]) continue;
-    if (!src_known[reg] || dst_values[reg] != src_values[reg]) {
-      dst_known[reg] = 0U;
+    if (!m68k_bitset_u32_has(*dst_known, reg)) continue;
+    if (!m68k_bitset_u32_has(src_known, reg) || dst_values[reg] != src_values[reg]) {
+      m68k_bitset_u32_clear(dst_known, reg);
       dst_values[reg] = 0;
       changed = 1;
     }
@@ -3678,17 +3678,17 @@ static int join_local_data_const_state(uint8_t *dst_known, int32_t *dst_values,
 }
 
 static void update_local_data_const_state_for_instruction(const M68kInstructionIR *instruction,
-    const uint8_t *prev_known, const int32_t *prev_values, uint8_t *known, int32_t *values) {
+    uint32_t prev_known, const int32_t *prev_values, uint32_t *known, int32_t *values) {
   uint8_t reg;
   uint8_t dest_reg;
   uint8_t source_reg;
   uint8_t mnemonic_id;
   const M68kOperandIR *source = NULL;
-  if (prev_known == NULL || prev_values == NULL || known == NULL || values == NULL) return;
+  if (prev_values == NULL || known == NULL || values == NULL) return;
   copy_local_data_const_state(known, values, prev_known, prev_values);
   for (reg = 0U; reg < 8U; ++reg) {
     if (instruction_writes_data_reg_approx(instruction, reg)) {
-      known[reg] = 0U;
+      m68k_bitset_u32_clear(known, reg);
       values[reg] = 0;
     }
   }
@@ -3698,23 +3698,24 @@ static void update_local_data_const_state_for_instruction(const M68kInstructionI
       operand_is_immediate_source_local(&instruction->operands[0]) &&
       operand_data_reg_index_local(&instruction->operands[1], &dest_reg) &&
       dest_reg < 8U) {
-    known[dest_reg] = 1U;
+    m68k_bitset_u32_set(known, dest_reg);
     values[dest_reg] = (int32_t)m68k_sign_extend32(instruction->operands[0].value.value, 8U);
     return;
   }
   if (instruction_is_data_move(instruction, &dest_reg, &source) && source != NULL && dest_reg < 8U) {
     if (operand_is_immediate_source_local(source)) {
-      known[dest_reg] = 1U;
+      m68k_bitset_u32_set(known, dest_reg);
       values[dest_reg] = (int32_t)source->value.value;
-    } else if (operand_data_reg_index_local(source, &source_reg) && source_reg < 8U && prev_known[source_reg]) {
-      known[dest_reg] = 1U;
+    } else if (operand_data_reg_index_local(source, &source_reg) && source_reg < 8U &&
+        m68k_bitset_u32_has(prev_known, source_reg)) {
+      m68k_bitset_u32_set(known, dest_reg);
       values[dest_reg] = prev_values[source_reg];
     }
   } else if (mnemonic_id == M68K_ASM_MNEMONIC_CLR &&
       instruction->operand_count != 0U &&
       operand_data_reg_index_local(&instruction->operands[instruction->operand_count - 1U], &dest_reg) &&
       dest_reg < 8U) {
-    known[dest_reg] = 1U;
+    m68k_bitset_u32_set(known, dest_reg);
     values[dest_reg] = 0;
   }
 }
@@ -3729,7 +3730,7 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
   int workspace_is_temp = 0;
   size_t entry_block_index;
   AmigaCallEffectRegState *entry_states = NULL;
-  uint8_t (*entry_const_known)[8] = NULL;
+  uint32_t *entry_const_known = NULL;
   int32_t (*entry_const_values)[8] = NULL;
   uint8_t *entry_known = NULL;
   size_t *pending = NULL;
@@ -3769,28 +3770,29 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
   }
   memset(entry_known, 0, section_analysis->block_count * sizeof(*entry_known));
   amiga_call_effect_reg_state_clear(&entry_states[entry_block_index]);
-  clear_local_data_const_state(entry_const_known[entry_block_index], entry_const_values[entry_block_index]);
+  clear_local_data_const_state(&entry_const_known[entry_block_index], entry_const_values[entry_block_index]);
   entry_known[entry_block_index] = 1U;
   pending[pending_count++] = entry_block_index;
   while (pending_count != 0U) {
     size_t block_index = pending[--pending_count];
     const M68kCfgBlockIR *block = &section_analysis->blocks[block_index];
     AmigaCallEffectRegState state;
-    uint8_t const_known[8];
+    uint32_t const_known;
     int32_t const_values[8];
     uint32_t cursor = block->start_offset < target_offset ? target_offset : block->start_offset;
     size_t edge_index;
     amiga_call_effect_reg_state_copy(&state, &entry_states[block_index]);
-    copy_local_data_const_state(const_known, const_values, entry_const_known[block_index], entry_const_values[block_index]);
+    copy_local_data_const_state(&const_known, const_values, entry_const_known[block_index],
+      entry_const_values[block_index]);
     while (cursor < block->end_offset && cursor < section->data_size) {
       SectionDecodeResult decode;
       AmigaCallEffectRegState prev_state;
-      uint8_t prev_const_known[8];
+      uint32_t prev_const_known;
       int32_t prev_const_values[8];
       if (!section_analysis_context_probe_decode(ctx, cursor, &decode)) break;
       if (decode.instruction.byte_count == 0U) break;
       amiga_call_effect_reg_state_copy(&prev_state, &state);
-      copy_local_data_const_state(prev_const_known, prev_const_values, const_known, const_values);
+      copy_local_data_const_state(&prev_const_known, prev_const_values, const_known, const_values);
       if (decode.is_call) {
         size_t nested_target_section_index = SIZE_MAX;
         uint32_t nested_target_offset;
@@ -3800,7 +3802,7 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
         const AmigaOsLibraryVectorInfo *call_entry = NULL;
         int loaded_success_summary = 0;
         clear_all_amiga_call_effect_regs(&state);
-        clear_local_data_const_state(const_known, const_values);
+        clear_local_data_const_state(&const_known, const_values);
         amiga_call_effect_reg_state_clear(&nested_summary);
         amiga_call_effect_reg_state_clear(&call_effect_state);
         if (platform_resolve_direct_target_with_fixup(ctx, &decode.instruction, cursor, &nested_target_section_index,
@@ -3808,7 +3810,7 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
             summarize_amiga_direct_local_success_outputs_at(ctx, section_analysis, nested_target_section_index,
               nested_target_offset, cache, cache_count, &nested_summary)) {
           amiga_call_effect_reg_state_copy(&state, &nested_summary);
-          const_known[0] = 1U;
+          m68k_bitset_u32_set(&const_known, 0U);
           const_values[0] = 0;
           loaded_success_summary = 1;
         }
@@ -3831,14 +3833,14 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
         update_amiga_call_effect_reg_state_for_instruction(ctx, section_analysis, &decode.instruction, cursor,
           &prev_state, &state);
         update_local_data_const_state_for_instruction(&decode.instruction, prev_const_known, prev_const_values,
-          const_known, const_values);
+          &const_known, const_values);
       }
       cursor += (uint32_t)decode.instruction.byte_count;
     }
     for (edge_index = block->edge_start; edge_index < block->edge_start + block->edge_count; ++edge_index) {
       const M68kCfgEdgeIR *edge = &section_analysis->edges[edge_index];
       if (edge->kind == M68K_CFG_EDGE_RETURN) {
-        if (!const_known[0] || const_values[0] != 0) continue;
+        if (!m68k_bitset_u32_has(const_known, 0U) || const_values[0] != 0) continue;
         if (!have_summary) {
           amiga_call_effect_reg_state_copy(out_summary, &state);
           have_summary = 1;
@@ -3853,14 +3855,14 @@ static int summarize_amiga_direct_local_success_outputs(const SectionAnalysisCon
       }
       if (!entry_known[edge->target_block_index]) {
         amiga_call_effect_reg_state_copy(&entry_states[edge->target_block_index], &state);
-        copy_local_data_const_state(entry_const_known[edge->target_block_index],
+        copy_local_data_const_state(&entry_const_known[edge->target_block_index],
           entry_const_values[edge->target_block_index], const_known, const_values);
         entry_known[edge->target_block_index] = 1U;
         if (pending_count < pending_capacity) pending[pending_count++] = edge->target_block_index;
       } else {
         int changed = 0;
         changed |= amiga_call_effect_reg_state_join(&entry_states[edge->target_block_index], &state);
-        changed |= join_local_data_const_state(entry_const_known[edge->target_block_index],
+        changed |= join_local_data_const_state(&entry_const_known[edge->target_block_index],
           entry_const_values[edge->target_block_index], const_known, const_values);
         if (changed && pending_count < pending_capacity) pending[pending_count++] = edge->target_block_index;
       }
@@ -4090,7 +4092,7 @@ static int acquire_amiga_local_success_summary_workspace(const SectionAnalysisCo
         workspace->section_analysis != section_analysis) {
       workspace->entry_states = (AmigaCallEffectRegState *)arena_alloc(arena,
         block_count * sizeof(*workspace->entry_states));
-      workspace->entry_const_known = (uint8_t (*)[8])arena_alloc(arena,
+      workspace->entry_const_known = (uint32_t *)arena_alloc(arena,
         block_count * sizeof(*workspace->entry_const_known));
       workspace->entry_const_values = (int32_t (*)[8])arena_alloc(arena,
         block_count * sizeof(*workspace->entry_const_values));
@@ -4110,7 +4112,7 @@ static int acquire_amiga_local_success_summary_workspace(const SectionAnalysisCo
   }
   memset(temp_workspace, 0, sizeof(*temp_workspace));
   temp_workspace->entry_states = (AmigaCallEffectRegState *)malloc(block_count * sizeof(*temp_workspace->entry_states));
-  temp_workspace->entry_const_known = (uint8_t (*)[8])malloc(block_count * sizeof(*temp_workspace->entry_const_known));
+  temp_workspace->entry_const_known = (uint32_t *)malloc(block_count * sizeof(*temp_workspace->entry_const_known));
   temp_workspace->entry_const_values = (int32_t (*)[8])malloc(block_count * sizeof(*temp_workspace->entry_const_values));
   temp_workspace->entry_known = (uint8_t *)malloc(block_count * sizeof(*temp_workspace->entry_known));
   temp_workspace->pending = (size_t *)malloc(block_count * sizeof(*temp_workspace->pending));
