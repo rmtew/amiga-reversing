@@ -291,7 +291,7 @@ static char *read_text_file_local(const char *path) {
     size_t read_count;
     size_t required_capacity;
     if (size > ((size_t)-1) - 4097U) {
-      m68k_allocator_free(m68k_allocator_heap(), text);
+      free(text);
       fclose(file);
       return NULL;
     }
@@ -303,7 +303,7 @@ static char *read_text_file_local(const char *path) {
         next_capacity = 4097U;
       } else {
         if (capacity > ((size_t)-1) / 2U) {
-          m68k_allocator_free(m68k_allocator_heap(), text);
+          free(text);
           fclose(file);
           return NULL;
         }
@@ -311,15 +311,15 @@ static char *read_text_file_local(const char *path) {
       }
       while (next_capacity < required_capacity) {
         if (next_capacity > ((size_t)-1) / 2U) {
-          m68k_allocator_free(m68k_allocator_heap(), text);
+          free(text);
           fclose(file);
           return NULL;
         }
         next_capacity *= 2U;
       }
-      next_text = (char *)m68k_allocator_realloc_copy(m68k_allocator_heap(), text, capacity, next_capacity);
+      next_text = (char *)realloc(text, next_capacity);
       if (next_text == NULL) {
-        m68k_allocator_free(m68k_allocator_heap(), text);
+        free(text);
         fclose(file);
         return NULL;
       }
@@ -330,7 +330,7 @@ static char *read_text_file_local(const char *path) {
     size += read_count;
     if (read_count < 4096U) {
       if (ferror(file)) {
-        m68k_allocator_free(m68k_allocator_heap(), text);
+        free(text);
         fclose(file);
         return NULL;
       }
