@@ -35,6 +35,12 @@ class ReviewItemState(StrEnum):
     RESOLVED = "resolved"
 
 
+class ReviewConfidence(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 def review_item_state(value: object) -> ReviewItemState | None:
     if isinstance(value, ReviewItemState):
         return value
@@ -320,7 +326,7 @@ def _finalize_review_items(
         item = dict(item)
         item["item_id"] = _review_item_id(item)
         item["evidence_fingerprint"] = _review_item_fingerprint(item)
-        item.setdefault("review_confidence", "high")
+        item.setdefault("review_confidence", ReviewConfidence.HIGH)
         item.setdefault("suggested_actions", _suggested_review_actions(item))
         if (str(item["item_id"]), str(item["evidence_fingerprint"])) in resolved_fingerprints:
             if item.get("review_blocker") is True:

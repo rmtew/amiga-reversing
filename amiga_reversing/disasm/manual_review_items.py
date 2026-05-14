@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from amiga_reversing.disasm.manual_actions import ReviewItemState, finalize_review_items
+from amiga_reversing.disasm.manual_actions import (
+    ReviewConfidence,
+    ReviewItemState,
+    finalize_review_items,
+)
 
 
 def analysis_review_items(
@@ -73,7 +77,7 @@ def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, 
             "hunk": hunk,
             "start": start,
             "end": start + 1,
-            "review_confidence": "high",
+            "review_confidence": ReviewConfidence.HIGH,
             "event_id": event_id,
             "reason": reason,
             "message": "Decompressed payload requires manual review before parent can be clear",
@@ -110,7 +114,7 @@ def _orphan_code_items(section: dict[str, object], section_index: int) -> list[d
                 "hunk": section_index,
                 "start": start,
                 "end": start + size,
-                "review_confidence": "medium",
+                "review_confidence": ReviewConfidence.MEDIUM,
                 "reason": signal.get("reason_name") or signal.get("reason"),
                 "signal_status": status,
                 "message": "Potential code has no accepted inbound evidence",
@@ -138,7 +142,7 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
                 "hunk": section_index,
                 "start": start,
                 "end": start + size,
-                "review_confidence": "high",
+                "review_confidence": ReviewConfidence.HIGH,
                 "violation_kind": violation.get("kind_name") or violation.get("kind"),
                 "required_cpu": violation.get("required_cpu_name") or violation.get("required_cpu"),
                 "message": "Accepted or candidate instruction decode violates target policy",
@@ -179,7 +183,7 @@ def _unreconciled_item(section_index: int, start: int, end: int) -> dict[str, ob
         "hunk": section_index,
         "start": start,
         "end": end,
-        "review_confidence": "low",
+        "review_confidence": ReviewConfidence.LOW,
         "message": "Range has no accepted code, data, metadata, policy, or manual seed evidence",
         "source": "analysis",
     }
