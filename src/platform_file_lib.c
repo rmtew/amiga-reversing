@@ -5176,14 +5176,13 @@ static int enrich_policy_from_non_autoinit_resident_make_library_local(M68kAnaly
     const char *library_name, uint32_t library_version) {
   SectionAnalysisContext ctx;
   uint32_t addr_reg_targets[8];
-  uint8_t addr_reg_known[8];
+  uint32_t addr_reg_known = 0U;
   uint32_t cursor;
   uint32_t scan_count;
   uint32_t first_code_offset = UINT32_MAX;
   if (policy == NULL || object == NULL || hunk >= object->section_count) return 0;
   if (object->sections[hunk].data == NULL || init_offset >= object->sections[hunk].data_size) return 0;
   memset(addr_reg_targets, 0, sizeof(addr_reg_targets));
-  memset(addr_reg_known, 0, sizeof(addr_reg_known));
   memset(&ctx, 0, sizeof(ctx));
   ctx.object = object;
   ctx.section_index = hunk;
@@ -5196,25 +5195,25 @@ static int enrich_policy_from_non_autoinit_resident_make_library_local(M68kAnaly
     uint8_t reg;
     if (!section_analysis_context_probe_decode(&ctx, cursor, &decode)) break;
     instruction = &decode.instruction;
-    if (instruction_calls_exec_makelibrary_policy_local(instruction) && addr_reg_known[0]) {
+    if (instruction_calls_exec_makelibrary_policy_local(instruction) && m68k_bitset_u32_has(addr_reg_known, 0U)) {
       return policy_add_non_autoinit_vector_table_local(policy, object, hunk, addr_reg_targets[0], target_type,
         library_name, library_version, &first_code_offset);
     }
     for (reg = 0U; reg < 8U; ++reg) {
-      if (instruction_writes_address_reg_approx(instruction, reg)) addr_reg_known[reg] = 0U;
+      if (instruction_writes_address_reg_approx(instruction, reg)) m68k_bitset_u32_clear(&addr_reg_known, reg);
     }
     if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
         operand_address_reg_index_policy_local(&instruction->operands[1], &reg) && reg < 8U &&
         policy_source_operand_target_local(&ctx, instruction, cursor, 0U, &addr_reg_targets[reg])) {
-      addr_reg_known[reg] = 1U;
+      m68k_bitset_u32_set(&addr_reg_known, reg);
     } else {
       const M68kOperandIR *source = NULL;
       if (instruction_is_address_move(instruction, &reg, &source) && reg < 8U && source != NULL &&
           policy_source_operand_target_local(&ctx, instruction, cursor, 0U, &addr_reg_targets[reg])) {
-        addr_reg_known[reg] = 1U;
+        m68k_bitset_u32_set(&addr_reg_known, reg);
       }
     }
-    if (decode.is_call) memset(addr_reg_known, 0, sizeof(addr_reg_known));
+    if (decode.is_call) addr_reg_known = 0U;
     if (decode.stops_fallthrough) break;
     cursor += (uint32_t)instruction->byte_count;
   }
