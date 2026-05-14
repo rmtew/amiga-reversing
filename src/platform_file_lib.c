@@ -4524,8 +4524,7 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
 }
 
 static int platform_name_uses_amiga_metadata_policy_local(const char *platform_name) {
-  return platform_name != NULL &&
-         (strcmp(platform_name, "amiga-hunk") == 0 || strcmp(platform_name, "amiga-raw") == 0);
+  return m68k_backend_kind_by_platform_name(platform_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK;
 }
 
 static int metadata_text_has_amiga_policy_local(const char *text) {
@@ -5753,20 +5752,13 @@ static int load_object_from_buffer(const M68kBackend *backend, const unsigned ch
   return 0;
 }
 
-static const M68kBackend *raw_platform_backend(const char *platform_name) {
-  if (platform_name == NULL) return NULL;
-  if (strcmp(platform_name, "amiga-raw") == 0) return &M68K_BACKEND_AMIGA_HUNK;
-  if (strcmp(platform_name, "atari-st-raw") == 0) return &M68K_BACKEND_ATARI_ST;
-  return NULL;
-}
-
 static int load_raw_object_from_path(const char *platform_name, const char *path, M68kObject *object,
     M68kDiagSink diagnostics) {
   unsigned char *data = NULL;
   size_t size = 0U;
   M68kSection section;
   M68kObjectAddResult add_result;
-  const M68kBackend *backend = raw_platform_backend(platform_name);
+  const M68kBackend *backend = m68k_raw_backend_by_name(platform_name);
   if (backend == NULL || object == NULL) {
     platform_file_add_error(diagnostics.list, "unknown raw platform backend");
     return -1;
@@ -6723,8 +6715,7 @@ static int platform_file_assemble_source_common_alloc(const char *backend_name, 
     *out_profile_json = assembler_profile_json_alloc_local(&profile);
     return -1;
   }
-  if (backend_name != NULL &&
-      (strcmp(backend_name, "amiga-raw") == 0 || strcmp(backend_name, "atari-st-raw") == 0)) {
+  if (m68k_raw_backend_by_name(backend_name) != NULL) {
     if (source_text == NULL) {
       *out_error = duplicate_text_local("raw output backend requires source text");
       *out_profile_json = assembler_profile_json_alloc_local(&profile);

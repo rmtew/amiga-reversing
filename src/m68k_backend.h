@@ -19,5 +19,8 @@ extern const M68kBackend M68K_BACKEND_AMIGA_HUNK;
 extern const M68kBackend M68K_BACKEND_ATARI_ST;
 
 const M68kBackend *m68k_backend_by_name(const char *name);
+M68kPlatformBackendKind m68k_backend_kind_by_name(const char *name);
+const M68kBackend *m68k_raw_backend_by_name(const char *name);
+M68kPlatformBackendKind m68k_backend_kind_by_platform_name(const char *name);
 
 #endif

@@ -74,6 +74,12 @@ static int test_backend_definitions_expose_platform_ids(void) {
   M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_ATARI_ST, M68K_BACKEND_ATARI_ST.platform_kind);
   M68K_C_ASSERT(m68k_backend_by_name(M68K_BACKEND_AMIGA_HUNK.name) == &M68K_BACKEND_AMIGA_HUNK);
   M68K_C_ASSERT(m68k_backend_by_name(M68K_BACKEND_ATARI_ST.name) == &M68K_BACKEND_ATARI_ST);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_AMIGA_HUNK, m68k_backend_kind_by_name("amiga-hunk"));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_ATARI_ST, m68k_backend_kind_by_name("atari-st"));
+  M68K_C_ASSERT(m68k_raw_backend_by_name("amiga-raw") == &M68K_BACKEND_AMIGA_HUNK);
+  M68K_C_ASSERT(m68k_raw_backend_by_name("atari-st-raw") == &M68K_BACKEND_ATARI_ST);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_AMIGA_HUNK, m68k_backend_kind_by_platform_name("amiga-raw"));
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_ATARI_ST, m68k_backend_kind_by_platform_name("atari-st-raw"));
   return 0;
 }
 

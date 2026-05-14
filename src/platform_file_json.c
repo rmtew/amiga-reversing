@@ -28,11 +28,6 @@ static int absolute_memory_ref_owner_symbol_expr(const M68kAbsoluteMemoryRefIR *
 static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 
-static M68kPlatformBackendKind backend_kind_for_name_local(const char *backend_name) {
-  const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  return backend != NULL ? backend->platform_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
-}
-
 static const char *file_kind_name(M68kPlatformFileKind kind) {
   if (kind == M68K_PLATFORM_FILE_EXECUTABLE) return "executable";
   if (kind == M68K_PLATFORM_FILE_OBJECT) return "object";
@@ -1562,7 +1557,7 @@ int platform_api_input_struct_to_json(const char *backend_name, const char *libr
   const char *input_type = NULL;
   if (out_json == NULL) return -1;
   *out_json = NULL;
-  if (backend_kind_for_name_local(backend_name) != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+  if (m68k_backend_kind_by_name(backend_name) != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
       "API metadata is only available for amiga-hunk");
     return -1;
@@ -1618,7 +1613,7 @@ int platform_type_catalog_to_json(const char *backend_name, char **out_json, M68
   if (out_json == NULL) return -1;
   *out_json = NULL;
   if (json_builder_create(&builder) != 0) return -1;
-  if (backend_kind_for_name_local(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+  if (m68k_backend_kind_by_name(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     if (append_amiga_type_catalog_json(&builder) != 0) goto fail;
   } else {
     if (json_builder_append(&builder, "[]") != 0) goto fail;
@@ -1638,7 +1633,7 @@ int platform_naming_catalog_to_json(const char *backend_name, char **out_json, M
   if (out_json == NULL) return -1;
   *out_json = NULL;
   if (json_builder_create(&builder) != 0) return -1;
-  if (backend_kind_for_name_local(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+  if (m68k_backend_kind_by_name(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     if (append_amiga_naming_catalog_json(&builder) != 0) goto fail;
   } else {
     if (json_builder_append(&builder, "{\"patterns\":[],\"trivial_functions\":[],\"generic_prefix\":\"\",\"libraries\":[]}") != 0)
@@ -1659,7 +1654,7 @@ int platform_os_metadata_catalog_to_json(const char *backend_name, char **out_js
   if (out_json == NULL) return -1;
   *out_json = NULL;
   if (json_builder_create(&builder) != 0) return -1;
-  if (backend_kind_for_name_local(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+  if (m68k_backend_kind_by_name(backend_name) == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     if (append_amiga_os_metadata_catalog_json(&builder) != 0) goto fail;
   } else {
     if (json_builder_append(&builder,

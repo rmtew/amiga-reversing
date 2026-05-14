@@ -30,16 +30,11 @@ static void assembler_add_error(M68kDiagSink diagnostics, const char *message) {
 }
 
 static M68kPlatformBackendKind platform_backend_kind_for_name(const char *backend_name) {
-  const M68kBackend *backend = m68k_backend_by_name(backend_name);
-  return backend != NULL ? backend->platform_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
+  return m68k_backend_kind_by_name(backend_name);
 }
 
 static M68kPlatformBackendKind raw_platform_backend_kind_for_name(const char *backend_name) {
-  if (backend_name != NULL && strcmp(backend_name, "amiga-raw") == 0)
-    return M68K_PLATFORM_BACKEND_AMIGA_HUNK;
-  if (backend_name != NULL && strcmp(backend_name, "atari-st-raw") == 0)
-    return M68K_PLATFORM_BACKEND_ATARI_ST;
-  return platform_backend_kind_for_name(backend_name);
+  return m68k_backend_kind_by_platform_name(backend_name);
 }
 
 static uint32_t file_size_u32(const char *path) {

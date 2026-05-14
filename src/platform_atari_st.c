@@ -834,3 +834,21 @@ const M68kBackend *m68k_backend_by_name(const char *name) {
     if (strcmp(name, M68K_BACKEND_ATARI_ST.name) == 0) return &M68K_BACKEND_ATARI_ST;
     return NULL;
 }
+
+M68kPlatformBackendKind m68k_backend_kind_by_name(const char *name) {
+    const M68kBackend *backend = m68k_backend_by_name(name);
+    return backend != NULL ? backend->platform_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
+}
+
+const M68kBackend *m68k_raw_backend_by_name(const char *name) {
+    if (name == NULL) return NULL;
+    if (strcmp(name, "amiga-raw") == 0) return &M68K_BACKEND_AMIGA_HUNK;
+    if (strcmp(name, "atari-st-raw") == 0) return &M68K_BACKEND_ATARI_ST;
+    return NULL;
+}
+
+M68kPlatformBackendKind m68k_backend_kind_by_platform_name(const char *name) {
+    const M68kBackend *backend = m68k_backend_by_name(name);
+    if (backend == NULL) backend = m68k_raw_backend_by_name(name);
+    return backend != NULL ? backend->platform_kind : M68K_PLATFORM_BACKEND_UNKNOWN;
+}
