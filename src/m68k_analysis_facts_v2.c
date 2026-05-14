@@ -2,6 +2,7 @@
 
 #include "m68k_decode_ir.h"
 #include "m68k_assembler.h"
+#include "m68k_bitset.h"
 #include "m68k_fact_ir.h"
 #include "m68k_ir_codec.h"
 #include "m68k_instruction_spec.h"
@@ -81,8 +82,8 @@ typedef struct M68kFactsV2CallbackFieldTargets {
 typedef struct M68kFactsV2TraceState {
   M68kFactsV2TraceValue d[8];
   M68kFactsV2TraceValue a[8];
-  uint8_t d_low16_known[8];
-  uint8_t d_low16_has_origin[8];
+  uint32_t d_low16_known;
+  uint32_t d_low16_has_origin;
   uint16_t d_low16[8];
   uint32_t d_low16_origin_offset[8];
   M68kFactsV2AbsoluteSlot absolute_slots[M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT];
@@ -400,16 +401,16 @@ static int trace_reglist_mask_contains_register(uint16_t mask, uint8_t is_addres
 static void trace_state_clear_data_register(M68kFactsV2TraceState *state, uint8_t reg) {
   if (state == NULL || reg >= 8U) return;
   trace_value_set_unknown(&state->d[reg]);
-  state->d_low16_known[reg] = 0U;
-  state->d_low16_has_origin[reg] = 0U;
+  m68k_bitset_u32_clear(&state->d_low16_known, reg);
+  m68k_bitset_u32_clear(&state->d_low16_has_origin, reg);
 }
 
 static void trace_state_set_data_register_constant(M68kFactsV2TraceState *state, uint8_t reg,
     uint32_t value) {
   if (state == NULL || reg >= 8U) return;
   trace_value_set_constant(&state->d[reg], value);
-  state->d_low16_known[reg] = 1U;
-  state->d_low16_has_origin[reg] = 0U;
+  m68k_bitset_u32_set(&state->d_low16_known, reg);
+  m68k_bitset_u32_clear(&state->d_low16_has_origin, reg);
   state->d_low16[reg] = (uint16_t)(value & 0xFFFFU);
 }
 
@@ -417,8 +418,8 @@ static void trace_state_set_data_register_constant_with_origin(M68kFactsV2TraceS
     uint32_t value, size_t section_index, uint32_t offset, size_t operand_index) {
   if (state == NULL || reg >= 8U) return;
   trace_value_set_constant_with_origin(&state->d[reg], value, section_index, offset, operand_index);
-  state->d_low16_known[reg] = 1U;
-  state->d_low16_has_origin[reg] = 1U;
+  m68k_bitset_u32_set(&state->d_low16_known, reg);
+  m68k_bitset_u32_set(&state->d_low16_has_origin, reg);
   state->d_low16[reg] = (uint16_t)(value & 0xFFFFU);
   state->d_low16_origin_offset[reg] = offset;
 }
@@ -427,8 +428,8 @@ static void trace_state_set_data_register_low16(M68kFactsV2TraceState *state, ui
     uint16_t value, uint32_t origin_offset) {
   if (state == NULL || reg >= 8U) return;
   trace_value_set_unknown(&state->d[reg]);
-  state->d_low16_known[reg] = 1U;
-  state->d_low16_has_origin[reg] = 1U;
+  m68k_bitset_u32_set(&state->d_low16_known, reg);
+  m68k_bitset_u32_set(&state->d_low16_has_origin, reg);
   state->d_low16[reg] = value;
   state->d_low16_origin_offset[reg] = origin_offset;
 }
@@ -2248,7 +2249,7 @@ static void trace_state_apply_predecrement_copy_entry(size_t section_index, cons
       before->a[source_reg].kind != M68K_FACTS_V2_TRACE_SOURCE_OFFSET ||
       before->a[source_reg].section_index != section_index ||
       before->a[source_reg].value > section->size ||
-      !before->d_low16_known[0]) {
+      !m68k_bitset_u32_has(before->d_low16_known, 0U)) {
     return;
   }
   count = (uint32_t)before->d_low16[0] + 1U;
@@ -2307,21 +2308,21 @@ static void trace_state_apply_move_value_copy(size_t section_index, const M68kDe
   if (operand_is_data_register_direct(&candidate->operands[metadata->dest_operand_index], &reg)) {
     after->d[reg] = value;
     if (value.kind == M68K_FACTS_V2_TRACE_CONSTANT) {
-      after->d_low16_known[reg] = 1U;
-      after->d_low16_has_origin[reg] = 1U;
+      m68k_bitset_u32_set(&after->d_low16_known, reg);
+      m68k_bitset_u32_set(&after->d_low16_has_origin, reg);
       after->d_low16[reg] = (uint16_t)(value.value & 0xFFFFU);
       after->d_low16_origin_offset[reg] = candidate->offset;
     } else {
       uint8_t source_reg = 0U;
       if (operand_is_data_register_direct(&candidate->operands[metadata->source_operand_index], &source_reg) &&
-          before->d_low16_known[source_reg]) {
-        after->d_low16_known[reg] = 1U;
-        after->d_low16_has_origin[reg] = 1U;
+          m68k_bitset_u32_has(before->d_low16_known, source_reg)) {
+        m68k_bitset_u32_set(&after->d_low16_known, reg);
+        m68k_bitset_u32_set(&after->d_low16_has_origin, reg);
         after->d_low16[reg] = before->d_low16[source_reg];
         after->d_low16_origin_offset[reg] = candidate->offset;
       } else {
-        after->d_low16_known[reg] = 0U;
-        after->d_low16_has_origin[reg] = 0U;
+        m68k_bitset_u32_clear(&after->d_low16_known, reg);
+        m68k_bitset_u32_clear(&after->d_low16_has_origin, reg);
       }
     }
   } else if (operand_is_address_register_direct(&candidate->operands[metadata->dest_operand_index], &reg) &&
@@ -2467,7 +2468,8 @@ static uint32_t trace_copy_size_from_counter_register(const M68kFactsV2TraceStat
     uint32_t width, uint32_t fallback_size, uint8_t inclusive_counter, uint8_t use_full_counter) {
   uint32_t count;
   uint32_t size;
-  if (state == NULL || reg >= 8U || width == 0U || !state->d_low16_known[reg]) return fallback_size;
+  if (state == NULL || reg >= 8U || width == 0U ||
+      !m68k_bitset_u32_has(state->d_low16_known, reg)) return fallback_size;
   if (use_full_counter && state->d[reg].kind == M68K_FACTS_V2_TRACE_CONSTANT) {
     count = state->d[reg].value;
   } else {
@@ -2490,7 +2492,8 @@ static uint32_t trace_copy_size_from_state(const M68kFactsV2TraceState *state, u
     return trace_copy_size_from_counter_register(state, loop_counter_reg, width, fallback_size,
       loop_counter_is_inclusive, loop_counter_uses_full_value);
   }
-  if (state->d_low16_known[0] && state->d_low16_has_origin[0] &&
+  if (m68k_bitset_u32_has(state->d_low16_known, 0U) &&
+      m68k_bitset_u32_has(state->d_low16_has_origin, 0U) &&
       state->d_low16_origin_offset[0] < candidate_offset &&
       candidate_offset - state->d_low16_origin_offset[0] <= 8U) {
     count = (uint32_t)state->d_low16[0] + 1U;
@@ -3686,7 +3689,7 @@ static int trace_state_apply_platform_loadseg_helper_call(M68kDecodeIR *decode, 
         max_cpu, &count_reg, &result_reg, &anchor_section_index)) {
       continue;
     }
-    if (!before->d_low16_known[count_reg]) continue;
+    if (!m68k_bitset_u32_has(before->d_low16_known, count_reg)) continue;
     link_hops = (uint32_t)before->d_low16[count_reg] + 1U;
     if (!platform_facts_v2_loadseg_segment_body_for_hops(platform_kind, decode->section_count,
         anchor_section_index, link_hops, &body_section_index) ||
