@@ -2279,8 +2279,30 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             operand_text="#target,d1",
             operand_parts=(SemanticOperand(kind="symbol", text="target"),),
         ),
+        ListingRow(
+            row_id="r8",
+            kind="data",
+            text="dc.l target\n",
+            addr=16,
+            opcode_or_directive="dc.l",
+            operand_text="target",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
+        ListingRow(
+            row_id="r9",
+            kind="data",
+            text="dc.w target-base\n",
+            addr=18,
+            opcode_or_directive="dc.w",
+            operand_text="target-base",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
     ]
-    for index in range(8, 180):
+    for index in range(10, 180):
         rows.append(
             ListingRow(
                 row_id=f"r{index}",
@@ -2313,7 +2335,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"a6\"]')")
         assert not page.evaluate("document.querySelector('[data-symbol-name=\"_LVOSetSignal\"]')")
         assert page.evaluate(
-            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 3"
+            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 5"
         )
         page.evaluate(
             """
@@ -2328,7 +2350,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             """
         )
         assert page.evaluate(
-            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 3"
+            "document.querySelectorAll('.listing-symbol-reference[data-symbol-name=\"target\"]').length === 5"
         )
         assert page.evaluate("document.querySelector('.listing-symbol-reference[data-symbol-name=\"target\"]')?.tabIndex === 0")
         page.evaluate("document.querySelector('.listing-symbol-reference[data-symbol-name=\"target\"]').focus()")
@@ -2357,7 +2379,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
             timeout=10.0,
         )
         page.click(".listing-symbol-definition[data-symbol-name='target']")
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 4 refs'")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 refs'")
         assert page.evaluate("document.querySelector('[data-navigation-class=\"1\"]')?.value") == "labels"
         assert page.evaluate(
             "document.querySelector('.navigation-item.active')?.textContent.includes('target:')"
@@ -2384,7 +2406,7 @@ def test_brave_cdp_listing_symbol_links_are_focusable_and_jump(
               .dispatchEvent(new MouseEvent('click', {bubbles: true, ctrlKey: true}))
             """
         )
-        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 4 refs'")
+        page.wait_for_expression("document.querySelector('.navigation-summary')?.textContent === 'target: 6 refs'")
         assert page.evaluate(
             "document.querySelector('.navigation-item.active')?.textContent.includes('jsr target.l')"
         )

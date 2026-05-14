@@ -3907,7 +3907,7 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
   if (appSlotCodeHtml !== null) {
     return appSlotCodeHtml;
   }
-  if (row.kind === "instruction" && rowHasAddress(row) && row.operand_text) {
+  if ((row.kind === "instruction" || row.kind === "data") && rowHasAddress(row) && row.operand_text) {
     const opcode = row.opcode_or_directive || "";
     const operand = row.operand_text || "";
     const appSlotOperandHtml = Number.isFinite(globalRowIndex)

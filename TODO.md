@@ -5,23 +5,6 @@
 Some of these may be in non-updated source in targets/, they need checking for existing fixes.
 
 - Bloodwych observed improvement possibilities (target: `amiga_hunk_bloodwych`):
-  - Web UI improvement possibilities for lookup tables samples:
-    ```
-      020e abs_0_000005B2:
-      020e 00008e84                           dc.l abs_0_00008E84
-      0212 00008f14                           dc.l abs_0_00008F14
-      0216 00008ecc                           dc.l abs_0_00008ECC
-      021a 00008f5c                           dc.l abs_0_00008F5C
-      021e 00008ec8                           dc.l abs_0_00008EC8
-      0222 0000                               dc.b $00,$00
-    ```
-      - Labels are not treated like `m68k_vector_spurious_interrupt` above (no link, no navigate lookup integration).
-    ```
-      5548                  abs_0_000058EC:
-      5548 0000               dc.w abs_0_000058F4-abs_0_000058F4
-      554a 0018               dc.w abs_0_0000590C-abs_0_000058F4
-    ```
-      - Verify/finish link/navigate integration for word-relative lookup table labels.
   - Web UI improvement possibilities for ORG sections (or sections known to be bootstraped to addresses)
     ```
     | 5d5e | | abs_0_00006102: |
