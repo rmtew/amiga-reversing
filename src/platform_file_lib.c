@@ -3866,6 +3866,11 @@ static uint8_t resident_field_kind_local(uint32_t size) {
   return M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
 }
 
+static uint8_t amiga_os_type_id_is_pointer_like_local(uint16_t type_id) {
+  return type_id == AMIGA_OS_TYPE_ID_APTR || type_id == AMIGA_OS_TYPE_ID_BPTR ||
+    type_id == AMIGA_OS_TYPE_ID_BSTR;
+}
+
 static int make_struct_field_label_local(char *out, size_t out_size, const char *label_prefix, const char *struct_name,
     const char *field_symbol) {
   const char *cursor;
@@ -3910,15 +3915,11 @@ static void make_note_comment_from_label_local(char *out, size_t out_size, const
 }
 
 static uint8_t kb_struct_field_is_pointer_local(const AmigaOsStructFieldInfo *field) {
-  const char *field_type;
   const char *c_type;
   if (field == NULL) return 0U;
   if (field->pointer_struct_id != AMIGA_OS_STRUCT_ID_NONE) return 1U;
-  field_type = amiga_os_name(M68K_PLATFORM_NAME_TYPE, field->field_type_id);
   c_type = amiga_os_name(M68K_PLATFORM_NAME_TYPE, field->c_type_id);
-  if (field_type != NULL && (strcmp(field_type, "APTR") == 0 || strcmp(field_type, "BPTR") == 0 ||
-        strcmp(field_type, "BSTR") == 0))
-    return 1U;
+  if (amiga_os_type_id_is_pointer_like_local(field->field_type_id)) return 1U;
   return c_type != NULL && strchr(c_type, '*') != NULL;
 }
 
