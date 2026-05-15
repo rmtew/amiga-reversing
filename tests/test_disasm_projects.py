@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.binary_source import BinarySourceKind, resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     build_target_identity,
@@ -429,7 +429,7 @@ def test_require_target_metadata_rejects_missing_raw_binary_metadata() -> None:
         require_target_metadata(
             None,
             target_dir=Path("targets/demo"),
-            source_kind="raw_binary",
+            source_kind=BinarySourceKind.RAW_BINARY,
             parent_disk_id=None,
         )
 
@@ -439,7 +439,7 @@ def test_require_target_metadata_rejects_missing_internal_target_metadata() -> N
         require_target_metadata(
             None,
             target_dir=Path("targets/demo"),
-            source_kind="hunk_file",
+            source_kind=BinarySourceKind.HUNK_FILE,
             parent_disk_id="demo_disk",
         )
 
@@ -447,7 +447,7 @@ def test_require_target_metadata_rejects_missing_internal_target_metadata() -> N
 def test_load_required_target_metadata_allows_missing_optional_hunk_metadata(tmp_path: Path) -> None:
     assert load_required_target_metadata(
         target_dir=tmp_path,
-        source_kind="hunk_file",
+        source_kind=BinarySourceKind.HUNK_FILE,
         parent_disk_id=None,
     ) is None
 
@@ -483,7 +483,7 @@ def test_resolve_project_paths_uses_recorded_binary_path(tmp_path: Path) -> None
 
     resolved = resolve_project_paths("demo", project_root=project_root)
 
-    assert resolved.binary_source.kind == "hunk_file"
+    assert resolved.binary_source.kind is BinarySourceKind.HUNK_FILE
     assert resolved.binary_source.path == binary_path
     assert resolved.binary_source.display_path == str(binary_path)
     assert resolved.output_path == target_dir / "DemoGame.s"
@@ -512,7 +512,7 @@ def test_resolve_project_paths_supports_disk_entry_binary_source(tmp_path: Path)
 
     resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_hunk_run_12345678", project_root=project_root)
 
-    assert resolved.binary_source.kind == "disk_entry"
+    assert resolved.binary_source.kind is BinarySourceKind.DISK_ENTRY
     assert resolved.binary_source.adf_path == adf_path
     assert resolved.binary_source.entry_path == "c/Run"
     assert resolved.binary_source.analysis_cache_path == target_dir / "binary.analysis"
@@ -542,7 +542,7 @@ def test_resolve_project_paths_supports_raw_binary_source(tmp_path: Path) -> Non
 
     resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
 
-    assert resolved.binary_source.kind == "raw_binary"
+    assert resolved.binary_source.kind is BinarySourceKind.RAW_BINARY
     assert resolved.binary_source.path == binary_path
     assert resolved.binary_source.load_address == 0x70000
     assert resolved.binary_source.entrypoint == 0x7000C
@@ -628,7 +628,7 @@ def test_resolve_project_paths_allows_missing_entities_by_default(tmp_path: Path
 
     resolved = resolve_project_paths("amiga_disk_demo_disk__amiga_raw_bootblock", project_root=project_root)
 
-    assert resolved.binary_source.kind == "raw_binary"
+    assert resolved.binary_source.kind is BinarySourceKind.RAW_BINARY
 
 
 def test_resolve_project_paths_rejects_disk_project_name(tmp_path: Path) -> None:
