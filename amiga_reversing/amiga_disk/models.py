@@ -26,12 +26,61 @@ class BootloaderTransferKind(StrEnum):
     MEMORY_COPY = "memory_copy"
 
 
+class BootloaderDiskCommand(StrEnum):
+    CMD_READ = "CMD_READ"
+
+
+class BootloaderTransferSourceKind(StrEnum):
+    LOGICAL_DISK_OFFSET = "logical_disk_offset"
+    POST_READ_RUNTIME_COPY = "post_read_runtime_copy"
+
+
+class BootloaderDecodeInputSourceKind(StrEnum):
+    CUSTOM_TRACK_DMA_BUFFER = "custom_track_dma_buffer"
+
+
+class BootloaderDecodeRequiredSourceKind(StrEnum):
+    RAW_CUSTOM_TRACK_BYTES = "raw_custom_track_bytes"
+
+
 def _bootloader_transfer_kind(value: object) -> BootloaderTransferKind:
     assert isinstance(value, str)
     try:
         return BootloaderTransferKind(value)
     except ValueError:
         raise AssertionError(f"Unsupported bootloader transfer kind: {value}") from None
+
+
+def _bootloader_disk_command(value: object) -> BootloaderDiskCommand:
+    assert isinstance(value, str)
+    try:
+        return BootloaderDiskCommand(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported bootloader disk command: {value}") from None
+
+
+def _bootloader_transfer_source_kind(value: object) -> BootloaderTransferSourceKind:
+    assert isinstance(value, str)
+    try:
+        return BootloaderTransferSourceKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported bootloader transfer source kind: {value}") from None
+
+
+def _bootloader_decode_input_source_kind(value: object) -> BootloaderDecodeInputSourceKind:
+    assert isinstance(value, str)
+    try:
+        return BootloaderDecodeInputSourceKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported bootloader decode input source kind: {value}") from None
+
+
+def _bootloader_decode_required_source_kind(value: object) -> BootloaderDecodeRequiredSourceKind:
+    assert isinstance(value, str)
+    try:
+        return BootloaderDecodeRequiredSourceKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported bootloader decode required source kind: {value}") from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -785,7 +834,7 @@ class BootloaderMemoryAccess:
 @dataclass(frozen=True, slots=True)
 class BootloaderLoad:
     instruction_addr: int
-    command_name: str
+    command_name: BootloaderDiskCommand
     disk_offset: int
     byte_length: int
     destination_addr: int
@@ -804,11 +853,14 @@ class BootloaderLoad:
         assert isinstance(destination_addr, int)
         return cls(
             instruction_addr=instruction_addr,
-            command_name=command_name,
+            command_name=_bootloader_disk_command(command_name),
             disk_offset=disk_offset,
             byte_length=byte_length,
             destination_addr=destination_addr,
         )
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.command_name, BootloaderDiskCommand)
 
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)
@@ -953,8 +1005,8 @@ class BootloaderDecodeOutput:
 @dataclass(frozen=True, slots=True)
 class BootloaderDiskRead:
     instruction_addr: int
-    command_name: str
-    source_kind: str
+    command_name: BootloaderDiskCommand
+    source_kind: BootloaderTransferSourceKind
     disk_offset: int
     byte_length: int
     destination_addr: int
@@ -975,12 +1027,16 @@ class BootloaderDiskRead:
         assert isinstance(destination_addr, int)
         return cls(
             instruction_addr=instruction_addr,
-            command_name=command_name,
-            source_kind=source_kind,
+            command_name=_bootloader_disk_command(command_name),
+            source_kind=_bootloader_transfer_source_kind(source_kind),
             disk_offset=disk_offset,
             byte_length=byte_length,
             destination_addr=destination_addr,
         )
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.command_name, BootloaderDiskCommand)
+        assert isinstance(self.source_kind, BootloaderTransferSourceKind)
 
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)
@@ -994,8 +1050,8 @@ class BootloaderDecodeRegion:
     input_consumed_byte_length: int | None
     checksum_gate_addr: int | None
     checksum_gate_kind: str | None
-    input_source_kind: str
-    input_required_source_kind: str
+    input_source_kind: BootloaderDecodeInputSourceKind
+    input_required_source_kind: BootloaderDecodeRequiredSourceKind
     input_source_candidates: list[RawTrackSource]
     input_source_candidate_spans: list[RawTrackSourceSpan]
     input_required_byte_length: int | None
@@ -1057,8 +1113,8 @@ class BootloaderDecodeRegion:
             input_consumed_byte_length=input_consumed_byte_length,
             checksum_gate_addr=checksum_gate_addr,
             checksum_gate_kind=checksum_gate_kind,
-            input_source_kind=input_source_kind,
-            input_required_source_kind=input_required_source_kind,
+            input_source_kind=_bootloader_decode_input_source_kind(input_source_kind),
+            input_required_source_kind=_bootloader_decode_required_source_kind(input_required_source_kind),
             input_source_candidates=[RawTrackSource.from_dict(_json_object(item)) for item in input_source_candidates],
             input_source_candidate_spans=[RawTrackSourceSpan.from_dict(_json_object(item)) for item in input_source_candidate_spans],
             input_required_byte_length=input_required_byte_length,
@@ -1073,6 +1129,10 @@ class BootloaderDecodeRegion:
             import_target=None if import_target is None else FileImportTargetInfo.from_dict(_json_object(import_target)),
         )
 
+    def __post_init__(self) -> None:
+        assert isinstance(self.input_source_kind, BootloaderDecodeInputSourceKind)
+        assert isinstance(self.input_required_source_kind, BootloaderDecodeRequiredSourceKind)
+
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)
 
@@ -1081,7 +1141,7 @@ class BootloaderDecodeRegion:
 class BootloaderHandoff:
     instruction_addr: int
     target_addr: int
-    source_kind: str
+    source_kind: BootloaderTransferSourceKind
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> BootloaderHandoff:
@@ -1094,8 +1154,11 @@ class BootloaderHandoff:
         return cls(
             instruction_addr=instruction_addr,
             target_addr=target_addr,
-            source_kind=source_kind,
+            source_kind=_bootloader_transfer_source_kind(source_kind),
         )
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.source_kind, BootloaderTransferSourceKind)
 
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)
@@ -1239,7 +1302,7 @@ class BootloaderMemoryRegion:
 class BootloaderTransfer:
     stage_name: str
     transfer_kind: BootloaderTransferKind
-    source_kind: str
+    source_kind: BootloaderTransferSourceKind
     destination_addr: int | None
     byte_length: int | None
     source_addr: int | None = None
@@ -1288,7 +1351,7 @@ class BootloaderTransfer:
         return cls(
             stage_name=stage_name,
             transfer_kind=_bootloader_transfer_kind(transfer_kind),
-            source_kind=source_kind,
+            source_kind=_bootloader_transfer_source_kind(source_kind),
             destination_addr=destination_addr,
             byte_length=byte_length,
             source_addr=source_addr,
@@ -1305,6 +1368,7 @@ class BootloaderTransfer:
 
     def __post_init__(self) -> None:
         assert isinstance(self.transfer_kind, BootloaderTransferKind)
+        assert isinstance(self.source_kind, BootloaderTransferSourceKind)
 
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)

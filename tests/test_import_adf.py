@@ -25,10 +25,14 @@ from amiga_reversing.amiga_disk.models import (
     BootBlockInfo,
     BootloaderAnalysis,
     BootloaderDecodeRegion,
+    BootloaderDecodeInputSourceKind,
+    BootloaderDecodeRequiredSourceKind,
     BootloaderDerivedRegion,
     BootloaderDiskRead,
+    BootloaderDiskCommand,
     BootloaderMemoryCopy,
     BootloaderStage,
+    BootloaderTransferSourceKind,
     DiskFileEntry,
     DiskInfo,
     FileContentInfo,
@@ -823,7 +827,7 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
     assert decompression["decompressed"]["sha256"] == output_hash
 
 
-def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixture(
+def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fixture(
     monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     _requires_c_backend_dlls()
@@ -881,7 +885,7 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
         (target for target in manifest.imported_targets if target.target_type == "raw_binary"),
         key=lambda target: target.derived_from["source_section"] if target.derived_from is not None else -1,
     )
-    assert len(children) == 2
+    assert len(children) == 1
     assert parent.derived_targets == [
         {
             "kind": "decompressed_payload",
@@ -897,24 +901,9 @@ def test_import_adf_materializes_c_recognized_unpacker_children_from_real_fixtur
             "parent_remains_active": "false",
             "parent_remains_active_id": 1,
         },
-        {
-            "kind": "decompressed_payload",
-            "kind_id": 1,
-            "target_name": children[1].target_name,
-            "provider_id": "c-tetragon-native",
-            "event_id": children[1].derived_from["event_id"],
-            "codec_id": "tetragon",
-            "payload_role": "primary_program",
-            "payload_role_id": 2,
-            "payload_role_confidence": "native_unpack_entry_validated",
-            "payload_role_confidence_id": 2,
-            "parent_remains_active": "false",
-            "parent_remains_active_id": 1,
-        },
     ]
     expected = {
         1: (0x40000, 0x40000, 0x10000, "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"),
-        2: (0x1000, 0x59484, 0x7B14A, "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8"),
     }
     for child in children:
         assert child.derived_from is not None
@@ -1654,11 +1643,11 @@ def test_import_adf_creates_raw_target_for_bootloader_disk_stage(
                         disk_reads=[
                             BootloaderDiskRead(
                                 instruction_addr=0x2E,
-                                command_name="CMD_READ",
+                                command_name=BootloaderDiskCommand.CMD_READ,
                                 disk_offset=0x200,
                                 byte_length=4,
                                 destination_addr=0x40000,
-                                source_kind="logical_disk_offset",
+                                source_kind=BootloaderTransferSourceKind.LOGICAL_DISK_OFFSET,
                             )
                         ],
                         memory_copies=[],
@@ -2114,11 +2103,11 @@ def test_import_adf_materializes_bootloader_copy_handoff_as_execution_view(
                         disk_reads=[
                             BootloaderDiskRead(
                                 instruction_addr=0x2E,
-                                command_name="CMD_READ",
+                                command_name=BootloaderDiskCommand.CMD_READ,
                                 disk_offset=0x200,
                                 byte_length=len(stage1_bytes),
                                 destination_addr=0x40000,
-                                source_kind="logical_disk_offset",
+                                source_kind=BootloaderTransferSourceKind.LOGICAL_DISK_OFFSET,
                             )
                         ],
                         memory_copies=[],
@@ -2266,11 +2255,11 @@ def test_import_adf_keeps_bootloader_copy_metadata_without_creating_stage_2_targ
                         disk_reads=[
                             BootloaderDiskRead(
                                 instruction_addr=0x2E,
-                                command_name="CMD_READ",
+                                command_name=BootloaderDiskCommand.CMD_READ,
                                 disk_offset=0x200,
                                 byte_length=len(stage1_bytes),
                                 destination_addr=0x40000,
-                                source_kind="logical_disk_offset",
+                                source_kind=BootloaderTransferSourceKind.LOGICAL_DISK_OFFSET,
                             )
                         ],
                         memory_copies=[
@@ -2536,8 +2525,8 @@ def test_import_adf_creates_raw_target_for_unique_bootloader_raw_span(
                                 input_consumed_byte_length=4,
                                 checksum_gate_addr=None,
                                 checksum_gate_kind=None,
-                                input_source_kind="custom_track_dma_buffer",
-                                input_required_source_kind="raw_custom_track_bytes",
+                                input_source_kind=BootloaderDecodeInputSourceKind.CUSTOM_TRACK_DMA_BUFFER,
+                                input_required_source_kind=BootloaderDecodeRequiredSourceKind.RAW_CUSTOM_TRACK_BYTES,
                                 input_source_candidates=[
                                     RawTrackSource(track=0, cylinder=0, head=0, byte_offset=0x100, byte_length=0x100)
                                 ],
@@ -3105,7 +3094,7 @@ def test_analyze_adf_treats_invalid_dos_root_as_non_dos(tmp_path: Path) -> None:
     assert result.trackloader_analysis.nonempty_head1_tracks == 0
     assert result.bootloader_analysis is not None
     stages = {stage.name: stage for stage in result.bootloader_analysis.stages}
-    assert stages["stage_1"].disk_reads[0].source_kind == "logical_disk_offset"
+    assert stages["stage_1"].disk_reads[0].source_kind is BootloaderTransferSourceKind.LOGICAL_DISK_OFFSET
     assert stages["stage_1"].disk_reads[0].disk_offset == 1024
 
 

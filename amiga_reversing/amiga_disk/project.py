@@ -19,7 +19,9 @@ from amiga_reversing.amiga_disk.adf import (
 )
 from amiga_reversing.amiga_disk.models import (
     AdfAnalysis,
+    BootloaderDiskCommand,
     BootloaderStage,
+    BootloaderTransferSourceKind,
     DiskManifest,
     FileImportTargetInfo,
     ImportedTarget,
@@ -376,8 +378,9 @@ def _bootblock_disk_read_stage_targets(
             byte_length = _int_field(copy, "byte_length")
             handoff_addr = _int_field(copy, "handoff_addr")
             instruction_offset = _int_field(copy, "offset")
+            transfer_source_kind = None if source_kind is None else BootloaderTransferSourceKind(source_kind)
             if (
-                source_kind != "post_read_runtime_copy"
+                transfer_source_kind is not BootloaderTransferSourceKind.POST_READ_RUNTIME_COPY
                 or source_addr is None
                 or destination_addr is None
                 or byte_length is None
@@ -411,9 +414,11 @@ def _bootblock_disk_read_stage_targets(
             byte_length = _int_field(read, "byte_length")
             destination_addr = _int_field(read, "destination_addr")
             instruction_offset = _int_field(read, "offset")
+            disk_command = None if command_name is None else BootloaderDiskCommand(command_name)
+            transfer_source_kind = None if source_kind is None else BootloaderTransferSourceKind(source_kind)
             if (
-                command_name != "CMD_READ"
-                or source_kind != "logical_disk_offset"
+                disk_command is not BootloaderDiskCommand.CMD_READ
+                or transfer_source_kind is not BootloaderTransferSourceKind.LOGICAL_DISK_OFFSET
                 or disk_offset is None
                 or byte_length is None
                 or destination_addr is None
