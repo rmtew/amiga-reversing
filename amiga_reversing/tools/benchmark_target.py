@@ -7,6 +7,7 @@ import time
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from enum import StrEnum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,13 +24,18 @@ from amiga_reversing.disasm.project_paths import resolve_project_paths
 TARGETS_DIR = ROOT / "targets"
 
 
+class TargetBenchmarkStatus(StrEnum):
+    OK = "ok"
+    FAILED = "failed"
+
+
 @dataclass(frozen=True, slots=True)
 class TargetBenchmark:
     target: str
     binary: str
     command: str
     measured_at: str
-    status: str
+    status: TargetBenchmarkStatus
     elapsed_seconds: float
     benchmark_bytes: int | None
     disasm_bytes: int | None
@@ -74,7 +80,7 @@ def _benchmark_command(target: str) -> str:
 def _benchmark_record(
     target: str,
     binary_display_path: str,
-    status: str,
+    status: TargetBenchmarkStatus,
     elapsed_seconds: float,
     c_benchmark: dict[str, object] | None,
     disasm_path: Path,
@@ -152,7 +158,7 @@ def _benchmark_binary_target(
         record = _benchmark_record(
             target,
             paths.binary_source.display_path,
-            "ok",
+            TargetBenchmarkStatus.OK,
             elapsed,
             c_benchmark,
             disasm_path,
@@ -162,7 +168,7 @@ def _benchmark_binary_target(
         record = _benchmark_record(
             target,
             paths.binary_source.display_path,
-            "failed",
+            TargetBenchmarkStatus.FAILED,
             elapsed,
             c_benchmark,
             disasm_path,
@@ -195,14 +201,14 @@ def _disk_project_benchmark(target: str) -> TargetBenchmark:
             write_output=True,
         )
     elapsed = time.perf_counter() - started
-    failures = [record for record in child_records.values() if record.status != "ok"]
+    failures = [record for record in child_records.values() if record.status is not TargetBenchmarkStatus.OK]
     c_timing = _sum_c_timing(list(child_records.values()))
     record = TargetBenchmark(
         target=target,
         binary=manifest.source_path,
         command=_benchmark_command(target),
         measured_at=datetime.now().astimezone().isoformat(timespec="seconds"),
-        status="failed" if failures else "ok",
+        status=TargetBenchmarkStatus.FAILED if failures else TargetBenchmarkStatus.OK,
         elapsed_seconds=round(elapsed, 2),
         benchmark_bytes=sum(record.benchmark_bytes or 0 for record in child_records.values()) or None,
         disasm_bytes=sum(record.disasm_bytes or 0 for record in child_records.values()) or None,
@@ -244,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     had_failures = False
     for target in args.targets:
         record = benchmark_target(target)
-        if record.status == "ok":
+        if record.status is TargetBenchmarkStatus.OK:
             print(f"{record.target}: {record.elapsed_seconds:.2f}s")
         else:
             had_failures = True
