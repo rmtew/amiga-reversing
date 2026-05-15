@@ -10,6 +10,7 @@ from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.tools import precommit
 from amiga_reversing.tools.benchmark_target import (
     TargetBenchmark,
+    TargetBenchmarkStatus,
     _assembler_profile_for_target,
     _benchmark_binary_target,
     _benchmark_record,
@@ -32,7 +33,7 @@ def test_benchmark_record_uses_target_command_and_sizes(
     record = _benchmark_record(
         "example",
         "bin/Example",
-        "ok",
+        TargetBenchmarkStatus.OK,
         12.345,
         c_benchmark,
         disasm,
@@ -41,7 +42,7 @@ def test_benchmark_record_uses_target_command_and_sizes(
     assert record.target == "example"
     assert record.binary == "bin/Example"
     assert record.command == "uv run amiga-benchmark-target example"
-    assert record.status == "ok"
+    assert record.status is TargetBenchmarkStatus.OK
     assert record.elapsed_seconds == 12.35
     assert record.benchmark_bytes is not None
     assert record.disasm_bytes == 30
@@ -99,7 +100,7 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
 
     record = _benchmark_binary_target("demo", write_output=True)
 
-    assert record.status == "ok"
+    assert record.status is TargetBenchmarkStatus.OK
     assert record.analysis == {"violation_count": 1}
     assert record.command == "uv run amiga-benchmark-target demo"
     assert disasm_path.read_text(encoding="utf-8") == "; demo\n"
@@ -236,7 +237,7 @@ def test_benchmark_main_fails_when_any_target_fails(monkeypatch: pytest.MonkeyPa
         lambda target: type(
             "Record",
             (),
-            {"target": target, "status": "failed", "elapsed_seconds": 1.0},
+            {"target": target, "status": TargetBenchmarkStatus.FAILED, "elapsed_seconds": 1.0},
         )(),
     )
 
@@ -250,7 +251,7 @@ def test_benchmark_main_passes_targets(
 
     def fake_benchmark_target(target: str) -> object:
         calls.append(target)
-        return type("Record", (), {"target": target, "status": "ok", "elapsed_seconds": 1.0})()
+        return type("Record", (), {"target": target, "status": TargetBenchmarkStatus.OK, "elapsed_seconds": 1.0})()
 
     monkeypatch.setattr("amiga_reversing.tools.benchmark_target.benchmark_target", fake_benchmark_target)
 
@@ -329,7 +330,7 @@ def test_disk_project_benchmark_orders_children_by_manifest_entry_path(
             binary=f"bin/{target}",
             command=f"uv run amiga-benchmark-target {target}",
             measured_at="2026-03-26T12:00:00+13:00",
-            status="ok",
+            status=TargetBenchmarkStatus.OK,
             elapsed_seconds=1.0,
             benchmark_bytes=1,
             disasm_bytes=1,
