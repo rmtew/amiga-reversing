@@ -39,8 +39,10 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.manual_actions import (
+    ManualActionKind,
     ReviewState,
     append_manual_action,
+    manual_action_kind,
     review_item_is_open,
     validate_manual_action_payload,
 )
@@ -1807,6 +1809,7 @@ def route_request(
             action_kind = (body or {}).get("kind")
             if not isinstance(action_kind, str) or not action_kind:
                 raise ValueError("Manual action kind is required")
+            manual_action_kind_id = manual_action_kind(action_kind)
             paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
             binary_source = resolve_target_binary_source(paths.target_dir)
             if binary_source is None:
@@ -1819,11 +1822,11 @@ def route_request(
             validate_manual_action_payload(action_payload)
             action = append_manual_action(
                 paths.target_dir,
-                kind=action_kind,
+                kind=manual_action_kind_id,
                 payload=action_payload,
                 binary_source=binary_source,
             )
-            if action_kind != "resolve_review_item":
+            if manual_action_kind_id is not ManualActionKind.RESOLVE_REVIEW_ITEM:
                 _cancel_listing_jobs(project_name)
                 _cancel_reproduction_jobs(project_name)
                 _clear_project_listing_cache(project_name)

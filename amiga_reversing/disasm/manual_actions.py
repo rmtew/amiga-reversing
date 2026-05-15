@@ -163,13 +163,11 @@ class ManualActionKind(StrEnum):
     REDO_ACTION = "redo_action"
 
 
-def _manual_action_kind_id(kind: ManualActionKind | str) -> ManualActionKind:
-    if isinstance(kind, ManualActionKind):
-        return kind
+def manual_action_kind(value: str) -> ManualActionKind:
     try:
-        return ManualActionKind(kind)
+        return ManualActionKind(value)
     except ValueError:
-        raise ValueError(f"Unsupported manual action kind: {kind}") from None
+        raise ValueError(f"Unsupported manual action kind: {value}") from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -209,11 +207,12 @@ def manual_action_log_path(target_dir: Path) -> Path:
 def append_manual_action(
     target_dir: Path,
     *,
-    kind: ManualActionKind | str,
+    kind: ManualActionKind,
     payload: dict[str, object],
     binary_source: BinarySource,
 ) -> dict[str, object]:
-    kind_id = _manual_action_kind_id(kind)
+    if not isinstance(kind, ManualActionKind):
+        raise TypeError("kind must be a ManualActionKind")
     validate_manual_action_payload(payload)
     path = manual_action_log_path(target_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,7 +248,7 @@ def append_manual_action(
         "action_id": f"manual-{uuid.uuid4().hex}",
         "sequence": max_sequence + 1,
         "created_at": datetime.now(UTC).isoformat(),
-        "kind": kind_id,
+        "kind": kind,
         **payload,
     }
     records.append(action)
@@ -874,7 +873,7 @@ def _parse_action(raw: dict[str, object]) -> _ManualAction:
     action_id = _str_field(raw, "action_id", what="manual action")
     sequence = _int_field(raw, "sequence", what="manual action")
     created_at = _str_field(raw, "created_at", what="manual action")
-    kind = _manual_action_kind_id(_str_field(raw, "kind", what="manual action"))
+    kind = manual_action_kind(_str_field(raw, "kind", what="manual action"))
     return _ManualAction(
         action_id=action_id,
         sequence=sequence,

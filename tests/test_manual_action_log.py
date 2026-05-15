@@ -9,6 +9,7 @@ from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
+    ManualActionKind,
     append_manual_action,
     build_target_identity,
     load_manual_projection,
@@ -224,13 +225,13 @@ def test_append_manual_action_creates_header_and_sequences_actions(tmp_path: Pat
 
     first = append_manual_action(
         target_dir,
-        kind="create_manual_seed",
+        kind=ManualActionKind.CREATE_MANUAL_SEED,
         payload={"seed": {"seed_id": "s1", "kind": "data", "addr": 0}},
         binary_source=binary_source,
     )
     second = append_manual_action(
         target_dir,
-        kind="resolve_review_item",
+        kind=ManualActionKind.RESOLVE_REVIEW_ITEM,
         payload={"resolution": {"resolution_id": "r1", "item_id": "i1", "evidence_fingerprint": "abc"}},
         binary_source=binary_source,
     )
@@ -254,7 +255,7 @@ def test_append_manual_action_rejects_reserved_payload_fields(tmp_path: Path) ->
     with pytest.raises(ValueError, match="reserved field"):
         append_manual_action(
             target_dir,
-            kind="create_manual_seed",
+            kind=ManualActionKind.CREATE_MANUAL_SEED,
             payload={
                 "action_id": "manual-forged",
                 "sequence": 99,
@@ -813,7 +814,7 @@ def test_append_manual_action_rejects_target_identity_mismatch(tmp_path: Path) -
     with pytest.raises(ValueError, match="target identity does not match"):
         append_manual_action(
             target_dir,
-            kind="create_manual_seed",
+            kind=ManualActionKind.CREATE_MANUAL_SEED,
             payload={"seed": {"seed_id": "s1", "kind": "code", "addr": 0}},
             binary_source=binary_source,
         )
