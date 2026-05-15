@@ -173,6 +173,10 @@ def _coerce_disk_entry_import_path(raw_path: str | None) -> str | None:
     return value.strip("/")
 
 
+def _is_decompressed_payload_relationship(relationship: dict[str, object]) -> bool:
+    return _int_field(relationship, "kind_id") == DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD
+
+
 def _startup_disk_entry_paths(analysis: AdfAnalysis) -> set[str]:
     if analysis.files is None:
         return set()
@@ -562,7 +566,7 @@ def _disk_target_state_payload(
         if not isinstance(item.derived_from, dict):
             continue
         relationship = item.derived_from
-        if relationship.get("kind") != "decompressed_payload":
+        if not _is_decompressed_payload_relationship(relationship):
             continue
         payload_nodes.append(
             {
@@ -2631,7 +2635,7 @@ def refresh_decompressed_payload_children(
         imported_by_name[child.target_name] = child
     for target in list(imported_by_name.values()):
         relationship = target.derived_from
-        if not isinstance(relationship, dict) or relationship.get("kind") != "decompressed_payload":
+        if not isinstance(relationship, dict) or not _is_decompressed_payload_relationship(relationship):
             continue
         parent_name = relationship.get("parent_target")
         if not isinstance(parent_name, str) or parent_name not in refreshed_parent_names:

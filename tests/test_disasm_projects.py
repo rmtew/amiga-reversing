@@ -732,6 +732,7 @@ def test_disk_manifest_preserves_decompressed_target_relationship(tmp_path: Path
     payload = _disk_manifest_payload()
     payload["imported_targets"][0]["derived_targets"] = [
         {
+            "kind_id": 1,
             "kind": "decompressed_payload",
             "target_name": "amiga_disk_demo_disk__amiga_raw_run_rnc_00001000",
             "packed_file_offset": 0x1020,
@@ -746,6 +747,7 @@ def test_disk_manifest_preserves_decompressed_target_relationship(tmp_path: Path
             "binary_path": "targets/amiga_disk_demo_disk/targets/amiga_raw_run_rnc_00001000/binary.bin",
             "target_type": "raw_binary",
             "derived_from": {
+                "kind_id": 1,
                 "kind": "decompressed_payload",
                 "parent_target": "amiga_disk_demo_disk__amiga_hunk_run_12345678",
                 "parent_entry_path": "c/Run",
