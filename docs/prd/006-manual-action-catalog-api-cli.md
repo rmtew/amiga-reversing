@@ -10,6 +10,7 @@ Create a backend-owned **Manual Action Catalog** so LLMs, CLI callers, and Web U
 - Expose catalog entries through HTTP APIs and thin CLI wrappers.
 - Keep the **Manual Action Log** as the durable record for domain actions.
 - Include transient navigation/open-panel commands in catalog responses when useful, but mark them as non-log actions.
+- Keep non-review tooling commands such as source export and reproduction profile selection outside Manual Action Log semantics; command palette integration for those commands is covered by PRDs 008, 018, and 021.
 
 ## Requirements
 
@@ -20,12 +21,15 @@ Create a backend-owned **Manual Action Catalog** so LLMs, CLI callers, and Web U
 - CLI wrappers can list actions, show required parameters, and invoke actions against a project without needing browser state.
 - No LLM-only protocol is introduced; LLM workflows use the same HTTP and CLI surfaces.
 - Catalog output includes enough evidence/context for an agent to choose actions without scraping Web UI text.
+- The command palette may combine Manual Action Catalog entries with non-manual **Target Tooling Commands**, but catalog action execution remains the path for manual domain actions.
 
 ## Non-Goals
 
 - User-defined key binding persistence.
 - Replacing the **Manual Action Log** storage model.
 - Direct source-text editing.
+- Owning every command palette command; target tooling commands are separate command types.
+- Range-selection catalog semantics beyond row and element contexts; covered by PRD 014.
 
 ## Verification
 
@@ -47,3 +51,9 @@ Create a backend-owned **Manual Action Catalog** so LLMs, CLI callers, and Web U
 
 - Exact CLI command names.
 - Whether disabled catalog entries should be returned by default or only with a debug flag.
+
+## Follow-On PRDs
+
+- PRD 012 adds schema-rendered parameter collection for catalog actions.
+- PRD 014 adds explicit range-selection catalog contexts.
+- PRD 016 adds review-note catalog actions.

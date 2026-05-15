@@ -10,7 +10,7 @@ AFK
 
 ## What to build
 
-Add the initial command palette opened by `p`, context-filtered from the current **Listing Selection**, and capable of executing catalog actions.
+Add the initial command palette opened by `p`, context-filtered from the current **Listing Selection**, and capable of executing manual, navigation, and target tooling commands.
 
 ## Acceptance criteria
 
@@ -19,6 +19,7 @@ Add the initial command palette opened by `p`, context-filtered from the current
 - [ ] Search matches label, action id, target kind, and relevant symbol/equate/struct text.
 - [ ] Executing a log action uses the catalog action execution path.
 - [ ] Executing a transient action performs the expected UI/navigation behavior.
+- [ ] Target tooling commands are visible and keep non-log persistence semantics.
 - [ ] CDP/e2e tests cover opening, filtering, and executing one log action.
 - [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 

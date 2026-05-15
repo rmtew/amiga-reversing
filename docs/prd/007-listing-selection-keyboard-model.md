@@ -24,7 +24,7 @@ Add a durable **Listing Selection** model so keyboard, command palette, context 
 ## Non-Goals
 
 - User-defined key bindings.
-- Multi-row or range selection.
+- Multi-row or range selection in this PRD; focus/anchor/range behavior is covered by PRD 014.
 - Text-editor-style caret editing.
 
 ## Verification
@@ -45,3 +45,9 @@ Add a durable **Listing Selection** model so keyboard, command palette, context 
 
 - Whether the first element in a row should be auto-selected when an action needs element precision.
 - Visual styling for selected row versus transient focused row.
+
+## Follow-On PRDs
+
+- PRD 013 persists listing location as **UI Preference State** and defines first-open entrypoint selection.
+- PRD 014 extends **Listing Selection** with focus, anchor, and selected row range.
+- PRD 015 preserves **Listing Selection** during immediate projection and background refresh.

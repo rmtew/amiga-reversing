@@ -2,6 +2,15 @@
 
 ## Unsorted
 
+- Row selection needs to be more flexible. As up or down cursor key moves the selected row, shift+up or down should
+  extend the selection to cover the previous row and the current focus row. This implies there is a concept of focus
+  row and selected rows, although I suspect there is a standard UI paradigm for this we can follow. This then applies
+  to filtering command palette actions - what ones do we offer? How do they work when presented rows which may or may
+  not be applicable to them - there is a value in deprioritising them visually and showing a hint against the row
+  why they can't be applied to the selected rows.
+  - An example of row selection. The user sees a block of dc.b. He concerts it to longs. Then he selects sub-rows and
+    then converts to strings. Maybe other rows are words, others are bytes.
+  Proposal: `docs/proposals/001-manual-review-ui-workflows.md`.
 - Manual edits in the web UI should appear natural and seamless, not incur loading dialogs and reanalysis.
   When I renamed the label even if it had updated the given row, the action was followed by a interruption with
   reanalysis perhaps happening and loading dialogs. Being able to do edits and changes immediately is a huge improvement

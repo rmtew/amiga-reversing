@@ -4,6 +4,10 @@
 
 [PRD 011: Structured Contextual Action Metadata](../prd/011-structured-contextual-action-metadata.md)
 
+## Related PRDs
+
+- [PRD 017: Inline and Palette Parameter Sessions](../prd/017-inline-and-palette-parameter-sessions.md)
+
 ## Type
 
 AFK
@@ -15,6 +19,8 @@ ready-for-agent
 ## What to build
 
 Update web listing selection and command palette catalog requests so selected elements use structured context identifiers from listing metadata rather than inferred element kind and rendered text.
+
+PRD 017 consumes this structured element context for inline editors, representation choices, semantic choosers, and the edit-selected command.
 
 ## Acceptance criteria
 

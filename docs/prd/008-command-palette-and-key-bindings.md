@@ -2,13 +2,14 @@
 
 ## Purpose
 
-Add a command palette that exposes **Manual Action Catalog** entries for the current **Listing Selection**, with default key bindings and visible key-binding badges.
+Add a command palette that centralizes **Manual Action Catalog** entries, navigation commands, and **Target Tooling Commands** with default key bindings and visible key-binding badges.
 
 ## Scope
 
 - Add an initial command palette bound to `p`.
 - Open context-filtered by default from the current **Listing Selection**.
 - Allow broadening from contextual actions to all currently valid target actions.
+- Include non-manual target tooling commands such as reproduction profile selection and source export when applicable.
 - Display assigned key bindings beside matching commands.
 - Use an internal binding registry so defaults are centralized and future user rebinding is possible.
 
@@ -17,8 +18,9 @@ Add a command palette that exposes **Manual Action Catalog** entries for the cur
 - Palette search filters by label, action id, target kind, symbol/equate/struct text, and command category.
 - The initial view shows context-valid actions first.
 - Backspace from an empty contextual search, or an equivalent visible toggle, broadens to all valid actions.
-- Palette entries execute the same backend catalog actions used by review buttons and CLI/API callers.
+- Manual palette entries execute the same backend catalog actions used by review buttons and CLI/API callers.
 - Navigation commands appear in the same global palette list, are filterable, and show key-binding badges even when they do not append to the **Manual Action Log**.
+- **Target Tooling Commands** appear in the same global palette list, are filterable, and preserve their non-log persistence semantics.
 - Default key bindings include command palette open, review open, navigate open, history back/forward, and core row navigation.
 - The registry can represent unbound commands.
 
@@ -27,11 +29,13 @@ Add a command palette that exposes **Manual Action Catalog** entries for the cur
 - User-defined key binding persistence or preferences UI.
 - Chorded shortcut editor.
 - Replacing existing Review and Navigate dialogs.
+- Defining reproduction profile or source export semantics; covered by PRDs 018 and 021.
+- Parameter entry UI for actions requiring values; covered by PRD 012.
 
 ## Verification
 
 - Web source tests for palette rendering from catalog entries and key-binding badge display.
-- CDP/e2e tests for opening the palette, contextual filtering, broadening to all valid actions, executing a log action, and executing a transient navigation action.
+- CDP/e2e tests for opening the palette, contextual filtering, broadening to all valid actions, executing a log action, executing a transient navigation action, and displaying a target tooling command.
 - Regression test that existing Review dialog actions still execute through catalog-backed behavior.
 
 ## Issues
@@ -46,3 +50,11 @@ Add a command palette that exposes **Manual Action Catalog** entries for the cur
 
 - Whether `p` remains the final default after broader keyboard review.
 - Exact category names used in palette filtering.
+
+## Follow-On PRDs
+
+- PRD 012 adds the **Command Parameter Editor** for schema-backed action parameters.
+- PRD 015 keeps command palette state stable during immediate manual projection and refresh.
+- PRD 017 adds palette-hosted parameter sessions and default edit-selected key bindings.
+- PRD 018 adds reproduction profile target tooling commands.
+- PRD 021 adds source export target tooling commands.

@@ -4,6 +4,10 @@
 
 [PRD 010: Semantic Helper Actions](../prd/010-semantic-helper-actions.md)
 
+## Related PRDs
+
+- [PRD 017: Inline and Palette Parameter Sessions](../prd/017-inline-and-palette-parameter-sessions.md)
+
 ## Type
 
 AFK

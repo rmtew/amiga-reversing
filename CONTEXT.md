@@ -12,6 +12,14 @@ _Avoid_: Diff, verification
 The production of assembler source text from analysed target facts.
 _Avoid_: Disassembly when specifically referring to emitted source text
 
+**Source Export**:
+A user-requested workflow that writes rendered assembler source to a `.s` file for a selected **Assembler Profile**, independent of whether round-trip or oracle verification is also run.
+_Avoid_: Round-trip verification, source rendering internals
+
+**Source Export Result**:
+The immediate outcome of a **Source Export** command, including the browser-delivered source file or refusal diagnostics; it is not target review state.
+_Avoid_: Export status, reproduction exactness
+
 **Assembly**:
 The production of rebuilt bytes from rendered source.
 _Avoid_: Rebuild when specifically referring to the assembler step
@@ -51,6 +59,32 @@ _Avoid_: Container layout when referring to record representation choices
 **Reproduction Comparison Context**:
 The C-owned state used to compare original bytes and rebuilt bytes under a selected backend and reproduction policy.
 _Avoid_: HUNK-specific fixer context
+
+**Reproduction Policy**:
+The target-affecting configuration that controls round-trip verification semantics, including mode, backend, CPU, comparison level, and container or relocation policy.
+_Avoid_: UI profile choice, oracle tool path
+
+**Reproduction Profile**:
+A named runnable preset that selects a **Reproduction Policy** and optional oracle checks for a target or workflow.
+_Avoid_: Tool registry, exactness result
+
+Initial **Reproduction Profiles** are project-provided built-ins rather than user-defined profile records.
+
+**Tool Registry**:
+Project or workspace configuration that records external tool locations and related discovery hints for oracle tools.
+_Avoid_: Target reproduction policy, manual action log
+
+**Tool Availability**:
+The discovered state of an external tool needed or optionally used by a selected **Reproduction Profile**, including found path, cheap version information, missing reason, and required/optional status.
+_Avoid_: Profile configuration
+
+**Tool Availability Record**:
+A structured **Tool Availability** entry with tool id, status, required flag, resolved path, cheap version, discovery source, user-facing message, and executable stamp when possible.
+_Avoid_: Console probe output
+
+**Oracle Compatibility Report**:
+A report section for a non-gating assembler oracle whose primary result is the achieved comparison level, with tool execution status and diagnostics as supporting evidence.
+_Avoid_: Exactness gate result
 
 **Workflow Context**:
 Top-level C workflow state passed through a repository-owned operation; it may carry arenas and later workflow-local services, but it is not a generic allocator bag.
@@ -152,6 +186,10 @@ _Avoid_: Seed confidence
 A persisted user-authored decision that closes or annotates a **Manual Review Item** without necessarily changing analysis facts.
 _Avoid_: Manual seed
 
+**Review Note**:
+A user-authored note or bookmark attached to a target location or range, optionally marked as review-tracking so it appears as manual review work until resolved or cleared.
+_Avoid_: UI bookmark, comment
+
 **Manual Action Log**:
 The ordered per-target record of user-authored review and analysis actions from which current manual state is projected.
 _Avoid_: Separate manual seed and resolution files
@@ -180,8 +218,40 @@ _Avoid_: Help text
 The canonical set of currently valid manual analysis actions exposed to UI, keyboard, command palette, CLI, and API callers.
 _Avoid_: Separate UI action list, Review dialog buttons
 
+**Target Tooling Command**:
+A command that runs target-scoped tooling such as source export, reproduction profile selection, or oracle execution without appending to the **Manual Action Log**.
+_Avoid_: Manual action
+
+**Command Parameter Editor**:
+A reusable UI surface that renders a **Manual Action Catalog** entry's parameter schema, collects required values, and submits the same catalog action without browser-native prompts.
+_Avoid_: Rename dialog, web-only prompt
+
+**Interaction Schema**:
+Context-specific catalog metadata that tells UI hosts how to collect action parameters, including editor type, option metadata, validation metadata, default selection, preview kind, and host suitability.
+_Avoid_: Hardcoded web editor behavior, backend HTML
+
+**Parameter Session**:
+A transient UI interaction that collects parameters for one **Manual Action Catalog** action in either a command palette host or inline listing host.
+_Avoid_: Separate palette action path, direct source edit
+
+**Edit Selected Command**:
+The catalog-driven command that opens the primary **Parameter Session** for the current **Listing Selection**, or offers explicit alternatives when no single edit is dominant.
+_Avoid_: Hardcoded dot-key behavior
+
+**UI Preference State**:
+Project-local workflow state that preserves user interface location and choices without changing reverse-engineering facts.
+_Avoid_: Manual action, analysis metadata
+
+**Immediate Manual Projection**:
+A UI update that applies a known visible effect after a **Manual Action Log** append succeeds and before server reconciliation finishes.
+_Avoid_: Pre-write optimistic edit, direct source edit
+
+**Manual Edit Application**:
+The local-first user experience for a successful manual action, where known visible effects are applied immediately after durable log append and unresolved affected rows or ranges remain visible as pending work until server reconciliation replaces them in place.
+_Avoid_: Full listing reload, action-specific UI patch
+
 **Listing Selection**:
-The active target of a user or tool action in the rendered analysis listing, consisting of a selected row and optionally a selected element inside that row.
+The active target of a user or tool action in the rendered analysis listing, consisting of row focus, optional range anchor and selected row range, and optionally a selected element inside the focused row.
 _Avoid_: Temporary row highlight
 
 **Listing Element**:
@@ -191,6 +261,13 @@ _Avoid_: Text span
 ## Relationships
 
 - **Round-Trip Verification** includes **Source Rendering**, **Project Rebuild**, and **Reproduction Comparison**.
+- **Source Export** uses **Source Rendering** and an explicit **Assembler Profile**.
+- **Source Export** may be followed by oracle checks, but exporting source is not itself verification.
+- **Source Export** reports target identity, metadata hash, assembler profile, source-rendering profile, and refusal diagnostics.
+- In the Web UI, **Source Export** is delivered through the standard browser file-save flow; the saved file is user-owned external output, not a project-owned generated artifact.
+- **Source Export** includes a minimal generated header with target name, assembler profile, metadata or target identity hash, generated timestamp, and a statement that export is not a verification result.
+- **Source Export** is a target/tooling command, not a **Manual Action Catalog** action, even if the UI reuses parameter-session controls to choose an assembler profile.
+- A **Source Export Result** is command feedback only; target status is derived from **Round-Trip Verification** and manual review, not from exporting a source file.
 - **Project Rebuild** supplies an **Assembler Policy** to **Assembly**.
 - **Source Rendering** consumes an **Assembler Profile** for syntax features such as local labels.
 - Standalone **Assembly** uses an ideal/default **Assembler Policy** unless the caller overrides selected policy values.
@@ -216,6 +293,24 @@ _Avoid_: Text span
 - A **Local C API** may change when arena ownership makes a cleaner interface.
 - A **Compatibility Shim** is avoided for repository-owned code because this project has no external compatibility contract.
 - **Project Rebuild** preserves recognized original **Container Shape** by default.
+- **Reproduction Policy** configures **Round-Trip Verification** semantics and is stamped into reproduction reports when used.
+- **Reproduction Profile** selects a **Reproduction Policy** and optional oracle checks, but does not by itself prove **Reproduction Exactness**.
+- Built-in **Reproduction Profiles** include the exact framework gate, vasm source oracle, DevPac or GenAm source oracle, and content-semantic comparison workflows.
+- Selecting a **Reproduction Profile** stores concrete **Reproduction Policy** options in target configuration, with an optional profile id retained for provenance and display.
+- Reports use the concrete stored policy options so previous results remain understandable if built-in profile defaults later change.
+- Source-oriented vasm and DevPac or GenAm **Reproduction Profiles** are oracle profiles unless a later decision promotes an assembler to an exactness gate with proven container-semantics preservation.
+- DevPac and GenAm are separate concrete oracle tool ids under one DevPac-compatible oracle family; reports name the concrete tool chain used.
+- Built-in GenAm oracle support requires a runnable GenAm path through `vamos`; lower-level emulator dependencies behind `vamos` are treated as user installation concerns rather than first-class project tools in this PRD slice.
+- Oracle profiles may report full-file or content match against their outputs, but they do not set the target exactness gate result to `exact`.
+- An **Oracle Compatibility Report** leads with comparison level such as full-file match, content match, mismatch, not comparable, missing, or not run; assembler acceptance and tool diagnostics support that result.
+- Oracle comparison labels are scoped as oracle results, such as `oracle.full_file_match`, `oracle.content_match`, `oracle.mismatch`, `oracle.not_comparable`, `oracle.missing`, and `oracle.not_run`; bare `exact` remains reserved for the active exactness gate.
+- **Tool Registry** supplies external tool discovery inputs for oracle checks.
+- **Tool Availability** is reported per requested oracle check and does not change the selected exactness gate.
+- **Tool Registry** is separate from target metadata and the **Manual Action Log**; target configuration may request oracle checks but does not store user-local tool paths.
+- Reproduction reports stamp **Tool Availability** inputs only for requested oracle checks.
+- **Tool Availability Records** use status values `available`, `missing`, `unsupported`, or `error`, and discovery source values such as `configured_path`, `path_lookup`, `bundled`, or `not_checked`.
+- Built-in oracle tool ids for this PRD slice are `vasm`, `genam`, and `vamos`; DevPac is assembler/profile/family wording unless a directly supported DevPac executable is added later.
+- A missing optional oracle tool reports an oracle missing outcome, while a missing required exactness tool is a round-trip verification tool error.
 - **Original File Structure** is the user-facing way to describe **Container Shape** differences.
 - **Container Shape** can differ while **Reproduction Comparison** still reports **Content Exactness**.
 - **Container Layout** gives Python the byte ranges it needs for report and row issue mapping.
@@ -239,6 +334,10 @@ _Avoid_: Text span
 - A **Manual Seed** keeps manual provenance distinct from metadata, policy, and tool-inferred evidence.
 - A **Manual Resolution** can close a **Manual Review Item** without turning its range into a **Reconciled Range**.
 - A **Manual Seed** requests reanalysis, while a **Manual Resolution** records a decision about review work.
+- A **Review Note** is stored through the **Manual Action Log**.
+- A review-tracking **Review Note** projects into **Manual Review Items** and contributes to **Review State** while open.
+- A non-tracking **Review Note** is visible in listing and navigation surfaces but does not affect **Review State**.
+- A bookmark is represented as a **Review Note** with minimal or empty note body.
 - **Manual Review Items** are regenerated from current analysis facts; **Manual Seeds** and **Manual Resolutions** are projected from the **Manual Action Log**.
 - The **Manual Action Log** is per target and ordered so user actions can be replayed.
 - The first **Manual Action Log** record is a header containing log version and **Target Identity**.
@@ -270,6 +369,7 @@ _Avoid_: Text span
 - A label scope conflict blocks review only when emitted source correctness or assembly is at risk.
 - A **Manual Comment** replaces the old entity comment override and is stored through **Manual Action Log** actions.
 - A **Manual Comment** on an unreconciled range creates a **Manual Review Item** unless classification evidence or a **Manual Seed** explains the range.
+- A **Manual Comment** is source/rendering annotation, while a **Review Note** is review workflow state.
 - A **Manual Representation** affects source rendering and listing display but does not prove classification or reconcile a range.
 - A **Manual Representation** is stored through **Manual Action Log** actions rather than as a **Manual Seed**.
 - A review-resolution action records the review item id, **Evidence Fingerprint**, range and kind snapshot, and resolution reason.
@@ -282,9 +382,23 @@ _Avoid_: Text span
 - The **Manual Action Catalog** supplies **Suggested Review Actions** and contextual manual-editing commands for all caller surfaces.
 - Review dialog buttons, command palette entries, hotkeys, context menus, CLI commands, and API clients invoke **Manual Action Catalog** entries rather than defining separate behavior.
 - The **Manual Action Catalog** is backend-owned; UI surfaces render catalog entries instead of hardcoding manual action eligibility.
+- The command palette can centralize manual actions, navigation commands, and **Target Tooling Commands** while preserving their different persistence semantics.
+- A **Target Tooling Command** may be stateful or transient, but it does not append to the **Manual Action Log** unless it delegates to an explicit manual action.
+- Changing a target's active **Reproduction Policy** is a **Target Tooling Command** that persists target reproduction configuration, invalidates stale reproduction reports, and does not affect review state until **Round-Trip Verification** runs.
+- A **Command Parameter Editor** collects parameters for a selected **Manual Action Catalog** entry; it does not define action eligibility or append behavior itself.
+- An **Interaction Schema** complements parameter validation schema; it describes parameter collection UX but not action validity.
+- A **Parameter Session** may render in the command palette or inline at the selected listing element, but both hosts submit the same catalog action payload.
+- An **Edit Selected Command** is catalog-driven and may choose label edit, comment edit, representation choice, semantic chooser, or an alternatives list from the current structured context.
 - Navigation commands that operate on **Listing Selection** are visible in the same command palette catalog and can show assigned key-binding badges even when they do not append to the **Manual Action Log**.
+- **UI Preference State** may remember listing location, selection, scroll anchors, key-binding overrides, render profile choice, and reproduction profile choice.
+- **UI Preference State** may remember the last selected **Reproduction Profile** view, but target-affecting **Reproduction Policy** belongs in target configuration.
+- **UI Preference State** is not written to the **Manual Action Log** because it is not user-authored analysis intent.
+- **Immediate Manual Projection** can update visible listing rows, review counts, or badges only after the related **Manual Action Log** entry is durable.
+- **Immediate Manual Projection** does not replace analysis, source rendering, or round-trip verification when an action changes classification, policy, or emitted source.
+- **Manual Edit Application** applies to every successful manual edit; actions with unknown final visible shape mark affected rows or ranges as pending rather than forcing a disruptive full listing reload.
+- **Manual Edit Application** reconciles server-produced analysis and rendering results into the current viewport in place where possible.
 - A **Listing Selection** identifies the current **Manual Action Catalog** context.
-- A **Listing Selection** always has a row target and may have a **Listing Element** target when an action needs operand-level, symbol-level, or literal-level precision.
+- A **Listing Selection** always has row focus and may have a row range or **Listing Element** target when an action needs range-level, operand-level, symbol-level, or literal-level precision.
 - Manual review UI is checklist-first, with facets for kind, confidence, state, section, source, or range as secondary filtering.
 - Entrypoint seeds remain primary analysis evidence; **Manual Seeds** augment the same analysis run with lower provenance priority.
 - Seed provenance priority is entrypoint, metadata or policy, required **Manual Seed**, then suggested **Manual Seed**.

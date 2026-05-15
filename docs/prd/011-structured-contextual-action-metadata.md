@@ -72,7 +72,11 @@ Rendered text remains display output only. It may be used for labels shown to th
 
 ## Further Notes
 
-This PRD is a corrective architectural follow-up to PRD 010. The short-term bug fix that prevents numeric-looking labels from crashing the catalog is acceptable as a guard, but the completed implementation should make that guard irrelevant by removing text parsing from contextual action eligibility.
+This PRD is a corrective architectural follow-up to PRD 010. Its implementation is the structural fix: contextual action eligibility must stop parsing rendered text and must consume structured row and element metadata instead. A temporary production guard that prevents crashes before this PRD lands is not completion of this PRD and must not become a second eligibility path.
+
+PRD 014 builds on this structured row and element metadata for range-selection catalog contexts.
+
+PRD 017 builds on the same structured metadata for inline and palette-hosted parameter sessions.
 
 ## Issues
 

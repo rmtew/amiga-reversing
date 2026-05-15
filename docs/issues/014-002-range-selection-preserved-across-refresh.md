@@ -1,0 +1,36 @@
+# 014-002: Range Selection Preserved Across Refresh
+
+## Parent
+
+[PRD 014: Range Listing Selection and Catalog Context](../prd/014-range-listing-selection-and-catalog-context.md)
+
+## Related PRDs
+
+- [PRD 007: Listing Selection and Keyboard Model](../prd/007-listing-selection-keyboard-model.md)
+- [PRD 011: Structured Contextual Action Metadata](../prd/011-structured-contextual-action-metadata.md)
+
+## Type
+
+AFK
+
+## Labels
+
+ready-for-agent
+
+## What to build
+
+Preserve range **Listing Selection** across virtual listing refreshes using stable row metadata before falling back to row indexes.
+
+## Acceptance criteria
+
+- [ ] Focus, anchor, and range endpoints survive listing window refresh when stable rows still exist.
+- [ ] Row index fallback is used only when stable row identity is unavailable.
+- [ ] Lost range precision is reported instead of silently retargeting actions.
+- [ ] Tests cover stable identity preservation and fallback behavior.
+- [ ] Existing single-row selection preservation remains intact.
+- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Blocked by
+
+- [014-001: Focus Anchor Range Selection](014-001-focus-anchor-range-selection.md)
+- [011-001: C Listing Element Metadata](011-001-c-listing-element-metadata.md)
