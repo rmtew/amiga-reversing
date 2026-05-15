@@ -57,4 +57,15 @@ Make every manual edit feel local-first after durable **Manual Action Log** appe
 
 ## Open Questions
 
-- Exact shape of the action-result contract for affected ranges, pending state, and replacement row patches.
+- Resolved: catalog execution returns an `application` object with
+  `local_effects`, `pending_ranges`, and `reconciliation.required`.
+
+## Completion Notes
+
+- Manual catalog execution now returns a local-first application contract only
+  after durable append succeeds.
+- The web UI applies known local effects through one generic path and marks
+  pending affected ranges for server reconciliation.
+- Label rename and value representation are covered as concrete local effects.
+- One in-flight manual edit is allowed; a second edit is blocked with clear
+  status while navigation remains available.

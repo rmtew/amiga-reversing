@@ -969,6 +969,11 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
         page.evaluate("document.querySelector('#command-palette-search').value = 'rename'")
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Rename label')")
+        page.evaluate("state.manualEdit.inFlight = true")
+        page.press_key("Enter")
+        page.wait_for_expression("state.analysisStatus.text === 'Manual edit already in progress'")
+        assert page.evaluate("document.querySelector('#command-parameter-editor') === null")
+        page.evaluate("state.manualEdit.inFlight = false")
         page.press_key("Enter")
         page.wait_for_selector("#command-parameter-editor")
         assert page.evaluate("document.querySelector('[data-command-parameter-name=\"name\"]')?.value") == "loc_0_00000000"
@@ -992,6 +997,7 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
             time.sleep(0.05)
         assert labels and labels[0]["name"] == "entrypoint"
         page.wait_for_expression("document.querySelector('.listing-code')?.textContent.trim() === 'entrypoint:'")
+        assert page.evaluate("document.querySelector('#listing-viewport .progress-overlay') === null")
         page.assert_no_errors()
 
 

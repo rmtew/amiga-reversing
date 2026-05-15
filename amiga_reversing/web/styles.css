@@ -1263,6 +1263,10 @@ body {
   outline-offset: -2px;
 }
 
+.listing-row-manual-pending {
+  background: #fff2d8;
+}
+
 .listing-row-repro-issue {
   background: #fff8e6;
 }

@@ -121,6 +121,10 @@ const state = {
       range: "",
     },
   },
+  manualEdit: {
+    inFlight: false,
+    pendingRanges: [],
+  },
   commandPalette: {
     open: false,
     query: "",
@@ -1726,6 +1730,10 @@ async function executeCommandPaletteAction(action) {
   if (action?.enabled === false) {
     return;
   }
+  if (action?.appends_to_manual_action_log === true && state.manualEdit.inFlight) {
+    setAnalysisStatus("Manual edit already in progress", "running", 2500);
+    return;
+  }
   const command = String(action?.action || "");
   if (actionNeedsParameterEditor(action)) {
     openCommandParameterEditor(action);
@@ -1769,6 +1777,10 @@ async function executeCommandPaletteAction(action) {
 async function submitCommandPaletteCatalogAction(action, parameters) {
   const command = String(action?.action || "");
   if (action?.appends_to_manual_action_log === true) {
+    if (state.manualEdit.inFlight) {
+      setAnalysisStatus("Manual edit already in progress", "running", 2500);
+      return;
+    }
     const body = {
       action_id: action.action_id,
       context: action.target_context,
@@ -1776,25 +1788,119 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
     if (Object.keys(parameters).length) {
       body.parameters = parameters;
     }
-    await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(body),
-    });
-    if (commandRequiresAnalysisRefresh(command)) {
-      await refreshAnalysisAfterManualMetadataAction(state.project, {});
-    } else {
-      await refreshProjectPayload(state.project);
-      renderVirtualListingWindow(state.project, {
-        rows: state.listingRows,
-        start: state.virtualListing.start,
-        end: state.virtualListing.end,
-        total_rows: state.virtualListing.totalRows,
-        analysis_generation: state.virtualListing.generation,
-      }, true);
+    state.manualEdit.inFlight = true;
+    try {
+      const result = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body),
+      });
+      const application = applyManualActionApplication(result?.application);
+      if (application.reconciliationRequired || (!application.appliedLocalEffect && commandRequiresAnalysisRefresh(command))) {
+        await refreshAnalysisAfterManualMetadataAction(state.project, {});
+      } else {
+        await refreshProjectPayload(state.project);
+        renderCurrentListingWindow();
+      }
+      setAnalysisStatus("Manual action saved", "ready", 2000);
+    } finally {
+      state.manualEdit.inFlight = false;
+      state.manualEdit.pendingRanges = [];
+      renderCurrentListingWindow();
     }
-    setAnalysisStatus("Manual action saved", "ready", 2000);
   }
+}
+
+function applyManualActionApplication(application) {
+  const localEffects = Array.isArray(application?.local_effects) ? application.local_effects : [];
+  const pendingRanges = Array.isArray(application?.pending_ranges) ? application.pending_ranges : [];
+  let appliedLocalEffect = false;
+  localEffects.forEach((effect) => {
+    if (applyManualLocalEffect(effect)) {
+      appliedLocalEffect = true;
+    }
+  });
+  state.manualEdit.pendingRanges = pendingRanges;
+  if (appliedLocalEffect || pendingRanges.length) {
+    renderCurrentListingWindow();
+  }
+  return {
+    appliedLocalEffect,
+    reconciliationRequired: Boolean(application?.reconciliation?.required || pendingRanges.length),
+  };
+}
+
+function applyManualLocalEffect(effect) {
+  if (!effect || typeof effect !== "object") {
+    return false;
+  }
+  if (effect.kind === "label_rename") {
+    return applyManualLabelRenameEffect(effect);
+  }
+  if (effect.kind === "representation") {
+    return applyManualRepresentationEffect(effect);
+  }
+  return false;
+}
+
+function applyManualLabelRenameEffect(effect) {
+  const name = String(effect.name || "").trim();
+  if (!name) {
+    return false;
+  }
+  const rowIndex = Number(effect.row_index);
+  const stableKey = String(effect.stable_key || "");
+  const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
+  const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
+  const existingIndex = localIndex >= 0 && localIndex < rows.length
+    ? localIndex
+    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
+  if (existingIndex < 0) {
+    return false;
+  }
+  rows[existingIndex] = {
+    ...rows[existingIndex],
+    kind: rows[existingIndex].kind || "label",
+    label: name,
+    text: `${name}:\n`,
+  };
+  state.listingRows = rows;
+  return true;
+}
+
+function applyManualRepresentationEffect(effect) {
+  const representation = effect.representation;
+  if (!representation || typeof representation !== "object") {
+    return false;
+  }
+  const project = state.projectData?.project;
+  if (!project) {
+    return false;
+  }
+  if (!project.manual_state || typeof project.manual_state !== "object") {
+    project.manual_state = {};
+  }
+  const existing = Array.isArray(project.manual_state.representations)
+    ? project.manual_state.representations
+    : [];
+  project.manual_state.representations = [
+    ...existing.filter((item) => item.representation_id !== representation.representation_id),
+    representation,
+  ];
+  return true;
+}
+
+function renderCurrentListingWindow() {
+  if (!state.project) {
+    return;
+  }
+  renderVirtualListingWindow(state.project, {
+    rows: state.listingRows,
+    start: state.virtualListing.start,
+    end: state.virtualListing.end,
+    total_rows: state.virtualListing.totalRows,
+    analysis_generation: state.virtualListing.generation,
+  }, true);
 }
 
 function commandRequiresAnalysisRefresh(command) {
@@ -4776,7 +4882,7 @@ function renderListingRows(rows, globalStart = 0) {
   }
   return rows.map((row, rowIndex) => `
     <div
-      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}${listingRowIsSelected(row, globalStart + rowIndex) ? " listing-row-selected" : ""}"
+      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}${listingRowHasPendingManualEdit(row, globalStart + rowIndex) ? " listing-row-manual-pending" : ""}${listingRowIsSelected(row, globalStart + rowIndex) ? " listing-row-selected" : ""}"
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
       data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
@@ -4831,6 +4937,24 @@ function listingRowIsSelected(row, globalIndex) {
   return Number.isFinite(selection.addr)
     && selection.addr === row.addr
     && (!selection.rowCode || selection.rowCode === renderListingCode(row));
+}
+
+function listingRowHasPendingManualEdit(row, globalIndex) {
+  const ranges = Array.isArray(state.manualEdit.pendingRanges) ? state.manualEdit.pendingRanges : [];
+  return ranges.some((range) => {
+    const rowIndexes = Array.isArray(range.row_indexes) ? range.row_indexes : [];
+    if (rowIndexes.includes(globalIndex)) {
+      return true;
+    }
+    if (range.stable_key && row.stable_key && range.stable_key === row.stable_key) {
+      return true;
+    }
+    const start = Number(range.addr);
+    const end = Number(range.end);
+    const rowStart = Number(row.start_offset ?? row.addr);
+    return Number.isFinite(start) && Number.isFinite(end) && Number.isFinite(rowStart)
+      && rowStart >= start && rowStart < end;
+  });
 }
 
 function clampListingWindowCount(count) {

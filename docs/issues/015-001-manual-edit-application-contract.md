@@ -26,12 +26,17 @@ PRD 017 parameter sessions use this contract after commit so inline and palette-
 
 ## Acceptance criteria
 
-- [ ] Successful manual action responses distinguish applied local effects, pending affected ranges, and completed reconciliation.
-- [ ] Failed action append returns no local visible patch.
-- [ ] Action results identify affected row/range context using structured listing metadata where available.
-- [ ] The contract supports both small edits and larger edits that need server-produced replacement rows.
-- [ ] Route/backend tests cover success, failure, known local effect, and pending affected range responses.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Successful manual action responses distinguish applied local effects, pending affected ranges, and completed reconciliation.
+- [x] Failed action append returns no local visible patch.
+- [x] Action results identify affected row/range context using structured listing metadata where available.
+- [x] The contract supports both small edits and larger edits that need server-produced replacement rows.
+- [x] Route/backend tests cover success, failure, known local effect, and pending affected range responses.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Catalog execution responses now include `application.local_effects`,
+`application.pending_ranges`, and `application.reconciliation.required`.
 
 ## Blocked by
 

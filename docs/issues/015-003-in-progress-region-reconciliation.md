@@ -23,12 +23,17 @@ For manual edits whose final listing shape needs server processing, keep the aff
 
 ## Acceptance criteria
 
-- [ ] Pending affected rows or ranges render as change-in-progress without blocking viewport navigation.
-- [ ] Server-produced replacement rows reconcile into the existing virtual listing position when available.
-- [ ] **Listing Selection** and scroll anchor are preserved where still valid.
-- [ ] Lost selection precision is reported rather than silently retargeted.
-- [ ] Tests cover a pending range that later receives replacement listing rows.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Pending affected rows or ranges render as change-in-progress without blocking viewport navigation.
+- [x] Server-produced replacement rows reconcile into the existing virtual listing position when available.
+- [x] **Listing Selection** and scroll anchor are preserved where still valid.
+- [x] Lost selection precision is reported rather than silently retargeted.
+- [x] Tests cover a pending range that later receives replacement listing rows.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Pending ranges render with `listing-row-manual-pending` while existing listing
+refresh reconciliation keeps the current virtual window and selection model.
 
 ## Blocked by
 

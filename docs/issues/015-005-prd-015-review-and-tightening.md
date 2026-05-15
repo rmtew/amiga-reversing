@@ -23,14 +23,19 @@ Review local-first manual edit behavior against PRD 015, ensuring durable log ap
 
 ## Acceptance criteria
 
-- [ ] No visible local application occurs before successful **Manual Action Log** append.
-- [ ] Every manual edit either applies a known local effect or marks an affected region as pending.
-- [ ] Asynchronous reconciliation replaces affected rows in place without disruptive loading overlays.
-- [ ] Selection, scroll, command, and dialog state are preserved where valid.
-- [ ] One-action-at-a-time queue or blocking behavior is clear and tested.
-- [ ] Round-trip verification requirements remain intact for source-affecting actions.
-- [ ] PRD 015 issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] No visible local application occurs before successful **Manual Action Log** append.
+- [x] Every manual edit either applies a known local effect or marks an affected region as pending.
+- [x] Asynchronous reconciliation replaces affected rows in place without disruptive loading overlays.
+- [x] Selection, scroll, command, and dialog state are preserved where valid.
+- [x] One-action-at-a-time queue or blocking behavior is clear and tested.
+- [x] Round-trip verification requirements remain intact for source-affecting actions.
+- [x] PRD 015 issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Reviewed against PRD 015. Durable append remains the boundary for local-visible
+effects, and source-affecting verification policy is unchanged.
 
 ## Blocked by
 

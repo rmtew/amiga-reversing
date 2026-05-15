@@ -107,6 +107,11 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "submitError" in app_js
     assert "commandPaletteRangeAvailabilityRank" in app_js
     assert "action.availability_reason" in app_js
+    assert "function applyManualActionApplication" in app_js
+    assert "function applyManualLocalEffect" in app_js
+    assert "function applyManualLabelRenameEffect" in app_js
+    assert "state.manualEdit.inFlight" in app_js
+    assert "listing-row-manual-pending" in app_js
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css
 

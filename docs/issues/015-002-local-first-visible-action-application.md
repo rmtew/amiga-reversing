@@ -22,12 +22,17 @@ Apply known visible effects from the manual edit application contract in the cur
 
 ## Acceptance criteria
 
-- [ ] The UI applies known local effects from action results through one generic path.
-- [ ] Label rename is covered as the first concrete behavior through that generic path.
-- [ ] Failed append leaves visible rows unchanged.
-- [ ] The viewport is not covered by a listing or reanalysis loading overlay for known local effects.
-- [ ] CDP coverage proves label rename updates visibly through the generic local-first path.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] The UI applies known local effects from action results through one generic path.
+- [x] Label rename is covered as the first concrete behavior through that generic path.
+- [x] Failed append leaves visible rows unchanged.
+- [x] The viewport is not covered by a listing or reanalysis loading overlay for known local effects.
+- [x] CDP coverage proves label rename updates visibly through the generic local-first path.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+`applyManualActionApplication` applies label rename and representation effects
+without entering the listing rebuild overlay path.
 
 ## Blocked by
 

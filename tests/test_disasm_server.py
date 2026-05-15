@@ -1320,11 +1320,15 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    pending_ranges = cast(list[dict[str, object]], application["pending_ranges"])
 
     assert seed["kind"] == "data"
     assert seed["addr"] == 2
     assert seed["end"] == 4
     assert seed["row_indexes"] == [1, 2]
+    assert application["status"] == "pending"
+    assert pending_ranges[0]["row_indexes"] == [1, 2]
     assert appended_actions == [action]
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
@@ -1403,6 +1407,8 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_label"
     assert label["label_id"] == "catalog-label-source-h0-00000000"
@@ -1410,6 +1416,10 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert label["previous_name"] == "loc_0_00000000"
     assert label["hunk"] == 0
     assert label["addr"] == 0
+    assert application["status"] == "applied"
+    assert local_effect["kind"] == "label_rename"
+    assert local_effect["row_index"] == 0
+    assert local_effect["name"] == "start"
     assert appended_actions == [action]
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 

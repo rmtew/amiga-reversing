@@ -1478,6 +1478,19 @@ def _parse_row_indexes_arg(query: dict[str, list[str]]) -> list[int]:
     return indexes
 
 
+def _optional_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value.replace("$", "0x"), 0)
+        except ValueError:
+            return None
+    return None
+
+
 def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
     project = get_project(project_name)
     if project.kind is not ProjectKind.BINARY or not project.ready:
@@ -1540,6 +1553,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
     appended_actions: list[dict[str, object]] = []
+    application_parts: list[dict[str, object]] = []
     for kind, action_payload in action_payloads:
         validate_manual_action_payload(action_payload)
         appended_actions.append(
@@ -1550,12 +1564,106 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
                 binary_source=binary_source,
             )
         )
+        application_parts.append(_manual_action_application_payload(kind, action_payload, context))
     if any(manual_action_kind(kind) is not ManualActionKind.RESOLVE_REVIEW_ITEM for kind, _ in action_payloads):
         _cancel_listing_jobs(project_name)
         _cancel_reproduction_jobs(project_name)
         _clear_project_listing_cache(project_name)
     mark_project_updated(paths.target_dir)
-    return {"action": appended_actions[0], "actions": appended_actions}
+    return {
+        "action": appended_actions[0],
+        "actions": appended_actions,
+        "application": _merge_manual_action_applications(application_parts),
+    }
+
+
+def _manual_action_application_payload(
+    kind: str,
+    action_payload: Mapping[str, object],
+    context: Mapping[str, object],
+) -> dict[str, object]:
+    local_effects: list[dict[str, object]] = []
+    pending_ranges: list[dict[str, object]] = []
+    if kind == "create_manual_label":
+        label = action_payload.get("label")
+        if isinstance(label, Mapping):
+            local_effects.append(
+                {
+                    "kind": "label_rename",
+                    "row_index": _optional_int(label.get("row_index")) or _optional_int(context.get("row_index")),
+                    "stable_key": label.get("stable_key"),
+                    "name": label.get("name"),
+                    "previous_name": label.get("previous_name"),
+                    "hunk": label.get("hunk"),
+                    "addr": label.get("addr"),
+                }
+            )
+    elif kind == "create_manual_representation":
+        representation = action_payload.get("representation")
+        if isinstance(representation, Mapping):
+            local_effects.append({"kind": "representation", "representation": dict(representation)})
+    elif kind in {"create_manual_seed", "create_manual_register_seed", "create_manual_semantic_hint"}:
+        pending = _manual_action_pending_range(action_payload, context)
+        if pending:
+            pending_ranges.append(pending)
+    return {
+        "status": "pending" if pending_ranges else "applied",
+        "local_effects": local_effects,
+        "pending_ranges": pending_ranges,
+        "reconciliation": {"required": bool(pending_ranges)},
+    }
+
+
+def _merge_manual_action_applications(parts: list[dict[str, object]]) -> dict[str, object]:
+    local_effects: list[dict[str, object]] = []
+    pending_ranges: list[dict[str, object]] = []
+    for part in parts:
+        local_effects.extend(
+            effect for effect in part.get("local_effects", []) if isinstance(effect, dict)
+        )
+        pending_ranges.extend(
+            pending for pending in part.get("pending_ranges", []) if isinstance(pending, dict)
+        )
+    return {
+        "status": "pending" if pending_ranges else "applied",
+        "local_effects": local_effects,
+        "pending_ranges": pending_ranges,
+        "reconciliation": {"required": bool(pending_ranges)},
+    }
+
+
+def _manual_action_pending_range(
+    action_payload: Mapping[str, object],
+    context: Mapping[str, object],
+) -> dict[str, object] | None:
+    subject = (
+        action_payload.get("seed")
+        or action_payload.get("register_seed")
+        or action_payload.get("semantic_hint")
+    )
+    if not isinstance(subject, Mapping):
+        return None
+    raw_row_indexes = subject.get("row_indexes")
+    row_indexes = [
+        index for index in raw_row_indexes if isinstance(index, int) and not isinstance(index, bool)
+    ] if isinstance(raw_row_indexes, list) else []
+    if not row_indexes:
+        context_row_indexes = context.get("row_indexes")
+        if isinstance(context_row_indexes, list):
+            row_indexes = [index for index in context_row_indexes if isinstance(index, int) and not isinstance(index, bool)]
+    row_index = _optional_int(subject.get("row_index")) or _optional_int(context.get("row_index"))
+    if not row_indexes and row_index is not None:
+        row_indexes = [row_index]
+    pending: dict[str, object] = {
+        "row_indexes": row_indexes,
+        "hunk": subject.get("hunk"),
+        "addr": subject.get("addr"),
+        "end": subject.get("end"),
+    }
+    stable_key = subject.get("stable_key")
+    if isinstance(stable_key, str) and stable_key:
+        pending["stable_key"] = stable_key
+    return pending
 
 
 def _query_element_selector(query: dict[str, list[str]]) -> dict[str, object]:

@@ -22,12 +22,17 @@ Keep manual edit concurrency simple by allowing one in-flight manual action per 
 
 ## Acceptance criteria
 
-- [ ] The UI tracks one in-flight manual edit per target.
-- [ ] A second manual edit is queued or blocked with clear status rather than racing the first edit.
-- [ ] Pending work can expose cancel, pause, or retry only where the backend can honor that state.
-- [ ] Navigation through the listing remains available while an edit is pending.
-- [ ] Tests cover second-action behavior while a first action is pending.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] The UI tracks one in-flight manual edit per target.
+- [x] A second manual edit is queued or blocked with clear status rather than racing the first edit.
+- [x] Pending work can expose cancel, pause, or retry only where the backend can honor that state.
+- [x] Navigation through the listing remains available while an edit is pending.
+- [x] Tests cover second-action behavior while a first action is pending.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+The first slice blocks a second manual edit with `Manual edit already in
+progress`; no unsupported cancel/pause/retry controls are exposed.
 
 ## Blocked by
 
