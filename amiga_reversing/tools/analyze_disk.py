@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from amiga_reversing.amiga_disk.adf import DiskAnalysisError, analyze_adf
-from amiga_reversing.amiga_disk.models import AdfAnalysis
+from amiga_reversing.amiga_disk.models import AdfAnalysis, BootloaderTransferKind
 
 
 def print_summary(result: AdfAnalysis) -> None:
@@ -73,19 +73,19 @@ def print_summary(result: AdfAnalysis) -> None:
             )
         print("  Transfers:")
         for transfer in result.bootloader_analysis.transfers[:16]:
-            if transfer.transfer_kind == "disk_read":
+            if transfer.transfer_kind is BootloaderTransferKind.DISK_READ:
                 print(
                     f"    {transfer.stage_name}: disk {transfer.disk_offset:#x} -> "
                     f"{transfer.destination_addr:#x} bytes={transfer.byte_length:#x}"
                 )
                 continue
-            if transfer.transfer_kind == "memory_copy":
+            if transfer.transfer_kind is BootloaderTransferKind.MEMORY_COPY:
                 print(
                     f"    {transfer.stage_name}: copy {transfer.source_addr:#x} -> "
                     f"{transfer.destination_addr:#x} bytes={transfer.byte_length:#x}"
                 )
                 continue
-            if transfer.transfer_kind == "decode":
+            if transfer.transfer_kind is BootloaderTransferKind.DECODE:
                 parts = [
                     f"{transfer.stage_name}: decode",
                     f"input={transfer.input_buffer_addr:#x}" if transfer.input_buffer_addr is not None else "input=?",
@@ -106,7 +106,7 @@ def print_summary(result: AdfAnalysis) -> None:
                     parts.append(f"gate={transfer.checksum_gate_kind}@{transfer.checksum_gate_addr:#x}")
                 print(f"    {' '.join(parts)}")
                 continue
-            if transfer.transfer_kind == "handoff":
+            if transfer.transfer_kind is BootloaderTransferKind.HANDOFF:
                 print(f"    {transfer.stage_name}: jump -> {transfer.target_addr:#x} ({transfer.source_kind})")
 
 

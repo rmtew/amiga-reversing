@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
@@ -16,6 +17,21 @@ def _json_object(value: object) -> dict[str, object]:
 def _json_list(value: object) -> list[object]:
     assert isinstance(value, list)
     return value
+
+
+class BootloaderTransferKind(StrEnum):
+    DECODE = "decode"
+    DISK_READ = "disk_read"
+    HANDOFF = "handoff"
+    MEMORY_COPY = "memory_copy"
+
+
+def _bootloader_transfer_kind(value: object) -> BootloaderTransferKind:
+    assert isinstance(value, str)
+    try:
+        return BootloaderTransferKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported bootloader transfer kind: {value}") from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1222,7 +1238,7 @@ class BootloaderMemoryRegion:
 @dataclass(frozen=True, slots=True)
 class BootloaderTransfer:
     stage_name: str
-    transfer_kind: str
+    transfer_kind: BootloaderTransferKind
     source_kind: str
     destination_addr: int | None
     byte_length: int | None
@@ -1271,7 +1287,7 @@ class BootloaderTransfer:
         assert checksum_gate_kind is None or isinstance(checksum_gate_kind, str)
         return cls(
             stage_name=stage_name,
-            transfer_kind=transfer_kind,
+            transfer_kind=_bootloader_transfer_kind(transfer_kind),
             source_kind=source_kind,
             destination_addr=destination_addr,
             byte_length=byte_length,
@@ -1286,6 +1302,9 @@ class BootloaderTransfer:
             checksum_gate_addr=checksum_gate_addr,
             checksum_gate_kind=checksum_gate_kind,
         )
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.transfer_kind, BootloaderTransferKind)
 
     def to_dict(self) -> dict[str, object]:
         return _as_json_dict(self)
