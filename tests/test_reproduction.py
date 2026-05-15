@@ -33,7 +33,11 @@ from amiga_reversing.disasm.reproduction_report import (
     ReproductionReportStatus,
     RoundTripReportBuilder,
 )
-from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
+from amiga_reversing.disasm.target_ui_edits import (
+    TargetUiEditKind,
+    append_target_ui_edit,
+    load_target_ui_edits,
+)
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
 
@@ -1437,6 +1441,18 @@ def test_reproduction_stamp_changes_when_c_backend_tool_changes(tmp_path: Path) 
     changed = reproduction_input_stamp("demo", project_root=tmp_path)
 
     assert initial["source_renderer_tool_stamps"] != changed["source_renderer_tool_stamps"]
+
+
+def test_target_ui_edit_kind_is_parsed_at_boundary(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+
+    edit = append_target_ui_edit(target_dir, {"kind": "entrypoint", "addr": 0, "name": "start"})
+    loaded = load_target_ui_edits(target_dir)
+
+    assert edit["kind"] is TargetUiEditKind.ENTRYPOINT
+    assert loaded[0]["kind"] is TargetUiEditKind.ENTRYPOINT
+    assert json.loads((target_dir / "target_ui_edits.json").read_text(encoding="utf-8"))[0]["kind"] == "entrypoint"
 
 
 def test_reproduction_options_read_file_shape_policy(tmp_path: Path) -> None:

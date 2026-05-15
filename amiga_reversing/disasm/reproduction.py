@@ -57,7 +57,11 @@ from amiga_reversing.disasm.target_metadata import (
     TARGET_METADATA_FILE_NAME,
     TARGET_SEEDED_METADATA_FILE_NAME,
 )
-from amiga_reversing.disasm.target_ui_edits import TARGET_UI_EDITS_FILE_NAME
+from amiga_reversing.disasm.target_ui_edits import (
+    REPRODUCTION_TARGET_UI_EDIT_KINDS,
+    TARGET_UI_EDITS_FILE_NAME,
+    target_ui_edit_kind_from_json,
+)
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -1853,7 +1857,9 @@ def _reproduction_option_payloads(target_dir: Path) -> list[dict[str, object]]:
             payloads.append(cast(dict[str, object], reproduction_payload))
     edits_payload = _read_json_list(target_dir / TARGET_UI_EDITS_FILE_NAME)
     for edit in edits_payload:
-        if not isinstance(edit, dict) or edit.get("kind") not in {"reproduction", "reproduction_options"}:
+        if not isinstance(edit, dict):
+            continue
+        if target_ui_edit_kind_from_json(edit.get("kind")) not in REPRODUCTION_TARGET_UI_EDIT_KINDS:
             continue
         options_payload = edit.get("options")
         if not isinstance(options_payload, dict):
