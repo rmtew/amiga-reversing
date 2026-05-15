@@ -33,12 +33,11 @@ class SuppressedSeededItemKind(StrEnum):
     SEEDED_CODE_ENTRYPOINT = "seeded_code_entrypoint"
 
 
-RSSET_LAYOUT_STORAGE_KIND_VALUES = frozenset({
-    "struct_instance",
-    "struct_pointer",
-    "pointer",
-    "scalar",
-})
+class RssetLayoutStorageKind(StrEnum):
+    STRUCT_INSTANCE = "struct_instance"
+    STRUCT_POINTER = "struct_pointer"
+    POINTER = "pointer"
+    SCALAR = "scalar"
 
 
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
@@ -73,6 +72,14 @@ def _suppressed_seeded_item_kind(value: object) -> SuppressedSeededItemKind:
         return SuppressedSeededItemKind(value)
     except ValueError:
         raise AssertionError(f"Unsupported suppressed seeded item kind: {value}") from None
+
+
+def _rsset_layout_storage_kind(value: object) -> RssetLayoutStorageKind:
+    assert isinstance(value, str)
+    try:
+        return RssetLayoutStorageKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported RSSET layout storage_kind: {value}") from None
 
 
 def _assert_target_metadata_review_fields(
@@ -352,7 +359,7 @@ class RssetLayoutRegionMetadata:
     symbol: str | None = None
     struct_name: str | None = None
     pointer_struct: str | None = None
-    storage_kind: str | None = None
+    storage_kind: RssetLayoutStorageKind | None = None
     semantic_type: str | None = None
     parser_role: str | None = None
     parser_routine: str | None = None
@@ -360,6 +367,7 @@ class RssetLayoutRegionMetadata:
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        assert self.storage_kind is None or isinstance(self.storage_kind, RssetLayoutStorageKind)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> RssetLayoutRegionMetadata:
@@ -390,9 +398,7 @@ class RssetLayoutRegionMetadata:
         assert symbol is None or isinstance(symbol, str)
         assert struct_name is None or isinstance(struct_name, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
-        assert storage_kind is None or (
-            isinstance(storage_kind, str) and storage_kind in RSSET_LAYOUT_STORAGE_KIND_VALUES
-        )
+        assert storage_kind is None or isinstance(storage_kind, str)
         assert semantic_type is None or isinstance(semantic_type, str)
         assert parser_role is None or isinstance(parser_role, str)
         assert parser_routine is None or isinstance(parser_routine, str)
@@ -409,7 +415,7 @@ class RssetLayoutRegionMetadata:
             symbol=symbol,
             struct_name=struct_name,
             pointer_struct=pointer_struct,
-            storage_kind=storage_kind,
+            storage_kind=None if storage_kind is None else _rsset_layout_storage_kind(storage_kind),
             semantic_type=semantic_type,
             parser_role=parser_role,
             parser_routine=parser_routine,

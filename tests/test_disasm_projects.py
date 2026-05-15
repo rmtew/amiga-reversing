@@ -23,6 +23,7 @@ from amiga_reversing.disasm.projects import (
 from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     RssetLayoutRegionMetadata,
+    RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
@@ -292,7 +293,7 @@ def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path:
                     base_symbol="__game_work_base__",
                     sizeof_symbol="work_SIZEOF",
                     symbol="app_option_source_buffer",
-                    storage_kind="pointer",
+                    storage_kind=RssetLayoutStorageKind.POINTER,
                     semantic_type="source_text_buffer",
                     parser_role="option_source",
                     parser_routine="sub_ab00",
@@ -309,7 +310,7 @@ def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path:
     assert loaded.rsset_layout_regions[0].layout_name == "work"
     assert loaded.rsset_layout_regions[0].base_symbol == "__game_work_base__"
     assert loaded.rsset_layout_regions[0].sizeof_symbol == "work_SIZEOF"
-    assert loaded.rsset_layout_regions[0].storage_kind == "pointer"
+    assert loaded.rsset_layout_regions[0].storage_kind is RssetLayoutStorageKind.POINTER
     assert loaded.rsset_layout_regions[0].semantic_type == "source_text_buffer"
     assert loaded.rsset_layout_regions[0].parser_role == "option_source"
     assert loaded.rsset_layout_regions[0].parser_routine == "sub_ab00"
