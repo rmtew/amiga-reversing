@@ -85,7 +85,8 @@ class ProjectRecord:
     origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", ProjectKind(self.kind))
+        if not isinstance(self.kind, ProjectKind):
+            raise TypeError("ProjectRecord.kind must be a ProjectKind")
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)

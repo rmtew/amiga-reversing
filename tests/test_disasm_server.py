@@ -20,7 +20,7 @@ import pytest
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.projects import ProjectRecord
+from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import (
     AppSlotRef,
@@ -83,7 +83,7 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
     return ProjectRecord(
         id=project_name,
         name=project_name,
-        kind="binary",
+        kind=ProjectKind.BINARY,
         target_dir=f"targets/{project_name}",
         output_path=None,
         binary_path="bin/BLOODWYCH" if ready else None,
@@ -1238,7 +1238,7 @@ def test_route_project_returns_disk_manifest_for_disk_project(
         lambda project_name: ProjectRecord(
             id=project_name,
             name="demo_disk",
-            kind="disk",
+            kind=ProjectKind.DISK,
             target_dir=str(tmp_path),
             output_path=None,
             binary_path=None,
@@ -1314,7 +1314,7 @@ def test_route_project_disk_browser_uses_common_disk_introspection(
         lambda project_name: ProjectRecord(
             id=project_name,
             name="demo_disk",
-            kind="disk",
+            kind=ProjectKind.DISK,
             target_dir=str(tmp_path),
             output_path=None,
             binary_path=None,
@@ -1364,7 +1364,7 @@ def test_route_listing_rejects_disk_project(monkeypatch: pytest.MonkeyPatch, tmp
     disk_project = ProjectRecord(
         id="amiga_disk_demo_disk",
         name="demo_disk",
-        kind="disk",
+        kind=ProjectKind.DISK,
         target_dir=str(tmp_path),
         output_path=None,
         binary_path=None,
@@ -1391,7 +1391,7 @@ def test_route_listing_open_rejects_disk_project(monkeypatch: pytest.MonkeyPatch
     disk_project = ProjectRecord(
         id="amiga_disk_demo_disk",
         name="demo_disk",
-        kind="disk",
+        kind=ProjectKind.DISK,
         target_dir=str(tmp_path),
         output_path=None,
         binary_path=None,
@@ -2115,7 +2115,7 @@ def test_create_project_from_media_creates_executable_project(
         return ProjectRecord(
             id=project_id,
             name=project_id,
-            kind="binary",
+            kind=ProjectKind.BINARY,
             target_dir=str(target_dir),
             output_path=None,
             binary_path=None,
@@ -2194,7 +2194,7 @@ def test_create_project_from_media_creates_disk_project(
         lambda project_name, project_root: ProjectRecord(
             id=project_name,
             name="bloodwych",
-            kind="disk",
+            kind=ProjectKind.DISK,
             target_dir="targets/amiga_disk_bloodwych",
             output_path=None,
             binary_path=None,

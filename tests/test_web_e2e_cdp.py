@@ -20,7 +20,7 @@ from amiga_reversing.amiga_disk.project import import_disk_entry_target
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.projects import ProjectRecord
+from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import (
@@ -39,7 +39,7 @@ def _binary_project(project_name: str) -> ProjectRecord:
     return ProjectRecord(
         id=project_name,
         name=project_name,
-        kind="binary",
+        kind=ProjectKind.BINARY,
         target_dir=f"targets/{project_name}",
         output_path=f"targets/{project_name}/{project_name}.s",
         binary_path="bin/demo",
