@@ -8,6 +8,7 @@ import re
 import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, cast
 
@@ -95,7 +96,18 @@ TARGET_STATE_REJECT_REASON_PATH_NOT_FOUND = "path_not_found"
 TARGET_STATE_REJECT_REASON_UNSUPPORTED_FORMAT = "unsupported_format"
 TARGET_STATE_REJECT_REASON_DUPLICATE = "filtered_duplicate"
 TARGET_STATE_REJECT_REASON_FILTERED_DIR = "filtered_dir"
-TARGET_STATE_SUBTARGET_STATES = {"added"}
+
+
+class TargetStateSubtargetState(StrEnum):
+    ADDED = "added"
+
+
+class TargetStateSubtargetOrigin(StrEnum):
+    AUTO = "auto"
+    MANUAL = "manual"
+
+
+TARGET_STATE_SUBTARGET_STATES = {TargetStateSubtargetState.ADDED}
 _STARTUP_PARSE_PREFIX_ALIASES = {"s"}
 _STARTUP_PARSE_PREFIX_FILTERED = {"c", "l", "lib", "libs", "devs", "fonts", "system"}
 _STARTUP_PARSE_SHELL_KEYWORDS = {
@@ -175,6 +187,24 @@ def _coerce_disk_entry_import_path(raw_path: str | None) -> str | None:
 
 def _is_decompressed_payload_relationship(relationship: dict[str, object]) -> bool:
     return _int_field(relationship, "kind_id") == DERIVED_TARGET_SUGGESTION_DECOMPRESSED_PAYLOAD
+
+
+def _target_state_subtarget_state_from_json(value: object) -> TargetStateSubtargetState | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return TargetStateSubtargetState(value)
+    except ValueError:
+        return None
+
+
+def _target_state_subtarget_origin_from_json(value: object) -> TargetStateSubtargetOrigin | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return TargetStateSubtargetOrigin(value)
+    except ValueError:
+        return None
 
 
 def _startup_disk_entry_paths(analysis: AdfAnalysis) -> set[str]:
@@ -541,8 +571,8 @@ def _disk_target_state_payload(
                 {
                     "id": imported_target.target_name,
                     "path": imported_target.target_path,
-                    "state": "added",
-                    "origin": "auto",
+                    "state": TargetStateSubtargetState.ADDED,
+                    "origin": TargetStateSubtargetOrigin.AUTO,
                     "reason_code": None,
                     "reason_detail": None,
                     "added_by_import": True,
@@ -557,8 +587,8 @@ def _disk_target_state_payload(
             path_value = state_entry.get("path")
             if not isinstance(path_value, str):
                 state_entry["path"] = ""
-            state_entry.setdefault("state", "added")
-            state_entry.setdefault("origin", "manual")
+            state_entry.setdefault("state", TargetStateSubtargetState.ADDED)
+            state_entry.setdefault("origin", TargetStateSubtargetOrigin.MANUAL)
             state_entry.setdefault("added_by_import", False)
             state_entry["imported_at"] = now
             subtargets.append(state_entry)
@@ -573,7 +603,7 @@ def _disk_target_state_payload(
                 "id": item.target_name,
                 "path": item.target_path,
                 "parent_file_id": relationship.get("parent_target"),
-                "origin": "auto",
+                "origin": TargetStateSubtargetOrigin.AUTO,
                 "codec": _str_field(relationship, "codec_id") or _str_field(relationship, "codec_name") or "unknown",
                 "decode_status": "ok",
                 "media_hint": "raw",
@@ -719,18 +749,21 @@ def _coerce_state_subtargets(payload: object) -> dict[str, dict[str, object]]:
     for item in payload:
         if not isinstance(item, dict):
             continue
+        item = dict(item)
         target_id = item.get("id")
         if not isinstance(target_id, str) or not target_id:
             continue
         path = item.get("path")
         if not isinstance(path, str) or not path.strip():
             continue
-        if not isinstance(item.get("state"), str):
+        state = _target_state_subtarget_state_from_json(item.get("state"))
+        if state not in TARGET_STATE_SUBTARGET_STATES:
             continue
-        if not isinstance(item.get("origin"), str):
+        origin = _target_state_subtarget_origin_from_json(item.get("origin"))
+        if origin is None:
             continue
-        if item.get("state") not in TARGET_STATE_SUBTARGET_STATES:
-            continue
+        item["state"] = state
+        item["origin"] = origin
         entries[target_id] = item
     return entries
 
@@ -760,16 +793,16 @@ def _state_entry_payload(
     *,
     target_id: str,
     target_path: str,
-    origin: str,
+    origin: TargetStateSubtargetOrigin,
 ) -> dict[str, object]:
     return {
         "id": target_id,
         "path": target_path,
-        "state": "added",
+        "state": TargetStateSubtargetState.ADDED,
         "origin": origin,
         "reason_code": None,
         "reason_detail": None,
-        "added_by_import": origin == "auto",
+        "added_by_import": origin is TargetStateSubtargetOrigin.AUTO,
     }
 
 
@@ -828,7 +861,7 @@ def import_disk_entry_target(
         state_subtargets[imported_target.target_name] = _state_entry_payload(
             target_id=imported_target.target_name,
             target_path=imported_target.target_path,
-            origin="manual",
+            origin=TargetStateSubtargetOrigin.MANUAL,
         )
         for child_target in child_targets:
             if child_target.target_name in state_subtargets:
@@ -836,7 +869,7 @@ def import_disk_entry_target(
             state_subtargets[child_target.target_name] = _state_entry_payload(
                 target_id=child_target.target_name,
                 target_path=child_target.target_path,
-                origin="auto",
+                origin=TargetStateSubtargetOrigin.AUTO,
             )
         for target_id, state_entry in list(state_subtargets.items()):
             existing_target = imported_targets.get(target_id)
@@ -847,14 +880,21 @@ def import_disk_entry_target(
             state_entry["id"] = target_id
             state_entry.setdefault("reason_code", None)
             state_entry.setdefault("reason_detail", None)
-            state_entry.setdefault("origin", "manual" if target_id == imported_target.target_name else "auto")
+            state_entry.setdefault(
+                "origin",
+                (
+                    TargetStateSubtargetOrigin.MANUAL
+                    if target_id == imported_target.target_name
+                    else TargetStateSubtargetOrigin.AUTO
+                ),
+            )
             if target_id == imported_target.target_name:
-                state_entry["origin"] = "manual"
+                state_entry["origin"] = TargetStateSubtargetOrigin.MANUAL
                 state_entry["added_by_import"] = False
-            elif state_entry.get("origin") == "manual":
+            elif state_entry.get("origin") is TargetStateSubtargetOrigin.MANUAL:
                 pass
             else:
-                state_entry["origin"] = "auto"
+                state_entry["origin"] = TargetStateSubtargetOrigin.AUTO
                 state_entry["added_by_import"] = True
         manifest_path.write_text(
             json.dumps(
@@ -2508,8 +2548,8 @@ def create_disk_project(
                 state_subtargets_by_id[target_id] = {
                     "id": target_id,
                     "path": imported_target.target_path,
-                    "state": "added",
-                    "origin": "auto",
+                    "state": TargetStateSubtargetState.ADDED,
+                    "origin": TargetStateSubtargetOrigin.AUTO,
                     "reason_code": None,
                     "reason_detail": None,
                     "added_by_import": True,
@@ -2524,16 +2564,16 @@ def create_disk_project(
             state_entry = state_subtargets_by_id.get(target_id)
             if state_entry is None:
                 continue
-            if _str_field(state_entry, "origin") == "manual":
+            if state_entry.get("origin") is TargetStateSubtargetOrigin.MANUAL:
                 state_entry = dict(state_entry)
                 state_entry["id"] = target_id
                 state_entry["path"] = imported_target.target_path
-                state_entry["state"] = "added"
+                state_entry["state"] = TargetStateSubtargetState.ADDED
                 state_entry["added_by_import"] = False
                 state_subtargets_by_id[target_id] = state_entry
 
         for target_id, state_entry in list(state_subtargets_by_id.items()):
-            if _str_field(state_entry, "origin") != "manual" and target_id in auto_discovered_target_names:
+            if state_entry.get("origin") is not TargetStateSubtargetOrigin.MANUAL and target_id in auto_discovered_target_names:
                 continue
             state_subtargets_by_id.pop(target_id, None)
             imported_targets_by_name.pop(target_id, None)
