@@ -87,6 +87,8 @@ class ProjectRecord:
     def __post_init__(self) -> None:
         if not isinstance(self.kind, ProjectKind):
             raise TypeError("ProjectRecord.kind must be a ProjectKind")
+        if self.review_state is not None and not isinstance(self.review_state, ReviewState):
+            raise TypeError("ProjectRecord.review_state must be a ReviewState")
 
     def to_dict(self) -> dict[str, object]:
         result = asdict(self)

@@ -20,6 +20,7 @@ from amiga_reversing.amiga_disk.project import import_disk_entry_target
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
+from amiga_reversing.disasm.manual_actions import ReviewState
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 from tests.listing_row_fixtures import serialize_row
@@ -591,7 +592,7 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
     base_project = _binary_project("amiga_hunk_review")
     project = replace(
         base_project,
-        review_state="blocked",
+        review_state=ReviewState.BLOCKED,
         review_items=(
             {
                 "kind": "label_scope_conflict",
@@ -795,7 +796,7 @@ def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: py
 
     project = replace(
         project,
-        review_state="blocked",
+        review_state=ReviewState.BLOCKED,
         review_items=(
             {
                 "kind": "unreconciled_data_range",

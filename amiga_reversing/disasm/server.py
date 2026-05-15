@@ -209,19 +209,10 @@ def _cached_analysis_review_items(
     return items
 
 
-def _review_state_id(value: object) -> ReviewState | None:
-    if isinstance(value, ReviewState):
-        return value
-    if not isinstance(value, str):
-        return None
-    try:
-        return ReviewState(value)
-    except ValueError:
-        return None
-
-
 def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dict[str, object]]:
-    review_state = _review_state_id(project.get("review_state"))
+    review_state = project.get("review_state")
+    if review_state is not None and not isinstance(review_state, ReviewState):
+        raise TypeError("project review_state must be a ReviewState")
     if review_state not in {ReviewState.BLOCKED, ReviewState.NEEDS_REVIEW}:
         return []
     raw_items = project.get("review_items")
@@ -1291,7 +1282,7 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
     ]
     project_dict["review_items"] = review_items
     open_analysis_items = [item for item in analysis_items if review_item_is_open(item)]
-    if _review_state_id(project_dict.get("review_state")) is not ReviewState.BLOCKED:
+    if project.review_state is not ReviewState.BLOCKED:
         if any(item.get("review_blocker") is True for item in open_analysis_items):
             project_dict["review_state"] = ReviewState.BLOCKED
         elif open_analysis_items:

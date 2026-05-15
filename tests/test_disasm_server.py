@@ -21,6 +21,7 @@ from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
+from amiga_reversing.disasm.manual_actions import ReviewState
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import (
@@ -1058,7 +1059,7 @@ def test_route_project_reproduction_and_listing_include_review_warnings(
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
     project = replace(
         _binary_project("bloodwych", ready=True),
-        review_state="blocked",
+        review_state=ReviewState.BLOCKED,
         review_items=(
             {
                 "kind": "manual_action_log_target_mismatch",
