@@ -4,22 +4,47 @@ import json
 import re
 import time
 from collections import Counter
+from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
 JsonObject = dict[str, object]
 
-FAILURE_STATUSES = {
-    "assembler_error",
-    "binary_mismatch",
-    "crashed",
-    "import_failed",
-    "render_error",
-    "timeout",
-    "tool_error",
-}
 
-NON_EXACT_MATCH_STATUSES = {"accepted_mismatch", "content_match", "semantic_match"}
+class ReproductionSweepStatus(StrEnum):
+    ACCEPTED_MISMATCH = "accepted_mismatch"
+    ASSEMBLER_ERROR = "assembler_error"
+    BINARY_MISMATCH = "binary_mismatch"
+    CONTENT_MATCH = "content_match"
+    CRASHED = "crashed"
+    EXACT = "exact"
+    IMPORT_FAILED = "import_failed"
+    RENDER_ERROR = "render_error"
+    SEMANTIC_MATCH = "semantic_match"
+    TIMEOUT = "timeout"
+    TOOL_ERROR = "tool_error"
+    UNSUPPORTED = "unsupported"
+
+
+FAILURE_STATUSES = frozenset(
+    {
+        ReproductionSweepStatus.ASSEMBLER_ERROR,
+        ReproductionSweepStatus.BINARY_MISMATCH,
+        ReproductionSweepStatus.CRASHED,
+        ReproductionSweepStatus.IMPORT_FAILED,
+        ReproductionSweepStatus.RENDER_ERROR,
+        ReproductionSweepStatus.TIMEOUT,
+        ReproductionSweepStatus.TOOL_ERROR,
+    }
+)
+
+NON_EXACT_MATCH_STATUSES = frozenset(
+    {
+        ReproductionSweepStatus.ACCEPTED_MISMATCH,
+        ReproductionSweepStatus.CONTENT_MATCH,
+        ReproductionSweepStatus.SEMANTIC_MATCH,
+    }
+)
 ACCEPTED_MISMATCH_POLICY: dict[str, str] = {
     "atari_relocation_target_out_of_range": (
         "Atari relocation payload computes a target outside the target section; facts_v2 refuses source "
@@ -48,7 +73,7 @@ SOURCE_RENDER_DEFAULT_GATE_COUNTERS = (
 def import_failure_record(message: str) -> JsonObject:
     return {
         "target": None,
-        "status": "import_failed",
+        "status": ReproductionSweepStatus.IMPORT_FAILED,
         "exact": False,
         "backend": None,
         "error_signature": _signature(message),
@@ -60,7 +85,7 @@ def crash_record(target_name: str, exc: BaseException) -> JsonObject:
     message = f"{type(exc).__name__}: {exc}"
     return {
         "target": target_name,
-        "status": "crashed",
+        "status": ReproductionSweepStatus.CRASHED,
         "exact": False,
         "backend": None,
         "error_signature": _signature(message),
@@ -79,7 +104,7 @@ def timeout_record(
     message = f"target reproduction exceeded {timeout_seconds}s in phase {timeout_phase}"
     record: JsonObject = {
         "target": target_name,
-        "status": "timeout",
+        "status": ReproductionSweepStatus.TIMEOUT,
         "exact": False,
         "backend": _str_or_none(progress.get("backend") if progress else None),
         "analysis_backend": _str_or_none(progress.get("analysis_backend") if progress else None),
@@ -108,10 +133,27 @@ def timeout_record(
     return record
 
 
+def _parse_sweep_status(value: object) -> ReproductionSweepStatus:
+    if not isinstance(value, str):
+        raise TypeError("reproduction sweep status must be a string")
+    try:
+        return ReproductionSweepStatus(value)
+    except ValueError:
+        allowed = ", ".join(status.value for status in ReproductionSweepStatus)
+        raise ValueError(f"invalid reproduction sweep status {value!r}; expected one of {allowed}") from None
+
+
+def _record_status(record: JsonObject) -> ReproductionSweepStatus:
+    value = record.get("status")
+    if not isinstance(value, ReproductionSweepStatus):
+        raise TypeError("reproduction sweep record status must be a ReproductionSweepStatus")
+    return value
+
+
 def record_from_reproduction_report(target_name: str, report: JsonObject) -> JsonObject:
     input_stamp = _dict(report.get("input_stamp"))
     reproduction_policy = _dict(input_stamp.get("reproduction_policy"))
-    status = _str(report.get("status"), "unknown")
+    status = _parse_sweep_status(report.get("status"))
     issues = _dict_list(report.get("issues"))
     diagnostics = _dict_list(report.get("assembler_diagnostics"))
     diff_ranges = _dict_list(report.get("diff_ranges"))
@@ -196,7 +238,7 @@ def record_from_reproduction_report(target_name: str, report: JsonObject) -> Jso
             record["analysis_comparison"] = comparison_profile
     accepted_kind = _accepted_mismatch_kind(record)
     if accepted_kind is not None:
-        record["status"] = "accepted_mismatch"
+        record["status"] = ReproductionSweepStatus.ACCEPTED_MISMATCH
         record["accepted_mismatch_kind"] = accepted_kind
     return record
 
@@ -208,7 +250,7 @@ def reproduction_sweep_summary(
     project_root: Path,
 ) -> JsonObject:
     records = [_with_accepted_mismatch_status(record) for record in records]
-    status_counts = Counter(_str(record.get("status"), "unknown") for record in records)
+    status_counts = Counter(_record_status(record) for record in records)
     accepted_mismatch_kinds = _accepted_mismatch_kind_counts(records)
     backend_counts = Counter(
         _str(record.get("backend"), "unknown")
@@ -222,19 +264,19 @@ def reproduction_sweep_summary(
     )
     facts_v2_invariant_failures = _facts_v2_invariant_failures(records)
     target_records = [
-        record for record in records if _str(record.get("status"), "unknown") != "import_failed"
+        record for record in records if _record_status(record) is not ReproductionSweepStatus.IMPORT_FAILED
     ]
     supported_records = [
-        record for record in target_records if _str(record.get("status"), "unknown") != "unsupported"
+        record for record in target_records if _record_status(record) is not ReproductionSweepStatus.UNSUPPORTED
     ]
-    exact_count = status_counts.get("exact", 0)
+    exact_count = status_counts.get(ReproductionSweepStatus.EXACT, 0)
     non_exact_match_count = sum(status_counts.get(status, 0) for status in NON_EXACT_MATCH_STATUSES)
     supported_count = len(supported_records)
     total_count = len(target_records)
     failure_records = [
         record
         for record in records
-        if _str(record.get("status"), "unknown") in FAILURE_STATUSES
+        if _record_status(record) in FAILURE_STATUSES
     ]
     exactness = _reproduction_exactness_summary(supported_records, exact_count)
     direct_source_comparison = _facts_v2_direct_source_comparison_summary(records)
@@ -247,8 +289,8 @@ def reproduction_sweep_summary(
             "non_exact_match": non_exact_match_count,
             "supported": supported_count,
             "total_targets": total_count,
-            "unsupported": status_counts.get("unsupported", 0),
-            "import_failed": status_counts.get("import_failed", 0),
+            "unsupported": status_counts.get(ReproductionSweepStatus.UNSUPPORTED, 0),
+            "import_failed": status_counts.get(ReproductionSweepStatus.IMPORT_FAILED, 0),
             "failed_supported": max(0, supported_count - exact_count),
             "exact_supported_percent": _percent(exact_count, supported_count),
             "exact_all_targets_percent": _percent(exact_count, total_count),
@@ -285,11 +327,11 @@ def _with_accepted_mismatch_status(record: JsonObject) -> JsonObject:
     accepted_kind = _accepted_mismatch_kind(record)
     if accepted_kind is None:
         return record
-    if record.get("status") == "accepted_mismatch":
+    if _record_status(record) is ReproductionSweepStatus.ACCEPTED_MISMATCH:
         return record
     return {
         **record,
-        "status": "accepted_mismatch",
+        "status": ReproductionSweepStatus.ACCEPTED_MISMATCH,
         "accepted_mismatch_kind": accepted_kind,
     }
 
@@ -297,7 +339,7 @@ def _with_accepted_mismatch_status(record: JsonObject) -> JsonObject:
 def _accepted_mismatch_kind_counts(records: list[JsonObject]) -> Counter[str]:
     counts: Counter[str] = Counter()
     for record in records:
-        if _str(record.get("status"), "unknown") != "accepted_mismatch":
+        if _record_status(record) is not ReproductionSweepStatus.ACCEPTED_MISMATCH:
             continue
         kind = _accepted_mismatch_kind(record) or _str_or_none(record.get("accepted_mismatch_kind")) or "unknown"
         counts[kind] += 1
@@ -449,7 +491,7 @@ def _reproduction_exactness_summary(records: list[JsonObject], status_exact_coun
 def _failure_groups(records: list[JsonObject]) -> list[JsonObject]:
     grouped: dict[str, JsonObject] = {}
     for record in records:
-        status = _str(record.get("status"), "unknown")
+        status = _record_status(record)
         backend = _str(record.get("backend"), "unknown")
         kind, signature = _failure_kind_and_signature(record)
         key = f"{status}|{backend}|{kind}|{signature}"
@@ -1012,7 +1054,7 @@ def _timeout_by_phase(records: list[JsonObject]) -> dict[str, int]:
     counts = Counter(
         _str(record.get("timeout_phase"), "unknown")
         for record in records
-        if _str(record.get("status"), "") == "timeout"
+        if _record_status(record) is ReproductionSweepStatus.TIMEOUT
     )
     return dict(sorted(counts.items()))
 
@@ -1338,7 +1380,7 @@ def _facts_v2_direct_source_comparison_summary(records: list[JsonObject]) -> Jso
 def _facts_v2_readiness_summary(
     records: list[JsonObject],
     *,
-    status_counts: Counter[str],
+    status_counts: Counter[ReproductionSweepStatus],
     accepted_mismatch_kinds: Counter[str],
     exactness: JsonObject,
     direct_source_comparison: JsonObject,
@@ -1564,8 +1606,8 @@ def _phase_timing(record: JsonObject, key: str) -> float | None:
 
 
 def _failure_kind_and_signature(record: JsonObject) -> tuple[str, str]:
-    status = _str(record.get("status"), "unknown")
-    if status == "binary_mismatch":
+    status = _record_status(record)
+    if status is ReproductionSweepStatus.BINARY_MISMATCH:
         diagnostics = _dict_list(record.get("file_shape_diagnostics"))
         if not diagnostics:
             diagnostics = _dict_list(record.get("canonical_file_shape_diagnostics"))
@@ -1579,13 +1621,18 @@ def _failure_kind_and_signature(record: JsonObject) -> tuple[str, str]:
         section_index = _int_or_none(record.get("first_diff_section_index"))
         section = "?" if section_index is None else str(section_index)
         return kind, f"section={section}"
-    if status == "assembler_error":
+    if status is ReproductionSweepStatus.ASSEMBLER_ERROR:
         return "assembler", _str(record.get("assembler_error_signature"), "")
-    if status == "timeout":
+    if status is ReproductionSweepStatus.TIMEOUT:
         return "timeout", _str(record.get("timeout_phase"), "unknown")
-    if status in {"tool_error", "render_error", "crashed", "import_failed"}:
-        return status, _str(record.get("error_signature"), "")
-    return status, ""
+    if status in {
+        ReproductionSweepStatus.TOOL_ERROR,
+        ReproductionSweepStatus.RENDER_ERROR,
+        ReproductionSweepStatus.CRASHED,
+        ReproductionSweepStatus.IMPORT_FAILED,
+    }:
+        return status.value, _str(record.get("error_signature"), "")
+    return status.value, ""
 
 
 def _accepted_mismatch_kind(record: JsonObject) -> str | None:
@@ -1624,8 +1671,8 @@ def _accepted_atari_target_out_of_range_source_refusal(record: JsonObject) -> bo
         return False
     if _str(record.get("analysis_backend"), "") != "facts_v2":
         return False
-    status = _str(record.get("status"), "")
-    if status not in {"render_error", "accepted_mismatch"}:
+    status = _record_status(record)
+    if status not in {ReproductionSweepStatus.RENDER_ERROR, ReproductionSweepStatus.ACCEPTED_MISMATCH}:
         return False
     facts_v2 = _dict(_dict(record.get("listing_profile")).get("facts_v2"))
     comparison = _dict(record.get("analysis_comparison"))

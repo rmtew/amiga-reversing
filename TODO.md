@@ -15,8 +15,6 @@ Some of these may be in non-updated source in targets/, they need checking for e
     - Treat any later normalization/normalisation of these values as a design bug; the type must already be correct.
     - Do not add normalization layers, constructor normalization, compatibility shims, dual string/enum acceptance, or
       fallback paths.
-  - Known remaining domains include reproduction sweep/report aggregation status values and any other static string
-    domains found by the audit.
 
 ## Tracing
 

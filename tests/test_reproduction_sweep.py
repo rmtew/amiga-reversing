@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from amiga_reversing.disasm.reproduction_sweep import (
+    ReproductionSweepStatus,
     crash_record,
     format_reproduction_sweep_score,
     import_failure_record,
@@ -330,7 +331,7 @@ def test_reproduction_sweep_facts_v2_readiness_blocks_unknown_accepted_policy(
 ) -> None:
     accepted = {
         "target": "unknown",
-        "status": "accepted_mismatch",
+        "status": ReproductionSweepStatus.ACCEPTED_MISMATCH,
         "exact": False,
         "backend": "amiga-hunk",
         "analysis_backend": "facts_v2",
