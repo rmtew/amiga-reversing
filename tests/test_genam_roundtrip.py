@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.tools import genam_roundtrip as roundtrip_mod
 
 
@@ -32,7 +33,7 @@ def test_roundtrip_genam_target_reports_first_diff(monkeypatch, tmp_path: Path) 
         lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=SimpleNamespace(
-                kind="hunk_file",
+                kind=BinarySourceKind.HUNK_FILE,
                 path=Path("bin/GenAm"),
                 display_path="bin/GenAm",
             ),

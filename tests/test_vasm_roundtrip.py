@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.tools import vasm_roundtrip
 
 
@@ -29,7 +30,7 @@ def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path) -
         lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
             binary_source=SimpleNamespace(
-                kind="hunk_file",
+                kind=BinarySourceKind.HUNK_FILE,
                 display_path="bin/Demo",
                 read_bytes=lambda: b"\x01\x02\x03\x04",
             ),
@@ -83,7 +84,7 @@ def test_roundtrip_vasm_target_rejects_disk_entries(monkeypatch, tmp_path: Path)
         "resolve_project_paths",
         lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
-            binary_source=SimpleNamespace(kind="disk_entry"),
+            binary_source=SimpleNamespace(kind=BinarySourceKind.DISK_ENTRY),
         ),
     )
 

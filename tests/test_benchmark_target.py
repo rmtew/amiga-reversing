@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.tools import precommit
 from amiga_reversing.tools.benchmark_target import (
     TargetBenchmark,
@@ -80,7 +81,11 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
         "amiga_reversing.tools.benchmark_target.resolve_project_paths",
         lambda target, project_root: SimpleNamespace(
             target_dir=target_dir,
-            binary_source=SimpleNamespace(kind="hunk_file", path=Path("bin/demo"), display_path="bin/demo"),
+            binary_source=SimpleNamespace(
+                kind=BinarySourceKind.HUNK_FILE,
+                path=Path("bin/demo"),
+                display_path="bin/demo",
+            ),
             output_path=disasm_path,
         ),
     )

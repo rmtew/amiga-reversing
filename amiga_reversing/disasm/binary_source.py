@@ -37,7 +37,8 @@ class HunkFileBinarySource:
     parent_disk_id: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
+        if self.kind is not BinarySourceKind.HUNK_FILE:
+            raise TypeError("HunkFileBinarySource.kind must be BinarySourceKind.HUNK_FILE")
 
     def read_bytes(self) -> bytes:
         return self.path.read_bytes()
@@ -55,7 +56,8 @@ class DiskEntryBinarySource:
     project_root: Path = PROJECT_ROOT
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
+        if self.kind is not BinarySourceKind.DISK_ENTRY:
+            raise TypeError("DiskEntryBinarySource.kind must be BinarySourceKind.DISK_ENTRY")
 
     def read_bytes(self) -> bytes:
         from amiga_reversing.disasm.c_backend import extract_disk_entry_with_c_backend
@@ -99,8 +101,10 @@ class RawBinarySource:
     parent_disk_id: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", BinarySourceKind(self.kind))
-        object.__setattr__(self, "address_model", RawAddressModel(self.address_model))
+        if self.kind is not BinarySourceKind.RAW_BINARY:
+            raise TypeError("RawBinarySource.kind must be BinarySourceKind.RAW_BINARY")
+        if not isinstance(self.address_model, RawAddressModel):
+            raise TypeError("RawBinarySource.address_model must be a RawAddressModel")
 
     def read_bytes(self) -> bytes:
         return self.path.read_bytes()

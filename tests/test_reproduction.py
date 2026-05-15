@@ -10,8 +10,10 @@ import pytest
 
 from amiga_reversing.disasm import reproduction
 from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    RawAddressModel,
     RawBinarySource,
     write_source_descriptor,
 )
@@ -409,7 +411,7 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
     binary_path = tmp_path / "demo.bin"
     binary_path.write_bytes(b"\x4e\x75")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -460,7 +462,7 @@ def test_run_reproduction_exact_match_skips_file_layout(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -525,7 +527,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -583,7 +585,7 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -647,9 +649,9 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     original = b"\x4E\x75"
     binary_path.write_bytes(original)
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="runtime_absolute",
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
         load_address=0x4000,
         entrypoint=0x4000,
         code_start_offset=0,
@@ -712,7 +714,7 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -784,7 +786,7 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -845,7 +847,7 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
     direct_bytes = bytes(direct_payload)
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -922,7 +924,7 @@ def test_run_reproduction_direct_compare_exact_skips_python_diff(
     original = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -994,7 +996,7 @@ def test_run_reproduction_direct_compare_semantic_container_oddity_skips_python_
     rebuilt = b"\x00\x00\x03\xf3"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1123,7 +1125,7 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
     rebuilt[-8] ^= 1
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1168,7 +1170,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
     binary_path = tmp_path / "demo.bin"
     binary_path.write_bytes(b"\x4e\x75")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1209,7 +1211,7 @@ def test_run_reproduction_refuses_facts_v2_source_before_assemble(
     binary_path = tmp_path / "demo.bin"
     binary_path.write_bytes(b"\x00\x00\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="demo.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1259,7 +1261,7 @@ def test_run_reproduction_writes_tool_error_when_stamp_fails(
     target_dir.mkdir(parents=True)
     missing_binary_path = tmp_path / "missing.bin"
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=missing_binary_path,
         display_path="missing.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1292,7 +1294,7 @@ def test_load_reproduction_report_keeps_tool_error_when_current_stamp_fails(
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=tmp_path / "missing.bin",
         display_path="missing.bin",
         analysis_cache_path=target_dir / "binary.analysis",
@@ -1371,7 +1373,7 @@ def test_disk_entry_read_bytes_uses_source_project_root(
         fake_extract,
     )
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="demo",
         adf_path=tmp_path / "demo.st",
         entry_path="AUTO/BOOT.PRG",

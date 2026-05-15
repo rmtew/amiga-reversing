@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from src.scripts import target_usage_manifest as usage
 from src.scripts.platform_manifest_io import sha256
 
@@ -1267,7 +1268,7 @@ class TargetUsageManifestTests(unittest.TestCase):
             target_dir = root / "targets" / "disk" / "targets" / "child"
             target_dir.mkdir(parents=True)
             source = usage.DiskEntryBinarySource(
-                kind="disk_entry",
+                kind=BinarySourceKind.DISK_ENTRY,
                 disk_id="disk",
                 adf_path=root / "disk.adf",
                 entry_path="Carrier",

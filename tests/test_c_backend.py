@@ -12,8 +12,10 @@ import pytest
 
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    RawAddressModel,
     RawBinarySource,
 )
 from amiga_reversing.disasm.c_backend import (
@@ -159,7 +161,7 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -191,7 +193,7 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -356,7 +358,7 @@ def test_listing_analysis_bounds_simulated_self_decruncher_output_to_transfer_ra
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -396,7 +398,7 @@ def test_listing_analysis_simulates_self_decruncher_across_amiga_hardware_write(
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -441,7 +443,7 @@ payload:
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -498,7 +500,7 @@ payload:
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -540,7 +542,7 @@ def test_listing_analysis_simulates_self_decruncher_when_written_bytes_match_exi
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -587,7 +589,7 @@ payload:
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -639,7 +641,7 @@ payload:
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -961,9 +963,9 @@ def test_full_listing_data_rows_expose_source_bytes(tmp_path: Path) -> None:
 
     rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=12,
             code_start_offset=12,
@@ -986,9 +988,9 @@ def test_full_listing_rows_omit_empty_optional_c_fields(tmp_path: Path) -> None:
 
     raw_rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -1017,9 +1019,9 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
 
     rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -1065,9 +1067,9 @@ def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: 
     )
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1167,9 +1169,9 @@ def test_full_listing_contained_runtime_view_does_not_emit_second_org(tmp_path: 
     )
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1197,9 +1199,9 @@ def test_facts_v2_adjacent_control_stub_table_promotes_sibling_entry(tmp_path: P
     path.write_bytes(bytes.fromhex("6000000A000000006000000A6000000A4E714E754E714E754E714E75"))
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1233,9 +1235,9 @@ def test_facts_v2_indexed_control_stub_table_promotes_entries(tmp_path: Path) ->
     )
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1273,9 +1275,9 @@ def test_facts_v2_indexed_indirect_target_rejects_zero_padding(tmp_path: Path) -
     )
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1313,9 +1315,9 @@ def test_facts_v2_adjacent_absolute_jmp_stub_does_not_promote_data_target(tmp_pa
     )
 
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -1357,7 +1359,7 @@ def test_facts_v2_traces_reglist_copied_runtime_stub(tmp_path: Path) -> None:
     path.write_bytes(rebuilt)
 
     binary_source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=path,
         display_path=str(path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -1414,7 +1416,7 @@ def test_facts_v2_traces_predecrement_copied_entry_source(tmp_path: Path) -> Non
     path.write_bytes(rebuilt)
 
     binary_source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=path,
         display_path=str(path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -1469,7 +1471,7 @@ def test_facts_v2_listing_rejects_invalid_platform_metadata(tmp_path: Path) -> N
     with pytest.raises(RuntimeError, match="target metadata range is out of range"):
         analyze_source_with_c_artifact(
             HunkFileBinarySource(
-                kind="hunk_file",
+                kind=BinarySourceKind.HUNK_FILE,
                 path=path,
                 display_path=str(path),
                 analysis_cache_path=tmp_path / "binary.analysis",
@@ -1553,7 +1555,7 @@ def test_stale_resident_vector_metadata_repaired_to_hunk_entries(tmp_path: Path)
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
 
     binary_source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "mathtrans.analysis",
@@ -2042,7 +2044,7 @@ def test_extract_disk_entry_uses_c_disk_backend(monkeypatch, tmp_path: Path) -> 
 
 def test_project_source_disk_entry_extracts_with_c_disk_backend(monkeypatch, tmp_path: Path) -> None:
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="demo",
         adf_path=tmp_path / "demo.adf",
         entry_path="c/Run",
@@ -2110,7 +2112,7 @@ def _patch_render_source_artifact(
 
 def test_render_project_source_disk_entry_uses_atari_platform(monkeypatch, tmp_path: Path) -> None:
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="demo",
         adf_path=tmp_path / "demo.st",
         entry_path="AUTO/BOOT.PRG",
@@ -2140,7 +2142,7 @@ def test_render_project_source_ttp_uses_atari_platform(monkeypatch, tmp_path: Pa
     binary_path = tmp_path / "BIN_GEN.TTP"
     binary_path.write_bytes(b"\x60\x1a")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -2164,7 +2166,7 @@ def test_render_project_source_uses_listing_artifact(monkeypatch, tmp_path: Path
     binary_path = tmp_path / "demo"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -2189,7 +2191,7 @@ def test_render_project_source_refuses_artifact_source(monkeypatch, tmp_path: Pa
     binary_path = tmp_path / "demo"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -2220,9 +2222,9 @@ def test_project_source_raw_binary_uses_raw_dll_with_local_entrypoint(monkeypatc
     binary_path = tmp_path / "boot.bin"
     binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -2258,9 +2260,9 @@ def test_project_source_runtime_absolute_raw_binary_passes_runtime_load_model(
     binary_path = tmp_path / "decompressed.bin"
     binary_path.write_bytes(b"\x4e\xf9\x00\x00\x9b\x3a")
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="runtime_absolute",
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
         load_address=0x4000,
         entrypoint=0x4000,
         code_start_offset=0,
@@ -2287,9 +2289,9 @@ def test_real_dll_runtime_absolute_raw_binary_materializes_runtime_load_range(tm
     binary_path = tmp_path / "decompressed.bin"
     binary_path.write_bytes(original)
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="runtime_absolute",
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
         load_address=0x4000,
         entrypoint=0x4000,
         code_start_offset=0,
@@ -2328,9 +2330,9 @@ def test_real_dll_local_offset_raw_binary_does_not_invent_runtime_load_range(tmp
     binary_path = tmp_path / "local.bin"
     binary_path.write_bytes(bytes.fromhex("4e754e75"))
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x4000,
         entrypoint=0x4000,
         code_start_offset=0,
@@ -2374,9 +2376,9 @@ def test_real_dll_seeded_entities_become_structured_data_policy_items(tmp_path: 
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -2445,9 +2447,9 @@ def test_real_dll_seeded_entity_metadata_classifies_pointer_table_once(tmp_path:
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0,
         entrypoint=0,
         code_start_offset=0,
@@ -2494,7 +2496,7 @@ helper:
         project_root=PROJECT_ROOT,
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=target_dir / "binary.analysis",
@@ -2576,7 +2578,7 @@ after_data:
         project_root=PROJECT_ROOT,
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=target_dir / "binary.analysis",
@@ -2645,9 +2647,9 @@ def test_project_source_benchmark_uses_facts_v2(
     binary_path = tmp_path / "demo"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -2833,9 +2835,9 @@ def test_real_dll_raw_listing_source_assembles_to_raw_payload(tmp_path: Path) ->
     output_path = tmp_path / "rebuilt.bin"
     binary_path.write_bytes(b"\x4E\x75")
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="runtime_absolute",
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
         load_address=0x4000,
         entrypoint=0x4000,
         code_start_offset=0,
@@ -2865,7 +2867,7 @@ def test_project_source_facts_v2_direct_rebuild_uses_direct_c_api(monkeypatch, t
     output_path = tmp_path / "rebuilt.bin"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -2910,7 +2912,7 @@ def test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api(monke
     output_path = tmp_path / "rebuilt.bin"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -2957,7 +2959,7 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
     binary_path = tmp_path / "odd_container.exe"
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=b"\x4e\x75\x00\x00") + u32(1010))
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="odd_container.exe",
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3017,7 +3019,7 @@ def test_project_source_facts_v2_direct_rebuild_preserves_hunk_reloc32short_enco
     binary_path = tmp_path / "reloc32short.exe"
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path="reloc32short.exe",
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3045,7 +3047,7 @@ def test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api(
     output_path = tmp_path / "rebuilt.bin"
     disk_path.write_bytes(b"disk")
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="demo",
         adf_path=disk_path,
         entry_path="c/Run",
@@ -3112,7 +3114,7 @@ def test_project_source_facts_v2_direct_rebuild_surfaces_refusal(monkeypatch, tm
     binary_path = tmp_path / "sample"
     binary_path.write_bytes(b"\0\0\x03\xf3")
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3166,7 +3168,7 @@ def test_project_source_facts_v2_defines_private_exec_lvo_symbol(tmp_path: Path)
         encoding="utf-8",
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "private_lvo.analysis",
@@ -3207,7 +3209,7 @@ def test_project_source_facts_v2_atari_empty_relocation_stream_roundtrips(tmp_pa
     ) + u32(0)
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3261,7 +3263,7 @@ def test_project_source_facts_v2_direct_rebuild_preserves_atari_eof_relocation_t
     ) + u32(4)
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3299,7 +3301,7 @@ def test_project_source_reproduction_compare_atari_uses_object_semantics(tmp_pat
     ) + u32(0)
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3359,7 +3361,7 @@ def test_project_source_facts_v2_atari_large_relocation_stream_is_chunked(tmp_pa
     ) + relocation_stream
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3416,7 +3418,7 @@ def test_project_source_facts_v2_atari_symbol_table_roundtrips(tmp_path: Path) -
     ) + u32(0)
     binary_path.write_bytes(original)
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "binary.analysis",
@@ -3653,9 +3655,9 @@ def test_real_dll_facts_v2_listing_rows_use_plan_metadata_without_source_model(t
     binary_path = tmp_path / "boot.bin"
     binary_path.write_bytes(b"\0" * 12 + b"\x4e\x75")
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -3863,9 +3865,9 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -3942,9 +3944,9 @@ def test_real_dll_bootblock_policy_io_seed_symbolizes_saved_request_setup(tmp_pa
     overwritten_binary_path.write_bytes(overwritten)
     overwritten_rendered, _profile = listing_artifact_source_text_with_c_backend_profile(
         overwritten_binary_source := RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=overwritten_binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0x70000,
             entrypoint=0x7000C,
             code_start_offset=0x0C,
@@ -4004,7 +4006,7 @@ def test_real_dll_runtime_ref_to_copied_range_start_seeds_org_entry_code(tmp_pat
     )
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "runtime_ref_copied_entry.analysis",
@@ -4103,7 +4105,7 @@ def test_real_dll_bootstrap_copied_image_jump_target_decodes_without_compression
         encoding="utf-8",
     )
     binary_source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "bootstrap_copied_image.analysis",
@@ -4295,9 +4297,9 @@ def test_real_dll_runtime_org_is_visible_in_listing_rows(tmp_path: Path) -> None
 
     rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0x410,
             code_start_offset=0x410,
@@ -4350,9 +4352,9 @@ def test_real_dll_runtime_absolute_target_decode_does_not_invalidate_source_cand
 
     rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -4430,9 +4432,9 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
 
     combined = analyze_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -4550,9 +4552,9 @@ def test_real_dll_facts_v2_listing_rows_exclude_source_only_directives_without_s
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x70000,
         code_start_offset=0,
@@ -4604,9 +4606,9 @@ def test_real_dll_facts_v2_listing_rows_emit_api_calls(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -4729,9 +4731,9 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -4804,9 +4806,9 @@ def test_real_dll_facts_v2_listing_rows_emit_base_slot_effects(tmp_path: Path) -
 
     combined = analyze_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -4858,9 +4860,9 @@ def test_real_dll_facts_v2_listing_rows_emit_wrapper_function_args(tmp_path: Pat
 
     combined = analyze_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -4976,9 +4978,9 @@ def test_real_dll_facts_v2_propagates_opendevice_instance_to_io_calls(tmp_path: 
 
     combined = analyze_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -5027,9 +5029,9 @@ def test_real_dll_facts_v2_propagates_typed_base_through_stack_storage(tmp_path:
 
     combined = analyze_source_with_c_artifact(
         RawBinarySource(
-            kind="raw_binary",
+            kind=BinarySourceKind.RAW_BINARY,
             path=binary_path,
-            address_model="local_offset",
+            address_model=RawAddressModel.LOCAL_OFFSET,
             load_address=0,
             entrypoint=0,
             code_start_offset=0,
@@ -5069,9 +5071,9 @@ def test_project_source_raw_binary_passes_metadata_register_seeds(monkeypatch, t
         encoding="utf-8",
     )
     source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=binary_path,
-        address_model="local_offset",
+        address_model=RawAddressModel.LOCAL_OFFSET,
         load_address=0x70000,
         entrypoint=0x7000C,
         code_start_offset=0x0C,
@@ -5457,7 +5459,7 @@ def test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips(
     code += bytes.fromhex("4e75")
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=bytes(code)))
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "biased_dispatch.analysis",
@@ -5486,7 +5488,7 @@ def test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtr
     code = bytes.fromhex("7800227B40044ED100000010000000124E754E75")
     binary_path.write_bytes(make_synthetic_hunkexe(code_data=code))
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "pc_indexed_long_dispatch.analysis",
@@ -6015,7 +6017,7 @@ payload:
 
     combined = analyze_source_with_c_artifact(
         HunkFileBinarySource(
-            kind="hunk_file",
+            kind=BinarySourceKind.HUNK_FILE,
             path=binary,
             display_path=str(binary),
             analysis_cache_path=tmp_path / "binary.analysis",
@@ -6298,9 +6300,9 @@ def test_real_dll_damocles_tetragon_native_materialization(tmp_path: Path) -> No
     assert result["decompressed"]["load_address"] == 0x40000
     assert result["decompressed"]["entrypoint"] == 0x40000
     binary_source = RawBinarySource(
-        kind="raw_binary",
+        kind=BinarySourceKind.RAW_BINARY,
         path=output_path,
-        address_model="runtime_absolute",
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
         load_address=0x40000,
         entrypoint=0x40000,
         code_start_offset=0,
@@ -7214,7 +7216,7 @@ def test_real_dll_renders_mathtrans_overlap_as_data_and_reassembles(tmp_path: Pa
     rebuilt_path = tmp_path / "mathtrans.bin"
     metadata_path.write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="resource_amiga_disk_argasm1.06",
         adf_path=disk_path,
         entry_path="libs/mathtrans.library",
@@ -7272,7 +7274,7 @@ def test_real_dll_renders_pmove_form_specific_control_register_and_reassembles(t
     source_path = tmp_path / "amon030.s"
     rebuilt_path = tmp_path / "amon030.prg"
     source = DiskEntryBinarySource(
-        kind="disk_entry",
+        kind=BinarySourceKind.DISK_ENTRY,
         disk_id="resource_atari_devpac_3.10",
         adf_path=disk_path,
         entry_path="AMON/AMON030.PRG",
@@ -7337,7 +7339,7 @@ def test_structural_label_at_zero_does_not_rewrite_absolute_short(tmp_path: Path
         encoding="utf-8",
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "analysis.json",
@@ -7382,7 +7384,7 @@ def test_non_autoinit_resident_init_offset_seeds_entrypoint(tmp_path: Path) -> N
         encoding="utf-8",
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "analysis.json",
@@ -7434,7 +7436,7 @@ def test_non_autoinit_resident_make_library_vectors_seed_device_entrypoints(tmp_
         encoding="utf-8",
     )
     source = HunkFileBinarySource(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         path=binary_path,
         display_path=str(binary_path),
         analysis_cache_path=tmp_path / "analysis.json",

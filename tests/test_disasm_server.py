@@ -19,6 +19,7 @@ import pytest
 
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.listing_row_fixtures import serialize_row
@@ -3091,7 +3092,7 @@ def test_project_listing_cache_key_includes_renderer_tool_stamps(
     binary_path = tmp_path / "demo.bin"
     binary_path.write_bytes(b"\x4e\x75")
     source = SimpleNamespace(
-        kind="hunk_file",
+        kind=BinarySourceKind.HUNK_FILE,
         display_path="demo.bin",
         path=binary_path,
     )
