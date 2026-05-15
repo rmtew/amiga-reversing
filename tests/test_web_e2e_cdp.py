@@ -838,10 +838,27 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
               .length
             """
         ) == 1
-        page.evaluate("window.prompt = () => 'entrypoint'")
+        page.evaluate("window.prompt = () => { throw new Error('prompt should not be used'); }")
         page.evaluate("document.querySelector('#command-palette-search').value = 'rename'")
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Rename label')")
+        page.press_key("Enter")
+        page.wait_for_selector("#command-parameter-editor")
+        assert page.evaluate("document.querySelector('[data-command-parameter-name=\"name\"]')?.value") == "loc_0_00000000"
+        page.press_key("Escape")
+        page.wait_for_selector("#command-palette-search")
+        assert page.evaluate("document.querySelector('#command-parameter-editor') === null")
+        assert labels == []
+        page.press_key("Enter")
+        page.wait_for_selector("#command-parameter-editor")
+        assert page.evaluate("document.activeElement?.dataset.commandParameterName") == "name"
+        page.press_key("ArrowDown")
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "0"
+        page.fill("[data-command-parameter-name='name']", "")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('Required')")
+        assert labels == []
+        page.fill("[data-command-parameter-name='name']", "entrypoint")
         page.press_key("Enter")
         deadline = time.monotonic() + 5.0
         while not labels and time.monotonic() < deadline:

@@ -1,5 +1,9 @@
 # PRD 012: Command Parameter Editor
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Replace browser-native prompts with a basic palette-hosted **Command Parameter Editor** that renders **Manual Action Catalog** parameter schemas and submits catalog-backed actions without web-only command behavior.
@@ -40,6 +44,11 @@ Replace browser-native prompts with a basic palette-hosted **Command Parameter E
 - Web source test proving catalog action execution no longer calls `window.prompt`.
 - CDP test for renaming a label through the in-app parameter editor.
 - Route/backend tests continue to validate parameters before appending **Manual Action Log** entries.
+
+Verified:
+
+- `uv run pytest tests\test_web_app_source.py -q`
+- `uv run pytest tests\test_web_e2e_cdp.py -q -k command_palette_offers_rename_for_selected_label_row`
 
 ## Issues
 

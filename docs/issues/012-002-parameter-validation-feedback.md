@@ -22,12 +22,16 @@ Keep the **Command Parameter Editor** open when catalog parameter validation fai
 
 ## Acceptance criteria
 
-- [ ] Required-field failures are shown in the editor.
-- [ ] Backend validation errors are surfaced without closing the palette.
-- [ ] Failed validation does not append a **Manual Action Log** entry.
-- [ ] Correcting the value and resubmitting succeeds through the same catalog path.
-- [ ] Tests cover required text parameter failure and recovery.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Required-field failures are shown in the editor.
+- [x] Backend validation errors are surfaced without closing the palette.
+- [x] Failed validation does not append a **Manual Action Log** entry.
+- [x] Correcting the value and resubmitting succeeds through the same catalog path.
+- [x] Tests cover required text parameter failure and recovery.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Required-field failure/recovery is covered by CDP; backend errors stay inside the editor through `submitError` without closing the palette.
 
 ## Blocked by
 

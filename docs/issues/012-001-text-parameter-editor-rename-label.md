@@ -26,12 +26,16 @@ This is the basic prompt replacement slice. PRD 017 later turns the same behavio
 
 ## Acceptance criteria
 
-- [ ] A command palette action with a required text parameter opens a palette-hosted editor instead of `window.prompt`.
-- [ ] Rename label pre-fills the current label name when available.
-- [ ] Enter submits the catalog action with the edited parameter.
-- [ ] Escape cancels the editor and returns to the command palette state required by PRD 012.
-- [ ] Web/CDP coverage proves label rename works through the editor.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] A command palette action with a required text parameter opens a palette-hosted editor instead of `window.prompt`.
+- [x] Rename label pre-fills the current label name when available.
+- [x] Enter submits the catalog action with the edited parameter.
+- [x] Escape cancels the editor and returns to the command palette state required by PRD 012.
+- [x] Web/CDP coverage proves label rename works through the editor.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Verified by focused web source and CDP command-palette rename tests.
 
 ## Blocked by
 

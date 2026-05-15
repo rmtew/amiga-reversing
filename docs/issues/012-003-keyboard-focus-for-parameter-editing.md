@@ -23,12 +23,16 @@ Make palette-hosted editable parameter controls capture text-editing keys while 
 
 ## Acceptance criteria
 
-- [ ] Arrow keys and text-editing keys inside parameter fields do not move **Listing Selection**.
-- [ ] Enter submits only when the field state is valid for submission.
-- [ ] Escape cancels the parameter editor and returns predictably to the command palette.
-- [ ] Focus returns predictably to the command palette after submit/cancel.
-- [ ] Web tests cover focus isolation for parameter controls.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Arrow keys and text-editing keys inside parameter fields do not move **Listing Selection**.
+- [x] Enter submits only when the field state is valid for submission.
+- [x] Escape cancels the parameter editor and returns predictably to the command palette.
+- [x] Focus returns predictably to the command palette after submit/cancel.
+- [x] Web tests cover focus isolation for parameter controls.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. CDP covers focused editor input and arrow-key isolation from listing selection.
 
 ## Blocked by
 

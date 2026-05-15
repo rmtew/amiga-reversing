@@ -23,13 +23,17 @@ Review the completed **Command Parameter Editor** against PRD 012 and remove rem
 
 ## Acceptance criteria
 
-- [ ] Catalog-backed command execution does not call `window.prompt`.
-- [ ] Basic palette-hosted parameter controls are schema-rendered rather than action-specific dialogs.
-- [ ] Inline hosts, interaction schemas, choice grids, filtered choosers, and palette session back stacks are left to PRD 017.
-- [ ] Submit, cancel, validation, and focus behavior match PRD 012.
-- [ ] CDP coverage includes label rename through the in-app editor.
-- [ ] Missing coverage is fixed or captured as follow-up issues.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Catalog-backed command execution does not call `window.prompt`.
+- [x] Basic palette-hosted parameter controls are schema-rendered rather than action-specific dialogs.
+- [x] Inline hosts, interaction schemas, choice grids, filtered choosers, and palette session back stacks are left to PRD 017.
+- [x] Submit, cancel, validation, and focus behavior match PRD 012.
+- [x] CDP coverage includes label rename through the in-app editor.
+- [x] Missing coverage is fixed or captured as follow-up issues.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Review found no worthwhile follow-up beyond PRD 017's already-scoped richer parameter sessions.
 
 ## Blocked by
 

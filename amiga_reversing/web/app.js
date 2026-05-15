@@ -122,6 +122,7 @@ const state = {
     selectedIndex: 0,
     loading: false,
     global: false,
+    editor: null,
   },
   analysisStatus: {
     text: "",
@@ -1409,9 +1410,8 @@ function renderCommandPalette() {
   }
   const actions = visibleCommandPaletteActions();
   const selectedIndex = clampCommandPaletteSelection(actions);
-  const html = `
-    <div class="command-palette-overlay" id="command-palette-overlay">
-      <div class="command-palette-panel">
+  const editor = state.commandPalette.editor;
+  const bodyHtml = editor ? renderCommandParameterEditor(editor) : `
         <div class="command-palette-search-row">
           <input id="command-palette-search" class="command-palette-search" type="text" value="${escapeHtml(state.commandPalette.query)}" autocomplete="off">
           <button type="button" class="command-palette-mode" data-command-palette-global="1">${state.commandPalette.global ? "All" : "Context"}</button>
@@ -1426,6 +1426,11 @@ function renderCommandPalette() {
             </button>
           `).join("")}
         </div>
+  `;
+  const html = `
+    <div class="command-palette-overlay" id="command-palette-overlay">
+      <div class="command-palette-panel">
+        ${bodyHtml}
       </div>
     </div>
   `;
@@ -1434,11 +1439,89 @@ function renderCommandPalette() {
   } else {
     app.insertAdjacentHTML("beforeend", html);
   }
-  bindCommandPalette();
+  if (editor) {
+    bindCommandParameterEditor();
+  } else {
+    bindCommandPalette();
+  }
   const selected = document.querySelector(".command-palette-item.selected");
   if (selected instanceof HTMLElement) {
     selected.scrollIntoView({block: "nearest"});
   }
+}
+
+function renderCommandParameterEditor(editor) {
+  const action = editor.action || {};
+  const fields = commandParameterSchemaFields(action);
+  return `
+    <form class="command-parameter-editor" id="command-parameter-editor">
+      <div class="command-parameter-header">
+        <div class="command-parameter-title">${escapeHtml(action.label || action.action_id || "Command")}</div>
+        <button type="button" class="command-parameter-cancel" data-command-parameter-cancel="1">Cancel</button>
+      </div>
+      <div class="command-parameter-fields">
+        ${fields.map((field) => renderCommandParameterField(field, editor)).join("")}
+      </div>
+      ${editor.submitError ? `<div class="command-parameter-error">${escapeHtml(editor.submitError)}</div>` : ""}
+      <div class="command-parameter-actions">
+        <button type="submit" class="command-parameter-submit"${editor.submitting ? " disabled" : ""}>${editor.submitting ? "Saving" : "Apply"}</button>
+      </div>
+    </form>
+  `;
+}
+
+function renderCommandParameterField(field, editor) {
+  const value = editor.values[field.name];
+  const error = editor.errors[field.name] || "";
+  const required = field.required ? " data-required=\"1\"" : "";
+  const label = `${escapeHtml(field.label)}${field.required ? " *" : ""}`;
+  let control = "";
+  if (field.type === "boolean") {
+    control = `
+      <label class="command-parameter-checkbox">
+        <input type="checkbox" data-command-parameter-name="${escapeHtml(field.name)}"${value ? " checked" : ""}${required}>
+        <span>${label}</span>
+      </label>
+    `;
+  } else if (field.enumValues.length) {
+    control = `
+      <label>
+        <span>${label}</span>
+        <select data-command-parameter-name="${escapeHtml(field.name)}"${required}>
+          ${field.required && !String(value) ? '<option value="" selected disabled></option>' : ""}
+          ${field.required ? "" : '<option value=""></option>'}
+          ${field.enumValues.map((option) => `<option value="${escapeHtml(option)}"${String(value) === option ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+        </select>
+      </label>
+    `;
+  } else if (field.type === "number" || field.type === "integer") {
+    control = `
+      <label>
+        <span>${label}</span>
+        <input type="number" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${field.type === "integer" ? ' step="1"' : ""}${required}>
+      </label>
+    `;
+  } else if (field.type === "string") {
+    control = `
+      <label>
+        <span>${label}</span>
+        <input type="text" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${required}>
+      </label>
+    `;
+  } else {
+    control = `
+      <label>
+        <span>${label}</span>
+        <input type="text" value="Unsupported parameter type: ${escapeHtml(field.type)}" disabled>
+      </label>
+    `;
+  }
+  return `
+    <div class="command-parameter-field${error ? " has-error" : ""}" data-command-parameter-field="${escapeHtml(field.name)}">
+      ${control}
+      ${error ? `<div class="command-parameter-field-error">${escapeHtml(error)}</div>` : ""}
+    </div>
+  `;
 }
 
 function bindCommandPalette() {
@@ -1511,6 +1594,7 @@ async function openCommandPalette() {
   state.commandPalette.selectedIndex = 0;
   state.commandPalette.loading = true;
   state.commandPalette.global = false;
+  state.commandPalette.editor = null;
   renderCommandPalette();
   try {
     const catalogs = [];
@@ -1608,42 +1692,20 @@ function listingRowDataForSelection(selection) {
 function closeCommandPalette() {
   state.commandPalette.open = false;
   state.commandPalette.selectedIndex = 0;
+  state.commandPalette.editor = null;
   renderCommandPalette();
 }
 
 async function executeCommandPaletteAction(action) {
   const command = String(action?.action || "");
-  const parameters = commandPaletteActionParameters(action);
-  if (parameters === null) {
+  if (actionNeedsParameterEditor(action)) {
+    openCommandParameterEditor(action);
     return;
   }
+  const parameters = {};
   closeCommandPalette();
   if (action?.appends_to_manual_action_log === true) {
-    const body = {
-      action_id: action.action_id,
-      context: action.target_context,
-    };
-    if (Object.keys(parameters).length) {
-      body.parameters = parameters;
-    }
-    await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(body),
-    });
-    if (commandRequiresAnalysisRefresh(command)) {
-      await refreshAnalysisAfterManualMetadataAction(state.project, {});
-    } else {
-      await refreshProjectPayload(state.project);
-      renderVirtualListingWindow(state.project, {
-        rows: state.listingRows,
-        start: state.virtualListing.start,
-        end: state.virtualListing.end,
-        total_rows: state.virtualListing.totalRows,
-        analysis_generation: state.virtualListing.generation,
-      }, true);
-    }
-    setAnalysisStatus("Manual action saved", "ready", 2000);
+    await submitCommandPaletteCatalogAction(action, parameters);
   } else if (command === "open_review") {
     openManualReviewPanel();
   } else if (command === "open_navigation") {
@@ -1675,24 +1737,234 @@ async function executeCommandPaletteAction(action) {
   }
 }
 
+async function submitCommandPaletteCatalogAction(action, parameters) {
+  const command = String(action?.action || "");
+  if (action?.appends_to_manual_action_log === true) {
+    const body = {
+      action_id: action.action_id,
+      context: action.target_context,
+    };
+    if (Object.keys(parameters).length) {
+      body.parameters = parameters;
+    }
+    await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    if (commandRequiresAnalysisRefresh(command)) {
+      await refreshAnalysisAfterManualMetadataAction(state.project, {});
+    } else {
+      await refreshProjectPayload(state.project);
+      renderVirtualListingWindow(state.project, {
+        rows: state.listingRows,
+        start: state.virtualListing.start,
+        end: state.virtualListing.end,
+        total_rows: state.virtualListing.totalRows,
+        analysis_generation: state.virtualListing.generation,
+      }, true);
+    }
+    setAnalysisStatus("Manual action saved", "ready", 2000);
+  }
+}
+
 function commandRequiresAnalysisRefresh(command) {
   return command === "create_manual_seed"
     || command === "create_manual_register_seed"
     || command === "create_manual_label";
 }
 
-function commandPaletteActionParameters(action) {
+function actionNeedsParameterEditor(action) {
+  const fields = commandParameterSchemaFields(action);
+  return fields.length > 0;
+}
+
+function openCommandParameterEditor(action) {
+  const fields = commandParameterSchemaFields(action);
+  state.commandPalette.editor = {
+    action,
+    values: Object.fromEntries(fields.map((field) => [field.name, defaultCommandParameterValue(action, field)])),
+    errors: {},
+    submitError: "",
+    submitting: false,
+  };
+  renderCommandPalette();
+}
+
+function cancelCommandParameterEditor() {
+  state.commandPalette.editor = null;
+  renderCommandPalette();
+}
+
+function commandParameterSchemaFields(action) {
   const schema = action?.parameter_schema || {};
   const required = Array.isArray(schema.required) ? schema.required : [];
-  if (!required.includes("name")) {
-    return {};
+  const properties = schema.properties && typeof schema.properties === "object" && !Array.isArray(schema.properties)
+    ? schema.properties
+    : {};
+  return Object.entries(properties).map(([name, fieldSchema]) => {
+    const field = fieldSchema && typeof fieldSchema === "object" && !Array.isArray(fieldSchema) ? fieldSchema : {};
+    const enumValues = Array.isArray(field.enum)
+      ? field.enum.filter((value) => value !== null && value !== undefined).map((value) => String(value))
+      : [];
+    const type = typeof field.type === "string" ? field.type : (enumValues.length ? "string" : "string");
+    return {
+      name,
+      label: String(field.title || field.label || name.replaceAll("_", " ")),
+      type,
+      required: required.includes(name),
+      enumValues,
+      schema: field,
+    };
+  });
+}
+
+function defaultCommandParameterValue(action, field) {
+  if (action?.parameters?.[field.name] !== undefined) {
+    return action.parameters[field.name];
   }
-  const currentName = action?.target_context?.symbol || "";
-  const name = window.prompt("Label name", currentName);
-  if (!name || !name.trim()) {
+  if (field.schema.default !== undefined) {
+    return field.schema.default;
+  }
+  if (field.name === "name" && action?.target_context?.symbol) {
+    return action.target_context.symbol;
+  }
+  if (field.type === "boolean") {
+    return false;
+  }
+  return "";
+}
+
+function bindCommandParameterEditor() {
+  const form = document.getElementById("command-parameter-editor");
+  const editor = state.commandPalette.editor;
+  if (!(form instanceof HTMLFormElement) || !editor) {
+    return;
+  }
+  const fields = commandParameterSchemaFields(editor.action);
+  form.querySelectorAll("[data-command-parameter-name]").forEach((control) => {
+    control.addEventListener("input", () => updateCommandParameterValue(control, fields));
+    control.addEventListener("change", () => updateCommandParameterValue(control, fields));
+    control.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cancelCommandParameterEditor();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void submitCommandParameterEditor();
+      }
+    });
+  });
+  form.querySelector("[data-command-parameter-cancel]")?.addEventListener("click", () => {
+    cancelCommandParameterEditor();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCommandParameterEditor();
+  });
+  const firstControl = form.querySelector("[data-command-parameter-name]");
+  if (firstControl instanceof HTMLInputElement || firstControl instanceof HTMLSelectElement) {
+    firstControl.focus();
+    if (firstControl instanceof HTMLInputElement && firstControl.type !== "checkbox") {
+      firstControl.select();
+    }
+  }
+}
+
+function updateCommandParameterValue(control, fields) {
+  const editor = state.commandPalette.editor;
+  if (!editor || !(control instanceof HTMLInputElement || control instanceof HTMLSelectElement)) {
+    return;
+  }
+  const name = control.dataset.commandParameterName;
+  const field = fields.find((candidate) => candidate.name === name);
+  if (!field) {
+    return;
+  }
+  if (field.type === "boolean" && control instanceof HTMLInputElement) {
+    editor.values[field.name] = control.checked;
+  } else if (field.type === "number" || field.type === "integer") {
+    editor.values[field.name] = control.value;
+  } else {
+    editor.values[field.name] = control.value;
+  }
+  delete editor.errors[field.name];
+  editor.submitError = "";
+}
+
+async function submitCommandParameterEditor() {
+  const editor = state.commandPalette.editor;
+  if (!editor || editor.submitting) {
+    return;
+  }
+  const fields = commandParameterSchemaFields(editor.action);
+  const {parameters, errors} = commandParameterPayload(fields, editor.values);
+  editor.errors = errors;
+  editor.submitError = "";
+  if (Object.keys(errors).length) {
+    renderCommandPalette();
     return null;
   }
-  return {name: name.trim()};
+  editor.submitting = true;
+  renderCommandPalette();
+  try {
+    await submitCommandPaletteCatalogAction(editor.action, parameters);
+    closeCommandPalette();
+  } catch (error) {
+    const activeEditor = state.commandPalette.editor;
+    if (activeEditor) {
+      activeEditor.submitting = false;
+      activeEditor.submitError = String(error.message || error);
+      renderCommandPalette();
+    }
+  }
+}
+
+function commandParameterPayload(fields, values) {
+  const parameters = {};
+  const errors = {};
+  fields.forEach((field) => {
+    const rawValue = values[field.name];
+    if (!["string", "boolean", "number", "integer"].includes(field.type)) {
+      errors[field.name] = `Unsupported parameter type: ${field.type}`;
+      return;
+    }
+    if (field.type === "boolean") {
+      parameters[field.name] = Boolean(rawValue);
+      return;
+    }
+    if (field.type === "number" || field.type === "integer") {
+      const text = String(rawValue ?? "").trim();
+      if (!text) {
+        if (field.required) {
+          errors[field.name] = "Required";
+        }
+        return;
+      }
+      const value = Number(text);
+      if (!Number.isFinite(value) || (field.type === "integer" && !Number.isInteger(value))) {
+        errors[field.name] = field.type === "integer" ? "Enter a whole number" : "Enter a number";
+        return;
+      }
+      parameters[field.name] = value;
+      return;
+    }
+    const text = String(rawValue ?? "").trim();
+    if (!text) {
+      if (field.required) {
+        errors[field.name] = "Required";
+      }
+      return;
+    }
+    if (field.enumValues.length && !field.enumValues.includes(text)) {
+      errors[field.name] = "Choose a valid value";
+      return;
+    }
+    parameters[field.name] = text;
+  });
+  return {parameters, errors};
 }
 
 function sameIssueField(left, right) {
@@ -8129,6 +8401,7 @@ async function renderProject(projectId) {
   state.commandPalette.selectedIndex = 0;
   state.commandPalette.loading = false;
   state.commandPalette.global = false;
+  state.commandPalette.editor = null;
   setAnalysisStatus("");
   renderStatsOverlay();
   renderReproPanel();
@@ -8362,6 +8635,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (state.commandPalette.open || document.getElementById("command-palette-overlay")) {
       event.preventDefault();
+      if (state.commandPalette.editor) {
+        cancelCommandParameterEditor();
+        return;
+      }
       closeCommandPalette();
       return;
     }

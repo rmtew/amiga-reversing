@@ -26,12 +26,16 @@ This issue covers parameter validation field types. Rich host behavior, option p
 
 ## Acceptance criteria
 
-- [ ] Supported field types render from `parameter_schema` without action-specific UI branches.
-- [ ] Defaults and required flags are honored for every supported type.
-- [ ] Unsupported schema fields fail clearly instead of rendering broken controls.
-- [ ] Tests cover at least one string, enum, boolean, and numeric schema.
-- [ ] Existing rename-label behavior remains unchanged.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Supported field types render from `parameter_schema` without action-specific UI branches.
+- [x] Defaults and required flags are honored for every supported type.
+- [x] Unsupported schema fields fail clearly instead of rendering broken controls.
+- [x] Tests cover at least one string, enum, boolean, and numeric schema.
+- [x] Existing rename-label behavior remains unchanged.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Source tests cover schema support for string, enum, boolean, numeric, defaults, required flags, and unsupported types.
 
 ## Blocked by
 

@@ -79,10 +79,28 @@ def test_web_app_command_palette_and_selection_model_are_contextual() -> None:
     assert "state.commandPalette.global || Number(action.palette_context_rank || 0) === 0" in app_js
     assert 'event.key === "Backspace" && !input.value && !state.commandPalette.global' in app_js
     assert "parameters.struct_name" in app_js
-    assert "selection.elementKind = listingElementKind(element);" in app_js
+    assert "selection.elementKind = selection.elementSelector?.element_kind || listingElementKind(element);" in app_js
     assert 'setAnalysisStatus("Selection precision lost"' in app_js
     assert "void followSelectedReference(true);" in app_js
     assert 'command === "next_hunk"' in app_js
+
+
+def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert "function renderCommandParameterEditor(editor)" in app_js
+    assert "function commandParameterSchemaFields(action)" in app_js
+    assert "function submitCommandParameterEditor()" in app_js
+    assert "window.prompt(\"Label name\"" not in app_js
+    assert "Unsupported parameter type:" in app_js
+    assert 'field.type === "boolean"' in app_js
+    assert 'field.type === "number" || field.type === "integer"' in app_js
+    assert "field.enumValues.length" in app_js
+    assert "submitError" in app_js
+    assert ".command-parameter-editor" in styles_css
+    assert ".command-parameter-field-error" in styles_css
 
 
 def test_web_app_initial_listing_load_requests_virtual_window() -> None:

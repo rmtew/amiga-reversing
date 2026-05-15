@@ -1922,6 +1922,78 @@ body {
   color: #60646c;
 }
 
+.command-parameter-editor {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.command-parameter-header,
+.command-parameter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.command-parameter-title {
+  font-weight: bold;
+}
+
+.command-parameter-cancel,
+.command-parameter-submit {
+  font: inherit;
+  border: 1px solid #9aa0aa;
+  background: #f7f8fa;
+  padding: 7px 10px;
+}
+
+.command-parameter-submit {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.command-parameter-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.command-parameter-field label {
+  display: grid;
+  gap: 4px;
+}
+
+.command-parameter-field input,
+.command-parameter-field select {
+  min-width: 0;
+  border: 1px solid #9aa0aa;
+  padding: 8px;
+  font: inherit;
+}
+
+.command-parameter-checkbox {
+  display: flex !important;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.command-parameter-checkbox input {
+  width: auto;
+}
+
+.command-parameter-field.has-error input,
+.command-parameter-field.has-error select {
+  border-color: #a84d4d;
+}
+
+.command-parameter-field-error,
+.command-parameter-error {
+  color: #742020;
+  font-size: 12px;
+}
+
 .repro-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
