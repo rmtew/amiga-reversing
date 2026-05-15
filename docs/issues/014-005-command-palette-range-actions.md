@@ -22,12 +22,17 @@ Render range catalog results in the command palette so best actions appear first
 
 ## Acceptance criteria
 
-- [ ] Range-context actions appear in the command palette for selected ranges.
-- [ ] Applicable actions are prioritized above partial and unavailable actions.
-- [ ] Partial and unavailable entries show concise reasons.
-- [ ] Executing a partial action uses only explicit applicable subranges.
-- [ ] CDP coverage selects data rows, opens the palette, and verifies mixed eligibility ordering.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Range-context actions appear in the command palette for selected ranges.
+- [x] Applicable actions are prioritized above partial and unavailable actions.
+- [x] Partial and unavailable entries show concise reasons.
+- [x] Executing a partial action uses only explicit applicable subranges.
+- [x] CDP coverage selects data rows, opens the palette, and verifies mixed eligibility ordering.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Command palette loads the range catalog for multi-row selection and renders
+availability reasons inline.
 
 ## Blocked by
 

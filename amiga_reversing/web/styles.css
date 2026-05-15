@@ -1257,6 +1257,12 @@ body {
   background: #cfe6ff;
 }
 
+.listing-row-selected.listing-row-range-focus {
+  background: #c7e0ff;
+  outline: 2px solid #1d4f91;
+  outline-offset: -2px;
+}
+
 .listing-row-repro-issue {
   background: #fff8e6;
 }
@@ -1970,6 +1976,21 @@ body {
   border: 1px solid #9aa0aa;
   padding: 8px;
   font: inherit;
+}
+
+.command-palette-item span {
+  display: grid;
+  gap: 2px;
+}
+
+.command-palette-item small {
+  color: #5f6673;
+  font-size: 12px;
+}
+
+.command-palette-item.disabled {
+  color: #7a808a;
+  cursor: not-allowed;
 }
 
 .command-parameter-checkbox {

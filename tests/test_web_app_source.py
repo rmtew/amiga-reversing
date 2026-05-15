@@ -83,6 +83,12 @@ def test_web_app_command_palette_and_selection_model_are_contextual() -> None:
     assert 'setAnalysisStatus("Selection precision lost"' in app_js
     assert "void followSelectedReference(true);" in app_js
     assert 'command === "next_hunk"' in app_js
+    assert "function listingSelectionRangeBounds" in app_js
+    assert "function resolveRenderedListingRangeSelection" in app_js
+    assert "function commandPaletteRangeQuery" in app_js
+    assert 'params.set("context", "range");' in app_js
+    assert "void moveListingSelection(event.key === \"ArrowDown\" ? 1 : -1, event.shiftKey);" in app_js
+    assert "listing-row-range-focus" in app_js
 
 
 def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
@@ -99,6 +105,8 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert 'field.type === "number" || field.type === "integer"' in app_js
     assert "field.enumValues.length" in app_js
     assert "submitError" in app_js
+    assert "commandPaletteRangeAvailabilityRank" in app_js
+    assert "action.availability_reason" in app_js
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css
 

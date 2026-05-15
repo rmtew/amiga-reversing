@@ -20,7 +20,11 @@ from amiga_reversing.amiga_disk.project import import_disk_entry_target
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.binary_source import BinarySourceKind, RawAddressModel, RawBinarySource
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    RawAddressModel,
+    RawBinarySource,
+)
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -711,6 +715,57 @@ def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.Mon
         )
         page.press_key("ArrowDown")
         assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "0"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_listing_range_selection_and_palette_reasons(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_range_palette")
+    target_dir = tmp_path / "targets" / project.id
+    target_dir.mkdir(parents=True)
+    rows = [
+        ListingRow(row_id="r0", kind="instruction", text="moveq #0,d0\n", addr=0, start_offset=0, end_offset=2),
+        ListingRow(row_id="r1", kind="data", text="dc.b $41\n", addr=2, start_offset=2, end_offset=3, bytes=b"A"),
+        ListingRow(row_id="r2", kind="data", text="dc.b $42\n", addr=3, start_offset=3, end_offset=4, bytes=b"B"),
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=None),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 3")
+        page.click("[data-row-index='0']")
+        page.evaluate("document.querySelector('#listing-viewport').focus()")
+
+        page.press_key("ArrowDown", modifiers=8)
+        page.press_key("ArrowDown", modifiers=8)
+        page.wait_for_expression("document.querySelectorAll('.listing-row-selected').length === 3")
+        assert page.evaluate("document.querySelector('.listing-row-range-focus')?.dataset.rowIndex") == "2"
+
+        page.press_key("ArrowUp")
+        page.wait_for_expression("document.querySelectorAll('.listing-row-selected').length === 1")
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "1"
+
+        page.press_key("ArrowUp", modifiers=8)
+        page.wait_for_expression("document.querySelectorAll('.listing-row-selected').length === 2")
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'raw'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Raw block')")
+        assert "Applies to 1 of 2 selected rows." in page.text_content("#command-palette-overlay")
         page.assert_no_errors()
 
 

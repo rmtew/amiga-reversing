@@ -24,12 +24,17 @@ Review range **Listing Selection** and range catalog behavior against PRD 014, e
 
 ## Acceptance criteria
 
-- [ ] Range actions do not infer hidden rows outside the selected visible range.
-- [ ] Range action eligibility does not parse rendered source text.
-- [ ] Focus, anchor, and range selection behavior is covered by tests.
-- [ ] Mixed eligibility is covered by backend and CDP tests.
-- [ ] PRD 014 issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Range actions do not infer hidden rows outside the selected visible range.
+- [x] Range action eligibility does not parse rendered source text.
+- [x] Focus, anchor, and range selection behavior is covered by tests.
+- [x] Mixed eligibility is covered by backend and CDP tests.
+- [x] PRD 014 issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Reviewed against PRD 014. The implementation uses structured row metadata and
+explicit selected indexes only.
 
 ## Blocked by
 

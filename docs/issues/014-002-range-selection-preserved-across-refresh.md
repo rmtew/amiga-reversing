@@ -23,12 +23,17 @@ Preserve range **Listing Selection** across virtual listing refreshes using stab
 
 ## Acceptance criteria
 
-- [ ] Focus, anchor, and range endpoints survive listing window refresh when stable rows still exist.
-- [ ] Row index fallback is used only when stable row identity is unavailable.
-- [ ] Lost range precision is reported instead of silently retargeting actions.
-- [ ] Tests cover stable identity preservation and fallback behavior.
-- [ ] Existing single-row selection preservation remains intact.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Focus, anchor, and range endpoints survive listing window refresh when stable rows still exist.
+- [x] Row index fallback is used only when stable row identity is unavailable.
+- [x] Lost range precision is reported instead of silently retargeting actions.
+- [x] Tests cover stable identity preservation and fallback behavior.
+- [x] Existing single-row selection preservation remains intact.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Range state stores stable keys for focus, anchor, and range endpoints and
+resolves them against rendered rows before falling back to row indexes.
 
 ## Blocked by
 

@@ -23,12 +23,17 @@ Return applicable, partially applicable, and unavailable catalog actions for mix
 
 ## Acceptance criteria
 
-- [ ] Catalog responses distinguish applicable, partial, and unavailable range actions.
-- [ ] Partial actions include explicit applicable subranges.
-- [ ] Unavailable actions include concise user-facing reasons.
-- [ ] Actions with unclear range semantics are unavailable rather than guessed.
-- [ ] Backend tests cover homogeneous, mixed, and invalid ranges.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Catalog responses distinguish applicable, partial, and unavailable range actions.
+- [x] Partial actions include explicit applicable subranges.
+- [x] Unavailable actions include concise user-facing reasons.
+- [x] Actions with unclear range semantics are unavailable rather than guessed.
+- [x] Backend tests cover homogeneous, mixed, and invalid ranges.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Range seed actions report availability and row-level reasons. Semantic helper
+range actions are unavailable unless a precise element context is selected.
 
 ## Blocked by
 

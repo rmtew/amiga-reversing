@@ -53,4 +53,15 @@ Extend **Listing Selection** with focus, anchor, and selected row range so users
 
 ## Open Questions
 
-- Whether mouse Shift-click should be included in the first implementation slice.
+- Resolved: mouse Shift-click remains out of scope for PRD 014. Keyboard range
+  selection is the implemented slice.
+
+## Completion Notes
+
+- Implemented focus/anchor/range keyboard selection with Shift+Arrow extension
+  and plain Arrow collapse.
+- Range catalog requests send explicit selected row indexes and visible row
+  metadata; hidden rows are not inferred.
+- Range catalog responses distinguish applicable, partial, and unavailable
+  actions with reasons and explicit applicable subranges.
+- Partial range execution appends actions only for explicit applicable subranges.

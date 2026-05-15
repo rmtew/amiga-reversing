@@ -23,12 +23,17 @@ Add a range-selection catalog query context that sends explicit selected row ide
 
 ## Acceptance criteria
 
-- [ ] The web UI can query the catalog for a selected row range.
-- [ ] Requests include selected row ids/indexes and visible structured row metadata.
-- [ ] The backend accepts range context as distinct from row and element context.
-- [ ] Hidden rows outside the selected visible range are not inferred.
-- [ ] Route and web tests cover valid and stale range contexts.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] The web UI can query the catalog for a selected row range.
+- [x] Requests include selected row ids/indexes and visible structured row metadata.
+- [x] The backend accepts range context as distinct from row and element context.
+- [x] Hidden rows outside the selected visible range are not inferred.
+- [x] Route and web tests cover valid and stale range contexts.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion
+
+Added `context=range` catalog requests with explicit `row_indexes` and JSON row
+metadata. Backend rejects stale row metadata that does not match row indexes.
 
 ## Blocked by
 

@@ -42,6 +42,8 @@ from amiga_reversing.disasm.listing_context import selected_listing_element_cont
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
+    listing_range_action_catalog,
+    listing_range_catalog_manual_payload,
     listing_row_action_catalog,
     review_item_action_catalog,
     review_item_catalog_manual_payload,
@@ -79,7 +81,10 @@ from amiga_reversing.disasm.reproduction import (
     source_renderer_tool_stamps,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
-from amiga_reversing.disasm.ui_preferences import load_ui_preferences, save_ui_preferences
+from amiga_reversing.disasm.ui_preferences import (
+    load_ui_preferences,
+    save_ui_preferences,
+)
 
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 LOGGER = logging.getLogger("amiga_reversing.disasm.server")
@@ -1348,6 +1353,9 @@ def _manual_action_catalog_payload(project_name: str, query: dict[str, list[str]
             "context": {"kind": "review_item", "item_id": item.get("item_id"), "review_index": review_index},
             "actions": review_item_action_catalog(item),
         }
+    if context == "range":
+        rows = _query_range_catalog_rows(project_name, query)
+        return {"context": {"kind": "range", "row_count": len(rows)}, "actions": listing_range_action_catalog(rows)}
     if context in {"row", "element"}:
         row_index = _parse_int_arg(query, "row_index")
         if row_index is None:
@@ -1369,7 +1377,7 @@ def _source_entrypoint_payload(project_name: str) -> dict[str, object] | None:
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError):
         return None
-    source = paths.binary_source
+    source = getattr(paths, "binary_source", None)
     entrypoint = getattr(source, "analysis_entrypoint", None)
     if not isinstance(entrypoint, int) or isinstance(entrypoint, bool):
         return None
@@ -1387,9 +1395,13 @@ def _ui_preferences_payload(project_name: str) -> dict[str, object]:
     project = get_project(project_name)
     if project.kind is not ProjectKind.BINARY or not project.ready:
         return {"preferences": {}, "source_entrypoint": None}
-    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    try:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+        preferences = load_ui_preferences(paths.target_dir, project_name)
+    except (FileNotFoundError, ValueError):
+        return {"preferences": {}, "source_entrypoint": None}
     return {
-        "preferences": load_ui_preferences(paths.target_dir, project_name),
+        "preferences": preferences,
         "source_entrypoint": _source_entrypoint_payload(project_name),
     }
 
@@ -1398,9 +1410,13 @@ def _save_ui_preferences_payload(project_name: str, body: Mapping[str, object] |
     project = get_project(project_name)
     if project.kind is not ProjectKind.BINARY or not project.ready:
         raise ValueError(f"Project {project_name} is not ready for UI preference state")
-    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-    payload = body if isinstance(body, dict) else {}
-    return {"preferences": save_ui_preferences(paths.target_dir, project_name, cast(dict[str, object], payload))}
+    try:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+        payload = body if isinstance(body, dict) else {}
+        preferences = save_ui_preferences(paths.target_dir, project_name, cast(dict[str, object], payload))
+    except (FileNotFoundError, ValueError):
+        return {"preferences": {}}
+    return {"preferences": preferences}
 
 
 def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]:
@@ -1414,6 +1430,52 @@ def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]
     row = dict(cast(dict[str, object], rows[0]))
     row["row_index"] = row_index
     return row
+
+
+def _query_range_catalog_rows(project_name: str, query: dict[str, list[str]]) -> list[dict[str, object]]:
+    row_indexes = _parse_row_indexes_arg(query)
+    raw_rows = _first_query_value(query, "rows")
+    if raw_rows:
+        parsed_rows = json.loads(raw_rows)
+        if not isinstance(parsed_rows, list):
+            raise ValueError("rows must be a JSON array")
+        rows: list[dict[str, object]] = []
+        for raw_row in parsed_rows:
+            if not isinstance(raw_row, dict):
+                raise ValueError("rows entries must be objects")
+            row = dict(cast(dict[str, object], raw_row))
+            row_index = row.get("row_index")
+            if not isinstance(row_index, int) or isinstance(row_index, bool):
+                raise ValueError("rows entries require row_index")
+            rows.append(row)
+        if row_indexes and [int(row["row_index"]) for row in rows] != row_indexes:
+            raise ValueError("rows metadata does not match row_indexes")
+        row_indexes = [int(row["row_index"]) for row in rows]
+    else:
+        rows = [_catalog_listing_row(project_name, row_index) for row_index in row_indexes]
+    if len(row_indexes) < 2:
+        raise ValueError("range context requires at least two selected rows")
+    if len(set(row_indexes)) != len(row_indexes):
+        raise ValueError("range context row_indexes must be unique")
+    return rows
+
+
+def _parse_row_indexes_arg(query: dict[str, list[str]]) -> list[int]:
+    values = query.get("row_indexes") or query.get("row_index") or []
+    indexes: list[int] = []
+    for value in values:
+        for part in str(value).split(","):
+            text = part.strip()
+            if not text:
+                continue
+            try:
+                row_index = int(text)
+            except ValueError as exc:
+                raise ValueError(f"Invalid row index: {text}") from exc
+            if row_index < 0:
+                raise ValueError("row_indexes must be non-negative")
+            indexes.append(row_index)
+    return indexes
 
 
 def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
@@ -1431,6 +1493,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
     if parameters is not None and not isinstance(parameters, dict):
         raise ValueError("parameters must be an object")
     context_kind = context.get("kind")
+    action_payloads: list[tuple[str, dict[str, object]]]
     if context_kind == "review_item":
         review_index = context.get("review_index")
         item = _catalog_review_item(
@@ -1443,6 +1506,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
             action_id,
             cast(dict[str, object] | None, parameters),
         )
+        action_payloads = [(kind, action_payload)]
     elif context_kind in {"row", "element"}:
         row_index = context.get("row_index")
         if not isinstance(row_index, int) or isinstance(row_index, bool):
@@ -1455,25 +1519,43 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
             element_context=element_context,
             parameters=cast(dict[str, object] | None, parameters),
         )
+        action_payloads = [(kind, action_payload)]
+    elif context_kind == "range":
+        raw_row_indexes = context.get("row_indexes")
+        if not isinstance(raw_row_indexes, list):
+            raise ValueError("context.row_indexes is required")
+        row_indexes = [index for index in raw_row_indexes if isinstance(index, int) and not isinstance(index, bool)]
+        if len(row_indexes) != len(raw_row_indexes):
+            raise ValueError("context.row_indexes must contain integers")
+        rows = [_catalog_listing_row(project_name, row_index) for row_index in row_indexes]
+        action_payloads = listing_range_catalog_manual_payload(
+            rows,
+            action_id,
+            parameters=cast(dict[str, object] | None, parameters),
+        )
     else:
         raise ValueError(f"Unsupported catalog execution context: {context_kind}")
     paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     binary_source = resolve_target_binary_source(paths.target_dir)
     if binary_source is None:
         raise ValueError(f"Project {project_name} has no source binary")
-    validate_manual_action_payload(action_payload)
-    action = append_manual_action(
-        paths.target_dir,
-        kind=manual_action_kind(kind),
-        payload=action_payload,
-        binary_source=binary_source,
-    )
-    if manual_action_kind(kind) is not ManualActionKind.RESOLVE_REVIEW_ITEM:
+    appended_actions: list[dict[str, object]] = []
+    for kind, action_payload in action_payloads:
+        validate_manual_action_payload(action_payload)
+        appended_actions.append(
+            append_manual_action(
+                paths.target_dir,
+                kind=manual_action_kind(kind),
+                payload=action_payload,
+                binary_source=binary_source,
+            )
+        )
+    if any(manual_action_kind(kind) is not ManualActionKind.RESOLVE_REVIEW_ITEM for kind, _ in action_payloads):
         _cancel_listing_jobs(project_name)
         _cancel_reproduction_jobs(project_name)
         _clear_project_listing_cache(project_name)
     mark_project_updated(paths.target_dir)
-    return {"action": action}
+    return {"action": appended_actions[0], "actions": appended_actions}
 
 
 def _query_element_selector(query: dict[str, list[str]]) -> dict[str, object]:

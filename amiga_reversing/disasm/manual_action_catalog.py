@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from functools import lru_cache
 from pathlib import Path
 from typing import cast
@@ -263,6 +263,100 @@ def listing_element_action_catalog(
     return actions
 
 
+def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    context = listing_range_context(rows)
+    return [
+        _range_seed_action("range.seed.code", "Seed code", context, rows, {"seed_kind": "code"}, _row_allows_code_seed),
+        _range_seed_action(
+            "range.seed.data.raw",
+            "Raw block",
+            context,
+            rows,
+            {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
+            _row_allows_data_seed,
+        ),
+        _range_seed_action(
+            "range.seed.data.byte",
+            "Byte data",
+            context,
+            rows,
+            {"seed_kind": "data", "unit": "byte"},
+            _row_allows_data_seed,
+        ),
+        _range_seed_action(
+            "range.seed.data.word",
+            "Word data",
+            context,
+            rows,
+            {"seed_kind": "data", "unit": "word"},
+            _row_allows_data_seed,
+        ),
+        _range_seed_action(
+            "range.seed.data.string",
+            "String",
+            context,
+            rows,
+            {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+            _row_allows_data_seed,
+        ),
+        _range_unavailable_action(
+            "range.semantic.helpers",
+            "Semantic helpers",
+            context,
+            "Element-level semantic helpers require one selected operand.",
+        ),
+    ]
+
+
+def listing_range_context(rows: list[Mapping[str, object]]) -> dict[str, object]:
+    row_contexts = [listing_row_context(row) for row in rows]
+    row_indexes = [context["row_index"] for context in row_contexts if isinstance(context.get("row_index"), int)]
+    row_ids = [str(row.get("row_id")) for row in rows if isinstance(row.get("row_id"), str) and row.get("row_id")]
+    context: dict[str, object] = {
+        "kind": "range",
+        "row_indexes": row_indexes,
+        "row_ids": row_ids,
+        "rows": row_contexts,
+    }
+    if row_indexes:
+        context["range_start_row_index"] = min(row_indexes)
+        context["range_end_row_index"] = max(row_indexes)
+    return context
+
+
+def listing_range_catalog_manual_payload(
+    rows: list[Mapping[str, object]],
+    action_id: str,
+    *,
+    parameters: Mapping[str, object] | None = None,
+) -> list[tuple[str, dict[str, object]]]:
+    action = _catalog_action(listing_range_action_catalog(rows), action_id)
+    if action.get("appends_to_manual_action_log") is not True:
+        raise ValueError(f"Catalog action does not append to Manual Action Log: {action_id}")
+    if action.get("range_availability") == "unavailable":
+        raise ValueError(str(action.get("availability_reason") or "Range action is unavailable"))
+    params = dict(_object(action.get("parameters"), "catalog action parameters"))
+    if parameters:
+        params.update(parameters)
+    subranges = action.get("applicable_subranges")
+    if not isinstance(subranges, list) or not subranges:
+        raise ValueError("Range action has no explicit applicable subranges")
+    results: list[tuple[str, dict[str, object]]] = []
+    rows_by_index = {_optional_int(row.get("row_index")): row for row in rows}
+    for raw_subrange in subranges:
+        if not isinstance(raw_subrange, Mapping):
+            continue
+        row_indexes = [
+            value for value in raw_subrange.get("row_indexes", []) if isinstance(value, int) and not isinstance(value, bool)
+        ]
+        subrange_rows = [rows_by_index[index] for index in row_indexes if index in rows_by_index]
+        if subrange_rows:
+            results.append(("create_manual_seed", {"seed": _range_seed_payload(subrange_rows, params)}))
+    if not results:
+        raise ValueError("Range action has no available selected rows")
+    return results
+
+
 def catalog_entry_by_id(item: Mapping[str, object], action_id: str) -> dict[str, object]:
     for action in review_item_action_catalog(item):
         if action.get("action_id") == action_id:
@@ -395,6 +489,41 @@ def _row_seed_payload(row: Mapping[str, object], params: Mapping[str, object]) -
         "addr": addr,
     }
     end = _optional_int(row.get("end_offset"))
+    if end is not None and end > addr:
+        seed["end"] = end
+    if seed_kind == "data":
+        data_role = params.get("data_role")
+        unit = params.get("unit")
+        if isinstance(data_role, str) and data_role:
+            seed["data_role"] = data_role
+        if isinstance(unit, str) and unit:
+            seed["unit"] = unit
+        encoding = params.get("encoding")
+        if isinstance(encoding, str) and encoding:
+            seed["encoding"] = encoding
+    return seed
+
+
+def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
+    first = rows[0]
+    last = rows[-1]
+    addr = _int_field(first, "start_offset", fallback="addr")
+    seed_kind = str(params.get("seed_kind") or "data")
+    seed: dict[str, object] = {
+        "seed_id": f"catalog-{uuid.uuid4().hex}",
+        "kind": seed_kind,
+        "mode": "required",
+        "hunk": _int_field(first, "section_index", default=0),
+        "addr": addr,
+        "row_indexes": [
+            index for row in rows if (index := _optional_int(row.get("row_index"))) is not None
+        ],
+    }
+    end = _optional_int(last.get("end_offset"))
+    if end is None:
+        end = _optional_int(last.get("start_offset"))
+    if end is None:
+        end = _optional_int(last.get("addr"))
     if end is not None and end > addr:
         seed["end"] = end
     if seed_kind == "data":
@@ -821,6 +950,102 @@ def _context_log_action(
     parameter_schema: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     return _context_entry(action_id, label, ui_action, context, True, parameters, None, parameter_schema)
+
+
+def _range_seed_action(
+    action_id: str,
+    label: str,
+    context: Mapping[str, object],
+    rows: list[Mapping[str, object]],
+    parameters: Mapping[str, object],
+    predicate: Callable[[Mapping[str, object]], bool],
+) -> dict[str, object]:
+    eligible = [row for row in rows if predicate(row)]
+    action = _context_log_action(action_id, label, "create_manual_seed", context, parameters)
+    subranges = _contiguous_subranges(eligible)
+    if len(eligible) == len(rows):
+        action["range_availability"] = "applicable"
+        action["availability_reason"] = f"Applies to all {len(rows)} selected rows."
+    elif eligible:
+        action["range_availability"] = "partial"
+        action["availability_reason"] = f"Applies to {len(eligible)} of {len(rows)} selected rows."
+    else:
+        action["range_availability"] = "unavailable"
+        action["availability_reason"] = "No selected rows match this action."
+        action["enabled"] = False
+    action["applicable_subranges"] = subranges
+    action["row_reasons"] = _row_eligibility_reasons(rows, eligible)
+    return action
+
+
+def _range_unavailable_action(
+    action_id: str,
+    label: str,
+    context: Mapping[str, object],
+    reason: str,
+) -> dict[str, object]:
+    action = _context_transient(action_id, label, "unavailable_range_action", context, None)
+    action["enabled"] = False
+    action["range_availability"] = "unavailable"
+    action["availability_reason"] = reason
+    action["applicable_subranges"] = []
+    return action
+
+
+def _row_allows_data_seed(row: Mapping[str, object]) -> bool:
+    return str(row.get("kind") or "") == "data"
+
+
+def _row_allows_code_seed(row: Mapping[str, object]) -> bool:
+    return str(row.get("kind") or "") in {"instruction", "label"}
+
+
+def _contiguous_subranges(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    subranges: list[dict[str, object]] = []
+    current: list[Mapping[str, object]] = []
+    previous_index: int | None = None
+    for row in rows:
+        row_index = _optional_int(row.get("row_index"))
+        if row_index is None:
+            continue
+        if previous_index is None or row_index == previous_index + 1:
+            current.append(row)
+        else:
+            subranges.append(_subrange_payload(current))
+            current = [row]
+        previous_index = row_index
+    if current:
+        subranges.append(_subrange_payload(current))
+    return subranges
+
+
+def _subrange_payload(rows: list[Mapping[str, object]]) -> dict[str, object]:
+    return {
+        "row_indexes": [index for row in rows if (index := _optional_int(row.get("row_index"))) is not None],
+        "row_ids": [str(row.get("row_id")) for row in rows if isinstance(row.get("row_id"), str) and row.get("row_id")],
+        "start_offset": _optional_int(rows[0].get("start_offset")),
+        "end_offset": _optional_int(rows[-1].get("end_offset")),
+    }
+
+
+def _row_eligibility_reasons(
+    rows: list[Mapping[str, object]],
+    eligible_rows: list[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    eligible_ids = {id(row) for row in eligible_rows}
+    reasons: list[dict[str, object]] = []
+    for row in rows:
+        applicable = id(row) in eligible_ids
+        row_index = _optional_int(row.get("row_index"))
+        reasons.append(
+            {
+                "row_index": row_index,
+                "row_id": row.get("row_id"),
+                "applicable": applicable,
+                "reason": "Selected row matches." if applicable else f"Row kind {row.get('kind') or 'unknown'} is not applicable.",
+            }
+        )
+    return reasons
 
 
 def _context_entry(

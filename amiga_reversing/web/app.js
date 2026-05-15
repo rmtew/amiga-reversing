@@ -1383,6 +1383,17 @@ function visibleCommandPaletteActions() {
     .filter((action) => commandPaletteMatches(action, state.commandPalette.query));
 }
 
+function commandPaletteRangeAvailabilityRank(action) {
+  const availability = action?.range_availability || "applicable";
+  if (availability === "applicable") {
+    return 0;
+  }
+  if (availability === "partial") {
+    return 1;
+  }
+  return 2;
+}
+
 function clampCommandPaletteSelection(actions) {
   if (!actions.length) {
     state.commandPalette.selectedIndex = 0;
@@ -1426,8 +1437,8 @@ function renderCommandPalette() {
           ${state.commandPalette.loading ? '<div class="command-palette-empty">Loading</div>' : ""}
           ${!state.commandPalette.loading && !actions.length ? '<div class="command-palette-empty">No commands</div>' : ""}
           ${actions.map((action, index) => `
-            <button type="button" class="command-palette-item${index === selectedIndex ? " selected" : ""}" data-command-palette-action="${escapeHtml(action.action_id)}" data-command-palette-index="${index}" aria-selected="${index === selectedIndex ? "true" : "false"}">
-              <span>${escapeHtml(action.label || action.action_id)}</span>
+            <button type="button" class="command-palette-item${index === selectedIndex ? " selected" : ""}${action.enabled === false ? " disabled" : ""}" data-command-palette-action="${escapeHtml(action.action_id)}" data-command-palette-index="${index}" aria-selected="${index === selectedIndex ? "true" : "false"}"${action.enabled === false ? " disabled" : ""}>
+              <span>${escapeHtml(action.label || action.action_id)}${action.availability_reason ? `<small>${escapeHtml(action.availability_reason)}</small>` : ""}</span>
               ${action.default_key_binding ? `<kbd>${escapeHtml(action.default_key_binding)}</kbd>` : ""}
             </button>
           `).join("")}
@@ -1607,10 +1618,15 @@ async function openCommandPalette() {
     catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=target`));
     const rowIndex = currentListingSelectionRowIndex();
     if (Number.isFinite(rowIndex)) {
-      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
-      const elementQuery = commandPaletteElementQuery(state.listingSelection);
-      if (elementQuery) {
-        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
+      const rangeQuery = commandPaletteRangeQuery(state.listingSelection);
+      if (rangeQuery) {
+        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${rangeQuery}`));
+      } else {
+        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
+        const elementQuery = commandPaletteElementQuery(state.listingSelection);
+        if (elementQuery) {
+          catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
+        }
       }
     }
     const actionMap = new Map();
@@ -1625,7 +1641,11 @@ async function openCommandPalette() {
         }
       });
     });
-    state.commandPalette.actions = Array.from(actionMap.values());
+    state.commandPalette.actions = Array.from(actionMap.values()).sort((left, right) => (
+      Number(left.palette_context_rank || 0) - Number(right.palette_context_rank || 0)
+      || commandPaletteRangeAvailabilityRank(left) - commandPaletteRangeAvailabilityRank(right)
+      || Number(left.palette_catalog_index || 0) - Number(right.palette_catalog_index || 0)
+    ));
   } finally {
     state.commandPalette.loading = false;
     renderCommandPalette();
@@ -1664,7 +1684,7 @@ function commandPaletteElementQuery(selection) {
 }
 
 function currentListingSelectionRowIndex(selection = state.listingSelection) {
-  const rowIndex = Number(selection?.rowIndex);
+  const rowIndex = Number(selection?.focusRowIndex ?? selection?.rowIndex);
   if (Number.isFinite(rowIndex)) {
     return rowIndex;
   }
@@ -1703,6 +1723,9 @@ function closeCommandPalette() {
 }
 
 async function executeCommandPaletteAction(action) {
+  if (action?.enabled === false) {
+    return;
+  }
   const command = String(action?.action || "");
   if (actionNeedsParameterEditor(action)) {
     openCommandParameterEditor(action);
@@ -4787,6 +4810,10 @@ function listingRowIsSelected(row, globalIndex) {
   if (!selection) {
     return false;
   }
+  const bounds = listingSelectionRangeBounds(selection);
+  if (bounds && globalIndex >= bounds.start && globalIndex <= bounds.end) {
+    return true;
+  }
   if (selection.stableKey && row.stable_key && selection.stableKey === row.stable_key) {
     return true;
   }
@@ -7177,6 +7204,14 @@ function listingSelectionFromRow(row) {
     : null;
   return {
     rowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    focusRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    anchorRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    rangeStartRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    rangeEndRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    focusStableKey: row.dataset.rowStableKey || null,
+    anchorStableKey: row.dataset.rowStableKey || null,
+    rangeStartStableKey: row.dataset.rowStableKey || null,
+    rangeEndStableKey: row.dataset.rowStableKey || null,
     stableKey: row.dataset.rowStableKey || null,
     addr: Number.isFinite(addr) ? addr : null,
     sectionIndex: Number.isInteger(sectionIndex) ? sectionIndex : null,
@@ -7187,6 +7222,66 @@ function listingSelectionFromRow(row) {
     elementSelector: null,
     precisionLost: false,
   };
+}
+
+function listingSelectionRangeBounds(selection = state.listingSelection) {
+  const start = Number(selection?.rangeStartRowIndex);
+  const end = Number(selection?.rangeEndRowIndex);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return null;
+  }
+  return {start: Math.min(start, end), end: Math.max(start, end)};
+}
+
+function listingSelectionIsRange(selection = state.listingSelection) {
+  const bounds = listingSelectionRangeBounds(selection);
+  return Boolean(bounds && bounds.end > bounds.start);
+}
+
+function selectedListingRangeRows(selection = state.listingSelection) {
+  const bounds = listingSelectionRangeBounds(selection);
+  if (!bounds) {
+    return [];
+  }
+  const rows = [];
+  for (let index = bounds.start; index <= bounds.end; index += 1) {
+    const row = listingRowDataForSelection({rowIndex: index});
+    if (!row) {
+      return [];
+    }
+    rows.push({...row, row_index: index});
+  }
+  return rows;
+}
+
+function commandPaletteRangeQuery(selection = state.listingSelection) {
+  if (!listingSelectionIsRange(selection)) {
+    return null;
+  }
+  const rows = selectedListingRangeRows(selection);
+  if (rows.length < 2) {
+    return null;
+  }
+  const params = new URLSearchParams();
+  params.set("context", "range");
+  params.set("row_indexes", rows.map((row) => String(row.row_index)).join(","));
+  params.set("rows", JSON.stringify(rows.map((row) => ({
+    row_index: row.row_index,
+    row_id: row.row_id || null,
+    stable_key: row.stable_key || null,
+    kind: row.kind || null,
+    addr: row.addr ?? null,
+    section_index: row.section_index ?? null,
+    start_offset: row.start_offset ?? null,
+    end_offset: row.end_offset ?? null,
+    bytes: row.bytes || null,
+    label: row.label || null,
+    opcode_or_directive: row.opcode_or_directive || null,
+    data_class: row.data_class || null,
+    structured_data: row.structured_data || null,
+    comment_text: row.comment_text || "",
+  }))));
+  return params.toString();
 }
 
 function rowMatchesSelectionAddress(row, selection) {
@@ -7255,22 +7350,80 @@ function renderedRowForListingSelection(viewport, selection) {
   return {row: null, precise: false};
 }
 
+function renderedRowIndexForStableKey(viewport, stableKey) {
+  if (!(viewport instanceof HTMLElement) || !stableKey) {
+    return null;
+  }
+  const row = viewport.querySelector(`[data-row-stable-key="${CSS.escape(stableKey)}"]`);
+  if (!(row instanceof HTMLElement)) {
+    return null;
+  }
+  const rowIndex = Number(row.dataset.rowIndex);
+  return Number.isFinite(rowIndex) ? rowIndex : null;
+}
+
+function resolveRenderedListingRangeSelection(viewport, selection) {
+  if (!(viewport instanceof HTMLElement) || !selection) {
+    return selection;
+  }
+  const replacements = {};
+  [
+    ["focusRowIndex", "focusStableKey"],
+    ["anchorRowIndex", "anchorStableKey"],
+    ["rangeStartRowIndex", "rangeStartStableKey"],
+    ["rangeEndRowIndex", "rangeEndStableKey"],
+  ].forEach(([indexKey, stableKey]) => {
+    const resolved = renderedRowIndexForStableKey(viewport, selection[stableKey]);
+    if (Number.isFinite(resolved) && resolved !== selection[indexKey]) {
+      replacements[indexKey] = resolved;
+    }
+  });
+  if (!Object.keys(replacements).length) {
+    return selection;
+  }
+  return {
+    ...selection,
+    ...replacements,
+    rowIndex: Number.isFinite(Number(replacements.focusRowIndex)) ? replacements.focusRowIndex : selection.rowIndex,
+  };
+}
+
 function applyRenderedListingSelection() {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement)) {
     return;
   }
-  viewport.querySelectorAll(".listing-row-selected").forEach((row) => {
+  viewport.querySelectorAll(".listing-row-selected, .listing-row-range-focus").forEach((row) => {
     row.classList.remove("listing-row-selected");
+    row.classList.remove("listing-row-range-focus");
   });
   const selection = state.listingSelection;
   if (!selection) {
     return;
   }
-  const {row, precise} = renderedRowForListingSelection(viewport, selection);
+  state.listingSelection = resolveRenderedListingRangeSelection(viewport, selection);
+  const resolvedSelection = state.listingSelection;
+  const bounds = listingSelectionRangeBounds(resolvedSelection);
+  if (bounds && listingSelectionIsRange(resolvedSelection)) {
+    const focusIndex = Number.isFinite(Number(resolvedSelection.focusRowIndex)) ? Number(resolvedSelection.focusRowIndex) : Number(resolvedSelection.rowIndex);
+    viewport.querySelectorAll(".listing-row").forEach((candidate) => {
+      if (!(candidate instanceof HTMLElement)) {
+        return;
+      }
+      const rowIndex = Number(candidate.dataset.rowIndex);
+      if (Number.isFinite(rowIndex) && rowIndex >= bounds.start && rowIndex <= bounds.end) {
+        candidate.classList.add("listing-row-selected");
+      }
+      if (Number.isFinite(rowIndex) && rowIndex === focusIndex) {
+        candidate.classList.add("listing-row-range-focus");
+      }
+    });
+    return;
+  }
+  const {row, precise} = renderedRowForListingSelection(viewport, resolvedSelection);
   if (row instanceof HTMLElement) {
     row.classList.add("listing-row-selected");
-    if (!precise && !selection.precisionLost) {
+    if (!precise && !resolvedSelection.precisionLost) {
       state.listingSelection = {
         ...listingSelectionFromRow(row),
         precisionLost: true,
@@ -7339,7 +7492,15 @@ function listingElementSelector(element, row = null) {
 function setListingSelectionIndex(rowIndex) {
   state.listingSelection = {
     rowIndex,
+    focusRowIndex: rowIndex,
+    anchorRowIndex: rowIndex,
+    rangeStartRowIndex: rowIndex,
+    rangeEndRowIndex: rowIndex,
     stableKey: null,
+    focusStableKey: null,
+    anchorStableKey: null,
+    rangeStartStableKey: null,
+    rangeEndStableKey: null,
     addr: null,
     sectionIndex: null,
     startOffset: null,
@@ -7347,6 +7508,35 @@ function setListingSelectionIndex(rowIndex) {
     precisionLost: true,
   };
   applyRenderedListingSelection();
+}
+
+function extendListingSelectionToRow(row, targetIndex) {
+  const target = listingSelectionFromRow(row) || {rowIndex: targetIndex, stableKey: null};
+  const current = state.listingSelection || {};
+  const anchor = Number.isFinite(Number(current.anchorRowIndex))
+    ? Number(current.anchorRowIndex)
+    : Number(current.rowIndex);
+  const anchorIndex = Number.isFinite(anchor) ? anchor : targetIndex;
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
+  state.listingSelection = {
+    ...target,
+    rowIndex: targetIndex,
+    focusRowIndex: targetIndex,
+    anchorRowIndex: anchorIndex,
+    rangeStartRowIndex: start,
+    rangeEndRowIndex: end,
+    focusStableKey: target.stableKey || null,
+    anchorStableKey: current.anchorStableKey || current.stableKey || null,
+    rangeStartStableKey: start === targetIndex ? target.stableKey || null : current.anchorStableKey || current.stableKey || null,
+    rangeEndStableKey: end === targetIndex ? target.stableKey || null : current.anchorStableKey || current.stableKey || null,
+    elementKind: null,
+    elementText: "",
+    elementSelector: null,
+  };
+  applyRenderedListingSelection();
+  dispatchAppEvent("amiga:listing-row-selected", state.listingSelection);
+  scheduleUiPreferenceSave();
 }
 
 function bindListingSelection() {
@@ -7369,12 +7559,12 @@ function bindListingSelection() {
   });
 }
 
-async function moveListingSelection(delta) {
+async function moveListingSelection(delta, extend = false) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !state.project) {
     return false;
   }
-  let currentIndex = Number(state.listingSelection?.rowIndex);
+  let currentIndex = Number(extend ? state.listingSelection?.focusRowIndex : state.listingSelection?.rowIndex);
   if (!Number.isFinite(currentIndex)) {
     const firstRow = viewport.querySelector(".listing-row");
     currentIndex = firstRow instanceof HTMLElement ? Number(firstRow.dataset.rowIndex) : 0;
@@ -7384,7 +7574,9 @@ async function moveListingSelection(delta) {
   }
   const maxIndex = Math.max(0, (state.virtualListing.totalRows || 1) - 1);
   const targetIndex = Math.max(0, Math.min(maxIndex, Math.floor(currentIndex) + delta));
-  setListingSelectionIndex(targetIndex);
+  if (!extend) {
+    setListingSelectionIndex(targetIndex);
+  }
   let row = viewport.querySelector(`[data-row-index="${String(targetIndex)}"]`);
   if (!(row instanceof HTMLElement)) {
     const visibleRows = listingVisibleRowCount(viewport);
@@ -7394,7 +7586,11 @@ async function moveListingSelection(delta) {
     row = viewport.querySelector(`[data-row-index="${String(targetIndex)}"]`);
   }
   if (row instanceof HTMLElement) {
-    setListingSelectionFromRow(row);
+    if (extend) {
+      extendListingSelectionToRow(row, targetIndex);
+    } else {
+      setListingSelectionFromRow(row);
+    }
     row.scrollIntoView({block: "nearest", behavior: "auto"});
     return true;
   }
@@ -9019,11 +9215,10 @@ document.addEventListener("keydown", (event) => {
     && !event.altKey
     && !event.ctrlKey
     && !event.metaKey
-    && !event.shiftKey
     && (event.key === "ArrowDown" || event.key === "ArrowUp")
   ) {
     event.preventDefault();
-    void moveListingSelection(event.key === "ArrowDown" ? 1 : -1);
+    void moveListingSelection(event.key === "ArrowDown" ? 1 : -1, event.shiftKey);
     return;
   }
   const listingScrollDirection = listingScrollDirectionForKey(event);
