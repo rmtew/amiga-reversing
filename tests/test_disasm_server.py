@@ -21,7 +21,7 @@ from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
-from amiga_reversing.disasm.manual_actions import ReviewState
+from amiga_reversing.disasm.manual_actions import ReviewItemKind, ReviewItemState, ReviewState
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import (
@@ -1062,9 +1062,9 @@ def test_route_project_reproduction_and_listing_include_review_warnings(
         review_state=ReviewState.BLOCKED,
         review_items=(
             {
-                "kind": "manual_action_log_target_mismatch",
+                "kind": ReviewItemKind.MANUAL_ACTION_LOG_TARGET_MISMATCH,
                 "item_id": "manual_action_log_target_mismatch:target",
-                "state": "open",
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "message": "Manual Action Log target identity does not match current target",
             },

@@ -92,30 +92,11 @@ class ManualLabelScope(StrEnum):
     LOCAL = "local"
 
 
-def review_item_state(value: object) -> ReviewItemState | None:
-    if isinstance(value, ReviewItemState):
-        return value
-    if not isinstance(value, str):
-        return None
-    try:
-        return ReviewItemState(value)
-    except ValueError:
-        return None
-
-
 def review_item_is_open(item: dict[str, object]) -> bool:
-    return review_item_state(item.get("state")) is ReviewItemState.OPEN
-
-
-def review_item_kind(value: object) -> ReviewItemKind | None:
-    if isinstance(value, ReviewItemKind):
-        return value
-    if not isinstance(value, str):
-        return None
-    try:
-        return ReviewItemKind(value)
-    except ValueError:
-        return None
+    state = item.get("state")
+    if not isinstance(state, ReviewItemState):
+        raise TypeError("review item state must be a ReviewItemState")
+    return state is ReviewItemState.OPEN
 
 
 def _manual_seed_kind_from_json(value: object) -> ManualSeedKind | None:
@@ -352,7 +333,9 @@ def _review_item_fingerprint(item: dict[str, object]) -> str:
 
 
 def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]]:
-    kind = review_item_kind(item.get("kind"))
+    kind = item.get("kind")
+    if not isinstance(kind, ReviewItemKind):
+        raise TypeError("review item kind must be a ReviewItemKind")
     if kind is ReviewItemKind.MANUAL_SEED_CONFLICT:
         return [
             {

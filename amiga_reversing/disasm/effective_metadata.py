@@ -19,7 +19,6 @@ from amiga_reversing.disasm.manual_actions import (
     ManualSeedMode,
     ReviewItemKind,
     load_manual_projection,
-    review_item_kind,
 )
 from amiga_reversing.disasm.target_metadata import (
     EntryCommentMetadata,
@@ -229,7 +228,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     conflicted_seed_ids: set[str] = set()
     conflicted_label_ids: set[str] = set()
     for item in projection.review_items:
-        kind = review_item_kind(item.get("kind"))
+        kind = item.get("kind")
+        if not isinstance(kind, ReviewItemKind):
+            raise TypeError("review item kind must be a ReviewItemKind")
         if kind is ReviewItemKind.MANUAL_SEED_CONFLICT:
             seed_ids = item.get("seed_ids")
             if isinstance(seed_ids, list | tuple):

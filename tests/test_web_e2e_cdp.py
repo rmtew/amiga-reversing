@@ -20,7 +20,12 @@ from amiga_reversing.amiga_disk.project import import_disk_entry_target
 from amiga_reversing.disasm import projects as project_store
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.manual_actions import ReviewState
+from amiga_reversing.disasm.manual_actions import (
+    ReviewItemKind,
+    ReviewItemScope,
+    ReviewItemState,
+    ReviewState,
+)
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from tests.cdp_brave import brave_cdp_requested, brave_cdp_skip_reason, brave_page
 from tests.listing_row_fixtures import serialize_row
@@ -595,10 +600,10 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         review_state=ReviewState.BLOCKED,
         review_items=(
             {
-                "kind": "label_scope_conflict",
+                "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                 "item_id": "label_scope_conflict:demo",
-                "scope": "range",
-                "state": "open",
+                "scope": ReviewItemScope.RANGE,
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "review_confidence": "high",
                 "hunk": 0,
@@ -608,10 +613,10 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
                 "suggested_actions": [{"action": "rename_manual_label"}],
             },
             {
-                "kind": "unreconciled_data_range",
+                "kind": ReviewItemKind.UNRECONCILED_DATA_RANGE,
                 "item_id": "unreconciled:h0:00000004-00000008",
-                "scope": "range",
-                "state": "resolved",
+                "scope": ReviewItemScope.RANGE,
+                "state": ReviewItemState.RESOLVED,
                 "review_confidence": "medium",
                 "source": "analysis",
                 "hunk": 0,
@@ -799,10 +804,10 @@ def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: py
         review_state=ReviewState.BLOCKED,
         review_items=(
             {
-                "kind": "unreconciled_data_range",
+                "kind": ReviewItemKind.UNRECONCILED_DATA_RANGE,
                 "item_id": "unreconciled_data_range:h1:$000000c4:$000000ce",
-                "scope": "range",
-                "state": "open",
+                "scope": ReviewItemScope.RANGE,
+                "state": ReviewItemState.OPEN,
                 "review_confidence": "low",
                 "hunk": 1,
                 "start": 0xC4,
@@ -810,10 +815,10 @@ def test_brave_cdp_review_navigation_back_refills_listing_window(monkeypatch: py
                 "message": "Range has no accepted code, data, metadata, policy, or manual seed evidence",
             },
             {
-                "kind": "decompression_blocker",
+                "kind": ReviewItemKind.DECOMPRESSION_BLOCKER,
                 "item_id": "decompression_blocker:h2:$0000014c",
-                "scope": "range",
-                "state": "open",
+                "scope": ReviewItemScope.RANGE,
+                "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "review_confidence": "high",
                 "hunk": 2,
