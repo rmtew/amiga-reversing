@@ -14,6 +14,7 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
+    ReviewItemScope,
     ReviewItemState,
     ReviewState,
     finalize_review_items,
@@ -277,7 +278,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
         return finalize_review_items((
             {
                 "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
-                "scope": "target",
+                "scope": ReviewItemScope.TARGET,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "message": f"Reproduction report cannot be checked: {exc}",
@@ -288,7 +289,7 @@ def _reproduction_review_items(target_dir: Path) -> tuple[dict[str, object], ...
         return finalize_review_items((
             {
                 "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
-                "scope": "target",
+                "scope": ReviewItemScope.TARGET,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "message": "Reproduction report cannot be checked",
@@ -329,7 +330,11 @@ def _decompression_review_items(analysis_cache_path: Path | None) -> tuple[dict[
             {
                 "kind": ReviewItemKind.DECOMPRESSION_BLOCKER,
                 "item_id": f"decompression_blocker:{event_id}",
-                "scope": "range" if isinstance(source_section, int) and isinstance(source_offset, int) else "target",
+                "scope": (
+                    ReviewItemScope.RANGE
+                    if isinstance(source_section, int) and isinstance(source_offset, int)
+                    else ReviewItemScope.TARGET
+                ),
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "source": "decompression",
@@ -353,7 +358,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
         return [
             {
                 "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
-                "scope": "target",
+                "scope": ReviewItemScope.TARGET,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "status": status,
@@ -369,7 +374,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
         return [
             {
                 "kind": ReviewItemKind.REPRODUCTION_MISMATCH,
-                "scope": "target",
+                "scope": ReviewItemScope.TARGET,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "status": status,
@@ -390,7 +395,7 @@ def _raw_reproduction_review_items(report: dict[str, object]) -> list[dict[str, 
     return [
         {
             "kind": kind,
-            "scope": "target",
+            "scope": ReviewItemScope.TARGET,
             "state": ReviewItemState.OPEN,
             "review_blocker": False,
             "status": status,

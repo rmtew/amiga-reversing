@@ -57,6 +57,27 @@ class ReviewItemKind(StrEnum):
     DECOMPRESSION_BLOCKER = "decompression_blocker"
 
 
+class ReviewItemScope(StrEnum):
+    TARGET = "target"
+    RANGE = "range"
+
+
+class SuggestedReviewActionKind(StrEnum):
+    ACKNOWLEDGE = "acknowledge"
+    CHANGE_LABEL_SCOPE = "change_label_scope"
+    CREATE_MANUAL_SEED = "create_manual_seed"
+    EDIT_MANUAL_SEED = "edit_manual_seed"
+    NAVIGATE = "navigate"
+    OPEN_REPRODUCTION_REPORT = "open_reproduction_report"
+    REMOVE_MANUAL_ANNOTATION = "remove_manual_annotation"
+    REMOVE_MANUAL_LABEL = "remove_manual_label"
+    RENAME_MANUAL_LABEL = "rename_manual_label"
+    REPAIR_MANUAL_ACTION_LOG = "repair_manual_action_log"
+    RERUN_ROUND_TRIP_VERIFICATION = "rerun_round_trip_verification"
+    RESOLVE_AS_DATA_OR_PADDING = "resolve_as_data_or_padding"
+    RESOLVE_AS_OPAQUE_DATA = "resolve_as_opaque_data"
+
+
 class ManualSeedKind(StrEnum):
     CODE = "code"
     DATA = "data"
@@ -316,7 +337,7 @@ def _review_item_id(item: dict[str, object]) -> str:
         return existing
     kind = item.get("kind")
     scope = item.get("scope")
-    if scope == "range":
+    if scope == ReviewItemScope.RANGE:
         hunk = item.get("hunk")
         start = item.get("start")
         end = item.get("end")
@@ -341,44 +362,88 @@ def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]
     kind = review_item_kind(item.get("kind"))
     if kind is ReviewItemKind.MANUAL_SEED_CONFLICT:
         return [
-            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
-            {"action": "edit_manual_seed", "seed_ids": item.get("seed_ids")},
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
+            {"action": SuggestedReviewActionKind.EDIT_MANUAL_SEED, "seed_ids": item.get("seed_ids")},
         ]
     if kind in {
         ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY,
         ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED,
         ReviewItemKind.MANUAL_ACTION_LOG_TARGET_MISMATCH,
     }:
-        return [{"action": "repair_manual_action_log"}]
+        return [{"action": SuggestedReviewActionKind.REPAIR_MANUAL_ACTION_LOG}]
     if kind in {ReviewItemKind.REPRODUCTION_MISMATCH, ReviewItemKind.UNSUPPORTED_CONTAINER_SHAPE}:
-        return [{"action": "open_reproduction_report"}, {"action": "rerun_round_trip_verification"}]
+        return [
+            {"action": SuggestedReviewActionKind.OPEN_REPRODUCTION_REPORT},
+            {"action": SuggestedReviewActionKind.RERUN_ROUND_TRIP_VERIFICATION},
+        ]
     if kind is ReviewItemKind.ORPHAN_CODE_CANDIDATE:
         return [
-            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
-            {"action": "create_manual_seed", "seed_kind": "code", "mode": "required"},
-            {"action": "resolve_as_data_or_padding"},
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
+            {
+                "action": SuggestedReviewActionKind.CREATE_MANUAL_SEED,
+                "seed_kind": ManualSeedKind.CODE,
+                "mode": ManualSeedMode.REQUIRED,
+            },
+            {"action": SuggestedReviewActionKind.RESOLVE_AS_DATA_OR_PADDING},
         ]
     if kind is ReviewItemKind.UNRECONCILED_DATA_RANGE:
         return [
-            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
-            {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
-            {"action": "resolve_as_opaque_data"},
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
+            {
+                "action": SuggestedReviewActionKind.CREATE_MANUAL_SEED,
+                "seed_kind": ManualSeedKind.DATA,
+                "mode": ManualSeedMode.REQUIRED,
+            },
+            {"action": SuggestedReviewActionKind.RESOLVE_AS_OPAQUE_DATA},
         ]
     if kind is ReviewItemKind.SUSPICIOUS_INSTRUCTION_DECODE:
         return [
-            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
-            {"action": "create_manual_seed", "seed_kind": "data", "mode": "required"},
-            {"action": "acknowledge"},
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
+            {
+                "action": SuggestedReviewActionKind.CREATE_MANUAL_SEED,
+                "seed_kind": ManualSeedKind.DATA,
+                "mode": ManualSeedMode.REQUIRED,
+            },
+            {"action": SuggestedReviewActionKind.ACKNOWLEDGE},
         ]
     if kind in {ReviewItemKind.MANUAL_LABEL_UNRECONCILED, ReviewItemKind.MANUAL_COMMENT_UNRECONCILED}:
         return [
-            {"action": "navigate", "scope": item.get("scope"), "hunk": item.get("hunk"), "addr": item.get("start")},
-            {"action": "create_manual_seed", "mode": "required"},
-            {"action": "remove_manual_annotation"},
-            {"action": "acknowledge"},
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
+            {"action": SuggestedReviewActionKind.CREATE_MANUAL_SEED, "mode": ManualSeedMode.REQUIRED},
+            {"action": SuggestedReviewActionKind.REMOVE_MANUAL_ANNOTATION},
+            {"action": SuggestedReviewActionKind.ACKNOWLEDGE},
         ]
     if kind is ReviewItemKind.LABEL_SCOPE_CONFLICT:
-        return [{"action": "rename_manual_label"}, {"action": "change_label_scope"}, {"action": "remove_manual_label"}]
+        return [
+            {"action": SuggestedReviewActionKind.RENAME_MANUAL_LABEL},
+            {"action": SuggestedReviewActionKind.CHANGE_LABEL_SCOPE},
+            {"action": SuggestedReviewActionKind.REMOVE_MANUAL_LABEL},
+        ]
     return []
 
 
@@ -439,7 +504,7 @@ def _blocked_projection(
 ) -> ManualActionLogProjection:
     item: dict[str, object] = {
         "kind": kind,
-        "scope": "target",
+        "scope": ReviewItemScope.TARGET,
         "state": ReviewItemState.OPEN,
         "message": message,
     }
@@ -455,7 +520,12 @@ def _blocked_projection(
 
 
 def _needs_review_item(kind: ReviewItemKind, message: str) -> dict[str, object]:
-    return {"kind": kind, "scope": "target", "state": ReviewItemState.OPEN, "message": message}
+    return {
+        "kind": kind,
+        "scope": ReviewItemScope.TARGET,
+        "state": ReviewItemState.OPEN,
+        "message": message,
+    }
 
 
 def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
@@ -546,7 +616,7 @@ def _manual_label_conflict_items(
                     {
                         "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:missing-owner",
-                        "scope": "range",
+                        "scope": ReviewItemScope.RANGE,
                         "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
@@ -567,7 +637,7 @@ def _manual_label_conflict_items(
                     {
                         "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:unsupported-local-profile",
-                        "scope": "range",
+                        "scope": ReviewItemScope.RANGE,
                         "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
@@ -586,7 +656,7 @@ def _manual_label_conflict_items(
                     {
                         "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                         "item_id": f"label_scope_conflict:{label_id}:reserved-local-name",
-                        "scope": "range",
+                        "scope": ReviewItemScope.RANGE,
                         "state": ReviewItemState.OPEN,
                         "review_blocker": True,
                         "label_ids": [label_id],
@@ -605,7 +675,7 @@ def _manual_label_conflict_items(
                 {
                     "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                     "item_id": f"label_scope_conflict:{label_id}:metadata-collision",
-                    "scope": "range",
+                    "scope": ReviewItemScope.RANGE,
                     "state": ReviewItemState.OPEN,
                     "review_blocker": False,
                     "label_ids": [label_id],
@@ -629,7 +699,7 @@ def _manual_label_conflict_items(
             {
                 "kind": ReviewItemKind.LABEL_SCOPE_CONFLICT,
                 "item_id": f"label_scope_conflict:{min(previous_id, label_id)}:{max(previous_id, label_id)}",
-                "scope": "range",
+                "scope": ReviewItemScope.RANGE,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "label_ids": [previous_id, label_id],
@@ -668,7 +738,7 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
                 {
                     "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                     "item_id": item_id,
-                    "scope": "range",
+                    "scope": ReviewItemScope.RANGE,
                     "state": ReviewItemState.OPEN,
                     "review_blocker": True,
                     "seed_ids": [left_id, right_id],
@@ -722,7 +792,7 @@ def _manual_seed_metadata_conflict_items(
                 {
                     "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                     "item_id": f"manual_seed_conflict:{seed_id}:{stronger_id}",
-                    "scope": "range",
+                    "scope": ReviewItemScope.RANGE,
                     "state": ReviewItemState.OPEN,
                     "review_blocker": True,
                     "seed_ids": [seed_id],
@@ -762,11 +832,11 @@ def _manual_seed_binary_source_conflict_items(
             {
                 "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
                 "item_id": f"manual_seed_conflict:{seed_id}:{source_id}",
-                "scope": "range",
+                "scope": ReviewItemScope.RANGE,
                 "state": ReviewItemState.OPEN,
                 "review_blocker": True,
                 "seed_ids": [seed_id],
-                "stronger_kind": "code",
+                "stronger_kind": ManualSeedKind.CODE,
                 "stronger_source": source_id,
                 "stronger_name": "entrypoint",
                 "hunk": 0,

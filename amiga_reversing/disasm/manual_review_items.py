@@ -3,6 +3,7 @@ from __future__ import annotations
 from amiga_reversing.disasm.manual_actions import (
     ReviewConfidence,
     ReviewItemKind,
+    ReviewItemScope,
     ReviewItemState,
     finalize_review_items,
 )
@@ -72,7 +73,7 @@ def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, 
         item = {
             "kind": ReviewItemKind.DECOMPRESSION_BLOCKER,
             "item_id": f"decompression_blocker:{event_id}",
-            "scope": "range",
+            "scope": ReviewItemScope.RANGE,
             "state": ReviewItemState.OPEN,
             "review_blocker": True,
             "hunk": hunk,
@@ -110,7 +111,7 @@ def _orphan_code_items(section: dict[str, object], section_index: int) -> list[d
         items.append(
             {
                 "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
-                "scope": "range",
+                "scope": ReviewItemScope.RANGE,
                 "state": ReviewItemState.OPEN,
                 "hunk": section_index,
                 "start": start,
@@ -138,7 +139,7 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
         items.append(
             {
                 "kind": ReviewItemKind.SUSPICIOUS_INSTRUCTION_DECODE,
-                "scope": "range",
+                "scope": ReviewItemScope.RANGE,
                 "state": ReviewItemState.OPEN,
                 "hunk": section_index,
                 "start": start,
@@ -179,7 +180,7 @@ def _unreconciled_data_items(
 def _unreconciled_item(section_index: int, start: int, end: int) -> dict[str, object]:
     return {
         "kind": ReviewItemKind.UNRECONCILED_DATA_RANGE,
-        "scope": "range",
+        "scope": ReviewItemScope.RANGE,
         "state": ReviewItemState.OPEN,
         "hunk": section_index,
         "start": start,
@@ -216,7 +217,7 @@ def _manual_annotation_unreconciled_items(
                 {
                     "kind": item_kind,
                     "item_id": f"{item_kind}:{annotation_id}",
-                    "scope": "range",
+                    "scope": ReviewItemScope.RANGE,
                     "state": ReviewItemState.OPEN,
                     f"{annotation_kind}_id": annotation_id,
                     "hunk": hunk,
