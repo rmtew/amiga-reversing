@@ -94,6 +94,17 @@ class ReproductionRequestedExactness(StrEnum):
     CONTENT = "content"
 
 
+class ReproductionFileShapeOrder(StrEnum):
+    ASSEMBLER_DEFAULT = "assembler_default"
+    MATCH_ORIGINAL = "match_original"
+
+
+class ReproductionRelocationRecord(StrEnum):
+    AUTO = "auto"
+    LONG = "long"
+    SHORT = "short"
+
+
 REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw"}
 REPRODUCTION_ANALYSIS_STAMP = "facts_v2"
 REPRODUCTION_ASSEMBLERS = {"our"}
@@ -1821,9 +1832,9 @@ def _default_reproduction_options() -> dict[str, object]:
         "requested_exactness": ReproductionRequestedExactness.FULL_FILE,
         "requested_exactness_id": 1,
         "file_shape": {
-            "relocation_order": "match_original",
-            "relocation_record": "auto",
-            "section_aux_order": "assembler-default",
+            "relocation_order": ReproductionFileShapeOrder.MATCH_ORIGINAL,
+            "relocation_record": ReproductionRelocationRecord.AUTO,
+            "section_aux_order": ReproductionFileShapeOrder.ASSEMBLER_DEFAULT,
         },
         "raw_output": None,
     }
@@ -1901,18 +1912,30 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
     file_shape_payload = payload.get("file_shape")
     if isinstance(file_shape_payload, dict):
         file_shape = cast(dict[str, object], options["file_shape"])
-        relocation_order = file_shape_payload.get("relocation_order")
-        if relocation_order in {"assembler-default", "match_original"}:
+        relocation_order = _parse_reproduction_enum_field(
+            file_shape_payload, "relocation_order", ReproductionFileShapeOrder
+        )
+        if relocation_order is not None:
             file_shape["relocation_order"] = relocation_order
-            if relocation_order == "assembler-default" and "relocation_policy" not in payload:
+            if (
+                relocation_order is ReproductionFileShapeOrder.ASSEMBLER_DEFAULT
+                and "relocation_policy" not in payload
+            ):
                 options["relocation_policy"] = ReproductionRelocationPolicy.ASSEMBLER_DEFAULT
-            elif relocation_order == "match_original" and "relocation_policy" not in payload:
+            elif (
+                relocation_order is ReproductionFileShapeOrder.MATCH_ORIGINAL
+                and "relocation_policy" not in payload
+            ):
                 options["relocation_policy"] = ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING
-        relocation_record = file_shape_payload.get("relocation_record")
-        if relocation_record in {"auto", "long", "short"}:
+        relocation_record = _parse_reproduction_enum_field(
+            file_shape_payload, "relocation_record", ReproductionRelocationRecord
+        )
+        if relocation_record is not None:
             file_shape["relocation_record"] = relocation_record
-        section_aux_order = file_shape_payload.get("section_aux_order")
-        if section_aux_order in {"assembler-default", "match_original"}:
+        section_aux_order = _parse_reproduction_enum_field(
+            file_shape_payload, "section_aux_order", ReproductionFileShapeOrder
+        )
+        if section_aux_order is not None:
             file_shape["section_aux_order"] = section_aux_order
 
 

@@ -74,7 +74,7 @@
       "file_shape": {
         "relocation_order": "match_original",
         "relocation_record": "auto",
-        "section_aux_order": "assembler-default"
+        "section_aux_order": "assembler_default"
       },
       "include_dirs": "auto",
       "mode": "exact",

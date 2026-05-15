@@ -1452,7 +1452,10 @@ def test_reproduction_options_read_file_shape_policy(tmp_path: Path) -> None:
 
     options = reproduction_options_for_target(target_dir)
 
-    assert cast(dict[str, object], options["file_shape"])["relocation_order"] == "match_original"
+    assert (
+        cast(dict[str, object], options["file_shape"])["relocation_order"]
+        is reproduction.ReproductionFileShapeOrder.MATCH_ORIGINAL
+    )
 
 
 def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> None:
@@ -1468,7 +1471,7 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "oracle_modes": ["vasm", "unknown"],
         "comparison": "full_file",
         "requested_exactness": "content",
-        "file_shape": {"relocation_order": "assembler-default"},
+        "file_shape": {"relocation_order": "assembler_default"},
     }
     corrections = _empty_metadata()
     corrections["reproduction"] = {
@@ -1511,11 +1514,10 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
     assert options["requested_exactness"] == "content"
     assert options["requested_exactness_id"] == 2
     assert options["raw_output"] is None
-    assert options["file_shape"] == {
-        "relocation_order": "match_original",
-        "relocation_record": "short",
-        "section_aux_order": "match_original",
-    }
+    file_shape = cast(dict[str, object], options["file_shape"])
+    assert file_shape["relocation_order"] is reproduction.ReproductionFileShapeOrder.MATCH_ORIGINAL
+    assert file_shape["relocation_record"] is reproduction.ReproductionRelocationRecord.SHORT
+    assert file_shape["section_aux_order"] is reproduction.ReproductionFileShapeOrder.MATCH_ORIGINAL
     assert reproduction.reproduction_policy_for_options(options) == {
         "mode": "content",
         "container_policy": "preserve_original",
@@ -1534,6 +1536,17 @@ def test_reproduction_options_reject_alias_spellings(tmp_path: Path) -> None:
     (target_dir / "target_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
 
     with pytest.raises(ValueError, match="invalid reproduction option 'mode'"):
+        reproduction_options_for_target(target_dir)
+
+
+def test_reproduction_options_reject_file_shape_alias_spellings(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    metadata = _empty_metadata()
+    metadata["reproduction"] = {"file_shape": {"relocation_order": "assembler-default"}}
+    (target_dir / "target_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid reproduction option 'relocation_order'"):
         reproduction_options_for_target(target_dir)
 
 
