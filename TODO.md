@@ -1,21 +1,5 @@
 # TODO
 
-## Unsorted
-
-Some of these may be in non-updated source in targets/, they need checking for existing fixes.
-
-- Codebase auditing/global refactoring:
-  - A loose approach has been taken to using static string values and string comparison as an implementation approach
-    and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
-    be using bitflags or enums to replace that.
-  - Use one simple, clean approach for typed domains:
-    - External JSON/API fields remain strings.
-    - Boundary parsers such as `from_dict` convert those strings to enum/bitflag values exactly once.
-    - Internal dataclasses, helpers, and comparisons use enum/bitflag values only.
-    - Treat any later normalization/normalisation of these values as a design bug; the type must already be correct.
-    - Do not add normalization layers, constructor normalization, compatibility shims, dual string/enum acceptance, or
-      fallback paths.
-
 ## Tracing
 
 - Deferred: WinUAE debugger-assisted tracing.
