@@ -14,6 +14,8 @@ from amiga_reversing.disasm.target_metadata import (
     SeededEntityMetadata,
     SuppressedSeededItemMetadata,
     TargetMetadata,
+    TargetMetadataReviewStatus,
+    TargetMetadataSeedOrigin,
 )
 
 TARGET_UI_EDITS_FILE_NAME = "target_ui_edits.json"
@@ -135,8 +137,8 @@ def _apply_target_ui_edit(
             comment=_edit_str(edit, "comment"),
             type=entity_type,
             subtype=_edit_str(edit, "subtype") or default_subtype,
-            seed_origin="manual_analysis",
-            review_status="seeded",
+            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+            review_status=TargetMetadataReviewStatus.SEEDED,
             citation=_edit_citation(edit),
         )
         return replace(
@@ -153,8 +155,8 @@ def _apply_target_ui_edit(
             hunk=_edit_hunk(edit),
             name=_edit_str(edit, "name") or f"entry_{_require_int(edit, 'addr'):x}",
             comment=_edit_str(edit, "comment"),
-            seed_origin="manual_analysis",
-            review_status="seeded",
+            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+            review_status=TargetMetadataReviewStatus.SEEDED,
             citation=_edit_citation(edit),
         )
         return replace(
@@ -173,8 +175,8 @@ def _apply_target_ui_edit(
             hunk=_edit_hunk(edit),
             name=_require_str(edit, "name"),
             comment=_edit_str(edit, "comment"),
-            seed_origin="manual_analysis",
-            review_status="seeded",
+            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+            review_status=TargetMetadataReviewStatus.SEEDED,
             citation=_edit_citation(edit),
         )
         return replace(
@@ -190,8 +192,8 @@ def _apply_target_ui_edit(
             addr=_require_int(edit, "addr"),
             name=_require_str(edit, "name"),
             comment=_edit_str(edit, "comment"),
-            seed_origin="manual_analysis",
-            review_status="seeded",
+            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+            review_status=TargetMetadataReviewStatus.SEEDED,
             citation=_edit_citation(edit),
         )
         return replace(

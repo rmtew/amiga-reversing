@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
@@ -12,16 +13,20 @@ from .binary_source import BinarySourceKind
 TARGET_METADATA_FILE_NAME = "target_metadata.json"
 TARGET_SEEDED_METADATA_FILE_NAME = "target_seeded_metadata.json"
 TARGET_CORRECTIONS_FILE_NAME = "target_corrections.json"
-TARGET_METADATA_SEED_ORIGIN_VALUES = frozenset({
-    "manual_analysis",
-    "primary_doc",
-    "include",
-    "autodoc",
-})
-TARGET_METADATA_REVIEW_STATUS_VALUES = frozenset({
-    "seeded",
-    "validated",
-})
+
+
+class TargetMetadataSeedOrigin(StrEnum):
+    MANUAL_ANALYSIS = "manual_analysis"
+    PRIMARY_DOC = "primary_doc"
+    INCLUDE = "include"
+    AUTODOC = "autodoc"
+
+
+class TargetMetadataReviewStatus(StrEnum):
+    SEEDED = "seeded"
+    VALIDATED = "validated"
+
+
 RSSET_LAYOUT_STORAGE_KIND_VALUES = frozenset({
     "struct_instance",
     "struct_pointer",
@@ -38,6 +43,30 @@ def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object
 def _json_list(value: object, *, what: str = "JSON value") -> list[object]:
     assert isinstance(value, list)
     return value
+
+
+def _target_metadata_seed_origin(value: object) -> TargetMetadataSeedOrigin:
+    assert isinstance(value, str)
+    try:
+        return TargetMetadataSeedOrigin(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported target metadata seed_origin: {value}") from None
+
+
+def _target_metadata_review_status(value: object) -> TargetMetadataReviewStatus:
+    assert isinstance(value, str)
+    try:
+        return TargetMetadataReviewStatus(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported target metadata review_status: {value}") from None
+
+
+def _assert_target_metadata_review_fields(
+    seed_origin: object,
+    review_status: object,
+) -> None:
+    assert isinstance(seed_origin, TargetMetadataSeedOrigin)
+    assert isinstance(review_status, TargetMetadataReviewStatus)
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,13 +277,16 @@ class CustomStructMetadata:
     name: str
     size: int
     fields: tuple[CustomStructFieldMetadata, ...]
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     source: str = "target_metadata"
     base_offset: int = 0
     base_struct: str | None = None
     available_since: str = "1.0"
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> CustomStructMetadata:
@@ -270,10 +302,8 @@ class CustomStructMetadata:
         available_since = payload["available_since"]
         assert isinstance(name, str)
         assert isinstance(size, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert isinstance(source, str)
         assert isinstance(base_offset, int)
@@ -298,8 +328,8 @@ class CustomStructMetadata:
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RssetLayoutRegionMetadata:
     offset: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     size: int | None = None
     layout_name: str | None = None
@@ -313,6 +343,9 @@ class RssetLayoutRegionMetadata:
     parser_role: str | None = None
     parser_routine: str | None = None
     parse_order: int | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> RssetLayoutRegionMetadata:
@@ -333,10 +366,8 @@ class RssetLayoutRegionMetadata:
         parser_routine = payload.get("parser_routine")
         parse_order = payload.get("parse_order")
         assert isinstance(offset, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert size is None or (isinstance(size, int) and 0 < size <= 255)
         assert layout_name is None or isinstance(layout_name, str)
@@ -374,8 +405,8 @@ class RssetLayoutRegionMetadata:
 @dataclass(frozen=True, slots=True)
 class SeededEntityMetadata:
     addr: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     source_id: str | None = None
     source_path: str | None = None
@@ -388,6 +419,9 @@ class SeededEntityMetadata:
     subtype: str | None = None
     unit: str | None = None
     encoding: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededEntityMetadata:
@@ -407,10 +441,8 @@ class SeededEntityMetadata:
         unit = payload.get("unit")
         encoding = payload.get("encoding")
         assert isinstance(addr, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert source_id is None or isinstance(source_id, str)
         assert source_path is None or isinstance(source_path, str)
@@ -444,8 +476,8 @@ class SeededEntityMetadata:
 @dataclass(frozen=True, slots=True)
 class SeededCodeLabelMetadata:
     addr: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     name: str
     source_id: str | None = None
@@ -453,6 +485,9 @@ class SeededCodeLabelMetadata:
     source_locator: str | None = None
     hunk: int = 0
     comment: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededCodeLabelMetadata:
@@ -467,10 +502,8 @@ class SeededCodeLabelMetadata:
         hunk = payload.get("hunk", 0)
         comment = payload.get("comment")
         assert isinstance(addr, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert isinstance(name, str)
         assert source_id is None or isinstance(source_id, str)
@@ -494,8 +527,8 @@ class SeededCodeLabelMetadata:
 @dataclass(frozen=True, slots=True)
 class SeededCodeEntrypointMetadata:
     addr: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     name: str
     source_id: str | None = None
@@ -504,6 +537,9 @@ class SeededCodeEntrypointMetadata:
     hunk: int = 0
     comment: str | None = None
     role: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SeededCodeEntrypointMetadata:
@@ -519,10 +555,8 @@ class SeededCodeEntrypointMetadata:
         comment = payload.get("comment")
         role = payload.get("role")
         assert isinstance(addr, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert isinstance(name, str)
         assert source_id is None or isinstance(source_id, str)
@@ -548,11 +582,14 @@ class SeededCodeEntrypointMetadata:
 @dataclass(frozen=True, slots=True)
 class AbsoluteCodeLabelMetadata:
     addr: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     name: str
     comment: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> AbsoluteCodeLabelMetadata:
@@ -563,10 +600,8 @@ class AbsoluteCodeLabelMetadata:
         name = payload["name"]
         comment = payload.get("comment")
         assert isinstance(addr, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert isinstance(name, str)
         assert comment is None or isinstance(comment, str)
@@ -583,14 +618,17 @@ class AbsoluteCodeLabelMetadata:
 @dataclass(frozen=True, slots=True)
 class EntryCommentMetadata:
     addr: int
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     comment: str
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
     hunk: int = 0
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> EntryCommentMetadata:
@@ -604,10 +642,8 @@ class EntryCommentMetadata:
         source_locator = payload.get("source_locator")
         hunk = payload.get("hunk", 0)
         assert isinstance(addr, int)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert isinstance(comment, str)
         assert source_id is None or isinstance(source_id, str)
@@ -633,10 +669,13 @@ class ExecutionViewMetadata:
     source_end: int
     base_addr: int
     name: str
-    seed_origin: str
-    review_status: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
     citation: str
     comment: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> ExecutionViewMetadata:
@@ -652,10 +691,8 @@ class ExecutionViewMetadata:
         assert isinstance(source_end, int)
         assert isinstance(base_addr, int)
         assert isinstance(name, str)
-        assert isinstance(seed_origin, str)
-        assert seed_origin in TARGET_METADATA_SEED_ORIGIN_VALUES
-        assert isinstance(review_status, str)
-        assert review_status in TARGET_METADATA_REVIEW_STATUS_VALUES
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
         assert isinstance(citation, str)
         assert comment is None or isinstance(comment, str)
         return cls(

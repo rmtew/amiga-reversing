@@ -12,6 +12,8 @@ from amiga_reversing.disasm.manual_actions import (
 from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     TargetMetadata,
+    TargetMetadataReviewStatus,
+    TargetMetadataSeedOrigin,
     write_target_metadata,
 )
 
@@ -282,8 +284,8 @@ def test_effective_metadata_preserves_stronger_code_entrypoint_over_conflicting_
                     addr=4,
                     hunk=0,
                     name="existing_entry",
-                    seed_origin="manual_analysis",
-                    review_status="validated",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
                     citation="target_metadata",
                 ),
             ),
