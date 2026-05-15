@@ -40,6 +40,11 @@ class RssetLayoutStorageKind(StrEnum):
     SCALAR = "scalar"
 
 
+class EntryRegisterSeedKind(StrEnum):
+    LIBRARY_BASE = "library_base"
+    STRUCT_PTR = "struct_ptr"
+
+
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
     assert isinstance(value, dict)
     return cast(dict[str, object], value)
@@ -80,6 +85,14 @@ def _rsset_layout_storage_kind(value: object) -> RssetLayoutStorageKind:
         return RssetLayoutStorageKind(value)
     except ValueError:
         raise AssertionError(f"Unsupported RSSET layout storage_kind: {value}") from None
+
+
+def _entry_register_seed_kind(value: object) -> EntryRegisterSeedKind:
+    assert isinstance(value, str)
+    try:
+        return EntryRegisterSeedKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported entry register seed kind: {value}") from None
 
 
 def _assert_target_metadata_review_fields(
@@ -142,7 +155,7 @@ class BootBlockTargetMetadata:
 class EntryRegisterSeedMetadata:
     entry_offset: int | None
     register: str
-    kind: str
+    kind: EntryRegisterSeedKind
     note: str
     library_name: str | None = None
     struct_name: str | None = None
@@ -167,12 +180,15 @@ class EntryRegisterSeedMetadata:
         return cls(
             entry_offset=entry_offset,
             register=register,
-            kind=kind,
+            kind=_entry_register_seed_kind(kind),
             note=note,
             library_name=library_name,
             struct_name=struct_name,
             context_name=context_name,
         )
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.kind, EntryRegisterSeedKind)
 
 @dataclass(frozen=True, slots=True)
 class ResidentTargetMetadata:

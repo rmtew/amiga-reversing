@@ -22,6 +22,7 @@ from amiga_reversing.disasm.projects import (
 )
 from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
+    EntryRegisterSeedKind,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
@@ -431,7 +432,7 @@ def test_validate_target_seeded_metadata_rejects_entry_register_seeds() -> None:
                     EntryRegisterSeedMetadata(
                         entry_offset=None,
                         register="A6",
-                        kind="library_base",
+                        kind=EntryRegisterSeedKind.LIBRARY_BASE,
                         note="ExecBase",
                         library_name="exec.library",
                         struct_name="LIB",
