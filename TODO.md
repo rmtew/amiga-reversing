@@ -8,6 +8,13 @@ Some of these may be in non-updated source in targets/, they need checking for e
   - A loose approach has been taken to using static string values and string comparison as an implementation approach
     and while some of that has been cleaned up, it would be good to do a comprehensive pass over the codebase. We should
     be using bitflags or enums to replace that.
+  - Use one standard approach for typed domains:
+    - External JSON/API fields remain strings.
+    - Boundary parsers such as `from_dict` convert those strings to enum/bitflag values exactly once.
+    - Internal dataclasses, helpers, and comparisons use enum/bitflag values only.
+    - Do not add constructor normalization, compatibility shims, dual string/enum acceptance, or fallback paths.
+  - Known remaining domains include target metadata `seed_origin` / `review_status`, target/source kinds, and
+    reproduction/report status values.
 
 ## Tracing
 
