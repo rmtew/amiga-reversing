@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import time
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
@@ -41,6 +42,11 @@ ASM_SOURCE_HARD_FAILURE_COUNTERS = (
 )
 
 
+class FactsV2SourceGateStatus(StrEnum):
+    PASSED = "passed"
+    FAILED = "failed"
+
+
 def facts_v2_source_gate_report_for_target(
     target: str,
     *,
@@ -70,7 +76,11 @@ def facts_v2_source_gate_report_for_target(
     return {
         "schema_version": 1,
         "target": target,
-        "status": "failed" if gate_failures else "passed",
+        "status": (
+            FactsV2SourceGateStatus.FAILED
+            if gate_failures
+            else FactsV2SourceGateStatus.PASSED
+        ),
         "gate_passed": not gate_failures,
         "gate_failures": gate_failures,
         "elapsed_seconds": round(time.perf_counter() - started, 3),
@@ -155,8 +165,12 @@ def facts_v2_source_gate_report_for_targets(
 def _summary(reports: Sequence[Mapping[str, object]]) -> JsonDict:
     return {
         "target_count": len(reports),
-        "passed_count": sum(1 for report in reports if report.get("status") == "passed"),
-        "failed_count": sum(1 for report in reports if report.get("status") == "failed"),
+        "passed_count": sum(
+            1 for report in reports if _report_status(report) is FactsV2SourceGateStatus.PASSED
+        ),
+        "failed_count": sum(
+            1 for report in reports if _report_status(report) is FactsV2SourceGateStatus.FAILED
+        ),
         "gate_passed": all(report.get("gate_passed") is True for report in reports),
         "gate_failed_count": sum(1 for report in reports if report.get("gate_passed") is not True),
         "first_gate_failure_target": _first_gate_failure_target(reports),
@@ -180,6 +194,13 @@ def _summary(reports: Sequence[Mapping[str, object]]) -> JsonDict:
             3,
         ),
     }
+
+
+def _report_status(report: Mapping[str, object]) -> FactsV2SourceGateStatus:
+    value = report.get("status")
+    if not isinstance(value, FactsV2SourceGateStatus):
+        raise TypeError("facts_v2 source gate report status must be a FactsV2SourceGateStatus")
+    return value
 
 
 def _gate_failures(
