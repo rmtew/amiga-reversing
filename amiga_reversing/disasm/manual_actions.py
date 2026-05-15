@@ -118,9 +118,7 @@ def review_item_kind(value: object) -> ReviewItemKind | None:
         return None
 
 
-def manual_seed_kind(value: object) -> ManualSeedKind | None:
-    if isinstance(value, ManualSeedKind):
-        return value
+def _manual_seed_kind_from_json(value: object) -> ManualSeedKind | None:
     if not isinstance(value, str):
         return None
     try:
@@ -129,9 +127,7 @@ def manual_seed_kind(value: object) -> ManualSeedKind | None:
         return None
 
 
-def manual_seed_mode(value: object) -> ManualSeedMode | None:
-    if isinstance(value, ManualSeedMode):
-        return value
+def _manual_seed_mode_from_json(value: object) -> ManualSeedMode | None:
     if not isinstance(value, str):
         return None
     try:
@@ -140,9 +136,7 @@ def manual_seed_mode(value: object) -> ManualSeedMode | None:
         return None
 
 
-def manual_label_scope(value: object) -> ManualLabelScope | None:
-    if isinstance(value, ManualLabelScope):
-        return value
+def _manual_label_scope_from_json(value: object) -> ManualLabelScope | None:
     if not isinstance(value, str):
         return None
     try:
@@ -573,7 +567,11 @@ def _manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int] | None:
 
 def _manual_seed_required(seed: dict[str, object]) -> bool:
     mode = seed.get("mode")
-    return mode is None or manual_seed_mode(mode) is ManualSeedMode.REQUIRED
+    if mode is None:
+        return True
+    if not isinstance(mode, ManualSeedMode):
+        raise TypeError("manual seed mode must be a ManualSeedMode")
+    return mode is ManualSeedMode.REQUIRED
 
 
 def _metadata_global_label_names(metadata: TargetMetadata | None) -> set[str]:
@@ -603,7 +601,9 @@ def _manual_label_conflict_items(
         label_id = label.get("label_id")
         name = label.get("name")
         raw_scope = label.get("scope")
-        scope = manual_label_scope(raw_scope) if raw_scope is not None else ManualLabelScope.GLOBAL
+        if raw_scope is not None and not isinstance(raw_scope, ManualLabelScope):
+            raise TypeError("manual label scope must be a ManualLabelScope")
+        scope = raw_scope if raw_scope is not None else ManualLabelScope.GLOBAL
         if not isinstance(label_id, str) or not isinstance(name, str):
             continue
         label_range = _manual_seed_range(label)
@@ -716,17 +716,17 @@ def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dic
     values = list(seeds.values())
     for left_index, left in enumerate(values):
         left_id = left.get("seed_id")
-        left_kind = manual_seed_kind(left.get("kind"))
+        left_kind = left.get("kind")
         left_range = _manual_seed_range(left)
-        if not isinstance(left_id, str) or left_kind is None or left_range is None:
+        if not isinstance(left_id, str) or not isinstance(left_kind, ManualSeedKind) or left_range is None:
             continue
         if not _manual_seed_required(left):
             continue
         for right in values[left_index + 1:]:
             right_id = right.get("seed_id")
-            right_kind = manual_seed_kind(right.get("kind"))
+            right_kind = right.get("kind")
             right_range = _manual_seed_range(right)
-            if not isinstance(right_id, str) or right_kind is None or right_range is None:
+            if not isinstance(right_id, str) or not isinstance(right_kind, ManualSeedKind) or right_range is None:
                 continue
             if not _manual_seed_required(right) or right_kind == left_kind:
                 continue
@@ -775,9 +775,9 @@ def _manual_seed_metadata_conflict_items(
 
     for seed in seeds.values():
         seed_id = seed.get("seed_id")
-        seed_kind = manual_seed_kind(seed.get("kind"))
+        seed_kind = seed.get("kind")
         seed_range = _manual_seed_range(seed)
-        if not isinstance(seed_id, str) or seed_kind is None or seed_range is None:
+        if not isinstance(seed_id, str) or not isinstance(seed_kind, ManualSeedKind) or seed_range is None:
             continue
         if not _manual_seed_required(seed):
             continue
@@ -818,7 +818,7 @@ def _manual_seed_binary_source_conflict_items(
     items: list[dict[str, object]] = []
     for seed in seeds.values():
         seed_id = seed.get("seed_id")
-        seed_kind = manual_seed_kind(seed.get("kind"))
+        seed_kind = seed.get("kind")
         seed_range = _manual_seed_range(seed)
         if not isinstance(seed_id, str) or seed_kind is not ManualSeedKind.DATA or seed_range is None:
             continue
@@ -887,6 +887,32 @@ def _action_object(action: _ManualAction, field_name: str) -> dict[str, object]:
     return _object(action.payload.get(field_name), what=f"{action.kind} {field_name}")
 
 
+def _projected_manual_seed(action: _ManualAction) -> dict[str, object]:
+    seed = dict(_action_object(action, "seed"))
+    seed_kind = _manual_seed_kind_from_json(seed.get("kind"))
+    if seed_kind is None:
+        raise ValueError(f"{action.kind} seed kind must be code or data")
+    seed["kind"] = seed_kind
+    raw_mode = seed.get("mode")
+    if raw_mode is not None:
+        seed_mode = _manual_seed_mode_from_json(raw_mode)
+        if seed_mode is None:
+            raise ValueError(f"{action.kind} seed mode must be required")
+        seed["mode"] = seed_mode
+    return seed
+
+
+def _projected_manual_label(action: _ManualAction) -> dict[str, object]:
+    label = dict(_action_object(action, "label"))
+    raw_scope = label.get("scope")
+    if raw_scope is not None:
+        scope = _manual_label_scope_from_json(raw_scope)
+        if scope is None:
+            raise ValueError(f"{action.kind} label scope must be global or local")
+        label["scope"] = scope
+    return label
+
+
 def _action_ref(action: _ManualAction, field_name: str) -> str:
     return _str_field(action.payload, field_name, what=str(action.kind))
 
@@ -948,11 +974,11 @@ def _project_actions(
             continue
         active_action_ids.append(action.action_id)
         if action.kind is ManualActionKind.CREATE_MANUAL_SEED:
-            _put_by_id(seeds, _action_object(action, "seed"), "seed_id")
+            _put_by_id(seeds, _projected_manual_seed(action), "seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
-            _put_by_id(labels, _action_object(action, "label"), "label_id")
+            _put_by_id(labels, _projected_manual_label(action), "label_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
             _drop_by_id(labels, action, "label_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_COMMENT:

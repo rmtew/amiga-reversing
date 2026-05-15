@@ -772,6 +772,24 @@ def test_malformed_manual_action_log_blocks_review(tmp_path: Path) -> None:
     assert projection.review_items[0]["kind"] == "manual_action_log_malformed"
 
 
+def test_manual_action_log_invalid_seed_kind_blocks_projection(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "s1", "kind": "bytes"}),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "blocked"
+    assert projection.seeds == ()
+    assert projection.review_items[0]["kind"] == "manual_action_log_malformed"
+
+
 def test_manual_action_log_target_identity_mismatch_blocks_projection(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
