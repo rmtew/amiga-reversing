@@ -6,8 +6,9 @@ import os
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
+from enum import StrEnum
 from pathlib import Path
-from typing import cast
+from typing import TypeVar, cast
 
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
@@ -61,17 +62,51 @@ REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
 MAX_DIFF_RANGES = 128
 MAX_DIAGNOSTICS = 80
+
+
+class ReproductionMode(StrEnum):
+    EXACT = "exact"
+    TEMPLATE_PRESERVED = "template_preserved"
+    CANONICAL = "canonical"
+    CONTENT = "content"
+    SEMANTIC = "semantic"
+
+
+class ReproductionContainerPolicy(StrEnum):
+    ASSEMBLER_DEFAULT = "assembler_default"
+    PRESERVE_ORIGINAL = "preserve_original"
+
+
+class ReproductionRelocationPolicy(StrEnum):
+    ASSEMBLER_DEFAULT = "assembler_default"
+    PRESERVE_ORIGINAL_ENCODING = "preserve_original_encoding"
+
+
+class ReproductionComparison(StrEnum):
+    FULL_FILE = "full_file"
+    CONTENT = "content"
+    SEMANTIC = "semantic"
+
+
+class ReproductionRequestedExactness(StrEnum):
+    FULL_FILE = "full_file"
+    CONTENT = "content"
+
+
 REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw"}
 REPRODUCTION_ANALYSIS_STAMP = "facts_v2"
 REPRODUCTION_ASSEMBLERS = {"our"}
 REPRODUCTION_ORACLE_MODES = {"vasm", "devpac"}
 REPRODUCTION_CPUS = {"68000", "68010", "68020", "68030", "68040", "68060", "any"}
-REPRODUCTION_MODES = {"exact", "template_preserved", "canonical", "content", "semantic"}
-REPRODUCTION_CONTAINER_POLICIES = {"assembler_default", "preserve_original"}
-REPRODUCTION_RELOCATION_POLICIES = {"assembler_default", "preserve_original_encoding"}
-REPRODUCTION_COMPARISONS = {"full_file", "content", "semantic"}
-REPRODUCTION_REQUESTED_EXACTNESS = {"full_file", "content"}
-REPRODUCTION_REQUESTED_EXACTNESS_IDS = {"full_file": 1, "content": 2}
+REPRODUCTION_MODES = frozenset(ReproductionMode)
+REPRODUCTION_CONTAINER_POLICIES = frozenset(ReproductionContainerPolicy)
+REPRODUCTION_RELOCATION_POLICIES = frozenset(ReproductionRelocationPolicy)
+REPRODUCTION_COMPARISONS = frozenset(ReproductionComparison)
+REPRODUCTION_REQUESTED_EXACTNESS = frozenset(ReproductionRequestedExactness)
+REPRODUCTION_REQUESTED_EXACTNESS_IDS = {
+    ReproductionRequestedExactness.FULL_FILE: 1,
+    ReproductionRequestedExactness.CONTENT: 2,
+}
 _C_COMPARE_STATUS_LABELS = {
     0: "not_compared",
     1: "exact_file",
@@ -1751,16 +1786,16 @@ def _facts_v2_profile_counter(profile: dict[str, object] | None, key: str) -> in
 
 def _default_reproduction_options() -> dict[str, object]:
     return {
-        "mode": "exact",
+        "mode": ReproductionMode.EXACT,
         "assembler": "our",
         "cpu": "any",
         "backend": "auto",
         "include_dirs": "auto",
         "oracle_modes": [],
-        "container_policy": "preserve_original",
-        "relocation_policy": "preserve_original_encoding",
-        "comparison": "full_file",
-        "requested_exactness": "full_file",
+        "container_policy": ReproductionContainerPolicy.PRESERVE_ORIGINAL,
+        "relocation_policy": ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING,
+        "comparison": ReproductionComparison.FULL_FILE,
+        "requested_exactness": ReproductionRequestedExactness.FULL_FILE,
         "requested_exactness_id": 1,
         "file_shape": {
             "relocation_order": "match_original",
@@ -1795,8 +1830,8 @@ def _reproduction_option_payloads(target_dir: Path) -> list[dict[str, object]]:
 
 
 def _merge_reproduction_options(options: dict[str, object], payload: dict[str, object]) -> None:
-    mode = _normalized_reproduction_value(payload.get("mode"))
-    if mode in REPRODUCTION_MODES:
+    mode = _normalized_reproduction_enum(payload.get("mode"), ReproductionMode)
+    if mode is not None:
         options["mode"] = mode
     assembler = payload.get("assembler")
     if isinstance(assembler, str):
@@ -1817,17 +1852,17 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
         options["oracle_modes"] = [
             item for item in oracle_modes if isinstance(item, str) and item in REPRODUCTION_ORACLE_MODES
         ]
-    container_policy = _normalized_reproduction_value(payload.get("container_policy"))
-    if container_policy in REPRODUCTION_CONTAINER_POLICIES:
+    container_policy = _normalized_reproduction_enum(payload.get("container_policy"), ReproductionContainerPolicy)
+    if container_policy is not None:
         options["container_policy"] = container_policy
-    relocation_policy = _normalized_reproduction_value(payload.get("relocation_policy"))
-    if relocation_policy in REPRODUCTION_RELOCATION_POLICIES:
+    relocation_policy = _normalized_reproduction_enum(payload.get("relocation_policy"), ReproductionRelocationPolicy)
+    if relocation_policy is not None:
         options["relocation_policy"] = relocation_policy
-    comparison = _normalized_reproduction_value(payload.get("comparison"))
-    if comparison in REPRODUCTION_COMPARISONS:
+    comparison = _normalized_reproduction_enum(payload.get("comparison"), ReproductionComparison)
+    if comparison is not None:
         options["comparison"] = comparison
-    requested_exactness = _normalized_reproduction_value(payload.get("requested_exactness"))
-    if requested_exactness in REPRODUCTION_REQUESTED_EXACTNESS:
+    requested_exactness = _normalized_reproduction_enum(payload.get("requested_exactness"), ReproductionRequestedExactness)
+    if requested_exactness is not None:
         options["requested_exactness"] = requested_exactness
         options["requested_exactness_id"] = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
     if "raw_output" in payload:
@@ -1841,9 +1876,9 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
         if relocation_order in {"assembler-default", "match_original"}:
             file_shape["relocation_order"] = relocation_order
             if relocation_order == "assembler-default" and "relocation_policy" not in payload:
-                options["relocation_policy"] = "assembler_default"
+                options["relocation_policy"] = ReproductionRelocationPolicy.ASSEMBLER_DEFAULT
             elif relocation_order == "match_original" and "relocation_policy" not in payload:
-                options["relocation_policy"] = "preserve_original_encoding"
+                options["relocation_policy"] = ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING
         relocation_record = file_shape_payload.get("relocation_record")
         if relocation_record in {"auto", "long", "short"}:
             file_shape["relocation_record"] = relocation_record
@@ -1853,34 +1888,36 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
 
 
 def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, object]:
-    mode = _normalized_reproduction_value(options.get("mode"))
-    if mode not in REPRODUCTION_MODES:
-        mode = "exact"
-    container_policy = _normalized_reproduction_value(options.get("container_policy"))
-    if container_policy not in REPRODUCTION_CONTAINER_POLICIES:
-        container_policy = "preserve_original"
-    relocation_policy = _normalized_reproduction_value(options.get("relocation_policy"))
-    if relocation_policy not in REPRODUCTION_RELOCATION_POLICIES:
-        relocation_policy = "preserve_original_encoding"
-    comparison = _normalized_reproduction_value(options.get("comparison"))
-    if comparison not in REPRODUCTION_COMPARISONS:
-        comparison = "full_file"
-    requested_exactness = _normalized_reproduction_value(options.get("requested_exactness"))
-    if requested_exactness not in REPRODUCTION_REQUESTED_EXACTNESS:
-        requested_exactness = "full_file"
+    mode = _normalized_reproduction_enum(options.get("mode"), ReproductionMode) or ReproductionMode.EXACT
+    container_policy = (
+        _normalized_reproduction_enum(options.get("container_policy"), ReproductionContainerPolicy)
+        or ReproductionContainerPolicy.PRESERVE_ORIGINAL
+    )
+    relocation_policy = (
+        _normalized_reproduction_enum(options.get("relocation_policy"), ReproductionRelocationPolicy)
+        or ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING
+    )
+    comparison = (
+        _normalized_reproduction_enum(options.get("comparison"), ReproductionComparison)
+        or ReproductionComparison.FULL_FILE
+    )
+    requested_exactness = (
+        _normalized_reproduction_enum(options.get("requested_exactness"), ReproductionRequestedExactness)
+        or ReproductionRequestedExactness.FULL_FILE
+    )
     requested_exactness_id = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
-    if mode == "template_preserved":
-        container_policy = "preserve_original"
-        relocation_policy = "preserve_original_encoding"
-        comparison = "full_file"
-    elif mode == "canonical":
-        container_policy = "assembler_default"
-        relocation_policy = "assembler_default"
-        comparison = "full_file"
-    elif mode == "content":
-        comparison = "content"
-    elif mode == "semantic":
-        comparison = "semantic"
+    if mode is ReproductionMode.TEMPLATE_PRESERVED:
+        container_policy = ReproductionContainerPolicy.PRESERVE_ORIGINAL
+        relocation_policy = ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING
+        comparison = ReproductionComparison.FULL_FILE
+    elif mode is ReproductionMode.CANONICAL:
+        container_policy = ReproductionContainerPolicy.ASSEMBLER_DEFAULT
+        relocation_policy = ReproductionRelocationPolicy.ASSEMBLER_DEFAULT
+        comparison = ReproductionComparison.FULL_FILE
+    elif mode is ReproductionMode.CONTENT:
+        comparison = ReproductionComparison.CONTENT
+    elif mode is ReproductionMode.SEMANTIC:
+        comparison = ReproductionComparison.SEMANTIC
     return {
         "mode": mode,
         "container_policy": container_policy,
@@ -1895,6 +1932,22 @@ def _normalized_reproduction_value(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     return value.strip().lower().replace("-", "_")
+
+
+_ReproductionEnum = TypeVar("_ReproductionEnum", bound=StrEnum)
+
+
+def _normalized_reproduction_enum(
+    value: object,
+    enum_type: type[_ReproductionEnum],
+) -> _ReproductionEnum | None:
+    normalized = _normalized_reproduction_value(value)
+    if normalized is None:
+        return None
+    try:
+        return enum_type(normalized)
+    except ValueError:
+        return None
 
 
 def _effective_reproduction_backend(default_backend: str, options: dict[str, object]) -> str:
