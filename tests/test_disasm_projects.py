@@ -26,6 +26,8 @@ from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
+    SuppressedSeededItemKind,
+    SuppressedSeededItemMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
@@ -371,6 +373,52 @@ def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path
             source_locator="GeneratedLabel",
         ),
     )
+
+
+def test_load_target_metadata_parses_suppressed_seeded_item_kind(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            suppressed_seeded_items=(
+                SuppressedSeededItemMetadata(
+                    kind=SuppressedSeededItemKind.SEEDED_ENTITY,
+                    hunk=0,
+                    addr=0x0100,
+                ),
+            ),
+        ),
+    )
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x0100,
+                    hunk=0,
+                    end=0x0104,
+                    type="data",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="GeneratedData",
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert loaded.suppressed_seeded_items[0].kind is SuppressedSeededItemKind.SEEDED_ENTITY
+    assert loaded.seeded_entities == ()
 
 
 def test_validate_target_seeded_metadata_rejects_entry_register_seeds() -> None:

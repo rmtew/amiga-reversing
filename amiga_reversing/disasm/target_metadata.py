@@ -27,6 +27,12 @@ class TargetMetadataReviewStatus(StrEnum):
     VALIDATED = "validated"
 
 
+class SuppressedSeededItemKind(StrEnum):
+    SEEDED_ENTITY = "seeded_entity"
+    SEEDED_CODE_LABEL = "seeded_code_label"
+    SEEDED_CODE_ENTRYPOINT = "seeded_code_entrypoint"
+
+
 RSSET_LAYOUT_STORAGE_KIND_VALUES = frozenset({
     "struct_instance",
     "struct_pointer",
@@ -59,6 +65,14 @@ def _target_metadata_review_status(value: object) -> TargetMetadataReviewStatus:
         return TargetMetadataReviewStatus(value)
     except ValueError:
         raise AssertionError(f"Unsupported target metadata review_status: {value}") from None
+
+
+def _suppressed_seeded_item_kind(value: object) -> SuppressedSeededItemKind:
+    assert isinstance(value, str)
+    try:
+        return SuppressedSeededItemKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported suppressed seeded item kind: {value}") from None
 
 
 def _assert_target_metadata_review_fields(
@@ -709,7 +723,7 @@ class ExecutionViewMetadata:
 
 @dataclass(frozen=True, slots=True)
 class SuppressedSeededItemMetadata:
-    kind: str
+    kind: SuppressedSeededItemKind
     hunk: int
     addr: int
 
@@ -719,10 +733,12 @@ class SuppressedSeededItemMetadata:
         hunk = payload["hunk"]
         addr = payload["addr"]
         assert isinstance(kind, str)
-        assert kind in {"seeded_entity", "seeded_code_label", "seeded_code_entrypoint"}
         assert isinstance(hunk, int)
         assert isinstance(addr, int)
-        return cls(kind=kind, hunk=hunk, addr=addr)
+        return cls(kind=_suppressed_seeded_item_kind(kind), hunk=hunk, addr=addr)
+
+    def __post_init__(self) -> None:
+        assert isinstance(self.kind, SuppressedSeededItemKind)
 
 @dataclass(frozen=True, slots=True)
 class TargetMetadata:
@@ -974,17 +990,17 @@ def _apply_suppressed_seeded_items(
         seeded_entities=tuple(
             entity
             for entity in seeded.seeded_entities
-            if ("seeded_entity", entity.hunk, entity.addr) not in suppressed
+            if (SuppressedSeededItemKind.SEEDED_ENTITY, entity.hunk, entity.addr) not in suppressed
         ),
         seeded_code_labels=tuple(
             label
             for label in seeded.seeded_code_labels
-            if ("seeded_code_label", label.hunk, label.addr) not in suppressed
+            if (SuppressedSeededItemKind.SEEDED_CODE_LABEL, label.hunk, label.addr) not in suppressed
         ),
         seeded_code_entrypoints=tuple(
             entrypoint
             for entrypoint in seeded.seeded_code_entrypoints
-            if ("seeded_code_entrypoint", entrypoint.hunk, entrypoint.addr) not in suppressed
+            if (SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT, entrypoint.hunk, entrypoint.addr) not in suppressed
         ),
         entry_comments=seeded.entry_comments,
         execution_views=seeded.execution_views,

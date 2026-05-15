@@ -14,6 +14,7 @@ from amiga_reversing.disasm.target_metadata import (
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
     SuppressedSeededItemMetadata,
+    SuppressedSeededItemKind,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
@@ -236,9 +237,9 @@ def _apply_target_ui_edit(
     if kind in _SUPPRESS_INFERRED_KINDS:
         current = _ensure_metadata(metadata)
         suppressed = SuppressedSeededItemMetadata(
-            kind="seeded_code_entrypoint"
+            kind=SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT
             if kind is TargetUiEditKind.SUPPRESS_INFERRED_CODE
-            else "seeded_entity",
+            else SuppressedSeededItemKind.SEEDED_ENTITY,
             hunk=_edit_hunk(edit),
             addr=_require_int(edit, "addr"),
         )
