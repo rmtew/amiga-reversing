@@ -19,7 +19,7 @@ import pytest
 
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.binary_source import BinarySourceKind
+from amiga_reversing.disasm.binary_source import BinarySourceKind, RawAddressModel, RawBinarySource
 from amiga_reversing.disasm.c_backend import UnsupportedCBackendProject
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
@@ -104,6 +104,58 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
         created_at="2026-03-25T00:00:00+00:00",
         updated_at="2026-03-25T01:00:00+00:00",
     )
+
+
+def test_ui_preferences_route_persists_project_local_state(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_raw_demo", ready=True)
+    target_dir = tmp_path / "targets" / project.id
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "bin" / "demo.bin"
+    binary_path.parent.mkdir()
+    binary_path.write_bytes(b"\0" * 16)
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
+        load_address=0x6000,
+        entrypoint=0x6004,
+        code_start_offset=0,
+        display_path="bin/demo.bin",
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=source),
+    )
+
+    initial = disasm_server.route_request("GET", f"/api/projects/{project.id}/ui-preferences", {})
+    assert initial["data"]["preferences"]["listing_location"] is None
+    assert initial["data"]["source_entrypoint"] == {
+        "addr": 0x6004,
+        "source_offset": 4,
+        "runtime_address": 0x6004,
+    }
+
+    saved = disasm_server.route_request(
+        "PUT",
+        f"/api/projects/{project.id}/ui-preferences",
+        {},
+        {
+            "listing_location": {"row_index": 3, "stable_key": "entry", "scroll_top": 66},
+            "source_export_assembler": "vasm",
+            "manual_action": "must-not-persist",
+        },
+    )
+
+    assert saved["data"]["preferences"]["listing_location"]["row_index"] == 3
+    assert saved["data"]["preferences"]["source_export_assembler"] == "vasm"
+    assert "manual_action" not in saved["data"]["preferences"]
+    assert not (target_dir / "manual_actions.jsonl").exists()
 
 
 class _FakeCListingArtifact:

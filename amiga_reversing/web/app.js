@@ -50,6 +50,12 @@ const state = {
     importMenuTargetId: null,
   },
   pendingCorpusFocus: null,
+  uiPreferences: {
+    payload: null,
+    saveTimer: null,
+    restoring: false,
+    initialApplied: false,
+  },
   typeCatalog: null,
   listingRows: [],
   listingSelection: null,
@@ -4892,6 +4898,9 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
     rowCount: listing.rows.length,
     requestSeq: state.virtualListing.requestSeq,
   });
+  if (!state.listingSelection && listing.rows.length) {
+    void maybeApplyInitialListingLocation(projectId);
+  }
   return {renderMs: performance.now() - renderStartedAt};
 }
 
@@ -4912,6 +4921,7 @@ function bindVirtualListingScroller(projectId, viewport) {
     state.virtualListing.scrollRaf = window.requestAnimationFrame(() => {
       state.virtualListing.scrollRaf = null;
       scheduleListingWindowForScroll(projectId, viewport);
+      scheduleUiPreferenceSave();
     });
   };
   viewport.addEventListener("scroll", viewport._listingScrollHandler);
@@ -5000,6 +5010,9 @@ function captureListingAddressAnchor(viewport) {
     }
   }
   return {
+    rowIndex: best.dataset.rowIndex !== "" && best.dataset.rowIndex !== undefined
+      ? Number(best.dataset.rowIndex)
+      : null,
     addr: best.dataset.rowAddr !== "" && best.dataset.rowAddr !== undefined
       ? Number(best.dataset.rowAddr)
       : null,
@@ -5157,6 +5170,10 @@ async function handleListingArtifactReady(payload, token = null) {
   if (listing?.analysis_generation) {
     await loadNavigationEntries(state.project);
     renderNavigationOverlay();
+    if (!state.listingSelection) {
+      const uiPreferences = state.uiPreferences.payload || await loadUiPreferenceState(state.project);
+      await applyInitialListingLocation(state.project, uiPreferences);
+    }
     setAnalysisStatus("Analysis ready", "ready", 2000);
   }
 }
@@ -6810,6 +6827,255 @@ async function loadInitialListingWindow(projectId) {
   return loadListingWindow(projectId, null, 0, count, {start: 0, count});
 }
 
+async function loadUiPreferenceState(projectId) {
+  try {
+    const payload = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/ui-preferences`);
+    state.uiPreferences.payload = payload;
+    return payload;
+  } catch (error) {
+    state.uiPreferences.payload = null;
+    return null;
+  }
+}
+
+function explicitListingLocationFromUrl() {
+  const params = new URLSearchParams(window.location.search || "");
+  const hashParams = new URLSearchParams(String(window.location.hash || "").replace(/^#/, ""));
+  const value = (name) => params.get(name) ?? hashParams.get(name);
+  const numericValue = (name) => {
+    const text = value(name);
+    return text === null ? NaN : Number(text);
+  };
+  const rowIndex = numericValue("row_index");
+  const sectionIndex = numericValue("section_index");
+  const sourceOffset = numericValue("source_offset");
+  const runtimeAddress = numericValue("runtime_address");
+  const addr = numericValue("addr");
+  if (Number.isFinite(rowIndex)) {
+    return {kind: "row", rowIndex};
+  }
+  if (Number.isInteger(sectionIndex) && Number.isFinite(sourceOffset)) {
+    return {kind: "source", sectionIndex, sourceOffset};
+  }
+  if (Number.isFinite(runtimeAddress)) {
+    return {kind: "runtime", runtimeAddress};
+  }
+  if (Number.isFinite(addr)) {
+    return {kind: "addr", addr};
+  }
+  return null;
+}
+
+function preferenceListingLocation(payload) {
+  const location = payload?.preferences?.listing_location;
+  if (!location || typeof location !== "object" || payload?.preferences?.stale === true) {
+    return null;
+  }
+  return {
+    kind: "preference",
+    rowIndex: Number(location.row_index),
+    addr: Number(location.addr),
+    sectionIndex: Number(location.section_index),
+    sourceOffset: Number(location.start_offset),
+    stableKey: location.stable_key || null,
+    rowCode: location.row_code || "",
+    scrollTop: Number(location.scroll_top),
+    windowStart: Number(location.window_start),
+  };
+}
+
+function entrypointListingLocation(payload) {
+  const entrypoint = payload?.source_entrypoint;
+  if (!entrypoint || typeof entrypoint !== "object") {
+    return null;
+  }
+  const runtimeAddress = Number(entrypoint.runtime_address);
+  if (Number.isFinite(runtimeAddress)) {
+    return {kind: "runtime", runtimeAddress};
+  }
+  const sourceOffset = Number(entrypoint.source_offset);
+  if (Number.isFinite(sourceOffset)) {
+    return {kind: "source", sectionIndex: 0, sourceOffset};
+  }
+  const addr = Number(entrypoint.addr);
+  return Number.isFinite(addr) ? {kind: "addr", addr} : null;
+}
+
+async function loadInitialListingLocation(projectId, uiPreferences) {
+  await loadInitialListingWindow(projectId);
+  await applyInitialListingLocation(projectId, uiPreferences);
+}
+
+async function applyInitialListingLocation(projectId, uiPreferences) {
+  if (!state.listingRows.length) {
+    return false;
+  }
+  const explicit = explicitListingLocationFromUrl();
+  if (explicit && await jumpToListingLocation(projectId, explicit)) {
+    state.uiPreferences.initialApplied = true;
+    return true;
+  }
+  const preference = preferenceListingLocation(uiPreferences);
+  if (preference && await jumpToListingLocation(projectId, preference)) {
+    state.uiPreferences.initialApplied = true;
+    return true;
+  }
+  const entrypoint = entrypointListingLocation(uiPreferences);
+  if (entrypoint) {
+    const ok = await jumpToListingLocation(projectId, entrypoint);
+    state.uiPreferences.initialApplied = ok;
+    return ok;
+  }
+  state.uiPreferences.initialApplied = true;
+  return false;
+}
+
+async function maybeApplyInitialListingLocation(projectId) {
+  if (
+    state.uiPreferences.initialApplied
+    || state.uiPreferences.restoring
+    || state.project !== projectId
+    || state.listingSelection
+    || !state.listingRows.length
+  ) {
+    return;
+  }
+  const uiPreferences = state.uiPreferences.payload || await loadUiPreferenceState(projectId);
+  if (state.project !== projectId || state.listingSelection) {
+    return;
+  }
+  const applied = await applyInitialListingLocation(projectId, uiPreferences);
+  if (!applied && !state.uiPreferences.initialApplied && state.project === projectId) {
+    window.setTimeout(() => {
+      void maybeApplyInitialListingLocation(projectId);
+    }, 100);
+  }
+}
+
+async function jumpToListingLocation(projectId, location) {
+  state.uiPreferences.restoring = true;
+  try {
+    if (location.kind === "row" || location.kind === "preference") {
+      if (Number.isFinite(location.rowIndex)) {
+        const ok = await jumpToListingIndex(
+          projectId,
+          location.rowIndex,
+          location.addr,
+          location.rowCode,
+          location.stableKey,
+        );
+        if (ok) {
+          restorePreferenceScrollTop(location);
+          return true;
+        }
+      }
+      if (Number.isInteger(location.sectionIndex) && Number.isFinite(location.sourceOffset)) {
+        const ok = await jumpToListingSectionOffset(projectId, location.sectionIndex, location.sourceOffset);
+        restorePreferenceScrollTop(location);
+        return ok;
+      }
+      if (Number.isFinite(location.addr)) {
+        const ok = await jumpToListingAddr(projectId, location.addr, location.rowCode || null);
+        restorePreferenceScrollTop(location);
+        return ok;
+      }
+      return false;
+    }
+    if (location.kind === "source") {
+      return jumpToListingSectionOffset(projectId, location.sectionIndex, location.sourceOffset);
+    }
+    if (location.kind === "runtime") {
+      return jumpToListingRuntimeAddress(projectId, location.runtimeAddress);
+    }
+    if (location.kind === "addr") {
+      return jumpToListingAddr(projectId, location.addr);
+    }
+    return false;
+  } finally {
+    state.uiPreferences.restoring = false;
+  }
+}
+
+function restorePreferenceScrollTop(location) {
+  const viewport = document.getElementById("listing-viewport");
+  if (location?.kind !== "preference" || !(viewport instanceof HTMLElement) || !Number.isFinite(location.scrollTop)) {
+    return;
+  }
+  viewport.scrollTop = Math.max(0, location.scrollTop);
+}
+
+function currentUiListingLocation() {
+  const viewport = document.getElementById("listing-viewport");
+  const selection = state.listingSelection || {};
+  const anchor = captureListingAddressAnchor(viewport);
+  const location = {};
+  const rowIndex = Number(selection.rowIndex ?? anchor?.rowIndex);
+  if (Number.isFinite(rowIndex)) {
+    location.row_index = Math.floor(rowIndex);
+  }
+  for (const [from, to] of [
+    ["stableKey", "stable_key"],
+    ["rowCode", "row_code"],
+  ]) {
+    const value = selection[from] || anchor?.[from];
+    if (value) {
+      location[to] = String(value);
+    }
+  }
+  for (const [from, to] of [
+    ["addr", "addr"],
+    ["sectionIndex", "section_index"],
+    ["startOffset", "start_offset"],
+  ]) {
+    const value = Number(selection[from]);
+    if (Number.isFinite(value)) {
+      location[to] = Math.floor(value);
+    }
+  }
+  if (viewport instanceof HTMLElement) {
+    location.scroll_top = Math.floor(viewport.scrollTop);
+    location.window_start = Math.floor(Number(state.virtualListing.start || 0));
+  }
+  return Object.keys(location).length ? location : null;
+}
+
+function scheduleUiPreferenceSave() {
+  if (!state.project) {
+    return;
+  }
+  if (state.uiPreferences.saveTimer !== null) {
+    window.clearTimeout(state.uiPreferences.saveTimer);
+  }
+  state.uiPreferences.saveTimer = window.setTimeout(() => {
+    state.uiPreferences.saveTimer = null;
+    if (state.uiPreferences.restoring) {
+      scheduleUiPreferenceSave();
+      return;
+    }
+    void saveUiPreferenceState();
+  }, 250);
+}
+
+async function saveUiPreferenceState() {
+  if (!state.project) {
+    return;
+  }
+  const existing = state.uiPreferences.payload?.preferences || {};
+  const payload = {
+    ...existing,
+    listing_location: currentUiListingLocation(),
+  };
+  try {
+    state.uiPreferences.payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/ui-preferences`, {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    setAnalysisStatus("UI preference save failed", "failed", 2500);
+  }
+}
+
 function normalizeJumpText(text) {
   return String(text || "")
     .toLowerCase()
@@ -7027,6 +7293,7 @@ function setListingSelectionFromRow(row, element = null) {
   state.listingSelection = selection;
   applyRenderedListingSelection();
   dispatchAppEvent("amiga:listing-row-selected", selection);
+  scheduleUiPreferenceSave();
 }
 
 function listingElementKind(element) {
@@ -8402,6 +8669,13 @@ async function renderProject(projectId) {
   state.commandPalette.loading = false;
   state.commandPalette.global = false;
   state.commandPalette.editor = null;
+  if (state.uiPreferences.saveTimer !== null) {
+    window.clearTimeout(state.uiPreferences.saveTimer);
+  }
+  state.uiPreferences.payload = null;
+  state.uiPreferences.saveTimer = null;
+  state.uiPreferences.restoring = false;
+  state.uiPreferences.initialApplied = false;
   setAnalysisStatus("");
   renderStatsOverlay();
   renderReproPanel();
@@ -8482,7 +8756,8 @@ async function renderProject(projectId) {
       await refreshListingAtCurrentAddressAnchor(projectId, token);
     } else if (state.virtualListing.generation !== "full") {
       setViewportOverlay(loadingRowsOverlay());
-      await loadInitialListingWindow(projectId);
+      const uiPreferences = await loadUiPreferenceState(projectId);
+      await loadInitialListingLocation(projectId, uiPreferences);
     }
     await loadNavigationEntries(projectId);
     if (token !== state.loadingToken) {
@@ -8495,6 +8770,10 @@ async function renderProject(projectId) {
       total_rows: state.virtualListing.totalRows,
       analysis_generation: state.virtualListing.generation,
     }, true);
+    if (!state.listingSelection) {
+      const uiPreferences = state.uiPreferences.payload || await loadUiPreferenceState(projectId);
+      await applyInitialListingLocation(projectId, uiPreferences);
+    }
     await focusPendingCorpusExample(projectId);
     if (state.virtualListing.generation === "full") {
       void pollReproductionReport(projectId, token);

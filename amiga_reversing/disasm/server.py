@@ -79,6 +79,7 @@ from amiga_reversing.disasm.reproduction import (
     source_renderer_tool_stamps,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
+from amiga_reversing.disasm.ui_preferences import load_ui_preferences, save_ui_preferences
 
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 LOGGER = logging.getLogger("amiga_reversing.disasm.server")
@@ -1363,6 +1364,45 @@ def _manual_action_catalog_payload(project_name: str, query: dict[str, list[str]
     raise ValueError(f"Unsupported manual action catalog context: {context}")
 
 
+def _source_entrypoint_payload(project_name: str) -> dict[str, object] | None:
+    try:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    except (FileNotFoundError, ValueError):
+        return None
+    source = paths.binary_source
+    entrypoint = getattr(source, "analysis_entrypoint", None)
+    if not isinstance(entrypoint, int) or isinstance(entrypoint, bool):
+        return None
+    payload: dict[str, object] = {"addr": entrypoint}
+    local_entrypoint = getattr(source, "local_entrypoint", None)
+    if isinstance(local_entrypoint, int) and not isinstance(local_entrypoint, bool):
+        payload["source_offset"] = local_entrypoint
+    runtime_entrypoint = getattr(source, "entrypoint", None)
+    if isinstance(runtime_entrypoint, int) and not isinstance(runtime_entrypoint, bool):
+        payload["runtime_address"] = runtime_entrypoint
+    return payload
+
+
+def _ui_preferences_payload(project_name: str) -> dict[str, object]:
+    project = get_project(project_name)
+    if project.kind is not ProjectKind.BINARY or not project.ready:
+        return {"preferences": {}, "source_entrypoint": None}
+    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    return {
+        "preferences": load_ui_preferences(paths.target_dir, project_name),
+        "source_entrypoint": _source_entrypoint_payload(project_name),
+    }
+
+
+def _save_ui_preferences_payload(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    project = get_project(project_name)
+    if project.kind is not ProjectKind.BINARY or not project.ready:
+        raise ValueError(f"Project {project_name} is not ready for UI preference state")
+    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    payload = body if isinstance(body, dict) else {}
+    return {"preferences": save_ui_preferences(paths.target_dir, project_name, cast(dict[str, object], payload))}
+
+
 def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]:
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
@@ -1706,6 +1746,27 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
 
         self._handle_request("PATCH", handler)
 
+    def do_PUT(self) -> None:
+        parsed = urlparse(self.path)
+        if self._reject_forbidden_api_origin(parsed.path):
+            return
+
+        def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
+            content_length = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(content_length) or b"{}")
+            assert isinstance(payload, dict), "PUT body must be a JSON object"
+            body = _json_bytes(
+                route_request(
+                    "PUT",
+                    parsed.path,
+                    parse_qs(parsed.query),
+                    cast(dict[str, object], payload),
+                )
+            )
+            return body, "application/json; charset=utf-8", 200, None
+
+        self._handle_request("PUT", handler)
+
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         if self._reject_forbidden_api_origin(parsed.path):
@@ -1903,6 +1964,10 @@ def route_request(
             return {"ok": True, "data": _type_catalog_payload(project_name)}
         if method == "GET" and len(parts) == 4 and parts[3] == "manual-action-catalog":
             return {"ok": True, "data": _manual_action_catalog_payload(project_name, query)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "ui-preferences":
+            return {"ok": True, "data": _ui_preferences_payload(project_name)}
+        if method == "PUT" and len(parts) == 4 and parts[3] == "ui-preferences":
+            return {"ok": True, "data": _save_ui_preferences_payload(project_name, body)}
         if (
             method == "POST"
             and len(parts) == 5

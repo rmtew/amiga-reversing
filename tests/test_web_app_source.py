@@ -103,6 +103,25 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert ".command-parameter-field-error" in styles_css
 
 
+def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "function loadUiPreferenceState(projectId)" in app_js
+    assert "function explicitListingLocationFromUrl()" in app_js
+    assert "function preferenceListingLocation(payload)" in app_js
+    assert "function entrypointListingLocation(payload)" in app_js
+    assert "function loadInitialListingLocation(projectId, uiPreferences)" in app_js
+    assert "function scheduleUiPreferenceSave()" in app_js
+    assert "`/api/projects/${encodeURIComponent(projectId)}/ui-preferences`" in app_js
+    assert "`/api/projects/${encodeURIComponent(state.project)}/ui-preferences`" in app_js
+    assert 'method: "PUT"' in app_js
+    assert "state.uiPreferences.restoring" in app_js
+
+
 def test_web_app_initial_listing_load_requests_virtual_window() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

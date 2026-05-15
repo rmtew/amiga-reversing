@@ -22,12 +22,16 @@ Restore **Listing Selection** and scroll anchor from **UI Preference State** whe
 
 ## Acceptance criteria
 
-- [ ] Opening a target restores the last selected row when it can still be resolved.
-- [ ] The virtual listing viewport restores the saved scroll anchor.
-- [ ] Stale row identity falls back without breaking listing load.
-- [ ] Restore behavior uses row identity before row index fallback.
-- [ ] Web/CDP tests cover restore after reload.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Opening a target restores the last selected row when it can still be resolved.
+- [x] The virtual listing viewport restores the saved scroll anchor.
+- [x] Stale row identity falls back without breaking listing load.
+- [x] Restore behavior uses row identity before row index fallback.
+- [x] Web/CDP tests cover restore after reload.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. CDP covers selecting a row, saving UI preference state, and restoring it after reload.
 
 ## Blocked by
 

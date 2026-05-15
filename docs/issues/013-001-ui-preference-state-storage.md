@@ -24,13 +24,17 @@ Add project-local **UI Preference State** storage for listing location and non-a
 
 ## Acceptance criteria
 
-- [ ] The project can persist and reload listing location preference state.
-- [ ] Preference state can remember reproduction profile view choice and source export assembler choice without becoming policy authority.
-- [ ] Preference state is scoped to the project target identity needed for UI restoration.
-- [ ] Writes do not touch the **Manual Action Log**.
-- [ ] Stale or missing preference state fails safely.
-- [ ] Tests cover load, save, missing file, and stale identity behavior.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] The project can persist and reload listing location preference state.
+- [x] Preference state can remember reproduction profile view choice and source export assembler choice without becoming policy authority.
+- [x] Preference state is scoped to the project target identity needed for UI restoration.
+- [x] Writes do not touch the **Manual Action Log**.
+- [x] Stale or missing preference state fails safely.
+- [x] Tests cover load, save, missing file, and stale identity behavior.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Added project-local `ui_preferences.json`, API routes, and storage tests.
 
 ## Blocked by
 

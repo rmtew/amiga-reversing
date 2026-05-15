@@ -22,12 +22,16 @@ Select and center the source entrypoint row on first open when no explicit ancho
 
 ## Acceptance criteria
 
-- [ ] First open reads the source entrypoint from the target source descriptor.
-- [ ] The matching listing row is selected and centered in the virtual viewport.
-- [ ] Missing entrypoint row falls back safely to current listing start behavior.
-- [ ] The selected entrypoint is UI state only, not a **Manual Action Log** entry.
-- [ ] CDP coverage proves first-open selection and centering.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] First open reads the source entrypoint from the target source descriptor.
+- [x] The matching listing row is selected and centered in the virtual viewport.
+- [x] Missing entrypoint row falls back safely to current listing start behavior.
+- [x] The selected entrypoint is UI state only, not a **Manual Action Log** entry.
+- [x] CDP coverage proves first-open selection and centering.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. CDP covers first-open selection from raw source entrypoint without writing Manual Action Log entries.
 
 ## Blocked by
 

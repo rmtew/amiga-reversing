@@ -1,5 +1,9 @@
 # PRD 013: UI Preference State and Entrypoint Open
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Persist project-local **UI Preference State** for listing location and use the source entrypoint as the first-open fallback when no explicit or persisted location exists.
@@ -43,6 +47,12 @@ Persist project-local **UI Preference State** for listing location and use the s
 - Tests proving preference writes do not touch the **Manual Action Log**.
 - Regression test for stale row identity falling back without breaking listing load.
 
+Verified:
+
+- `uv run pytest tests\test_ui_preferences.py tests\test_disasm_server.py -q -k "ui_preferences"`
+- `uv run pytest tests\test_web_app_source.py -q`
+- `uv run pytest tests\test_web_e2e_cdp.py -q -k first_open_selects_source_entrypoint`
+
 ## Issues
 
 - [013-001: UI Preference State Storage](../issues/013-001-ui-preference-state-storage.md)
@@ -51,6 +61,6 @@ Persist project-local **UI Preference State** for listing location and use the s
 - [013-004: Location Precedence Rules](../issues/013-004-location-precedence-rules.md)
 - [013-005: PRD 013 Review and Tightening](../issues/013-005-prd-013-review-and-tightening.md)
 
-## Open Questions
+## Decisions
 
-- Exact file name and format for project-local UI preference state.
+- Project-local UI preference state is stored as `ui_preferences.json` in the binary target directory.

@@ -23,12 +23,16 @@ Review **UI Preference State** and first-open entrypoint behavior against PRD 01
 
 ## Acceptance criteria
 
-- [ ] Preference state remains separate from **Manual Action Log** and analysis metadata.
-- [ ] Listing restore and first-open entrypoint behavior match the precedence rules.
-- [ ] Stale preference handling is tested.
-- [ ] CDP coverage proves entrypoint centering.
-- [ ] PRD 013 issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Preference state remains separate from **Manual Action Log** and analysis metadata.
+- [x] Listing restore and first-open entrypoint behavior match the precedence rules.
+- [x] Stale preference handling is tested.
+- [x] CDP coverage proves entrypoint centering.
+- [x] PRD 013 issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Review found and fixed an explicit-location parsing bug where missing URL parameters were treated as row `0`.
 
 ## Blocked by
 

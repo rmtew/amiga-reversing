@@ -22,12 +22,16 @@ Apply deterministic location precedence so explicit URL anchors and navigation c
 
 ## Acceptance criteria
 
-- [ ] URL or route anchors override restored **UI Preference State**.
-- [ ] Explicit navigation commands override restored preference state.
-- [ ] Restored preference state overrides entrypoint fallback.
-- [ ] Entrypoint fallback runs only when no explicit or persisted location exists.
-- [ ] Tests cover all precedence branches.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] URL or route anchors override restored **UI Preference State**.
+- [x] Explicit navigation commands override restored preference state.
+- [x] Restored preference state overrides entrypoint fallback.
+- [x] Entrypoint fallback runs only when no explicit or persisted location exists.
+- [x] Tests cover all precedence branches.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Progress
+
+Completed 2026-05-16. Web logic applies explicit URL location, saved preference, then entrypoint fallback; navigation commands remain explicit runtime actions.
 
 ## Blocked by
 
