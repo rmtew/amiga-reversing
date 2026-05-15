@@ -140,6 +140,88 @@ def test_manual_representation_actions_project_without_manual_seed(tmp_path: Pat
     )
 
 
+def test_review_note_actions_project_notes_and_review_items(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "add_review_note",
+                note={
+                    "note_id": "note-1",
+                    "target_kind": "row",
+                    "title": "Check branch",
+                    "body": "Confirm target.",
+                    "tracking": "needs_review",
+                    "hunk": 0,
+                    "addr": 4,
+                    "end": 6,
+                    "row_indexes": [2],
+                },
+            ),
+            _action("a2", 2, "edit_review_note", note_id="note-1", title="Check branch target"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "needs_review"
+    assert projection.review_notes == (
+        {
+            "note_id": "note-1",
+            "target_kind": "row",
+            "title": "Check branch target",
+            "body": "Confirm target.",
+            "tracking": "needs_review",
+            "hunk": 0,
+            "addr": 4,
+            "end": 6,
+            "row_indexes": [2],
+        },
+    )
+    review_item = projection.review_items[0]
+    assert review_item["kind"] == "review_note"
+    assert review_item["state"] == "open"
+    assert review_item["review_blocker"] is False
+    assert review_item["note_id"] == "note-1"
+    assert review_item["start"] == 4
+    assert review_item["end"] == 6
+
+
+def test_note_only_and_cleared_review_notes_do_not_affect_review_state(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "add_review_note",
+                note={"note_id": "note-1", "title": "Bookmark", "tracking": "note_only", "hunk": 0, "addr": 4},
+            ),
+            _action(
+                "a2",
+                2,
+                "add_review_note",
+                note={"note_id": "note-2", "title": "Review", "tracking": "needs_review", "hunk": 0, "addr": 8},
+            ),
+            _action("a3", 3, "clear_review_note", note_id="note-2"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "clear"
+    assert [note["note_id"] for note in projection.review_notes] == ["note-1"]
+    assert projection.review_items == ()
+
+
 def test_manual_action_log_replays_file_order_and_reports_sequence_inconsistency(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

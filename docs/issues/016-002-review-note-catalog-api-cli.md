@@ -22,14 +22,20 @@ Expose add, edit, and clear **Review Note** actions through the **Manual Action 
 
 ## Acceptance criteria
 
-- [ ] Catalog entries exist for add, edit, and clear review note.
-- [ ] Add and edit actions expose title, body, and tracking mode parameters.
-- [ ] Row-level note actions are available without range selection.
-- [ ] HTTP routes validate note parameters and target context.
-- [ ] CLI can list and invoke note actions.
-- [ ] CLI/API output distinguishes `note_only`, `needs_review`, cleared, and unresolved-location notes.
-- [ ] Route and CLI tests cover add, edit, and clear flows.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Catalog entries exist for add, edit, and clear review note.
+- [x] Add and edit actions expose title, body, and tracking mode parameters.
+- [x] Row-level note actions are available without range selection.
+- [x] HTTP routes validate note parameters and target context.
+- [x] CLI can list and invoke note actions.
+- [x] CLI/API output distinguishes `note_only`, `needs_review`, cleared, and unresolved-location notes.
+- [x] Route and CLI tests cover add, edit, and clear flows.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Row and range catalog actions expose schema-backed add note parameters.
+- Review-note review items expose edit and clear actions through the same catalog/API/CLI path.
+- CLI range contexts are supported with `--row-indexes`.
 
 ## Blocked by
 

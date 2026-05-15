@@ -23,15 +23,20 @@ Review **Review Note** behavior against PRD 016 and confirm notes are durable ta
 
 ## Acceptance criteria
 
-- [ ] Review notes are stored through the **Manual Action Log**.
-- [ ] `note_only` notes appear in listing and Navigate but not the Review dialog.
-- [ ] `needs_review` notes appear as **Manual Review Items** and affect **Review State**.
-- [ ] Review notes do not create `blocked` state in the first implementation.
-- [ ] Row and range note behavior is covered where implemented.
-- [ ] Ctrl-click and Navigate behavior matches standard symbolic navigation interaction.
-- [ ] Manual comment behavior remains distinct.
-- [ ] PRD 016 issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Review notes are stored through the **Manual Action Log**.
+- [x] `note_only` notes appear in listing and Navigate but not the Review dialog.
+- [x] `needs_review` notes appear as **Manual Review Items** and affect **Review State**.
+- [x] Review notes do not create `blocked` state in the first implementation.
+- [x] Row and range note behavior is covered where implemented.
+- [x] Ctrl-click and Navigate behavior matches standard symbolic navigation interaction.
+- [x] Manual comment behavior remains distinct.
+- [x] PRD 016 issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- PRD 016 behavior is covered by projection, route/CLI, source, and CDP tests.
+- Review-note changes do not invalidate listing analysis caches because they do not change analysis metadata.
 
 ## Blocked by
 

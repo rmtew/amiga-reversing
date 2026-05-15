@@ -202,6 +202,17 @@ body {
   color: #6f4900;
 }
 
+.project-badge-review-note {
+  background: #eef2ff;
+  border-color: #6677aa;
+  color: #283766;
+}
+
+.listing-review-note {
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .project-badge-review-blocked {
   background: #ffe8e8;
   border-color: #a84d4d;

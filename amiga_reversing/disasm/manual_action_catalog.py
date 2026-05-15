@@ -20,6 +20,10 @@ _KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk
 def review_item_action_catalog(item: Mapping[str, object]) -> list[dict[str, object]]:
     kind = str(item.get("kind") or "")
     actions = [_transient("review.navigate", "Navigate", "navigate", item)]
+    if kind == "review_note":
+        actions.append(_review_note_action("review_note.edit", "Edit review note", "edit_review_note", item))
+        actions.append(_review_note_action("review_note.clear", "Clear review note", "clear_review_note", item))
+        return actions
     if kind == "orphan_code_candidate":
         actions.append(_seed("review.seed.code", "Seed code", item, seed_kind="code"))
         actions.append(
@@ -133,6 +137,30 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
     context = listing_row_context(row)
     return [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
+        _context_log_action(
+            "review_note.add",
+            "Add review note",
+            "add_review_note",
+            context,
+            {},
+            _review_note_parameter_schema(),
+        ),
+        _context_log_action(
+            "review_note.edit",
+            "Edit review note",
+            "edit_review_note",
+            context,
+            {},
+            _review_note_edit_parameter_schema(),
+        ),
+        _context_log_action(
+            "review_note.clear",
+            "Clear review note",
+            "clear_review_note",
+            context,
+            {},
+            _review_note_clear_parameter_schema(),
+        ),
         _context_log_action(
             "row.seed.code",
             "Seed code",
@@ -266,6 +294,14 @@ def listing_element_action_catalog(
 def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
     context = listing_range_context(rows)
     return [
+        _context_log_action(
+            "range.review_note.add",
+            "Add range review note",
+            "add_review_note",
+            context,
+            {},
+            _review_note_parameter_schema(),
+        ),
         _range_seed_action("range.seed.code", "Seed code", context, rows, {"seed_kind": "code"}, _row_allows_code_seed),
         _range_seed_action(
             "range.seed.data.raw",
@@ -338,6 +374,8 @@ def listing_range_catalog_manual_payload(
     params = dict(_object(action.get("parameters"), "catalog action parameters"))
     if parameters:
         params.update(parameters)
+    if action.get("action") == "add_review_note":
+        return [("add_review_note", {"note": _range_review_note_payload(rows, params)})]
     subranges = action.get("applicable_subranges")
     if not isinstance(subranges, list) or not subranges:
         raise ValueError("Range action has no explicit applicable subranges")
@@ -408,6 +446,13 @@ def review_item_catalog_manual_payload(
         if isinstance(owner_id, str) and owner_id:
             payload["owner_id"] = owner_id
         return "change_label_scope", payload
+    if ui_action == "edit_review_note":
+        note_id = _review_note_id(item, params)
+        payload = _review_note_edit_payload(note_id, params)
+        return "edit_review_note", payload
+    if ui_action == "clear_review_note":
+        note_id = _review_note_id(item, params)
+        return "clear_review_note", {"note_id": note_id}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -440,6 +485,13 @@ def listing_catalog_manual_payload(
         return "create_manual_semantic_hint", {"semantic_hint": _semantic_hint_payload(row, element_context, params)}
     if ui_action == "set_representation":
         return "create_manual_representation", {"representation": _representation_payload(row, element_context, params)}
+    if ui_action == "add_review_note":
+        return "add_review_note", {"note": _row_review_note_payload(row, params)}
+    if ui_action == "edit_review_note":
+        note_id = _review_note_id(row, params)
+        return "edit_review_note", _review_note_edit_payload(note_id, params)
+    if ui_action == "clear_review_note":
+        return "clear_review_note", {"note_id": _review_note_id(row, params)}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -502,6 +554,130 @@ def _row_seed_payload(row: Mapping[str, object], params: Mapping[str, object]) -
         if isinstance(encoding, str) and encoding:
             seed["encoding"] = encoding
     return seed
+
+
+def _review_note_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "body": {"type": "string"},
+            "tracking": {"type": "string", "enum": ["note_only", "needs_review"]},
+        },
+        "required": [],
+    }
+
+
+def _review_note_edit_parameter_schema() -> dict[str, object]:
+    schema = _review_note_parameter_schema()
+    cast(dict[str, object], schema["properties"])["note_id"] = {"type": "string"}
+    cast(list[str], schema["required"]).append("note_id")
+    return schema
+
+
+def _review_note_clear_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"note_id": {"type": "string"}},
+        "required": ["note_id"],
+    }
+
+
+def _review_note_id(item: Mapping[str, object], params: Mapping[str, object]) -> str:
+    note_id = params.get("note_id") or item.get("note_id")
+    if isinstance(note_id, str) and note_id:
+        return note_id
+    raise ValueError("note_id parameter is required")
+
+
+def _review_note_edit_payload(note_id: str, params: Mapping[str, object]) -> dict[str, object]:
+    payload: dict[str, object] = {"note_id": note_id}
+    if "title" in params:
+        title = params.get("title")
+        if not isinstance(title, str):
+            raise ValueError("review note title must be a string")
+        payload["title"] = title
+    if "body" in params:
+        body = params.get("body")
+        if not isinstance(body, str):
+            raise ValueError("review note body must be a string")
+        payload["body"] = body
+    if "tracking" in params:
+        tracking = params.get("tracking")
+        if tracking not in {"note_only", "needs_review"}:
+            raise ValueError("review note tracking must be note_only or needs_review")
+        payload["tracking"] = tracking
+    if len(payload) == 1:
+        raise ValueError("edit_review_note requires title, body, or tracking")
+    return payload
+
+
+def _review_note_text(params: Mapping[str, object], name: str) -> str:
+    value = params.get(name)
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"review note {name} must be a string")
+    return value.strip()
+
+
+def _review_note_tracking(params: Mapping[str, object]) -> str:
+    tracking = params.get("tracking") or "note_only"
+    if tracking not in {"note_only", "needs_review"}:
+        raise ValueError("review note tracking must be note_only or needs_review")
+    return str(tracking)
+
+
+def _row_review_note_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    addr = _int_field(row, "start_offset", fallback="addr")
+    note: dict[str, object] = {
+        "note_id": f"catalog-{uuid.uuid4().hex}",
+        "target_kind": "row",
+        "title": _review_note_text(params, "title"),
+        "body": _review_note_text(params, "body"),
+        "tracking": _review_note_tracking(params),
+        "hunk": _int_field(row, "section_index", default=0),
+        "addr": addr,
+    }
+    end = _optional_int(row.get("end_offset"))
+    if end is not None and end > addr:
+        note["end"] = end
+    row_index = _optional_int(row.get("row_index"))
+    if row_index is not None:
+        note["row_index"] = row_index
+        note["row_indexes"] = [row_index]
+    stable_key = row.get("stable_key")
+    if isinstance(stable_key, str) and stable_key:
+        note["stable_key"] = stable_key
+    return note
+
+
+def _range_review_note_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
+    if not rows:
+        raise ValueError("range review note requires selected rows")
+    first = rows[0]
+    last = rows[-1]
+    addr = _int_field(first, "start_offset", fallback="addr")
+    note: dict[str, object] = {
+        "note_id": f"catalog-{uuid.uuid4().hex}",
+        "target_kind": "range",
+        "title": _review_note_text(params, "title"),
+        "body": _review_note_text(params, "body"),
+        "tracking": _review_note_tracking(params),
+        "hunk": _int_field(first, "section_index", default=0),
+        "addr": addr,
+        "row_indexes": [
+            index for row in rows if (index := _optional_int(row.get("row_index"))) is not None
+        ],
+    }
+    end = _optional_int(last.get("end_offset"))
+    if end is None:
+        end = _optional_int(last.get("start_offset"))
+    if end is None:
+        end = _optional_int(last.get("addr"))
+    if end is not None and end > addr:
+        note["end"] = end
+    return note
 
 
 def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
@@ -858,6 +1034,23 @@ def _label_action(
         properties["scope"] = {"type": "string", "enum": ["global", "local"]}
         properties["owner_id"] = {"type": "string"}
         cast(list[str], schema["required"]).append("scope")
+    return _log_action(action_id, label, ui_action, item, parameters, schema)
+
+
+def _review_note_action(
+    action_id: str,
+    label: str,
+    ui_action: str,
+    item: Mapping[str, object],
+) -> dict[str, object]:
+    note_id = item.get("note_id")
+    parameters: dict[str, object] = {}
+    if isinstance(note_id, str) and note_id:
+        parameters["note_id"] = note_id
+    schema = _review_note_edit_parameter_schema() if ui_action == "edit_review_note" else _review_note_clear_parameter_schema()
+    if isinstance(note_id, str) and note_id:
+        required = cast(list[str], schema["required"])
+        schema["required"] = [field for field in required if field != "note_id"]
     return _log_action(action_id, label, ui_action, item, parameters, schema)
 
 

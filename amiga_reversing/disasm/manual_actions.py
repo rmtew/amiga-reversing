@@ -53,6 +53,7 @@ class ReviewItemKind(StrEnum):
     SUSPICIOUS_INSTRUCTION_DECODE = "suspicious_instruction_decode"
     MANUAL_LABEL_UNRECONCILED = "manual_label_unreconciled"
     MANUAL_COMMENT_UNRECONCILED = "manual_comment_unreconciled"
+    REVIEW_NOTE = "review_note"
     LABEL_SCOPE_CONFLICT = "label_scope_conflict"
     DECOMPRESSION_BLOCKER = "decompression_blocker"
 
@@ -141,6 +142,9 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_REPRESENTATION = "remove_manual_representation"
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
+    ADD_REVIEW_NOTE = "add_review_note"
+    EDIT_REVIEW_NOTE = "edit_review_note"
+    CLEAR_REVIEW_NOTE = "clear_review_note"
     RESOLVE_REVIEW_ITEM = "resolve_review_item"
     UNDO_ACTION = "undo_action"
     REDO_ACTION = "redo_action"
@@ -165,6 +169,7 @@ class ManualActionLogProjection:
     comments: tuple[dict[str, object], ...]
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
+    review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
     inactive_action_ids: tuple[str, ...]
@@ -311,6 +316,7 @@ def _empty_projection(
         comments=(),
         representations=(),
         semantic_hints=(),
+        review_notes=(),
         resolutions=(),
         active_action_ids=(),
         inactive_action_ids=(),
@@ -426,6 +432,16 @@ def _suggested_review_actions(item: dict[str, object]) -> list[dict[str, object]
             },
             {"action": SuggestedReviewActionKind.CREATE_MANUAL_SEED, "mode": ManualSeedMode.REQUIRED},
             {"action": SuggestedReviewActionKind.REMOVE_MANUAL_ANNOTATION},
+            {"action": SuggestedReviewActionKind.ACKNOWLEDGE},
+        ]
+    if kind is ReviewItemKind.REVIEW_NOTE:
+        return [
+            {
+                "action": SuggestedReviewActionKind.NAVIGATE,
+                "scope": item.get("scope"),
+                "hunk": item.get("hunk"),
+                "addr": item.get("start"),
+            },
             {"action": SuggestedReviewActionKind.ACKNOWLEDGE},
         ]
     if kind is ReviewItemKind.LABEL_SCOPE_CONFLICT:
@@ -968,6 +984,69 @@ def _drop_by_id(
     target.pop(object_id, None)
 
 
+def _review_note_from_action(action: _ManualAction) -> dict[str, object]:
+    note = _action_object(action, "note")
+    tracking = note.get("tracking")
+    if tracking not in {"note_only", "needs_review"}:
+        note["tracking"] = "note_only"
+    if "title" not in note:
+        note["title"] = ""
+    if "body" not in note:
+        note["body"] = ""
+    return note
+
+
+def _edit_review_note(notes: dict[str, dict[str, object]], action: _ManualAction) -> None:
+    note_id = _action_ref(action, "note_id")
+    existing = notes.get(note_id)
+    if existing is None:
+        return
+    updated = dict(existing)
+    for field_name in ("title", "body", "tracking"):
+        if field_name in action.payload:
+            updated[field_name] = action.payload[field_name]
+    if updated.get("tracking") not in {"note_only", "needs_review"}:
+        updated["tracking"] = "note_only"
+    notes[note_id] = updated
+
+
+def _review_note_item(note: dict[str, object]) -> dict[str, object] | None:
+    if note.get("tracking") != "needs_review":
+        return None
+    note_id = note.get("note_id")
+    if not isinstance(note_id, str) or not note_id:
+        return None
+    addr = _manual_seed_int(note, "addr")
+    end = _manual_seed_int(note, "end")
+    title = str(note.get("title") or "").strip()
+    body = str(note.get("body") or "").strip()
+    message = title or body or "Review note"
+    item: dict[str, object] = {
+        "kind": ReviewItemKind.REVIEW_NOTE,
+        "scope": ReviewItemScope.RANGE if addr is not None else ReviewItemScope.TARGET,
+        "state": ReviewItemState.OPEN,
+        "review_blocker": False,
+        "source": "review_note",
+        "note_id": note_id,
+        "title": title,
+        "body": body,
+        "message": message,
+    }
+    hunk = _manual_seed_int(note, "hunk")
+    if hunk is not None:
+        item["hunk"] = hunk
+    if addr is not None:
+        item["start"] = addr
+        item["addr"] = addr
+        item["end"] = end if end is not None and end > addr else addr + 1
+    else:
+        item["stale_location_reason"] = "unresolved_location"
+    row_indexes = note.get("row_indexes")
+    if isinstance(row_indexes, list):
+        item["row_indexes"] = [value for value in row_indexes if isinstance(value, int) and not isinstance(value, bool)]
+    return item
+
+
 def _project_actions(
     path: Path,
     *,
@@ -998,6 +1077,7 @@ def _project_actions(
     comments: dict[str, dict[str, object]] = {}
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
+    review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
     inactive_action_ids: list[str] = []
@@ -1035,6 +1115,12 @@ def _project_actions(
             _put_by_id(semantic_hints, _action_object(action, "semantic_hint"), "semantic_hint_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEMANTIC_HINT:
             _drop_by_id(semantic_hints, action, "semantic_hint_id")
+        elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
+            _put_by_id(review_notes, _review_note_from_action(action), "note_id")
+        elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
+            _edit_review_note(review_notes, action)
+        elif action.kind is ManualActionKind.CLEAR_REVIEW_NOTE:
+            _drop_by_id(review_notes, action, "note_id")
         elif action.kind is ManualActionKind.RESOLVE_REVIEW_ITEM:
             _put_by_id(resolutions, _action_object(action, "resolution"), "resolution_id")
         elif action.kind in {ManualActionKind.UNDO_ACTION, ManualActionKind.REDO_ACTION}:
@@ -1052,6 +1138,9 @@ def _project_actions(
             assembler_profile=assembler_profile,
         )
     )
+    review_items.extend(
+        item for note in review_notes.values() if (item := _review_note_item(note)) is not None
+    )
     finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
     review_state = _review_state_for_items(finalized_review_items)
     return ManualActionLogProjection(
@@ -1065,6 +1154,7 @@ def _project_actions(
         comments=tuple(comments.values()),
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
+        review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),
         inactive_action_ids=tuple(inactive_action_ids),

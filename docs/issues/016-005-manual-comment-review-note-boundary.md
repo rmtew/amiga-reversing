@@ -22,14 +22,19 @@ Keep **Manual Comment** and **Review Note** behavior distinct across action elig
 
 ## Acceptance criteria
 
-- [ ] Manual comments remain source/rendering annotation.
-- [ ] Review notes remain review workflow state.
-- [ ] `note_only` Review Notes do not appear as source comments or **Manual Review Items**.
-- [ ] `needs_review` Review Notes appear as **Manual Review Items** without becoming source comments.
-- [ ] Catalog entries and labels make the distinction clear.
-- [ ] Tests prove notes and comments project into distinct surfaces.
-- [ ] Existing manual comment behavior does not regress.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Manual comments remain source/rendering annotation.
+- [x] Review notes remain review workflow state.
+- [x] `note_only` Review Notes do not appear as source comments or **Manual Review Items**.
+- [x] `needs_review` Review Notes appear as **Manual Review Items** without becoming source comments.
+- [x] Catalog entries and labels make the distinction clear.
+- [x] Tests prove notes and comments project into distinct surfaces.
+- [x] Existing manual comment behavior does not regress.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Review notes are separate `review_notes` projection state, not manual comments.
+- Listing note badges are rendered from review-note annotations, not source comments.
 
 ## Blocked by
 

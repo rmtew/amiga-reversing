@@ -110,8 +110,13 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function applyManualActionApplication" in app_js
     assert "function applyManualLocalEffect" in app_js
     assert "function applyManualLabelRenameEffect" in app_js
+    assert "function applyManualReviewNoteAddEffect" in app_js
+    assert "function renderReviewNoteBadge" in app_js
+    assert '["review-notes", "Review Notes"]' in app_js
+    assert "openNavigationOverlay(\"review-notes\", noteId)" in app_js
     assert "state.manualEdit.inFlight" in app_js
     assert "listing-row-manual-pending" in app_js
+    assert ".project-badge-review-note" in styles_css
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css
 

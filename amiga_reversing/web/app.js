@@ -1840,6 +1840,15 @@ function applyManualLocalEffect(effect) {
   if (effect.kind === "representation") {
     return applyManualRepresentationEffect(effect);
   }
+  if (effect.kind === "review_note_add") {
+    return applyManualReviewNoteAddEffect(effect);
+  }
+  if (effect.kind === "review_note_edit") {
+    return applyManualReviewNoteEditEffect(effect);
+  }
+  if (effect.kind === "review_note_clear") {
+    return applyManualReviewNoteClearEffect(effect);
+  }
   return false;
 }
 
@@ -1888,6 +1897,113 @@ function applyManualRepresentationEffect(effect) {
     representation,
   ];
   return true;
+}
+
+function ensureManualReviewNotes() {
+  const project = state.projectData?.project;
+  if (!project) {
+    return null;
+  }
+  if (!project.manual_state || typeof project.manual_state !== "object") {
+    project.manual_state = {};
+  }
+  if (!Array.isArray(project.manual_state.review_notes)) {
+    project.manual_state.review_notes = [];
+  }
+  return project.manual_state.review_notes;
+}
+
+function applyManualReviewNoteAddEffect(effect) {
+  const note = effect.note;
+  if (!note || typeof note !== "object") {
+    return false;
+  }
+  const notes = ensureManualReviewNotes();
+  if (!notes) {
+    return false;
+  }
+  const nextNote = {...note};
+  const noteId = String(nextNote.note_id || "");
+  if (!noteId) {
+    return false;
+  }
+  const index = notes.findIndex((item) => item.note_id === noteId);
+  if (index >= 0) {
+    notes[index] = nextNote;
+  } else {
+    notes.push(nextNote);
+  }
+  applyReviewNoteToListingRows(nextNote);
+  return true;
+}
+
+function applyManualReviewNoteEditEffect(effect) {
+  const patch = effect.note;
+  const noteId = String(patch?.note_id || "");
+  const notes = ensureManualReviewNotes();
+  if (!noteId || !notes) {
+    return false;
+  }
+  const index = notes.findIndex((item) => item.note_id === noteId);
+  if (index < 0) {
+    return false;
+  }
+  const updated = {...notes[index], ...patch};
+  notes[index] = updated;
+  removeReviewNoteFromListingRows(noteId);
+  applyReviewNoteToListingRows(updated);
+  return true;
+}
+
+function applyManualReviewNoteClearEffect(effect) {
+  const noteId = String(effect.note_id || "");
+  const notes = ensureManualReviewNotes();
+  if (!noteId || !notes) {
+    return false;
+  }
+  const index = notes.findIndex((item) => item.note_id === noteId);
+  if (index >= 0) {
+    notes.splice(index, 1);
+  }
+  removeReviewNoteFromListingRows(noteId);
+  return true;
+}
+
+function noteMatchesListingRow(note, row, globalIndex) {
+  const rowIndexes = Array.isArray(note.row_indexes) ? note.row_indexes : [];
+  if (rowIndexes.includes(globalIndex)) {
+    return true;
+  }
+  if (note.stable_key && row.stable_key && note.stable_key === row.stable_key) {
+    return true;
+  }
+  const start = Number(note.addr);
+  const end = Number(note.end);
+  const rowStart = Number(row.start_offset ?? row.addr);
+  if (!Number.isFinite(start) || !Number.isFinite(rowStart)) {
+    return false;
+  }
+  return Number.isFinite(end) && end > start ? rowStart >= start && rowStart < end : rowStart === start;
+}
+
+function applyReviewNoteToListingRows(note) {
+  state.listingRows = (Array.isArray(state.listingRows) ? state.listingRows : []).map((row, localIndex) => {
+    const globalIndex = Number(state.virtualListing.start || 0) + localIndex;
+    if (!noteMatchesListingRow(note, row, globalIndex)) {
+      return row;
+    }
+    const existing = Array.isArray(row.review_notes) ? row.review_notes.filter((item) => item.note_id !== note.note_id) : [];
+    return {...row, review_notes: [...existing, note]};
+  });
+}
+
+function removeReviewNoteFromListingRows(noteId) {
+  state.listingRows = (Array.isArray(state.listingRows) ? state.listingRows : []).map((row) => {
+    if (!Array.isArray(row.review_notes)) {
+      return row;
+    }
+    return {...row, review_notes: row.review_notes.filter((note) => note.note_id !== noteId)};
+  });
 }
 
 function renderCurrentListingWindow() {
@@ -4766,12 +4882,27 @@ function renderListingComment(row) {
 }
 
 function renderListingAnnotations(row) {
-  if (!Array.isArray(row.view_annotations) || !row.view_annotations.length) {
-    return "";
+  const annotations = Array.isArray(row.view_annotations) ? row.view_annotations : [];
+  const noteBadges = Array.isArray(row.review_notes) ? row.review_notes.map(renderReviewNoteBadge).join("") : "";
+  if (!annotations.length) {
+    return noteBadges;
   }
-  return row.view_annotations
+  return annotations
     .map((note) => `<span class="project-badge" title="${escapeHtml(note)}">${escapeHtml(note)}</span>`)
-    .join("");
+    .join("") + noteBadges;
+}
+
+function reviewNoteLabel(note) {
+  const title = String(note?.title || "").trim();
+  const body = String(note?.body || "").trim();
+  return title || body.split(/\r?\n/)[0] || "Bookmark";
+}
+
+function renderReviewNoteBadge(note) {
+  const tracking = note?.tracking === "needs_review" ? "needs_review" : "note_only";
+  const label = tracking === "needs_review" ? `Review: ${reviewNoteLabel(note)}` : `Note: ${reviewNoteLabel(note)}`;
+  const className = tracking === "needs_review" ? "project-badge-review-needs-review" : "project-badge-review-note";
+  return `<button type="button" class="project-badge listing-review-note ${className}" data-review-note-id="${escapeHtml(String(note?.note_id || ""))}" title="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
 }
 
 function renderApiEditButton(row, rowIndex) {
@@ -5797,6 +5928,7 @@ function buildNavigationEntries(rows) {
     "labels": [],
     "equates": [],
     "comments": [],
+    "review-notes": [],
   };
   const appSlots = new Map();
   const labels = new Map();
@@ -5919,6 +6051,23 @@ function buildNavigationEntries(rows) {
         rowIndex,
         summary: summarizeNavigationRow(row, "comments"),
         matchText: renderListingCode(row),
+      });
+    }
+    if (Array.isArray(row.review_notes)) {
+      row.review_notes.forEach((note) => {
+        groups["review-notes"].push({
+          addr: note.addr ?? row.addr,
+          rowIndex: note.row_index ?? rowIndex,
+          row_index: note.row_index ?? rowIndex,
+          stableKey: note.stable_key ?? row.stable_key ?? null,
+          stable_key: note.stable_key ?? row.stable_key ?? null,
+          summary: reviewNoteLabel(note),
+          matchText: note.body || note.title || renderListingCode(row),
+          match_text: note.body || note.title || renderListingCode(row),
+          note_id: note.note_id,
+          tracking: note.tracking || "note_only",
+          status: "open",
+        });
       });
     }
   });
@@ -6125,6 +6274,12 @@ function renderNavigationAccessBadges(entry) {
     const provenance = typedGapProvenanceSummary(entry);
     if (provenance) {
       badges.push(provenance);
+    }
+  }
+  if (state.navigation.selectedClass === "review-notes") {
+    badges.push(entry.tracking === "needs_review" ? "needs review" : "note");
+    if (entry.status) {
+      badges.push(String(entry.status));
     }
   }
   if (!badges.length) {
@@ -6449,6 +6604,7 @@ function renderNavigationOverlay() {
     ["app-slot-field-gaps", "App Field Gaps"],
     ["app-slot-api-args", "App API Args"],
     ["app-slot-suggestions", "App Suggestions"],
+    ["review-notes", "Review Notes"],
     ["labels", "Labels"],
     ["equates", "Equates"],
     ["comments", "Comments"],
@@ -6596,12 +6752,19 @@ function closeNavigationOverlay() {
   renderNavigationOverlay();
 }
 
-async function openNavigationOverlay() {
+async function openNavigationOverlay(selectedClass = null, selectedNoteId = null) {
   if (state.project) {
     await ensureNavigationEntries(state.project);
   }
   state.navigation.overlayOpen = true;
   state.navigation.originEntry = captureViewportAnchor();
+  if (selectedClass) {
+    state.navigation.selectedClass = selectedClass;
+    state.navigation.selectedIndex = 0;
+    state.navigation.appSlotSymbol = null;
+    state.navigation.labelSymbol = null;
+    state.navigation.equateSymbol = null;
+  }
   renderNavigationOverlay();
   syncNavigationListFocus();
   const entries = currentNavigationEntries();
@@ -6609,7 +6772,10 @@ async function openNavigationOverlay() {
     return;
   }
   const originAddr = state.navigation.originEntry?.addr ?? null;
-  const initialIndex = originAddr === null ? 0 : Math.max(0, entries.findIndex((entry) => entry.addr >= originAddr));
+  const noteIndex = selectedNoteId ? entries.findIndex((entry) => entry.note_id === selectedNoteId) : -1;
+  const initialIndex = noteIndex >= 0
+    ? noteIndex
+    : originAddr === null ? 0 : Math.max(0, entries.findIndex((entry) => entry.addr >= originAddr));
   state.navigation.selectedIndex = initialIndex < 0 ? 0 : initialIndex;
   renderNavigationOverlay();
   syncNavigationListFocus();
@@ -6885,6 +7051,22 @@ function bindListingEditors(projectId, rows) {
       const row = listingWindowRowByGlobalIndex(rows, rowIndex);
       if (row) {
         void openApiEditDialog(projectId, row);
+      }
+    });
+  });
+  viewport.querySelectorAll("[data-review-note-id]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const noteId = button.dataset.reviewNoteId || "";
+      if (event.ctrlKey || event.metaKey) {
+        state.navigation.entries = null;
+        void openNavigationOverlay("review-notes", noteId);
+        return;
+      }
+      const row = button.closest(".listing-row");
+      if (row instanceof HTMLElement) {
+        setListingSelectionFromRow(row);
       }
     });
   });

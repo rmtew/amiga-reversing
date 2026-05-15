@@ -27,6 +27,14 @@ def test_manual_actions_cli_lists_catalog_contexts(monkeypatch, capsys) -> None:
             "list",
             "bloodwych",
             "--context",
+            "range",
+            "--row-indexes",
+            "2,3",
+        ],
+        [
+            "list",
+            "bloodwych",
+            "--context",
             "element",
             "--row-index",
             "2",
@@ -46,6 +54,10 @@ def test_manual_actions_cli_lists_catalog_contexts(monkeypatch, capsys) -> None:
         ("/api/projects/bloodwych/manual-action-catalog", {"context": ["target"]}),
         ("/api/projects/bloodwych/manual-action-catalog", {"context": ["review-item"], "review_index": ["0"]}),
         ("/api/projects/bloodwych/manual-action-catalog", {"context": ["row"], "row_index": ["2"]}),
+        (
+            "/api/projects/bloodwych/manual-action-catalog",
+            {"context": ["range"], "row_indexes": ["2,3"]},
+        ),
         (
             "/api/projects/bloodwych/manual-action-catalog",
             {
@@ -116,6 +128,27 @@ def test_manual_actions_cli_invokes_catalog_action(monkeypatch, capsys) -> None:
         "parameters": {"unit": "byte"},
     }
     assert payload["action"]["kind"] == "create_manual_seed"
+
+    captured_body.clear()
+    assert manual_actions.main(
+        [
+            "invoke",
+            "bloodwych",
+            "--context",
+            "range",
+            "--row-indexes",
+            "2,3",
+            "range.review_note.add",
+            "--param",
+            "title=\"Check range\"",
+        ]
+    ) == 0
+    json.loads(capsys.readouterr().out)
+    assert captured_body == {
+        "action_id": "range.review_note.add",
+        "context": {"kind": "range", "row_indexes": [2, 3]},
+        "parameters": {"title": "Check range"},
+    }
 
 
 def test_manual_actions_cli_reports_invalid_inputs(monkeypatch) -> None:

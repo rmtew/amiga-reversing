@@ -1079,6 +1079,115 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_review_note")
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+        )
+    ]
+    review_notes: list[dict[str, object]] = []
+
+    def project_record(project_name: str) -> ProjectRecord:
+        review_items = []
+        for note in review_notes:
+            if note.get("tracking") == "needs_review":
+                review_items.append(
+                    {
+                        "kind": ReviewItemKind.REVIEW_NOTE,
+                        "scope": ReviewItemScope.RANGE,
+                        "state": ReviewItemState.OPEN,
+                        "review_blocker": False,
+                        "note_id": note["note_id"],
+                        "hunk": note["hunk"],
+                        "start": note["addr"],
+                        "end": note.get("end", note["addr"] + 1),
+                        "message": note["title"],
+                    }
+                )
+        return replace(
+            project,
+            review_state=ReviewState.NEEDS_REVIEW if review_items else ReviewState.CLEAR,
+            review_items=tuple(review_items),
+            manual_state={"review_notes": review_notes},
+        )
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        if kind == "add_review_note":
+            review_notes.append(cast(dict[str, object], payload["note"]))
+        return action
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
+    monkeypatch.setattr(disasm_server, "get_project", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", project_record)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_listing_artifact_profile",
+        lambda project_name: (len(rows), {}, _FakeCListingArtifact(rows, project_name=project.id)),
+    )
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+        page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'note'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression(
+            "Array.from(document.querySelectorAll('.command-palette-item')).some((item) => item.textContent.includes('Add review note'))"
+        )
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.command-palette-item'))
+              .find((item) => item.textContent.includes('Add review note'))
+              .click()
+            """
+        )
+        page.wait_for_selector("#command-parameter-editor")
+        page.fill("[data-command-parameter-name='title']", "Check return")
+        page.fill("[data-command-parameter-name='body']", "Confirm this is the final return.")
+        page.evaluate("document.querySelector('[data-command-parameter-name=\"tracking\"]').value = 'needs_review'")
+        page.evaluate("document.querySelector('[data-command-parameter-name=\"tracking\"]').dispatchEvent(new Event('change', {bubbles: true}))")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('.listing-review-note')?.textContent.includes('Check return')")
+        page.evaluate(
+            """
+            (() => {
+              const noteId = document.querySelector('.listing-review-note').dataset.reviewNoteId;
+              state.navigation.entries = null;
+              return openNavigationOverlay('review-notes', noteId);
+            })()
+            """
+        )
+        page.wait_for_selector("#navigation-overlay")
+        page.wait_for_expression("document.querySelector('[data-navigation-class]')?.value === 'review-notes'")
+        page.wait_for_expression("document.querySelector('#navigation-overlay')?.textContent.includes('Check return')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_palette_symbol_context")
     rows = [

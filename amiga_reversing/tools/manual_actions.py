@@ -59,9 +59,10 @@ def main(argv: list[str] | None = None) -> int:
 
 def _add_context_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("project")
-    parser.add_argument("--context", choices=("target", "review-item", "row", "element"), default="target")
+    parser.add_argument("--context", choices=("target", "review-item", "row", "element", "range"), default="target")
     parser.add_argument("--review-index", type=int)
     parser.add_argument("--row-index", type=int)
+    parser.add_argument("--row-indexes")
     parser.add_argument("--item-id")
     parser.add_argument("--element-id")
     parser.add_argument("--element-kind")
@@ -79,6 +80,8 @@ def _catalog(args: argparse.Namespace) -> dict[str, object]:
         query["item_id"] = [args.item_id]
     if args.row_index is not None:
         query["row_index"] = [str(args.row_index)]
+    if args.row_indexes:
+        query["row_indexes"] = [args.row_indexes]
     if args.element_kind:
         query["element_kind"] = [args.element_kind]
     if args.element_id:
@@ -107,6 +110,12 @@ def _context_body(args: argparse.Namespace) -> dict[str, object]:
         context["item_id"] = args.item_id
     if args.row_index is not None:
         context["row_index"] = args.row_index
+    if args.row_indexes:
+        context["row_indexes"] = [
+            int(part.strip(), 0)
+            for part in args.row_indexes.split(",")
+            if part.strip()
+        ]
     if args.element_kind:
         context["element_kind"] = args.element_kind
     if args.element_id:

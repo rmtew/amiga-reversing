@@ -1192,6 +1192,109 @@ def test_route_manual_action_catalog_returns_label_fix_actions(monkeypatch: pyte
     assert any(action["action_id"] == "review.label.remove" for action in actions)
 
 
+def test_route_manual_action_catalog_returns_review_note_item_actions(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        review_state=ReviewState.NEEDS_REVIEW,
+        review_items=(
+            {
+                "kind": ReviewItemKind.REVIEW_NOTE,
+                "item_id": "review_note:h0:$00000004-$00000006",
+                "scope": "range",
+                "state": ReviewItemState.OPEN,
+                "note_id": "note-1",
+                "hunk": 0,
+                "start": 4,
+                "end": 6,
+                "message": "Check branch",
+            },
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/manual-action-catalog",
+        {"context": ["review-item"], "review_index": ["0"]},
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+
+    assert [action["action_id"] for action in actions] == [
+        "review.navigate",
+        "review_note.edit",
+        "review_note.clear",
+    ]
+    assert actions[1]["parameters"] == {"note_id": "note-1"}
+
+
+def test_route_manual_action_catalog_execute_edits_and_clears_review_note(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        review_state=ReviewState.NEEDS_REVIEW,
+        review_items=(
+            {
+                "kind": ReviewItemKind.REVIEW_NOTE,
+                "item_id": "review_note:h0:$00000004-$00000006",
+                "scope": "range",
+                "state": ReviewItemState.OPEN,
+                "note_id": "note-1",
+                "hunk": 0,
+                "start": 4,
+                "end": 6,
+                "message": "Check branch",
+            },
+        ),
+    )
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    edit_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "review_note.edit",
+            "context": {"kind": "review_item", "review_index": 0},
+            "parameters": {"title": "Updated", "tracking": "note_only"},
+        },
+    )
+    clear_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "review_note.clear",
+            "context": {"kind": "review_item", "review_index": 0},
+        },
+    )
+
+    assert appended_actions == [
+        {"kind": "edit_review_note", "payload": {"note_id": "note-1", "title": "Updated", "tracking": "note_only"}},
+        {"kind": "clear_review_note", "payload": {"note_id": "note-1"}},
+    ]
+    edit_effect = cast(list[dict[str, object]], cast(dict[str, object], edit_payload["data"])["application"]["local_effects"])[0]
+    clear_effect = cast(list[dict[str, object]], cast(dict[str, object], clear_payload["data"])["application"]["local_effects"])[0]
+    assert edit_effect["kind"] == "review_note_edit"
+    assert clear_effect["kind"] == "review_note_clear"
+
+
 def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [ListingRow(row_id="r0", kind="data", text="dc.b $41\n", addr=0, stable_key="row-0", bytes=b"A")]
     _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
@@ -1213,7 +1316,72 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
+    review_note = next(action for action in row_actions if action["action_id"] == "review_note.add")
+    assert review_note["action"] == "add_review_note"
+    assert review_note["parameter_schema"]["properties"]["tracking"]["enum"] == ["note_only", "needs_review"]
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_route_manual_action_catalog_execute_appends_review_note_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "review_note.add",
+            "context": {"kind": "row", "row_index": 0},
+            "parameters": {"title": "Check RTS", "body": "Verify return path", "tracking": "needs_review"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    note = cast(dict[str, object], cast(dict[str, object], action["payload"])["note"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "add_review_note"
+    assert note["title"] == "Check RTS"
+    assert note["body"] == "Verify return path"
+    assert note["tracking"] == "needs_review"
+    assert note["addr"] == 4
+    assert note["end"] == 6
+    assert note["row_indexes"] == [0]
+    assert application["status"] == "applied"
+    assert local_effect["kind"] == "review_note_add"
+    assert appended_actions == [action]
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 

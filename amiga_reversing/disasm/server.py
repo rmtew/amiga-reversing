@@ -351,17 +351,24 @@ def _annotate_listing_payload(
 ) -> ListingWindowPayload:
     annotated_rows: list[dict[str, object]] = []
     repro_issues = _active_reproduction_issues_by_row_index(project_name)
+    review_notes = _project_review_notes(project_name)
     window_start = int(payload.get("start") or 0)
     for relative_index, row in enumerate(payload["rows"]):
         annotations: list[str] = []
         row_issues = repro_issues.get(window_start + relative_index, [])
+        row_notes = _review_notes_for_row(review_notes, row, window_start + relative_index)
         if row_issues:
             annotations.append("REPRO: " + str(row_issues[0].get("summary") or row_issues[0].get("message") or "issue"))
+        for note in row_notes:
+            prefix = "REVIEW" if note.get("tracking") == "needs_review" else "NOTE"
+            annotations.append(f"{prefix}: {_review_note_summary(note)}")
         annotated_row = dict(row)
         if annotations:
             annotated_row["view_annotations"] = annotations
         if row_issues:
             annotated_row["repro_issues"] = row_issues
+        if row_notes:
+            annotated_row["review_notes"] = row_notes
         annotated_rows.append(annotated_row)
     result = {
         **payload,
@@ -371,6 +378,54 @@ def _annotate_listing_payload(
     if review_warnings:
         result["review_warnings"] = review_warnings
     return result
+
+
+def _project_review_notes(project_name: str) -> list[dict[str, object]]:
+    project = get_project(project_name)
+    manual_state = project.manual_state
+    raw_notes = manual_state.get("review_notes") if isinstance(manual_state, dict) else None
+    if not isinstance(raw_notes, list | tuple):
+        return []
+    return [dict(note) for note in raw_notes if isinstance(note, dict)]
+
+
+def _review_note_summary(note: Mapping[str, object]) -> str:
+    title = note.get("title")
+    if isinstance(title, str) and title.strip():
+        return title.strip()
+    body = note.get("body")
+    if isinstance(body, str) and body.strip():
+        return body.strip().splitlines()[0][:80]
+    return "Bookmark"
+
+
+def _review_notes_for_row(
+    notes: list[dict[str, object]],
+    row: Mapping[str, object],
+    row_index: int,
+) -> list[dict[str, object]]:
+    matched: list[dict[str, object]] = []
+    row_start = _optional_int(row.get("start_offset"))
+    if row_start is None:
+        row_start = _optional_int(row.get("addr"))
+    stable_key = row.get("stable_key")
+    for note in notes:
+        row_indexes = note.get("row_indexes")
+        if isinstance(row_indexes, list) and row_index in row_indexes:
+            matched.append(note)
+            continue
+        if isinstance(stable_key, str) and stable_key and note.get("stable_key") == stable_key:
+            matched.append(note)
+            continue
+        start = _optional_int(note.get("addr"))
+        end = _optional_int(note.get("end"))
+        if row_start is not None and start is not None:
+            if end is not None and end > start:
+                if start <= row_start < end:
+                    matched.append(note)
+            elif row_start == start:
+                matched.append(note)
+    return matched
 
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
@@ -483,6 +538,7 @@ def _overlay_listing_navigation_payload(
         "app-slot-suggestions",
         "app-slot-api-args",
         "manual-review",
+        "review-notes",
         "labels",
         "equates",
         "comments",
@@ -499,8 +555,38 @@ def _overlay_listing_navigation_payload(
         groups["manual-review"] = list(
             _cached_analysis_review_items(project_name, listing_artifact)
         )
+    groups["review-notes"] = _review_note_navigation_entries(_project_review_notes(project_name))
     payload["groups"] = groups
     return payload
+
+
+def _review_note_navigation_entries(notes: list[dict[str, object]]) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
+    for note in notes:
+        addr = _optional_int(note.get("addr"))
+        entry: dict[str, object] = {
+            "addr": addr,
+            "rowIndex": _optional_int(note.get("row_index")),
+            "row_index": _optional_int(note.get("row_index")),
+            "stableKey": note.get("stable_key"),
+            "stable_key": note.get("stable_key"),
+            "hunk": _optional_int(note.get("hunk")),
+            "section_index": _optional_int(note.get("hunk")),
+            "summary": _review_note_summary(note),
+            "matchText": str(note.get("body") or note.get("title") or ""),
+            "match_text": str(note.get("body") or note.get("title") or ""),
+            "note_id": note.get("note_id"),
+            "tracking": note.get("tracking") or "note_only",
+            "status": "unresolved" if addr is None else "open",
+        }
+        end = _optional_int(note.get("end"))
+        if end is not None:
+            entry["end"] = end
+        row_indexes = note.get("row_indexes")
+        if isinstance(row_indexes, list):
+            entry["row_indexes"] = [value for value in row_indexes if isinstance(value, int) and not isinstance(value, bool)]
+        entries.append(entry)
+    return sorted(entries, key=lambda entry: (_optional_int(entry.get("addr")) is None, _optional_int(entry.get("addr")) or 0, str(entry.get("note_id") or "")))
 
 
 def _clear_project_listing_cache(project_name: str) -> None:
@@ -1565,7 +1651,13 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
             )
         )
         application_parts.append(_manual_action_application_payload(kind, action_payload, context))
-    if any(manual_action_kind(kind) is not ManualActionKind.RESOLVE_REVIEW_ITEM for kind, _ in action_payloads):
+    non_metadata_kinds = {
+        ManualActionKind.ADD_REVIEW_NOTE,
+        ManualActionKind.EDIT_REVIEW_NOTE,
+        ManualActionKind.CLEAR_REVIEW_NOTE,
+        ManualActionKind.RESOLVE_REVIEW_ITEM,
+    }
+    if any(manual_action_kind(kind) not in non_metadata_kinds for kind, _ in action_payloads):
         _cancel_listing_jobs(project_name)
         _cancel_reproduction_jobs(project_name)
         _clear_project_listing_cache(project_name)
@@ -1602,6 +1694,16 @@ def _manual_action_application_payload(
         representation = action_payload.get("representation")
         if isinstance(representation, Mapping):
             local_effects.append({"kind": "representation", "representation": dict(representation)})
+    elif kind == "add_review_note":
+        note = action_payload.get("note")
+        if isinstance(note, Mapping):
+            local_effects.append({"kind": "review_note_add", "note": dict(note)})
+    elif kind == "edit_review_note":
+        local_effects.append({"kind": "review_note_edit", "note": dict(action_payload)})
+    elif kind == "clear_review_note":
+        note_id = action_payload.get("note_id")
+        if isinstance(note_id, str) and note_id:
+            local_effects.append({"kind": "review_note_clear", "note_id": note_id})
     elif kind in {"create_manual_seed", "create_manual_register_seed", "create_manual_semantic_hint"}:
         pending = _manual_action_pending_range(action_payload, context)
         if pending:

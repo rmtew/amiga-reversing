@@ -22,13 +22,18 @@ Support **Review Notes** attached to selected row ranges once range **Listing Se
 
 ## Acceptance criteria
 
-- [ ] Add review note accepts explicit range context from **Listing Selection**.
-- [ ] Range notes appear as range-bound listing and Navigate annotations.
-- [ ] Range notes project into range-bound **Manual Review Items** only when tracking mode is `needs_review`.
-- [ ] Range note actions do not infer hidden rows outside the selected visible range.
-- [ ] Web and backend tests cover row-range note creation and clearing.
-- [ ] Row-level note behavior remains unchanged.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Add review note accepts explicit range context from **Listing Selection**.
+- [x] Range notes appear as range-bound listing and Navigate annotations.
+- [x] Range notes project into range-bound **Manual Review Items** only when tracking mode is `needs_review`.
+- [x] Range note actions do not infer hidden rows outside the selected visible range.
+- [x] Web and backend tests cover row-range note creation and clearing.
+- [x] Row-level note behavior remains unchanged.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- `range.review_note.add` consumes explicit selected rows and records row indexes.
+- Range notes use selected visible rows only; no hidden-row inference is added.
 
 ## Blocked by
 

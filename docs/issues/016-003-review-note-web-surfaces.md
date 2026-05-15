@@ -24,16 +24,22 @@ Let users add, edit, clear, and view **Review Notes** from the web command palet
 
 ## Acceptance criteria
 
-- [ ] The command palette exposes review-note actions for the current row.
-- [ ] Adding a note uses schema-backed parameter entry for title, body, and tracking mode.
-- [ ] If PRD 017 parameter sessions are available, note add/edit uses the shared palette or inline text host rather than a note-specific editor.
-- [ ] Listing annotations show compact badges that distinguish `note_only` and `needs_review`.
-- [ ] All current notes appear in Navigate under a Review Notes class.
-- [ ] Ctrl-click on a note annotation opens Navigate focused on that note.
-- [ ] Only `needs_review` notes appear in the Review dialog as **Manual Review Items**.
-- [ ] Clearing a note updates listing, Navigate, and Review dialog surfaces as applicable.
-- [ ] CDP coverage adds a row note and sees it in listing and Navigate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] The command palette exposes review-note actions for the current row.
+- [x] Adding a note uses schema-backed parameter entry for title, body, and tracking mode.
+- [x] If PRD 017 parameter sessions are available, note add/edit uses the shared palette or inline text host rather than a note-specific editor.
+- [x] Listing annotations show compact badges that distinguish `note_only` and `needs_review`.
+- [x] All current notes appear in Navigate under a Review Notes class.
+- [x] Ctrl-click on a note annotation opens Navigate focused on that note.
+- [x] Only `needs_review` notes appear in the Review dialog as **Manual Review Items**.
+- [x] Clearing a note updates listing, Navigate, and Review dialog surfaces as applicable.
+- [x] CDP coverage adds a row note and sees it in listing and Navigate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Review notes use the existing command parameter editor.
+- Listing badges render as Note/Review chips and locally update after append.
+- Navigate has a Review Notes class; note navigation refreshes cached entries before focusing.
 
 ## Blocked by
 

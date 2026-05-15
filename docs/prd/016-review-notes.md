@@ -65,4 +65,15 @@ Add **Review Note** actions so user-authored notes and bookmarks become durable 
 
 ## Open Questions
 
-- Whether note bodies need markdown support in the first implementation.
+- Resolved: first implementation stores note bodies as plain text. Markdown
+  rendering is later polish.
+
+## Completion Notes
+
+- Added durable `add_review_note`, `edit_review_note`, and `clear_review_note`
+  Manual Action Log actions.
+- `note_only` notes stay in listing/Navigate surfaces only.
+- `needs_review` notes project into non-blocking Manual Review Items and update
+  Review State.
+- Row and range note creation use catalog/API/CLI paths and schema-backed web
+  parameter entry.
