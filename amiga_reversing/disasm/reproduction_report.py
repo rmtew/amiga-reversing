@@ -4,7 +4,20 @@ import json
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
+
+
+class ReproductionReportStatus(StrEnum):
+    NOT_READY = "not_ready"
+    EXACT = "exact"
+    BINARY_MISMATCH = "binary_mismatch"
+    CONTENT_MATCH = "content_match"
+    SEMANTIC_MATCH = "semantic_match"
+    ACCEPTED_MISMATCH = "accepted_mismatch"
+    TOOL_ERROR = "tool_error"
+    RENDER_ERROR = "render_error"
+    ASSEMBLER_ERROR = "assembler_error"
 
 
 @dataclass(frozen=True)
@@ -20,7 +33,7 @@ class ReportContext:
 
 @dataclass(frozen=True)
 class ReproductionOutcome:
-    status: str
+    status: ReproductionReportStatus
     exact: bool
     original_size: int
     rebuilt_size: int
@@ -45,6 +58,10 @@ class ReproductionOutcome:
     listing_profile: dict[str, object] | None = None
     profile: dict[str, object] | None = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.status, ReproductionReportStatus):
+            raise TypeError("ReproductionOutcome.status must be a ReproductionReportStatus")
+
 
 class RoundTripReportBuilder:
     def __init__(self, context: ReportContext) -> None:
@@ -54,7 +71,7 @@ class RoundTripReportBuilder:
         input_stamp = self.context.input_stamp
         return {
             "target": self.context.target_name,
-            "status": "not_ready",
+            "status": ReproductionReportStatus.NOT_READY,
             "exact": False,
             "stale": False,
             "input_stamp": input_stamp,
@@ -88,7 +105,7 @@ class RoundTripReportBuilder:
     def error(
         self,
         *,
-        status: str,
+        status: ReproductionReportStatus,
         issues: list[dict[str, object]],
         tool_error: str | None = None,
         assembler_diagnostics: list[dict[str, object]] | None = None,

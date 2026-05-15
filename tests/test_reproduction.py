@@ -28,6 +28,7 @@ from amiga_reversing.disasm.reproduction import (
 from amiga_reversing.disasm.reproduction_report import (
     ReportContext,
     ReproductionOutcome,
+    ReproductionReportStatus,
     RoundTripReportBuilder,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
@@ -163,7 +164,7 @@ def test_round_trip_report_builder_completed_shape(tmp_path: Path) -> None:
 
     report = builder.completed(
         ReproductionOutcome(
-            status="exact",
+            status=ReproductionReportStatus.EXACT,
             exact=True,
             original_size=4,
             rebuilt_size=4,
@@ -212,7 +213,7 @@ def test_round_trip_report_builder_error_shape(tmp_path: Path) -> None:
     )
 
     report = builder.error(
-        status="tool_error",
+        status=ReproductionReportStatus.TOOL_ERROR,
         tool_error="boom",
         issues=[{"kind": "tool", "message": "boom"}],
         profile={"total_seconds": 0.1},

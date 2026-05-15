@@ -39,6 +39,7 @@ from amiga_reversing.disasm.project_paths import (
 from amiga_reversing.disasm.reproduction_report import (
     ReportContext,
     ReproductionOutcome,
+    ReproductionReportStatus,
     RoundTripReportBuilder,
     direct_source_report_fields,
     direct_source_report_fields_from_ranges,
@@ -225,7 +226,7 @@ def run_reproduction(
         if assembler not in REPRODUCTION_ASSEMBLERS:
             message = f"unsupported exactness assembler: {assembler}"
             report = report_builder.error(
-                status="tool_error",
+                status=ReproductionReportStatus.TOOL_ERROR,
                 tool_error=message,
                 issues=[make_issue("tool", message, None)],
             )
@@ -343,7 +344,11 @@ def run_reproduction(
                         )
                         report = report_builder.completed(
                             ReproductionOutcome(
-                                status="exact" if selected_exact else "binary_mismatch",
+                                status=(
+                                    ReproductionReportStatus.EXACT
+                                    if selected_exact
+                                    else ReproductionReportStatus.BINARY_MISMATCH
+                                ),
                                 exact=selected_exact,
                                 original_size=original_size,
                                 rebuilt_size=len(direct_bytes),
@@ -379,7 +384,7 @@ def run_reproduction(
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
                     report = report_builder.error(
-                        status="render_error",
+                        status=ReproductionReportStatus.RENDER_ERROR,
                         tool_error=message,
                         issues=[make_issue("renderer", message, None)],
                         listing_profile=exc.listing_profile,
@@ -399,7 +404,7 @@ def run_reproduction(
                     )
                     if accepted_kind is not None:
                         report = report_builder.error(
-                            status="accepted_mismatch",
+                            status=ReproductionReportStatus.ACCEPTED_MISMATCH,
                             issues=[],
                             listing_profile=listing_profile,
                             direct_rebuild_profile=exc.direct_profile,
@@ -411,7 +416,7 @@ def run_reproduction(
                         )
                         return _write_reproduction_report(paths.target_dir, report)
                     report = report_builder.error(
-                        status="tool_error",
+                        status=ReproductionReportStatus.TOOL_ERROR,
                         tool_error=message,
                         issues=[make_issue("direct_rebuild", message, None)],
                         listing_profile=listing_profile,
@@ -426,7 +431,7 @@ def run_reproduction(
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
                     message = str(exc)
                     report = report_builder.error(
-                        status="tool_error",
+                        status=ReproductionReportStatus.TOOL_ERROR,
                         tool_error=message,
                         issues=[make_issue("direct_rebuild", message, None)],
                         listing_profile=listing_profile,
@@ -460,7 +465,7 @@ def run_reproduction(
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["listing_artifact_source_assembly"] = 1.0
                     report = report_builder.error(
-                        status="render_error",
+                        status=ReproductionReportStatus.RENDER_ERROR,
                         tool_error=message,
                         issues=[make_issue("renderer", message, None)],
                         listing_profile=exc.listing_profile,
@@ -489,7 +494,7 @@ def run_reproduction(
                     profile_timings["listing_artifact_source_assembly"] = 1.0
                     diagnostics = parse_assembler_diagnostics(assembler_stderr)
                     report = report_builder.error(
-                        status="assembler_error",
+                        status=ReproductionReportStatus.ASSEMBLER_ERROR,
                         issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
                         assembler_diagnostics=diagnostics,
                         assembler_stdout=assembler_stdout,
@@ -556,7 +561,7 @@ def run_reproduction(
                 _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
                 diagnostics = parse_assembler_diagnostics(assembler_stderr)
                 report = report_builder.error(
-                    status="assembler_error",
+                    status=ReproductionReportStatus.ASSEMBLER_ERROR,
                     issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
                     assembler_diagnostics=diagnostics,
                     assembler_stdout=assembler_stdout,
@@ -693,13 +698,19 @@ def run_reproduction(
             )
         _record_profile_timing(profile_timings, "diff_phase_seconds", phase_started_at)
         exact = bool(comparison.get("full_file_exact"))
-        report_status = "exact" if exact else "binary_mismatch"
+        report_status = ReproductionReportStatus.EXACT if exact else ReproductionReportStatus.BINARY_MISMATCH
         comparison_status = comparison.get("status")
+        selected_comparison = reproduction_policy.get("comparison")
         if (
-            comparison_status in {"content_match", "semantic_match"}
-            and reproduction_policy.get("comparison") in {"content", "semantic"}
+            comparison_status == ReproductionReportStatus.CONTENT_MATCH
+            and selected_comparison is ReproductionComparison.CONTENT
         ):
-            report_status = str(comparison_status)
+            report_status = ReproductionReportStatus.CONTENT_MATCH
+        elif (
+            comparison_status == ReproductionReportStatus.SEMANTIC_MATCH
+            and selected_comparison is ReproductionComparison.SEMANTIC
+        ):
+            report_status = ReproductionReportStatus.SEMANTIC_MATCH
         if rebuilt != canonical_rebuilt:
             canonical_rebuilt_path.write_bytes(canonical_rebuilt)
             rebuilt_path.write_bytes(rebuilt)
@@ -766,7 +777,11 @@ def run_reproduction(
                     rebuilt_path=rebuilt_path,
                 )
             )
-        status = "render_error" if phase == "render" else "tool_error"
+        status = (
+            ReproductionReportStatus.RENDER_ERROR
+            if phase == "render"
+            else ReproductionReportStatus.TOOL_ERROR
+        )
         issue_kind = "renderer" if phase == "render" else "tool"
         report = report_builder.error(
             status=status,
@@ -809,7 +824,7 @@ def load_reproduction_report(
             )
         return {
             "target": target_name,
-            "status": "not_ready",
+            "status": ReproductionReportStatus.NOT_READY,
             "exact": False,
             "stale": False,
             "issues": [],
