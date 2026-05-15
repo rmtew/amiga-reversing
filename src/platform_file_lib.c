@@ -138,10 +138,23 @@ static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
   { "struct_ptr", M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR },
 };
 
+static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
+  { "hex", M68K_ANALYSIS_REPRESENTATION_STYLE_HEX },
+  { "binary", M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY },
+  { "character", M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER },
+  { "string", M68K_ANALYSIS_REPRESENTATION_STYLE_STRING },
+};
+
 static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
   return text_u8_id_from_map_local(ANALYSIS_REGISTER_SEED_KIND_NAMES,
     sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES) / sizeof(ANALYSIS_REGISTER_SEED_KIND_NAMES[0]), kind,
     M68K_ANALYSIS_REGISTER_SEED_NONE);
+}
+
+static uint8_t analysis_representation_style_id_from_text_local(const char *style) {
+  return text_u8_id_from_map_local(ANALYSIS_REPRESENTATION_STYLE_NAMES,
+    sizeof(ANALYSIS_REPRESENTATION_STYLE_NAMES) / sizeof(ANALYSIS_REPRESENTATION_STYLE_NAMES[0]), style,
+    M68K_ANALYSIS_REPRESENTATION_STYLE_NONE);
 }
 
 static const TextU16Map STRUCTURED_DATA_PLATFORM_KIND_NAMES[] = {
@@ -193,6 +206,8 @@ static int metadata_target_type_disables_implicit_entries_local(uint8_t target_t
   return target_type_id != METADATA_TARGET_TYPE_UNKNOWN && target_type_id != METADATA_TARGET_TYPE_PROGRAM;
 }
 
+static int policy_add_named_label_domain_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+  const char *name, uint8_t domain);
 static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
   const char *name);
 static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
@@ -208,6 +223,8 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
+static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+  uint32_t offset, uint32_t size, uint8_t style_id);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -597,7 +614,8 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
   }
   if (!has_addr || name[0] == '\0') return 1;
   if (!policy_runtime_address_to_source_offset_local(policy, runtime_address, &section_index, &offset)) return 0;
-  if (!policy_add_named_label_local(policy, section_index, offset, name)) return 0;
+  if (!policy_add_named_label_domain_local(policy, section_index, offset, name, M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME))
+    return 0;
   if (comment[0] != '\0' && !policy_add_entry_comment_local(policy, section_index, offset, comment)) return 0;
   return 1;
 }
@@ -787,6 +805,31 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
     return 0;
   }
   policy->rsset_layout_region_count += 1U;
+  return 1;
+}
+
+static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+    uint32_t offset, uint32_t size, uint8_t style_id) {
+  M68kAnalysisManualRepresentation *slot;
+  uint16_t index;
+  if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
+      policy->manual_representation_count >= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) {
+    return 0;
+  }
+  for (index = 0U; index < policy->manual_representation_count; ++index) {
+    const M68kAnalysisManualRepresentation *existing = &policy->manual_representations[index];
+    if (existing->has_section_index && existing->section_index == section_index &&
+        existing->offset == offset && existing->size == size) {
+      return existing->style_id == style_id;
+    }
+  }
+  slot = &policy->manual_representations[policy->manual_representation_count++];
+  memset(slot, 0, sizeof(*slot));
+  slot->has_section_index = 1U;
+  slot->style_id = style_id;
+  slot->section_index = section_index;
+  slot->offset = offset;
+  slot->size = size;
   return 1;
 }
 
@@ -3279,8 +3322,8 @@ static void make_library_stem_label_local(char *out, size_t out_size, const char
   make_policy_symbol_label_local(out, out_size, stem);
 }
 
-static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
-    const char *name) {
+static int policy_add_named_label_domain_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+    const char *name, uint8_t domain) {
   M68kAnalysisNamedLabel *label;
   char unique_name[64];
   unsigned suffix;
@@ -3291,7 +3334,9 @@ static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t sec
   for (index = 0U; index < policy->named_label_count; ++index) {
     const M68kAnalysisNamedLabel *existing = &policy->named_labels[index];
     if (existing->name[0] == '\0' || strcmp(existing->name, unique_name) != 0) continue;
-    if (existing->has_section_index && existing->section_index == section_index && existing->offset == offset) return 1;
+    if (existing->has_section_index && existing->section_index == section_index && existing->offset == offset &&
+        existing->domain == domain)
+      return 1;
   }
   for (suffix = 2U; suffix < 1000U; ++suffix) {
     int collision = 0;
@@ -3308,9 +3353,15 @@ static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t sec
   label = &policy->named_labels[policy->named_label_count++];
   memset(label, 0, sizeof(*label));
   label->has_section_index = 1U;
+  label->domain = domain;
   label->section_index = section_index;
   label->offset = offset;
   return copy_policy_text(label->name, sizeof(label->name), unique_name);
+}
+
+static int policy_add_named_label_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
+    const char *name) {
+  return policy_add_named_label_domain_local(policy, section_index, offset, name, M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
 }
 
 static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset,
@@ -3833,6 +3884,31 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   }
   if (name[0] != '\0' && !policy_add_named_label_local(policy, has_hunk ? hunk : 0U, addr, name)) return 0;
   return policy_set_structured_data_item_kb_metadata_local(policy, item_index, unit, NULL, NULL, encoding, NULL, 0U, 0);
+}
+
+static int append_metadata_manual_representation_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t addr = 0U;
+  uint32_t end = 0U;
+  uint32_t hunk = 0U;
+  uint32_t size = 1U;
+  uint8_t style_id;
+  int has_addr = 0;
+  int has_end = 0;
+  int has_hunk = 0;
+  char style[32];
+  style[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
+      !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_optional_string_field_local(object_start, object_end, "style", style, sizeof(style))) {
+    return 0;
+  }
+  if (!has_addr) return 1;
+  style_id = analysis_representation_style_id_from_text_local(style);
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
+  if (has_end && end > addr) size = end - addr;
+  return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id);
 }
 
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
@@ -4608,6 +4684,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "manual_representations", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_manual_representation_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata manual representation");
+      return -1;
+    }
+    cursor = object_end;
+  }
   cursor = json_find_array_local(text, "execution_views", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -4798,6 +4885,14 @@ static const char *structured_data_kind_name_local(uint8_t kind) {
   return "unknown";
 }
 
+static const char *manual_representation_style_name_local(uint8_t style_id) {
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HEX) return "hex";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY) return "binary";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) return "character";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) return "string";
+  return "none";
+}
+
 static uint32_t structured_data_item_role_flags_local(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
   return item->semantic_role_flags;
@@ -4954,6 +5049,16 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
     }
     if (!validate_policy_offset_local(diagnostics, object, 1U, section_index, offset,
           "target metadata runtime entrypoint is out of range for source file"))
+      return 0;
+  }
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    if (!validate_policy_section_index_local(diagnostics, object, representation->has_section_index,
+        representation->section_index))
+      return 0;
+    if (!validate_policy_range_local(diagnostics, object, representation->has_section_index,
+        representation->section_index, representation->offset, representation->size))
       return 0;
   }
   return 1;
@@ -5531,12 +5636,14 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"analysis_policy\":{\"max_cpu\":%u,\"implicit_entry_points\":%s,"
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
-        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u",
+        "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u,"
+        "\"manual_representation_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
-        (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count) != 0)
+        (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count,
+        (unsigned)policy->manual_representation_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
   for (index = 0U; index < policy->entry_point_count && index < M68K_ANALYSIS_ENTRY_POINT_LIMIT; ++index) {
@@ -5677,7 +5784,9 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, label->has_section_index, label->section_index) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"offset\":%u,\"name\":", (unsigned)label->offset) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"offset\":%u,\"domain\":%u,\"name\":", (unsigned)label->offset,
+          (unsigned)label->domain) != 0)
+      return -1;
     if (json_builder_append_json_string(builder, label->name) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }
@@ -5712,6 +5821,23 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
     if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
       return -1;
+  }
+  if (json_builder_append(builder, "],\"manual_representations\":[") != 0) return -1;
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
+    if (append_nullable_u32_json_local(builder, representation->has_section_index,
+        representation->section_index) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"offset\":%u,\"size\":%u,\"style\":",
+          (unsigned)representation->offset, (unsigned)representation->size) != 0)
+      return -1;
+    if (json_builder_append_json_string(builder,
+        manual_representation_style_name_local(representation->style_id)) != 0)
+      return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]}");
 }

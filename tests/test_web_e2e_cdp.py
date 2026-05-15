@@ -666,6 +666,370 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.click("#review-overlay .review-item-title")
         page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowAddr === '4'")
         assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.rowAddr") == "4"
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowAddr") == "4"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_selection")
+    rows = [
+        ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)
+        for index in range(120)
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 120")
+        page.evaluate("document.querySelector('#listing-viewport').focus()")
+
+        page.press_key("ArrowDown")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
+        page.press_key("ArrowUp")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '0'")
+
+        before_scroll = page.evaluate("document.querySelector('#listing-viewport').scrollTop")
+        page.press_key("PageDown")
+        page.wait_for_expression(f"document.querySelector('#listing-viewport').scrollTop > {before_scroll}")
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "0"
+
+        page.evaluate(
+            """
+            (() => {
+              const input = document.createElement('input');
+              input.id = 'selection-keyboard-input';
+              document.body.appendChild(input);
+              input.focus();
+            })()
+            """
+        )
+        page.press_key("ArrowDown")
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "0"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_command_palette_opens_and_executes_catalog_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_palette")
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 1")
+        page.evaluate("document.querySelector('#listing-viewport').focus()")
+
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Open Review')")
+        assert "Open Review" in page.text_content("#command-palette-overlay")
+        assert "p" in page.text_content("#command-palette-overlay")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'review'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelectorAll('.command-palette-item').length === 1")
+        page.press_key("Enter")
+        page.wait_for_selector("#review-overlay")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_command_palette_arrow_keys_select_entry(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_palette_keys")
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 1")
+        page.evaluate("document.querySelector('#listing-viewport').focus()")
+
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '0'")
+        assert page.evaluate("document.activeElement?.id") == "command-palette-search"
+        page.press_key("ArrowDown")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '1'")
+        assert page.evaluate("document.activeElement?.id") == "command-palette-search"
+        page.press_key("ArrowUp")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '0'")
+        page.press_key("ArrowDown")
+        page.press_key("Enter")
+        page.wait_for_selector("#review-overlay")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_palette_label_rename")
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="loc_0_00000000:\n",
+            addr=0,
+            label="loc_0_00000000",
+            stable_key="label-0",
+        )
+    ]
+    labels: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        if kind == "create_manual_label":
+            label = cast(dict[str, object], payload["label"])
+            labels.append(label)
+            new_name = cast(str, label["name"])
+            rows[0] = replace(rows[0], text=f"{new_name}:\n", label=new_name)
+            artifact = disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.get(project.id)
+            if artifact is not None:
+                artifact.rows[0] = rows[0]
+        return action
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_listing_artifact_profile",
+        lambda project_name: (len(rows), {}, _FakeCListingArtifact(rows, project_name=project.id)),
+    )
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(
+            target_dir=tmp_path / project_name,
+            binary_source=SimpleNamespace(kind="raw", display_path="bin/demo"),
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+        page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Rename label')")
+        assert "Rename label" in page.text_content("#command-palette-overlay")
+        assert page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.command-palette-item'))
+              .filter((item) => item.textContent.includes('Follow Reference'))
+              .length
+            """
+        ) == 1
+        page.evaluate("window.prompt = () => 'entrypoint'")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'rename'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Rename label')")
+        page.press_key("Enter")
+        deadline = time.monotonic() + 5.0
+        while not labels and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert labels and labels[0]["name"] == "entrypoint"
+        page.wait_for_expression("document.querySelector('.listing-code')?.textContent.trim() === 'entrypoint:'")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    project = _binary_project("amiga_hunk_representation")
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="data",
+            text="dc.b $41\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=5,
+            stable_key="row-0",
+            bytes=b"A",
+            opcode_or_directive="dc.b",
+            operand_text="$41",
+        )
+    ]
+    representations: list[dict[str, object]] = []
+    catalog_queries: list[dict[str, list[str]]] = []
+    original_catalog_payload = disasm_server._manual_action_catalog_payload
+
+    def catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+        catalog_queries.append(query)
+        return original_catalog_payload(project_name, query)
+
+    def project_record(project_name: str) -> ProjectRecord:
+        return replace(
+            project,
+            manual_state={
+                "representations": representations,
+            },
+        )
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        if kind == "create_manual_representation":
+            representations.append(cast(dict[str, object], payload["representation"]))
+        return action
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
+    monkeypatch.setattr(disasm_server, "get_project", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", project_record)
+    monkeypatch.setattr(disasm_server, "_manual_action_catalog_payload", catalog_payload)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelector('.listing-code')?.textContent.trim() === 'dc.b $41'")
+        page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        assert "Open Review" not in page.text_content("#command-palette-overlay")
+        page.press_key("Backspace")
+        page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Open Review')")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'character'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item')?.textContent.includes('Character')")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('.listing-code')?.textContent.trim() === \"dc.b 'A'\"")
+        assert representations and representations[0]["style"] == "character"
+        assert any(
+            query.get("context") == ["element"] and query.get("element_kind") == ["data_literal"]
+            for query in catalog_queries
+        )
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_palette_symbol_context")
+    rows = [
+        ListingRow(row_id="start", kind="label", text="start:\n", addr=0, label="start"),
+        ListingRow(
+            row_id="branch",
+            kind="instruction",
+            text="bra target\n",
+            addr=2,
+            stable_key="branch-row",
+            opcode_or_directive="bra",
+            operand_text="target",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
+        ListingRow(row_id="target", kind="label", text="target:\n", addr=10, label="target"),
+    ]
+    catalog_queries: list[dict[str, list[str]]] = []
+    original_catalog_payload = disasm_server._manual_action_catalog_payload
+
+    def catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+        catalog_queries.append(query)
+        return original_catalog_payload(project_name, query)
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "_manual_action_catalog_payload", catalog_payload)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
+        page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
+        page.evaluate(
+            """
+            (() => {
+              const link = document.querySelector('.listing-symbol-reference[data-symbol-name="target"]');
+              setListingSelectionFromRow(link.closest('.listing-row'), link);
+            })()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
+        assert page.evaluate("currentListingSelectionRowIndex()") == 1
+        assert page.evaluate("commandPaletteElementQuery(state.listingSelection)") is not None
+        page.evaluate("openCommandPalette()")
+        page.wait_for_selector("#command-palette-overlay")
+        assert any(
+            query.get("context") == ["element"]
+            and query.get("element_kind") == ["symbol"]
+            and query.get("symbol") == ["target"]
+            and query.get("operand_index") == ["0"]
+            for query in catalog_queries
+        ), catalog_queries
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_selected_row_follows_reference_and_goes_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_follow_reference")
+    rows = [
+        ListingRow(row_id="start", kind="label", text="start:\n", addr=0, label="start"),
+        ListingRow(
+            row_id="branch",
+            kind="instruction",
+            text="bra target\n",
+            addr=2,
+            opcode_or_directive="bra",
+            operand_text="target",
+            operand_parts=(
+                SemanticOperand(kind="symbol", text="target", metadata=SymbolOperandMetadata(symbol="target")),
+            ),
+        ),
+        *[
+            ListingRow(row_id=f"pad-{index}", kind="instruction", text="nop\n", addr=4 + index * 2)
+            for index in range(80)
+        ],
+        ListingRow(row_id="target", kind="label", text="target:\n", addr=200, label="target"),
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector(".listing-symbol-reference[data-symbol-name='target']")
+        page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
+
+        page.press_key("ArrowRight")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowCode.trim() === 'target:'")
+        page.press_key("ArrowLeft")
+        page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowIndex === '0'")
         page.assert_no_errors()
 
 

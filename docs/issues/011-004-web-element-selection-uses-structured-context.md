@@ -1,0 +1,30 @@
+# 011-004: Web Element Selection Uses Structured Context
+
+## Parent
+
+[PRD 011: Structured Contextual Action Metadata](../prd/011-structured-contextual-action-metadata.md)
+
+## Type
+
+AFK
+
+## Labels
+
+ready-for-agent
+
+## What to build
+
+Update web listing selection and command palette catalog requests so selected elements use structured context identifiers from listing metadata rather than inferred element kind and rendered text.
+
+## Acceptance criteria
+
+- [ ] Clicked/selectable listing elements carry structured element ids or stable fallback context.
+- [ ] Command palette element catalog requests include structured element context, not just row index and a guessed element kind.
+- [ ] If a selected element disappears after listing refresh, the UI falls back to row precision and reports precision loss.
+- [ ] Enter in the command palette executes the selected visible action and preserves input focus while moving selection with arrow keys.
+- [ ] CDP tests cover operand/literal selection, symbol/equate-style selection, precision loss, and no-command/backend-error regression for numeric-looking labels.
+- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Blocked by
+
+- [011-002: Structured Catalog Context Model](011-002-structured-catalog-context-model.md)

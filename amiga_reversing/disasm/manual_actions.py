@@ -129,10 +129,18 @@ def _manual_label_scope_from_json(value: object) -> ManualLabelScope | None:
 class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEED = "create_manual_seed"
     REMOVE_MANUAL_SEED = "remove_manual_seed"
+    CREATE_MANUAL_REGISTER_SEED = "create_manual_register_seed"
+    REMOVE_MANUAL_REGISTER_SEED = "remove_manual_register_seed"
     CREATE_MANUAL_LABEL = "create_manual_label"
     REMOVE_MANUAL_LABEL = "remove_manual_label"
+    RENAME_MANUAL_LABEL = "rename_manual_label"
+    CHANGE_LABEL_SCOPE = "change_label_scope"
     CREATE_MANUAL_COMMENT = "create_manual_comment"
     REMOVE_MANUAL_COMMENT = "remove_manual_comment"
+    CREATE_MANUAL_REPRESENTATION = "create_manual_representation"
+    REMOVE_MANUAL_REPRESENTATION = "remove_manual_representation"
+    CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
+    REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     RESOLVE_REVIEW_ITEM = "resolve_review_item"
     UNDO_ACTION = "undo_action"
     REDO_ACTION = "redo_action"
@@ -152,8 +160,11 @@ class ManualActionLogProjection:
     pinned_target_identity: dict[str, object] | None
     current_target_identity: dict[str, object] | None
     seeds: tuple[dict[str, object], ...]
+    register_seeds: tuple[dict[str, object], ...]
     labels: tuple[dict[str, object], ...]
     comments: tuple[dict[str, object], ...]
+    representations: tuple[dict[str, object], ...]
+    semantic_hints: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
     inactive_action_ids: tuple[str, ...]
@@ -295,8 +306,11 @@ def _empty_projection(
         pinned_target_identity=pinned_target_identity,
         current_target_identity=current_target_identity,
         seeds=(),
+        register_seeds=(),
         labels=(),
         comments=(),
+        representations=(),
+        semantic_hints=(),
         resolutions=(),
         active_action_ids=(),
         inactive_action_ids=(),
@@ -561,8 +575,10 @@ def _metadata_global_label_names(metadata: TargetMetadata | None) -> set[str]:
     if metadata is None:
         return set()
     names: set[str] = set()
-    for label in (*metadata.seeded_code_labels, *metadata.absolute_code_labels):
-        names.add(label.name)
+    for code_label in metadata.seeded_code_labels:
+        names.add(code_label.name)
+    for absolute_label in metadata.absolute_code_labels:
+        names.add(absolute_label.name)
     for entity in metadata.seeded_entities:
         if entity.name is not None:
             names.add(entity.name)
@@ -896,6 +912,38 @@ def _projected_manual_label(action: _ManualAction) -> dict[str, object]:
     return label
 
 
+def _rename_manual_label(labels: dict[str, dict[str, object]], action: _ManualAction) -> None:
+    label_id = _action_ref(action, "label_id")
+    name = _action_ref(action, "name")
+    label = labels.get(label_id)
+    if label is None:
+        return
+    updated = dict(label)
+    updated["name"] = name
+    labels[label_id] = updated
+
+
+def _change_manual_label_scope(labels: dict[str, dict[str, object]], action: _ManualAction) -> None:
+    label_id = _action_ref(action, "label_id")
+    raw_scope = action.payload.get("scope")
+    scope = _manual_label_scope_from_json(raw_scope)
+    if scope is None:
+        raise ValueError(f"{action.kind} scope must be global or local")
+    label = labels.get(label_id)
+    if label is None:
+        return
+    updated = dict(label)
+    updated["scope"] = scope
+    if scope is ManualLabelScope.GLOBAL:
+        updated.pop("owner_id", None)
+        updated.pop("owner_label_id", None)
+    else:
+        owner_id = action.payload.get("owner_id") or action.payload.get("owner_label_id")
+        if isinstance(owner_id, str) and owner_id:
+            updated["owner_id"] = owner_id
+    labels[label_id] = updated
+
+
 def _action_ref(action: _ManualAction, field_name: str) -> str:
     return _str_field(action.payload, field_name, what=str(action.kind))
 
@@ -945,8 +993,11 @@ def _project_actions(
         seen_action_ids.add(action.action_id)
 
     seeds: dict[str, dict[str, object]] = {}
+    register_seeds: dict[str, dict[str, object]] = {}
     labels: dict[str, dict[str, object]] = {}
     comments: dict[str, dict[str, object]] = {}
+    representations: dict[str, dict[str, object]] = {}
+    semantic_hints: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
     inactive_action_ids: list[str] = []
@@ -960,14 +1011,30 @@ def _project_actions(
             _put_by_id(seeds, _projected_manual_seed(action), "seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
+        elif action.kind is ManualActionKind.CREATE_MANUAL_REGISTER_SEED:
+            _put_by_id(register_seeds, _action_object(action, "register_seed"), "register_seed_id")
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_REGISTER_SEED:
+            _drop_by_id(register_seeds, action, "register_seed_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_LABEL:
             _put_by_id(labels, _projected_manual_label(action), "label_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_LABEL:
             _drop_by_id(labels, action, "label_id")
+        elif action.kind is ManualActionKind.RENAME_MANUAL_LABEL:
+            _rename_manual_label(labels, action)
+        elif action.kind is ManualActionKind.CHANGE_LABEL_SCOPE:
+            _change_manual_label_scope(labels, action)
         elif action.kind is ManualActionKind.CREATE_MANUAL_COMMENT:
             _put_by_id(comments, _action_object(action, "comment"), "comment_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_COMMENT:
             _drop_by_id(comments, action, "comment_id")
+        elif action.kind is ManualActionKind.CREATE_MANUAL_REPRESENTATION:
+            _put_by_id(representations, _action_object(action, "representation"), "representation_id")
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_REPRESENTATION:
+            _drop_by_id(representations, action, "representation_id")
+        elif action.kind is ManualActionKind.CREATE_MANUAL_SEMANTIC_HINT:
+            _put_by_id(semantic_hints, _action_object(action, "semantic_hint"), "semantic_hint_id")
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_SEMANTIC_HINT:
+            _drop_by_id(semantic_hints, action, "semantic_hint_id")
         elif action.kind is ManualActionKind.RESOLVE_REVIEW_ITEM:
             _put_by_id(resolutions, _action_object(action, "resolution"), "resolution_id")
         elif action.kind in {ManualActionKind.UNDO_ACTION, ManualActionKind.REDO_ACTION}:
@@ -993,8 +1060,11 @@ def _project_actions(
         pinned_target_identity=pinned_target_identity,
         current_target_identity=current_target_identity,
         seeds=tuple(seeds.values()),
+        register_seeds=tuple(register_seeds.values()),
         labels=tuple(labels.values()),
         comments=tuple(comments.values()),
+        representations=tuple(representations.values()),
+        semantic_hints=tuple(semantic_hints.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),
         inactive_action_ids=tuple(inactive_action_ids),

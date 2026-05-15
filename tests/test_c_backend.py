@@ -930,6 +930,17 @@ class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisManualRepresentation(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("style_id", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -944,6 +955,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
         ("rsset_layout_region_count", ctypes.c_uint16),
+        ("manual_representation_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 64),
@@ -953,6 +965,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
+        ("manual_representations", _M68kAnalysisManualRepresentation * 128),
     ]
 
 
@@ -1037,6 +1050,33 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     assert branch["operand_parts"][0]["kind"] == "symbol"
     assert branch["operand_parts"][0]["text"] == "loc_0_00000004"
     assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}
+
+
+def test_full_listing_instruction_rows_expose_immediate_operand_parts(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    path = tmp_path / "raw.bin"
+    path.write_bytes(bytes.fromhex("70054e75"))
+
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        RawBinarySource(
+            kind=BinarySourceKind.RAW_BINARY,
+            path=path,
+            address_model=RawAddressModel.LOCAL_OFFSET,
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    moveq = next(row for row in rows if row["kind"] == "instruction" and row["addr"] == 0)
+
+    assert moveq["operand_parts"][0]["kind"] == "immediate"
+    assert moveq["operand_parts"][0]["operand_index"] == 0
+    assert moveq["operand_parts"][0]["value"] == 5
+    assert moveq["operand_parts"][0]["signed_value"] == 5
 
 
 def test_full_listing_runtime_copy_storage_alias_precedes_runtime_org(tmp_path: Path) -> None:
@@ -2638,6 +2678,194 @@ after_data:
         in rendered
     )
     assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
+
+
+def test_real_dll_manual_representation_styles_classified_bytes_without_classifying(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-representation.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b $41,$42,$43,$44
+after_data:
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_representation",
+                "representation": {
+                    "representation_id": "repr-data",
+                    "hunk": 0,
+                    "addr": 2,
+                    "end": 6,
+                    "style": "character",
+                    "element_kind": "operand",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a2",
+                "sequence": 2,
+                "created_at": "2026-05-13T00:00:02+00:00",
+                "kind": "create_manual_seed",
+                "seed": {
+                    "seed_id": "manual-bytes",
+                    "kind": "data",
+                    "mode": "required",
+                    "hunk": 0,
+                    "addr": 2,
+                    "end": 6,
+                    "unit": "byte",
+                    "name": "manual_bytes",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["manual_representations"] == [
+        {"section_index": 0, "offset": 2, "size": 4, "style": "character"}
+    ]
+    assert "manual_bytes:\n\tdc.b 'A','B','C','D'\t; mode=required, unit=byte\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_manual_register_seed_projects_library_base_into_rendering(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-register-seed.bin"
+    source_text = """    SECTION section,code
+start:
+    jsr -552(a6)
+    rts
+    dc.w 0
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_register_seed",
+                "register_seed": {
+                    "register_seed_id": "exec-base",
+                    "entry_offset": 0,
+                    "register": "A6",
+                    "kind": "library_base",
+                    "library_name": "exec.library",
+                    "struct_name": "LIB",
+                    "context_name": "exec.library",
+                    "note": "Manual semantic helper",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert '    INCLUDE "exec/exec_lib.i"\n' in rendered
+    assert "\tjsr _LVOOpenLibrary(a6)\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
 
 
 def test_project_source_benchmark_uses_facts_v2(

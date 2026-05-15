@@ -140,6 +140,10 @@ _Avoid_: Manual label uniqueness
 A user-authored note attached to a target address or range.
 _Avoid_: Entity comment
 
+**Manual Representation**:
+A user-authored rendering preference for a value or literal that does not by itself classify bytes as code or data.
+_Avoid_: Manual seed, data type
+
 **Manual Seed Mode**:
 The strength of a **Manual Seed** as either a required analysis input or an exploratory suggestion.
 _Avoid_: Seed confidence
@@ -171,6 +175,18 @@ _Avoid_: Probability score
 **Suggested Review Action**:
 A structured next action offered for a **Manual Review Item** that can append a domain action to the **Manual Action Log**.
 _Avoid_: Help text
+
+**Manual Action Catalog**:
+The canonical set of currently valid manual analysis actions exposed to UI, keyboard, command palette, CLI, and API callers.
+_Avoid_: Separate UI action list, Review dialog buttons
+
+**Listing Selection**:
+The active target of a user or tool action in the rendered analysis listing, consisting of a selected row and optionally a selected element inside that row.
+_Avoid_: Temporary row highlight
+
+**Listing Element**:
+A selectable semantic part of a rendered listing row, such as a label, operand, immediate value, equate, comment, or data literal.
+_Avoid_: Text span
 
 ## Relationships
 
@@ -254,6 +270,8 @@ _Avoid_: Help text
 - A label scope conflict blocks review only when emitted source correctness or assembly is at risk.
 - A **Manual Comment** replaces the old entity comment override and is stored through **Manual Action Log** actions.
 - A **Manual Comment** on an unreconciled range creates a **Manual Review Item** unless classification evidence or a **Manual Seed** explains the range.
+- A **Manual Representation** affects source rendering and listing display but does not prove classification or reconcile a range.
+- A **Manual Representation** is stored through **Manual Action Log** actions rather than as a **Manual Seed**.
 - A review-resolution action records the review item id, **Evidence Fingerprint**, range and kind snapshot, and resolution reason.
 - A **Manual Seed** has a stable seed id and is updated through new **Manual Action Log** entries, not mutation in place.
 - A **Manual Seed Mode** is `required` when analysis must honor the seed or report a conflict, and `suggested` when analysis may reject it.
@@ -261,6 +279,12 @@ _Avoid_: Help text
 - A **Manual Seed** may target a subrange inside an existing generated block; analysis normalizes the range and splits rendered blocks as needed.
 - A **Manual Review Item** may include **Suggested Review Actions** for creating seeds, resolving review work, or opening related evidence.
 - Navigational **Suggested Review Actions** are transient UI actions and are not appended to the **Manual Action Log**.
+- The **Manual Action Catalog** supplies **Suggested Review Actions** and contextual manual-editing commands for all caller surfaces.
+- Review dialog buttons, command palette entries, hotkeys, context menus, CLI commands, and API clients invoke **Manual Action Catalog** entries rather than defining separate behavior.
+- The **Manual Action Catalog** is backend-owned; UI surfaces render catalog entries instead of hardcoding manual action eligibility.
+- Navigation commands that operate on **Listing Selection** are visible in the same command palette catalog and can show assigned key-binding badges even when they do not append to the **Manual Action Log**.
+- A **Listing Selection** identifies the current **Manual Action Catalog** context.
+- A **Listing Selection** always has a row target and may have a **Listing Element** target when an action needs operand-level, symbol-level, or literal-level precision.
 - Manual review UI is checklist-first, with facets for kind, confidence, state, section, source, or range as secondary filtering.
 - Entrypoint seeds remain primary analysis evidence; **Manual Seeds** augment the same analysis run with lower provenance priority.
 - Seed provenance priority is entrypoint, metadata or policy, required **Manual Seed**, then suggested **Manual Seed**.
@@ -290,3 +314,6 @@ _Avoid_: Help text
 - "no issues" and "issues" were used for target-level review status; resolved: use **Review State** values `clear`, `needs_review`, and `blocked`.
 - "understood" was used as a loose target state; resolved: use **Reconciled Range** and **Unreconciled Range** for byte-range explanation.
 - "entity" was used for generated ranges and user annotation state in `entities.jsonl`; resolved: treat that as **Legacy Entity State** and replace it with C analysis facts plus manual review concepts.
+- "Review buttons", "hotkeys", and "LLM/API actions" were used as separate surfaces; resolved: use **Manual Action Catalog** for the canonical callable action set.
+- "selected row" and "temporary highlight" were used loosely; resolved: use **Listing Selection** for durable action focus and **Listing Element** for intra-row targets.
+- "change representation" was mixed with data typing; resolved: **Manual Representation** controls display syntax, while **Manual Seed** controls analysis classification.

@@ -50,6 +50,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
+#define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -187,9 +188,15 @@ typedef enum M68kAnalysisStructuredDataPlatformField {
   M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_INIT_FUNCTION = 4U
 } M68kAnalysisStructuredDataPlatformField;
 
+typedef enum M68kAnalysisLabelDomain {
+  M68K_ANALYSIS_LABEL_DOMAIN_SOURCE = 0U,
+  M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME = 1U
+} M68kAnalysisLabelDomain;
+
 typedef struct M68kAnalysisNamedLabel {
   uint8_t has_section_index;
-  uint8_t reserved[3];
+  uint8_t domain;
+  uint8_t reserved[2];
   uint32_t section_index;
   uint32_t offset;
   char name[64];
@@ -252,6 +259,23 @@ typedef struct M68kAnalysisRuntimeEntryPoint {
   uint32_t runtime_address;
 } M68kAnalysisRuntimeEntryPoint;
 
+typedef enum M68kAnalysisRepresentationStyle {
+  M68K_ANALYSIS_REPRESENTATION_STYLE_NONE = 0,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_HEX = 1,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY = 2,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER = 3,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4
+} M68kAnalysisRepresentationStyle;
+
+typedef struct M68kAnalysisManualRepresentation {
+  uint8_t has_section_index;
+  uint8_t style_id;
+  uint8_t reserved[2];
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+} M68kAnalysisManualRepresentation;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
@@ -265,6 +289,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t runtime_range_count;
   uint16_t runtime_entry_point_count;
   uint16_t rsset_layout_region_count;
+  uint16_t manual_representation_count;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -274,6 +299,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
+  M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {

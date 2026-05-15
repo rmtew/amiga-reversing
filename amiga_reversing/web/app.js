@@ -52,6 +52,7 @@ const state = {
   pendingCorpusFocus: null,
   typeCatalog: null,
   listingRows: [],
+  listingSelection: null,
   virtualListing: {
     start: 0,
     end: 0,
@@ -113,6 +114,14 @@ const state = {
       source: "",
       range: "",
     },
+  },
+  commandPalette: {
+    open: false,
+    query: "",
+    actions: [],
+    selectedIndex: 0,
+    loading: false,
+    global: false,
   },
   analysisStatus: {
     text: "",
@@ -1058,58 +1067,21 @@ function renderReviewSelect(name, label, values, value) {
 }
 
 function renderReviewSuggestedActions(item) {
-  const actions = expandedReviewActions(item);
+  const actions = reviewItemCatalogActions(item).filter((action) => action.enabled !== false);
   if (!actions.length) {
     return "";
   }
   return `
     <div class="review-actions">
       ${actions.map((action) => (
-        `<button type="button" data-review-action="${escapeHtml(action.action)}" data-review-index="${item.review_index}"${action.seedKind ? ` data-seed-kind="${escapeHtml(action.seedKind)}"` : ""}${action.dataRole ? ` data-data-role="${escapeHtml(action.dataRole)}"` : ""}${action.unit ? ` data-unit="${escapeHtml(action.unit)}"` : ""}${action.disposition ? ` data-disposition="${escapeHtml(action.disposition)}"` : ""}>${escapeHtml(action.label)}</button>`
+        `<button type="button" data-review-action="${escapeHtml(action.action)}" data-catalog-action-id="${escapeHtml(action.action_id)}" data-review-index="${item.review_index}"${action.parameters?.seed_kind ? ` data-seed-kind="${escapeHtml(action.parameters.seed_kind)}"` : ""}${action.parameters?.data_role ? ` data-data-role="${escapeHtml(action.parameters.data_role)}"` : ""}${action.parameters?.unit ? ` data-unit="${escapeHtml(action.parameters.unit)}"` : ""}${action.parameters?.disposition ? ` data-disposition="${escapeHtml(action.parameters.disposition)}"` : ""}>${escapeHtml(action.label)}</button>`
       )).join("")}
     </div>
   `;
 }
 
-function expandedReviewActions(item) {
-  const actions = [{action: "navigate", label: "Navigate"}];
-  const kind = String(item?.kind || "");
-  if (kind === "orphan_code_candidate") {
-    actions.push({action: "create_manual_seed", label: "Seed code", seedKind: "code"});
-    actions.push({action: "resolve_review_item", label: "Resolve data/padding", disposition: "data_or_padding"});
-  } else if (kind === "unreconciled_data_range") {
-    actions.push({action: "create_manual_seed", label: "String", seedKind: "data", dataRole: "string", unit: "byte"});
-    actions.push({action: "create_manual_seed", label: "Scalar table", seedKind: "data", dataRole: "scalar_table", unit: "word"});
-    actions.push({action: "create_manual_seed", label: "Pointer table", seedKind: "data", dataRole: "pointer_table", unit: "long"});
-    actions.push({action: "create_manual_seed", label: "Raw bytes", seedKind: "data", dataRole: "raw", unit: "byte"});
-    actions.push({action: "resolve_review_item", label: "Opaque data", disposition: "opaque_data"});
-  } else if (kind === "suspicious_instruction_decode") {
-    actions.push({action: "create_manual_seed", label: "Seed data", seedKind: "data", dataRole: "raw", unit: "byte"});
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
-  } else if (kind === "manual_label_unreconciled" || kind === "manual_comment_unreconciled") {
-    actions.push({action: "create_manual_seed", label: "Seed data", seedKind: "data", dataRole: "raw", unit: "byte"});
-    actions.push({action: "remove_manual_annotation", label: "Remove annotation"});
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
-  } else if (kind === "reproduction_mismatch" || kind === "unsupported_container_shape") {
-    actions.push({action: "open_reproduction_report", label: "Open comparison"});
-    actions.push({action: "rerun_round_trip_verification", label: "Rerun round-trip"});
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
-  } else if (kind === "manual_seed_conflict") {
-    actions.push({
-      action: "resolve_review_item",
-      label: item?.review_blocker === true ? "Acknowledge blocker" : "Acknowledge",
-      disposition: "acknowledged",
-    });
-  } else if (kind === "label_scope_conflict") {
-    actions.push({
-      action: "resolve_review_item",
-      label: item?.review_blocker === true ? "Acknowledge blocker" : "Acknowledge",
-      disposition: "acknowledged",
-    });
-  } else if (!kind.startsWith("manual_action_log_")) {
-    actions.push({action: "resolve_review_item", label: "Acknowledge", disposition: "acknowledged"});
-  }
-  return actions;
+function reviewItemCatalogActions(item) {
+  return Array.isArray(item?.catalog_actions) ? item.catalog_actions : [];
 }
 
 function renderReviewItem(item) {
@@ -1374,6 +1346,353 @@ function bindManualReviewPanel() {
       void applyReviewAction(item, button);
     });
   });
+}
+
+function commandPaletteMatches(action, query) {
+  const context = action.target_context || {};
+  const parameters = action.parameters || {};
+  const text = [
+    action.label,
+    action.action_id,
+    action.action,
+    String(action.action_id || "").split(".")[0],
+    context.kind,
+    context.row_kind,
+    context.element_kind,
+    parameters.symbol,
+    parameters.namespace,
+    parameters.domain,
+    parameters.struct_name,
+    parameters.library_name,
+    parameters.function,
+    parameters.field,
+  ].join(" ").toLowerCase();
+  return text.includes(String(query || "").trim().toLowerCase());
+}
+
+function visibleCommandPaletteActions() {
+  return state.commandPalette.actions
+    .filter((action) => state.commandPalette.global || Number(action.palette_context_rank || 0) === 0)
+    .filter((action) => commandPaletteMatches(action, state.commandPalette.query));
+}
+
+function clampCommandPaletteSelection(actions) {
+  if (!actions.length) {
+    state.commandPalette.selectedIndex = 0;
+    return 0;
+  }
+  const selected = Number(state.commandPalette.selectedIndex);
+  const index = Number.isInteger(selected) ? selected : 0;
+  state.commandPalette.selectedIndex = Math.max(0, Math.min(actions.length - 1, index));
+  return state.commandPalette.selectedIndex;
+}
+
+function moveCommandPaletteSelection(delta) {
+  const actions = visibleCommandPaletteActions();
+  if (!actions.length || !delta) {
+    return;
+  }
+  const selected = clampCommandPaletteSelection(actions);
+  state.commandPalette.selectedIndex = Math.max(0, Math.min(actions.length - 1, selected + delta));
+  renderCommandPalette();
+}
+
+function renderCommandPalette() {
+  const existing = document.getElementById("command-palette-overlay");
+  if (!state.commandPalette.open) {
+    existing?.remove();
+    return;
+  }
+  const app = document.getElementById("app");
+  if (!app) {
+    return;
+  }
+  const actions = visibleCommandPaletteActions();
+  const selectedIndex = clampCommandPaletteSelection(actions);
+  const html = `
+    <div class="command-palette-overlay" id="command-palette-overlay">
+      <div class="command-palette-panel">
+        <div class="command-palette-search-row">
+          <input id="command-palette-search" class="command-palette-search" type="text" value="${escapeHtml(state.commandPalette.query)}" autocomplete="off">
+          <button type="button" class="command-palette-mode" data-command-palette-global="1">${state.commandPalette.global ? "All" : "Context"}</button>
+        </div>
+        <div class="command-palette-list">
+          ${state.commandPalette.loading ? '<div class="command-palette-empty">Loading</div>' : ""}
+          ${!state.commandPalette.loading && !actions.length ? '<div class="command-palette-empty">No commands</div>' : ""}
+          ${actions.map((action, index) => `
+            <button type="button" class="command-palette-item${index === selectedIndex ? " selected" : ""}" data-command-palette-action="${escapeHtml(action.action_id)}" data-command-palette-index="${index}" aria-selected="${index === selectedIndex ? "true" : "false"}">
+              <span>${escapeHtml(action.label || action.action_id)}</span>
+              ${action.default_key_binding ? `<kbd>${escapeHtml(action.default_key_binding)}</kbd>` : ""}
+            </button>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    app.insertAdjacentHTML("beforeend", html);
+  }
+  bindCommandPalette();
+  const selected = document.querySelector(".command-palette-item.selected");
+  if (selected instanceof HTMLElement) {
+    selected.scrollIntoView({block: "nearest"});
+  }
+}
+
+function bindCommandPalette() {
+  const overlay = document.getElementById("command-palette-overlay");
+  const input = document.getElementById("command-palette-search");
+  if (!(overlay instanceof HTMLElement) || !(input instanceof HTMLInputElement)) {
+    return;
+  }
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  input.addEventListener("input", () => {
+    state.commandPalette.query = input.value;
+    state.commandPalette.selectedIndex = 0;
+    renderCommandPalette();
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCommandPalette();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveCommandPaletteSelection(1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveCommandPaletteSelection(-1);
+      return;
+    }
+    if (event.key === "Backspace" && !input.value && !state.commandPalette.global) {
+      event.preventDefault();
+      state.commandPalette.global = true;
+      state.commandPalette.selectedIndex = 0;
+      renderCommandPalette();
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const actions = visibleCommandPaletteActions();
+      const action = actions[clampCommandPaletteSelection(actions)];
+      if (action) {
+        void executeCommandPaletteAction(action);
+      }
+    }
+  });
+  overlay.querySelector("[data-command-palette-global]")?.addEventListener("click", () => {
+    state.commandPalette.global = true;
+    state.commandPalette.selectedIndex = 0;
+    renderCommandPalette();
+  });
+  overlay.querySelectorAll("[data-command-palette-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.commandPaletteIndex);
+      const action = visibleCommandPaletteActions()[Number.isInteger(index) ? index : 0];
+      if (action) {
+        void executeCommandPaletteAction(action);
+      }
+    });
+  });
+}
+
+async function openCommandPalette() {
+  if (!state.project) {
+    return;
+  }
+  state.commandPalette.open = true;
+  state.commandPalette.query = "";
+  state.commandPalette.selectedIndex = 0;
+  state.commandPalette.loading = true;
+  state.commandPalette.global = false;
+  renderCommandPalette();
+  try {
+    const catalogs = [];
+    catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=target`));
+    const rowIndex = currentListingSelectionRowIndex();
+    if (Number.isFinite(rowIndex)) {
+      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
+      const elementQuery = commandPaletteElementQuery(state.listingSelection);
+      if (elementQuery) {
+        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
+      }
+    }
+    const actionMap = new Map();
+    catalogs.forEach((catalog, catalogIndex) => {
+      const catalogRank = catalog.context?.kind === "target" && catalogs.length > 1 ? 1 : 0;
+      (Array.isArray(catalog.actions) ? catalog.actions : []).forEach((action) => {
+        const key = commandPaletteActionIdentity(action);
+        const existing = actionMap.get(key);
+        const rankedAction = {...action, palette_context_rank: catalogRank, palette_catalog_index: catalogIndex};
+        if (!existing || Number(existing.palette_context_rank || 0) > catalogRank) {
+          actionMap.set(key, rankedAction);
+        }
+      });
+    });
+    state.commandPalette.actions = Array.from(actionMap.values());
+  } finally {
+    state.commandPalette.loading = false;
+    renderCommandPalette();
+  }
+}
+
+function commandPaletteActionIdentity(action) {
+  const actionId = action?.action_id || action?.action || "";
+  if (action?.appends_to_manual_action_log !== true) {
+    return `transient:${actionId}`;
+  }
+  return `${action?.target_context?.kind || "target"}:${actionId}`;
+}
+
+function commandPaletteElementQuery(selection) {
+  if (!selection || selection.precisionLost) {
+    return null;
+  }
+  const elementSelector = selection.elementSelector || implicitElementSelectorForSelection(selection);
+  if (!elementSelector) {
+    return null;
+  }
+  const rowIndex = currentListingSelectionRowIndex(selection);
+  if (!Number.isFinite(rowIndex)) {
+    return null;
+  }
+  const params = new URLSearchParams();
+  params.set("context", "element");
+  params.set("row_index", String(rowIndex));
+  Object.entries(elementSelector).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      params.set(key, String(value));
+    }
+  });
+  return params.toString();
+}
+
+function currentListingSelectionRowIndex(selection = state.listingSelection) {
+  const rowIndex = Number(selection?.rowIndex);
+  if (Number.isFinite(rowIndex)) {
+    return rowIndex;
+  }
+  const selectedRow = document.querySelector(".listing-row-selected");
+  const selectedIndex = Number(selectedRow?.dataset?.rowIndex);
+  return Number.isFinite(selectedIndex) ? selectedIndex : NaN;
+}
+
+function implicitElementSelectorForSelection(selection) {
+  const row = listingRowDataForSelection(selection);
+  if (!row || row.kind !== "data" || !row.bytes) {
+    if (row?.kind === "label" && row.label) {
+      return {element_kind: "label", symbol: row.label};
+    }
+    return null;
+  }
+  return {element_kind: "data_literal"};
+}
+
+function listingRowDataForSelection(selection) {
+  const rowIndex = Number(selection?.rowIndex);
+  if (!Number.isFinite(rowIndex)) {
+    return null;
+  }
+  const localIndex = rowIndex - Number(state.virtualListing?.start || 0);
+  return Array.isArray(state.listingRows) && localIndex >= 0 && localIndex < state.listingRows.length
+    ? state.listingRows[localIndex]
+    : null;
+}
+
+function closeCommandPalette() {
+  state.commandPalette.open = false;
+  state.commandPalette.selectedIndex = 0;
+  renderCommandPalette();
+}
+
+async function executeCommandPaletteAction(action) {
+  const command = String(action?.action || "");
+  const parameters = commandPaletteActionParameters(action);
+  if (parameters === null) {
+    return;
+  }
+  closeCommandPalette();
+  if (action?.appends_to_manual_action_log === true) {
+    const body = {
+      action_id: action.action_id,
+      context: action.target_context,
+    };
+    if (Object.keys(parameters).length) {
+      body.parameters = parameters;
+    }
+    await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    if (commandRequiresAnalysisRefresh(command)) {
+      await refreshAnalysisAfterManualMetadataAction(state.project, {});
+    } else {
+      await refreshProjectPayload(state.project);
+      renderVirtualListingWindow(state.project, {
+        rows: state.listingRows,
+        start: state.virtualListing.start,
+        end: state.virtualListing.end,
+        total_rows: state.virtualListing.totalRows,
+        analysis_generation: state.virtualListing.generation,
+      }, true);
+    }
+    setAnalysisStatus("Manual action saved", "ready", 2000);
+  } else if (command === "open_review") {
+    openManualReviewPanel();
+  } else if (command === "open_navigation") {
+    await openNavigationOverlay();
+  } else if (command === "open_reproduction_report") {
+    await openReproPanel();
+  } else if (command === "history_back") {
+    await navigateHistory("back");
+  } else if (command === "history_forward") {
+    await navigateHistory("forward");
+  } else if (command === "follow_reference") {
+    await followSelectedReference(false);
+  } else if (command === "previous_label") {
+    await moveToRelativeLabel(-1);
+  } else if (command === "next_label") {
+    await moveToRelativeLabel(1);
+  } else if (command === "previous_hunk") {
+    await moveToRelativeHunk(-1);
+  } else if (command === "next_hunk") {
+    await moveToRelativeHunk(1);
+  } else if (command === "selection_up") {
+    await moveListingSelection(-1);
+  } else if (command === "selection_down") {
+    await moveListingSelection(1);
+  } else if (command === "viewport_page_up") {
+    scrollListingViewport(state.project, "up");
+  } else if (command === "viewport_page_down") {
+    scrollListingViewport(state.project, "down");
+  }
+}
+
+function commandRequiresAnalysisRefresh(command) {
+  return command === "create_manual_seed"
+    || command === "create_manual_register_seed"
+    || command === "create_manual_label";
+}
+
+function commandPaletteActionParameters(action) {
+  const schema = action?.parameter_schema || {};
+  const required = Array.isArray(schema.required) ? schema.required : [];
+  if (!required.includes("name")) {
+    return {};
+  }
+  const currentName = action?.target_context?.symbol || "";
+  const name = window.prompt("Label name", currentName);
+  if (!name || !name.trim()) {
+    return null;
+  }
+  return {name: name.trim()};
 }
 
 function sameIssueField(left, right) {
@@ -3678,6 +3997,10 @@ function formatRowBytes(hexBytes) {
 }
 
 function renderListingCode(row) {
+  const represented = renderManualRepresentationCode(row);
+  if (represented !== null) {
+    return represented;
+  }
   if (row.kind === "instruction" || row.kind === "data") {
     const opcode = row.opcode_or_directive || "";
     const operands = row.operand_text || "";
@@ -3690,6 +4013,75 @@ function renderListingCode(row) {
     return text.trimStart();
   }
   return text;
+}
+
+function rowManualRepresentation(row) {
+  const representations = state.projectData?.project?.manual_state?.representations;
+  if (!Array.isArray(representations) || row.kind !== "data") {
+    return null;
+  }
+  return representations.find((representation) => (
+    (representation.stable_key && row.stable_key && representation.stable_key === row.stable_key)
+    || (
+      Number.isInteger(representation.hunk)
+      && Number.isFinite(representation.addr)
+      && representation.hunk === row.section_index
+      && representation.addr === row.start_offset
+    )
+    || (
+      Number.isFinite(representation.row_index)
+      && Number.isFinite(state.virtualListing.start)
+      && representation.row_index >= state.virtualListing.start
+      && state.listingRows[representation.row_index - state.virtualListing.start] === row
+    )
+  )) || null;
+}
+
+function listingRowByteValues(row) {
+  const hex = String(row.bytes || "").replaceAll(/[^0-9a-f]/gi, "");
+  if (!hex || hex.length % 2) {
+    return [];
+  }
+  const values = [];
+  for (let index = 0; index < hex.length; index += 2) {
+    values.push(parseInt(hex.slice(index, index + 2), 16));
+  }
+  return values.filter((value) => Number.isInteger(value));
+}
+
+function quoteManualCharacter(value) {
+  const char = String.fromCharCode(value);
+  if (char === "'") return "'\\''";
+  if (char === "\\") return "'\\\\'";
+  if (value >= 32 && value < 127) return `'${char}'`;
+  return `$${value.toString(16).toUpperCase().padStart(2, "0")}`;
+}
+
+function renderManualRepresentationCode(row) {
+  const representation = rowManualRepresentation(row);
+  if (!representation || row.kind !== "data") {
+    return null;
+  }
+  const opcode = row.opcode_or_directive || "dc.b";
+  const values = listingRowByteValues(row);
+  if (!values.length || opcode.toLowerCase() !== "dc.b") {
+    return null;
+  }
+  const style = String(representation.style || "");
+  let operands = null;
+  if (style === "binary") {
+    operands = values.map((value) => `%${value.toString(2).padStart(8, "0")}`);
+  } else if (style === "character") {
+    operands = values.map(quoteManualCharacter);
+  } else if (style === "hex") {
+    operands = values.map((value) => `$${value.toString(16).toUpperCase().padStart(2, "0")}`);
+  } else if (style === "string") {
+    const printable = values.every((value) => value >= 32 && value < 127 && value !== 34 && value !== 92);
+    if (printable) {
+      operands = [`"${String.fromCharCode(...values)}"`];
+    }
+  }
+  return operands ? `    ${opcode} ${operands.join(",")}` : null;
 }
 
 function parseGlobalRsEquRow(row) {
@@ -3774,12 +4166,16 @@ function isListingSymbolChar(char) {
 }
 
 function rowOperandSymbolNames(row) {
-  const symbols = [];
+  return rowOperandSymbolRefs(row).map((ref) => ref.symbol);
+}
+
+function rowOperandSymbolRefs(row) {
+  const refs = [];
   const seen = new Set();
   if (!Array.isArray(row?.operand_parts)) {
-    return symbols;
+    return refs;
   }
-  row.operand_parts.forEach((operand) => {
+  row.operand_parts.forEach((operand, fallbackIndex) => {
     const metadataSymbol = operand?.metadata && typeof operand.metadata.symbol === "string"
       ? operand.metadata.symbol
       : "";
@@ -3788,9 +4184,13 @@ function rowOperandSymbolNames(row) {
       return;
     }
     seen.add(symbol);
-    symbols.push(symbol);
+    refs.push({
+      symbol,
+      operandIndex: Number.isInteger(operand.operand_index) ? operand.operand_index : fallbackIndex,
+      elementKind: operand.kind === "immediate" ? "immediate" : "symbol",
+    });
   });
-  return symbols;
+  return refs;
 }
 
 function listingOperandSymbolNames(row) {
@@ -3803,8 +4203,9 @@ function listingLabelRefRanges(row, text) {
     return [];
   }
   const labels = listingOperandSymbolNames(row)
-    .filter((label) => label && source.includes(label))
-    .sort((left, right) => right.length - left.length || left.localeCompare(right));
+    .filter((label) => label && source.includes(label));
+  const refsBySymbol = new Map(rowOperandSymbolRefs(row).map((ref) => [ref.symbol, ref]));
+  labels.sort((left, right) => right.length - left.length || left.localeCompare(right));
   const ranges = [];
   labels.forEach((label) => {
     let cursor = 0;
@@ -3817,7 +4218,8 @@ function listingLabelRefRanges(row, text) {
       const before = start > 0 ? source[start - 1] : "";
       const after = end < source.length ? source[end] : "";
       if (!isListingSymbolChar(before) && !isListingSymbolChar(after)) {
-        ranges.push({start, end, symbol: label});
+        const ref = refsBySymbol.get(label) || {};
+        ranges.push({start, end, symbol: label, operandIndex: ref.operandIndex, elementKind: ref.elementKind || "symbol"});
       }
       cursor = end;
     }
@@ -3847,10 +4249,12 @@ function renderListingLabelRefsHtml(row, text, globalRowIndex = null) {
   ranges.forEach((range) => {
     html += escapeHtml(source.slice(cursor, range.start));
     const rowIndex = Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : "";
+    const operandIndex = Number.isInteger(range.operandIndex) ? ` data-operand-index="${escapeHtml(String(range.operandIndex))}"` : "";
+    const elementKind = ` data-element-kind="${escapeHtml(range.elementKind || "symbol")}"`;
     if (equateNames.has(range.symbol)) {
-      html += `<button class="listing-symbol-link listing-symbol-reference listing-equate-reference" type="button" data-equate-symbol="${escapeHtml(range.symbol)}" data-equate-access="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+      html += `<button class="listing-symbol-link listing-symbol-reference listing-equate-reference" type="button" data-equate-symbol="${escapeHtml(range.symbol)}" data-equate-access="reference"${rowIndex}${operandIndex}${elementKind}>${escapeHtml(range.symbol)}</button>`;
     } else {
-      html += `<button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(range.symbol)}" data-symbol-role="reference"${rowIndex}>${escapeHtml(range.symbol)}</button>`;
+      html += `<button class="listing-symbol-link listing-symbol-reference" type="button" data-symbol-name="${escapeHtml(range.symbol)}" data-symbol-role="reference"${rowIndex}${operandIndex}${elementKind}>${escapeHtml(range.symbol)}</button>`;
     }
     cursor = range.end;
   });
@@ -3896,7 +4300,7 @@ function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
     const typedInfo = appSlotTypedInfoForSymbol(range.symbol);
     const typedClass = typedInfo ? " listing-app-slot-typed" : "";
     const title = typedInfo ? ` title="${escapeHtml(appSlotTypedInfoTitle(typedInfo))}"` : "";
-    html += `<button class="listing-symbol-link listing-symbol-reference listing-app-slot-reference${typedClass}" type="button" data-app-slot-symbol="${escapeHtml(range.symbol)}" data-row-index="${escapeHtml(String(globalRowIndex))}" data-app-slot-operand-index="${escapeHtml(String(range.operandIndex))}" data-app-slot-access="${escapeHtml(range.access)}"${title}>${escapeHtml(range.symbol)}</button>`;
+    html += `<button class="listing-symbol-link listing-symbol-reference listing-app-slot-reference${typedClass}" type="button" data-element-kind="app_slot" data-app-slot-symbol="${escapeHtml(range.symbol)}" data-row-index="${escapeHtml(String(globalRowIndex))}" data-app-slot-operand-index="${escapeHtml(String(range.operandIndex))}" data-app-slot-access="${escapeHtml(range.access)}"${title}>${escapeHtml(range.symbol)}</button>`;
     cursor = range.end;
   });
   html += escapeHtml(operand.slice(cursor));
@@ -3914,7 +4318,7 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
     const labelHtml = isAppSlotSymbolName(globalRsEqu.label)
       ? `<button class="listing-symbol-link listing-global-label listing-app-slot-definition${typedClass}" type="button" data-app-slot-symbol="${escapeHtml(globalRsEqu.label)}"${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
       : (globalRsEqu.directive.toUpperCase() === "EQU" && globalRsEqu.label
-        ? `<button class="listing-symbol-link listing-global-label listing-equate-definition" type="button" data-equate-symbol="${escapeHtml(globalRsEqu.label)}" data-equate-access="definition"${Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : ""}${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
+        ? `<button class="listing-symbol-link listing-global-label listing-equate-definition" type="button" data-element-kind="symbol" data-equate-symbol="${escapeHtml(globalRsEqu.label)}" data-equate-access="definition"${Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : ""}${labelTitle}>${escapeHtml(globalRsEqu.label)}</button>`
         : `<span class="listing-global-label"${labelTitle}>${escapeHtml(globalRsEqu.label)}</span>`);
     return `<span class="listing-global-structured">${labelHtml}<span class="listing-global-directive">${escapeHtml(globalRsEqu.directive)}</span><span class="listing-global-operand">${escapeHtml(globalRsEqu.operand)}</span></span>`;
   }
@@ -3922,7 +4326,7 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
   const labelName = labelSymbolFromRow(row);
   if (labelName && row.kind === "label" && rowHasAddress(row)) {
     const rowIndex = Number.isFinite(globalRowIndex) ? ` data-row-index="${escapeHtml(String(globalRowIndex))}"` : "";
-    return `<button class="listing-symbol-link listing-symbol-definition" type="button" data-symbol-name="${escapeHtml(labelName)}" data-symbol-role="definition"${rowIndex}>${escapeHtml(code)}</button>`;
+    return `<button class="listing-symbol-link listing-symbol-definition" type="button" data-element-kind="label" data-symbol-name="${escapeHtml(labelName)}" data-symbol-role="definition"${rowIndex}>${escapeHtml(code)}</button>`;
   }
   const appSlotCodeHtml = Number.isFinite(globalRowIndex)
     ? renderOperandAppSlotRefsHtml(row, code, globalRowIndex)
@@ -4071,7 +4475,7 @@ function renderListingRows(rows, globalStart = 0) {
   }
   return rows.map((row, rowIndex) => `
     <div
-      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}"
+      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}${listingRowIsSelected(row, globalStart + rowIndex) ? " listing-row-selected" : ""}"
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
       data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
@@ -4098,6 +4502,30 @@ function renderListingRows(rows, globalStart = 0) {
       <span class="listing-column-resizer listing-column-resizer-code" data-listing-column-resize="code" aria-hidden="true"></span>
     </div>
   `).join("");
+}
+
+function listingRowIsSelected(row, globalIndex) {
+  const selection = state.listingSelection;
+  if (!selection) {
+    return false;
+  }
+  if (selection.stableKey && row.stable_key && selection.stableKey === row.stable_key) {
+    return true;
+  }
+  if (Number.isFinite(selection.rowIndex) && selection.rowIndex === globalIndex) {
+    return true;
+  }
+  if (
+    Number.isInteger(selection.sectionIndex)
+    && Number.isFinite(selection.startOffset)
+    && selection.sectionIndex === row.section_index
+    && selection.startOffset === row.start_offset
+  ) {
+    return true;
+  }
+  return Number.isFinite(selection.addr)
+    && selection.addr === row.addr
+    && (!selection.rowCode || selection.rowCode === renderListingCode(row));
 }
 
 function clampListingWindowCount(count) {
@@ -4174,6 +4602,8 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
   applyListingColumnWidths();
   measureRenderedListingRowHeight(viewport);
   bindListingEditors(projectId, listing.rows);
+  bindListingSelection();
+  applyRenderedListingSelection();
   bindVirtualListingScroller(projectId, viewport);
   if (forcedScrollTop !== null && Number.isFinite(forcedScrollTop)) {
     viewport.scrollTop = Math.max(0, forcedScrollTop);
@@ -4562,6 +4992,10 @@ function modalOrPanelHasKeyboardFocus() {
     state.stats.overlayOpen ||
     document.getElementById("stats-overlay") ||
     state.reproduction.panelOpen ||
+    state.manualReview.panelOpen ||
+    state.commandPalette.open ||
+    document.getElementById("review-overlay") ||
+    document.getElementById("command-palette-overlay") ||
     document.getElementById("corpus-variant-diff-overlay") ||
     document.getElementById("corpus-disk-browser-overlay") ||
     document.getElementById("corpus-snippet-overlay")
@@ -6189,10 +6623,250 @@ function scrollRowIntoView(viewport, addr, block = "center", matchText = null, s
   return true;
 }
 
+function listingSelectionFromRow(row) {
+  if (!(row instanceof HTMLElement)) {
+    return null;
+  }
+  const rowIndex = Number(row.dataset.rowIndex);
+  const addr = row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined
+    ? Number(row.dataset.rowAddr)
+    : null;
+  const sectionIndex = row.dataset.sectionIndex !== "" && row.dataset.sectionIndex !== undefined
+    ? Number(row.dataset.sectionIndex)
+    : null;
+  const startOffset = row.dataset.startOffset !== "" && row.dataset.startOffset !== undefined
+    ? Number(row.dataset.startOffset)
+    : null;
+  return {
+    rowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
+    stableKey: row.dataset.rowStableKey || null,
+    addr: Number.isFinite(addr) ? addr : null,
+    sectionIndex: Number.isInteger(sectionIndex) ? sectionIndex : null,
+    startOffset: Number.isFinite(startOffset) ? startOffset : null,
+    rowCode: row.dataset.rowCode || "",
+    elementKind: null,
+    elementText: "",
+    elementSelector: null,
+    precisionLost: false,
+  };
+}
+
+function rowMatchesSelectionAddress(row, selection) {
+  if (!(row instanceof HTMLElement) || !selection) {
+    return false;
+  }
+  const sectionIndex = row.dataset.sectionIndex !== "" && row.dataset.sectionIndex !== undefined
+    ? Number(row.dataset.sectionIndex)
+    : null;
+  const startOffset = row.dataset.startOffset !== "" && row.dataset.startOffset !== undefined
+    ? Number(row.dataset.startOffset)
+    : null;
+  if (
+    Number.isInteger(selection.sectionIndex)
+    && Number.isFinite(selection.startOffset)
+    && sectionIndex === selection.sectionIndex
+    && startOffset === selection.startOffset
+  ) {
+    return true;
+  }
+  const addr = row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined
+    ? Number(row.dataset.rowAddr)
+    : null;
+  return Number.isFinite(selection.addr) && addr === selection.addr && (!selection.rowCode || row.dataset.rowCode === selection.rowCode);
+}
+
+function rowContainsSelectedElement(row, selection) {
+  if (!selection?.elementSelector && !selection?.elementKind) {
+    return true;
+  }
+  const text = String(selection.elementText || "");
+  const candidates = row.querySelectorAll(".listing-symbol-link");
+  return Array.from(candidates).some((candidate) => {
+    if (text && candidate.textContent !== text) {
+      return false;
+    }
+    const selector = listingElementSelector(candidate, row);
+    if (!selection.elementSelector || !selector) {
+      return true;
+    }
+    return Object.entries(selection.elementSelector).every(([key, value]) => String(selector[key] ?? "") === String(value));
+  });
+}
+
+function renderedRowForListingSelection(viewport, selection) {
+  if (!(viewport instanceof HTMLElement) || !selection) {
+    return {row: null, precise: false};
+  }
+  if (selection.stableKey) {
+    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
+    if (stable instanceof HTMLElement) {
+      return {row: stable, precise: rowContainsSelectedElement(stable, selection)};
+    }
+  }
+  const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+  const addressMatch = rows.find((row) => rowMatchesSelectionAddress(row, selection));
+  if (addressMatch instanceof HTMLElement) {
+    return {row: addressMatch, precise: !selection.stableKey && rowContainsSelectedElement(addressMatch, selection)};
+  }
+  if (Number.isFinite(selection.rowIndex)) {
+    const indexed = viewport.querySelector(`[data-row-index="${String(selection.rowIndex)}"]`);
+    if (indexed instanceof HTMLElement) {
+      return {row: indexed, precise: !selection.stableKey && rowContainsSelectedElement(indexed, selection)};
+    }
+  }
+  return {row: null, precise: false};
+}
+
+function applyRenderedListingSelection() {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    return;
+  }
+  viewport.querySelectorAll(".listing-row-selected").forEach((row) => {
+    row.classList.remove("listing-row-selected");
+  });
+  const selection = state.listingSelection;
+  if (!selection) {
+    return;
+  }
+  const {row, precise} = renderedRowForListingSelection(viewport, selection);
+  if (row instanceof HTMLElement) {
+    row.classList.add("listing-row-selected");
+    if (!precise && !selection.precisionLost) {
+      state.listingSelection = {
+        ...listingSelectionFromRow(row),
+        precisionLost: true,
+      };
+      setAnalysisStatus("Selection precision lost", "ready", 2500);
+    }
+  }
+}
+
+function setListingSelectionFromRow(row, element = null) {
+  const selection = listingSelectionFromRow(row);
+  if (!selection) {
+    return;
+  }
+  if (element instanceof HTMLElement) {
+    selection.elementSelector = listingElementSelector(element, row);
+    selection.elementKind = selection.elementSelector?.element_kind || listingElementKind(element);
+    selection.elementText = element.textContent || "";
+  }
+  state.listingSelection = selection;
+  applyRenderedListingSelection();
+  dispatchAppEvent("amiga:listing-row-selected", selection);
+}
+
+function listingElementKind(element) {
+  if (element.dataset.elementKind) {
+    return element.dataset.elementKind;
+  }
+  if (element.matches("[data-equate-symbol], [data-symbol-name]")) {
+    return "symbol";
+  }
+  if (element.matches("[data-app-slot-symbol]")) {
+    return "app_slot";
+  }
+  return "data_literal";
+}
+
+function listingElementSelector(element, row = null) {
+  if (!(element instanceof HTMLElement)) {
+    return null;
+  }
+  const selector = {};
+  const kind = listingElementKind(element);
+  if (kind) {
+    selector.element_kind = kind;
+  }
+  const operandIndex = Number(element.dataset.operandIndex ?? element.dataset.appSlotOperandIndex);
+  if (Number.isInteger(operandIndex)) {
+    selector.operand_index = operandIndex;
+  }
+  const symbol = element.dataset.appSlotSymbol || element.dataset.equateSymbol || element.dataset.symbolName || "";
+  if (symbol) {
+    selector.symbol = symbol;
+  }
+  const access = element.dataset.appSlotAccess || element.dataset.equateAccess || "";
+  if (access) {
+    selector.access = access;
+  }
+  if (row instanceof HTMLElement && kind === "label" && row.dataset.rowKind !== "label") {
+    return null;
+  }
+  return Object.keys(selector).length ? selector : null;
+}
+
+function setListingSelectionIndex(rowIndex) {
+  state.listingSelection = {
+    rowIndex,
+    stableKey: null,
+    addr: null,
+    sectionIndex: null,
+    startOffset: null,
+    rowCode: "",
+    precisionLost: true,
+  };
+  applyRenderedListingSelection();
+}
+
+function bindListingSelection() {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    return;
+  }
+  viewport.querySelectorAll(".listing-row").forEach((row) => {
+    row.addEventListener("click", (event) => {
+      const element = event.target instanceof HTMLElement ? event.target.closest(".listing-symbol-link") : null;
+      if (element instanceof HTMLElement) {
+        setListingSelectionFromRow(row, element);
+        return;
+      }
+      if (event.target instanceof HTMLElement && event.target.closest("button, input, select, textarea, a")) {
+        return;
+      }
+      setListingSelectionFromRow(row);
+    });
+  });
+}
+
+async function moveListingSelection(delta) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement) || !state.project) {
+    return false;
+  }
+  let currentIndex = Number(state.listingSelection?.rowIndex);
+  if (!Number.isFinite(currentIndex)) {
+    const firstRow = viewport.querySelector(".listing-row");
+    currentIndex = firstRow instanceof HTMLElement ? Number(firstRow.dataset.rowIndex) : 0;
+  }
+  if (!Number.isFinite(currentIndex)) {
+    currentIndex = 0;
+  }
+  const maxIndex = Math.max(0, (state.virtualListing.totalRows || 1) - 1);
+  const targetIndex = Math.max(0, Math.min(maxIndex, Math.floor(currentIndex) + delta));
+  setListingSelectionIndex(targetIndex);
+  let row = viewport.querySelector(`[data-row-index="${String(targetIndex)}"]`);
+  if (!(row instanceof HTMLElement)) {
+    const visibleRows = listingVisibleRowCount(viewport);
+    const count = listingFetchCount(viewport);
+    const start = Math.max(0, targetIndex - visibleRows);
+    await loadListingWindow(state.project, null, 0, count, {start, count});
+    row = viewport.querySelector(`[data-row-index="${String(targetIndex)}"]`);
+  }
+  if (row instanceof HTMLElement) {
+    setListingSelectionFromRow(row);
+    row.scrollIntoView({block: "nearest", behavior: "auto"});
+    return true;
+  }
+  return false;
+}
+
 function focusListingRow(row) {
   if (!(row instanceof HTMLElement)) {
     return;
   }
+  setListingSelectionFromRow(row);
   row.classList.add("listing-row-focus");
   dispatchAppEvent("amiga:listing-row-focused", {
     addr: row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined ? Number(row.dataset.rowAddr) : null,
@@ -7244,6 +7918,125 @@ async function jumpToListingSymbol(projectId, symbolName) {
   );
 }
 
+function selectedListingRowElement() {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    return null;
+  }
+  const selection = state.listingSelection;
+  if (selection?.stableKey) {
+    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
+    if (stable instanceof HTMLElement) {
+      return stable;
+    }
+  }
+  if (Number.isFinite(selection?.rowIndex)) {
+    const indexed = viewport.querySelector(`[data-row-index="${String(selection.rowIndex)}"]`);
+    if (indexed instanceof HTMLElement) {
+      return indexed;
+    }
+  }
+  return viewport.querySelector(".listing-row-selected");
+}
+
+async function followSelectedReference(openDetails = false) {
+  if (!state.project) {
+    return false;
+  }
+  const row = selectedListingRowElement();
+  if (!(row instanceof HTMLElement)) {
+    return false;
+  }
+  const origin = captureViewportAnchor();
+  const symbol = row.querySelector(".listing-symbol-reference[data-symbol-name]");
+  let followed = false;
+  if (symbol instanceof HTMLElement) {
+    followed = await handleListingSymbolButtonAction(state.project, symbol, {
+      ctrlKey: openDetails,
+      metaKey: false,
+      preventDefault() {},
+      stopPropagation() {},
+    });
+  } else {
+    const equate = row.querySelector(".listing-equate-reference[data-equate-symbol]");
+    if (equate instanceof HTMLElement) {
+      const equateSymbol = equate.dataset.equateSymbol || "";
+      if (openDetails) {
+        await selectEquateNavigationRef(state.project, equateSymbol, equate.dataset.rowIndex ?? null, "reference");
+      } else {
+        await jumpToListingEquate(state.project, equateSymbol);
+      }
+      followed = true;
+    }
+  }
+  const current = captureViewportAnchor();
+  if (followed && origin && current && !navigationEntriesSameLocation(origin, current)) {
+    state.navigation.historyBack.push(origin);
+    state.navigation.historyForward = [];
+    state.navigation.currentLocation = current;
+  }
+  return followed;
+}
+
+async function moveToRelativeLabel(delta) {
+  if (!state.project || !delta) {
+    return false;
+  }
+  const groups = await ensureNavigationEntries(state.project);
+  const labels = labelEntriesFromGroups(groups)
+    .map((entry) => ({...entry, rowIndex: navigationEntryRowIndex(entry)}))
+    .filter((entry) => Number.isFinite(entry.rowIndex))
+    .sort((left, right) => left.rowIndex - right.rowIndex);
+  if (!labels.length) {
+    return false;
+  }
+  const current = Number(state.listingSelection?.rowIndex);
+  const currentIndex = Number.isFinite(current) ? current : state.virtualListing.start;
+  const target = delta > 0
+    ? labels.find((entry) => entry.rowIndex > currentIndex)
+    : labels.toReversed().find((entry) => entry.rowIndex < currentIndex);
+  if (!target) {
+    return false;
+  }
+  return jumpToListingIndex(
+    state.project,
+    target.rowIndex,
+    target.addr,
+    target.matchText || target.match_text || target.summary,
+    target.stableKey || target.stable_key || null,
+  );
+}
+
+function currentListingSectionIndex() {
+  const selectionHunk = Number(state.listingSelection?.sectionIndex);
+  if (Number.isInteger(selectionHunk)) {
+    return selectionHunk;
+  }
+  const row = selectedListingRowElement();
+  const rowHunk = Number(row?.dataset?.sectionIndex);
+  return Number.isInteger(rowHunk) ? rowHunk : null;
+}
+
+async function moveToRelativeHunk(delta) {
+  if (!state.project || !delta) {
+    return false;
+  }
+  const current = currentListingSectionIndex();
+  if (!Number.isInteger(current)) {
+    return false;
+  }
+  const target = current + delta;
+  if (target < 0) {
+    return false;
+  }
+  const content = state.projectData?.project?.content || state.projectData?.content || {};
+  const hunkCount = Number(content.hunk_count);
+  if (Number.isInteger(hunkCount) && target >= hunkCount) {
+    return false;
+  }
+  return jumpToListingSectionOffset(state.project, target, 0);
+}
+
 async function renderProject(projectId) {
   if (state.homeDropCleanup) {
     state.homeDropCleanup();
@@ -7285,6 +8078,7 @@ async function renderProject(projectId) {
   state.project = projectId;
   resetDiskBrowser();
   state.listingRows = [];
+  state.listingSelection = null;
   state.virtualListing.start = 0;
   state.virtualListing.end = 0;
   state.virtualListing.totalRows = 0;
@@ -7329,10 +8123,17 @@ async function renderProject(projectId) {
     source: "",
     range: "",
   };
+  state.commandPalette.open = false;
+  state.commandPalette.query = "";
+  state.commandPalette.actions = [];
+  state.commandPalette.selectedIndex = 0;
+  state.commandPalette.loading = false;
+  state.commandPalette.global = false;
   setAnalysisStatus("");
   renderStatsOverlay();
   renderReproPanel();
   renderManualReviewPanel();
+  renderCommandPalette();
   renderNavigationOverlay();
   fetchJson(`/api/projects/${encodeURIComponent(projectId)}/open`, {method: "POST"})
     .catch(() => null);
@@ -7559,6 +8360,11 @@ document.addEventListener("mouseup", endListingColumnResize);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (state.commandPalette.open || document.getElementById("command-palette-overlay")) {
+      event.preventDefault();
+      closeCommandPalette();
+      return;
+    }
     if (document.getElementById("corpus-variant-diff-overlay")) {
       event.preventDefault();
       void closeCorpusVariantDiffOverlay();
@@ -7613,6 +8419,57 @@ document.addEventListener("keydown", (event) => {
   if (isEditableTarget(event.target)) {
     return;
   }
+  if (!modalOrPanelHasKeyboardFocus() && !event.altKey && !event.metaKey && event.ctrlKey && event.key === "ArrowUp") {
+    event.preventDefault();
+    void moveToRelativeLabel(-1);
+    return;
+  }
+  if (!modalOrPanelHasKeyboardFocus() && !event.altKey && !event.metaKey && event.ctrlKey && event.key === "ArrowDown") {
+    event.preventDefault();
+    void moveToRelativeLabel(1);
+    return;
+  }
+  if (!modalOrPanelHasKeyboardFocus() && !event.altKey && !event.metaKey && event.ctrlKey && event.key === "ArrowRight") {
+    event.preventDefault();
+    void followSelectedReference(true);
+    return;
+  }
+  if (
+    !modalOrPanelHasKeyboardFocus()
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.shiftKey
+    && event.key === "ArrowRight"
+  ) {
+    event.preventDefault();
+    void followSelectedReference(false);
+    return;
+  }
+  if (
+    !modalOrPanelHasKeyboardFocus()
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.shiftKey
+    && event.key === "ArrowLeft"
+  ) {
+    event.preventDefault();
+    void navigateHistory("back");
+    return;
+  }
+  if (
+    !modalOrPanelHasKeyboardFocus()
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey
+    && !event.shiftKey
+    && (event.key === "ArrowDown" || event.key === "ArrowUp")
+  ) {
+    event.preventDefault();
+    void moveListingSelection(event.key === "ArrowDown" ? 1 : -1);
+    return;
+  }
   const listingScrollDirection = listingScrollDirectionForKey(event);
   if (listingScrollDirection && !modalOrPanelHasKeyboardFocus()) {
     event.preventDefault();
@@ -7620,6 +8477,16 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (!modalOrPanelHasKeyboardFocus()) {
+    if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "p" || event.key === "P")) {
+      event.preventDefault();
+      void openCommandPalette();
+      return;
+    }
+    if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "r" || event.key === "R")) {
+      event.preventDefault();
+      openManualReviewPanel();
+      return;
+    }
     if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "n" || event.key === "N")) {
       event.preventDefault();
       void openNavigationOverlay();

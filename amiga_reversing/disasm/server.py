@@ -38,6 +38,15 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
+from amiga_reversing.disasm.listing_context import selected_listing_element_context
+from amiga_reversing.disasm.manual_action_catalog import (
+    listing_catalog_manual_payload,
+    listing_element_action_catalog,
+    listing_row_action_catalog,
+    review_item_action_catalog,
+    review_item_catalog_manual_payload,
+    target_action_catalog,
+)
 from amiga_reversing.disasm.manual_actions import (
     ManualActionKind,
     ReviewState,
@@ -1271,10 +1280,10 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
     project_dict = project.to_dict()
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
-        return project_dict
+        return _project_dict_with_review_action_catalog(project_dict)
     analysis_items = _cached_analysis_review_items(project_name, artifact)
     if not analysis_items:
-        return project_dict
+        return _project_dict_with_review_action_catalog(project_dict)
     existing_items = project_dict.get("review_items")
     review_items = [
         *(existing_items if isinstance(existing_items, list | tuple) else []),
@@ -1287,7 +1296,162 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
             project_dict["review_state"] = ReviewState.BLOCKED
         elif open_analysis_items:
             project_dict["review_state"] = ReviewState.NEEDS_REVIEW
+    return _project_dict_with_review_action_catalog(project_dict)
+
+
+def _project_dict_with_review_action_catalog(project_dict: dict[str, object]) -> dict[str, object]:
+    raw_items = project_dict.get("review_items")
+    if not isinstance(raw_items, list | tuple) or not raw_items:
+        return project_dict
+    project_dict = dict(project_dict)
+    project_dict["review_items"] = [
+        {
+            **dict(item),
+            "catalog_actions": review_item_action_catalog(cast(dict[str, object], item)),
+        }
+        if isinstance(item, dict)
+        else item
+        for item in raw_items
+    ]
     return project_dict
+
+
+def _catalog_review_item(project_name: str, item_id: str | None, review_index: int | None) -> dict[str, object]:
+    project = get_project(project_name)
+    project_dict = _project_dict_with_cached_analysis_review(project_name, project)
+    raw_items = project_dict.get("review_items")
+    if not isinstance(raw_items, list):
+        raise ValueError("Project has no manual review items")
+    if review_index is not None:
+        try:
+            item = raw_items[review_index]
+        except IndexError:
+            raise ValueError(f"Review item index is out of range: {review_index}") from None
+        if isinstance(item, dict):
+            return cast(dict[str, object], item)
+    if item_id:
+        for item in raw_items:
+            if isinstance(item, dict) and str(item.get("item_id") or "") == item_id:
+                return cast(dict[str, object], item)
+    raise ValueError("Review item was not found")
+
+
+def _manual_action_catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    context = _first_query_value(query, "context") or "target"
+    if context == "target":
+        return {"context": {"kind": "target"}, "actions": target_action_catalog()}
+    if context == "review-item":
+        review_index = _parse_int_arg(query, "review_index")
+        item = _catalog_review_item(project_name, _first_query_value(query, "item_id"), review_index)
+        return {
+            "context": {"kind": "review_item", "item_id": item.get("item_id"), "review_index": review_index},
+            "actions": review_item_action_catalog(item),
+        }
+    if context in {"row", "element"}:
+        row_index = _parse_int_arg(query, "row_index")
+        if row_index is None:
+            raise ValueError("row_index is required")
+        row = _catalog_listing_row(project_name, row_index)
+        if context == "row":
+            return {"context": {"kind": "row", "row_index": row_index}, "actions": listing_row_action_catalog(row)}
+        element_selector = _query_element_selector(query)
+        element_context = selected_listing_element_context(row, element_selector)
+        return {
+            "context": element_context,
+            "actions": listing_element_action_catalog(row, element_context),
+        }
+    raise ValueError(f"Unsupported manual action catalog context: {context}")
+
+
+def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]:
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is None:
+        raise ValueError(f"C listing artifact not loaded for project: {project_name}")
+    payload, _ = artifact.window_payload(start=row_index, count=1)
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+        raise ValueError(f"Listing row is not available: {row_index}")
+    row = dict(cast(dict[str, object], rows[0]))
+    row["row_index"] = row_index
+    return row
+
+
+def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    project = get_project(project_name)
+    if project.kind is not ProjectKind.BINARY or not project.ready:
+        raise ValueError(f"Project {project_name} is not ready for manual review actions")
+    payload_body = dict(body or {})
+    action_id = payload_body.get("action_id")
+    if not isinstance(action_id, str) or not action_id:
+        raise ValueError("action_id is required")
+    context = payload_body.get("context")
+    if not isinstance(context, dict):
+        raise ValueError("context is required")
+    parameters = payload_body.get("parameters")
+    if parameters is not None and not isinstance(parameters, dict):
+        raise ValueError("parameters must be an object")
+    context_kind = context.get("kind")
+    if context_kind == "review_item":
+        review_index = context.get("review_index")
+        item = _catalog_review_item(
+            project_name,
+            context.get("item_id") if isinstance(context.get("item_id"), str) else None,
+            review_index if isinstance(review_index, int) and not isinstance(review_index, bool) else None,
+        )
+        kind, action_payload = review_item_catalog_manual_payload(
+            item,
+            action_id,
+            cast(dict[str, object] | None, parameters),
+        )
+    elif context_kind in {"row", "element"}:
+        row_index = context.get("row_index")
+        if not isinstance(row_index, int) or isinstance(row_index, bool):
+            raise ValueError("context.row_index is required")
+        row = _catalog_listing_row(project_name, row_index)
+        element_context = selected_listing_element_context(row, context) if context_kind == "element" else None
+        kind, action_payload = listing_catalog_manual_payload(
+            row,
+            action_id,
+            element_context=element_context,
+            parameters=cast(dict[str, object] | None, parameters),
+        )
+    else:
+        raise ValueError(f"Unsupported catalog execution context: {context_kind}")
+    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    binary_source = resolve_target_binary_source(paths.target_dir)
+    if binary_source is None:
+        raise ValueError(f"Project {project_name} has no source binary")
+    validate_manual_action_payload(action_payload)
+    action = append_manual_action(
+        paths.target_dir,
+        kind=manual_action_kind(kind),
+        payload=action_payload,
+        binary_source=binary_source,
+    )
+    if manual_action_kind(kind) is not ManualActionKind.RESOLVE_REVIEW_ITEM:
+        _cancel_listing_jobs(project_name)
+        _cancel_reproduction_jobs(project_name)
+        _clear_project_listing_cache(project_name)
+    mark_project_updated(paths.target_dir)
+    return {"action": action}
+
+
+def _query_element_selector(query: dict[str, list[str]]) -> dict[str, object]:
+    selector: dict[str, object] = {}
+    for query_key, selector_key in (
+        ("element_id", "element_id"),
+        ("element_kind", "element_kind"),
+        ("symbol", "symbol"),
+        ("access", "access"),
+    ):
+        text_value = _first_query_value(query, query_key)
+        if text_value:
+            selector[selector_key] = text_value
+    for query_key, selector_key in (("operand_index", "operand_index"), ("value", "value")):
+        int_value = _parse_int_arg(query, query_key)
+        if int_value is not None:
+            selector[selector_key] = int_value
+    return selector
 
 
 def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str, object]:
@@ -1737,6 +1901,15 @@ def route_request(
             and parts[4] == "type-catalog"
         ):
             return {"ok": True, "data": _type_catalog_payload(project_name)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "manual-action-catalog":
+            return {"ok": True, "data": _manual_action_catalog_payload(project_name, query)}
+        if (
+            method == "POST"
+            and len(parts) == 5
+            and parts[3] == "manual-action-catalog"
+            and parts[4] == "execute"
+        ):
+            return {"ok": True, "data": _execute_manual_action_catalog_action(project_name, body)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY:

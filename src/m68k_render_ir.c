@@ -442,6 +442,9 @@ static void format_asm_label(char *buf, size_t buf_size, size_t section_index, u
   snprintf(buf, buf_size, "loc_%u_%08X", (unsigned)section_index, (unsigned)offset);
 }
 
+static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t domain);
+
 static void format_runtime_asm_label(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t source_offset, uint32_t runtime_address) {
   (void)lookup;
@@ -456,7 +459,21 @@ static void format_runtime_asm_label(const M68kRenderLookup *lookup, char *buf, 
 static uint8_t format_rendered_asm_label_with_generation(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t offset) {
   uint32_t runtime_address = 0U;
-  uint8_t generated = format_lookup_asm_label_with_generation(lookup, buf, buf_size, section_index, offset);
+  uint8_t generated;
+  if (buf == NULL || buf_size == 0U) return 1U;
+  if (lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address) &&
+      runtime_address != offset && lookup_source_offset_is_materialized_runtime_range_start(lookup, section_index,
+        offset)) {
+    const char *policy_name = lookup_policy_label_name(lookup, section_index, offset,
+      M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
+    if (policy_name != NULL && policy_name[0] != '\0') {
+      snprintf(buf, buf_size, "%s", policy_name);
+      return 0U;
+    }
+    format_runtime_asm_label(lookup, buf, buf_size, section_index, offset, runtime_address);
+    return 1U;
+  }
+  generated = format_lookup_asm_label_with_generation(lookup, buf, buf_size, section_index, offset);
   if (generated && lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address)) {
     format_runtime_asm_label(lookup, buf, buf_size, section_index, offset, runtime_address);
   }
@@ -1598,6 +1615,10 @@ int byte_is_quoted_string_safe(uint8_t value) {
   return value >= 0x20U && value <= 0x7eU && value != '"' && value != '\\';
 }
 
+static int byte_is_quoted_character_safe(uint8_t value) {
+  return value >= 0x20U && value <= 0x7eU && value != '\'' && value != '\\';
+}
+
 static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment) {
   uint32_t cursor;
@@ -1633,6 +1654,133 @@ static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *
   }
   hash_asm_text(preview, "\n");
   ++preview->asm_source_lines;
+}
+
+static const M68kAnalysisManualRepresentation *lookup_manual_representation_at(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  uint16_t index;
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  if (policy == NULL) return NULL;
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    if (representation->has_section_index && representation->section_index == section_index &&
+        representation->offset == offset && representation->size != 0U) {
+      return representation;
+    }
+  }
+  return NULL;
+}
+
+static uint32_t next_manual_representation_offset(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint32_t limit) {
+  uint16_t index;
+  uint32_t next = limit;
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  if (policy == NULL) return limit;
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    if (representation->has_section_index && representation->section_index == section_index &&
+        representation->offset > offset && representation->offset < next) {
+      next = representation->offset;
+    }
+  }
+  return next;
+}
+
+static void render_asm_dc_b_binary_line(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+    uint32_t count, const char *comment) {
+  uint32_t index;
+  if (preview == NULL || data == NULL || count == 0U) return;
+  hash_asm_text(preview, "\tdc.b ");
+  for (index = 0U; index < count; ++index) {
+    char token[12];
+    uint8_t value = data[offset + index];
+    if (index != 0U) hash_asm_text(preview, ",");
+    snprintf(token, sizeof(token), "%%%u%u%u%u%u%u%u%u",
+      (unsigned)((value >> 7U) & 1U), (unsigned)((value >> 6U) & 1U),
+      (unsigned)((value >> 5U) & 1U), (unsigned)((value >> 4U) & 1U),
+      (unsigned)((value >> 3U) & 1U), (unsigned)((value >> 2U) & 1U),
+      (unsigned)((value >> 1U) & 1U), (unsigned)(value & 1U));
+    hash_asm_text(preview, token);
+  }
+  if (comment != NULL && comment[0] != '\0') {
+    hash_asm_text(preview, "\t; ");
+    hash_asm_text(preview, comment);
+  }
+  hash_asm_text(preview, "\n");
+  ++preview->asm_source_lines;
+}
+
+static void render_asm_dc_b_character_line(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+    uint32_t count, const char *comment) {
+  uint32_t index;
+  if (preview == NULL || data == NULL || count == 0U) return;
+  hash_asm_text(preview, "\tdc.b ");
+  for (index = 0U; index < count; ++index) {
+    char token[12];
+    uint8_t value = data[offset + index];
+    if (index != 0U) hash_asm_text(preview, ",");
+    if (byte_is_quoted_character_safe(value))
+      snprintf(token, sizeof(token), "'%c'", (char)value);
+    else
+      snprintf(token, sizeof(token), "$%02X", (unsigned)value);
+    hash_asm_text(preview, token);
+  }
+  if (comment != NULL && comment[0] != '\0') {
+    hash_asm_text(preview, "\t; ");
+    hash_asm_text(preview, comment);
+  }
+  hash_asm_text(preview, "\n");
+  ++preview->asm_source_lines;
+}
+
+static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview, const uint8_t *data,
+    uint32_t offset, uint32_t size, uint8_t style_id, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || data == NULL || size == 0U) return;
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) {
+    render_asm_dc_b_string(preview, data, offset, size, comment);
+    return;
+  }
+  while (cursor < size) {
+    uint32_t chunk_size = size - cursor;
+    if (chunk_size > 16U) chunk_size = 16U;
+    if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY)
+      render_asm_dc_b_binary_line(preview, data, offset + cursor, chunk_size, cursor == 0U ? comment : NULL);
+    else if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER)
+      render_asm_dc_b_character_line(preview, data, offset + cursor, chunk_size, cursor == 0U ? comment : NULL);
+    else
+      render_asm_dc_b(preview, data, offset + cursor, chunk_size, cursor == 0U ? comment : NULL);
+    cursor += chunk_size;
+  }
+}
+
+static void render_asm_dc_b_with_policy(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
+    const M68kRenderLookup *lookup, uint32_t offset, uint32_t size, const char *comment) {
+  uint32_t cursor = 0U;
+  uint32_t limit;
+  if (preview == NULL || section == NULL || section->data == NULL || size == 0U) return;
+  limit = offset + size;
+  while (cursor < size) {
+    uint32_t current = offset + cursor;
+    const M68kAnalysisManualRepresentation *representation =
+      lookup_manual_representation_at(lookup, section->section_index, current);
+    if (representation != NULL) {
+      uint32_t chunk_size = representation->size;
+      if (chunk_size > size - cursor) chunk_size = size - cursor;
+      render_asm_manual_representation_dc_b(preview, section->data, current, chunk_size,
+        representation->style_id, cursor == 0U ? comment : NULL);
+      cursor += chunk_size;
+    } else {
+      uint32_t next = next_manual_representation_offset(lookup, section->section_index, current, limit);
+      uint32_t chunk_size = next > current ? next - current : size - cursor;
+      if (chunk_size > size - cursor) chunk_size = size - cursor;
+      render_asm_dc_b(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
+      cursor += chunk_size;
+    }
+  }
 }
 
 static void render_asm_dc_b_length_prefixed_string(M68kRenderIRPreview *preview, const uint8_t *data,
@@ -2452,7 +2600,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
     cursor += 2U;
   }
   if (cursor < size) {
-    render_asm_dc_b(preview, data, offset + cursor, size - cursor, comment);
+    render_asm_dc_b_with_policy(preview, section, lookup, offset + cursor, size - cursor, comment);
     if (io_logical_pc != NULL) *io_logical_pc += size - cursor;
   }
 }
@@ -2476,7 +2624,7 @@ static void render_asm_palette_words(M68kRenderIRPreview *preview, const M68kRen
     if (io_logical_pc != NULL) *io_logical_pc += span;
   }
   if (cursor < size) {
-    render_asm_dc_b(preview, data, offset + cursor, size - cursor, NULL);
+    render_asm_dc_b_with_policy(preview, section, lookup, offset + cursor, size - cursor, NULL);
     if (io_logical_pc != NULL) *io_logical_pc += size - cursor;
   }
 }
@@ -2542,7 +2690,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       if ((tail_offset & 1U) == 0U && (tail_size & 1U) == 0U)
         render_asm_dc_w_values(preview, section->data, tail_offset, tail_size, NULL);
       else
-        render_asm_dc_b(preview, section->data, tail_offset, tail_size, NULL);
+        render_asm_dc_b_with_policy(preview, section, lookup, tail_offset, tail_size, NULL);
     }
     return;
   }
@@ -2574,7 +2722,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   } else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && available >= 2U) {
     render_asm_dc_w_values(preview, section->data, item->offset, available, comment_text);
   } else {
-    render_asm_dc_b(preview, section->data, item->offset, available, comment_text);
+    render_asm_dc_b_with_policy(preview, section, lookup, item->offset, available, comment_text);
   }
   if (available < item->size) render_asm_ds_b(preview, item->size - available, comment_text);
 }
@@ -4182,13 +4330,14 @@ static void render_lookup_destroy(M68kRenderLookup *lookup) {
 }
 
 static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset) {
+    uint32_t offset, uint8_t domain) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   if (policy == NULL) return NULL;
   for (index = 0U; index < policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
     const M68kAnalysisNamedLabel *label = &policy->named_labels[index];
     if (label->name[0] == '\0' || label->offset != offset) continue;
+    if (label->domain != domain) continue;
     if (label->has_section_index) {
       if (label->section_index != (uint32_t)section_index) continue;
     } else if (section_index != 0U) {
@@ -4220,7 +4369,8 @@ static const char *lookup_object_symbol_label_name(const M68kRenderLookup *looku
 
 uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t offset) {
-  const char *policy_name = lookup_policy_label_name(lookup, section_index, offset);
+  const char *policy_name = lookup_policy_label_name(
+    lookup, section_index, offset, M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
   const char *object_name = NULL;
   if (buf == NULL || buf_size == 0U) return 1U;
   if (policy_name != NULL && policy_name[0] != '\0') {
@@ -5738,7 +5888,7 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
 }
 
 static int lookup_has_policy_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  const char *name = lookup_policy_label_name(lookup, section_index, offset);
+  const char *name = lookup_policy_label_name(lookup, section_index, offset, M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
   return name != NULL && name[0] != '\0';
 }
 

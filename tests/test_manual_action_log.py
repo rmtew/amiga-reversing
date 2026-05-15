@@ -78,6 +78,7 @@ def test_missing_manual_action_log_projects_empty_state(tmp_path: Path) -> None:
     assert projection.seeds == ()
     assert projection.labels == ()
     assert projection.comments == ()
+    assert projection.representations == ()
     assert projection.resolutions == ()
     assert projection.active_action_ids == ()
     assert projection.inactive_action_ids == ()
@@ -97,6 +98,46 @@ def test_header_only_manual_action_log_pins_target_identity(tmp_path: Path) -> N
     assert projection.review_state == "clear"
     assert projection.pinned_target_identity == identity
     assert projection.seeds == ()
+
+
+def test_manual_representation_actions_project_without_manual_seed(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    log_path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
+    _append_jsonl(
+        log_path,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_representation",
+                representation={
+                    "representation_id": "repr-1",
+                    "hunk": 0,
+                    "addr": 4,
+                    "end": 5,
+                    "element_kind": "literal",
+                    "style": "character",
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == "clear"
+    assert projection.seeds == ()
+    assert projection.representations == (
+        {
+            "representation_id": "repr-1",
+            "hunk": 0,
+            "addr": 4,
+            "end": 5,
+            "element_kind": "literal",
+            "style": "character",
+        },
+    )
 
 
 def test_manual_action_log_replays_file_order_and_reports_sequence_inconsistency(tmp_path: Path) -> None:
@@ -213,6 +254,38 @@ def test_manual_action_log_projects_labels_comments_and_resolutions(tmp_path: Pa
     assert projection.labels == ({"label_id": "l1", "name": "start"},)
     assert projection.comments == ({"comment_id": "c1", "text": "entry"},)
     assert projection.resolutions == ({"resolution_id": "r1", "item_id": "i1"},)
+
+
+def test_manual_action_log_projects_label_rename_and_scope_change(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={"label_id": "l1", "name": "start", "scope": "global", "hunk": 0, "addr": 4},
+            ),
+            _action("a2", 2, "rename_manual_label", label_id="l1", name=".loop"),
+            _action("a3", 3, "change_label_scope", label_id="l1", scope="local", owner_id="owner"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.labels == (
+        {
+            "label_id": "l1",
+            "name": ".loop",
+            "scope": "local",
+            "hunk": 0,
+            "addr": 4,
+            "owner_id": "owner",
+        },
+    )
 
 
 def test_append_manual_action_creates_header_and_sequences_actions(tmp_path: Path) -> None:

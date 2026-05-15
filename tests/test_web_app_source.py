@@ -60,11 +60,29 @@ def test_web_app_annotation_controls_use_manual_review_actions() -> None:
 
     assert "fallbackEntity" not in app_js
     assert "let entity;" not in app_js
-    assert 'actions.push({action: "remove_manual_annotation", label: "Remove annotation"});' in app_js
+    assert "function reviewItemCatalogActions(item)" in app_js
+    assert "data-catalog-action-id" in app_js
     assert 'if (action === "remove_manual_annotation") {' in app_js
     assert ".listing-annotation-edit {\n  opacity: 0;" in styles_css
     assert ".listing-row:hover .listing-annotation-edit" in styles_css
     assert ".listing-row:focus-within .listing-annotation-edit" in styles_css
+
+
+def test_web_app_command_palette_and_selection_model_are_contextual() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "palette_context_rank" in app_js
+    assert "state.commandPalette.global || Number(action.palette_context_rank || 0) === 0" in app_js
+    assert 'event.key === "Backspace" && !input.value && !state.commandPalette.global' in app_js
+    assert "parameters.struct_name" in app_js
+    assert "selection.elementKind = listingElementKind(element);" in app_js
+    assert 'setAnalysisStatus("Selection precision lost"' in app_js
+    assert "void followSelectedReference(true);" in app_js
+    assert 'command === "next_hunk"' in app_js
 
 
 def test_web_app_initial_listing_load_requests_virtual_window() -> None:

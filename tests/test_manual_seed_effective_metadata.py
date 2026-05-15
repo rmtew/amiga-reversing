@@ -115,6 +115,91 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
     ]
 
 
+def test_effective_metadata_includes_manual_representation_without_classifying_data(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_representation",
+                representation={
+                    "representation_id": "repr-1",
+                    "hunk": 0,
+                    "addr": 0x300,
+                    "end": 0x304,
+                    "style": "character",
+                    "element_kind": "operand",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_entities"] == []
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x300,
+            "citation": "manual_action_log:repr-1",
+            "element_kind": "operand",
+            "end": 0x304,
+            "hunk": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ManualRepresentation:repr-1",
+            "source_path": None,
+            "style": "character",
+        }
+    ]
+
+
+def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_register_seed",
+                register_seed={
+                    "register_seed_id": "reg-1",
+                    "entry_offset": 0x120,
+                    "register": "A6",
+                    "kind": "library_base",
+                    "library_name": "exec.library",
+                    "struct_name": "LIB",
+                    "context_name": "exec.library",
+                    "note": "Manual semantic helper",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["entry_register_seeds"] == [
+        {
+            "context_name": "exec.library",
+            "entry_offset": 0x120,
+            "kind": "library_base",
+            "library_name": "exec.library",
+            "note": "Manual semantic helper",
+            "register": "A6",
+            "struct_name": "LIB",
+        }
+    ]
+
+
 def test_effective_metadata_ignores_suggested_manual_seeds_until_accepted(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -202,6 +287,45 @@ def test_effective_metadata_projects_manual_labels_and_comments_without_seeding_
             "source_id": "manual_action_log",
             "source_locator": "ManualComment:loop-note",
             "source_path": None,
+        }
+    ]
+
+
+def test_effective_metadata_projects_runtime_manual_labels_to_absolute_labels(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_label",
+                label={
+                    "label_id": "runtime-entry",
+                    "scope": "global",
+                    "address_domain": "runtime",
+                    "hunk": 0,
+                    "addr": 0x10000,
+                    "name": "ENTRYPOINT0000",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_code_labels"] == []
+    assert payload["absolute_code_labels"] == [
+        {
+            "addr": 0x10000,
+            "citation": "manual_action_log:runtime-entry",
+            "comment": None,
+            "name": "ENTRYPOINT0000",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
         }
     ]
 

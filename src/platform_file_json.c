@@ -4086,23 +4086,54 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
 }
 
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
+  const M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
   size_t operand_index;
   int emitted = 0;
   if (json_builder_append(builder, "[") != 0) return -1;
   if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return json_builder_append(builder, "]");
-  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
-    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+  instruction = &stmt->u.instruction;
+  metadata = instruction_sim_metadata(instruction);
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
     const char *symbol_name = operand->symbol_ref.has_name != 0U ? operand->symbol_ref.name : NULL;
-    if (symbol_name == NULL || symbol_name[0] == '\0') continue;
+    uint8_t access_kind = metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE;
+    int is_immediate = access_kind == M68K_SIM_ACCESS_IMMEDIATE;
+    unsigned width_bits = 0U;
+    int32_t signed_value = (int32_t)operand->value.value;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_append(builder, "{\"kind\":\"symbol\",\"text\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
-    if (json_builder_append(builder,
-          ",\"value\":null,\"register\":null,\"base_register\":null,\"displacement\":null,"
-          "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0)
-      return -1;
-    if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
-    if (json_builder_append(builder, "}}") != 0) return -1;
+    if (is_immediate) {
+      if (instruction->size_suffix == 'b') width_bits = 8U;
+      else if (instruction->size_suffix == 'w') width_bits = 16U;
+      else if (instruction->size_suffix == 'l') width_bits = 32U;
+      if (width_bits == 8U || width_bits == 16U)
+        signed_value = (int32_t)m68k_sign_extend32(operand->value.value, width_bits);
+      if (json_builder_appendf(builder,
+            "{\"kind\":\"immediate\",\"operand_index\":%u,\"text\":null,\"value\":%u,\"signed_value\":%d",
+            (unsigned)operand_index, (unsigned)operand->value.value, signed_value) != 0)
+        return -1;
+      if (width_bits != 0U &&
+          json_builder_appendf(builder, ",\"width_bits\":%u,\"width_bytes\":%u", width_bits, width_bits / 8U) != 0)
+        return -1;
+      if (symbol_name != NULL && symbol_name[0] != '\0') {
+        if (json_builder_append(builder, ",\"metadata\":{\"symbol\":") != 0) return -1;
+        if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+        if (json_builder_append(builder, "}") != 0) return -1;
+      } else if (json_builder_append(builder, ",\"metadata\":{}") != 0) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
+    } else {
+      if (json_builder_appendf(builder, "{\"kind\":\"symbol\",\"operand_index\":%u,\"text\":",
+            (unsigned)operand_index) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      if (json_builder_append(builder,
+            ",\"value\":null,\"register\":null,\"base_register\":null,\"displacement\":null,"
+            "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
+      if (json_builder_append(builder, "}}") != 0) return -1;
+    }
     emitted = 1;
   }
   return json_builder_append(builder, "]");
@@ -5934,12 +5965,17 @@ static const M68kRuntimeViewIR *listing_runtime_view_for_storage_runtime_offset(
   return NULL;
 }
 
-static int listing_stmt_has_symbol_operand_parts(const M68kStatementIR *stmt) {
+static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
+  const M68kInstructionIR *instruction;
+  const M68kSimFormMetadata *metadata;
   size_t operand_index;
   if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
-  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
-    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+  instruction = &stmt->u.instruction;
+  metadata = instruction_sim_metadata(instruction);
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
+    if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_IMMEDIATE) return 1;
   }
   return 0;
 }
@@ -6158,7 +6194,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;
     if (json_builder_append_json_string(builder, operand) != 0) return -1;
   }
-  if (listing_stmt_has_symbol_operand_parts(stmt)) {
+  if (listing_stmt_has_operand_parts(stmt)) {
     if (json_builder_append(builder, ",\"operand_parts\":") != 0) return -1;
     if (append_listing_operand_parts_json(builder, stmt) != 0) return -1;
   }

@@ -45,6 +45,13 @@ class EntryRegisterSeedKind(StrEnum):
     STRUCT_PTR = "struct_ptr"
 
 
+class ManualRepresentationStyle(StrEnum):
+    HEX = "hex"
+    BINARY = "binary"
+    CHARACTER = "character"
+    STRING = "string"
+
+
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
     assert isinstance(value, dict)
     return cast(dict[str, object], value)
@@ -93,6 +100,14 @@ def _entry_register_seed_kind(value: object) -> EntryRegisterSeedKind:
         return EntryRegisterSeedKind(value)
     except ValueError:
         raise AssertionError(f"Unsupported entry register seed kind: {value}") from None
+
+
+def _manual_representation_style(value: object) -> ManualRepresentationStyle:
+    assert isinstance(value, str)
+    try:
+        return ManualRepresentationStyle(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported manual representation style: {value}") from None
 
 
 def _assert_target_metadata_review_fields(
@@ -700,6 +715,60 @@ class EntryCommentMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class ManualRepresentationMetadata:
+    addr: int
+    style: ManualRepresentationStyle
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    end: int | None = None
+    hunk: int = 0
+    element_kind: str | None = None
+    source_id: str | None = None
+    source_path: str | None = None
+    source_locator: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        assert isinstance(self.style, ManualRepresentationStyle)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> ManualRepresentationMetadata:
+        addr = payload["addr"]
+        style = payload["style"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        end = payload.get("end")
+        hunk = payload.get("hunk", 0)
+        element_kind = payload.get("element_kind")
+        source_id = payload.get("source_id")
+        source_path = payload.get("source_path")
+        source_locator = payload.get("source_locator")
+        assert isinstance(addr, int)
+        assert end is None or isinstance(end, int)
+        assert isinstance(hunk, int)
+        assert isinstance(citation, str)
+        assert element_kind is None or isinstance(element_kind, str)
+        assert source_id is None or isinstance(source_id, str)
+        assert source_path is None or isinstance(source_path, str)
+        assert source_locator is None or isinstance(source_locator, str)
+        return cls(
+            addr=addr,
+            end=end,
+            hunk=hunk,
+            style=_manual_representation_style(style),
+            element_kind=element_kind,
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+            source_id=source_id,
+            source_path=source_path,
+            source_locator=source_locator,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionViewMetadata:
     source_start: int
     source_end: int
@@ -776,6 +845,7 @@ class TargetMetadata:
     seeded_code_entrypoints: tuple[SeededCodeEntrypointMetadata, ...] = ()
     absolute_code_labels: tuple[AbsoluteCodeLabelMetadata, ...] = ()
     entry_comments: tuple[EntryCommentMetadata, ...] = ()
+    manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
 
@@ -793,6 +863,7 @@ class TargetMetadata:
         seeded_code_entrypoints = payload.get("seeded_code_entrypoints", [])
         absolute_code_labels = payload.get("absolute_code_labels", [])
         entry_comments = payload.get("entry_comments", [])
+        manual_representations = payload.get("manual_representations", [])
         execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
@@ -833,6 +904,10 @@ class TargetMetadata:
             entry_comments=tuple(
                 EntryCommentMetadata.from_dict(_json_object(comment_payload))
                 for comment_payload in _json_list(entry_comments)
+            ),
+            manual_representations=tuple(
+                ManualRepresentationMetadata.from_dict(_json_object(representation_payload))
+                for representation_payload in _json_list(manual_representations)
             ),
             execution_views=tuple(
                 ExecutionViewMetadata.from_dict(_json_object(view_payload))
@@ -1025,6 +1100,7 @@ def _apply_suppressed_seeded_items(
             if (SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT, entrypoint.hunk, entrypoint.addr) not in suppressed
         ),
         entry_comments=seeded.entry_comments,
+        manual_representations=seeded.manual_representations,
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
     )
@@ -1196,6 +1272,23 @@ def _merge_entry_comments(
     return tuple(merged[key] for key in sorted(merged))
 
 
+def _merge_manual_representations(
+    manual: tuple[ManualRepresentationMetadata, ...],
+    seeded: tuple[ManualRepresentationMetadata, ...],
+) -> tuple[ManualRepresentationMetadata, ...]:
+    merged: dict[tuple[int, int, int | None, str | None], ManualRepresentationMetadata] = {
+        (representation.hunk, representation.addr, representation.end, representation.element_kind): representation
+        for representation in seeded
+    }
+    for representation in manual:
+        key = (representation.hunk, representation.addr, representation.end, representation.element_kind)
+        existing = merged.get(key)
+        if existing is not None and existing.style != representation.style:
+            raise ValueError(f"Conflicting manual representation style for {(representation.hunk, representation.addr)!r}")
+        merged[key] = representation
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def _merge_execution_views(
     manual: tuple[ExecutionViewMetadata, ...],
     seeded: tuple[ExecutionViewMetadata, ...],
@@ -1243,6 +1336,10 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             seeded.absolute_code_labels,
         ),
         entry_comments=_merge_entry_comments(manual.entry_comments, seeded.entry_comments),
+        manual_representations=_merge_manual_representations(
+            manual.manual_representations,
+            seeded.manual_representations,
+        ),
         execution_views=_merge_execution_views(
             manual.execution_views,
             seeded.execution_views,

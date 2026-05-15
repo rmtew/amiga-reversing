@@ -103,6 +103,7 @@ M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT = 128
 M68K_ANALYSIS_ENTRY_COMMENT_LIMIT = 128
 M68K_ANALYSIS_RUNTIME_RANGE_LIMIT = 64
 M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT = 64
+M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT = 128
 
 
 class M68kAnalysisRegisterSeed(ctypes.Structure):
@@ -173,7 +174,8 @@ class M68kAnalysisStructuredDataItem(ctypes.Structure):
 class M68kAnalysisNamedLabel(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
+        ("domain", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("name", ctypes.c_char * 64),
@@ -229,6 +231,17 @@ class M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     ]
 
 
+class M68kAnalysisManualRepresentation(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("style_id", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+    ]
+
+
 class M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -243,6 +256,7 @@ class M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
         ("rsset_layout_region_count", ctypes.c_uint16),
+        ("manual_representation_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", M68kAnalysisRegisterSeed * M68K_ANALYSIS_REGISTER_SEED_LIMIT),
         ("entry_points", M68kAnalysisEntryPoint * M68K_ANALYSIS_ENTRY_POINT_LIMIT),
@@ -255,6 +269,10 @@ class M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_ranges", M68kAnalysisRuntimeRange * M68K_ANALYSIS_RUNTIME_RANGE_LIMIT),
         ("runtime_entry_points", M68kAnalysisRuntimeEntryPoint * M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT),
         ("rsset_layout_regions", M68kAnalysisRssetLayoutRegion * M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT),
+        (
+            "manual_representations",
+            M68kAnalysisManualRepresentation * M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT,
+        ),
     ]
 
 

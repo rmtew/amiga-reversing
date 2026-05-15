@@ -21,7 +21,12 @@ from amiga_reversing.disasm.manual_actions import (
     load_manual_projection,
 )
 from amiga_reversing.disasm.target_metadata import (
+    AbsoluteCodeLabelMetadata,
     EntryCommentMetadata,
+    EntryRegisterSeedKind,
+    EntryRegisterSeedMetadata,
+    ManualRepresentationMetadata,
+    ManualRepresentationStyle,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
@@ -117,6 +122,11 @@ def _manual_comment_source_locator(comment: dict[str, object]) -> str:
     return f"ManualComment:{comment_id}"
 
 
+def _manual_representation_source_locator(representation: dict[str, object]) -> str:
+    representation_id = _manual_seed_text(representation, "representation_id") or "unnamed"
+    return f"ManualRepresentation:{representation_id}"
+
+
 def _manual_action_citation(action_object: dict[str, object], id_field: str) -> str:
     action_id = _manual_seed_text(action_object, id_field) or "unnamed"
     return f"manual_action_log:{action_id}"
@@ -177,6 +187,8 @@ def _manual_seed_to_data_entity(seed: dict[str, object]) -> SeededEntityMetadata
 
 
 def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMetadata | None:
+    if _manual_seed_text(label, "address_domain") == "runtime":
+        return None
     if label.get("scope") is ManualLabelScope.LOCAL:
         return None
     parsed_range = _parse_manual_seed_range(label)
@@ -199,6 +211,23 @@ def _manual_label_to_code_label(label: dict[str, object]) -> SeededCodeLabelMeta
     )
 
 
+def _manual_label_to_absolute_code_label(label: dict[str, object]) -> AbsoluteCodeLabelMetadata | None:
+    if _manual_seed_text(label, "address_domain") != "runtime":
+        return None
+    addr = _manual_seed_int(label, "addr")
+    name = _manual_seed_text(label, "name")
+    if addr is None or name is None:
+        return None
+    return AbsoluteCodeLabelMetadata(
+        addr=addr,
+        name=name,
+        comment=_manual_seed_text(label, "comment"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(label, "label_id"),
+    )
+
+
 def _manual_comment_to_entry_comment(comment: dict[str, object]) -> EntryCommentMetadata | None:
     parsed_range = _parse_manual_seed_range(comment)
     if parsed_range is None:
@@ -216,6 +245,53 @@ def _manual_comment_to_entry_comment(comment: dict[str, object]) -> EntryComment
         citation=_manual_action_citation(comment, "comment_id"),
         source_id="manual_action_log",
         source_locator=_manual_comment_source_locator(comment),
+    )
+
+
+def _manual_representation_to_metadata(representation: dict[str, object]) -> ManualRepresentationMetadata | None:
+    parsed_range = _parse_manual_seed_range(representation)
+    if parsed_range is None:
+        return None
+    style_text = _manual_seed_text(representation, "style")
+    if style_text is None:
+        return None
+    hunk, addr, end = parsed_range
+    try:
+        style = ManualRepresentationStyle(style_text)
+    except ValueError:
+        return None
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=hunk,
+        style=style,
+        element_kind=_manual_seed_text(representation, "element_kind"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(representation, "representation_id"),
+        source_id="manual_action_log",
+        source_locator=_manual_representation_source_locator(representation),
+    )
+
+
+def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> EntryRegisterSeedMetadata | None:
+    register = _manual_seed_text(register_seed, "register")
+    kind_text = _manual_seed_text(register_seed, "kind")
+    if register is None or kind_text is None:
+        return None
+    try:
+        kind = EntryRegisterSeedKind(kind_text)
+    except ValueError:
+        return None
+    entry_offset = _manual_seed_int(register_seed, "entry_offset")
+    return EntryRegisterSeedMetadata(
+        entry_offset=entry_offset,
+        register=register,
+        kind=kind,
+        note=_manual_seed_text(register_seed, "note") or _manual_action_citation(register_seed, "register_seed_id"),
+        library_name=_manual_seed_text(register_seed, "library_name"),
+        struct_name=_manual_seed_text(register_seed, "struct_name"),
+        context_name=_manual_seed_text(register_seed, "context_name"),
     )
 
 
@@ -249,14 +325,19 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         if label.get("label_id") not in conflicted_label_ids
     )
     comments = projection.comments
-    if not required_seeds and not labels and not comments:
+    representations = projection.representations
+    register_seed_projections = projection.register_seeds
+    if not required_seeds and not labels and not comments and not representations and not register_seed_projections:
         return metadata
     if metadata is None:
         metadata = TargetMetadata(target_type="program", entry_register_seeds=())
     seeded_entities = list(metadata.seeded_entities)
     seeded_code_labels = list(metadata.seeded_code_labels)
     seeded_code_entrypoints = list(metadata.seeded_code_entrypoints)
+    absolute_code_labels = list(metadata.absolute_code_labels)
     entry_comments = list(metadata.entry_comments)
+    entry_register_seeds = list(metadata.entry_register_seeds)
+    manual_representations = list(metadata.manual_representations)
     for seed in required_seeds:
         seed_kind = seed.get("kind")
         if seed_kind is ManualSeedKind.CODE:
@@ -271,16 +352,30 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         code_label = _manual_label_to_code_label(label)
         if code_label is not None:
             seeded_code_labels.append(code_label)
+        absolute_label = _manual_label_to_absolute_code_label(label)
+        if absolute_label is not None:
+            absolute_code_labels.append(absolute_label)
     for comment in comments:
         entry_comment = _manual_comment_to_entry_comment(comment)
         if entry_comment is not None:
             entry_comments.append(entry_comment)
+    for representation in representations:
+        manual_representation = _manual_representation_to_metadata(representation)
+        if manual_representation is not None:
+            manual_representations.append(manual_representation)
+    for register_seed in register_seed_projections:
+        entry_register_seed = _manual_register_seed_to_metadata(register_seed)
+        if entry_register_seed is not None:
+            entry_register_seeds.append(entry_register_seed)
     return replace(
         metadata,
+        entry_register_seeds=tuple(entry_register_seeds),
         seeded_entities=tuple(seeded_entities),
         seeded_code_labels=tuple(seeded_code_labels),
+        absolute_code_labels=tuple(absolute_code_labels),
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
+        manual_representations=tuple(manual_representations),
     )
 
 

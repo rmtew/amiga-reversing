@@ -9287,6 +9287,50 @@ static int test_facts_v2_policy_runtime_range_uses_first_class_labels(void) {
   return 0;
 }
 
+static int test_facts_v2_runtime_range_start_keeps_source_and_runtime_label_domains_separate(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[4] = {0x4eu, 0x71u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x100U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x100U;
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].domain = M68K_ANALYSIS_LABEL_DOMAIN_SOURCE;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].offset = 0U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "entrypoint");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "entrypoint:\n    ORG $100\nabs_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "entrypoint:\n\tnop\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_runtime_alias_refs_emit_first_class_labels(void) {
   M68kObject object;
   M68kSection section;
@@ -19510,6 +19554,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicate_fallback},
     {"facts_v2_policy_runtime_range_uses_first_class_labels",
       test_facts_v2_policy_runtime_range_uses_first_class_labels},
+    {"facts_v2_runtime_range_start_keeps_source_and_runtime_label_domains_separate",
+      test_facts_v2_runtime_range_start_keeps_source_and_runtime_label_domains_separate},
     {"facts_v2_runtime_alias_refs_emit_first_class_labels",
       test_facts_v2_runtime_alias_refs_emit_first_class_labels},
     {"facts_v2_policy_runtime_entrypoint_starts_inside_view",
