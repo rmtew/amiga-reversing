@@ -1,5 +1,94 @@
 # TODO
 
+## Manual review/editing and analysis state
+
+We added manual editing to the UI. This records logged actions against the backend that let us rename labels and
+change data types, and other forms of interaction. Currently this are likely only exposed through the Review dialog
+via the buttons there for each flagged review item. While the buttons are a good start, the ability to edit will
+need to be exposed in two different ways.
+
+  1. An LLM reversing a project should be able to operate it via the API or command-line tools. In this case the
+     user will have directed the LLM to work away reversing a target, making use of the tools and data available
+     both improving the underlying analysis framework, the C API it exposes and the tooling that provides access.
+  2. Web-UI keyboard interaction by a human. For a human the Review dialog is useful to visualise the items they need
+     to review. However the current options that can be selects in the dialog are ad-hoc, and we need a better way
+     to contextually make them available in the main scrollable target analysis, both as a popup menu for a given
+     element and hotkeys.
+
+### LLM notes
+
+Largely covered above. Is it better to use command-line or API? The API caches analysis and reduces access delays,
+which would imply API. And the benefit of using the same API as the user via the web UI is obvious.
+
+### WebUI notes
+
+When something is selected in either the Review dialog or Navigate dialog, the code jumps to the given row and
+the row temporarily highlights. In order for keyboard driven interaction to be viable we likely need to have the
+concept of a selected row and even selection of elements within the row.
+
+- Up/down cursor keys may move the selected row one line up or down.
+- Home/End/Page up/Page down would move the viewport but not the selected row.
+- The user may wish to change the representation of value (perhaps operand offset, perhaps immediate value, perhaps
+  data literal, and other applicable elements). This might be showing a character constant like `'    '` instead of
+  `$20202020`. It might be hex like `$2020` instead of '  '. It might be showing binary like `%00100000` instead of
+  hex `$20`. "    " is the same as '    ', so our assembler should support both and perhaps it might be a rendering
+  policy for which is used.
+- The user may wish to change the data type of a block (byte, word, long, ..).
+
+Then there is the interaction with the selected row. Review already exposes the ability to turn data into strings or
+other data types which shows the support is there to build on. We need both the ability for the user to define
+key-bindings and a decent set of defaults (the latter we can build out and should not auto-populate).
+
+The best initial option is to adopt the command palette concept. We might simply bind it to 'p' for a start. It might
+have two modes, one is contextual to editing current row and the other is the list of all possible actions that are
+currently valid. Similarly how in VS Code "Control+P" brings up the options prefixed with '>' and then backspace
+returns it to the file browser that "Shift+Control+P" brings up, as we are not a text-editor we can have 'p' bring
+up options with a prefix indicating the context it was invoked in and use backspace to drop the contextual filter
+and allow all currently valid actions matched.
+
+### Case study: Resource
+
+One of the most polished interactive disassemblers on the Amiga was Resource. Some notes follow on how it worked and
+how we might do it better today. This relates to how basic post-analysis direction works for both LLM and user with
+web UI.
+
+#### Library calls, structs, key-bindings and analysis potential
+
+The user has the ability to assign OS call equates. Pressing 'e' on a `JSR -m(an)` would then display the LVO symbol
+in place of the offset `-m` and track it as an EQU to emit. Other default key-bindings might cover other core libraries.
+However we have resources that developers in the 90's did not have. We also have type analysis which we can build on
+rather than simple value mappings, and in fact there might be more value to knowing that `an` contains a given library
+base and tracing back to where it is assigned, and propagating that to where it is accessed and used following what
+our original auto-analysis should do for it's analysis. Similarly to how changing an orphaned code block from data to
+code should trigger analysis for it. We know what the registers should be for a call too, which comes into triggered
+analysis and type propagation value for the user.
+
+Pressing 'T' was bound to the "Task control struct". While users may have custom key-bindings, having them for even
+a small range of libraries or structs gets unwieldy due to limitations. We could do it better with a contextually
+related auto-complete based matching. Let's say the user is looking at an immediate value, the takeaway here is that
+the user may want to find equates that are of that value, or LVOs for different libraries, or even offsets for
+structs that we have indexed (like those from the platform's system includes).
+
+There's a lot of potential here for keeping it simple. We may not benefit from a context menu on these rows, we might
+have a contextual command-palette that only offers selections based on the context. The core of our interactions in
+all of our UI might be command-palette driven with user key-bindings. Where in Resource to change the representation
+or a data type of an operand, the user presses '1', '2'.. to refer to which, then presses a key. Without that focus
+it likely defers to the first operand. But for the most part, likely the default is simply the first because that's
+just the nature of what it needs to refer to.
+
+### Label/RS name/EQU/... navigation
+
+Pressing the right cursor key on a label followed a symbol to it's location in the file, and pushes the source row onto
+the navigation stack. This is an easy simple default key-binding we should adopt. And the left cursor key returned back
+up the navigation stack. Currently in our web UI CTRL+click on a label, RS value or EQU IIRC opens the details for that
+in the relevant natigation dialog section. It makes sense to perhaps have CTRL+right cursor allow keyboard navigation
+and selection of those details (I think escape already dismisses it so the CTRL-click handler may work with  some
+contextual key-bindings).
+
+SHIFT+CTRL+up cursor jumped up to the previous label (logically the down cursor variation went down). This is a useful
+way to navigate, whatever key-bindings we choose. Having this and other relative navigation options in the command
+palette (next relative hunk up/down) is valuable.
+
 ## Tracing
 
 - Deferred: WinUAE debugger-assisted tracing.
@@ -8,6 +97,9 @@
   - Resume this when a usable WinUAE executable path is available. Then add deterministic `.uae` config generation,
     host-directory mounting, debugger console logging, scripted breakpoints/runs, and trace/memory-state import back into
     analysis facts.
+
+Deferred until IRA-style concerns WRT WinUAE are considered.
+
 ## Phase 6: Beyond Static Analysis
 
 Static analysis has reached its limits for GenAm at 28.5% core coverage.
