@@ -623,7 +623,7 @@ def _disk_target_state_payload(
                 "source_size": _int_field(relationship, "packed_size"),
                 "source_path": source_path,
                 "crc32": None,
-                "state": "added",
+                "state": TargetStateSubtargetState.ADDED,
                 "reason_code": None,
                 "reason_detail": None,
             }
@@ -783,7 +783,7 @@ def _coerce_payload_target_ids(payload: object, *, parent_ids: set[str]) -> set[
         node_id = _str_field(item, "id")
         if not node_id:
             continue
-        if _str_field(item, "state") != "added":
+        if _target_state_subtarget_state_from_json(item.get("state")) is not TargetStateSubtargetState.ADDED:
             continue
         parent_target = _str_field(item, "parent_file_id")
         if not parent_target:
