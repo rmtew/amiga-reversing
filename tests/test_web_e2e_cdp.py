@@ -664,7 +664,7 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.wait_for_expression("document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')")
         assert "Known data gap" in page.text_content("#review-overlay")
         page.click("#review-overlay .review-item-title")
-        page.wait_for_selector(".listing-row-focus")
+        page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowAddr === '4'")
         assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.rowAddr") == "4"
         page.assert_no_errors()
 

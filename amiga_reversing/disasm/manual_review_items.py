@@ -8,6 +8,8 @@ from amiga_reversing.disasm.manual_actions import (
     finalize_review_items,
 )
 
+DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER = 6
+
 
 def analysis_review_items(
     analysis: dict[str, object],
@@ -49,9 +51,8 @@ def _decompression_blocker_items(analysis: dict[str, object]) -> list[dict[str, 
     for index, event in enumerate(events):
         if not isinstance(event, dict):
             continue
-        status = event.get("status")
         status_id = _optional_int(event.get("status_id"))
-        if status != "needs_review_blocker" and status_id != 6:
+        if status_id != DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER:
             continue
         hunk = (
             _optional_int(event.get("source_section"))
