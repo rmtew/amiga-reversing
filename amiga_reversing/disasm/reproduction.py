@@ -700,7 +700,9 @@ def run_reproduction(
         exact = bool(comparison.get("full_file_exact"))
         report_status = ReproductionReportStatus.EXACT if exact else ReproductionReportStatus.BINARY_MISMATCH
         comparison_status = comparison.get("status")
-        selected_comparison = reproduction_policy.get("comparison")
+        selected_comparison = _require_reproduction_enum_option(
+            reproduction_policy, "comparison", ReproductionComparison
+        )
         if (
             comparison_status == ReproductionReportStatus.CONTENT_MATCH
             and selected_comparison is ReproductionComparison.CONTENT
@@ -975,12 +977,15 @@ def reproduction_comparison_result(
 ) -> dict[str, object]:
     full_file_exact = original == compared_rebuilt
     canonical_full_file_exact = original == canonical_rebuilt
-    comparison_mode = str(policy.get("comparison") or "full_file")
-    requested_exactness = str(policy.get("requested_exactness") or "full_file")
-    requested_exactness_id = _direct_profile_int(policy, "requested_exactness_id") or 1
+    mode = _require_reproduction_enum_option(policy, "mode", ReproductionMode)
+    comparison_mode = _require_reproduction_enum_option(policy, "comparison", ReproductionComparison)
+    requested_exactness = _require_reproduction_enum_option(
+        policy, "requested_exactness", ReproductionRequestedExactness
+    )
+    requested_exactness_id = _require_requested_exactness_id(policy, requested_exactness)
     if full_file_exact and canonical_full_file_exact:
         return {
-            "mode": policy.get("mode"),
+            "mode": mode,
             "comparison": comparison_mode,
             "requested_exactness": requested_exactness,
             "requested_exactness_id": requested_exactness_id,
@@ -1024,7 +1029,7 @@ def reproduction_comparison_result(
         file_layout=file_layout,
     )
     return {
-        "mode": policy.get("mode"),
+        "mode": mode,
         "comparison": comparison_mode,
         "requested_exactness": requested_exactness,
         "requested_exactness_id": requested_exactness_id,
@@ -1086,9 +1091,12 @@ def _c_profile_reproduction_comparison(
     full_file_exact_key: str,
     content_exact_key: str,
 ) -> dict[str, object]:
-    comparison_mode = str(policy.get("comparison") or "full_file")
-    requested_exactness = str(policy.get("requested_exactness") or "full_file")
-    requested_exactness_id = _direct_profile_int(policy, "requested_exactness_id") or 1
+    mode = _require_reproduction_enum_option(policy, "mode", ReproductionMode)
+    comparison_mode = _require_reproduction_enum_option(policy, "comparison", ReproductionComparison)
+    requested_exactness = _require_reproduction_enum_option(
+        policy, "requested_exactness", ReproductionRequestedExactness
+    )
+    requested_exactness_id = _require_requested_exactness_id(policy, requested_exactness)
     status_id = _direct_profile_int(compare_profile, f"{prefix}_status_id")
     exactness_id = _direct_profile_int(compare_profile, f"{prefix}_exactness_id")
     issue_flags = _direct_profile_int(compare_profile, f"{prefix}_issue_group_flags") or 0
@@ -1107,7 +1115,7 @@ def _c_profile_reproduction_comparison(
     file_structure_issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
     failure_kinds = [] if full_file_exact else content_issue_kinds + file_structure_issue_kinds
     return {
-        "mode": policy.get("mode"),
+        "mode": mode,
         "comparison": comparison_mode,
         "requested_exactness": requested_exactness,
         "requested_exactness_id": requested_exactness_id,
@@ -1845,7 +1853,7 @@ def _reproduction_option_payloads(target_dir: Path) -> list[dict[str, object]]:
 
 
 def _merge_reproduction_options(options: dict[str, object], payload: dict[str, object]) -> None:
-    mode = _normalized_reproduction_enum(payload.get("mode"), ReproductionMode)
+    mode = _parse_reproduction_enum_field(payload, "mode", ReproductionMode)
     if mode is not None:
         options["mode"] = mode
     assembler = payload.get("assembler")
@@ -1867,16 +1875,22 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
         options["oracle_modes"] = [
             item for item in oracle_modes if isinstance(item, str) and item in REPRODUCTION_ORACLE_MODES
         ]
-    container_policy = _normalized_reproduction_enum(payload.get("container_policy"), ReproductionContainerPolicy)
+    container_policy = _parse_reproduction_enum_field(
+        payload, "container_policy", ReproductionContainerPolicy
+    )
     if container_policy is not None:
         options["container_policy"] = container_policy
-    relocation_policy = _normalized_reproduction_enum(payload.get("relocation_policy"), ReproductionRelocationPolicy)
+    relocation_policy = _parse_reproduction_enum_field(
+        payload, "relocation_policy", ReproductionRelocationPolicy
+    )
     if relocation_policy is not None:
         options["relocation_policy"] = relocation_policy
-    comparison = _normalized_reproduction_enum(payload.get("comparison"), ReproductionComparison)
+    comparison = _parse_reproduction_enum_field(payload, "comparison", ReproductionComparison)
     if comparison is not None:
         options["comparison"] = comparison
-    requested_exactness = _normalized_reproduction_enum(payload.get("requested_exactness"), ReproductionRequestedExactness)
+    requested_exactness = _parse_reproduction_enum_field(
+        payload, "requested_exactness", ReproductionRequestedExactness
+    )
     if requested_exactness is not None:
         options["requested_exactness"] = requested_exactness
         options["requested_exactness_id"] = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
@@ -1903,22 +1917,16 @@ def _merge_reproduction_options(options: dict[str, object], payload: dict[str, o
 
 
 def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, object]:
-    mode = _normalized_reproduction_enum(options.get("mode"), ReproductionMode) or ReproductionMode.EXACT
-    container_policy = (
-        _normalized_reproduction_enum(options.get("container_policy"), ReproductionContainerPolicy)
-        or ReproductionContainerPolicy.PRESERVE_ORIGINAL
+    mode = _require_reproduction_enum_option(options, "mode", ReproductionMode)
+    container_policy = _require_reproduction_enum_option(
+        options, "container_policy", ReproductionContainerPolicy
     )
-    relocation_policy = (
-        _normalized_reproduction_enum(options.get("relocation_policy"), ReproductionRelocationPolicy)
-        or ReproductionRelocationPolicy.PRESERVE_ORIGINAL_ENCODING
+    relocation_policy = _require_reproduction_enum_option(
+        options, "relocation_policy", ReproductionRelocationPolicy
     )
-    comparison = (
-        _normalized_reproduction_enum(options.get("comparison"), ReproductionComparison)
-        or ReproductionComparison.FULL_FILE
-    )
-    requested_exactness = (
-        _normalized_reproduction_enum(options.get("requested_exactness"), ReproductionRequestedExactness)
-        or ReproductionRequestedExactness.FULL_FILE
+    comparison = _require_reproduction_enum_option(options, "comparison", ReproductionComparison)
+    requested_exactness = _require_reproduction_enum_option(
+        options, "requested_exactness", ReproductionRequestedExactness
     )
     requested_exactness_id = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
     if mode is ReproductionMode.TEMPLATE_PRESERVED:
@@ -1943,26 +1951,50 @@ def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, obj
     }
 
 
-def _normalized_reproduction_value(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    return value.strip().lower().replace("-", "_")
-
-
 _ReproductionEnum = TypeVar("_ReproductionEnum", bound=StrEnum)
 
 
-def _normalized_reproduction_enum(
-    value: object,
+def _parse_reproduction_enum_field(
+    payload: dict[str, object],
+    field: str,
     enum_type: type[_ReproductionEnum],
 ) -> _ReproductionEnum | None:
-    normalized = _normalized_reproduction_value(value)
-    if normalized is None:
+    if field not in payload:
         return None
+    value = payload[field]
+    if not isinstance(value, str):
+        raise TypeError(f"reproduction option {field!r} must be a string")
     try:
-        return enum_type(normalized)
+        return enum_type(value)
     except ValueError:
-        return None
+        allowed = ", ".join(item.value for item in enum_type)
+        raise ValueError(
+            f"invalid reproduction option {field!r}: {value!r}; expected one of {allowed}"
+        ) from None
+
+
+def _require_reproduction_enum_option(
+    options: dict[str, object],
+    field: str,
+    enum_type: type[_ReproductionEnum],
+) -> _ReproductionEnum:
+    value = options.get(field)
+    if not isinstance(value, enum_type):
+        raise TypeError(f"reproduction option {field!r} must be a {enum_type.__name__}")
+    return value
+
+
+def _require_requested_exactness_id(
+    policy: dict[str, object],
+    requested_exactness: ReproductionRequestedExactness,
+) -> int:
+    expected = REPRODUCTION_REQUESTED_EXACTNESS_IDS[requested_exactness]
+    value = policy.get("requested_exactness_id")
+    if value != expected:
+        raise ValueError(
+            f"reproduction policy requested_exactness_id must be {expected} for {requested_exactness.value}"
+        )
+    return expected
 
 
 def _effective_reproduction_backend(default_backend: str, options: dict[str, object]) -> str:

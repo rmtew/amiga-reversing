@@ -1464,7 +1464,7 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "backend": "amiga-hunk",
         "include_dirs": ["custom/include"],
         "oracle_modes": ["vasm", "unknown"],
-        "comparison": "full-file",
+        "comparison": "full_file",
         "requested_exactness": "content",
         "file_shape": {"relocation_order": "assembler-default"},
     }
@@ -1485,8 +1485,8 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
                     "options": {
                         "mode": "content",
                         "cpu": "68060",
-                        "container_policy": "preserve-original",
-                        "relocation_policy": "preserve-original-encoding",
+                        "container_policy": "preserve_original",
+                        "relocation_policy": "preserve_original_encoding",
                         "file_shape": {"section_aux_order": "match_original"},
                     },
                 }
@@ -1522,6 +1522,17 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "requested_exactness": "content",
         "requested_exactness_id": 2,
     }
+
+
+def test_reproduction_options_reject_alias_spellings(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    metadata = _empty_metadata()
+    metadata["reproduction"] = {"mode": "template-preserved"}
+    (target_dir / "target_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid reproduction option 'mode'"):
+        reproduction_options_for_target(target_dir)
 
 
 def test_effective_metadata_merge_includes_seeded_corrections_and_ui_edits(tmp_path: Path) -> None:
