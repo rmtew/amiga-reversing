@@ -8,14 +8,12 @@ from amiga_reversing.disasm.target_metadata import (
     TargetMetadata,
     target_seeded_metadata_path,
     validate_target_seeded_metadata,
-    write_target_seeded_metadata,
 )
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate and normalize optional target_seeded_metadata.json")
+    parser = argparse.ArgumentParser(description="Validate optional target_seeded_metadata.json")
     parser.add_argument("target_dir")
-    parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
 
     target_dir = Path(args.target_dir)
@@ -28,8 +26,6 @@ def main() -> int:
         )
     except Exception as exc:
         raise ValueError("Bad target_seeded_metadata.json") from exc
-    if args.write:
-        write_target_seeded_metadata(target_dir, seeded_only)
     print("target_seeded_metadata: ok")
     return 0
 

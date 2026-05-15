@@ -6,54 +6,57 @@ import sys
 from pathlib import Path
 
 
-def test_validate_target_seeded_metadata_script_normalizes_seeded_file(tmp_path: Path) -> None:
+def test_validate_target_seeded_metadata_script_validates_seeded_file_without_rewriting(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
-    (target_dir / "target_seeded_metadata.json").write_text(
-        json.dumps(
-            {
-                "target_type": "program",
-                "entry_register_seeds": [],
-                "bootblock": None,
-                "resident": None,
-                "library": None,
-                "custom_structs": [],
-                "rsset_layout_regions": [],
-                "seeded_entities": [
-                    {
-                        "addr": 256,
-                        "end": 512,
-                        "hunk": 0,
-                        "name": "map_data_keep",
-                        "type": "data",
-                        "subtype": "level_data",
-                        "seed_origin": "primary_doc",
-                        "review_status": "seeded",
-                        "citation": "asm",
-                        "source_id": "seeded_source",
-                        "source_path": "resources/demo/source.asm",
-                        "source_locator": "MapDataKeep",
-                    }
-                ],
-                "seeded_code_entrypoints": [
-                    {
-                        "addr": 1494,
-                        "hunk": 0,
-                        "name": "check_keyboard",
-                        "seed_origin": "primary_doc",
-                        "review_status": "seeded",
-                        "citation": "asm",
-                        "source_id": "seeded_source",
-                        "source_path": "resources/demo/source.asm",
-                        "source_locator": "CheckKeyboard",
-                    }
-                ],
-            }
-        ),
+    seeded_text = json.dumps(
+        {
+            "target_type": "program",
+            "entry_register_seeds": [],
+            "bootblock": None,
+            "resident": None,
+            "library": None,
+            "custom_structs": [],
+            "rsset_layout_regions": [],
+            "seeded_entities": [
+                {
+                    "addr": 256,
+                    "end": 512,
+                    "hunk": 0,
+                    "name": "map_data_keep",
+                    "type": "data",
+                    "subtype": "level_data",
+                    "seed_origin": "primary_doc",
+                    "review_status": "seeded",
+                    "citation": "asm",
+                    "source_id": "seeded_source",
+                    "source_path": "resources/demo/source.asm",
+                    "source_locator": "MapDataKeep",
+                }
+            ],
+            "seeded_code_entrypoints": [
+                {
+                    "addr": 1494,
+                    "hunk": 0,
+                    "name": "check_keyboard",
+                    "seed_origin": "primary_doc",
+                    "review_status": "seeded",
+                    "citation": "asm",
+                    "source_id": "seeded_source",
+                    "source_path": "resources/demo/source.asm",
+                    "source_locator": "CheckKeyboard",
+                }
+            ],
+        },
+        separators=(",", ":"),
+    )
+    seeded_path = target_dir / "target_seeded_metadata.json"
+    seeded_path.write_text(
+        seeded_text,
         encoding="utf-8",
     )
     result = subprocess.run(
-        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir), "--write"],
+        [sys.executable, "-m", "amiga_reversing.tools.validate_target_seeded_metadata", str(target_dir)],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -62,10 +65,7 @@ def test_validate_target_seeded_metadata_script_normalizes_seeded_file(tmp_path:
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "target_seeded_metadata: ok"
-    payload = json.loads((target_dir / "target_seeded_metadata.json").read_text(encoding="utf-8"))
-    assert payload["seeded_entities"][0]["name"] == "map_data_keep"
-    assert payload["seeded_entities"][0]["source_locator"] == "MapDataKeep"
-    assert payload["seeded_code_entrypoints"][0]["name"] == "check_keyboard"
+    assert seeded_path.read_text(encoding="utf-8") == seeded_text
 
 
 def test_validate_target_seeded_metadata_script_rejects_bootblock_payload(tmp_path: Path) -> None:
