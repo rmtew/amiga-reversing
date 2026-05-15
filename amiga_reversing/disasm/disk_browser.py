@@ -88,20 +88,18 @@ def project_manifest_entries(manifest: dict[str, object]) -> list[dict[str, Any]
     volume_name = filesystem.get("volume_name")
     entries: list[dict[str, Any]] = []
     if isinstance(volume_name, str) and volume_name:
-        entries.append({"path": volume_name, "name": volume_name, "kind_name": "volume", "kind": 3})
+        entries.append({"path": volume_name, "name": volume_name, "kind_name": "volume"})
     for directory in analysis.get("directories") or []:
         if isinstance(directory, dict):
             entry = dict(directory)
             entry["path"] = entry.get("full_path") or entry.get("path") or entry.get("name")
             entry["kind_name"] = "directory"
-            entry["kind"] = 2
             entries.append(entry)
     for file_entry in analysis.get("files") or []:
         if isinstance(file_entry, dict):
             entry = dict(file_entry)
             entry["path"] = entry.get("full_path") or entry.get("path") or entry.get("name")
             entry["kind_name"] = "file"
-            entry["kind"] = 1
             entries.append(entry)
     return entries
 
@@ -169,13 +167,11 @@ def entry_path_value(entry: dict[str, Any]) -> str:
 
 
 def entry_is_directory(entry: dict[str, Any]) -> bool:
-    kind_name = entry.get("kind_name")
-    return kind_name == "directory" or entry.get("kind") == 2
+    return entry.get("kind_name") == "directory"
 
 
 def entry_is_volume(entry: dict[str, Any]) -> bool:
-    kind_name = entry.get("kind_name")
-    return kind_name == "volume" or entry.get("kind") == 3
+    return entry.get("kind_name") == "volume"
 
 
 def entry_size(entry: dict[str, Any]) -> int | None:
