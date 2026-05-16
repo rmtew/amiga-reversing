@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/026-m68k-tool-replacement-and-unsupported-closure.md`
 Type: AFK
-Blocked by: `docs/issues/024-004-prove-assembler-decoder-canonical-parity.md`, `docs/issues/025-005-enable-canonical-strict-coverage-checks.md`, `docs/issues/026-001-migrate-simulator-metadata-to-canonical-form-id.md`, `docs/issues/026-002-generate-family-alias-and-render-metadata.md`
+Blocked by: `docs/issues/026-001-migrate-simulator-metadata-to-canonical-form-id.md`, `docs/issues/026-002-generate-family-alias-and-render-metadata.md`
 
 ## Scope
 

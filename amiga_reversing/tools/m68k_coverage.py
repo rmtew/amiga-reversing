@@ -14,6 +14,10 @@ DIAGNOSTIC_DELETION_CRITERIA = (
     "Temporary bootstrap inventory. Delete or fold into canonical-model coverage "
     "after PRD 024/025 own canonical form identity and sample coverage."
 )
+CANONICAL_DELETION_CRITERIA = (
+    "Canonical strict surface is active for inspection now. Final gating is owned by PRD 026 "
+    "after legacy fallback paths are deleted and final generated coverage verification passes."
+)
 DIAGNOSTIC_FORM_STATUSES = {"matched", "asm_only", "disasm_only"}
 DIAGNOSTIC_SAMPLE_STATUSES = {
     "sampled",
@@ -157,29 +161,48 @@ def build_diagnostic_inventory(
     }
 
 
+def build_canonical_inventory(
+    assembler_forms: list[FormLike] | None = None,
+    disassembler_forms: list[FormLike] | None = None,
+    assembler_sample_entries: list[dict[str, Any]] | None = None,
+    ea_sample_plan_entries: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    inventory = build_diagnostic_inventory(
+        assembler_forms=assembler_forms,
+        disassembler_forms=disassembler_forms,
+        assembler_sample_entries=assembler_sample_entries,
+        ea_sample_plan_entries=ea_sample_plan_entries,
+    )
+    inventory["phase"] = "canonical"
+    inventory["temporary_bootstrap"] = False
+    inventory["deletion_criteria"] = CANONICAL_DELETION_CRITERIA
+    inventory["summaries"] = _canonical_summaries(inventory)
+    return inventory
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Report generated M68K coverage state.")
     subparsers = parser.add_subparsers(dest="command", required=True)
     for command_name in ("report", "check"):
         command = subparsers.add_parser(command_name)
-        command.add_argument("--phase", choices=("diagnostic",), required=True)
+        command.add_argument("--phase", choices=("diagnostic", "canonical"), required=True)
         command.add_argument("--format", choices=("text", "json"), default="text")
 
     args = parser.parse_args(argv)
-    inventory = build_diagnostic_inventory()
+    inventory = build_canonical_inventory() if args.phase == "canonical" else build_diagnostic_inventory()
     if args.command == "report":
         if args.format == "json":
             print(json.dumps(inventory, indent=2, sort_keys=True))
         else:
-            _print_diagnostic_report(inventory)
+            _print_canonical_report(inventory) if args.phase == "canonical" else _print_diagnostic_report(inventory)
         return 0
     if args.command == "check":
-        failures = diagnostic_check_failures(inventory)
+        failures = strict_coverage_failures(inventory) if args.phase == "canonical" else diagnostic_check_failures(inventory)
         if failures:
             if args.format == "json":
                 print(json.dumps({"ok": False, "failures": failures}, indent=2, sort_keys=True))
             else:
-                print(f"diagnostic coverage check failed: {len(failures)} failures")
+                print(f"{args.phase} coverage check failed: {len(failures)} failures")
                 for failure in failures:
                     print(f"  {failure['kind']}: {failure['message']}")
             return 1
@@ -227,9 +250,23 @@ def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
     failures = diagnostic_check_failures(inventory)
     for entry in inventory["entries"]:
         status = str(entry["status"])
-        if status not in {"asm_only", "disasm_only"}:
-            continue
         key = entry["key"]
+        if status not in {"asm_only", "disasm_only"}:
+            assembler = entry.get("assembler")
+            disassembler = entry.get("disassembler")
+            if isinstance(assembler, dict) and isinstance(disassembler, dict):
+                asm_canonical = assembler.get("canonical_form_id")
+                disasm_canonical = disassembler.get("canonical_form_id")
+                if asm_canonical is not None and disasm_canonical is not None and asm_canonical != disasm_canonical:
+                    failures.append({
+                        "kind": "canonical_form_identity_mismatch",
+                        "message": (
+                            f"{key['kb_mnemonic']}#{key['local_form_index']} "
+                            f"{key['mnemonic']} {key['syntax']} has assembler canonical id "
+                            f"{asm_canonical} and decoder canonical id {disasm_canonical}"
+                        ),
+                    })
+            continue
         failures.append({
             "kind": "asm_decode_parity_mismatch",
             "message": (
@@ -321,6 +358,71 @@ def _sample_entries_by_key(entries: list[dict[str, Any]]) -> dict[tuple[str, int
         )
         grouped[key].append(entry)
     return dict(grouped)
+
+
+def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:
+    sample_entries = [
+        sample
+        for entry in inventory["entries"]
+        for sample in entry["sample_statuses"]
+    ]
+    cpu_counts = Counter(str(sample.get("target_cpu", "-")) for sample in sample_entries)
+    mnemonic_counts = Counter(str(entry["key"]["mnemonic"]).upper() for entry in inventory["entries"])
+    alias_entries = [
+        entry["key"]
+        for entry in inventory["entries"]
+        if str(entry["key"]["mnemonic"]).upper() != str(entry["key"]["kb_mnemonic"]).upper()
+    ]
+    ea_family_required = Counter(
+        family
+        for plan in inventory.get("ea_sample_plans", [])
+        for family in plan.get("required_families", [])
+    )
+    ea_family_covered = Counter(
+        family
+        for plan in inventory.get("ea_sample_plans", [])
+        for family in plan.get("covered_families", [])
+    )
+    ea_family_missing = Counter(
+        family
+        for plan in inventory.get("ea_sample_plans", [])
+        for family in plan.get("missing_families", [])
+    )
+    oracle_statuses = Counter(
+        str(sample["status"])
+        for sample in sample_entries
+        if str(sample["status"]) == "oracle_unavailable"
+    )
+    return {
+        "cpu": dict(sorted(cpu_counts.items())),
+        "mnemonic": dict(sorted(mnemonic_counts.items())),
+        "ea_family": {
+            "required": dict(sorted(ea_family_required.items())),
+            "covered": dict(sorted(ea_family_covered.items())),
+            "missing": dict(sorted(ea_family_missing.items())),
+        },
+        "alias": {
+            "count": len(alias_entries),
+            "entries": alias_entries[:20],
+        },
+        "oracle": dict(sorted(oracle_statuses.items())),
+        "executor_semantic": {
+            "available": False,
+            "reason": "executor semantic coverage is generated in a later PRD phase",
+        },
+        "unsupported": {
+            "counts": inventory["unsupported_counts"],
+            "families": [
+                {
+                    "family_id": entry["family_id"],
+                    "status": entry["status"],
+                    "reason_category": entry.get("reason_category"),
+                    "form_count": entry["form_count"],
+                }
+                for entry in inventory.get("unsupported_inventory", [])
+            ],
+        },
+    }
 
 
 def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -447,6 +549,28 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
                 f"{form['kb_mnemonic']}#{form['local_form_index']} "
                 f"{form['mnemonic']} {form['syntax']}"
             )
+
+
+def _print_canonical_report(inventory: dict[str, Any]) -> None:
+    _print_diagnostic_report(inventory)
+    summaries = inventory.get("summaries", {})
+    if not summaries:
+        return
+    print("canonical summaries:")
+    for label in ("cpu", "mnemonic", "oracle"):
+        summary = summaries.get(label, {})
+        print(f"  {label}: {len(summary)} entries")
+    ea_family = summaries.get("ea_family", {})
+    if ea_family:
+        required = ",".join(sorted(ea_family.get("required", {}).keys()))
+        missing = ",".join(sorted(ea_family.get("missing", {}).keys()))
+        print(f"  ea families required={required or '-'} missing={missing or '-'}")
+    alias = summaries.get("alias", {})
+    print(f"  aliases: {alias.get('count', 0)}")
+    executor = summaries.get("executor_semantic", {})
+    print(f"  executor semantics: {'available' if executor.get('available') else 'not-generated'}")
+    unsupported = summaries.get("unsupported", {})
+    print(f"  unsupported families: {len(unsupported.get('families', []))}")
 
 
 if __name__ == "__main__":

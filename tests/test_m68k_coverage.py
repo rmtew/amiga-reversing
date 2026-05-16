@@ -152,6 +152,29 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "ea sample families:" in output
 
 
+def test_canonical_report_command_prints_summaries(capsys) -> None:
+    assert m68k_coverage.main(["report", "--phase", "canonical"]) == 0
+
+    output = capsys.readouterr().out
+    assert "M68K diagnostic coverage" in output
+    assert "canonical summaries:" in output
+    assert "ea families required=" in output
+    assert "executor semantics:" in output
+    assert "unsupported families:" in output
+
+
+def test_canonical_inventory_summarizes_current_generated_data() -> None:
+    inventory = m68k_coverage.build_canonical_inventory()
+
+    assert inventory["phase"] == "canonical"
+    assert inventory["temporary_bootstrap"] is False
+    assert inventory["summaries"]["cpu"]
+    assert inventory["summaries"]["mnemonic"]
+    assert inventory["summaries"]["ea_family"]["required"]
+    assert "executor_semantic" in inventory["summaries"]
+    assert inventory["summaries"]["unsupported"]["families"]
+
+
 def test_diagnostic_check_command_succeeds_with_current_classified_data(capsys) -> None:
     assert m68k_coverage.main(["check", "--phase", "diagnostic"]) == 0
 
@@ -265,6 +288,61 @@ def test_strict_coverage_fails_asm_decode_parity_mismatch() -> None:
 
     assert inventory["unsupported_inventory"] == []
     assert {failure["kind"] for failure in failures} == {"asm_decode_parity_mismatch"}
+
+
+def test_strict_coverage_fails_canonical_identity_mismatch() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    inventory = m68k_coverage.build_canonical_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+    )
+    inventory["entries"][0]["assembler"]["canonical_form_id"] = 10
+    inventory["entries"][0]["disassembler"]["canonical_form_id"] = 11
+
+    failures = m68k_coverage.strict_coverage_failures(inventory)
+
+    assert failures == [
+        {
+            "kind": "canonical_form_identity_mismatch",
+            "message": "MOVE#0 MOVE MOVE <ea>,Dn has assembler canonical id 10 and decoder canonical id 11",
+        }
+    ]
+
+
+def test_strict_coverage_includes_unclassified_missing_and_stale_failures() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    inventory = m68k_coverage.build_canonical_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "w",
+                "target_cpu": "68000",
+                "status": "missing_sample_strategy",
+                "reason": "one or more operands produced no sample options",
+                "missing_operand_kinds": ["ea"],
+            }
+        ],
+    )
+    inventory["entries"][0]["status"] = "unknown"
+    inventory["unsupported_inventory"].append({
+        "family_id": "synthetic",
+        "status": "intentionally_unsupported",
+        "stale": True,
+    })
+
+    failures = m68k_coverage.strict_coverage_failures(inventory)
+
+    assert {failure["kind"] for failure in failures} == {
+        "unclassified_form",
+        "missing_sample_strategy",
+        "stale_unsupported_reason",
+    }
 
 
 def test_explicit_unsupported_sample_status_is_classified() -> None:
