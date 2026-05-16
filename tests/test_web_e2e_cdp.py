@@ -1455,6 +1455,27 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
         page.evaluate("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'F2', bubbles: true}))")
         page.wait_for_selector("[data-inline-parameter-session]")
+        page.wait_for_expression(
+            """
+            (() => {
+              const form = document.querySelector("[data-inline-parameter-session]");
+              const input = form?.querySelector("[data-command-parameter-name='name']");
+              const submit = form?.querySelector(".command-parameter-submit");
+              const cancel = form?.querySelector(".command-parameter-cancel");
+              if (!form || !input || !submit || !cancel) return false;
+              const formRect = form.getBoundingClientRect();
+              const inputRect = input.getBoundingClientRect();
+              const submitRect = submit.getBoundingClientRect();
+              const cancelRect = cancel.getBoundingClientRect();
+              return inputRect.width >= 120
+                && submitRect.width >= 50
+                && cancelRect.width >= 50
+                && submitRect.left >= inputRect.right
+                && cancelRect.left >= submitRect.right
+                && cancelRect.right <= formRect.right + 1;
+            })()
+            """
+        )
         assert page.evaluate(
             """
             (() => {

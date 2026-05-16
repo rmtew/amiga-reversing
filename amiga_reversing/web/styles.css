@@ -2031,14 +2031,51 @@ body {
 }
 
 .inline-parameter-session {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(12ch, 1fr) auto auto;
   align-items: center;
   gap: 6px;
+  width: 100%;
   max-width: 100%;
+  height: 20px;
 }
 
 .inline-parameter-session .command-parameter-field {
-  display: inline-flex;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.inline-parameter-session .command-parameter-field label {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.inline-parameter-session .command-parameter-field label > span {
+  display: none;
+}
+
+.inline-parameter-session .command-parameter-field input,
+.inline-parameter-session .command-parameter-field select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 1px 6px;
+}
+
+.inline-parameter-session .command-parameter-submit,
+.inline-parameter-session .command-parameter-cancel {
+  flex: 0 0 auto;
+  height: 20px;
+  min-width: 58px;
+  box-sizing: border-box;
+  padding: 1px 8px;
+  line-height: 16px;
 }
 
 .parameter-choice-grid,
