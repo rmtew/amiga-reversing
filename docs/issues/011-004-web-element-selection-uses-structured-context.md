@@ -14,7 +14,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -24,12 +24,12 @@ PRD 017 consumes this structured element context for inline editors, representat
 
 ## Acceptance criteria
 
-- [ ] Clicked/selectable listing elements carry structured element ids or stable fallback context.
-- [ ] Command palette element catalog requests include structured element context, not just row index and a guessed element kind.
-- [ ] If a selected element disappears after listing refresh, the UI falls back to row precision and reports precision loss.
-- [ ] Enter in the command palette executes the selected visible action and preserves input focus while moving selection with arrow keys.
-- [ ] CDP tests cover operand/literal selection, symbol/equate-style selection, precision loss, and no-command/backend-error regression for numeric-looking labels.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Clicked/selectable listing elements carry structured element ids or stable fallback context.
+- [x] Command palette element catalog requests include structured element context, not just row index and a guessed element kind.
+- [x] If a selected element disappears after listing refresh, the UI falls back to row precision and reports precision loss.
+- [x] Enter in the command palette executes the selected visible action and preserves input focus while moving selection with arrow keys.
+- [x] CDP tests cover operand/literal selection, symbol/equate-style selection, precision loss, and no-command/backend-error regression for numeric-looking labels.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 

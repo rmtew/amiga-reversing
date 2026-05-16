@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,13 +18,13 @@ Replace semantic helper eligibility based on rendered/source text scanning with 
 
 ## Acceptance criteria
 
-- [ ] Equate, LVO, and struct-offset helper candidates are generated only from structured selected values.
-- [ ] Numeric-looking labels, symbols, comments, and directive text do not produce value helper candidates.
-- [ ] Decimal, hex, negative, and sized immediate values are handled through structured metadata.
-- [ ] Existing Manual Semantic Hint payloads still record domain intent rather than source text edits.
-- [ ] The old text numeric scanner is removed or limited to test-only fallback with a tracked removal note.
-- [ ] Backend tests cover immediate helper matching, non-immediate rejection, and numeric-looking label regression.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Equate, LVO, and struct-offset helper candidates are generated only from structured selected values.
+- [x] Numeric-looking labels, symbols, comments, and directive text do not produce value helper candidates.
+- [x] Decimal, hex, negative, and sized immediate values are handled through structured metadata.
+- [x] Existing Manual Semantic Hint payloads still record domain intent rather than source text edits.
+- [x] The old text numeric scanner is removed or limited to test-only fallback with a tracked removal note.
+- [x] Backend tests cover immediate helper matching, non-immediate rejection, and numeric-looking label regression.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 

@@ -1,5 +1,9 @@
 # PRD 011: Structured Contextual Action Metadata
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Problem Statement
 
 Contextual Manual Action Catalog entries currently infer some semantic helper eligibility by parsing rendered listing text. This is brittle and inconsistent with the project rule that tooling should consume structured analysis facts rather than re-derive meaning from display strings.
@@ -77,6 +81,17 @@ This PRD is a corrective architectural follow-up to PRD 010. Its implementation 
 PRD 014 builds on this structured row and element metadata for range-selection catalog contexts.
 
 PRD 017 builds on the same structured metadata for inline and palette-hosted parameter sessions.
+
+## Completion Notes
+
+- Structured row and element contexts are normalized in `listing_context.py`
+  and consumed by `manual_action_catalog.py`.
+- Semantic helper eligibility uses structured selected values; numeric-looking
+  label text is covered by regression tests.
+- Web selection sends structured element context and records precision loss
+  when a selected element no longer resolves exactly.
+- Focused PRD011 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_disasm_server.py tests\test_web_app_source.py tests\test_web_e2e_cdp.py -q -k "manual_action_catalog or structured_symbol_context or command_palette_applies_manual_representation or numeric_label or listing_navigation_indexes_instruction_typed_accesses or listing_navigation_indexes_unresolved_typed_accesses"`.
 
 ## Issues
 

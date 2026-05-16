@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,13 +18,13 @@ Review the completed structured contextual action work against PRD 011. Remove r
 
 ## Acceptance criteria
 
-- [ ] Review C row payloads, catalog context modeling, semantic helper matching, web selection, CLI/API behavior, and tests against PRD 011.
-- [ ] Confirm rendered/source text is not used to decide semantic helper eligibility.
-- [ ] Confirm Manual Seed, Manual Representation, Manual Register Seed, and Manual Semantic Hint separation remains intact.
-- [ ] Confirm stale/imprecise element handling is explicit and user-visible.
-- [ ] Add missing tests or follow-up issues for gaps not fixed in this slice.
-- [ ] PRD 011 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Review C row payloads, catalog context modeling, semantic helper matching, web selection, CLI/API behavior, and tests against PRD 011.
+- [x] Confirm rendered/source text is not used to decide semantic helper eligibility.
+- [x] Confirm Manual Seed, Manual Representation, Manual Register Seed, and Manual Semantic Hint separation remains intact.
+- [x] Confirm stale/imprecise element handling is explicit and user-visible.
+- [x] Add missing tests or follow-up issues for gaps not fixed in this slice.
+- [x] PRD 011 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

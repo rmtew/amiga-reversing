@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,12 +18,12 @@ Add a structured row/element context model for the Manual Action Catalog. This m
 
 ## Acceptance criteria
 
-- [ ] Catalog row contexts and element contexts are distinct and serializable.
-- [ ] Element contexts include kind, stable row identity, source location, and element-specific fields such as value, symbol, operand index, or access role.
-- [ ] Invalid or stale element contexts return clear errors instead of falling back silently.
-- [ ] Element-only actions cannot run against row-only context unless the action explicitly supports row fallback.
-- [ ] Backend route tests cover valid row context, valid element context, stale element context, and row/element mismatch.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Catalog row contexts and element contexts are distinct and serializable.
+- [x] Element contexts include kind, stable row identity, source location, and element-specific fields such as value, symbol, operand index, or access role.
+- [x] Invalid or stale element contexts return clear errors instead of falling back silently.
+- [x] Element-only actions cannot run against row-only context unless the action explicitly supports row fallback.
+- [x] Backend route tests cover valid row context, valid element context, stale element context, and row/element mismatch.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
