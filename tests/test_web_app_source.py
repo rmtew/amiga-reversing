@@ -247,6 +247,9 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "function setReproductionProfile(profileId)" in app_js
     assert "tool_availability" in app_js
     assert "tool-availability-warning" in app_js
+    assert "function renderOracleCompatibility(report)" in app_js
+    assert "oracle_compatibility" in app_js
+    assert "oracle-result" in styles_css
     assert "function currentReproIssue()" in app_js
     assert "function reproductionReportKey(report)" in app_js
     assert "const previousReportKey = state.reproduction.reportKey || reproductionReportKey(state.reproduction.report);" in app_js

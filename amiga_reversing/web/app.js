@@ -2571,6 +2571,32 @@ function renderReproductionPolicySummary(report) {
   `;
 }
 
+function renderOracleCompatibility(report) {
+  const oracles = Array.isArray(report?.oracle_compatibility) ? report.oracle_compatibility : [];
+  if (!oracles.length) {
+    return "";
+  }
+  return `
+    <div class="oracle-compatibility">
+      ${oracles.map((oracle) => {
+        const diagnostics = [oracle.stderr_excerpt, oracle.stdout_excerpt].filter(Boolean).join("\n").trim();
+        return `
+          <div class="oracle-result">
+            <div class="oracle-result-head">
+              <span>${escapeHtml(oracle.oracle_id || "oracle")}</span>
+              <strong>${escapeHtml(oracle.comparison_level || "oracle.not_run")}</strong>
+            </div>
+            <div class="oracle-result-meta">
+              ${escapeHtml(oracle.source_profile || "?")} | ${escapeHtml(oracle.assembler_status || "?")} | ${escapeHtml(oracle.message || "")}
+            </div>
+            ${diagnostics ? `<pre class="oracle-diagnostics">${escapeHtml(diagnostics)}</pre>` : ""}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function renderReproPanelBody(report) {
   const firstDiff = report?.first_diff || null;
   const diagnostics = Array.isArray(report?.assembler_diagnostics) ? report.assembler_diagnostics : [];
@@ -2598,6 +2624,7 @@ function renderReproPanelBody(report) {
       <div><span>Rebuilt</span><strong>${escapeHtml(String(report?.rebuilt_size ?? "?"))}</strong></div>
     </div>
     ${renderReproductionPolicySummary(report)}
+    ${renderOracleCompatibility(report)}
     <div class="repro-detail">
       ${firstDiff ? `First diff: ${escapeHtml(formatRowOffset(firstDiff.offset))}` : "First diff: none"}
     </div>

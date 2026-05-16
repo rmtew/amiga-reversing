@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,14 +18,13 @@ Display oracle compatibility sections in the reproduction panel without confusin
 
 ## Acceptance criteria
 
-- [ ] UI shows the gate result separately from oracle results.
-- [ ] Oracle sections lead with comparison level.
-- [ ] Tool missing and not-comparable cases are clear.
-- [ ] Diagnostics are available without overwhelming the main summary.
-- [ ] Web tests cover exact gate plus oracle content match and missing cases.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] UI shows the gate result separately from oracle results.
+- [x] Oracle sections lead with comparison level.
+- [x] Tool missing and not-comparable cases are clear.
+- [x] Diagnostics are available without overwhelming the main summary.
+- [x] Web tests cover exact gate plus oracle content match and missing cases.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - [020-003: Oracle Report Schema and Labels](020-003-oracle-report-schema-and-labels.md)
-

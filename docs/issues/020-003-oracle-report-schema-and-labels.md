@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,14 +18,13 @@ Add report schema fields and scoped labels for **Oracle Compatibility Reports**.
 
 ## Acceptance criteria
 
-- [ ] Primary oracle result is comparison level.
-- [ ] Supported labels include `oracle.full_file_match`, `oracle.content_match`, `oracle.mismatch`, `oracle.not_comparable`, `oracle.missing`, and `oracle.not_run`.
-- [ ] Assembler acceptance and diagnostics are supporting fields.
-- [ ] Bare `exact` is not used for oracle results.
-- [ ] Schema tests cover all labels.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Primary oracle result is comparison level.
+- [x] Supported labels include `oracle.full_file_match`, `oracle.content_match`, `oracle.mismatch`, `oracle.not_comparable`, `oracle.missing`, and `oracle.not_run`.
+- [x] Assembler acceptance and diagnostics are supporting fields.
+- [x] Bare `exact` is not used for oracle results.
+- [x] Schema tests cover all labels.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - None
-

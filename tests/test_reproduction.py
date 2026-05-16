@@ -1640,6 +1640,32 @@ def test_reproduction_input_stamp_omits_unrequested_oracle_availability(tmp_path
     assert stamp["oracle_tool_availability"] == []
 
 
+def test_report_with_oracle_compatibility_keeps_gate_status_separate(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        reproduction,
+        "oracle_compatibility_reports_for_options",
+        lambda target, options, project_root=None: [
+            {"oracle_id": "vasm", "comparison_level": "oracle.full_file_match"}
+        ],
+    )
+    report = {
+        "target": "demo",
+        "status": "exact",
+        "input_stamp": {
+            "reproduction_options": {
+                "oracle_modes": ["vasm"],
+            }
+        },
+    }
+
+    payload = reproduction._report_with_oracle_compatibility(report, project_root=tmp_path)
+
+    assert payload["status"] == "exact"
+    assert payload["oracle_compatibility"] == [
+        {"oracle_id": "vasm", "comparison_level": "oracle.full_file_match"}
+    ]
+
+
 def test_reproduction_options_reject_alias_spellings(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)

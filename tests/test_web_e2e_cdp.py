@@ -1012,14 +1012,24 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
 
     def load_report(project_name: str, project_root=None) -> dict[str, object]:
+        stale = (target_dir / "target_ui_edits.json").exists()
         return {
             "target": project_name,
             "status": "exact",
-            "stale": (target_dir / "target_ui_edits.json").exists(),
+            "stale": stale,
             "issues": [],
             "diff_ranges": [],
             "assembler_diagnostics": [],
             "input_stamp": {"original_size": 2},
+            "oracle_compatibility": [
+                {
+                    "oracle_id": "genam-devpac" if stale else "vasm",
+                    "comparison_level": "oracle.missing" if stale else "oracle.content_match",
+                    "source_profile": "devpac" if stale else "vasm",
+                    "assembler_status": "not_run" if stale else "accepted",
+                    "message": "vamos was not found" if stale else "oracle output content matched original",
+                }
+            ],
         }
 
     _cache_full_project_rows(project.id, rows)
@@ -1054,6 +1064,7 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
         page.evaluate("openReproPanel()")
         page.wait_for_selector("#repro-overlay")
         page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Exact framework gate')")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('oracle.content_match')")
         page.evaluate("closeReproPanel()")
 
         page.press_key("p")
@@ -1075,6 +1086,7 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
         page.evaluate("openReproPanel()")
         page.wait_for_selector("#repro-overlay")
         page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('GenAm/DevPac source oracle')")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('oracle.missing')")
         page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('vamos')")
         page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Needs repro')")
         page.wait_for_expression("document.querySelector('#project-details')?.textContent.includes('Needs repro')")

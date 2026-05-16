@@ -2136,6 +2136,40 @@ body {
   font-size: 12px;
 }
 
+.oracle-compatibility {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.oracle-result {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 8px;
+  background: #f8fafb;
+}
+
+.oracle-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.oracle-result-meta {
+  color: #555;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.oracle-diagnostics {
+  max-height: 120px;
+  overflow: auto;
+  margin: 8px 0 0;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
 .repro-diagnostics {
   max-height: 180px;
   overflow: auto;

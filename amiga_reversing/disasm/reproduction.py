@@ -31,6 +31,9 @@ from amiga_reversing.disasm.effective_metadata import (
 from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
 )
+from amiga_reversing.disasm.oracle_compatibility import (
+    oracle_compatibility_reports_for_options,
+)
 from amiga_reversing.disasm.project_paths import (
     PROJECT_ROOT,
     resolve_project_dir,
@@ -321,7 +324,7 @@ def run_reproduction(
                 tool_error=message,
                 issues=[make_issue("tool", message, None)],
             )
-            return _write_reproduction_report(paths.target_dir, report)
+            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
         use_facts_v2_native_reproduction = source_text is None
         use_facts_v2_direct_rebuild = (
             use_facts_v2_native_reproduction
@@ -467,7 +470,7 @@ def run_reproduction(
                                 profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                             )
                         )
-                        return _write_reproduction_report(paths.target_dir, report)
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2SourceRefused as exc:
                     message = str(exc)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
@@ -481,7 +484,7 @@ def run_reproduction(
                         listing_profile=exc.listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report)
+                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2DirectRebuildRefused as exc:
                     listing_profile = exc.source_profile
                     _merge_direct_rebuild_profile(profile_timings, exc.direct_profile)
@@ -505,7 +508,7 @@ def run_reproduction(
                                 "accepted_mismatch_reason": message,
                             },
                         )
-                        return _write_reproduction_report(paths.target_dir, report)
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                     report = report_builder.error(
                         status=ReproductionReportStatus.TOOL_ERROR,
                         tool_error=message,
@@ -514,7 +517,7 @@ def run_reproduction(
                         direct_rebuild_profile=exc.direct_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report)
+                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2ProfiledOperationFailed as exc:
                     listing_profile = exc.source_profile
                     _merge_direct_rebuild_profile(profile_timings, exc.operation_profile)
@@ -529,7 +532,7 @@ def run_reproduction(
                         direct_rebuild_profile=exc.operation_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report)
+                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
         if use_listing_source_assembly and rebuilt_bytes is None:
             phase = "render_source"
             phase_started_at = time.perf_counter()
@@ -562,7 +565,7 @@ def run_reproduction(
                         listing_profile=exc.listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report)
+                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 _record_profile_timing(profile_timings, "render_source_seconds", phase_started_at)
                 profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
                 source_size = _facts_v2_profile_source_bytes(listing_profile)
@@ -593,7 +596,7 @@ def run_reproduction(
                         listing_profile=listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report)
+                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
             _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
             profile_timings["assemble_seconds"] = _flat_profile_total(assembler_profile)
             profile_timings["listing_artifact_source_assembly"] = 1.0
@@ -659,7 +662,7 @@ def run_reproduction(
                     assembler_stderr=assembler_stderr,
                     profile=profile_payload(profile_timings, profile_started_at) if profile else None,
                 )
-                return _write_reproduction_report(paths.target_dir, report)
+                return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
             _record_profile_timing(profile_timings, "assemble_seconds", phase_started_at)
         diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
 
@@ -847,7 +850,7 @@ def run_reproduction(
             original_size=len(original),
             status=report["status"],
         )
-        return _write_reproduction_report(paths.target_dir, report)
+        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
     except Exception as exc:
         if target_dir is None:
             target_dir = _best_effort_target_dir(target_name, project_root=project_root)
@@ -884,7 +887,7 @@ def run_reproduction(
         )
         if target_dir is None:
             return report
-        return _write_reproduction_report(target_dir, report)
+        return _write_reproduction_report(target_dir, report, project_root=project_root)
 
 
 def load_reproduction_report(
@@ -1670,8 +1673,37 @@ def issues_by_row_index(report: dict[str, object]) -> dict[int, list[dict[str, o
     return grouped
 
 
-def _write_reproduction_report(target_dir: Path, report: dict[str, object]) -> dict[str, object]:
+def _write_reproduction_report(
+    target_dir: Path,
+    report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = _report_with_oracle_compatibility(report, project_root=project_root)
     return write_report(reproduction_report_path(target_dir), report)
+
+
+def _report_with_oracle_compatibility(
+    report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    input_stamp = report.get("input_stamp")
+    if not isinstance(input_stamp, dict):
+        return report
+    options = input_stamp.get("reproduction_options")
+    if not isinstance(options, dict):
+        return report
+    oracle_modes = options.get("oracle_modes")
+    if not isinstance(oracle_modes, list) or not oracle_modes:
+        return report
+    payload = dict(report)
+    payload["oracle_compatibility"] = oracle_compatibility_reports_for_options(
+        str(report.get("target") or ""),
+        options,
+        project_root=project_root,
+    )
+    return payload
 
 
 def _write_text_if_changed(path: Path, text: str) -> tuple[int, bool]:

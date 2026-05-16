@@ -9,6 +9,10 @@ Run non-gating assembler oracle workflows and report their comparison level sepa
 - PRD 018: Reproduction Profiles and Policy Summary.
 - PRD 019: Tool Registry and Oracle Availability.
 
+## Status
+
+Complete. Implemented scoped oracle compatibility reports for vasm and GenAm/DevPac, report attachment, and UI rendering.
+
 ## Scope
 
 - Add **Oracle Compatibility Report** sections for vasm and GenAm/DevPac-compatible source workflows.
@@ -40,6 +44,7 @@ Run non-gating assembler oracle workflows and report their comparison level sepa
 - Tests for GenAm via `vamos` required-tool handling.
 - Report schema tests proving oracle results are separate from gate status.
 - Web tests showing oracle comparison level without calling it exact.
+- Verified with related tests, focused CDP UI coverage, ruff, and `src\precommit.bat`.
 
 ## Issues
 
@@ -48,4 +53,3 @@ Run non-gating assembler oracle workflows and report their comparison level sepa
 - [020-003: Oracle Report Schema and Labels](../issues/020-003-oracle-report-schema-and-labels.md)
 - [020-004: Oracle Results in Reproduction UI](../issues/020-004-oracle-results-in-reproduction-ui.md)
 - [020-005: PRD 020 Review and Tightening](../issues/020-005-prd-020-review-and-tightening.md)
-
