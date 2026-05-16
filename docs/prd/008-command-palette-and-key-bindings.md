@@ -1,5 +1,9 @@
 # PRD 008: Command Palette and Default Key Bindings
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Add a command palette that centralizes **Manual Action Catalog** entries, navigation commands, and **Target Tooling Commands** with default key bindings and visible key-binding badges.
@@ -48,8 +52,17 @@ Add a command palette that centralizes **Manual Action Catalog** entries, naviga
 
 ## Open Questions
 
-- Whether `p` remains the final default after broader keyboard review.
-- Exact category names used in palette filtering.
+- Resolved: `p` is the default command palette binding.
+- Resolved: palette entries use manual, navigation, and target-tooling
+  categories from catalog metadata.
+
+## Completion Notes
+
+- Command palette opens context-filtered, broadens to global mode, displays
+  key-binding badges, and executes manual, navigation, and target-tooling
+  commands without changing Manual Action Log semantics for non-log commands.
+- Focused PRD008 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_web_e2e_cdp.py tests\test_web_app_source.py tests\test_disasm_server.py -q -k "command_palette_opens_and_executes_catalog_command or command_palette_arrow_keys_select_entry or command_palette_offers_rename_for_selected_label_row or command_palette_and_selection_model or manual_action_catalog_returns_target_commands or manual_review_panel_filters_and_navigates or reproduction_profile_command_updates_summary or source_export_palette_uses_browser_save"`.
 
 ## Follow-On PRDs
 

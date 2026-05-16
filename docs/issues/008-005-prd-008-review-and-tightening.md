@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Review the completed PRD 008 palette and key-binding work, identify missed commands, confusing defaults, over-complicated registry behavior, or weak tests, and address them directly or split follow-up issues.
 
 ## Acceptance criteria
 
-- [ ] Review palette behavior, binding badges, registry shape, review-action parity, and tests against PRD 008.
-- [ ] Simplify unnecessary abstraction or duplicated command definitions found during review.
-- [ ] Add missing tests or issue follow-ups for broader gaps.
-- [ ] PRD 008 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Review palette behavior, binding badges, registry shape, review-action parity, and tests against PRD 008.
+- [x] Simplify unnecessary abstraction or duplicated command definitions found during review.
+- [x] Add missing tests or issue follow-ups for broader gaps.
+- [x] PRD 008 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 
