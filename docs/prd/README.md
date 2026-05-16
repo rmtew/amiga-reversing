@@ -19,13 +19,16 @@ Do not reuse numbers after deleting stale PRDs. Number gaps are useful history.
 
 ## Number Allocation
 
-Last allocated PRD number: `026`.
+Last allocated PRD number: `027`.
 
-The next PRD should normally use `027`, unless a newer PRD already exists.
+The next PRD should normally use `028`, unless a newer PRD already exists.
 
 When creating a new PRD, update this section in the same change. Issue parent
 numbers follow PRD numbers, so this is also the source of truth for allocated
 `docs/issues/` parent prefixes.
+
+`027` is allocated to `docs/issues/027-*` for Proposal 005 follow-up work. There
+is intentionally no matching PRD file; Proposal 005 is the durable spec.
 
 ## Lifecycle
 

@@ -48,6 +48,7 @@
 - [ ] Acceptance Criteria
 - [ ] Deletion Checklist
 - [ ] Rewrite Acceptance Tests
+- [ ] Follow-Up Review: 2026-05-17
 - [ ] Verification
 
 ## Why This Exists
@@ -1673,6 +1674,433 @@ coverage closure
   A required form cannot be missing both a sample plan and an unsupported reason.
   Assembler and decoder canonical form identity mismatches fail strict coverage.
 ```
+
+## Follow-Up Review: 2026-05-17
+
+This review was done after the PRD/issue breakdown pass was completed and the
+stale-prone PRD/issue documents were deleted. The durable state is now this
+proposal plus the code.
+
+Current coverage command output:
+
+```text
+uv run python -m amiga_reversing.tools.m68k_coverage report --phase canonical
+
+assembler forms: 300
+disassembler forms: 313
+matched forms: 299
+asm-only forms: 0
+disasm-only forms: 13
+sample statuses:
+  not_target_cpu: 137
+  sampled: 284
+unsupported statuses:
+  implemented_unsupported: 3
+  intentionally_unsupported: 1
+unsupported families:
+  move16: 5 forms
+  fsave_frestore: 2 forms
+  pmmu: 54 forms
+  generic_coprocessor: 8 forms
+ea sample families:
+  plan operands: 163
+  complete operands: 163
+  missing-family operands: 0
+```
+
+Focused verification:
+
+```text
+uv run python -m amiga_reversing.tools.m68k_coverage check --phase canonical
+uv run python -m pytest tests\test_m68k_coverage.py -q
+```
+
+Both pass. `tests\test_m68k_coverage.py` reports 17 passing tests.
+
+### What Is Now Done
+
+The implementation has completed meaningful parts of this proposal:
+
+```text
+canonical form ids exist
+  src/generated/m68k_form_model.h defines M68kFormId, M68kFormRow,
+  M68kOperandSlot, M68K_FORM_ID_NONE = 0, and 313 canonical rows.
+
+assembler rows carry canonical form ids
+  src/generated/m68k_asm_tables.c assigns canonical_form_id per asm form.
+
+disassembler rows carry canonical form ids
+  src/generated/m68k_disassembler_tables.h assigns canonical_form_id per
+  disasm form, including disasm-only coprocessor/PMMU forms.
+
+sample status is visible
+  amiga_reversing.tools.m68k_coverage reports sampled, not_target_cpu, missing
+  sample strategy, unsupported, and oracle-unavailable states.
+
+silent skip handling improved
+  generate_c99_assembler_corpus.py produces sample coverage entries and
+  missing_sample_strategy failures instead of treating all non-emitted forms as
+  invisible.
+
+EA family sampling is visible
+  current canonical report shows all 163 planned EA operands have complete
+  required-family coverage.
+
+decode candidate ordering moved upstream
+  generate_c99_disassembler_subset.py sorts bucket candidates by generated
+  specificity and rejects equal-specificity ambiguous forms during generation.
+
+runtime disassembler no longer scores ties
+  m68k_disassembler.c now returns the first generated valid bucket candidate.
+
+simulator lookup accepts canonical ids
+  m68k_sim_metadata_for_canonical_form_id exists and runtime instructions carry
+  canonical_form_id.
+```
+
+The repo is therefore past Slice 1 and partly through Slices 2, 3, 4, and 5.
+It is not at the proposed end state yet.
+
+### Follow-Up Findings
+
+#### 1. Canonical Coverage Does Not Actually Check Real Canonical Id Parity
+
+`m68k_coverage.build_canonical_inventory()` is still a relabeled diagnostic
+inventory. `_form_identity()` does not include `canonical_form_id`, so current
+strict coverage only checks canonical id mismatches in synthetic tests that
+manually insert ids.
+
+Impact:
+
+```text
+strict canonical coverage can pass even if generated asm/disasm canonical ids
+diverge in real generated output
+```
+
+Required follow-up:
+
+```text
+coverage inventory must read or compute canonical_form_id for assembler and
+disassembler forms, then fail strict mode on real id mismatches.
+```
+
+#### 2. Unsupported Stale Checks Are Mostly Placeholders
+
+Unsupported inventory entries contain `stale_conditions`, but
+`blocking_artifacts_still_missing` is always emitted with `stale: false`. The
+only effective stale check is "does this unsupported family still match at
+least one current generated form?"
+
+Impact:
+
+```text
+strict coverage will not fail when MOVE16, FSAVE/FRESTORE, PMMU, or generic
+coprocessor blockers are actually resolved but the unsupported entry remains
+```
+
+Required follow-up:
+
+```text
+compute each stale condition from current generated data:
+  canonical sample plan present
+  decode/render metadata present
+  generated semantics present or explicitly missing
+  oracle support present or explicitly unavailable
+```
+
+#### 3. Simulator Semantic Coverage Is Contradictory
+
+The canonical coverage summary hardcodes:
+
+```text
+executor semantics: not-generated
+```
+
+But `src/generated/m68k_simulator_tables.h` emits 300
+`M68K_SIM_SEMANTICS_AVAILABLE` rows. At the same time, unsupported inventory
+marks MOVE16, FSAVE/FRESTORE, and PMMU as blocked on generated semantics.
+
+Impact:
+
+```text
+coverage cannot currently distinguish "metadata row exists" from "semantics are
+actually generated and trustworthy"
+```
+
+Required follow-up:
+
+```text
+simulator generator must emit real semantic statuses per canonical form:
+  available
+  generated_semantics_missing
+  intentionally_unsupported
+
+coverage must consume those statuses instead of hardcoding executor semantics
+as unavailable or treating every simulator row as available.
+```
+
+#### 4. The Canonical Model Is Still Owned By The Assembler Generator
+
+`src/generated/m68k_form_model.h` is generated by
+`generate_c99_assembler_subset.py`. Disassembler and simulator generators import
+assembler-subset helpers to compute canonical ids.
+
+Impact:
+
+```text
+the canonical model exists, but the ownership seam is wrong:
+assembler generator still effectively owns canonical identity
+```
+
+Required follow-up:
+
+```text
+extract canonical model generation into its own module/generator, then make
+assembler, disassembler, simulator, corpus, and coverage consume it.
+```
+
+#### 5. Canonical Model Data Lives In A Static Header
+
+`m68k_form_model.h` defines large `static const` arrays directly in the header.
+Every translation unit that includes it gets its own copy.
+
+Impact:
+
+```text
+unnecessary object size growth
+harder symbol inspection
+inconsistent with the proposal's expected src/generated/m68k_forms.c ownership
+```
+
+Required follow-up:
+
+```text
+split declarations into m68k_forms.h and storage into m68k_forms.c.
+```
+
+#### 6. Runtime Lookup Is Improved But Not Fully Indexed
+
+Assembler resolution now uses generated mnemonic ranges instead of scanning all
+forms, which is good. It still scans within each mnemonic range by operand
+shape. Simulator metadata lookup scans `g_m68k_sim_form_lookup` linearly by
+canonical id.
+
+Impact:
+
+```text
+the old whole-table scans are mostly gone, but canonical form id is not yet the
+direct index promised by the proposal
+```
+
+Required follow-up:
+
+```text
+emit direct lookup tables:
+  canonical form id -> asm row
+  canonical form id -> disasm/render row
+  canonical form id -> simulator metadata row/status
+  mnemonic id + operand shape -> candidate range or resolver row
+```
+
+#### 7. Some Downstream M68K Family Knowledge Remains
+
+`m68k_ir_codec.c` no longer carries the old mnemonic-family helper switches, but
+`platform_file_core.c` still has `mnemonic_id_is_branch_family()` for byte-sized
+branch target recovery.
+
+Impact:
+
+```text
+branch-family knowledge remains downstream from generated metadata
+```
+
+Required follow-up:
+
+```text
+replace this with generated mnemonic/form family metadata or simulator flow
+metadata.
+```
+
+#### 8. Sample Plans Are Still Partly Corpus-Owned
+
+The corpus generator has a sample-plan surface, but it still owns special
+operand sample construction for register pairs, cache selectors, bitfield EA,
+absolute forms, and other operand details.
+
+Impact:
+
+```text
+corpus generation is becoming an interpreter, but it still embeds M68K operand
+knowledge that should move to parser/schema/canonical-model data
+```
+
+Required follow-up:
+
+```text
+promote operand sample registries and per-form sample plans into generated
+canonical artifacts. The corpus generator should only expand those plans.
+```
+
+#### 9. Canonical Check Output Uses Diagnostic Formatting
+
+`m68k_coverage check --phase canonical` prints the diagnostic report on success
+instead of the canonical report. The `report --phase canonical` command includes
+canonical summaries.
+
+Impact:
+
+```text
+minor UX bug, but it hides canonical summaries in the successful strict command
+that developers are most likely to run
+```
+
+Required follow-up:
+
+```text
+on successful canonical check, print the canonical report or a concise canonical
+check summary.
+```
+
+### Updated State Assessment
+
+The current implementation is a useful intermediate state, not closure.
+
+```text
+Strong:
+  canonical ids exist in generated runtime tables
+  current asm/disasm inventory is visible
+  no asm-only forms remain
+  unsupported families are explicit
+  missing sample strategy is testable
+  EA family coverage is visible and currently complete
+  disassembler ambiguity sorting moved upstream
+
+Weak:
+  canonical coverage does not verify real canonical id parity
+  unsupported stale-proofing is incomplete
+  simulator semantic coverage is inconsistent
+  canonical model ownership still lives under assembler generation
+  sample-plan ownership still lives partly in corpus generation
+  direct canonical-id indexing is incomplete
+  one downstream branch-family switch remains
+```
+
+The next implementation pass should prioritize correctness of the gate over more
+coverage breadth:
+
+```text
+1. make canonical coverage consume real generated canonical ids
+2. make unsupported stale checks compute real blockers
+3. reconcile simulator semantic status with unsupported inventory
+4. extract canonical model ownership out of assembler generation
+5. move generated form model storage out of static headers
+```
+
+### Follow-Up Issue Tracking
+
+No separate PRDs are needed for this follow-up work. This proposal is the
+durable spec. `docs/issues/027-*.md` contains the executable slices and should be
+deleted when each slice is completed, abandoned, or superseded. Any new durable
+reasoning discovered while implementing those issues should be promoted back
+into this proposal before deleting the issue file.
+
+Implementation posture:
+
+```text
+This repository is the only consumer of the generated M68K tooling. Prefer
+clean replacement, deletion of old paths, and generated-data ownership over
+compatibility shims, bolt-on validators, or downstream workarounds.
+```
+
+Minimum verification for any code-changing follow-up issue:
+
+```text
+focused test for the changed behavior
+uv run python -m amiga_reversing.tools.m68k_coverage check --phase canonical
+cmd /c src\precommit.bat
+```
+
+Strict gate rollout rule:
+
+```text
+New strict coverage failures should become mandatory in the same issue that
+makes their required data available. If a check depends on a later issue, keep it
+report-only and name the blocking issue in the report until the blocker lands.
+```
+
+Canonical coverage must not be self-validating:
+
+```text
+Coverage checks should compare generated artifacts or independently loaded
+generated tables. They should not pass only because they recompute canonical ids
+through the same helper path that generated the ids being checked.
+```
+
+Canonical id stability rule:
+
+```text
+Canonical ids are internal, but they flow through C structs, generated corpus
+manifests, diagnostics, and tests. Accidental reorder must fail. Intentional id
+changes require an explicit proposal note explaining why they are safe.
+```
+
+Status vocabulary for this follow-up:
+
+```text
+sample/coverage:
+  sampled
+  missing_sample_strategy
+  intentionally_unsupported
+  implemented_unsupported
+  not_target_cpu
+  oracle_unavailable
+
+simulator semantics:
+  available
+  generated_semantics_missing
+  intentionally_unsupported
+```
+
+Additional verification by touched area:
+
+```text
+coverage CLI/tooling:
+  uv run python -m pytest tests\test_m68k_coverage.py -q
+
+generator changes:
+  regenerate affected src/generated artifacts
+  run relevant codegen tests
+
+known generator commands:
+  uv run python src\scripts\generate_c99_assembler_subset.py
+  uv run python src\scripts\generate_c99_disassembler_subset.py
+  uv run python src\scripts\generate_c99_simulator_subset.py
+  uv run python src\scripts\generate_c99_assembler_corpus.py
+
+assembler corpus or sample-plan changes:
+  regenerate corpus artifacts
+  run assembler corpus tests/integration tests
+
+disassembler metadata, decode, or render changes:
+  regenerate disassembler artifacts
+  run disassembler corpus/parity tests
+
+simulator semantic metadata changes:
+  regenerate simulator artifacts
+  run simulator unit and simulator oracle tests
+
+oracle compatibility changes:
+  run the relevant vasm/MMU/oracle integration tests
+```
+
+If a required oracle tool is unavailable, the issue is not silently done. Record
+the skipped command, the reason it could not run, and either run a narrower
+available oracle check or update this proposal with the accepted deferral.
+
+`src\precommit.bat` runs style, build, corpus stats, dead-code scan, native C
+unit tests, unittest unit/integration/explicit suites, and some oracle-facing
+integration checks. It also updates `src\benchmark.json`; that file should be
+treated as expected generated benchmark output when precommit is run.
 
 ## Verification
 
