@@ -338,6 +338,16 @@ class EaSamplePlanEntry:
     covered_families: tuple[str, ...]
     missing_families: tuple[str, ...]
     sample_families: tuple[str, ...]
+    samples: tuple[dict[str, object], ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class CorpusSamplePlanEntry:
+    context: FormContext
+    status: str
+    reason: str
+    missing_operand_kinds: tuple[str, ...]
+    operand_options: tuple[tuple[object, ...], ...]
 
 
 SAMPLE_STATUS_SAMPLED = "sampled"
@@ -550,9 +560,10 @@ def _register_pair_samples(kind: str) -> tuple[RegisterPairSample, ...]:
 
 def _sample_to_registry_dict(sample: object) -> dict[str, object]:
     if isinstance(sample, RegisterSample):
-        return {"asm": sample.asm_text, "reg": sample.reg, "reg_is_address": sample.reg_is_address}
+        return {"sample_type": "register", "asm": sample.asm_text, "reg": sample.reg, "reg_is_address": sample.reg_is_address}
     if isinstance(sample, RegisterPairSample):
         return {
+            "sample_type": "register_pair",
             "asm": sample.asm_text,
             "reg": sample.reg,
             "pair_reg": sample.pair_reg,
@@ -560,14 +571,122 @@ def _sample_to_registry_dict(sample: object) -> dict[str, object]:
             "pair_reg_is_address": sample.pair_reg_is_address,
         }
     if isinstance(sample, ControlRegisterSample):
-        return {"asm": sample.asm_text, "reg_id": sample.reg_id, "value": sample.value}
+        return {"sample_type": "control_register", "asm": sample.asm_text, "reg_id": sample.reg_id, "value": sample.value}
     if isinstance(sample, CacheSelectorSample):
-        return {"asm": sample.asm_text, "value": sample.value}
+        return {"sample_type": "cache_selector", "asm": sample.asm_text, "value": sample.value}
     if isinstance(sample, FixedOperandSample):
-        return {"asm": sample.asm_text}
+        return {"sample_type": "fixed", "asm": sample.asm_text}
     if isinstance(sample, DispSample):
-        return {"asm": sample.asm_text, "reg": sample.reg, "value": sample.value}
-    return {"asm": getattr(sample, "asm_text", "")}
+        return {"sample_type": "disp", "asm": sample.asm_text, "reg": sample.reg, "value": sample.value}
+    if isinstance(sample, ImmediateSample):
+        return {"sample_type": "immediate", "asm": sample.asm_text, "value": sample.value}
+    if isinstance(sample, ReglistSample):
+        return {"sample_type": "reglist", "asm": sample.asm_text, "value": sample.value}
+    if isinstance(sample, AbsoluteLongSample):
+        return {"sample_type": "absolute_long", "asm": sample.asm_text, "value": sample.value}
+    if isinstance(sample, LabelSample):
+        return {
+            "sample_type": "label",
+            "asm": "",
+            "size": sample.size,
+            "displacement": sample.displacement,
+            "trailing_specs": list(sample.trailing_specs),
+            "post_lines": list(sample.post_lines),
+        }
+    if isinstance(sample, EASample):
+        return {
+            "sample_type": "ea",
+            "asm": sample.asm_text,
+            "mode": sample.mode,
+            "reg": sample.reg,
+            "ext_words": list(sample.ext_words),
+            "value": sample.value,
+            "index_is_address": sample.index_is_address,
+            "index_reg": sample.index_reg,
+            "index_long": sample.index_long,
+            "scale": sample.scale,
+            "full_ext_base_suppress": sample.full_ext_base_suppress,
+            "full_ext_index_suppress": sample.full_ext_index_suppress,
+            "full_ext_base_disp_size": sample.full_ext_base_disp_size,
+            "full_ext_outer_disp_size": sample.full_ext_outer_disp_size,
+            "full_ext_iis": sample.full_ext_iis,
+            "full_ext_base_disp_value": sample.full_ext_base_disp_value,
+            "full_ext_outer_disp_value": sample.full_ext_outer_disp_value,
+            "bf_offset_is_register": sample.bf_offset_is_register,
+            "bf_offset": sample.bf_offset,
+            "bf_width_is_register": sample.bf_width_is_register,
+            "bf_width": sample.bf_width,
+            "post_lines": list(sample.post_lines),
+            "trailing_specs": list(sample.trailing_specs),
+        }
+    return {"sample_type": "unknown", "asm": getattr(sample, "asm_text", "")}
+
+
+def _sample_from_registry_dict(operand_kind: str, sample: dict[str, object]) -> object:
+    sample_type = str(sample.get("sample_type", ""))
+    if sample_type == "register" or operand_kind in {"dn", "an", "rn"}:
+        return RegisterSample(
+            asm_text=str(sample["asm"]),
+            reg=int(sample["reg"]),
+            reg_is_address=int(sample.get("reg_is_address", 0)),
+        )
+    if sample_type == "register_pair" or operand_kind in {"dn_pair", "rn_pair"}:
+        return RegisterPairSample(
+            asm_text=str(sample["asm"]),
+            reg=int(sample["reg"]),
+            pair_reg=int(sample["pair_reg"]),
+            reg_is_address=int(sample.get("reg_is_address", 0)),
+            pair_reg_is_address=int(sample.get("pair_reg_is_address", 0)),
+        )
+    if sample_type == "control_register" or operand_kind == "ctrl_reg":
+        return ControlRegisterSample(
+            asm_text=str(sample["asm"]),
+            reg_id=int(sample["reg_id"]),
+            value=int(sample["value"]),
+        )
+    if sample_type == "cache_selector" or operand_kind == "cache_sel":
+        return CacheSelectorSample(asm_text=str(sample["asm"]), value=int(sample["value"]))
+    if sample_type == "fixed" or operand_kind in {"ccr", "sr", "usp", "reglist"}:
+        return FixedOperandSample(asm_text=str(sample["asm"]))
+    if sample_type == "disp" or operand_kind == "disp":
+        return DispSample(asm_text=str(sample["asm"]), reg=int(sample["reg"]), value=int(sample["value"]))
+    if sample_type == "immediate" or operand_kind == "imm":
+        return ImmediateSample(asm_text=str(sample["asm"]), value=int(sample["value"]))
+    if sample_type == "absolute_long" or operand_kind == "absl":
+        return AbsoluteLongSample(asm_text=str(sample["asm"]), value=int(sample["value"]))
+    if sample_type == "label" or operand_kind == "label":
+        return LabelSample(
+            size=str(sample["size"]),
+            displacement=int(sample["displacement"]),
+            trailing_specs=tuple(dict(spec) for spec in sample.get("trailing_specs", [])),
+            post_lines=tuple(str(line) for line in sample.get("post_lines", [])),
+        )
+    if sample_type == "ea" or operand_kind in {"ea", "bf_ea", "ind", "postinc", "predec"}:
+        return EASample(
+            asm_text=str(sample["asm"]),
+            mode=int(sample["mode"]),
+            reg=int(sample["reg"]),
+            ext_words=tuple(int(word) for word in sample.get("ext_words", [])),
+            value=int(sample.get("value", 0)),
+            index_is_address=int(sample.get("index_is_address", 0)),
+            index_reg=int(sample.get("index_reg", 0)),
+            index_long=int(sample.get("index_long", 0)),
+            scale=int(sample.get("scale", 0)),
+            full_ext_base_suppress=int(sample.get("full_ext_base_suppress", 0)),
+            full_ext_index_suppress=int(sample.get("full_ext_index_suppress", 0)),
+            full_ext_base_disp_size=int(sample.get("full_ext_base_disp_size", 0)),
+            full_ext_outer_disp_size=int(sample.get("full_ext_outer_disp_size", 0)),
+            full_ext_iis=int(sample.get("full_ext_iis", 0)),
+            full_ext_base_disp_value=int(sample.get("full_ext_base_disp_value", 0)),
+            full_ext_outer_disp_value=int(sample.get("full_ext_outer_disp_value", 0)),
+            bf_offset_is_register=int(sample.get("bf_offset_is_register", 0)),
+            bf_offset=int(sample.get("bf_offset", 0)),
+            bf_width_is_register=int(sample.get("bf_width_is_register", 0)),
+            bf_width=int(sample.get("bf_width", 0)),
+            post_lines=tuple(str(line) for line in sample.get("post_lines", [])),
+            trailing_specs=tuple(dict(spec) for spec in sample.get("trailing_specs", [])),
+        )
+    return FixedOperandSample(asm_text=str(sample.get("asm", "")))
 
 
 def _registry_entry(operand_kind: str, samples: tuple[object, ...], reason: str) -> OperandSampleRegistryEntry:
@@ -2006,108 +2125,231 @@ def _case_id(context: FormContext, samples: tuple[object, ...]) -> str:
     return "_".join(part for part in parts if part)
 
 
+def _ea_sample_plan_key(
+    mnemonic: str,
+    kb_mnemonic: str,
+    local_form_index: int,
+    syntax: str,
+    size: str | None,
+    target_cpu: str,
+    operand_index: int,
+) -> tuple[str, str, int, str, str | None, str, int]:
+    return (mnemonic, kb_mnemonic, local_form_index, syntax, size, target_cpu, operand_index)
+
+
+def _ea_sample_plan_options(
+    context: FormContext,
+    operand_index: int,
+    operand_kind: str,
+    ea_plans: dict[tuple[str, str, int, str, str | None, str, int], EaSamplePlanEntry],
+) -> tuple[object, ...]:
+    plan = ea_plans.get(
+        _ea_sample_plan_key(
+            str(context.form.mnemonic),
+            str(context.form.kb_mnemonic),
+            int(context.form.local_form_index),
+            str(context.form.syntax),
+            context.size,
+            context.target_cpu,
+            operand_index,
+        )
+    )
+    if plan is None:
+        return ()
+    return tuple(_sample_from_registry_dict(operand_kind, sample) for sample in plan.samples)
+
+
+def _sample_options_from_generated_plans(
+    context: FormContext,
+    item: dict[str, object],
+    kb: dict[str, object],
+    forms: list[object],
+    subset_module: object,
+    ea_plans: dict[tuple[str, str, int, str, str | None, str, int], EaSamplePlanEntry],
+) -> tuple[tuple[object, ...], ...]:
+    options: list[tuple[object, ...]] = []
+    for operand_index, (operand_kind, operand_role) in enumerate(
+        zip(context.operand_kinds, context.operand_roles, strict=True)
+    ):
+        if operand_kind in {"ea", "bf_ea", "ind", "postinc", "predec", "absl"}:
+            options.append(_ea_sample_plan_options(context, operand_index, operand_kind, ea_plans))
+        else:
+            options.append(
+                tuple(
+                    _sample_from_registry_dict(operand_kind, _sample_to_registry_dict(sample))
+                    for sample in _sample_options_for_operand(
+                        context,
+                        item,
+                        kb,
+                        forms,
+                        subset_module,
+                        operand_kind,
+                        operand_role,
+                    )
+                )
+            )
+    return tuple(options)
+
+
+def _corpus_sample_plan_entry(
+    context: FormContext,
+    options: tuple[tuple[object, ...], ...],
+) -> CorpusSamplePlanEntry:
+    coverage = _sample_status_for_options(context, options)
+    return CorpusSamplePlanEntry(
+        context=context,
+        status=coverage.status,
+        reason=coverage.reason,
+        missing_operand_kinds=coverage.missing_operand_kinds,
+        operand_options=options,
+    )
+
+
+def _generate_corpus_sample_plans(
+    subset_module: object,
+    forms: list[object],
+    kb: dict[str, object],
+    target_cpu: str,
+    require_oracle_cpu: bool,
+) -> list[CorpusSamplePlanEntry]:
+    ea_plans = {
+        _ea_sample_plan_key(
+            entry.mnemonic,
+            entry.kb_mnemonic,
+            entry.local_form_index,
+            entry.syntax,
+            entry.size,
+            entry.target_cpu,
+            entry.operand_index,
+        ): entry
+        for entry in generate_ea_sample_plans(target_cpu)
+    }
+    plans: list[CorpusSamplePlanEntry] = []
+    for form in forms:
+        item = _mnemonic_item(kb, form.kb_mnemonic)
+        form_source = _raw_form_for_generated_form(kb, item, form)
+        operand_roles = _operand_roles(kb, item, form.sampling_operand_kinds)
+        if not _form_supports_cpu(form, target_cpu):
+            context = FormContext(
+                form=form,
+                size=None,
+                syntax=form.syntax,
+                operand_kinds=form.sampling_operand_kinds,
+                operand_roles=operand_roles,
+                target_cpu=target_cpu,
+                form_source=form_source,
+            )
+            plans.append(CorpusSamplePlanEntry(
+                context=context,
+                status=SAMPLE_STATUS_NOT_TARGET_CPU,
+                reason=f"form does not support {target_cpu}",
+                missing_operand_kinds=(),
+                operand_options=(),
+            ))
+            continue
+        if require_oracle_cpu and not _instruction_has_oracle_cpu(item, form_source, target_cpu):
+            context = FormContext(
+                form=form,
+                size=None,
+                syntax=form.syntax,
+                operand_kinds=form.sampling_operand_kinds,
+                operand_roles=operand_roles,
+                target_cpu=target_cpu,
+                form_source=form_source,
+            )
+            plans.append(CorpusSamplePlanEntry(
+                context=context,
+                status=SAMPLE_STATUS_ORACLE_UNAVAILABLE,
+                reason=f"oracle unavailable for {target_cpu}",
+                missing_operand_kinds=(),
+                operand_options=(),
+            ))
+            continue
+        for size in _sizes_for_target_form(form, target_cpu):
+            context = FormContext(
+                form=form,
+                size=size,
+                syntax=form.syntax,
+                operand_kinds=form.sampling_operand_kinds,
+                operand_roles=operand_roles,
+                target_cpu=target_cpu,
+                form_source=form_source,
+            )
+            plans.append(_corpus_sample_plan_entry(
+                context,
+                _sample_options_from_generated_plans(context, item, kb, forms, subset_module, ea_plans),
+            ))
+    return plans
+
+
+def generate_corpus_sample_plans(
+    target_cpu: str = "68000",
+    require_oracle_cpu: bool = False,
+) -> tuple[CorpusSamplePlanEntry, ...]:
+    subset_module, forms, kb = _load_forms_and_kb()
+    return tuple(_generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu))
+
+
 def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[CorpusCase]:
     subset_module, forms, kb = _load_forms_and_kb()
     routed_immediates = subset_module._supported_immediate_routes(forms, KB_PATH)
     canonical_form_ids = _canonical_form_ids_by_key(subset_module)
     cases: list[CorpusCase] = []
-    for form in forms:
-        if not _form_supports_cpu(form, target_cpu):
+    for plan in _generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu):
+        context = plan.context
+        if plan.status != SAMPLE_STATUS_SAMPLED:
             continue
-        item = _mnemonic_item(kb, form.kb_mnemonic)
-        form_source = _raw_form_for_generated_form(kb, item, form)
-        if require_oracle_cpu and not _instruction_has_oracle_cpu(item, form_source, target_cpu):
+        item = _mnemonic_item(kb, context.form.kb_mnemonic)
+        options = plan.operand_options
+        if any(not choice for choice in options) and "reglist" not in context.operand_kinds:
             continue
-        operand_roles = _operand_roles(kb, item, form.sampling_operand_kinds)
-        for size in _sizes_for_target_form(form, target_cpu):
-            context = FormContext(
-                form=form,
-                size=size,
-                syntax=form.syntax,
-                operand_kinds=form.sampling_operand_kinds,
-                operand_roles=operand_roles,
-                target_cpu=target_cpu,
-                form_source=form_source,
-            )
-            options = _sample_options(context, item, kb, forms, subset_module)
-            if any(not choice for choice in options) and "reglist" not in context.operand_kinds:
-                continue
-            for base_samples in itertools.product(*options):
-                for samples in _expand_reglist_options(context, base_samples, kb):
-                    asm_lines = _asm_lines_for_case(context, samples)
-                    encoded_case = _build_case_encoding(context, item, samples, forms, kb)
-                    semantic_mnemonic = context.form.mnemonic
-                    if any(isinstance(sample, ImmediateSample) for sample in samples):
-                        semantic_mnemonic = routed_immediates.get(semantic_mnemonic, semantic_mnemonic)
-                    instruction_specs = (
-                        _instruction_spec(
-                            mnemonic=semantic_mnemonic,
-                            size_suffix=context.size,
-                            operand_count=len(context.operand_kinds),
-                            patch_values=encoded_case.patch_values,
-                            operand_specs=encoded_case.operand_specs,
-                        ),
-                        *encoded_case.trailing_specs,
+        for base_samples in itertools.product(*options):
+            for samples in _expand_reglist_options(context, base_samples, kb):
+                asm_lines = _asm_lines_for_case(context, samples)
+                encoded_case = _build_case_encoding(context, item, samples, forms, kb)
+                semantic_mnemonic = context.form.mnemonic
+                if any(isinstance(sample, ImmediateSample) for sample in samples):
+                    semantic_mnemonic = routed_immediates.get(semantic_mnemonic, semantic_mnemonic)
+                instruction_specs = (
+                    _instruction_spec(
+                        mnemonic=semantic_mnemonic,
+                        size_suffix=context.size,
+                        operand_count=len(context.operand_kinds),
+                        patch_values=encoded_case.patch_values,
+                        operand_specs=encoded_case.operand_specs,
+                    ),
+                    *encoded_case.trailing_specs,
+                )
+                cases.append(
+                    CorpusCase(
+                        case_id=_case_id(context, samples),
+                        mnemonic=context.form.mnemonic,
+                        asm_lines=asm_lines,
+                        expected_hex=encoded_case.encoded.hex(),
+                        instruction_specs=instruction_specs,
+                        canonical_form_id=canonical_form_ids[subset_module._form_identity_key(context.form)],
                     )
-                    cases.append(
-                        CorpusCase(
-                            case_id=_case_id(context, samples),
-                            mnemonic=form.mnemonic,
-                            asm_lines=asm_lines,
-                            expected_hex=encoded_case.encoded.hex(),
-                            instruction_specs=instruction_specs,
-                            canonical_form_id=canonical_form_ids[subset_module._form_identity_key(form)],
-                        )
-                    )
+                )
     return cases
 
 
 def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[SampleCoverageEntry]:
     subset_module, forms, kb = _load_forms_and_kb()
-    entries: list[SampleCoverageEntry] = []
-    for form in forms:
-        item = _mnemonic_item(kb, form.kb_mnemonic)
-        form_source = _raw_form_for_generated_form(kb, item, form)
-        operand_roles = _operand_roles(kb, item, form.sampling_operand_kinds)
-        if not _form_supports_cpu(form, target_cpu):
-            entries.append(SampleCoverageEntry(
-                mnemonic=str(form.mnemonic),
-                kb_mnemonic=str(form.kb_mnemonic),
-                local_form_index=int(form.local_form_index),
-                form_index=int(form.form_index),
-                syntax=str(form.syntax),
-                size=None,
-                target_cpu=target_cpu,
-                status=SAMPLE_STATUS_NOT_TARGET_CPU,
-                reason=f"form does not support {target_cpu}",
-            ))
-            continue
-        if require_oracle_cpu and not _instruction_has_oracle_cpu(item, form_source, target_cpu):
-            entries.append(SampleCoverageEntry(
-                mnemonic=str(form.mnemonic),
-                kb_mnemonic=str(form.kb_mnemonic),
-                local_form_index=int(form.local_form_index),
-                form_index=int(form.form_index),
-                syntax=str(form.syntax),
-                size=None,
-                target_cpu=target_cpu,
-                status=SAMPLE_STATUS_ORACLE_UNAVAILABLE,
-                reason=f"oracle unavailable for {target_cpu}",
-            ))
-            continue
-        for size in _sizes_for_target_form(form, target_cpu):
-            context = FormContext(
-                form=form,
-                size=size,
-                syntax=form.syntax,
-                operand_kinds=form.sampling_operand_kinds,
-                operand_roles=operand_roles,
-                target_cpu=target_cpu,
-                form_source=form_source,
-            )
-            options = _sample_options(context, item, kb, forms, subset_module)
-            entries.append(_sample_status_for_options(context, options))
-    return entries
+    return [
+        SampleCoverageEntry(
+            mnemonic=str(plan.context.form.mnemonic),
+            kb_mnemonic=str(plan.context.form.kb_mnemonic),
+            local_form_index=int(plan.context.form.local_form_index),
+            form_index=int(plan.context.form.form_index),
+            syntax=str(plan.context.form.syntax),
+            size=plan.context.size,
+            target_cpu=target_cpu,
+            status=plan.status,
+            reason=plan.reason,
+            missing_operand_kinds=plan.missing_operand_kinds,
+        )
+        for plan in _generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+    ]
 
 
 def generate_ea_sample_plans(target_cpu: str = "68000") -> tuple[EaSamplePlanEntry, ...]:
@@ -2142,6 +2384,8 @@ def generate_ea_sample_plans(target_cpu: str = "68000") -> tuple[EaSamplePlanEnt
                         operand_role,
                     )
                     samples = _ea_sample_options(context, item, kb, forms, subset_module, operand_role)
+                    ea_samples = tuple(sample for sample in samples if isinstance(sample, EASample))
+                    plan_samples = ea_samples
                 elif operand_kind == "bf_ea":
                     required_modes = tuple(
                         mode_name
@@ -2149,9 +2393,24 @@ def generate_ea_sample_plans(target_cpu: str = "68000") -> tuple[EaSamplePlanEnt
                         if mode_name != "imm"
                     )
                     samples = _bf_ea_sample_options(context, item, kb, forms, subset_module)
+                    ea_samples = tuple(sample for sample in samples if isinstance(sample, EASample))
+                    plan_samples = ea_samples
+                elif operand_kind in {"ind", "postinc", "predec", "absl"}:
+                    required_modes = (operand_kind,)
+                    ea_samples = tuple(
+                        sample
+                        for sample in _ea_samples_for_mode(operand_kind, kb, forms, item, context.size, context.target_cpu)
+                        if isinstance(sample, EASample)
+                    )
+                    if operand_kind == "absl":
+                        plan_samples = tuple(
+                            AbsoluteLongSample(asm_text=sample.asm_text, value=sample.value)
+                            for sample in ea_samples
+                        )
+                    else:
+                        plan_samples = ea_samples
                 else:
                     continue
-                ea_samples = tuple(sample for sample in samples if isinstance(sample, EASample))
                 required_families = tuple(sorted({_ea_family_for_mode_name(mode_name) for mode_name in required_modes}))
                 covered_families = tuple(sorted({_ea_family_for_mode_name(_ea_mode_name_for_sample(sample, kb)) for sample in ea_samples}))
                 sample_families = tuple(sorted({_ea_sample_family(sample, kb) for sample in ea_samples}))
@@ -2170,6 +2429,7 @@ def generate_ea_sample_plans(target_cpu: str = "68000") -> tuple[EaSamplePlanEnt
                     covered_families=covered_families,
                     missing_families=tuple(family for family in required_families if family not in covered_families),
                     sample_families=sample_families,
+                    samples=tuple(_sample_to_registry_dict(sample) for sample in plan_samples),
                 ))
     return tuple(entries)
 

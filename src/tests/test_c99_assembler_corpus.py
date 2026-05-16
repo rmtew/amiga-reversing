@@ -325,6 +325,37 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         self.assertIn("indexed", lea_68020.required_families)
         self.assertIn("full_indexed", lea_68020.sample_families)
 
+    def test_corpus_sample_plans_drive_normal_special_and_ea_forms(self) -> None:
+        corpus = _corpus_generator()
+        plans = corpus.generate_corpus_sample_plans("68020")
+        move = next(
+            plan
+            for plan in plans
+            if plan.context.form.mnemonic == "MOVE"
+            and plan.context.form.syntax == "MOVE <ea>,<ea>"
+            and plan.context.size == "b"
+        )
+        movec = next(
+            plan
+            for plan in plans
+            if plan.context.form.mnemonic == "MOVEC"
+            and plan.context.form.syntax == "MOVEC Rc,Rn"
+        )
+        lea = next(plan for plan in plans if plan.context.form.mnemonic == "LEA")
+
+        self.assertEqual(move.status, "sampled")
+        self.assertEqual(len(move.operand_options), 2)
+        self.assertTrue(all(move.operand_options))
+        self.assertTrue(any(sample.asm_text == "vbr" for sample in movec.operand_options[0]))
+        self.assertTrue(any(sample.full_ext_base_disp_size for sample in lea.operand_options[0]))
+
+    def test_corpus_sample_plans_record_non_sampleable_status(self) -> None:
+        plans = _corpus_generator().generate_corpus_sample_plans("68000")
+        status_by_mnemonic = {plan.context.form.mnemonic: plan.status for plan in plans}
+
+        self.assertEqual(status_by_mnemonic["MOVEC"], "not_target_cpu")
+        self.assertTrue(any(plan.reason.startswith("form does not support") for plan in plans))
+
     def test_native_line_cpu_gating_rejects_expected_cases(self) -> None:
         samples = (
             ("68000", "moves.w d0,(a0)"),

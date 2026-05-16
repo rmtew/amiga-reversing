@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/025-m68k-generated-sample-plans-and-strict-coverage.md`
 Type: AFK
-Blocked by: `docs/issues/024-004-prove-assembler-decoder-canonical-parity.md`, `docs/issues/025-003-rewrite-corpus-generator-around-sample-plans.md`, `docs/issues/025-004-classify-deferred-unsupported-families.md`
+Blocked by: `docs/issues/025-004-classify-deferred-unsupported-families.md`
 
 ## Scope
 
