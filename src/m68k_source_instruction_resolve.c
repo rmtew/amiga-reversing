@@ -87,6 +87,7 @@ M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68
         }
     }
     result.instruction.asm_form_index = asm_form_index;
+    result.instruction.canonical_form_id = g_m68k_asm_forms[asm_form_index].canonical_form_id;
     for (operand_index = 0; operand_index < result.instruction.operand_count; ++operand_index) {
         const M68kOperandIR *operand = &result.instruction.operands[operand_index];
         if (!operand->symbol_ref.has_name) continue;

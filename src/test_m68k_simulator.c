@@ -9,6 +9,43 @@ static int test_external_write_allowed(void *user, uint32_t address, uint8_t wid
   return address == 0x30U && width == 1U;
 }
 
+static M68kFormId test_form_id_by_syntax(const char *syntax) {
+  uint16_t row;
+  for (row = 0; row < M68K_CANONICAL_FORM_COUNT; ++row) {
+    if (strcmp(g_m68k_canonical_forms[row].syntax, syntax) == 0) return g_m68k_canonical_forms[row].id;
+  }
+  return M68K_FORM_ID_NONE;
+}
+
+static int test_metadata_lookup_uses_canonical_form_id(void) {
+  const M68kSimFormMetadata *metadata = NULL;
+  M68kFormId form_id = test_form_id_by_syntax("NOP");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_OK, m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata != NULL);
+  M68K_C_ASSERT_INT(M68K_SIM_FLOW_SEQUENTIAL, metadata->flow_kind);
+  return 0;
+}
+
+static int test_metadata_lookup_reports_missing_generated_semantics(void) {
+  const M68kSimFormMetadata *metadata = NULL;
+  M68kFormId form_id = test_form_id_by_syntax("cpBcc <label>");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING,
+    m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata == NULL);
+  return 0;
+}
+
+static int test_metadata_lookup_does_not_fallback_to_mnemonic_shape(void) {
+  M68kInstructionIR instruction;
+  m68k_ir_instruction_init(&instruction);
+  instruction.mnemonic_id = M68K_ASM_MNEMONIC_NOP;
+  instruction.operand_count = 0;
+  M68K_C_ASSERT(m68k_sim_metadata_for_instruction(&instruction) == NULL);
+  return 0;
+}
+
 static int test_concrete_run_stops_on_pc_range(void) {
   uint8_t memory[] = {0x70U, 0x01U, 0x52U, 0x80U};
   M68kSimConcreteState state;
@@ -330,6 +367,11 @@ static int test_concrete_run_sign_extends_index_word_address(void) {
 
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"metadata_lookup_uses_canonical_form_id", test_metadata_lookup_uses_canonical_form_id},
+    {"metadata_lookup_reports_missing_generated_semantics",
+      test_metadata_lookup_reports_missing_generated_semantics},
+    {"metadata_lookup_does_not_fallback_to_mnemonic_shape",
+      test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},
     {"concrete_run_reports_pc_out_of_range", test_concrete_run_reports_pc_out_of_range},

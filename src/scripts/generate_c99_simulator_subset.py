@@ -717,6 +717,8 @@ def _require_execution_for_forms(forms: list[object], kb: dict[str, object]) -> 
 def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
     _require_execution_for_forms(forms, kb)
     by_mnemonic = _instruction_by_mnemonic(kb)
+    subset = _load_subset_module()
+    canonical_form_ids = subset._canonical_form_id_map(subset._load_canonical_forms(KB_PATH))
     meta = kb.get("_meta", {})
     assert isinstance(meta, dict)
     ccr_bits = meta.get("ccr_bit_positions", {})
@@ -984,11 +986,10 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
                 f"\"{str(effect.get('operand', ''))}\" "
                 "},"
             )
-        row_mnemonic = kb_mnemonic if (" " in kb_mnemonic and "," not in kb_mnemonic) else str(form.mnemonic)
-        mnemonic_enum = f"M68K_ASM_MNEMONIC_{str(form.mnemonic)}"
+        canonical_form_id = canonical_form_ids[subset._form_identity_key(form)]
         form_rows.extend([
             "    {",
-            f"      {mnemonic_enum}, {form.form_index}u, {{ 0u, 0u }},",
+            f"      {canonical_form_id}u, {form.form_index}u, M68K_SIM_SEMANTICS_AVAILABLE, 0u,",
             "      {",
             "      "
             f"{OP_TYPE_ENUM.get(execution.get('semantic_op') if isinstance(execution, dict) else None, 'M68K_SIM_OP_NONE')}, "

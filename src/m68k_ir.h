@@ -373,6 +373,7 @@ typedef struct M68kOperandIR {
 
 typedef struct M68kInstructionIR {
   uint16_t asm_form_index;
+  M68kFormId canonical_form_id;
   uint8_t mnemonic_id;
   uint8_t target_cpu;
   uint8_t has_coprocessor_id;

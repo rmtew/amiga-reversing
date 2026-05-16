@@ -472,42 +472,6 @@ static int sim_operand_is_absolute_long_ea(const M68kOperandIR *operand) {
   return sim_infer_ea_shape(operand) == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
 }
 
-static int sim_operand_matches_expected_kind(uint8_t expected_kind, const M68kOperandIR *operand) {
-  uint8_t ea_shape;
-  if (operand == NULL) return 0;
-  ea_shape = sim_infer_ea_shape(operand);
-  if (expected_kind == M68K_SIM_EXPECT_ANY) return 1;
-  if (expected_kind == M68K_SIM_EXPECT_DN) return operand->kind == M68K_ASM_OPERAND_DN;
-  if (expected_kind == M68K_SIM_EXPECT_AN) return operand->kind == M68K_ASM_OPERAND_AN;
-  if (expected_kind == M68K_SIM_EXPECT_RN) return operand->kind == M68K_ASM_OPERAND_RN || operand->kind == M68K_ASM_OPERAND_RN_PAIR;
-  if (expected_kind == M68K_SIM_EXPECT_IND) return ea_shape == M68K_SIM_EA_SHAPE_INDIRECT;
-  if (expected_kind == M68K_SIM_EXPECT_POSTINC) return ea_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT;
-  if (expected_kind == M68K_SIM_EXPECT_PREDEC) return ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT;
-  if (expected_kind == M68K_SIM_EXPECT_DISP) return ea_shape == M68K_SIM_EA_SHAPE_DISPLACEMENT;
-  if (expected_kind == M68K_SIM_EXPECT_INDEX) return ea_shape == M68K_SIM_EA_SHAPE_INDEX;
-  if (expected_kind == M68K_SIM_EXPECT_ABSW) return ea_shape == M68K_SIM_EA_SHAPE_ABSOLUTE_WORD;
-  if (expected_kind == M68K_SIM_EXPECT_ABSL) return ea_shape == M68K_SIM_EA_SHAPE_ABSOLUTE_LONG;
-  if (expected_kind == M68K_SIM_EXPECT_PCDISP) return ea_shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT;
-  if (expected_kind == M68K_SIM_EXPECT_PCINDEX) return ea_shape == M68K_SIM_EA_SHAPE_PC_INDEX;
-  if (expected_kind == M68K_SIM_EXPECT_EA) {
-    return operand->kind == M68K_ASM_OPERAND_DN || operand->kind == M68K_ASM_OPERAND_AN ||
-           operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_IND ||
-           operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_ABSL ||
-           operand->kind == M68K_ASM_OPERAND_BF_EA || operand->kind == M68K_ASM_OPERAND_IMM;
-  }
-  if (expected_kind == M68K_SIM_EXPECT_IMM) return operand->kind == M68K_ASM_OPERAND_IMM;
-  if (expected_kind == M68K_SIM_EXPECT_LABEL) return operand->kind == M68K_ASM_OPERAND_LABEL;
-  if (expected_kind == M68K_SIM_EXPECT_CCR) return operand->kind == M68K_ASM_OPERAND_CCR;
-  if (expected_kind == M68K_SIM_EXPECT_CTRL_REG) {
-    return operand->kind == M68K_ASM_OPERAND_CTRL_REG ||
-      operand->kind == M68K_ASM_OPERAND_CACHE_SEL;
-  }
-  if (expected_kind == M68K_SIM_EXPECT_SR) return operand->kind == M68K_ASM_OPERAND_SR;
-  if (expected_kind == M68K_SIM_EXPECT_USP) return operand->kind == M68K_ASM_OPERAND_USP;
-  if (expected_kind == M68K_SIM_EXPECT_REGLIST) return operand->kind == M68K_ASM_OPERAND_REGLIST;
-  return 0;
-}
-
 static int sim_expected_kind_prefers_register_write(uint8_t expected_kind, const M68kOperandIR *operand) {
   uint8_t is_address;
   uint8_t reg;
@@ -528,15 +492,6 @@ static int sim_ea_index_value_by_metadata(const M68kSimCpuState *state, const M6
     uint8_t index_scale_source, uint8_t index_sign_source, M68kSimValue *out_value);
 static uint32_t sim_ea_index_scale(const M68kOperandIR *operand);
 
-static size_t sim_metadata_operand_count(const M68kSimFormMetadata *metadata) {
-  size_t count;
-  if (metadata == NULL) return 0;
-  for (count = 4U; count > 0U; --count) {
-    if (metadata->operand_access_kinds[count - 1U] != M68K_SIM_ACCESS_NONE) return count;
-  }
-  return 0;
-}
-
 static uint8_t sim_find_operand_index_by_access(const M68kSimFormMetadata *metadata, uint8_t access_kind,
     uint8_t skip_index) {
   uint8_t operand_index;
@@ -548,33 +503,33 @@ static uint8_t sim_find_operand_index_by_access(const M68kSimFormMetadata *metad
   return 0xFFU;
 }
 
-const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction) {
+M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
+    const M68kSimFormMetadata **out_metadata) {
   size_t index;
-  const M68kSimFormMetadata *shape_match = NULL;
-  uint8_t mnemonic_id;
-  mnemonic_id = instruction->mnemonic_id;
-  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return NULL;
+  if (out_metadata != NULL) *out_metadata = NULL;
+  if (form_id == M68K_FORM_ID_NONE || form_id > M68K_CANONICAL_FORM_COUNT) return M68K_SIM_METADATA_FORM_NOT_FOUND;
   for (index = 0; index < sizeof(g_m68k_sim_form_lookup) / sizeof(g_m68k_sim_form_lookup[0]); ++index) {
     const M68kSimFormLookup *entry = &g_m68k_sim_form_lookup[index];
-    size_t operand_index;
-    int shape_matches = 1;
-    if (entry->mnemonic_id != mnemonic_id) continue;
-    if (instruction->operand_count > 4U) continue;
-    if (sim_metadata_operand_count(&entry->metadata) != instruction->operand_count) continue;
-    for (operand_index = 0; operand_index < instruction->operand_count; ++operand_index) {
-      if (!sim_operand_matches_expected_kind(entry->metadata.operand_expected_kinds[operand_index],
-              &instruction->operands[operand_index])) {
-        shape_matches = 0;
-        break;
-      }
-    }
-    if (!shape_matches) continue;
-    if (entry->asm_form_index == instruction->asm_form_index)
-      return &entry->metadata;
-    if (shape_match != NULL) return NULL;
-    shape_match = &entry->metadata;
+    if (entry->canonical_form_id != form_id) continue;
+    if (entry->semantic_status != M68K_SIM_SEMANTICS_AVAILABLE)
+      return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
+    if (out_metadata != NULL) *out_metadata = &entry->metadata;
+    return M68K_SIM_METADATA_OK;
   }
-  return shape_match;
+  return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
+}
+
+const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction) {
+  M68kFormId form_id;
+  const M68kSimFormMetadata *metadata = NULL;
+  if (instruction == NULL) return NULL;
+  form_id = instruction->canonical_form_id;
+  if (form_id == M68K_FORM_ID_NONE && instruction->asm_form_index < M68K_ASM_FORM_COUNT &&
+      g_m68k_asm_forms[instruction->asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE) {
+    form_id = g_m68k_asm_forms[instruction->asm_form_index].canonical_form_id;
+  }
+  if (m68k_sim_metadata_for_canonical_form_id(form_id, &metadata) != M68K_SIM_METADATA_OK) return NULL;
+  return metadata;
 }
 
 static int sim_concrete_compute_ea_address(const M68kOperandIR *operand, uint8_t ea_formula, uint8_t ea_shape,

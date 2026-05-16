@@ -390,6 +390,16 @@ typedef struct M68kSimFormMetadata {
   uint8_t exception_vector;
 } M68kSimFormMetadata;
 
+typedef enum M68kSimMetadataStatus {
+  M68K_SIM_METADATA_OK = 0,
+  M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING = 1,
+  M68K_SIM_METADATA_FORM_NOT_FOUND = 2
+} M68kSimMetadataStatus;
+
+typedef enum M68kSimSemanticStatus {
+  M68K_SIM_SEMANTICS_AVAILABLE = 1
+} M68kSimSemanticStatus;
+
 typedef struct M68kSimExceptionFrameDef {
   uint8_t frame_kind;
   uint8_t format_code;
@@ -405,9 +415,10 @@ typedef struct M68kSimExceptionFrameRule {
 } M68kSimExceptionFrameRule;
 
 typedef struct M68kSimFormLookup {
-  uint8_t mnemonic_id;
+  M68kFormId canonical_form_id;
   uint16_t asm_form_index;
-  uint8_t reserved[2];
+  uint8_t semantic_status;
+  uint8_t reserved;
   M68kSimFormMetadata metadata;
 } M68kSimFormLookup;
 
@@ -539,6 +550,8 @@ int m68k_sim_memory_state_join(M68kSimMemoryState *dst, const M68kSimMemoryState
 int m68k_sim_memory_state_seed_same_section_fixups(const M68kObject *object, size_t section_index,
   const M68kSection *section, M68kSimMemoryState *state);
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction);
+M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
+  const M68kSimFormMetadata **out_metadata);
 int m68k_simulate_step(const M68kObject *object, size_t section_index, const M68kSection *section, uint32_t offset,
   const M68kInstructionIR *instruction, const M68kSimCpuState *state, M68kSimStepResult *out_result);
 int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_index, const M68kSection *section,

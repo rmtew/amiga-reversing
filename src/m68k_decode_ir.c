@@ -330,6 +330,9 @@ int m68k_decode_candidate_to_instruction(const M68kDecodeCandidate *candidate,
   if (candidate == NULL || out_instruction == NULL || candidate->operand_count > 4U) return -1;
   m68k_ir_instruction_init(out_instruction);
   out_instruction->asm_form_index = candidate->asm_form_index;
+  out_instruction->canonical_form_id = candidate->asm_form_index < M68K_ASM_FORM_COUNT
+    ? g_m68k_asm_forms[candidate->asm_form_index].canonical_form_id
+    : M68K_FORM_ID_NONE;
   out_instruction->mnemonic_id = candidate->mnemonic_id;
   out_instruction->target_cpu = candidate->target_cpu;
   out_instruction->has_coprocessor_id = candidate->has_coprocessor_id;

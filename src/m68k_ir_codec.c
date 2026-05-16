@@ -637,6 +637,7 @@ M68kInstructionIR m68k_ir_decode_one(const uint8_t *data, size_t size, uint8_t t
   instruction.size_suffix = result.size_suffix;
   instruction.operand_count = result.operand_count;
   instruction.asm_form_index = result.asm_form_index;
+  instruction.canonical_form_id = result.canonical_form_id;
   for (operand_index = 0; operand_index < result.operand_count && operand_index < 4U; ++operand_index) {
     instruction.operands[operand_index].kind = result.operand_kinds[operand_index];
     instruction.operands[operand_index].value = result.operands[operand_index];

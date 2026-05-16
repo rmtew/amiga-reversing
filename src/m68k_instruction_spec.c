@@ -243,6 +243,7 @@ int m68k_instruction_make_fpu_id_render_instruction(const M68kInstructionIR *ins
     m68k_instruction_operand_to_asm_value(&instruction->operands[operand_index], &operands[operand_index]);
   out_instruction->asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands,
     instruction->operand_count, instruction->size_suffix, out_instruction->target_cpu);
+  out_instruction->canonical_form_id = g_m68k_asm_forms[out_instruction->asm_form_index].canonical_form_id;
   return g_m68k_asm_forms[out_instruction->asm_form_index].mnemonic_id != M68K_ASM_MNEMONIC_NONE;
 }
 
@@ -282,6 +283,7 @@ int m68k_instruction_apply_fpu_directive_alias(M68kInstructionIR *instruction, u
   }
   if (g_m68k_asm_forms[form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
   instruction->asm_form_index = form_index;
+  instruction->canonical_form_id = g_m68k_asm_forms[form_index].canonical_form_id;
   instruction->mnemonic_id = mnemonic_id;
   instruction->target_cpu = form_cpu;
   instruction->has_coprocessor_id = 1U;
@@ -308,6 +310,7 @@ void m68k_instruction_spec_to_ir(const InstructionSpec *spec, M68kInstructionIR 
   }
   if (form->mnemonic_id != M68K_ASM_MNEMONIC_NONE) {
     out_instruction->asm_form_index = form->asm_form_index;
+    out_instruction->canonical_form_id = form->canonical_form_id;
     out_instruction->mnemonic_id = form->mnemonic_id;
   }
   out_instruction->byte_count = m68k_instruction_spec_assemble_bytes(spec, bytes, sizeof(bytes));

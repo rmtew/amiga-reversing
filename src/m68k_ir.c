@@ -13,6 +13,7 @@
 
 const M68kInstructionIR g_m68k_ir_instruction_none = {
   M68K_ASM_FORM_NONE,
+  M68K_FORM_ID_NONE,
   M68K_ASM_MNEMONIC_NONE,
   M68K_ASM_CPU_ANY,
   0U,
@@ -389,6 +390,7 @@ const char *m68k_platform_name_ref_resolve_text_or_fallback(const M68kPlatformNa
 void m68k_ir_instruction_init(M68kInstructionIR *instruction) {
   memset(instruction, 0, sizeof(*instruction));
   instruction->asm_form_index = M68K_ASM_FORM_NONE;
+  instruction->canonical_form_id = M68K_FORM_ID_NONE;
   instruction->mnemonic_id = M68K_ASM_MNEMONIC_NONE;
 }
 
