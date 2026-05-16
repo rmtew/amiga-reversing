@@ -8,18 +8,22 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Add helper actions for library-base and OS-call intent so an LVO-style access can drive analysis propagation and symbolic rendering through facts.
 
 ## Acceptance criteria
 
-- [ ] Catalog offers OS-call/library-base helper actions only when context evidence is sufficient or explicitly selectable.
-- [ ] Chosen action records intent in the **Manual Action Log** and triggers relevant reanalysis.
-- [ ] Analysis propagation updates facts consumed by source rendering rather than substituting text directly.
-- [ ] Tests cover at least one library-base call path and one rejected/ambiguous path.
-- [ ] Round-trip verification is required before review can be marked clear for rendered-source changes.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Catalog offers OS-call/library-base helper actions only when context evidence is sufficient or explicitly selectable.
+- [x] Chosen action records intent in the **Manual Action Log** and triggers relevant reanalysis.
+- [x] Analysis propagation updates facts consumed by source rendering rather than substituting text directly.
+- [x] Tests cover at least one library-base call path and one rejected/ambiguous path.
+- [x] Round-trip verification is required before review can be marked clear for rendered-source changes.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

@@ -8,18 +8,22 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Expose data type helper actions for byte, word, long, string, table, and raw block classification as **Manual Seed** actions from catalog contexts.
 
 ## Acceptance criteria
 
-- [ ] Helper actions create or update data **Manual Seeds** with role, unit, encoding, and range as appropriate.
-- [ ] Actions rerun analysis and split rendered blocks as needed.
-- [ ] Review dialog, command palette, API, and CLI can invoke the same helper entries where context is valid.
-- [ ] Tests cover string and scalar/table-style conversions.
-- [ ] Round-trip verification is required before review can be marked clear for rendered-source changes.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Helper actions create or update data **Manual Seeds** with role, unit, encoding, and range as appropriate.
+- [x] Actions rerun analysis and split rendered blocks as needed.
+- [x] Review dialog, command palette, API, and CLI can invoke the same helper entries where context is valid.
+- [x] Tests cover string and scalar/table-style conversions.
+- [x] Round-trip verification is required before review can be marked clear for rendered-source changes.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

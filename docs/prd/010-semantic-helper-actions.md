@@ -1,5 +1,9 @@
 # PRD 010: Semantic Helper Actions
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Add Resource-inspired semantic helper actions for OS calls, equates, structs, value representations, and data typing without falling back to direct source-text substitution.
@@ -44,5 +48,15 @@ Add Resource-inspired semantic helper actions for OS calls, equates, structs, va
 
 ## Open Questions
 
-- Initial supported OS libraries, struct families, and equate namespaces.
-- Exact schema for **Manual Representation** actions.
+- Resolved: initial helper domains are equates, LVOs, struct offsets,
+  library-base register seeds, data seeds, and manual representations.
+- Resolved: **Manual Representation** actions use explicit style plus
+  selected element provenance, separate from **Manual Seed** classification.
+
+## Completion Notes
+
+- Catalog helpers append domain actions for representation, semantic hints,
+  register/library-base seeds, and data classification without source-text
+  substitution.
+- Focused PRD010 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_disasm_server.py tests\test_web_e2e_cdp.py tests\test_web_app_source.py -q -k "execute_appends_row_data_type_helper_action or execute_appends_representation_action or execute_appends_library_base_semantic_action or rejects_library_base_semantic_action_without_lvo_context or matches_equate_lvo_and_struct_offset_helpers or command_palette_applies_manual_representation or inline_parameter_sessions_for_label_comment_and_representation or command_palette_uses_schema_parameter_editor"`.

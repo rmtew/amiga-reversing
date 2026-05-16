@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Review the completed PRD 010 helper-action work, identify missed helper boundaries, over-complicated action schemas, incorrect seed/representation separation, or weak verification, and address them directly or split follow-up issues.
 
 ## Acceptance criteria
 
-- [ ] Review representation, data type, equate/LVO/struct, and OS-call helper flows against PRD 010.
-- [ ] Confirm **Manual Representation** and **Manual Seed** remain correctly separated.
-- [ ] Add missing tests or issue follow-ups for broader gaps.
-- [ ] PRD 010 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Review representation, data type, equate/LVO/struct, and OS-call helper flows against PRD 010.
+- [x] Confirm **Manual Representation** and **Manual Seed** remain correctly separated.
+- [x] Add missing tests or issue follow-ups for broader gaps.
+- [x] PRD 010 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

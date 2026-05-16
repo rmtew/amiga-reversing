@@ -8,18 +8,22 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Add **Manual Representation** actions for value and literal display preferences without treating those preferences as **Manual Seeds**.
 
 ## Acceptance criteria
 
-- [ ] Manual representation action schema supports at least hex, binary, character, and string/literal style choices.
-- [ ] Actions append to the **Manual Action Log** and project into current manual state.
-- [ ] Rendering and listing display consume projected **Manual Representation** state.
-- [ ] Representation changes do not by themselves reconcile a range or classify bytes as code/data.
-- [ ] Backend, rendering, and web/API tests cover a representative representation change.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Manual representation action schema supports at least hex, binary, character, and string/literal style choices.
+- [x] Actions append to the **Manual Action Log** and project into current manual state.
+- [x] Rendering and listing display consume projected **Manual Representation** state.
+- [x] Representation changes do not by themselves reconcile a range or classify bytes as code/data.
+- [x] Backend, rendering, and web/API tests cover a representative representation change.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 
