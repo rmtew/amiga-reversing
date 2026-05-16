@@ -174,6 +174,9 @@ def test_canonical_inventory_summarizes_current_generated_data() -> None:
     assert inventory["summaries"]["mnemonic"]
     assert inventory["summaries"]["ea_family"]["required"]
     assert "executor_semantic" in inventory["summaries"]
+    assert inventory["summaries"]["executor_semantic"]["available"] > 0
+    assert inventory["summaries"]["executor_semantic"]["generated_semantics_missing"] > 0
+    assert inventory["summaries"]["executor_semantic"]["intentionally_unsupported"] > 0
     assert inventory["summaries"]["unsupported"]["families"]
     unsupported_keys = {
         (
@@ -278,6 +281,8 @@ def test_bootstrap_unsupported_inventory_classifies_current_families() -> None:
     assert unsupported_by_id["move16"]["status"] == "implemented_unsupported"
     assert unsupported_by_id["move16"]["reason_category"] == "generated_semantics_missing"
     assert "generated_semantics" in unsupported_by_id["move16"]["blocking_artifacts"]
+    assert unsupported_by_id["move16"]["semantic_status_counts"]["generated_semantics_missing"] > 0
+    assert unsupported_by_id["generic_coprocessor"]["semantic_status_counts"]["intentionally_unsupported"] > 0
     assert unsupported_by_id["generic_coprocessor"]["status"] == "intentionally_unsupported"
     assert unsupported_by_id["generic_coprocessor"]["reason_category"] == "missing_schema"
     assert all(entry["form_count"] > 0 for entry in unsupported_by_id.values())

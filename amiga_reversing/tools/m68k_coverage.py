@@ -13,11 +13,21 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = ROOT / "src" / "scripts"
 ASM_TABLE_PATH = ROOT / "src" / "generated" / "m68k_asm_tables.c"
 DISASM_TABLE_PATH = ROOT / "src" / "generated" / "m68k_disassembler_tables.h"
+SIM_TABLE_PATH = ROOT / "src" / "generated" / "m68k_simulator_tables.h"
 GENERATED_FORM_ROW_RE = re.compile(
     r'^\s*\{\s*"(?P<mnemonic>(?:\\.|[^"])*)",\s*"(?P<syntax>(?:\\.|[^"])*)",\s*'
     r"M68K_ASM_MNEMONIC_[A-Za-z0-9_]+,\s*(?P<form_index>\d+)u?,\s*(?P<canonical_form_id>\d+)u?,"
 )
+SIM_LOOKUP_ROW_RE = re.compile(
+    r"^\s*(?P<canonical_form_id>\d+)u,\s*(?P<asm_form_index>\d+)u,\s*"
+    r"(?P<semantic_status>M68K_SIM_SEMANTICS_[A-Z_]+),"
+)
 NUMBER_RE = re.compile(r"0x[0-9A-Fa-f]+|\d+")
+SIM_SEMANTIC_STATUS_NAMES = {
+    "M68K_SIM_SEMANTICS_AVAILABLE": "available",
+    "M68K_SIM_SEMANTICS_GENERATED_SEMANTICS_MISSING": "generated_semantics_missing",
+    "M68K_SIM_SEMANTICS_INTENTIONALLY_UNSUPPORTED": "intentionally_unsupported",
+}
 
 DIAGNOSTIC_DELETION_CRITERIA = (
     "Temporary bootstrap inventory. Delete or fold into canonical-model coverage "
@@ -591,6 +601,7 @@ def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:
         for sample in sample_entries
         if str(sample["status"]) == "oracle_unavailable"
     )
+    simulator_semantic_statuses = Counter(_generated_simulator_semantic_statuses().values())
     return {
         "cpu": dict(sorted(cpu_counts.items())),
         "mnemonic": dict(sorted(mnemonic_counts.items())),
@@ -604,10 +615,7 @@ def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:
             "entries": alias_entries[:20],
         },
         "oracle": dict(sorted(oracle_statuses.items())),
-        "executor_semantic": {
-            "available": False,
-            "reason": "executor semantic coverage is generated in a later PRD phase",
-        },
+        "executor_semantic": dict(sorted(simulator_semantic_statuses.items())),
         "unsupported": {
             "counts": inventory["unsupported_counts"],
             "families": [
@@ -626,16 +634,24 @@ def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:
 def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_mnemonic: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in entries:
-        by_mnemonic[str(entry["key"]["mnemonic"]).upper()].append(entry["key"])
+        by_mnemonic[str(entry["key"]["mnemonic"]).upper()].append(entry)
+    simulator_semantic_statuses = _generated_simulator_semantic_statuses()
     inventory: list[dict[str, Any]] = []
     for family in BOOTSTRAP_UNSUPPORTED_FAMILIES:
-        matched_forms = [
-            form
+        matched_entries = [
+            entry
             for mnemonic in family["mnemonics"]
-            for form in by_mnemonic.get(str(mnemonic), [])
+            for entry in by_mnemonic.get(str(mnemonic), [])
         ]
+        matched_forms = [entry["key"] for entry in matched_entries]
         if not matched_forms:
             continue
+        semantic_status_counts = Counter(
+            simulator_semantic_statuses.get(canonical_id, "generated_semantics_missing")
+            for entry in matched_entries
+            for canonical_id in [_entry_canonical_form_id(entry)]
+            if canonical_id is not None
+        )
         stale_conditions = [
             {
                 "condition_id": "current_generated_forms_present",
@@ -656,6 +672,7 @@ def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict
             "mnemonics": list(family["mnemonics"]),
             "reason_category": family["reason_category"],
             "blocking_artifacts": list(family["blocking_artifacts"]),
+            "semantic_status_counts": dict(sorted(semantic_status_counts.items())),
             "reason": family["reason"],
             "stale_condition": "stale_when_no_current_generated_form_matches_mnemonics",
             "stale_conditions": stale_conditions,
@@ -664,6 +681,26 @@ def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict
             "forms": matched_forms,
         })
     return inventory
+
+
+def _entry_canonical_form_id(entry: dict[str, Any]) -> int | None:
+    for side in ("assembler", "disassembler"):
+        form = entry.get(side)
+        if isinstance(form, dict) and isinstance(form.get("canonical_form_id"), int):
+            return int(form["canonical_form_id"])
+    return None
+
+
+def _generated_simulator_semantic_statuses() -> dict[int, str]:
+    statuses: dict[int, str] = {}
+    for line in SIM_TABLE_PATH.read_text(encoding="utf-8").splitlines():
+        match = SIM_LOOKUP_ROW_RE.match(line)
+        if match is None:
+            continue
+        status = SIM_SEMANTIC_STATUS_NAMES.get(match.group("semantic_status"))
+        if status is not None:
+            statuses[int(match.group("canonical_form_id"))] = status
+    return statuses
 
 
 def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
@@ -766,7 +803,8 @@ def _print_canonical_report(inventory: dict[str, Any]) -> None:
     alias = summaries.get("alias", {})
     print(f"  aliases: {alias.get('count', 0)}")
     executor = summaries.get("executor_semantic", {})
-    print(f"  executor semantics: {'available' if executor.get('available') else 'not-generated'}")
+    executor_text = ",".join(f"{status}={count}" for status, count in executor.items()) if executor else "none=0"
+    print(f"  executor semantics: {executor_text}")
     unsupported = summaries.get("unsupported", {})
     print(f"  unsupported families: {len(unsupported.get('families', []))}")
 

@@ -31,12 +31,11 @@ Delete this issue after blocker logic is real and durable reasoning is promoted
 to the proposal.
 
 Blocked by:
-- `027-001-real-canonical-coverage-gate.md`
-- `027-003-simulator-semantic-status-reconciliation.md`
+None - can start immediately.
 
 Notes for agents:
-Blocked by `027-001` and `027-003` for the cleanest implementation, because real
-canonical ids and simulator statuses make stale checks meaningful.
+Real canonical ids and simulator semantic status counts are now available from
+completed issues 027-001 and 027-003.
 
 Running precommit may update `src\benchmark.json`; keep it if it reflects the
 current run.

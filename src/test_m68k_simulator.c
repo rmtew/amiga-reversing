@@ -29,7 +29,7 @@ static int test_metadata_lookup_uses_canonical_form_id(void) {
 
 static int test_metadata_lookup_reports_missing_generated_semantics(void) {
   const M68kSimFormMetadata *metadata = NULL;
-  M68kFormId form_id = test_form_id_by_syntax("cpBcc <label>");
+  M68kFormId form_id = test_form_id_by_syntax("MOVE16 (Ax)+,(Ay)+");
   M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
   M68K_C_ASSERT_INT(M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING,
     m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));

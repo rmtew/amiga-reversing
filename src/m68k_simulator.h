@@ -397,7 +397,9 @@ typedef enum M68kSimMetadataStatus {
 } M68kSimMetadataStatus;
 
 typedef enum M68kSimSemanticStatus {
-  M68K_SIM_SEMANTICS_AVAILABLE = 1
+  M68K_SIM_SEMANTICS_AVAILABLE = 1,
+  M68K_SIM_SEMANTICS_GENERATED_SEMANTICS_MISSING = 2,
+  M68K_SIM_SEMANTICS_INTENTIONALLY_UNSUPPORTED = 3
 } M68kSimSemanticStatus;
 
 typedef struct M68kSimExceptionFrameDef {

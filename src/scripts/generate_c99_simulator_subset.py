@@ -325,6 +325,23 @@ CPU_MASK_ENUM = {
     "68LC040": "M68K_ASM_CPU_MASK_68040",
 }
 
+SEMANTIC_STATUS_ENUM = {
+    "available": "M68K_SIM_SEMANTICS_AVAILABLE",
+    "generated_semantics_missing": "M68K_SIM_SEMANTICS_GENERATED_SEMANTICS_MISSING",
+    "intentionally_unsupported": "M68K_SIM_SEMANTICS_INTENTIONALLY_UNSUPPORTED",
+}
+
+INTENTIONALLY_UNSUPPORTED_SEMANTIC_OPS = {
+    "cprestore",
+    "cpsave",
+}
+
+GENERATED_SEMANTICS_MISSING_SEMANTIC_OPS: set[str] = set()
+
+GENERATED_SEMANTICS_MISSING_MNEMONICS = {
+    "MOVE16",
+}
+
 
 def _load_module(path: Path, name: str):
     root_text = str(ROOT)
@@ -355,7 +372,10 @@ def _load_kb() -> dict[str, object]:
 
 
 def _local_form_index(form: object) -> int:
-    return int(getattr(form, "local_form_index", getattr(form, "form_index")))
+    try:
+        return int(form.local_form_index)  # type: ignore[attr-defined]
+    except AttributeError:
+        return int(form.form_index)  # type: ignore[attr-defined]
 
 
 def _eval_condition_expr(expr: str, n: int, z: int, v: int, c: int) -> bool:
@@ -609,6 +629,24 @@ def _execution_for_form(entry: dict[str, object], mnemonic: str, kb_mnemonic: st
     for key, value in override.items():
         merged[key] = value
     return merged
+
+
+def _semantic_status_for_execution(execution: dict[str, object], form: object) -> str:
+    try:
+        mnemonic = str(form.mnemonic).upper()  # type: ignore[attr-defined]
+    except AttributeError:
+        mnemonic = ""
+    if mnemonic in GENERATED_SEMANTICS_MISSING_MNEMONICS:
+        return "generated_semantics_missing"
+    semantic_op = execution.get("semantic_op")
+    if semantic_op is None:
+        return "available"
+    semantic_op_name = str(semantic_op)
+    if semantic_op_name in INTENTIONALLY_UNSUPPORTED_SEMANTIC_OPS:
+        return "intentionally_unsupported"
+    if semantic_op_name in GENERATED_SEMANTICS_MISSING_SEMANTIC_OPS:
+        return "generated_semantics_missing"
+    return "available"
 
 
 def _shift_variant_for_form(entry: dict[str, object], form: object) -> dict[str, object] | None:
@@ -987,9 +1025,10 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
                 "},"
             )
         canonical_form_id = canonical_form_ids[subset._form_identity_key(form)]
+        semantic_status = _semantic_status_for_execution(execution, form)
         form_rows.extend([
             "    {",
-            f"      {canonical_form_id}u, {form.form_index}u, M68K_SIM_SEMANTICS_AVAILABLE, 0u,",
+            f"      {canonical_form_id}u, {form.form_index}u, {SEMANTIC_STATUS_ENUM[semantic_status]}, 0u,",
             "      {",
             "      "
             f"{OP_TYPE_ENUM.get(execution.get('semantic_op') if isinstance(execution, dict) else None, 'M68K_SIM_OP_NONE')}, "
