@@ -1854,6 +1854,8 @@ async function executeCommandPaletteAction(action) {
     await openNavigationOverlay();
   } else if (command === "open_reproduction_report") {
     await openReproPanel();
+  } else if (command === "export_source") {
+    await exportSource(String(action?.parameters?.assembler_profile || "vasm"));
   } else if (command === "history_back") {
     await navigateHistory("back");
   } else if (command === "history_forward") {
@@ -1902,6 +1904,10 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
   const command = String(action?.action || "");
   if (command === "set_reproduction_profile") {
     await setReproductionProfile(String(parameters.profile_id || ""));
+    return;
+  }
+  if (command === "export_source") {
+    await exportSource(String(parameters.assembler_profile || "vasm"));
     return;
   }
   if (action?.appends_to_manual_action_log === true) {
@@ -2742,6 +2748,40 @@ async function setReproductionProfile(profileId) {
   refreshProjectBadges();
   renderReproPanel();
   setAnalysisStatus("Reproduction profile saved", "ready", 2000);
+}
+
+async function exportSource(assemblerProfile) {
+  if (!state.project) {
+    return;
+  }
+  const profile = assemblerProfile || "vasm";
+  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/source-export?assembler_profile=${encodeURIComponent(profile)}`);
+  if (payload.status === "refused") {
+    setAnalysisStatus(`Source export refused: ${payload.message || "render failed"}`, "failed", 4000);
+    return;
+  }
+  const sourceText = String(payload.source_text || "");
+  const filename = String(payload.filename || `${state.project}-${profile}.s`);
+  const blob = new Blob([sourceText], {type: "text/plain;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  const existing = state.uiPreferences.payload?.preferences || {};
+  state.uiPreferences.payload = {
+    ...(state.uiPreferences.payload || {}),
+    preferences: {
+      ...existing,
+      source_export_assembler: profile,
+    },
+  };
+  await saveUiPreferenceState();
+  setAnalysisStatus("Source exported", "ready", 2500);
 }
 
 async function applyReproTargetEdit(kind) {

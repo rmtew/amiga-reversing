@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from amiga_reversing.disasm import source_export
+from amiga_reversing.tools import source_export as source_export_cli
+
+
+def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_source = SimpleNamespace(read_bytes=lambda: b"\x01\x02")
+    monkeypatch.setattr(
+        source_export,
+        "resolve_project_paths",
+        lambda target, project_root: SimpleNamespace(target_dir=target_dir, binary_source=binary_source),
+    )
+    monkeypatch.setattr(
+        source_export,
+        "listing_artifact_source_text_with_c_backend_profile",
+        lambda *args, **kwargs: ("    rts\n", {"facts_v2": {}}),
+    )
+    monkeypatch.setattr(source_export, "effective_metadata_hash", lambda target_dir: "metadata-hash")
+
+    payload = source_export.source_export_payload("demo target", assembler_profile="devpac", project_root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["filename"] == "demo-target-devpac.s"
+    assert payload["assembler_profile"] == "devpac"
+    assert "; Target: demo target" in payload["source_text"]
+    assert "; Assembler profile: devpac" in payload["source_text"]
+    assert "; Metadata hash: metadata-hash" in payload["source_text"]
+    assert "Export is not verification" in payload["source_text"]
+    assert "    rts" in payload["source_text"]
+    assert payload["target_identity_sha256"]
+
+
+def test_source_export_rejects_invalid_profile() -> None:
+    with pytest.raises(ValueError, match="invalid source export assembler profile"):
+        source_export.source_export_payload("demo", assembler_profile="bad")
+
+
+def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_source = SimpleNamespace(read_bytes=lambda: b"\x01\x02")
+    profile = {
+        "facts_v2": {
+            "asm_source_refused": True,
+            "required_instruction_failures": 1,
+            "first_required_instruction_failure_section": 0,
+            "first_required_instruction_failure_offset": 2,
+        }
+    }
+    monkeypatch.setattr(
+        source_export,
+        "resolve_project_paths",
+        lambda target, project_root: SimpleNamespace(target_dir=target_dir, binary_source=binary_source),
+    )
+    monkeypatch.setattr(
+        source_export,
+        "listing_artifact_source_text_with_c_backend_profile",
+        lambda *args, **kwargs: ("", profile),
+    )
+    monkeypatch.setattr(source_export, "effective_metadata_hash", lambda target_dir: "metadata-hash")
+
+    payload = source_export.source_export_payload("demo", project_root=tmp_path)
+
+    assert payload["status"] == "refused"
+    assert "facts_v2 asm source refused" in payload["message"]
+    assert payload["listing_profile"] == profile
+    assert "source_text" not in payload
+
+
+def test_source_export_cli_writes_file_and_reports_non_verification(monkeypatch, tmp_path: Path, capsys) -> None:
+    output = tmp_path / "demo.s"
+    monkeypatch.setattr(
+        source_export_cli,
+        "source_export_payload",
+        lambda target, assembler_profile: {
+            "status": "ok",
+            "filename": "demo-devpac.s",
+            "source_text": "; Export is not verification\n",
+        },
+    )
+
+    assert source_export_cli.main(["demo", "--assembler-profile", "devpac", "--output", str(output)]) == 0
+
+    assert output.read_text(encoding="utf-8") == "; Export is not verification\n"
+    assert "not verification" in capsys.readouterr().out
+
+
+def test_source_export_cli_reports_refusal(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        source_export_cli,
+        "source_export_payload",
+        lambda target, assembler_profile: {"status": "refused", "message": "no source"},
+    )
+
+    assert source_export_cli.main(["demo"]) == 2
+
+    assert "source export refused: no source" in capsys.readouterr().err

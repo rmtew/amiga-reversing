@@ -1156,7 +1156,52 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
         "source-devpac",
         "content-semantic",
     ]
+    export_action = next(action for action in actions if action["action_id"] == "target.source_export")
+    assert export_action["category"] == "target_tooling"
+    assert export_action["appends_to_manual_action_log"] is False
+    assert export_action["action"] == "export_source"
+    assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == ["vasm", "devpac"]
     assert any(action["action_id"] == "navigation.history_back" for action in actions)
+
+
+def test_route_source_export_returns_selected_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    calls: list[tuple[str, str]] = []
+
+    def fake_source_export_payload(project_name: str, *, assembler_profile: str, project_root=None) -> dict[str, object]:
+        calls.append((project_name, assembler_profile))
+        return {"status": "ok", "filename": "bloodwych-devpac.s", "source_text": "; source\n"}
+
+    monkeypatch.setattr(disasm_server, "source_export_payload", fake_source_export_payload)
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/source-export",
+        {"assembler_profile": ["devpac"]},
+    )
+
+    assert payload["ok"] is True
+    assert cast(dict[str, object], payload["data"])["filename"] == "bloodwych-devpac.s"
+    assert calls == [("bloodwych", "devpac")]
+
+
+def test_route_source_export_returns_refusal(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "source_export_payload",
+        lambda project_name, *, assembler_profile, project_root=None: {
+            "status": "refused",
+            "message": "facts_v2 asm source refused",
+            "listing_profile": {"facts_v2": {"asm_source_refused": True}},
+        },
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/bloodwych/source-export", {})
+
+    data = cast(dict[str, object], payload["data"])
+    assert data["status"] == "refused"
+    assert data["message"] == "facts_v2 asm source refused"
 
 
 def test_route_manual_action_catalog_returns_label_fix_actions(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -1099,6 +1099,85 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_source_export_palette_uses_browser_save(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_source_export")
+    target_dir = tmp_path / project.id
+    target_dir.mkdir()
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+    exports: list[tuple[str, str]] = []
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+
+    def export_payload(project_name: str, *, assembler_profile: str, project_root=None) -> dict[str, object]:
+        exports.append((project_name, assembler_profile))
+        return {
+            "status": "ok",
+            "filename": f"{project_name}-{assembler_profile}.s",
+            "source_text": f"; Assembler profile: {assembler_profile}\n; Export is not verification\n    rts\n",
+        }
+
+    monkeypatch.setattr(disasm_server, "source_export_payload", export_payload)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+        page.evaluate(
+            """
+            window.__sourceExport = {};
+            window.__oldCreateObjectURL = URL.createObjectURL;
+            window.__oldRevokeObjectURL = URL.revokeObjectURL;
+            URL.createObjectURL = (blob) => {
+              window.__sourceExport.type = blob.type;
+              blob.text().then((text) => { window.__sourceExport.text = text; });
+              return "blob:source-export";
+            };
+            URL.revokeObjectURL = (url) => { window.__sourceExport.revoked = url; };
+            window.__oldAnchorClick = HTMLAnchorElement.prototype.click;
+            HTMLAnchorElement.prototype.click = function() {
+              window.__sourceExport.download = this.download;
+              window.__sourceExport.href = this.href;
+            };
+            """
+        )
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'export source'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Export Source')")
+        page.press_key("Enter")
+        page.wait_for_selector("#command-parameter-editor .parameter-choice")
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.parameter-choice'))
+              .find((button) => button.textContent.includes('devpac'))
+              .click()
+            """
+        )
+        page.click("#command-parameter-editor .command-parameter-submit")
+        page.wait_for_expression("state.analysisStatus.text === 'Source exported'")
+        page.wait_for_expression("window.__sourceExport?.download === 'amiga_hunk_source_export-devpac.s'")
+        page.wait_for_expression("window.__sourceExport?.text?.includes('Export is not verification')")
+        page.assert_no_errors()
+
+    assert exports == [(project.id, "devpac")]
+    preferences = json.loads((target_dir / "ui_preferences.json").read_text(encoding="utf-8"))
+    assert preferences["source_export_assembler"] == "devpac"
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _binary_project("amiga_hunk_representation")
     rows = [

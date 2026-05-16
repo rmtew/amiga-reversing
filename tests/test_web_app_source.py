@@ -245,6 +245,10 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "function renderReproPanel()" in app_js
     assert "function renderReproductionPolicySummary(report)" in app_js
     assert "function setReproductionProfile(profileId)" in app_js
+    assert "async function exportSource(assemblerProfile)" in app_js
+    assert "source-export?assembler_profile=" in app_js
+    assert "new Blob([sourceText]" in app_js
+    assert "source_export_assembler: profile" in app_js
     assert "tool_availability" in app_js
     assert "tool-availability-warning" in app_js
     assert "function renderOracleCompatibility(report)" in app_js

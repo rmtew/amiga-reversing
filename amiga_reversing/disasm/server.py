@@ -86,6 +86,7 @@ from amiga_reversing.disasm.reproduction import (
     source_renderer_tool_stamps,
     validated_reproduction_options_payload,
 )
+from amiga_reversing.disasm.source_export import source_export_payload
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 from amiga_reversing.disasm.tool_registry import (
     load_tool_registry,
@@ -520,6 +521,16 @@ def _reproduction_profiles_payload(project_name: str) -> dict[str, object]:
 def _reproduction_profile_payload(project_name: str) -> dict[str, object]:
     _require_ready_binary_project(project_name, "target reproduction profile")
     return _safe_reproduction_policy_summary(project_name)
+
+
+def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "source export")
+    assembler_profile = _first_query_value(query, "assembler_profile") or "vasm"
+    return source_export_payload(
+        project_name,
+        assembler_profile=assembler_profile,
+        project_root=PROJECT_ROOT,
+    )
 
 
 def _project_tool_availability_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
@@ -2451,6 +2462,8 @@ def route_request(
             return {"ok": True, "data": _set_reproduction_policy_payload(project_name, body)}
         if method == "GET" and len(parts) == 4 and parts[3] == "tool-availability":
             return {"ok": True, "data": _project_tool_availability_payload(project_name, query)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "source-export":
+            return {"ok": True, "data": _source_export_payload(project_name, query)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY:

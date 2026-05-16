@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,11 +18,11 @@ Review source export implementation and docs against PRD 021.
 
 ## Acceptance criteria
 
-- [ ] Export remains command feedback only, not status or review state.
-- [ ] Browser export does not create project-owned generated artifacts.
-- [ ] Header and refusal diagnostics are tested.
-- [ ] PRD and issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Export remains command feedback only, not status or review state.
+- [x] Browser export does not create project-owned generated artifacts.
+- [x] Header and refusal diagnostics are tested.
+- [x] PRD and issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
@@ -31,4 +31,3 @@ Review source export implementation and docs against PRD 021.
 - [021-003: Source Export Header and Refusal Diagnostics](021-003-source-export-header-and-refusal-diagnostics.md)
 - [021-004: Source Export CLI](021-004-source-export-cli.md)
 - [021-005: Source Export Command Palette Integration](021-005-source-export-command-palette-integration.md)
-

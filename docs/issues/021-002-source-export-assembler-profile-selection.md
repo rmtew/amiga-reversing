@@ -14,7 +14,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -22,14 +22,13 @@ Let users choose the **Assembler Profile** for source export.
 
 ## Acceptance criteria
 
-- [ ] Supported profiles include `vasm` and `devpac`.
-- [ ] Invalid assembler profile names are rejected.
-- [ ] UI can collect the profile choice using reusable parameter-session controls where practical.
-- [ ] Last selected export assembler may be stored in **UI Preference State**.
-- [ ] Tests cover selected profile propagation.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Supported profiles include `vasm` and `devpac`.
+- [x] Invalid assembler profile names are rejected.
+- [x] UI can collect the profile choice using reusable parameter-session controls where practical.
+- [x] Last selected export assembler may be stored in **UI Preference State**.
+- [x] Tests cover selected profile propagation.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - [021-001: Source Export Route and Browser Save](021-001-source-export-route-and-browser-save.md)
-

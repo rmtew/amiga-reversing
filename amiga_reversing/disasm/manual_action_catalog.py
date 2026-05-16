@@ -121,6 +121,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_navigation", "Open Navigate", "open_navigation", "n"),
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
+        _target_source_export_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -1222,6 +1223,35 @@ def _target_reproduction_profile_action() -> dict[str, object]:
             for profile in profiles
         ],
         "preview": {"kind": "reproduction_profile"},
+    }
+    return action
+
+
+def _target_source_export_action() -> dict[str, object]:
+    profile_ids = ["vasm", "devpac"]
+    action = _target_transient(
+        "target.source_export",
+        "Export Source",
+        "export_source",
+        None,
+    )
+    action["category"] = "target_tooling"
+    action["parameter_schema"] = {
+        "type": "object",
+        "properties": {"assembler_profile": {"type": "string", "enum": profile_ids, "default": "vasm"}},
+        "required": ["assembler_profile"],
+    }
+    action["interaction_schema"] = {
+        "type": "choice_grid",
+        "hosts": ["palette"],
+        "primary_rank": 82,
+        "parameter": "assembler_profile",
+        "default": "vasm",
+        "options": [
+            {"value": profile_id, "label": profile_id, "preview": {"kind": "source_export", "text": "not verification"}}
+            for profile_id in profile_ids
+        ],
+        "preview": {"kind": "source_export"},
     }
     return action
 

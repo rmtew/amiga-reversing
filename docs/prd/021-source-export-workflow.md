@@ -10,6 +10,10 @@ Add **Source Export** so users can save rendered assembler source as a `.s` file
 - PRD 017: Inline and Palette Parameter Sessions.
 - PRD 018: Reproduction Profiles and Policy Summary.
 
+## Status
+
+Complete. Implemented source export payloads, API route, browser save flow, CLI, headers, refusal diagnostics, and target-tooling palette integration.
+
 ## Scope
 
 - Export source for a selected **Assembler Profile** such as `vasm` or `devpac`.
@@ -42,6 +46,7 @@ Add **Source Export** so users can save rendered assembler source as a `.s` file
 - CLI tests for source export with selected assembler profile.
 - Tests proving export does not write the **Manual Action Log** or review state.
 - Tests proving export command appears in the centralized palette as target tooling.
+- Verified with related tests, ruff, and `src\precommit.bat`.
 
 ## Issues
 
@@ -51,4 +56,3 @@ Add **Source Export** so users can save rendered assembler source as a `.s` file
 - [021-004: Source Export CLI](../issues/021-004-source-export-cli.md)
 - [021-005: Source Export Command Palette Integration](../issues/021-005-source-export-command-palette-integration.md)
 - [021-006: PRD 021 Review and Tightening](../issues/021-006-prd-021-review-and-tightening.md)
-

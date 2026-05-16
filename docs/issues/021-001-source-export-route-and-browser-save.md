@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,14 +18,13 @@ Add a source export route that returns a browser-saveable `.s` file.
 
 ## Acceptance criteria
 
-- [ ] Route renders source for the selected target and assembler profile.
-- [ ] Response uses a sensible `.s` filename.
-- [ ] Browser save flow writes user-owned external output, not a project artifact.
-- [ ] Export can run without a reproduction/oracle run.
-- [ ] Route tests cover success and render refusal.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Route renders source for the selected target and assembler profile.
+- [x] Response uses a sensible `.s` filename.
+- [x] Browser save flow writes user-owned external output, not a project artifact.
+- [x] Export can run without a reproduction/oracle run.
+- [x] Route tests cover success and render refusal.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - None
-
