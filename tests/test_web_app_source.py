@@ -140,7 +140,7 @@ def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> Non
     assert "function loadUiPreferenceState(projectId)" in app_js
     assert "function explicitListingLocationFromUrl()" in app_js
     assert "function preferenceListingLocation(payload)" in app_js
-    assert "function entrypointListingLocation(payload)" in app_js
+    assert "function entrypointListingLocations(payload)" in app_js
     assert "function loadInitialListingLocation(projectId, uiPreferences)" in app_js
     assert "function scheduleUiPreferenceSave()" in app_js
     assert "`/api/projects/${encodeURIComponent(projectId)}/ui-preferences`" in app_js

@@ -2485,10 +2485,6 @@ function commandLabelValidationError(field, text, action) {
   if (text.startsWith(".") && validation.local_labels_supported === false) {
     return messages.local_disallowed || "Local labels are not allowed";
   }
-  const reserved = Array.isArray(validation.reserved_prefixes) ? validation.reserved_prefixes : [];
-  if (reserved.some((prefix) => text.startsWith(prefix))) {
-    return messages.reserved || "Reserved generated name";
-  }
   return "";
 }
 

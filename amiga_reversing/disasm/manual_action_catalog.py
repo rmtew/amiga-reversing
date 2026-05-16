@@ -1540,11 +1540,9 @@ def _label_validation_metadata(context: Mapping[str, object]) -> dict[str, objec
         "current_scope": "global",
         "current_name": symbol,
         "name_pattern": r"^[A-Za-z_.$][A-Za-z0-9_.$]*$",
-        "reserved_prefixes": ["loc_", "abs_", "sub_"],
         "messages": {
             "invalid_syntax": "Invalid label syntax",
             "local_disallowed": "Local labels are not allowed by the active profile",
-            "reserved": "Name uses a reserved generated prefix",
             "conflict": "Name may conflict with an existing symbol",
             "stale": "Validation may be stale; server will recheck on save",
             "ready": "Ready",

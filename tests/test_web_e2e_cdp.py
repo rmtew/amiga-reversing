@@ -1489,9 +1489,9 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
             })()
             """
         )
-        page.fill("[data-command-parameter-name='name']", "loc_reserved")
+        page.fill("[data-command-parameter-name='name']", "invalid name")
         page.press_key("Enter")
-        page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('reserved')")
+        page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('Invalid label syntax')")
         page.wait_for_expression(
             """
             (() => {
@@ -1513,9 +1513,9 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
             })()
             """
         )
-        page.fill("[data-command-parameter-name='name']", "entrypoint")
+        page.fill("[data-command-parameter-name='name']", "loc_reserved")
         page.press_key("Enter")
-        page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-code')?.textContent.trim() === 'entrypoint:'")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-code')?.textContent.trim() === 'loc_reserved:'")
         page.wait_for_expression("state.manualEdit.inFlight === false && state.parameterSession === null")
 
         page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
