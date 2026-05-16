@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "m68k_asm_metadata.h"
 #include "m68k_diagnostics.h"
 #include "m68k_simulator.h"
 
@@ -24,6 +25,7 @@ typedef struct M68kDisasmTextResult {
 typedef struct M68kDisasmInfoResult {
   size_t byte_count;
   uint16_t asm_form_index;
+  M68kFormId canonical_form_id;
   uint8_t mnemonic_id;
   uint8_t target_cpu;
   char mnemonic[32];

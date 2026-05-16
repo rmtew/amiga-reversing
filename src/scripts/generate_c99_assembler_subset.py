@@ -1155,6 +1155,58 @@ def _runtime_mnemonic_list(forms: list[FormDef], kb_path: Path = KB_PATH) -> lis
     return mnemonic_list
 
 
+def _form_identity_key(form: FormDef) -> tuple[object, ...]:
+    return (
+        str(form.kb_mnemonic),
+        int(form.local_form_index),
+        str(form.syntax),
+        str(form.mnemonic),
+        int(form.opword_base),
+        int(form.opword_mask),
+        tuple(int(base) for base in form.bound_word_bases),
+        tuple(int(mask) for mask in form.bound_word_masks),
+    )
+
+
+def _load_all_loadable_forms(kb_path: Path = KB_PATH) -> list[FormDef]:
+    kb = _load_kb(kb_path)
+    mnemonics: list[str] = []
+    instructions = kb.get("instructions", [])
+    assert isinstance(instructions, list)
+    for item in instructions:
+        if not isinstance(item, dict) or "mnemonic" not in item:
+            continue
+        if item.get("forms") is None and item.get("form_template") is None:
+            continue
+        mnemonic = str(item["mnemonic"])
+        try:
+            _load_forms(kb_path, supported_mnemonics=(mnemonic,))
+        except AssertionError:
+            continue
+        mnemonics.append(mnemonic)
+    return [
+        form
+        for form in _load_forms(kb_path, supported_mnemonics=tuple(mnemonics))
+        if not (int(form.opword_mask) == 0 and str(form.mnemonic).lower() in {"cpbcc", "cpdbcc", "cptrapcc"})
+    ]
+
+
+def _load_canonical_forms(kb_path: Path = KB_PATH) -> list[FormDef]:
+    forms = list(_load_forms(kb_path))
+    seen = {_form_identity_key(form) for form in forms}
+    for form in _load_all_loadable_forms(kb_path):
+        key = _form_identity_key(form)
+        if key in seen:
+            continue
+        seen.add(key)
+        forms.append(form)
+    return forms
+
+
+def _canonical_form_id_map(canonical_forms: list[FormDef]) -> dict[tuple[object, ...], int]:
+    return {_form_identity_key(form): index + 1 for index, form in enumerate(canonical_forms)}
+
+
 def _render_header(forms: list[FormDef], kb: dict[str, object], mnemonic_list: list[str] | None = None) -> str:
     if mnemonic_list is None:
         mnemonic_list = _runtime_mnemonic_list(forms)
@@ -1348,9 +1400,17 @@ enum {{
 """
 
 
-def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: list[str] | None = None) -> str:
+def _render_tables(
+    forms: list[FormDef],
+    kb: dict[str, object],
+    mnemonic_list: list[str] | None = None,
+    canonical_forms: list[FormDef] | None = None,
+) -> str:
     if mnemonic_list is None:
         mnemonic_list = _runtime_mnemonic_list(forms)
+    if canonical_forms is None:
+        canonical_forms = forms
+    canonical_form_ids = _canonical_form_id_map(canonical_forms)
     mnemonic_name_rows = ['    "",'] + [f'    "{mnemonic.lower()}",' for mnemonic in mnemonic_list]
     sorted_mnemonics = sorted(mnemonic_list, key=str.lower)
     mnemonic_lookup_rows = [
@@ -1373,6 +1433,14 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: l
     mnemonic_lookup_array_len = max(1, len(mnemonic_lookup_rows))
     if not mnemonic_lookup_rows:
         mnemonic_lookup_rows = ['    { NULL, M68K_ASM_MNEMONIC_NONE },']
+    asm_index_by_key = {_form_identity_key(form): form.form_index for form in forms}
+    asm_index_by_form_id_rows = ["    M68K_ASM_FORM_NONE,"]
+    for form in canonical_forms:
+        asm_form_index = asm_index_by_key.get(_form_identity_key(form))
+        if asm_form_index is None:
+            asm_index_by_form_id_rows.append("    M68K_ASM_FORM_NONE,")
+        else:
+            asm_index_by_form_id_rows.append(f"    {asm_form_index}u,")
     control_registers = _load_control_registers(kb)
     ea_text_forms = _load_ea_text_forms(kb)
     movem_masks = _kb_meta(kb, "movem_reg_masks")
@@ -1411,7 +1479,7 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: l
             f"\"{form.syntax}\", "
             f"M68K_ASM_MNEMONIC_{form.mnemonic}, "
             f"{form.form_index}, "
-            f"{form.form_index + 1}u, "
+            f"{canonical_form_ids[_form_identity_key(form)]}u, "
             f"{len(form.operand_kinds)}, "
             "{ "
             f"{OPERAND_KIND_ENUM.get(operand_kinds[0], 'M68K_ASM_OPERAND_NONE')}, "
@@ -1517,6 +1585,10 @@ const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[{mnemonic_lookup_arr
 
 const M68kAsmFormRange g_m68k_asm_mnemonic_form_ranges[M68K_ASM_MNEMONIC_COUNT] = {{
 {chr(10).join(mnemonic_range_rows)}
+}};
+
+const uint16_t g_m68k_asm_form_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {{
+{chr(10).join(asm_index_by_form_id_rows)}
 }};
 
 const M68kAsmFieldPatch g_m68k_asm_patches[{len(patch_rows)}] = {{
@@ -1865,10 +1937,11 @@ def _render_form_model_header(forms: list[FormDef]) -> str:
 def generate_files(output_dir: Path, kb_path: Path = KB_PATH) -> dict[str, str]:
     kb = _load_kb(kb_path)
     forms = _load_forms(kb_path)
+    canonical_forms = _load_canonical_forms(kb_path)
     mnemonic_list = _runtime_mnemonic_list(forms, kb_path)
     tables_header = _style_generated_c_text(_render_header(forms, kb, mnemonic_list))
-    tables_source = _style_generated_c_text(_render_tables(forms, kb, mnemonic_list))
-    form_model_header = _style_generated_c_text(_render_form_model_header(forms))
+    tables_source = _style_generated_c_text(_render_tables(forms, kb, mnemonic_list, canonical_forms))
+    form_model_header = _style_generated_c_text(_render_form_model_header(canonical_forms))
     files = {
         "m68k_form_model.h": form_model_header,
         "m68k_asm_tables.h": tables_header,

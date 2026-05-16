@@ -84,7 +84,49 @@ def _operand_specificity(kind: str) -> int:
     return 2
 
 
+def _form_specificity(form) -> tuple[int, int, int]:
+    return (
+        _popcount16(int(form.opword_mask)),
+        sum(_popcount16(int(form.bound_word_masks[word_index])) for word_index in range(int(form.bound_word_count))),
+        sum(_operand_specificity(str(kind)) for kind in form.sampling_operand_kinds),
+    )
+
+
+def _decode_signature(form) -> tuple[object, ...]:
+    return (
+        int(form.opword_mask),
+        int(form.opword_base),
+        tuple(int(form.bound_word_masks[word_index]) for word_index in range(int(form.bound_word_count))),
+        tuple(int(form.bound_word_bases[word_index]) for word_index in range(int(form.bound_word_count))),
+        tuple(str(kind) for kind in form.sampling_operand_kinds),
+        tuple(int(mask) for mask in form.ea_mode_masks),
+    )
+
+
+def _find_equal_specificity_ambiguities(forms: list[object]) -> list[tuple[int, int]]:
+    seen: dict[tuple[object, ...], int] = {}
+    ambiguities: list[tuple[int, int]] = []
+    for index, form in enumerate(forms):
+        key = (*_decode_signature(form), *_form_specificity(form))
+        previous = seen.get(key)
+        if previous is None:
+            seen[key] = index
+            continue
+        previous_form = forms[previous]
+        if str(previous_form.mnemonic) == str(form.mnemonic) and str(previous_form.syntax) == str(form.syntax):
+            continue
+        ambiguities.append((previous, index))
+    return ambiguities
+
+
 def _build_buckets(forms: list[object]) -> tuple[list[FormBucket], list[int]]:
+    ambiguities = _find_equal_specificity_ambiguities(forms)
+    if ambiguities:
+        first, second = ambiguities[0]
+        raise AssertionError(
+            "ambiguous equal-specificity decode forms: "
+            f"{forms[first].syntax!r} and {forms[second].syntax!r}"
+        )
     candidate_indexes: list[int] = []
     buckets: list[FormBucket] = []
     form_order = list(range(len(forms)))
@@ -171,11 +213,31 @@ def _wrapped_lines(values: list[int]) -> list[str]:
     return lines
 
 
-def _canonical_form_index_map(subset) -> dict[tuple[str, int, str, str], int]:
-    canonical_forms = subset._load_forms(KB_PATH, supported_mnemonics=subset.SUPPORTED_MNEMONICS)
+def _form_identity_key(form) -> tuple[object, ...]:
+    return (
+        str(form.kb_mnemonic),
+        int(form.local_form_index),
+        str(form.syntax),
+        str(form.mnemonic),
+        int(form.opword_base),
+        int(form.opword_mask),
+        tuple(int(base) for base in form.bound_word_bases),
+        tuple(int(mask) for mask in form.bound_word_masks),
+    )
+
+
+def _canonical_form_id_map(subset) -> dict[tuple[object, ...], int]:
+    canonical_forms = subset._load_canonical_forms(KB_PATH)
     return {
-        (str(form.kb_mnemonic), int(form.local_form_index), str(form.syntax), str(form.mnemonic)): int(form.form_index)
-        for form in canonical_forms
+        _form_identity_key(form): index + 1
+        for index, form in enumerate(canonical_forms)
+    }
+
+
+def _asm_form_index_map(subset) -> dict[tuple[object, ...], int]:
+    return {
+        _form_identity_key(form): int(form.form_index)
+        for form in subset._load_forms(KB_PATH, supported_mnemonics=subset.SUPPORTED_MNEMONICS)
     }
 
 
@@ -184,7 +246,8 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
     extension_rows: list[str] = []
     form_rows: list[str] = []
     control_register_rows: list[str] = []
-    canonical_form_indexes = _canonical_form_index_map(subset)
+    canonical_form_ids = _canonical_form_id_map(subset)
+    asm_form_indexes = _asm_form_index_map(subset)
     patch_index = 0
     extension_index = 0
     control_register_index = 0
@@ -198,16 +261,11 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
         "disp16_always": "M68K_ASM_EXTENSION_DISP16_ALWAYS",
     }
     for form in forms:
-        canonical_form_index = canonical_form_indexes.get(
-            (str(form.kb_mnemonic), int(form.local_form_index), str(form.syntax), str(form.mnemonic)),
-            None,
-        )
-        canonical_form_index_expr = (
-            f"{canonical_form_index}u" if canonical_form_index is not None else "M68K_ASM_FORM_NONE"
-        )
-        canonical_form_id_expr = (
-            f"{canonical_form_index + 1}u" if canonical_form_index is not None else "M68K_FORM_ID_NONE"
-        )
+        form_key = _form_identity_key(form)
+        asm_form_index = asm_form_indexes.get(form_key)
+        canonical_form_id = canonical_form_ids[form_key]
+        asm_form_index_expr = f"{asm_form_index}u" if asm_form_index is not None else "M68K_ASM_FORM_NONE"
+        canonical_form_id_expr = f"{canonical_form_id}u"
         extension_defs = subset._extension_defs(form)
         for patch in form.patches:
             patch_rows.append(
@@ -235,7 +293,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
             f"\"{form.mnemonic.lower()}\", "
             f"\"{form.syntax}\", "
             f"M68K_ASM_MNEMONIC_{form.mnemonic}, "
-            f"{canonical_form_index_expr}, "
+            f"{asm_form_index_expr}, "
             f"{canonical_form_id_expr}, "
             f"{len(form.operand_kinds)}u,"
         )
@@ -286,12 +344,16 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
 
 def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> str:
     buckets, candidate_indexes = _build_buckets(forms)
+    canonical_form_ids = _canonical_form_id_map(subset)
     zero_means_eight = _load_zero_means_eight_flags(forms, kb)
     operand_shape_codes = _load_operand_shape_codes(forms)
     operand_ea_mode_masks = _load_operand_ea_mode_masks(forms)
     patch_rows, extension_rows, form_rows, control_register_rows = _emit_form_table_lines(forms, subset)
     bucket_lines = [f"    {{ {bucket.start}u, {bucket.count}u }}," for bucket in buckets]
-    candidate_lines = _wrapped_lines(candidate_indexes)
+    candidate_lines = _wrapped_lines([canonical_form_ids[_form_identity_key(forms[index])] for index in candidate_indexes])
+    disasm_index_by_form_id_rows = ["    M68K_DISASM_FORM_NONE,"] * (len(subset._load_canonical_forms(KB_PATH)) + 1)
+    for index, form in enumerate(forms):
+        disasm_index_by_form_id_rows[canonical_form_ids[_form_identity_key(form)]] = f"    {index}u,"
     zero_means_lines = _wrapped_lines([*zero_means_eight, 0])
     operand_shape_lines = [
         f"    {{ {row[0]}u, {row[1]}u, {row[2]}u, {row[3]}u }},"
@@ -335,7 +397,11 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
         *bucket_lines,
         "};",
         "",
-        "static const uint16_t g_m68k_disasm_bucket_candidates[] = {",
+        f"static const uint16_t g_m68k_disasm_form_index_by_canonical_id[{len(disasm_index_by_form_id_rows)}] = {{",
+        *disasm_index_by_form_id_rows,
+        "};",
+        "",
+        "static const M68kFormId g_m68k_disasm_bucket_candidates[] = {",
         *candidate_lines,
         "};",
         "",

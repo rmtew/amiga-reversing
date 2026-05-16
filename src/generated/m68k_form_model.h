@@ -13,7 +13,7 @@ enum {
     M68K_FORM_ROW_NONE = 0xFFFFu,
     M68K_OPERAND_SLOT_NONE = 0xFFu,
     M68K_OPERAND_SLOT_COUNT = 4u,
-    M68K_CANONICAL_FORM_COUNT = 300u
+    M68K_CANONICAL_FORM_COUNT = 313u
 };
 
 typedef struct {
@@ -327,6 +327,19 @@ static const M68kCanonicalFormDef g_m68k_canonical_forms[M68K_CANONICAL_FORM_COU
     { 298u, 297u, "TRAPLE", "TRAPcc", 47u, "TRAPLE.L # <data>", 1u },
     { 299u, 298u, "TRAPV", "TRAPV", 0u, "TRAPV", 0u },
     { 300u, 299u, "TRAP", "TRAP", 0u, "TRAP # <vector>", 1u },
+    { 301u, 300u, "CPBCC", "cpBcc", 0u, "cpBcc <label>", 1u },
+    { 302u, 301u, "CPDBCC", "cpDBcc", 0u, "cpDBcc Dn,<label>", 2u },
+    { 303u, 302u, "CPSCC", "cpScc", 0u, "cpScc <ea>", 1u },
+    { 304u, 303u, "CPTRAPCC", "cpTRAPcc", 0u, "cpTRAPcc", 0u },
+    { 305u, 304u, "CPTRAPCC", "cpTRAPcc", 1u, "cpTRAPcc.W # <data>", 1u },
+    { 306u, 305u, "CPTRAPCC", "cpTRAPcc", 2u, "cpTRAPcc.L # <data>", 1u },
+    { 307u, 306u, "PBCC", "PBcc", 0u, "PBcc.W <label>", 1u },
+    { 308u, 307u, "PBCC", "PBcc", 1u, "PBcc.L <label>", 1u },
+    { 309u, 308u, "PDBCC", "PDBcc", 0u, "PDBcc Dn,<label>", 2u },
+    { 310u, 309u, "PSCC", "PScc", 0u, "PScc <ea>", 1u },
+    { 311u, 310u, "PTRAPCC", "PTRAPcc", 0u, "PTRAPcc", 0u },
+    { 312u, 311u, "PTRAPCC", "PTRAPcc", 1u, "PTRAPcc.W # <data>", 1u },
+    { 313u, 312u, "PTRAPCC", "PTRAPcc", 2u, "PTRAPcc.L # <data>", 1u },
 };
 
 static const M68kFormId g_m68k_canonical_form_id_by_row[M68K_CANONICAL_FORM_COUNT] = {
@@ -630,6 +643,19 @@ static const M68kFormId g_m68k_canonical_form_id_by_row[M68K_CANONICAL_FORM_COUN
     298u,
     299u,
     300u,
+    301u,
+    302u,
+    303u,
+    304u,
+    305u,
+    306u,
+    307u,
+    308u,
+    309u,
+    310u,
+    311u,
+    312u,
+    313u,
 };
 
 static const M68kFormRow g_m68k_canonical_form_row_by_id[M68K_CANONICAL_FORM_COUNT + 1u] = {
@@ -934,6 +960,19 @@ static const M68kFormRow g_m68k_canonical_form_row_by_id[M68K_CANONICAL_FORM_COU
     297u,
     298u,
     299u,
+    300u,
+    301u,
+    302u,
+    303u,
+    304u,
+    305u,
+    306u,
+    307u,
+    308u,
+    309u,
+    310u,
+    311u,
+    312u,
 };
 
 static inline M68kFormId m68k_form_id_for_row(M68kFormRow row) {

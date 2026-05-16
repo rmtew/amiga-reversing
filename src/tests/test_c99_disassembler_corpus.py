@@ -17,6 +17,7 @@ ASM_DLL_PATH = ROOT / "src" / "build" / "m68k_assembler_lib.dll"
 DISASM_DLL_PATH = ROOT / "src" / "build" / "m68k_disassembler_lib.dll"
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
 ASM_TABLES_HEADER_PATH = ROOT / "src" / "generated" / "m68k_asm_tables.h"
+FORM_MODEL_HEADER_PATH = ROOT / "src" / "generated" / "m68k_form_model.h"
 
 CPU_CODES = {
     "68000": 0,
@@ -62,6 +63,7 @@ class M68kDisasmInfoResult(ctypes.Structure):
     _fields_ = [
         ("byte_count", ctypes.c_size_t),
         ("asm_form_index", ctypes.c_uint16),
+        ("canonical_form_id", ctypes.c_uint16),
         ("mnemonic_id", ctypes.c_uint8),
         ("target_cpu", ctypes.c_uint8),
         ("mnemonic", ctypes.c_char * 32),
@@ -108,6 +110,14 @@ def _load_module(path: Path, name: str):
 def _asm_form_none() -> int:
     text = ASM_TABLES_HEADER_PATH.read_text()
     match = re.search(r"M68K_ASM_FORM_COUNT\s*=\s*(\d+)", text)
+    assert match is not None
+    return int(match.group(1))
+
+
+@lru_cache(maxsize=None)
+def _canonical_form_id_for_syntax(syntax: str) -> int:
+    text = FORM_MODEL_HEADER_PATH.read_text()
+    match = re.search(rf"\{{\s+(\d+)u,\s+\d+u,\s+\"[^\"]+\",\s+\"[^\"]+\",\s+\d+u,\s+\"{re.escape(syntax)}\",", text)
     assert match is not None
     return int(match.group(1))
 
@@ -232,6 +242,8 @@ def _round_trip_case(case, cpu_name: str) -> None:
         raise AssertionError(f"{case.case_id}: info byte_count {info.byte_count} != text byte_count {byte_count}")
     if info.mnemonic_id == 0:
         raise AssertionError(f"{case.case_id}: decoded mnemonic_id is NONE for {rendered}")
+    if info.canonical_form_id == 0:
+        raise AssertionError(f"{case.case_id}: decoded canonical_form_id is NONE for {rendered}")
     if not info_mnemonic:
         raise AssertionError(f"{case.case_id}: decoded mnemonic text is empty")
     if TARGET_LABEL_RE.search(rendered):
@@ -360,8 +372,14 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
         result = _disassemble_info_for_cpu(original, "68030")
         self.assertEqual(result.byte_count, len(original))
         self.assertEqual(result.asm_form_index, _asm_form_none())
+        self.assertNotEqual(result.canonical_form_id, 0)
         self.assertNotEqual(result.mnemonic_id, 0)
         self.assertEqual(bytes(result.mnemonic).split(b"\0", 1)[0].decode("ascii"), "pscc")
+
+    def test_decode_info_returns_canonical_form_id(self) -> None:
+        result = _disassemble_info_for_cpu(bytes.fromhex("4e71"), "68000")
+        self.assertEqual(result.byte_count, 2)
+        self.assertEqual(result.canonical_form_id, _canonical_form_id_for_syntax("NOP"))
 
     def test_signed_displacement_families_render_signed(self) -> None:
         samples = (

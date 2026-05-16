@@ -40,6 +40,7 @@ M68kDisasmInfoResult m68k_disassemble_one_info_for_cpu(const uint8_t *data, size
   if (m68k_diag_has_errors(&result.diagnostics) || disasm.byte_count == 0U) return result;
   result.byte_count = disasm.byte_count;
   result.asm_form_index = disasm.asm_form_index;
+  result.canonical_form_id = disasm.canonical_form_id;
   result.mnemonic_id = disasm.mnemonic_id;
   result.target_cpu = disasm.target_cpu;
   snprintf(result.mnemonic, sizeof(result.mnemonic), "%s", disasm.mnemonic);

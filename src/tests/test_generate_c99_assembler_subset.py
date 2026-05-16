@@ -84,6 +84,10 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             self._tables_c,
         )
         self.assertIn(
+            "const uint16_t g_m68k_asm_form_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {\n",
+            self._tables_c,
+        )
+        self.assertIn(
             '{ "add", "ADD <ea>,Dn", M68K_ASM_MNEMONIC_ADD, 30, 31u, 2,',
             self._tables_c,
         )

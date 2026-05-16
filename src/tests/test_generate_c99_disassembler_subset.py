@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "src" / "scripts" / "generate_c99_disassembler_subset.py"
@@ -45,7 +46,8 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
 
     def test_generates_lookup_tables(self) -> None:
         self.assertIn("static const M68kDisasmBucket g_m68k_disasm_buckets[] = {", self._tables)
-        self.assertIn("static const uint16_t g_m68k_disasm_bucket_candidates[] = {", self._tables)
+        self.assertIn("static const M68kFormId g_m68k_disasm_bucket_candidates[] = {", self._tables)
+        self.assertIn("static const uint16_t g_m68k_disasm_form_index_by_canonical_id[", self._tables)
 
     def test_uses_widened_form_set(self) -> None:
         self.assertIn(
@@ -69,11 +71,29 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
         self.assertIn('"cpbcc"', self._tables)
         self.assertIn('"cpdbcc"', self._tables)
         self.assertIn('"cptrapcc"', self._tables)
-        self.assertIn(
-            '"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, M68K_ASM_FORM_NONE, M68K_FORM_ID_NONE',
+        self.assertRegex(
             self._tables,
+            r'"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, M68K_ASM_FORM_NONE, [1-9][0-9]*u',
         )
+        self.assertNotIn('"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, M68K_ASM_FORM_NONE, M68K_FORM_ID_NONE', self._tables)
         self.assertNotIn('"pscc", "PScc <ea>", 0u, 65535u', self._tables)
+
+    def test_rejects_equal_specificity_ambiguity(self) -> None:
+        def fake_form(syntax: str):
+            return SimpleNamespace(
+                opword_mask=0xFFFF,
+                opword_base=0x4E70,
+                bound_word_count=0,
+                bound_word_masks=(0, 0),
+                bound_word_bases=(0, 0),
+                sampling_operand_kinds=("ea",),
+                ea_mode_masks=(0, 0, 0, 0),
+                mnemonic="NOP",
+                syntax=syntax,
+            )
+
+        with self.assertRaisesRegex(AssertionError, "ambiguous equal-specificity"):
+            self._generator._build_buckets([fake_form("NOP"), fake_form("NOP_ALIAS")])
 
     def test_form_count_matches_initializers(self) -> None:
         match = re.search(r"#define M68K_DISASM_FORM_COUNT (\d+)u", self._metadata)

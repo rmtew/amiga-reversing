@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/024-m68k-canonical-form-model.md`
 Type: AFK
-Blocked by: `docs/issues/024-002-migrate-assembler-view-to-canonical-forms.md`, `docs/issues/024-003-migrate-disassembler-view-to-canonical-forms.md`
+Blocked by: None
 
 ## Scope
 

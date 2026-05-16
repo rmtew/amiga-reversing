@@ -140,6 +140,7 @@ extern const M68kAsmEaTextFormDef g_m68k_asm_ea_text_forms[M68K_ASM_EA_TEXT_FORM
 extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];
 extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];
 extern const M68kAsmFormRange g_m68k_asm_mnemonic_form_ranges[M68K_ASM_MNEMONIC_COUNT];
+extern const uint16_t g_m68k_asm_form_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u];
 extern const size_t g_m68k_asm_mnemonic_lookup_count;
 extern const size_t g_m68k_asm_control_register_count;
 extern const size_t g_m68k_asm_ea_text_form_count;

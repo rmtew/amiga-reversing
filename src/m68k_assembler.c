@@ -166,10 +166,12 @@ uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count) {
 }
 
 uint16_t m68k_asm_form_index_for_canonical_id(M68kFormId form_id) {
-  M68kFormRow row = m68k_form_row_for_id(form_id);
-  if (row >= M68K_ASM_FORM_COUNT) return M68K_ASM_FORM_NONE;
-  if (g_m68k_asm_forms[row].canonical_form_id != form_id) return M68K_ASM_FORM_NONE;
-  return row;
+  uint16_t asm_form_index;
+  if (form_id == M68K_FORM_ID_NONE || form_id > M68K_CANONICAL_FORM_COUNT) return M68K_ASM_FORM_NONE;
+  asm_form_index = g_m68k_asm_form_index_by_canonical_id[form_id];
+  if (asm_form_index >= M68K_ASM_FORM_COUNT) return M68K_ASM_FORM_NONE;
+  if (g_m68k_asm_forms[asm_form_index].canonical_form_id != form_id) return M68K_ASM_FORM_NONE;
+  return asm_form_index;
 }
 
 uint8_t m68k_asm_form_effective_size_mask(const M68kAsmFormDef *form) {
