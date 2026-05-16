@@ -464,12 +464,12 @@ def _project_review_notes_from_state(manual_state: Mapping[str, object]) -> list
 
 
 def _manual_entry_matches_row(entry: Mapping[str, object], row: Mapping[str, object], row_index: int) -> bool:
-    entry_row_index = _optional_int(entry.get("row_index"))
-    if entry_row_index is not None and entry_row_index == row_index:
-        return True
     stable_key = entry.get("stable_key")
-    if isinstance(stable_key, str) and stable_key and row.get("stable_key") == stable_key:
-        return True
+    if isinstance(stable_key, str) and stable_key:
+        return row.get("stable_key") == stable_key
+    entry_row_index = _optional_int(entry.get("row_index"))
+    if entry_row_index is not None:
+        return entry_row_index == row_index
     hunk = _optional_int(entry.get("hunk"))
     addr = _optional_int(entry.get("addr"))
     if hunk is None or addr is None:

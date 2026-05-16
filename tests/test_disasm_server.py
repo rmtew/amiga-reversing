@@ -1537,6 +1537,219 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
+def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="entry-a",
+            kind="label",
+            text="ENTRYPOINT0001:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT0001",
+            stable_key="entry-a-key",
+        ),
+        ListingRow(
+            row_id="entry-b",
+            kind="label",
+            text="ENTRYPOINT0002:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT0002",
+            stable_key="entry-b-key",
+        ),
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    for row_index in (0, 1):
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/manual-action-catalog/execute",
+            {},
+            {
+                "action_id": "comment.edit",
+                "context": {"kind": "row", "row_index": row_index},
+                "parameters": {"text": f"comment {row_index}"},
+            },
+        )
+
+    comments = [
+        cast(dict[str, object], cast(dict[str, object], action["payload"])["comment"])
+        for action in appended_actions
+    ]
+    assert comments[0]["comment_id"] != comments[1]["comment_id"]
+    assert comments[0]["stable_key"] == "entry-a-key"
+    assert comments[1]["stable_key"] == "entry-b-key"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="entry-a",
+            kind="label",
+            text="ENTRYPOINT0001:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT0001",
+            stable_key="entry-a-key",
+        ),
+        ListingRow(
+            row_id="entry-b",
+            kind="label",
+            text="ENTRYPOINT0002:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT0002",
+            stable_key="entry-b-key",
+        ),
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    for row_index in (0, 1):
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/manual-action-catalog/execute",
+            {},
+            {
+                "action_id": "label.rename",
+                "context": {"kind": "element", "row_index": row_index, "element_kind": "label"},
+                "parameters": {"name": f"entry_{row_index}"},
+            },
+        )
+
+    labels = [
+        cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
+        for action in appended_actions
+    ]
+    assert labels[0]["label_id"] != labels[1]["label_id"]
+    assert labels[0]["stable_key"] == "entry-a-key"
+    assert labels[1]["stable_key"] == "entry-b-key"
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_manual_projection_uses_precise_comment_locator_without_address_fallback() -> None:
+    rows = [
+        {
+            "kind": "label",
+            "label": "ENTRYPOINT0001",
+            "text": "ENTRYPOINT0001:\n",
+            "section_index": 0,
+            "start_offset": 0,
+            "addr": 0,
+            "stable_key": "entry-a-key",
+        },
+        {
+            "kind": "directive",
+            "text": "ORG $10000\n",
+            "section_index": 0,
+            "start_offset": 0,
+            "addr": 0,
+            "stable_key": "org-key",
+        },
+    ]
+    comments = [
+        {
+            "comment_id": "comment-entry-a",
+            "text": "entry only",
+            "hunk": 0,
+            "addr": 0,
+            "stable_key": "entry-a-key",
+        }
+    ]
+
+    first = disasm_server._apply_manual_listing_projection(rows[0], [], comments, 20)
+    second = disasm_server._apply_manual_listing_projection(rows[1], [], comments, 21)
+
+    assert first["comment_text"] == "entry only"
+    assert "comment_text" not in second
+
+
+def test_manual_projection_uses_precise_label_locator_without_address_fallback() -> None:
+    rows = [
+        {
+            "kind": "label",
+            "label": "ENTRYPOINT0001",
+            "text": "ENTRYPOINT0001:\n",
+            "section_index": 0,
+            "start_offset": 0,
+            "addr": 0,
+            "stable_key": "entry-a-key",
+        },
+        {
+            "kind": "label",
+            "label": "ENTRYPOINT0002",
+            "text": "ENTRYPOINT0002:\n",
+            "section_index": 0,
+            "start_offset": 0,
+            "addr": 0,
+            "stable_key": "entry-b-key",
+        },
+    ]
+    labels = [
+        {
+            "label_id": "label-entry-a",
+            "name": "renamed_entry",
+            "scope": "global",
+            "address_domain": "source",
+            "hunk": 0,
+            "addr": 0,
+            "stable_key": "entry-a-key",
+        }
+    ]
+
+    first = disasm_server._apply_manual_listing_projection(rows[0], labels, [], 20)
+    second = disasm_server._apply_manual_listing_projection(rows[1], labels, [], 21)
+
+    assert first["label"] == "renamed_entry"
+    assert second["label"] == "ENTRYPOINT0002"
+
+
 def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibility(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1737,7 +1950,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "create_manual_label"
-    assert label["label_id"] == "catalog-label-source-h0-00000000"
+    assert label["label_id"] == "catalog-label-source-h0-00000000-sk-label-0"
     assert label["name"] == "start"
     assert label["previous_name"] == "loc_0_00000000"
     assert label["hunk"] == 0
@@ -1747,7 +1960,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert local_effect["kind"] == "label_rename"
     assert local_effect["row_index"] == 0
     assert local_effect["name"] == "start"
-    assert local_effect["label_id"] == "catalog-label-source-h0-00000000"
+    assert local_effect["label_id"] == "catalog-label-source-h0-00000000-sk-label-0"
     assert appended_actions == [action]
     assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
@@ -1951,7 +2164,7 @@ def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
 
-    assert label["label_id"] == "catalog-label-runtime-h0-00010000"
+    assert label["label_id"] == "catalog-label-runtime-h0-00010000-sk-label-0"
     assert label["address_domain"] == "runtime"
     assert label["addr"] == 0x10000
     assert appended_actions == [action]

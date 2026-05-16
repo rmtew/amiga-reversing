@@ -705,10 +705,11 @@ def _row_comment_payload(row: Mapping[str, object], params: Mapping[str, object]
     if not isinstance(text, str) or not text.strip():
         raise ValueError("create_manual_comment requires parameter text")
     addr = _int_field(row, "start_offset", fallback="addr")
+    hunk = _int_field(row, "section_index", default=0)
     comment: dict[str, object] = {
-        "comment_id": f"catalog-comment-h{_int_field(row, 'section_index', default=0)}-{addr:08X}",
+        "comment_id": f"catalog-comment-{_row_identity_token(row, hunk, addr)}",
         "text": text.strip(),
-        "hunk": _int_field(row, "section_index", default=0),
+        "hunk": hunk,
         "addr": addr,
     }
     end = _optional_int(row.get("end_offset"))
@@ -804,7 +805,7 @@ def _row_label_payload(
     else:
         addr = _int_field(row, "start_offset", fallback="addr")
     label: dict[str, object] = {
-        "label_id": f"catalog-label-{address_domain}-h{hunk}-{addr:08X}",
+        "label_id": f"catalog-label-{address_domain}-{_row_identity_token(row, hunk, addr)}",
         "name": name.strip(),
         "scope": "global",
         "address_domain": address_domain,
@@ -825,6 +826,24 @@ def _row_label_payload(
     if isinstance(stable_key, str) and stable_key:
         label["stable_key"] = stable_key
     return label
+
+
+def _row_identity_token(row: Mapping[str, object], hunk: int, addr: int) -> str:
+    stable_key = row.get("stable_key")
+    if isinstance(stable_key, str) and stable_key:
+        return f"h{hunk}-{addr:08X}-sk-{_id_token(stable_key)}"
+    row_id = row.get("row_id")
+    if isinstance(row_id, str) and row_id:
+        return f"h{hunk}-{addr:08X}-row-{_id_token(row_id)}"
+    row_index = _optional_int(row.get("row_index"))
+    if row_index is not None:
+        return f"h{hunk}-{addr:08X}-idx-{row_index}"
+    return f"h{hunk}-{addr:08X}"
+
+
+def _id_token(value: str) -> str:
+    token = "".join(char if char.isalnum() or char in {"_", "-"} else "_" for char in value.strip())
+    return token or "unnamed"
 
 
 def _parse_generated_label_symbol(symbol: str) -> tuple[int, int] | None:
