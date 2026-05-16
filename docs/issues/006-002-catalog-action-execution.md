@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Execute **Manual Action Catalog** log actions through a validated backend path that appends the correct **Manual Action Log** entry and preserves current refresh/cache behavior.
 
 ## Acceptance criteria
 
-- [ ] Catalog action execution validates action id, target context, and parameters before appending a log entry.
-- [ ] Log actions still cancel stale listing/reproduction work and refresh project state as current manual actions do.
-- [ ] Transient catalog actions are rejected by the log execution path.
-- [ ] Route tests cover valid execution, invalid parameters, and transient-action rejection.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Catalog action execution validates action id, target context, and parameters before appending a log entry.
+- [x] Log actions still cancel stale listing/reproduction work and refresh project state as current manual actions do.
+- [x] Transient catalog actions are rejected by the log execution path.
+- [x] Route tests cover valid execution, invalid parameters, and transient-action rejection.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

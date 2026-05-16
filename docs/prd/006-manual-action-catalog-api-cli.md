@@ -1,5 +1,9 @@
 # PRD 006: Manual Action Catalog, API, and CLI
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Create a backend-owned **Manual Action Catalog** so LLMs, CLI callers, and Web UI surfaces all discover and invoke the same currently valid actions for a project, target, **Manual Review Item**, or **Listing Selection**.
@@ -49,8 +53,17 @@ Create a backend-owned **Manual Action Catalog** so LLMs, CLI callers, and Web U
 
 ## Open Questions
 
-- Exact CLI command names.
-- Whether disabled catalog entries should be returned by default or only with a debug flag.
+- Resolved: CLI command names are exposed through `amiga-manual-actions`
+  list/show/invoke.
+- Resolved: catalog responses include disabled/unavailable entries where the
+  caller needs eligibility reasons.
+
+## Completion Notes
+
+- Backend catalog entries, execution payloads, HTTP routes, CLI list/show/invoke,
+  and Review panel catalog rendering are implemented.
+- Focused PRD006 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_manual_actions_cli.py tests\test_web_app_source.py tests\test_disasm_server.py -q -k "manual_actions_cli or manual_action_catalog or annotation_controls_use_manual_review_actions"`.
 
 ## Follow-On PRDs
 
