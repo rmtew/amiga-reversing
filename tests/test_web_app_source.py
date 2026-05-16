@@ -129,6 +129,8 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "refreshProjectPayloadInBackground" not in app_js
     assert "commandRequiresAnalysisRefresh" not in app_js
     assert "function applyManualReviewNoteAddEffect" in app_js
+    assert "function flashManualActionApplication" in app_js
+    assert "function manualActionLocationMatchesRow" in app_js
     assert "function renderReviewNoteBadge" in app_js
     assert "function openInlineParameterSession" in app_js
     assert "function renderInlineParameterSession" in app_js
@@ -143,9 +145,13 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "openNavigationOverlay(\"review-notes\", noteId)" in app_js
     assert "state.manualEdit.inFlight" in app_js
     assert "listing-row-manual-pending" in app_js
+    assert "listing-row-manual-saved" in app_js
+    assert 'setAnalysisStatus("Manual action saved", "ready", 2000)' not in app_js
     assert ".project-badge-review-note" in styles_css
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css
+    assert ".listing-row-manual-saved" in styles_css
+    assert "@keyframes listing-row-manual-saved" in styles_css
 
 
 def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> None:
@@ -234,6 +240,7 @@ def test_web_app_shows_non_occluding_analysis_status() -> None:
     assert 'source.addEventListener("listing_artifact_ready"' in app_js
     assert 'setAnalysisStatus("Applying analysis", "running")' in app_js
     assert 'setAnalysisStatus("Analysis ready", "ready", 2000)' in app_js
+    assert 'state.analysisStatus.state === "running"' in app_js
     assert ".analysis-status" in styles_css
     assert ".listing-viewport .analysis-status" not in styles_css
 

@@ -127,6 +127,8 @@ const state = {
   manualEdit: {
     inFlight: false,
     pendingRanges: [],
+    savedFlashRanges: [],
+    savedFlashTimer: null,
   },
   parameterSession: null,
   commandPalette: {
@@ -698,8 +700,11 @@ function renderAnalysisStatus() {
   const text = state.analysisStatus.text || "";
   node.hidden = text === "";
   node.className = `analysis-status analysis-status-${state.analysisStatus.state || "idle"}`;
+  const spinner = state.analysisStatus.state === "running"
+    ? '<span class="analysis-status-spinner" aria-hidden="true"></span>'
+    : "";
   node.innerHTML = text
-    ? `<span class="analysis-status-spinner" aria-hidden="true"></span><span>${escapeHtml(text)}</span>`
+    ? `${spinner}<span>${escapeHtml(text)}</span>`
     : "";
 }
 
@@ -2008,7 +2013,9 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
         closeSubmittedParameterSurface();
         renderCurrentListingWindow();
       }
-      setAnalysisStatus("Manual action saved", "ready", 2000);
+      if (!flashManualActionApplication(application)) {
+        setAnalysisStatus("Manual action saved", "ready", 1200);
+      }
     } finally {
       state.manualEdit.inFlight = false;
       state.manualEdit.pendingRanges = [];
@@ -2046,8 +2053,84 @@ function applyManualActionApplication(application) {
   }
   return {
     appliedLocalEffect,
+    localEffects,
+    pendingRanges,
     reconciliationRequired: Boolean(application?.reconciliation?.required || pendingRanges.length),
     refreshMode,
+  };
+}
+
+function flashManualActionApplication(application) {
+  const ranges = manualActionFlashRanges(application);
+  if (!ranges.length) {
+    return false;
+  }
+  if (state.manualEdit.savedFlashTimer) {
+    window.clearTimeout(state.manualEdit.savedFlashTimer);
+    state.manualEdit.savedFlashTimer = null;
+  }
+  state.manualEdit.savedFlashRanges = ranges;
+  renderCurrentListingWindow();
+  state.manualEdit.savedFlashTimer = window.setTimeout(() => {
+    state.manualEdit.savedFlashRanges = [];
+    state.manualEdit.savedFlashTimer = null;
+    renderCurrentListingWindow();
+  }, 1100);
+  return true;
+}
+
+function manualActionFlashRanges(application) {
+  const localEffects = Array.isArray(application?.localEffects) ? application.localEffects : [];
+  const pendingRanges = Array.isArray(application?.pendingRanges) ? application.pendingRanges : [];
+  return [
+    ...localEffects.flatMap(manualActionEffectSubjects),
+    ...pendingRanges,
+  ].map(normalizeManualActionLocation).filter(Boolean);
+}
+
+function manualActionEffectSubjects(effect) {
+  if (!effect || typeof effect !== "object") {
+    return [];
+  }
+  if (effect.kind === "label_rename") {
+    return [effect];
+  }
+  if (effect.kind === "comment") {
+    return effect.comment ? [effect.comment] : [];
+  }
+  if (effect.kind === "representation") {
+    return effect.representation ? [effect.representation] : [];
+  }
+  if (effect.kind === "review_note_add" || effect.kind === "review_note_edit") {
+    return effect.note ? [effect.note] : [];
+  }
+  return [];
+}
+
+function normalizeManualActionLocation(subject) {
+  if (!subject || typeof subject !== "object") {
+    return null;
+  }
+  const rowIndexes = Array.isArray(subject.row_indexes)
+    ? subject.row_indexes.map((value) => Number(value)).filter(Number.isFinite)
+    : [];
+  const rowIndex = Number(subject.row_index);
+  if (Number.isFinite(rowIndex) && !rowIndexes.includes(rowIndex)) {
+    rowIndexes.push(rowIndex);
+  }
+  const stableKey = String(subject.stable_key || "");
+  const addr = Number(subject.addr);
+  const end = Number(subject.end);
+  const hunk = Number(subject.hunk ?? subject.section_index);
+  if (!rowIndexes.length && !stableKey && !Number.isFinite(addr)) {
+    return null;
+  }
+  return {
+    row_indexes: rowIndexes,
+    stable_key: stableKey || null,
+    addr: Number.isFinite(addr) ? addr : null,
+    end: Number.isFinite(end) ? end : null,
+    hunk: Number.isFinite(hunk) ? hunk : null,
   };
 }
 
@@ -5544,7 +5627,7 @@ function renderListingRows(rows, globalStart = 0) {
   }
   return rows.map((row, rowIndex) => `
     <div
-      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}${listingRowHasPendingManualEdit(row, globalStart + rowIndex) ? " listing-row-manual-pending" : ""}${listingRowIsSelected(row, globalStart + rowIndex) ? " listing-row-selected" : ""}"
+      class="listing-row listing-row-${escapeHtml(row.kind)}${rowUsesGlobalTextColumn(row) ? " listing-row-global" : ""}${Array.isArray(row.repro_issues) && row.repro_issues.length ? " listing-row-repro-issue" : ""}${listingRowHasPendingManualEdit(row, globalStart + rowIndex) ? " listing-row-manual-pending" : ""}${listingRowHasSavedManualFlash(row, globalStart + rowIndex) ? " listing-row-manual-saved" : ""}${listingRowIsSelected(row, globalStart + rowIndex) ? " listing-row-selected" : ""}"
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
       data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
@@ -5603,20 +5686,36 @@ function listingRowIsSelected(row, globalIndex) {
 
 function listingRowHasPendingManualEdit(row, globalIndex) {
   const ranges = Array.isArray(state.manualEdit.pendingRanges) ? state.manualEdit.pendingRanges : [];
-  return ranges.some((range) => {
-    const rowIndexes = Array.isArray(range.row_indexes) ? range.row_indexes : [];
-    if (rowIndexes.includes(globalIndex)) {
-      return true;
-    }
-    if (range.stable_key && row.stable_key && range.stable_key === row.stable_key) {
-      return true;
-    }
-    const start = Number(range.addr);
-    const end = Number(range.end);
-    const rowStart = Number(row.start_offset ?? row.addr);
-    return Number.isFinite(start) && Number.isFinite(end) && Number.isFinite(rowStart)
-      && rowStart >= start && rowStart < end;
-  });
+  return ranges.some((range) => manualActionLocationMatchesRow(normalizeManualActionLocation(range), row, globalIndex));
+}
+
+function listingRowHasSavedManualFlash(row, globalIndex) {
+  const ranges = Array.isArray(state.manualEdit.savedFlashRanges) ? state.manualEdit.savedFlashRanges : [];
+  return ranges.some((range) => manualActionLocationMatchesRow(range, row, globalIndex));
+}
+
+function manualActionLocationMatchesRow(location, row, globalIndex) {
+  if (!location || !row) {
+    return false;
+  }
+  if (location.stable_key) {
+    return Boolean(row.stable_key && location.stable_key === row.stable_key);
+  }
+  const rowIndexes = Array.isArray(location.row_indexes) ? location.row_indexes : [];
+  if (rowIndexes.includes(globalIndex)) {
+    return true;
+  }
+  const start = Number(location.addr);
+  const rowStart = Number(row.start_offset ?? row.addr);
+  if (!Number.isFinite(start) || !Number.isFinite(rowStart)) {
+    return false;
+  }
+  const hunk = Number(location.hunk);
+  if (Number.isFinite(hunk) && Number.isInteger(row.section_index) && hunk !== row.section_index) {
+    return false;
+  }
+  const end = Number(location.end);
+  return Number.isFinite(end) && end > start ? rowStart >= start && rowStart < end : rowStart === start;
 }
 
 function clampListingWindowCount(count) {

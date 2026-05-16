@@ -1523,6 +1523,8 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.click("[data-inline-parameter-session] .command-parameter-submit")
         page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
         page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-comment')?.textContent.includes('entry label')")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"0\"]')?.classList.contains('listing-row-manual-saved')")
+        assert "Manual action saved" not in page.text_content("#analysis-status")
 
         page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
         page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
@@ -1532,6 +1534,7 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.click("[data-inline-parameter-session] .command-parameter-submit")
         page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
         page.wait_for_expression("document.querySelector('[data-row-index=\"1\"] .listing-comment')?.textContent.includes('manual return')")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"1\"]')?.classList.contains('listing-row-manual-saved')")
 
         page.evaluate("document.querySelector('[data-row-index=\"2\"]').click()")
         assert page.evaluate("invokeSelectedCatalogBinding('r')") is True
