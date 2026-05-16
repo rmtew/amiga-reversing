@@ -153,13 +153,23 @@ const M68kAsmEaTextFormDef *m68k_asm_find_ea_text_form(uint8_t syntax_family, ch
 
 uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count) {
   size_t index;
-  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return M68K_ASM_FORM_NONE;
-  for (index = 0; index < m68k_asm_form_count(); ++index) {
+  M68kAsmFormRange range;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE || mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) return M68K_ASM_FORM_NONE;
+  range = g_m68k_asm_mnemonic_form_ranges[mnemonic_id];
+  for (index = range.start; index < (size_t)range.start + range.count; ++index) {
     const M68kAsmFormDef *form = &g_m68k_asm_forms[index];
     if (form->operand_count != operand_count) continue;
-    if (form->mnemonic_id == mnemonic_id) return (uint16_t)index;
+    if (form->mnemonic_id != mnemonic_id) continue;
+    return (uint16_t)index;
   }
   return M68K_ASM_FORM_NONE;
+}
+
+uint16_t m68k_asm_form_index_for_canonical_id(M68kFormId form_id) {
+  M68kFormRow row = m68k_form_row_for_id(form_id);
+  if (row >= M68K_ASM_FORM_COUNT) return M68K_ASM_FORM_NONE;
+  if (g_m68k_asm_forms[row].canonical_form_id != form_id) return M68K_ASM_FORM_NONE;
+  return row;
 }
 
 uint8_t m68k_asm_form_effective_size_mask(const M68kAsmFormDef *form) {
@@ -336,8 +346,10 @@ char m68k_asm_choose_size_suffix(const M68kAsmFormDef *form, const M68kAsmOperan
 uint16_t m68k_asm_form_index_for_operands_id(uint8_t mnemonic_id, const M68kAsmOperandValue *operands,
     size_t operand_count, char size_suffix, uint8_t target_cpu) {
   size_t index;
-  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE) return M68K_ASM_FORM_NONE;
-  for (index = 0; index < m68k_asm_form_count(); ++index) {
+  M68kAsmFormRange range;
+  if (mnemonic_id == M68K_ASM_MNEMONIC_NONE || mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) return M68K_ASM_FORM_NONE;
+  range = g_m68k_asm_mnemonic_form_ranges[mnemonic_id];
+  for (index = range.start; index < (size_t)range.start + range.count; ++index) {
     const M68kAsmFormDef *form = &g_m68k_asm_forms[index];
     size_t operand_index;
     if (form->operand_count != operand_count) continue;
@@ -362,6 +374,13 @@ uint16_t m68k_asm_form_index_for_operands_id(uint8_t mnemonic_id, const M68kAsmO
     }
   }
   return M68K_ASM_FORM_NONE;
+}
+
+M68kFormId m68k_asm_canonical_form_id_for_operands_id(uint8_t mnemonic_id, const M68kAsmOperandValue *operands,
+    size_t operand_count, char size_suffix, uint8_t target_cpu) {
+  uint16_t asm_form_index = m68k_asm_form_index_for_operands_id(mnemonic_id, operands, operand_count, size_suffix, target_cpu);
+  if (asm_form_index == M68K_ASM_FORM_NONE) return M68K_FORM_ID_NONE;
+  return g_m68k_asm_forms[asm_form_index].canonical_form_id;
 }
 
 size_t m68k_asm_operand_extension_word_count(uint16_t asm_form_index, const M68kAsmOperandValue *operand,
@@ -692,6 +711,7 @@ int m68k_asm_build_patch_values(uint16_t asm_form_index, char size_suffix, const
 int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *out_bytes, size_t max_bytes,
     size_t *out_byte_count) {
   const M68kAsmFormDef *form;
+  M68kFormId canonical_form_id;
   uint16_t asm_form_index;
   uint16_t opword = 0;
   uint16_t ext_words[8];
@@ -699,8 +719,9 @@ int m68k_asm_assemble_instruction(const M68kAsmInstructionSpec *spec, uint8_t *o
   size_t byte_count = 0;
   size_t index;
   if (spec == NULL || out_byte_count == NULL) return -1;
-  asm_form_index = m68k_asm_form_index_for_operands_id(spec->mnemonic_id, spec->operands, spec->operand_count, spec->size_suffix,
+  canonical_form_id = m68k_asm_canonical_form_id_for_operands_id(spec->mnemonic_id, spec->operands, spec->operand_count, spec->size_suffix,
     spec->target_cpu);
+  asm_form_index = m68k_asm_form_index_for_canonical_id(canonical_form_id);
   form = &g_m68k_asm_forms[asm_form_index];
   if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return -2;
   if (m68k_asm_encode_opword(asm_form_index, spec->patch_values, spec->patch_value_count, &opword) != 0) return -3;

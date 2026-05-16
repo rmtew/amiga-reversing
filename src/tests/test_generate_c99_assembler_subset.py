@@ -61,6 +61,8 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
         self.assertIn("    M68K_ASM_PATCH_COUNT =", self._tables_h)
         self.assertIn("  uint8_t mnemonic_id;\n", self._metadata_h)
         self.assertIn("  uint16_t asm_form_index;\n", self._metadata_h)
+        self.assertIn("  M68kFormId canonical_form_id;\n", self._metadata_h)
+        self.assertIn("} M68kAsmFormRange;\n", self._metadata_h)
         self.assertIn(
             "extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];\n",
             self._metadata_h,
@@ -77,6 +79,14 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             'const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[',
             self._tables_c,
         )
+        self.assertIn(
+            "const M68kAsmFormRange g_m68k_asm_mnemonic_form_ranges[M68K_ASM_MNEMONIC_COUNT] = {\n",
+            self._tables_c,
+        )
+        self.assertIn(
+            '{ "add", "ADD <ea>,Dn", M68K_ASM_MNEMONIC_ADD, 30, 31u, 2,',
+            self._tables_c,
+        )
         self.assertIn("    M68K_ASM_MNEMONIC_PSCC =", self._tables_h)
         self.assertIn('    { "pscc", M68K_ASM_MNEMONIC_PSCC },', self._tables_c)
         self.assertIn(
@@ -85,6 +95,14 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
         )
         self.assertIn(
             "uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count);\n",
+            self._metadata_h,
+        )
+        self.assertIn(
+            "uint16_t m68k_asm_form_index_for_canonical_id(M68kFormId form_id);\n",
+            self._metadata_h,
+        )
+        self.assertIn(
+            "M68kFormId m68k_asm_canonical_form_id_for_operands_id(uint8_t mnemonic_id,\n",
             self._metadata_h,
         )
         self.assertIn(

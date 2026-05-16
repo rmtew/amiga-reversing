@@ -205,6 +205,9 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
         canonical_form_index_expr = (
             f"{canonical_form_index}u" if canonical_form_index is not None else "M68K_ASM_FORM_NONE"
         )
+        canonical_form_id_expr = (
+            f"{canonical_form_index + 1}u" if canonical_form_index is not None else "M68K_FORM_ID_NONE"
+        )
         extension_defs = subset._extension_defs(form)
         for patch in form.patches:
             patch_rows.append(
@@ -233,6 +236,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
             f"\"{form.syntax}\", "
             f"M68K_ASM_MNEMONIC_{form.mnemonic}, "
             f"{canonical_form_index_expr}, "
+            f"{canonical_form_id_expr}, "
             f"{len(form.operand_kinds)}u,"
         )
         line2 = (
@@ -298,7 +302,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
         for row in [*operand_ea_mode_masks, [0, 0, 0, 0]]
     ]
     nil_form_row = [
-        '    { "", "", M68K_ASM_MNEMONIC_NONE, M68K_ASM_FORM_NONE, 0u,',
+        '    { "", "", M68K_ASM_MNEMONIC_NONE, M68K_ASM_FORM_NONE, M68K_FORM_ID_NONE, 0u,',
         "        { M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE }, 0u, 0u, 0u, 0u,",
         "        0x00u, 0u, 0u, 0x0000, 0x0000, 0u, 0u, 0u, 0u, 0u,",
         "        { 0x0000, 0x0000 }, { 0x0000, 0x0000 },",

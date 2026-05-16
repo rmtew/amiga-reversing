@@ -3,6 +3,7 @@
 #define M68K_ASM_METADATA_H
 
 #include "generated/m68k_asm_tables.h"
+#include "generated/m68k_form_model.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -88,6 +89,7 @@ typedef struct {
   const char *syntax;
   uint8_t mnemonic_id;
   uint16_t asm_form_index;
+  M68kFormId canonical_form_id;
   uint8_t operand_count;
   uint8_t operand_kinds[4];
   uint8_t size_mask;
@@ -124,6 +126,11 @@ typedef struct {
   uint8_t mnemonic_id;
 } M68kAsmMnemonicLookupEntry;
 
+typedef struct {
+  uint16_t start;
+  uint16_t count;
+} M68kAsmFormRange;
+
 extern const M68kAsmFormDef g_m68k_asm_forms[M68K_ASM_FORM_SLOT_COUNT];
 extern const M68kAsmFieldPatch g_m68k_asm_patches[M68K_ASM_PATCH_COUNT];
 extern const M68kAsmExtensionDef g_m68k_asm_extensions[M68K_ASM_EXTENSION_DEF_COUNT];
@@ -132,6 +139,7 @@ extern const uint16_t g_m68k_asm_form_control_register_ids[];
 extern const M68kAsmEaTextFormDef g_m68k_asm_ea_text_forms[M68K_ASM_EA_TEXT_FORM_COUNT];
 extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];
 extern const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[];
+extern const M68kAsmFormRange g_m68k_asm_mnemonic_form_ranges[M68K_ASM_MNEMONIC_COUNT];
 extern const size_t g_m68k_asm_mnemonic_lookup_count;
 extern const size_t g_m68k_asm_control_register_count;
 extern const size_t g_m68k_asm_ea_text_form_count;
@@ -143,6 +151,9 @@ const M68kAsmControlRegisterDef *m68k_asm_find_control_register(const char *name
 const M68kAsmEaTextFormDef *m68k_asm_find_ea_text_form(uint8_t syntax_family, char size_suffix,
   char register_prefix, uint8_t target_cpu);
 uint16_t m68k_asm_form_index_for_id(uint8_t mnemonic_id, size_t operand_count);
+uint16_t m68k_asm_form_index_for_canonical_id(M68kFormId form_id);
+M68kFormId m68k_asm_canonical_form_id_for_operands_id(uint8_t mnemonic_id,
+  const M68kAsmOperandValue *operands, size_t operand_count, char size_suffix, uint8_t target_cpu);
 uint8_t m68k_asm_form_effective_size_mask(const M68kAsmFormDef *form);
 uint8_t m68k_asm_form_effective_size_mask_for_operands(const M68kAsmFormDef *form,
   const M68kAsmOperandValue *operands, size_t operand_count);

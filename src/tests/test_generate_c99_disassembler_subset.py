@@ -69,7 +69,10 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
         self.assertIn('"cpbcc"', self._tables)
         self.assertIn('"cpdbcc"', self._tables)
         self.assertIn('"cptrapcc"', self._tables)
-        self.assertIn('"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, M68K_ASM_FORM_NONE', self._tables)
+        self.assertIn(
+            '"pscc", "PScc <ea>", M68K_ASM_MNEMONIC_PSCC, M68K_ASM_FORM_NONE, M68K_FORM_ID_NONE',
+            self._tables,
+        )
         self.assertNotIn('"pscc", "PScc <ea>", 0u, 65535u', self._tables)
 
     def test_form_count_matches_initializers(self) -> None:

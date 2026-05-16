@@ -120,12 +120,39 @@ static int test_instruction_spec_mnemonic_resolution(void) {
   return 0;
 }
 
+static int test_assembler_canonical_form_resolution(void) {
+  M68kAsmOperandValue operands[2];
+  M68kFormId form_id;
+  uint16_t asm_form_index;
+  const M68kAsmFormDef *form;
+
+  memset(operands, 0, sizeof(operands));
+  operands[0].kind = M68K_ASM_OPERAND_EA;
+  operands[0].ea_mode = 2u;
+  operands[0].ea_reg = 0u;
+  operands[1].kind = M68K_ASM_OPERAND_DN;
+  operands[1].reg = 1u;
+
+  form_id = m68k_asm_canonical_form_id_for_operands_id(M68K_ASM_MNEMONIC_ADD, operands, 2U, '\0', M68K_ASM_CPU_68000);
+  M68K_C_ASSERT_U32(0U, (uint32_t)M68K_FORM_ID_NONE);
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+
+  asm_form_index = m68k_asm_form_index_for_canonical_id(form_id);
+  M68K_C_ASSERT(asm_form_index != M68K_ASM_FORM_NONE);
+  form = &g_m68k_asm_forms[asm_form_index];
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_ADD, form->mnemonic_id);
+  M68K_C_ASSERT_U32(form_id, form->canonical_form_id);
+  M68K_C_ASSERT_U32((uint32_t)asm_form_index, (uint32_t)form->asm_form_index);
+  return 0;
+}
+
 int m68k_c_instruction_spec_tests(void) {
   static const M68kCTestCase cases[] = {
     {"direct_register_detection", test_direct_register_detection},
     {"decoded_ea_shape_and_target_kind", test_decoded_ea_shape_and_target_kind},
     {"decoded_ea_target_resolution", test_decoded_ea_target_resolution},
     {"instruction_spec_mnemonic_resolution", test_instruction_spec_mnemonic_resolution},
+    {"assembler_canonical_form_resolution", test_assembler_canonical_form_resolution},
   };
   return m68k_c_test_run_suite("m68k_instruction_spec", cases, sizeof(cases) / sizeof(cases[0]));
 }

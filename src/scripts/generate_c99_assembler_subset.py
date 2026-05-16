@@ -1357,6 +1357,19 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: l
         f'    {{ "{mnemonic.lower()}", M68K_ASM_MNEMONIC_{mnemonic} }},'
         for mnemonic in sorted_mnemonics
     ]
+    forms_by_mnemonic: dict[str, list[FormDef]] = {}
+    for form in forms:
+        forms_by_mnemonic.setdefault(form.mnemonic, []).append(form)
+    mnemonic_range_rows = ["    { 0u, 0u },"]
+    for mnemonic in mnemonic_list:
+        mnemonic_forms = forms_by_mnemonic.get(mnemonic, [])
+        if mnemonic_forms:
+            start = min(form.form_index for form in mnemonic_forms)
+            count = max(form.form_index for form in mnemonic_forms) - start + 1
+        else:
+            start = 0
+            count = 0
+        mnemonic_range_rows.append(f"    {{ {start}u, {count}u }},")
     mnemonic_lookup_array_len = max(1, len(mnemonic_lookup_rows))
     if not mnemonic_lookup_rows:
         mnemonic_lookup_rows = ['    { NULL, M68K_ASM_MNEMONIC_NONE },']
@@ -1398,6 +1411,7 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: l
             f"\"{form.syntax}\", "
             f"M68K_ASM_MNEMONIC_{form.mnemonic}, "
             f"{form.form_index}, "
+            f"{form.form_index + 1}u, "
             f"{len(form.operand_kinds)}, "
             "{ "
             f"{OPERAND_KIND_ENUM.get(operand_kinds[0], 'M68K_ASM_OPERAND_NONE')}, "
@@ -1482,7 +1496,7 @@ def _render_tables(forms: list[FormDef], kb: dict[str, object], mnemonic_list: l
             " },"
         )
     nil_form_row = (
-        '    { "", "", M68K_ASM_MNEMONIC_NONE, M68K_ASM_FORM_NONE, 0, '
+        '    { "", "", M68K_ASM_MNEMONIC_NONE, M68K_ASM_FORM_NONE, M68K_FORM_ID_NONE, 0, '
         '{ M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE, M68K_ASM_OPERAND_NONE }, '
         '0, 0, 0, 0, 0x00u, 0, 0, 0x0000, 0x0000, 0, 0, 0, 0, 0, '
         '{ 0x0000, 0x0000 }, { 0x0000, 0x0000 }, '
@@ -1499,6 +1513,10 @@ const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {{
 
 const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[{mnemonic_lookup_array_len}] = {{
 {chr(10).join(mnemonic_lookup_rows)}
+}};
+
+const M68kAsmFormRange g_m68k_asm_mnemonic_form_ranges[M68K_ASM_MNEMONIC_COUNT] = {{
+{chr(10).join(mnemonic_range_rows)}
 }};
 
 const M68kAsmFieldPatch g_m68k_asm_patches[{len(patch_rows)}] = {{
