@@ -301,6 +301,7 @@ def _seed_c_listing_artifact(
 ) -> None:
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
     disasm_server._PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
     monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, project_name, artifact)
     monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, project_name, "cache")
@@ -1747,7 +1748,9 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert local_effect["row_index"] == 0
     assert local_effect["name"] == "start"
     assert appended_actions == [action]
+    assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
 
 
 def test_route_manual_action_catalog_execute_uses_visible_row_snapshot_without_artifact(
@@ -4522,6 +4525,7 @@ def test_listing_navigation_exposes_rsset_layout_regions_and_gaps(monkeypatch: p
 
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact(
         [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
     )
@@ -4546,6 +4550,80 @@ def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.Monkey
 
     assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
     assert "bloodwych" not in disasm_server._PROJECT_LISTING_CACHE_KEY
+
+
+def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="abs_0_0001001E:\n",
+            addr=0x1001E,
+            runtime_address=0x1001E,
+            section_index=0,
+            start_offset=0x1E,
+            end_offset=0x1E,
+            label="abs_0_0001001E",
+            stable_key="label-row",
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="move.b (a0)+,(a2)+\n",
+            addr=0x1001E,
+            runtime_address=0x1001E,
+            section_index=0,
+            start_offset=0x1E,
+            end_offset=0x20,
+        ),
+    ]
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        manual_state={
+            "labels": [
+                {
+                    "label_id": "catalog-label-runtime-h0-0001001E",
+                    "name": "renamed_label",
+                    "address_domain": "runtime",
+                    "hunk": 0,
+                    "addr": 0x1001E,
+                    "stable_key": "label-row",
+                }
+            ],
+            "comments": [
+                {
+                    "comment_id": "c1",
+                    "text": "confirmed copy loop",
+                    "hunk": 0,
+                    "addr": 0x1E,
+                }
+            ],
+        },
+    )
+    artifact = _RowsCListingArtifact(rows)
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
+    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
+    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "bloodwych", "old-cache")
+    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.add("bloodwych")
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "new-cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["0"], "count": ["2"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    returned_rows = cast(list[dict[str, object]], data["rows"])
+
+    assert payload["ok"] is True
+    assert returned_rows[0]["label"] == "renamed_label"
+    assert returned_rows[0]["text"] == "renamed_label:\n"
+    assert returned_rows[0]["comment_text"] == "confirmed copy loop"
+    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
+    assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
 
 
 def test_project_listing_cache_key_includes_renderer_tool_stamps(

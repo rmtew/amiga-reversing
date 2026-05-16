@@ -158,6 +158,7 @@ class StaticResponse(TypedDict):
 _MISSING = object()
 _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
+_PROJECT_LISTING_PRESENTATION_DIRTY: set[str] = set()
 _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
@@ -208,6 +209,8 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     if project_name in _PROJECT_LISTING_CACHE_KEY:
         cache_key = _project_listing_cache_key(project_name)
         if _PROJECT_LISTING_CACHE_KEY.get(project_name) != cache_key:
+            if artifact is not None and project_name in _PROJECT_LISTING_PRESENTATION_DIRTY:
+                return None
             _clear_project_listing_cache(project_name)
             return None
     else:
@@ -219,6 +222,35 @@ def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
     ):
         return artifact
     return None
+
+
+def _listing_read_artifact(project_name: str) -> CListingArtifact | None:
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is not None:
+        return artifact
+    if project_name in _PROJECT_LISTING_PRESENTATION_DIRTY:
+        return _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
+    return None
+
+
+_PRESENTATION_MANUAL_ACTION_KINDS = {
+    ManualActionKind.ADD_REVIEW_NOTE,
+    ManualActionKind.EDIT_REVIEW_NOTE,
+    ManualActionKind.CLEAR_REVIEW_NOTE,
+    ManualActionKind.CREATE_MANUAL_LABEL,
+    ManualActionKind.REMOVE_MANUAL_LABEL,
+    ManualActionKind.RENAME_MANUAL_LABEL,
+    ManualActionKind.CHANGE_LABEL_SCOPE,
+    ManualActionKind.CREATE_MANUAL_COMMENT,
+    ManualActionKind.REMOVE_MANUAL_COMMENT,
+    ManualActionKind.CREATE_MANUAL_REPRESENTATION,
+    ManualActionKind.REMOVE_MANUAL_REPRESENTATION,
+    ManualActionKind.RESOLVE_REVIEW_ITEM,
+}
+
+
+def _manual_action_affects_listing_artifact(kind: ManualActionKind) -> bool:
+    return kind not in _PRESENTATION_MANUAL_ACTION_KINDS
 
 
 def _cached_analysis_review_items(
@@ -287,7 +319,7 @@ def _review_warnings_for_project_name(project_name: str) -> list[dict[str, objec
 
 
 def _project_listing_generation(project_name: str) -> str | None:
-    return "full" if _valid_c_listing_artifact(project_name) is not None else None
+    return "full" if _listing_read_artifact(project_name) is not None else None
 
 
 def _c_listing_artifact_total_rows(project_name: str) -> int | None:
@@ -346,6 +378,7 @@ def _write_api_input_type_override(
         artifact.close()
     _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     _PROJECT_LISTING_CACHE_KEY.clear()
+    _PROJECT_LISTING_PRESENTATION_DIRTY.clear()
     _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
     _cancel_listing_jobs()
 
@@ -368,7 +401,10 @@ def _annotate_listing_payload(
 ) -> ListingWindowPayload:
     annotated_rows: list[dict[str, object]] = []
     repro_issues = _active_reproduction_issues_by_row_index(project_name)
-    review_notes = _project_review_notes(project_name)
+    manual_state = _project_manual_state(project_name)
+    labels = _project_manual_labels(manual_state)
+    comments = _project_manual_comments(manual_state)
+    review_notes = _project_review_notes_from_state(manual_state)
     window_start = int(payload.get("start") or 0)
     for relative_index, row in enumerate(payload["rows"]):
         annotations: list[str] = []
@@ -379,7 +415,7 @@ def _annotate_listing_payload(
         for note in row_notes:
             prefix = "REVIEW" if note.get("tracking") == "needs_review" else "NOTE"
             annotations.append(f"{prefix}: {_review_note_summary(note)}")
-        annotated_row = dict(row)
+        annotated_row = _apply_manual_listing_projection(row, labels, comments, window_start + relative_index)
         if annotations:
             annotated_row["view_annotations"] = annotations
         if row_issues:
@@ -397,13 +433,86 @@ def _annotate_listing_payload(
     return result
 
 
+def _project_manual_state(project_name: str) -> dict[str, object]:
+    manual_state = get_project(project_name).manual_state
+    return manual_state if isinstance(manual_state, dict) else {}
+
+
+def _project_manual_labels(manual_state: Mapping[str, object]) -> list[dict[str, object]]:
+    raw_labels = manual_state.get("labels")
+    if not isinstance(raw_labels, list | tuple):
+        return []
+    return [dict(label) for label in raw_labels if isinstance(label, dict)]
+
+
+def _project_manual_comments(manual_state: Mapping[str, object]) -> list[dict[str, object]]:
+    raw_comments = manual_state.get("comments")
+    if not isinstance(raw_comments, list | tuple):
+        return []
+    return [dict(comment) for comment in raw_comments if isinstance(comment, dict)]
+
+
 def _project_review_notes(project_name: str) -> list[dict[str, object]]:
-    project = get_project(project_name)
-    manual_state = project.manual_state
+    return _project_review_notes_from_state(_project_manual_state(project_name))
+
+
+def _project_review_notes_from_state(manual_state: Mapping[str, object]) -> list[dict[str, object]]:
     raw_notes = manual_state.get("review_notes") if isinstance(manual_state, dict) else None
     if not isinstance(raw_notes, list | tuple):
         return []
     return [dict(note) for note in raw_notes if isinstance(note, dict)]
+
+
+def _manual_entry_matches_row(entry: Mapping[str, object], row: Mapping[str, object], row_index: int) -> bool:
+    entry_row_index = _optional_int(entry.get("row_index"))
+    if entry_row_index is not None and entry_row_index == row_index:
+        return True
+    stable_key = entry.get("stable_key")
+    if isinstance(stable_key, str) and stable_key and row.get("stable_key") == stable_key:
+        return True
+    hunk = _optional_int(entry.get("hunk"))
+    addr = _optional_int(entry.get("addr"))
+    if hunk is None or addr is None:
+        return False
+    if hunk != _optional_int(row.get("section_index")):
+        return False
+    if entry.get("address_domain") == "runtime":
+        row_addr = _optional_int(row.get("runtime_address"))
+        if row_addr is None:
+            row_addr = _optional_int(row.get("addr"))
+    else:
+        row_addr = _optional_int(row.get("start_offset"))
+        if row_addr is None:
+            row_addr = _optional_int(row.get("addr"))
+    return row_addr == addr
+
+
+def _apply_manual_listing_projection(
+    row: Mapping[str, object],
+    labels: Sequence[Mapping[str, object]],
+    comments: Sequence[Mapping[str, object]],
+    row_index: int,
+) -> dict[str, object]:
+    projected = dict(row)
+    for label in labels:
+        name = label.get("name")
+        if (
+            isinstance(name, str)
+            and name.strip()
+            and (row.get("kind") == "label" or isinstance(row.get("label"), str))
+            and _manual_entry_matches_row(label, row, row_index)
+        ):
+            clean_name = name.strip().rstrip(":")
+            projected["kind"] = projected.get("kind") or "label"
+            projected["label"] = clean_name
+            projected["text"] = f"{clean_name}:\n"
+            break
+    for comment in comments:
+        text = comment.get("text")
+        if isinstance(text, str) and text.strip() and _manual_entry_matches_row(comment, row, row_index):
+            projected["comment_text"] = text.strip()
+            break
+    return projected
 
 
 def _review_note_summary(note: Mapping[str, object]) -> str:
@@ -735,6 +844,7 @@ def _clear_project_listing_cache(project_name: str) -> None:
     if artifact is not None:
         artifact.close()
     _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
+    _PROJECT_LISTING_PRESENTATION_DIRTY.discard(project_name)
     _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.pop(project_name, None)
 
 
@@ -1055,6 +1165,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
             if listing_artifact is not None:
                 _PROJECT_C_LISTING_ARTIFACT_CACHE[project_name] = listing_artifact
+                _PROJECT_LISTING_PRESENTATION_DIRTY.discard(project_name)
                 listing_artifact = None
             if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
                 old_artifact.close()
@@ -1870,24 +1981,12 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
             )
         )
         application_parts.append(_manual_action_application_payload(kind, action_payload, context))
-    non_metadata_kinds = {
-        ManualActionKind.ADD_REVIEW_NOTE,
-        ManualActionKind.EDIT_REVIEW_NOTE,
-        ManualActionKind.CLEAR_REVIEW_NOTE,
-        ManualActionKind.CREATE_MANUAL_LABEL,
-        ManualActionKind.REMOVE_MANUAL_LABEL,
-        ManualActionKind.RENAME_MANUAL_LABEL,
-        ManualActionKind.CHANGE_LABEL_SCOPE,
-        ManualActionKind.CREATE_MANUAL_COMMENT,
-        ManualActionKind.REMOVE_MANUAL_COMMENT,
-        ManualActionKind.CREATE_MANUAL_REPRESENTATION,
-        ManualActionKind.REMOVE_MANUAL_REPRESENTATION,
-        ManualActionKind.RESOLVE_REVIEW_ITEM,
-    }
-    if any(manual_action_kind(kind) not in non_metadata_kinds for kind, _ in action_payloads):
+    if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
         _cancel_listing_jobs(project_name)
         _cancel_reproduction_jobs(project_name)
         _clear_project_listing_cache(project_name)
+    else:
+        _PROJECT_LISTING_PRESENTATION_DIRTY.add(project_name)
     mark_project_updated(paths.target_dir)
     return {
         "action": appended_actions[0],
@@ -2681,10 +2780,12 @@ def route_request(
                 payload=action_payload,
                 binary_source=binary_source,
             )
-            if manual_action_kind_id is not ManualActionKind.RESOLVE_REVIEW_ITEM:
+            if _manual_action_affects_listing_artifact(manual_action_kind_id):
                 _cancel_listing_jobs(project_name)
                 _cancel_reproduction_jobs(project_name)
                 _clear_project_listing_cache(project_name)
+            else:
+                _PROJECT_LISTING_PRESENTATION_DIRTY.add(project_name)
             mark_project_updated(paths.target_dir)
             return {"ok": True, "data": {"action": action}}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
@@ -2695,7 +2796,7 @@ def route_request(
                 )
             if not project.ready:
                 return {"ok": True, "data": _empty_listing_payload(None)}
-            listing_artifact = _valid_c_listing_artifact(project_name)
+            listing_artifact = _listing_read_artifact(project_name)
             if listing_artifact is None:
                 raise ValueError(
                     f"C listing artifact not loaded for project: {project_name}"
@@ -2773,7 +2874,7 @@ def route_request(
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
-            listing_artifact = _valid_c_listing_artifact(project_name)
+            listing_artifact = _listing_read_artifact(project_name)
             if listing_artifact is not None:
                 navigation_payload, _ = listing_artifact.navigation_payload()
                 return {
