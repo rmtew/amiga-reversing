@@ -192,17 +192,6 @@ def test_web_app_typed_navigation_uses_data_class_rows() -> None:
     assert "if (!typedDataSeen.has(key)) {" in app_js
 
 
-def test_web_app_does_not_duplicate_source_comment_rows() -> None:
-    app_js = (
-        Path(__file__).resolve().parent.parent
-        / "amiga_reversing" / "web"
-        / "app.js"
-    ).read_text(encoding="utf-8")
-
-    assert 'if (row.kind === "comment") {' in app_js
-    assert 'return `; ${row.comment_text}`;' in app_js
-
-
 def test_web_app_generation_refresh_restores_only_applied_request() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

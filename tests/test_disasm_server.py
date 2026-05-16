@@ -1750,6 +1750,30 @@ def test_manual_projection_uses_precise_label_locator_without_address_fallback()
     assert second["label"] == "ENTRYPOINT0002"
 
 
+def test_manual_projection_strips_trailing_comment_text_from_source_comment_rows() -> None:
+    row = {
+        "kind": "comment",
+        "text": "    ; Test\n",
+        "comment_text": "Test",
+        "section_index": 0,
+        "stable_key": "source-comment-row",
+    }
+    comments = [
+        {
+            "comment_id": "source-comment",
+            "text": "Test",
+            "hunk": 0,
+            "addr": 0,
+            "stable_key": "source-comment-row",
+        }
+    ]
+
+    projected = disasm_server._apply_manual_listing_projection(row, [], comments, 10)
+
+    assert projected["text"] == "    ; Test\n"
+    assert "comment_text" not in projected
+
+
 def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibility(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

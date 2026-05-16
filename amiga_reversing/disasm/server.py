@@ -537,6 +537,9 @@ def _apply_manual_listing_projection(
     row_index: int,
 ) -> dict[str, object]:
     projected = dict(row)
+    if projected.get("kind") == "comment":
+        projected.pop("comment_text", None)
+        return projected
     label = _manual_label_for_projection(row, labels, row_index)
     if label is not None:
         name = label.get("name")
