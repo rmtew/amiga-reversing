@@ -314,12 +314,21 @@ class SampleCoverageEntry:
     missing_operand_kinds: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class OperandSampleRegistryEntry:
+    operand_kind: str
+    status: str
+    reason: str
+    samples: tuple[dict[str, object], ...] = ()
+
+
 SAMPLE_STATUS_SAMPLED = "sampled"
 SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY = "missing_sample_strategy"
 SAMPLE_STATUS_INTENTIONALLY_UNSUPPORTED = "intentionally_unsupported"
 SAMPLE_STATUS_IMPLEMENTED_UNSUPPORTED = "implemented_unsupported"
 SAMPLE_STATUS_NOT_TARGET_CPU = "not_target_cpu"
 SAMPLE_STATUS_ORACLE_UNAVAILABLE = "oracle_unavailable"
+SAMPLE_STATUS_EA_FAMILY_DEFERRED = "ea_family_deferred"
 
 
 @dataclass(frozen=True, slots=True)
@@ -491,6 +500,118 @@ def _cache_selector_samples() -> tuple[CacheSelectorSample, ...]:
         CacheSelectorSample(asm_text="ic", value=2),
         CacheSelectorSample(asm_text="bc", value=3),
     )
+
+
+def _register_pair_samples(kind: str) -> tuple[RegisterPairSample, ...]:
+    if kind == "dn_pair":
+        return (
+            RegisterPairSample(asm_text="d0:d1", reg=0, pair_reg=1),
+            RegisterPairSample(asm_text="d6:d7", reg=6, pair_reg=7),
+        )
+    if kind == "rn_pair":
+        return (
+            RegisterPairSample(asm_text="d0:a1", reg=0, pair_reg=1, pair_reg_is_address=1),
+            RegisterPairSample(asm_text="a6:d7", reg=6, pair_reg=7, reg_is_address=1),
+        )
+    return ()
+
+
+def _sample_to_registry_dict(sample: object) -> dict[str, object]:
+    if isinstance(sample, RegisterSample):
+        return {"asm": sample.asm_text, "reg": sample.reg, "reg_is_address": sample.reg_is_address}
+    if isinstance(sample, RegisterPairSample):
+        return {
+            "asm": sample.asm_text,
+            "reg": sample.reg,
+            "pair_reg": sample.pair_reg,
+            "reg_is_address": sample.reg_is_address,
+            "pair_reg_is_address": sample.pair_reg_is_address,
+        }
+    if isinstance(sample, ControlRegisterSample):
+        return {"asm": sample.asm_text, "reg_id": sample.reg_id, "value": sample.value}
+    if isinstance(sample, CacheSelectorSample):
+        return {"asm": sample.asm_text, "value": sample.value}
+    if isinstance(sample, FixedOperandSample):
+        return {"asm": sample.asm_text}
+    if isinstance(sample, DispSample):
+        return {"asm": sample.asm_text, "reg": sample.reg, "value": sample.value}
+    return {"asm": getattr(sample, "asm_text", "")}
+
+
+def _registry_entry(operand_kind: str, samples: tuple[object, ...], reason: str) -> OperandSampleRegistryEntry:
+    return OperandSampleRegistryEntry(
+        operand_kind=operand_kind,
+        status=SAMPLE_STATUS_SAMPLED if samples else SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY,
+        reason=reason if samples else f"no generated sample schema for operand kind {operand_kind}",
+        samples=tuple(_sample_to_registry_dict(sample) for sample in samples),
+    )
+
+
+def _control_register_registry_samples(target_cpu: str, forms: list[object], kb: dict[str, object]) -> tuple[ControlRegisterSample, ...]:
+    samples: list[ControlRegisterSample] = []
+    seen: set[tuple[str, int]] = set()
+    for form in forms:
+        if "ctrl_reg" not in form.sampling_operand_kinds or not _form_supports_cpu(form, target_cpu):
+            continue
+        item = _mnemonic_item(kb, form.kb_mnemonic)
+        form_source = _raw_form_for_generated_form(kb, item, form)
+        for sample in _control_register_samples(item, target_cpu, form_source, kb):
+            key = (sample.asm_text, sample.value)
+            if key in seen:
+                continue
+            seen.add(key)
+            samples.append(sample)
+    return tuple(samples)
+
+
+def generate_operand_sample_registry(target_cpu: str = "68000") -> tuple[OperandSampleRegistryEntry, ...]:
+    _subset_module, forms, kb = _load_forms_and_kb()
+    operand_kinds = sorted({kind for form in forms for kind in form.sampling_operand_kinds})
+    entries: list[OperandSampleRegistryEntry] = []
+    ea_deferred = {"ea", "bf_ea", "absl", "ind", "postinc", "predec"}
+    fixed_samples = {
+        "ccr": (FixedOperandSample("ccr"),),
+        "sr": (FixedOperandSample("sr"),),
+        "usp": (FixedOperandSample("usp"),),
+    }
+    for operand_kind in operand_kinds:
+        if operand_kind in ea_deferred:
+            entries.append(OperandSampleRegistryEntry(
+                operand_kind=operand_kind,
+                status=SAMPLE_STATUS_EA_FAMILY_DEFERRED,
+                reason="EA-family sample expansion is owned by issue 025-002",
+            ))
+        elif operand_kind == "dn":
+            entries.append(_registry_entry(operand_kind, _register_samples("d"), "data register samples are generated"))
+        elif operand_kind == "an":
+            entries.append(_registry_entry(operand_kind, _register_samples("a"), "address register samples are generated"))
+        elif operand_kind == "rn":
+            entries.append(_registry_entry(operand_kind, _rn_samples(), "data/address register samples are generated"))
+        elif operand_kind in {"dn_pair", "rn_pair"}:
+            entries.append(_registry_entry(operand_kind, _register_pair_samples(operand_kind), "register-pair samples are generated"))
+        elif operand_kind == "ctrl_reg":
+            entries.append(_registry_entry(
+                operand_kind,
+                _control_register_registry_samples(target_cpu, forms, kb),
+                "control register samples are generated from KB constraints",
+            ))
+        elif operand_kind == "cache_sel":
+            entries.append(_registry_entry(operand_kind, _cache_selector_samples(), "cache selector samples are generated"))
+        elif operand_kind == "disp":
+            entries.append(_registry_entry(
+                operand_kind,
+                tuple(DispSample(asm_text=f"${value:04x}(a{reg})", reg=reg, value=value) for reg, value in DISP_DOMAIN),
+                "displacement samples are generated",
+            ))
+        elif operand_kind in fixed_samples:
+            entries.append(_registry_entry(operand_kind, fixed_samples[operand_kind], "fixed operand samples are generated"))
+        else:
+            entries.append(OperandSampleRegistryEntry(
+                operand_kind=operand_kind,
+                status=SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY,
+                reason=f"no generated sample schema for operand kind {operand_kind}",
+            ))
+    return tuple(entries)
 
 
 def _ea_mode_encoding(kb: dict[str, object]) -> dict[str, tuple[int, int | None]]:

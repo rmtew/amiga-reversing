@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/025-m68k-generated-sample-plans-and-strict-coverage.md`
 Type: AFK
-Blocked by: `docs/issues/024-001-generate-canonical-form-ids.md`
+Blocked by: None
 
 ## Scope
 

@@ -269,6 +269,24 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         self.assertNotEqual(_run_cli("verify-manifest", str(manifest_68020_path)).returncode, 0)
         self.assertEqual(_run_cli("verify-manifest", "--cpu", "68020", str(manifest_68020_path)).returncode, 0)
 
+    def test_operand_sample_registry_includes_special_operands(self) -> None:
+        registry = {
+            entry.operand_kind: entry
+            for entry in _corpus_generator().generate_operand_sample_registry("68020")
+        }
+        self.assertEqual(registry["ctrl_reg"].status, "sampled")
+        self.assertTrue(any(sample["asm"] == "vbr" for sample in registry["ctrl_reg"].samples))
+        self.assertEqual(registry["rn_pair"].status, "sampled")
+        self.assertTrue(any(sample["pair_reg_is_address"] == 1 for sample in registry["rn_pair"].samples))
+
+    def test_operand_sample_registry_reports_missing_schema(self) -> None:
+        registry = {
+            entry.operand_kind: entry
+            for entry in _corpus_generator().generate_operand_sample_registry("68020")
+        }
+        self.assertEqual(registry["imm"].status, "missing_sample_strategy")
+        self.assertIn("no generated sample schema", registry["imm"].reason)
+
     def test_native_line_cpu_gating_rejects_expected_cases(self) -> None:
         samples = (
             ("68000", "moves.w d0,(a0)"),
