@@ -1265,6 +1265,7 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
   for (label_index = 0U; label_index < policy->named_label_count; ++label_index) {
     const M68kAnalysisNamedLabel *label = &policy->named_labels[label_index];
     size_t target_section = label->has_section_index ? label->section_index : 0U;
+    if (label->domain == M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME) continue;
     if (target_section >= object->section_count) continue;
     if (label_lookup_create_label(label_lookup, facts, target_section, label->offset,
         M68K_FACT_CONFIDENCE_REQUIRED) != 0)

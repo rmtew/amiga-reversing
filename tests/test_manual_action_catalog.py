@@ -3,7 +3,7 @@ from __future__ import annotations
 from amiga_reversing.disasm.manual_action_catalog import listing_catalog_manual_payload
 
 
-def test_runtime_label_rename_uses_row_runtime_address() -> None:
+def test_runtime_label_rename_uses_generated_absolute_address() -> None:
     row = {
         "kind": "label",
         "label": "abs_0_0001001E",
@@ -24,5 +24,5 @@ def test_runtime_label_rename_uses_row_runtime_address() -> None:
 
     assert kind == "create_manual_label"
     assert payload["label"]["address_domain"] == "runtime"
-    assert payload["label"]["addr"] == 0x2001E
-    assert payload["label"]["label_id"] == "catalog-label-runtime-h0-0002001E"
+    assert payload["label"]["addr"] == 0x1001E
+    assert payload["label"]["label_id"] == "catalog-label-runtime-h0-0001001E"

@@ -447,8 +447,14 @@ static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size
 
 static void format_runtime_asm_label(const M68kRenderLookup *lookup, char *buf, size_t buf_size,
     size_t section_index, uint32_t source_offset, uint32_t runtime_address) {
-  (void)lookup;
+  const char *policy_name;
   if (buf == NULL || buf_size == 0U) return;
+  policy_name = lookup_policy_label_name(lookup, section_index, runtime_address,
+    M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
+  if (policy_name != NULL && policy_name[0] != '\0') {
+    snprintf(buf, buf_size, "%s", policy_name);
+    return;
+  }
   if (source_offset == runtime_address) {
     format_asm_label(buf, buf_size, section_index, runtime_address);
     return;
@@ -464,7 +470,7 @@ static uint8_t format_rendered_asm_label_with_generation(const M68kRenderLookup 
   if (lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address) &&
       runtime_address != offset && lookup_source_offset_is_materialized_runtime_range_start(lookup, section_index,
         offset)) {
-    const char *policy_name = lookup_policy_label_name(lookup, section_index, offset,
+    const char *policy_name = lookup_policy_label_name(lookup, section_index, runtime_address,
       M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
     if (policy_name != NULL && policy_name[0] != '\0') {
       snprintf(buf, buf_size, "%s", policy_name);
@@ -475,7 +481,10 @@ static uint8_t format_rendered_asm_label_with_generation(const M68kRenderLookup 
   }
   generated = format_lookup_asm_label_with_generation(lookup, buf, buf_size, section_index, offset);
   if (generated && lookup_source_should_render_runtime_label(lookup, section_index, offset, &runtime_address)) {
+    const char *policy_name = lookup_policy_label_name(lookup, section_index, runtime_address,
+      M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
     format_runtime_asm_label(lookup, buf, buf_size, section_index, offset, runtime_address);
+    if (policy_name != NULL && policy_name[0] != '\0') return 0U;
   }
   return generated;
 }

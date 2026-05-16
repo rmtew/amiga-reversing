@@ -613,10 +613,12 @@ static int append_metadata_absolute_code_label_local(const char *object_start, c
     return 0;
   }
   if (!has_addr || name[0] == '\0') return 1;
-  if (!policy_runtime_address_to_source_offset_local(policy, runtime_address, &section_index, &offset)) return 0;
-  if (!policy_add_named_label_domain_local(policy, section_index, offset, name, M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME))
+  if (!policy_add_named_label_domain_local(policy, 0U, runtime_address, name, M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME))
     return 0;
-  if (comment[0] != '\0' && !policy_add_entry_comment_local(policy, section_index, offset, comment)) return 0;
+  if (comment[0] != '\0' &&
+      policy_runtime_address_to_source_offset_local(policy, runtime_address, &section_index, &offset) &&
+      !policy_add_entry_comment_local(policy, section_index, offset, comment))
+    return 0;
   return 1;
 }
 
@@ -5015,7 +5017,8 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
     const M68kAnalysisNamedLabel *label = &policy->named_labels[index];
     if (!validate_policy_section_index_local(diagnostics, object, label->has_section_index, label->section_index))
       return 0;
-    if (!validate_policy_offset_local(diagnostics, object, label->has_section_index, label->section_index,
+    if (label->domain != M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME &&
+        !validate_policy_offset_local(diagnostics, object, label->has_section_index, label->section_index,
           label->offset, "target metadata label offset is out of range for source file"))
       return 0;
   }

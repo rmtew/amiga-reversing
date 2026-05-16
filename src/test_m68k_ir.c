@@ -9320,10 +9320,16 @@ static int test_facts_v2_runtime_range_start_keeps_source_and_runtime_label_doma
   policy.named_labels[0].section_index = 0U;
   policy.named_labels[0].offset = 0U;
   snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "entrypoint");
+  policy.named_label_count = 2U;
+  policy.named_labels[1].has_section_index = 1U;
+  policy.named_labels[1].domain = M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME;
+  policy.named_labels[1].section_index = 0U;
+  policy.named_labels[1].offset = 0x100U;
+  snprintf(policy.named_labels[1].name, sizeof(policy.named_labels[1].name), "runtime_entry");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "entrypoint:\n    ORG $100\nabs_0_00000100:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "entrypoint:\n    ORG $100\nruntime_entry:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "entrypoint:\n\tnop\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
@@ -9369,6 +9375,12 @@ static int test_facts_v2_runtime_alias_refs_emit_first_class_labels(void) {
   policy.runtime_entry_points[0].has_section_index = 1U;
   policy.runtime_entry_points[0].section_index = 0U;
   policy.runtime_entry_points[0].runtime_address = 0x400U;
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].domain = M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].offset = 0x810U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "copied_entry");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -9378,9 +9390,9 @@ static int test_facts_v2_runtime_alias_refs_emit_first_class_labels(void) {
   M68K_C_ASSERT(strstr(source,
     ";   section[$00000000-$00000014] -> runtime[$00000800-$00000814] policy materialized\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000410.l\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tjsr abs_0_00000810.l\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr copied_entry.l\n") != NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00000410:\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "    ORG $810\nabs_0_00000810:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "    ORG $810\ncopied_entry:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000010+$") == NULL);
   M68K_C_ASSERT(strstr(source, "abs_0_00000810 EQU") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
