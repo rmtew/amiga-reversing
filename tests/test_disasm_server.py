@@ -1145,6 +1145,17 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
         "action": "open_command_palette",
         "parameters": {},
     } in actions
+    profile_action = next(action for action in actions if action["action_id"] == "target.reproduction_profile")
+    assert profile_action["category"] == "target_tooling"
+    assert profile_action["appends_to_manual_action_log"] is False
+    assert profile_action["action"] == "set_reproduction_profile"
+    assert profile_action["interaction_schema"]["type"] == "choice_grid"
+    assert profile_action["parameter_schema"]["properties"]["profile_id"]["enum"] == [
+        "exact-framework",
+        "source-vasm",
+        "source-devpac",
+        "content-semantic",
+    ]
     assert any(action["action_id"] == "navigation.history_back" for action in actions)
 
 
@@ -2319,6 +2330,104 @@ def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch)
     assert cast(dict[str, object], run_payload["data"])["job_kind"] == "reproduction"
     assert cast(dict[str, object], status_payload["data"])["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
+
+
+def test_route_reproduction_profile_list_show_set_without_manual_log(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "bloodwych"
+    target_dir.mkdir(parents=True)
+    updated: list[Path] = []
+    disasm_server._ASYNC_JOBS["old-repro"] = cast(
+        disasm_server.AsyncJobPayload,
+        {
+            "job_id": "old-repro",
+            "job_kind": "reproduction",
+            "project_id": "bloodwych",
+            "result_project_id": "bloodwych",
+            "status": "queued",
+            "phase_id": "queued",
+            "phase_index": 0,
+            "phase_count": 4,
+            "progress_mode": "determinate",
+            "progress_current": 0,
+            "progress_total": 4,
+            "progress_percent": 0,
+            "total_rows": None,
+            "error": None,
+            "created_at": 1.0,
+            "finished_at": None,
+        },
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda path: updated.append(path))
+    monkeypatch.setattr(
+        disasm_server,
+        "load_reproduction_report",
+        lambda project_name, project_root=None: {"target": project_name, "status": "exact", "stale": True},
+    )
+
+    profiles_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/reproduction/profiles", {})
+    set_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/reproduction/profile",
+        {},
+        {"profile_id": "source-vasm"},
+    )
+    show_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/reproduction/profile", {})
+
+    profiles = cast(list[dict[str, object]], cast(dict[str, object], profiles_payload["data"])["profiles"])
+    set_data = cast(dict[str, object], set_payload["data"])
+    show_data = cast(dict[str, object], show_payload["data"])
+    edit = cast(dict[str, object], set_data["edit"])
+    options = cast(dict[str, object], edit["options"])
+    reproduction_payload = cast(dict[str, object], set_data["reproduction"])
+    policy_summary = cast(dict[str, object], reproduction_payload["policy_summary"])
+
+    assert [profile["profile_id"] for profile in profiles] == [
+        "exact-framework",
+        "source-vasm",
+        "source-devpac",
+        "content-semantic",
+    ]
+    assert edit["kind"] == "reproduction_options"
+    assert options["profile_id"] == "source-vasm"
+    assert options["assembler"] == "our"
+    assert options["oracle_modes"] == ["vasm"]
+    assert policy_summary["profile_id"] == "source-vasm"
+    assert show_data["profile_id"] == "source-vasm"
+    assert updated == [target_dir]
+    assert "old-repro" not in disasm_server._ASYNC_JOBS
+    assert not (target_dir / "manual_actions.jsonl").exists()
+    disasm_server._ASYNC_JOBS.clear()
+
+
+def test_route_reproduction_policy_rejects_invalid_options(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    target_dir = tmp_path / "targets" / "bloodwych"
+    target_dir.mkdir(parents=True)
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+
+    with pytest.raises(ValueError, match="invalid reproduction option 'assembler'"):
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/reproduction/policy",
+            {},
+            {"options": {"assembler": "vasm"}},
+        )
 
 
 def test_route_reproduction_stale_listing_artifact_exposes_background_job(

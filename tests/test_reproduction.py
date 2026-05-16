@@ -1474,6 +1474,30 @@ def test_reproduction_options_read_file_shape_policy(tmp_path: Path) -> None:
     )
 
 
+def test_builtin_reproduction_profiles_expand_to_concrete_options() -> None:
+    profiles = reproduction.builtin_reproduction_profiles()
+    by_id = {str(profile["profile_id"]): profile for profile in profiles}
+
+    assert set(by_id) == {"exact-framework", "source-vasm", "source-devpac", "content-semantic"}
+    for profile_id, profile in by_id.items():
+        options = cast(dict[str, object], profile["options"])
+        policy = reproduction.reproduction_policy_for_options(
+            reproduction.validated_reproduction_options_payload(options)
+        )
+        assert options["profile_id"] == profile_id
+        assert options["assembler"] == "our"
+        assert policy["requested_exactness_id"] in {1, 2}
+
+    assert cast(dict[str, object], by_id["source-vasm"]["options"])["oracle_modes"] == ["vasm"]
+    assert cast(dict[str, object], by_id["source-devpac"]["options"])["oracle_modes"] == ["devpac"]
+    semantic_policy = reproduction.reproduction_policy_for_options(
+        reproduction.validated_reproduction_options_payload(cast(dict[str, object], by_id["content-semantic"]["options"]))
+    )
+    assert semantic_policy["mode"] == "semantic"
+    assert semantic_policy["comparison"] == "semantic"
+    assert semantic_policy["requested_exactness"] == "content"
+
+
 def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -1484,7 +1508,7 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "cpu": "68020",
         "backend": "amiga-hunk",
         "include_dirs": ["custom/include"],
-        "oracle_modes": ["vasm", "unknown"],
+        "oracle_modes": ["vasm"],
         "comparison": "full_file",
         "requested_exactness": "content",
         "file_shape": {"relocation_order": "assembler_default"},
@@ -1542,6 +1566,53 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
         "requested_exactness": "content",
         "requested_exactness_id": 2,
     }
+
+
+def test_reproduction_options_reject_invalid_typed_values(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    metadata = _empty_metadata()
+    metadata["reproduction"] = {"backend": "unknown", "oracle_modes": ["bad"]}
+    (target_dir / "target_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid reproduction option 'backend'"):
+        reproduction_options_for_target(target_dir)
+
+
+def test_reproduction_input_stamp_includes_profile_concrete_policy(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "demo.bin"
+    binary_path.write_bytes(b"\x00\x01")
+    write_source_descriptor(
+        target_dir,
+        {
+            "kind": "raw_binary",
+            "path": str(binary_path),
+            "address_model": "local_offset",
+            "load_address": 0,
+            "entrypoint": 0,
+            "code_start_offset": 0,
+        },
+    )
+    append_target_ui_edit(
+        target_dir,
+        {
+            "kind": "reproduction_options",
+            "profile_id": "source-devpac",
+            "options": reproduction.expand_reproduction_profile("source-devpac"),
+        },
+    )
+
+    stamp = reproduction_input_stamp("demo", project_root=tmp_path)
+    options = cast(dict[str, object], stamp["reproduction_options"])
+    policy = cast(dict[str, object], stamp["reproduction_policy"])
+
+    assert options["profile_id"] == "source-devpac"
+    assert options["assembler"] == "our"
+    assert options["oracle_modes"] == ["devpac"]
+    assert policy["mode"] == "exact"
+    assert policy["requested_exactness"] == "full_file"
 
 
 def test_reproduction_options_reject_alias_spellings(tmp_path: Path) -> None:

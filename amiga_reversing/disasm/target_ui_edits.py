@@ -13,8 +13,8 @@ from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
-    SuppressedSeededItemMetadata,
     SuppressedSeededItemKind,
+    SuppressedSeededItemMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
@@ -146,6 +146,13 @@ def _validate_target_ui_edit(edit: dict[str, object]) -> None:
     if kind in _SUPPRESS_INFERRED_KINDS:
         _require_int(edit, "addr")
         _optional_int(edit, "hunk")
+        return
+    if kind in REPRODUCTION_TARGET_UI_EDIT_KINDS:
+        options = edit.get("options")
+        reproduction = edit.get("reproduction")
+        if not isinstance(options, dict) and not isinstance(reproduction, dict):
+            raise ValueError("target reproduction edit requires options")
+        _optional_str(edit, "profile_id")
         return
     raise ValueError(f"Unsupported target edit kind: {kind}")
 

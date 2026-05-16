@@ -73,12 +73,18 @@ from amiga_reversing.disasm.projects import (
     mark_project_updated,
 )
 from amiga_reversing.disasm.reproduction import (
+    builtin_reproduction_profile,
+    builtin_reproduction_profiles,
+    expand_reproduction_profile,
     issues_by_row_index,
     load_reproduction_report,
     reproduction_input_stamp,
     reproduction_navigation_entries,
+    reproduction_options_for_target,
+    reproduction_policy_for_options,
     run_reproduction,
     source_renderer_tool_stamps,
+    validated_reproduction_options_payload,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 from amiga_reversing.disasm.ui_preferences import (
@@ -489,10 +495,101 @@ def _reproduction_payload_with_job(
     else:
         payload["refreshing"] = False
     if project_name is not None:
+        payload["policy_summary"] = _safe_reproduction_policy_summary(project_name)
         review_warnings = _review_warnings_for_project_name(project_name)
         if review_warnings:
             payload["review_warnings"] = review_warnings
     return payload
+
+
+def _reproduction_profiles_payload(project_name: str) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "target reproduction profiles")
+    return {
+        "profiles": builtin_reproduction_profiles(),
+        "active": _safe_reproduction_policy_summary(project_name),
+    }
+
+
+def _reproduction_profile_payload(project_name: str) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "target reproduction profile")
+    return _safe_reproduction_policy_summary(project_name)
+
+
+def _set_reproduction_profile_payload(project_name: str, body: dict[str, object] | None) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "target reproduction profile")
+    profile_id = (body or {}).get("profile_id")
+    if not isinstance(profile_id, str) or not profile_id:
+        raise ValueError("profile_id is required")
+    options = expand_reproduction_profile(profile_id)
+    return _append_reproduction_policy_edit(project_name, options, profile_id=profile_id)
+
+
+def _set_reproduction_policy_payload(project_name: str, body: dict[str, object] | None) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "target reproduction policy")
+    raw_options = (body or {}).get("options", body or {})
+    if not isinstance(raw_options, dict):
+        raise ValueError("options must be an object")
+    options = validated_reproduction_options_payload(cast(dict[str, object], raw_options))
+    profile_id = options.get("profile_id")
+    return _append_reproduction_policy_edit(
+        project_name,
+        options,
+        profile_id=profile_id if isinstance(profile_id, str) else None,
+    )
+
+
+def _append_reproduction_policy_edit(
+    project_name: str,
+    options: dict[str, object],
+    *,
+    profile_id: str | None,
+) -> dict[str, object]:
+    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    edit: dict[str, object] = {
+        "kind": "reproduction_options",
+        "options": dict(options),
+        "citation": "reproduction-profile",
+    }
+    if profile_id:
+        edit["profile_id"] = profile_id
+    written = append_target_ui_edit(paths.target_dir, edit)
+    _cancel_reproduction_jobs(project_name)
+    mark_project_updated(paths.target_dir)
+    return {
+        "edit": written,
+        "profile": builtin_reproduction_profile(profile_id) if profile_id else None,
+        "active": _safe_reproduction_policy_summary(project_name),
+        "reproduction": _current_reproduction_payload(project_name, auto_start=False),
+    }
+
+
+def _safe_reproduction_policy_summary(project_name: str) -> dict[str, object]:
+    try:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+        options = reproduction_options_for_target(paths.target_dir)
+        policy = reproduction_policy_for_options(options)
+    except Exception as exc:
+        return {"valid": False, "error": str(exc), "profiles": builtin_reproduction_profiles()}
+    profile_id = options.get("profile_id")
+    active_profile = None
+    if isinstance(profile_id, str):
+        with contextlib.suppress(ValueError):
+            active_profile = builtin_reproduction_profile(profile_id)
+    return {
+        "valid": True,
+        "profile_id": profile_id if isinstance(profile_id, str) else None,
+        "profile": active_profile,
+        "options": options,
+        "policy": policy,
+        "profiles": builtin_reproduction_profiles(),
+    }
+
+
+def _require_ready_binary_project(project_name: str, description: str) -> ProjectRecord:
+    project = get_project(project_name)
+    if project.kind is not ProjectKind.BINARY or not project.ready:
+        raise ValueError(f"Project {project_name} is not ready for {description}")
+    return project
 
 
 def _current_reproduction_payload(
@@ -2279,6 +2376,14 @@ def route_request(
             and parts[4] == "execute"
         ):
             return {"ok": True, "data": _execute_manual_action_catalog_action(project_name, body)}
+        if method == "GET" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "profiles":
+            return {"ok": True, "data": _reproduction_profiles_payload(project_name)}
+        if method == "GET" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "profile":
+            return {"ok": True, "data": _reproduction_profile_payload(project_name)}
+        if method == "POST" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "profile":
+            return {"ok": True, "data": _set_reproduction_profile_payload(project_name, body)}
+        if method == "POST" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "policy":
+            return {"ok": True, "data": _set_reproduction_policy_payload(project_name, body)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY:

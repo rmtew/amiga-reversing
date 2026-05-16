@@ -18,11 +18,16 @@ Review PRD 018 implementation against the settled reproduction-profile vocabular
 
 ## Acceptance criteria
 
-- [ ] Built-in profiles remain the only supported profile records.
-- [ ] Concrete policy options are stamped into reports.
-- [ ] Oracle profiles cannot produce bare `exact` gate status.
-- [ ] PRD and issue links are accurate.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Built-in profiles remain the only supported profile records.
+- [x] Concrete policy options are stamped into reports.
+- [x] Oracle profiles cannot produce bare `exact` gate status.
+- [x] PRD and issue links are accurate.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Profile ids are validated against the built-in registry; custom profile records remain out of scope.
+- Oracle profiles are displayed as source-oracle workflows and keep the exactness assembler on `our`.
 
 ## Blocked by
 
@@ -30,4 +35,3 @@ Review PRD 018 implementation against the settled reproduction-profile vocabular
 - [018-002: Reproduction Policy Persistence and Validation](018-002-reproduction-policy-persistence-and-validation.md)
 - [018-003: Reproduction Profile Summary UI](018-003-reproduction-profile-summary-ui.md)
 - [018-004: Reproduction Profile Target Tooling Commands](018-004-reproduction-profile-target-tooling-commands.md)
-

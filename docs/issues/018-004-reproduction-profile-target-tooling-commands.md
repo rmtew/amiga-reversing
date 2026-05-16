@@ -23,14 +23,18 @@ Expose reproduction profile selection as a **Target Tooling Command** through AP
 
 ## Acceptance criteria
 
-- [ ] Command is categorized as target tooling, not a manual action.
-- [ ] Command palette can invoke profile selection without appending the **Manual Action Log**.
-- [ ] API and CLI expose list/show/set profile flows.
-- [ ] Parameter collection can reuse existing parameter-session controls where practical.
-- [ ] Tests cover command execution and persistence semantics.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Command is categorized as target tooling, not a manual action.
+- [x] Command palette can invoke profile selection without appending the **Manual Action Log**.
+- [x] API and CLI expose list/show/set profile flows.
+- [x] Parameter collection can reuse existing parameter-session controls where practical.
+- [x] Tests cover command execution and persistence semantics.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- `target.reproduction_profile` is a target tooling command with a choice-grid parameter session.
+- `amiga-reproduction-profiles` exposes list/show/set CLI flows over the same API.
 
 ## Blocked by
 
 - [018-002: Reproduction Policy Persistence and Validation](018-002-reproduction-policy-persistence-and-validation.md)
-

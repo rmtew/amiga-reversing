@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from enum import StrEnum
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import cast
 
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
@@ -123,6 +123,40 @@ REPRODUCTION_REQUESTED_EXACTNESS_IDS = {
     ReproductionRequestedExactness.FULL_FILE: 1,
     ReproductionRequestedExactness.CONTENT: 2,
 }
+_BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS: tuple[dict[str, object], ...] = (
+    {
+        "profile_id": "exact-framework",
+        "name": "Exact framework gate",
+        "workflow": "exactness_gate",
+        "description": "Use the project renderer and assembler as the only exactness gate.",
+        "options": {},
+    },
+    {
+        "profile_id": "source-vasm",
+        "name": "vasm source oracle",
+        "workflow": "source_oracle",
+        "description": "Keep the exactness gate on the framework and request vasm as an oracle workflow.",
+        "options": {"oracle_modes": ["vasm"]},
+    },
+    {
+        "profile_id": "source-devpac",
+        "name": "GenAm/DevPac source oracle",
+        "workflow": "source_oracle",
+        "description": "Keep the exactness gate on the framework and request DevPac-compatible source oracle checks.",
+        "options": {"oracle_modes": ["devpac"]},
+    },
+    {
+        "profile_id": "content-semantic",
+        "name": "Content semantic comparison",
+        "workflow": "semantic_comparison",
+        "description": "Compare rebuilt content semantics without changing the exact framework assembler gate.",
+        "options": {
+            "mode": "semantic",
+            "comparison": "semantic",
+            "requested_exactness": "content",
+        },
+    },
+)
 _C_COMPARE_STATUS_LABELS = {
     0: "not_compared",
     1: "exact_file",
@@ -154,6 +188,44 @@ _C_COMPARE_FILE_STRUCTURE_ISSUE_BITS = {label: bit for bit, label in _C_COMPARE_
 
 def reproduction_report_path(target_dir: Path) -> Path:
     return target_dir / REPRODUCTION_FILE_NAME
+
+
+def builtin_reproduction_profiles() -> list[dict[str, object]]:
+    return [
+        {
+            key: value
+            for key, value in definition.items()
+            if key != "options"
+        } | {"options": expand_reproduction_profile(str(definition["profile_id"]))}
+        for definition in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS
+    ]
+
+
+def builtin_reproduction_profile(profile_id: str) -> dict[str, object]:
+    for profile in builtin_reproduction_profiles():
+        if profile.get("profile_id") == profile_id:
+            return profile
+    allowed = ", ".join(str(profile["profile_id"]) for profile in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS)
+    raise ValueError(f"invalid reproduction profile id {profile_id!r}; expected one of {allowed}")
+
+
+def expand_reproduction_profile(profile_id: str) -> dict[str, object]:
+    for definition in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS:
+        if definition.get("profile_id") != profile_id:
+            continue
+        raw_options = definition.get("options")
+        payload = dict(cast(dict[str, object], raw_options)) if isinstance(raw_options, dict) else {}
+        payload["profile_id"] = profile_id
+        return validated_reproduction_options_payload(payload)
+    allowed = ", ".join(str(profile["profile_id"]) for profile in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS)
+    raise ValueError(f"invalid reproduction profile id {profile_id!r}; expected one of {allowed}")
+
+
+def validated_reproduction_options_payload(payload: Mapping[str, object]) -> dict[str, object]:
+    options = _default_reproduction_options()
+    _merge_reproduction_options(options, dict(payload))
+    reproduction_policy_for_options(options)
+    return _json_ready_reproduction_options(options)
 
 
 def rebuilt_target_dir(target_name: str, *, project_root: Path = PROJECT_ROOT) -> Path:
@@ -1824,6 +1896,7 @@ def _facts_v2_profile_counter(profile: dict[str, object] | None, key: str) -> in
 
 def _default_reproduction_options() -> dict[str, object]:
     return {
+        "profile_id": "exact-framework",
         "mode": ReproductionMode.EXACT,
         "assembler": "our",
         "cpu": "any",
@@ -1870,28 +1943,73 @@ def _reproduction_option_payloads(target_dir: Path) -> list[dict[str, object]]:
 
 
 def _merge_reproduction_options(options: dict[str, object], payload: dict[str, object]) -> None:
+    if "profile_id" not in payload and any(
+        key in payload
+        for key in (
+            "mode",
+            "assembler",
+            "cpu",
+            "backend",
+            "include_dirs",
+            "oracle_modes",
+            "container_policy",
+            "relocation_policy",
+            "comparison",
+            "requested_exactness",
+            "file_shape",
+            "raw_output",
+        )
+    ):
+        options["profile_id"] = None
+    if "profile_id" in payload:
+        profile_id = payload["profile_id"]
+        if profile_id is None:
+            options["profile_id"] = None
+        elif isinstance(profile_id, str) and any(
+            profile.get("profile_id") == profile_id for profile in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS
+        ):
+            options["profile_id"] = profile_id
+        else:
+            allowed = ", ".join(str(profile["profile_id"]) for profile in _BUILTIN_REPRODUCTION_PROFILE_DEFINITIONS)
+            raise ValueError(f"invalid reproduction profile id {profile_id!r}; expected one of {allowed}")
     mode = _parse_reproduction_enum_field(payload, "mode", ReproductionMode)
     if mode is not None:
         options["mode"] = mode
     assembler = payload.get("assembler")
-    if isinstance(assembler, str):
+    if assembler is not None:
+        if assembler not in REPRODUCTION_ASSEMBLERS:
+            allowed = ", ".join(sorted(REPRODUCTION_ASSEMBLERS))
+            raise ValueError(f"invalid reproduction option 'assembler': {assembler!r}; expected one of {allowed}")
         options["assembler"] = assembler
     cpu = payload.get("cpu")
-    if cpu in REPRODUCTION_CPUS:
+    if cpu is not None:
+        if cpu not in REPRODUCTION_CPUS:
+            allowed = ", ".join(sorted(REPRODUCTION_CPUS))
+            raise ValueError(f"invalid reproduction option 'cpu': {cpu!r}; expected one of {allowed}")
         options["cpu"] = cpu
     backend = payload.get("backend")
-    if backend in REPRODUCTION_BACKENDS:
+    if backend is not None:
+        if backend not in REPRODUCTION_BACKENDS:
+            allowed = ", ".join(sorted(REPRODUCTION_BACKENDS))
+            raise ValueError(f"invalid reproduction option 'backend': {backend!r}; expected one of {allowed}")
         options["backend"] = backend
     include_dirs = payload.get("include_dirs")
-    if include_dirs == "auto":
-        options["include_dirs"] = "auto"
-    elif isinstance(include_dirs, list) and all(isinstance(item, str) for item in include_dirs):
-        options["include_dirs"] = list(include_dirs)
+    if "include_dirs" in payload:
+        if include_dirs == "auto":
+            options["include_dirs"] = "auto"
+        elif isinstance(include_dirs, list) and all(isinstance(item, str) for item in include_dirs):
+            options["include_dirs"] = list(include_dirs)
+        else:
+            raise ValueError("reproduction option 'include_dirs' must be 'auto' or a list of strings")
     oracle_modes = payload.get("oracle_modes")
-    if isinstance(oracle_modes, list):
-        options["oracle_modes"] = [
-            item for item in oracle_modes if isinstance(item, str) and item in REPRODUCTION_ORACLE_MODES
-        ]
+    if "oracle_modes" in payload:
+        if not isinstance(oracle_modes, list) or not all(isinstance(item, str) for item in oracle_modes):
+            raise ValueError("reproduction option 'oracle_modes' must be a list of strings")
+        invalid = [item for item in oracle_modes if item not in REPRODUCTION_ORACLE_MODES]
+        if invalid:
+            allowed = ", ".join(sorted(REPRODUCTION_ORACLE_MODES))
+            raise ValueError(f"invalid reproduction option 'oracle_modes': {invalid[0]!r}; expected one of {allowed}")
+        options["oracle_modes"] = list(oracle_modes)
     container_policy = _parse_reproduction_enum_field(
         payload, "container_policy", ReproductionContainerPolicy
     )
@@ -1980,14 +2098,11 @@ def reproduction_policy_for_options(options: dict[str, object]) -> dict[str, obj
     }
 
 
-_ReproductionEnum = TypeVar("_ReproductionEnum", bound=StrEnum)
-
-
-def _parse_reproduction_enum_field(
+def _parse_reproduction_enum_field[ReproductionEnumT: StrEnum](
     payload: dict[str, object],
     field: str,
-    enum_type: type[_ReproductionEnum],
-) -> _ReproductionEnum | None:
+    enum_type: type[ReproductionEnumT],
+) -> ReproductionEnumT | None:
     if field not in payload:
         return None
     value = payload[field]
@@ -2002,12 +2117,17 @@ def _parse_reproduction_enum_field(
         ) from None
 
 
-def _require_reproduction_enum_option(
+def _require_reproduction_enum_option[ReproductionEnumT: StrEnum](
     options: dict[str, object],
     field: str,
-    enum_type: type[_ReproductionEnum],
-) -> _ReproductionEnum:
+    enum_type: type[ReproductionEnumT],
+) -> ReproductionEnumT:
     value = options.get(field)
+    if isinstance(value, str):
+        try:
+            return enum_type(value)
+        except ValueError:
+            pass
     if not isinstance(value, enum_type):
         raise TypeError(f"reproduction option {field!r} must be a {enum_type.__name__}")
     return value
@@ -2039,6 +2159,19 @@ def _effective_reproduction_assembler(default_assembler: str, options: dict[str,
 def _effective_reproduction_cpu(options: dict[str, object]) -> str:
     cpu = options.get("cpu")
     return cpu if isinstance(cpu, str) and cpu in REPRODUCTION_CPUS else "any"
+
+
+def _json_ready_reproduction_options(options: Mapping[str, object]) -> dict[str, object]:
+    def convert(value: object) -> object:
+        if isinstance(value, StrEnum):
+            return value.value
+        if isinstance(value, dict):
+            return {str(key): convert(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [convert(item) for item in value]
+        return value
+
+    return cast(dict[str, object], convert(dict(options)))
 
 
 def _best_effort_effective_metadata_hash(target_dir: Path) -> str | None:

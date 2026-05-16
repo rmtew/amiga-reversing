@@ -13,6 +13,7 @@ from amiga_reversing.disasm.listing_context import (
     listing_row_context,
     selected_listing_element_context,
 )
+from amiga_reversing.disasm.reproduction import builtin_reproduction_profiles
 
 _KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_includes_parsed.json"
 
@@ -119,6 +120,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_review", "Open Review", "open_review", "r"),
         _target_transient("target.open_navigation", "Open Navigate", "open_navigation", "n"),
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
+        _target_reproduction_profile_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -1188,6 +1190,40 @@ def _target_transient(
         "action": ui_action,
         "parameters": {},
     }
+
+
+def _target_reproduction_profile_action() -> dict[str, object]:
+    profiles = builtin_reproduction_profiles()
+    profile_ids = [str(profile["profile_id"]) for profile in profiles]
+    action = _target_transient(
+        "target.reproduction_profile",
+        "Set reproduction profile",
+        "set_reproduction_profile",
+        None,
+    )
+    action["category"] = "target_tooling"
+    action["parameter_schema"] = {
+        "type": "object",
+        "properties": {"profile_id": {"type": "string", "enum": profile_ids}},
+        "required": ["profile_id"],
+    }
+    action["interaction_schema"] = {
+        "type": "choice_grid",
+        "hosts": ["palette"],
+        "primary_rank": 80,
+        "parameter": "profile_id",
+        "default": "exact-framework",
+        "options": [
+            {
+                "value": profile["profile_id"],
+                "label": profile["name"],
+                "preview": {"kind": "reproduction_profile", "text": profile["workflow"]},
+            }
+            for profile in profiles
+        ],
+        "preview": {"kind": "reproduction_profile"},
+    }
+    return action
 
 
 def _context_transient(

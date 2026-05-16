@@ -243,6 +243,8 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "function reproductionBadge(ready, report)" in app_js
     assert 'id="open-repro"' in app_js
     assert "function renderReproPanel()" in app_js
+    assert "function renderReproductionPolicySummary(report)" in app_js
+    assert "function setReproductionProfile(profileId)" in app_js
     assert "function currentReproIssue()" in app_js
     assert "function reproductionReportKey(report)" in app_js
     assert "const previousReportKey = state.reproduction.reportKey || reproductionReportKey(state.reproduction.report);" in app_js
@@ -250,6 +252,7 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "state.reproduction.reportKey = reproductionReportKey(state.reproduction.report);" in app_js
     assert "state.reproduction.selectedIssueEntry = entry;" in app_js
     assert '`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`' in app_js
+    assert '`/api/projects/${encodeURIComponent(state.project)}/reproduction/profile`' in app_js
     assert '`/api/projects/${encodeURIComponent(state.project)}/target-edits`' in app_js
     assert "payload.hunk = hunk;" in app_js
     assert 'data-repro-edit-kind="label"' in app_js
@@ -261,6 +264,7 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert '["repro-issues", "Repro Issues"]' in app_js
     assert "listing-row-repro-issue" in app_js
     assert ".repro-panel" in styles_css
+    assert ".repro-policy-summary" in styles_css
     assert ".project-badge-repro-exact" in styles_css
 
 

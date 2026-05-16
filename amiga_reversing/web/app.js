@@ -1900,6 +1900,10 @@ async function loadContextualCommandCatalogs() {
 
 async function submitCommandPaletteCatalogAction(action, parameters) {
   const command = String(action?.action || "");
+  if (command === "set_reproduction_profile") {
+    await setReproductionProfile(String(parameters.profile_id || ""));
+    return;
+  }
   if (action?.appends_to_manual_action_log === true) {
     if (state.manualEdit.inFlight) {
       setAnalysisStatus("Manual edit already in progress", "running", 2500);
@@ -2522,6 +2526,43 @@ function currentReproIssue() {
   return issues.find((issue) => Number.isFinite(issue.addr)) || issues[0] || null;
 }
 
+function reproductionPolicySummary(report) {
+  const summary = report?.policy_summary;
+  if (summary && typeof summary === "object") {
+    return summary;
+  }
+  const options = report?.input_stamp?.reproduction_options || {};
+  const policy = report?.input_stamp?.reproduction_policy || {};
+  return {valid: true, profile_id: options.profile_id || null, profile: null, options, policy};
+}
+
+function renderReproductionPolicySummary(report) {
+  const summary = reproductionPolicySummary(report);
+  if (summary.valid === false) {
+    return `<div class="repro-policy-error">Invalid policy: ${escapeHtml(summary.error || "unknown")}</div>`;
+  }
+  const options = summary.options || {};
+  const policy = summary.policy || {};
+  const profile = summary.profile || {};
+  const profileLabel = profile.name || summary.profile_id || "Custom";
+  const workflow = profile.workflow || "custom";
+  const oracles = Array.isArray(options.oracle_modes) && options.oracle_modes.length
+    ? options.oracle_modes.join(", ")
+    : "none";
+  return `
+    <div class="repro-policy-summary">
+      <div><span>Profile</span><strong>${escapeHtml(profileLabel)}</strong></div>
+      <div><span>Workflow</span><strong>${escapeHtml(workflow)}</strong></div>
+      <div><span>Mode</span><strong>${escapeHtml(policy.mode || options.mode || "?")}</strong></div>
+      <div><span>Assembler</span><strong>${escapeHtml(options.assembler || "?")}</strong></div>
+      <div><span>Backend</span><strong>${escapeHtml(options.backend || "?")}</strong></div>
+      <div><span>CPU</span><strong>${escapeHtml(options.cpu || "?")}</strong></div>
+      <div><span>Comparison</span><strong>${escapeHtml(policy.comparison || options.comparison || "?")}</strong></div>
+      <div><span>Oracles</span><strong>${escapeHtml(oracles)}</strong></div>
+    </div>
+  `;
+}
+
 function renderReproPanelBody(report) {
   const firstDiff = report?.first_diff || null;
   const diagnostics = Array.isArray(report?.assembler_diagnostics) ? report.assembler_diagnostics : [];
@@ -2548,6 +2589,7 @@ function renderReproPanelBody(report) {
       <div><span>Original</span><strong>${escapeHtml(String(report?.original_size ?? report?.input_stamp?.original_size ?? "?"))}</strong></div>
       <div><span>Rebuilt</span><strong>${escapeHtml(String(report?.rebuilt_size ?? "?"))}</strong></div>
     </div>
+    ${renderReproductionPolicySummary(report)}
     <div class="repro-detail">
       ${firstDiff ? `First diff: ${escapeHtml(formatRowOffset(firstDiff.offset))}` : "First diff: none"}
     </div>
@@ -2643,6 +2685,28 @@ async function runReproduction(projectId) {
     ? "Reproduction exact"
     : (editNeeded ? "Reproduction needs edits" : "Reproduction failed");
   setAnalysisStatus(statusText, report?.status === "exact" ? "ready" : "failed", 2500);
+}
+
+async function setReproductionProfile(profileId) {
+  if (!state.project || !profileId) {
+    return;
+  }
+  const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/reproduction/profile`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({profile_id: profileId}),
+  });
+  const report = payload.reproduction || null;
+  state.reproduction.report = report;
+  state.reproduction.reportKey = reproductionReportKey(report);
+  state.reproduction.job = null;
+  state.reproduction.selectedIssueEntry = null;
+  if (state.projectData) {
+    state.projectData.reproduction = report;
+  }
+  refreshProjectBadges();
+  renderReproPanel();
+  setAnalysisStatus("Reproduction profile saved", "ready", 2000);
 }
 
 async function applyReproTargetEdit(kind) {

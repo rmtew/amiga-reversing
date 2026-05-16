@@ -2089,6 +2089,12 @@ body {
   gap: 8px;
 }
 
+.repro-policy-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .repro-summary-grid div {
   display: grid;
   gap: 2px;
@@ -2097,9 +2103,26 @@ body {
   background: #fafafa;
 }
 
+.repro-policy-summary div {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid #d9dce2;
+  background: #f8f9fb;
+}
+
 .repro-summary-grid span,
+.repro-policy-summary span,
 .repro-detail {
   color: #555;
+  font-size: 12px;
+}
+
+.repro-policy-error {
+  padding: 8px;
+  border: 1px solid #b65a5a;
+  color: #742020;
+  background: #fff7f7;
   font-size: 12px;
 }
 

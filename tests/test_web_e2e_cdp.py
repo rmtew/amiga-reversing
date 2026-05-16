@@ -1002,6 +1002,77 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_reproduction_profile_command_updates_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_reproduction_profile")
+    target_dir = tmp_path / project.id
+    target_dir.mkdir()
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
+
+    def load_report(project_name: str, project_root=None) -> dict[str, object]:
+        return {
+            "target": project_name,
+            "status": "exact",
+            "stale": (target_dir / "target_ui_edits.json").exists(),
+            "issues": [],
+            "diff_ranges": [],
+            "assembler_diagnostics": [],
+            "input_stamp": {"original_size": 2},
+        }
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda path: None)
+    monkeypatch.setattr(disasm_server, "load_reproduction_report", load_report)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+        page.evaluate("openReproPanel()")
+        page.wait_for_selector("#repro-overlay")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Exact framework gate')")
+        page.evaluate("closeReproPanel()")
+
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'reproduction profile'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Set reproduction profile')")
+        page.press_key("Enter")
+        page.wait_for_selector("#command-parameter-editor .parameter-choice")
+        page.evaluate(
+            """
+            Array.from(document.querySelectorAll('.parameter-choice'))
+              .find((button) => button.textContent.includes('Content semantic comparison'))
+              .click()
+            """
+        )
+        page.click("#command-parameter-editor .command-parameter-submit")
+        page.wait_for_expression("state.analysisStatus.text === 'Reproduction profile saved'")
+        page.evaluate("openReproPanel()")
+        page.wait_for_selector("#repro-overlay")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Content semantic comparison')")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Needs repro')")
+        page.wait_for_expression("document.querySelector('#project-details')?.textContent.includes('Needs repro')")
+        page.assert_no_errors()
+
+    edits = json.loads((target_dir / "target_ui_edits.json").read_text(encoding="utf-8"))
+    assert edits[0]["kind"] == "reproduction_options"
+    assert edits[0]["options"]["profile_id"] == "content-semantic"
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     project = _binary_project("amiga_hunk_representation")
     rows = [

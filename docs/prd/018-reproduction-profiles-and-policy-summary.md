@@ -4,6 +4,10 @@
 
 Add built-in **Reproduction Profiles** that expose target **Reproduction Policy** clearly in the UI, API, and CLI without changing exactness semantics.
 
+## Status
+
+Implemented. Built-in profile selection now writes concrete target reproduction options, exposes API/CLI flows, and renders policy summaries in the Web UI reproduction panel.
+
 ## Dependencies
 
 - PRD 013: UI Preference State and Entrypoint Open.
@@ -41,6 +45,13 @@ Add built-in **Reproduction Profiles** that expose target **Reproduction Policy*
 - Web tests for profile summary display and stale report state.
 - Regression test proving oracle profile selection cannot mark the exactness gate `exact`.
 
+Implemented verification:
+
+- Unit tests cover built-in profile expansion, strict option validation, and input-stamp policy stamping.
+- Route and CLI tests cover list/show/set and prove profile changes do not write the Manual Action Log.
+- CDP coverage verifies command-palette profile selection and reproduction-panel stale summary display.
+- `src\precommit.bat` is the final commit gate.
+
 ## Issues
 
 - [018-001: Built-In Reproduction Profile Registry](../issues/018-001-built-in-reproduction-profile-registry.md)
@@ -48,4 +59,3 @@ Add built-in **Reproduction Profiles** that expose target **Reproduction Policy*
 - [018-003: Reproduction Profile Summary UI](../issues/018-003-reproduction-profile-summary-ui.md)
 - [018-004: Reproduction Profile Target Tooling Commands](../issues/018-004-reproduction-profile-target-tooling-commands.md)
 - [018-005: PRD 018 Review and Tightening](../issues/018-005-prd-018-review-and-tightening.md)
-
