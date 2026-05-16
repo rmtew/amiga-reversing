@@ -113,6 +113,7 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "dataclasses",
         "datetime",
         "difflib",
+        "enum",
         "faulthandler",
         "functools",
         "hashlib",
