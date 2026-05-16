@@ -874,7 +874,8 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
 class _M68kAnalysisNamedLabel(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
+        ("domain", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("name", ctypes.c_char * 64),
@@ -5471,7 +5472,8 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.named_label_count == 2
     assert generic_policy.named_labels[0].offset == 0x28
     assert generic_policy.named_labels[0].name == b"manual_loop"
-    assert generic_policy.named_labels[1].offset == 0x24
+    assert generic_policy.named_labels[1].domain == 1
+    assert generic_policy.named_labels[1].offset == 0x404
     assert generic_policy.named_labels[1].name == b"stage_entry"
     assert generic_policy.entry_comment_count == 2
     assert generic_policy.entry_comments[0].offset == 0x28

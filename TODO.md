@@ -2,6 +2,8 @@
 
 ## Unsorted
 
+- Developer environment: sandboxed `uv run` currently fails against the default AppData cache/Python with access denied.
+  Agents need `UV_CACHE_DIR` pointed at the repo `.uv-cache`, or the local uv cache permissions fixed.
 - Deferred: split manual comments into durable row comments vs generated source comments.
   The web UI `;` edit targets a trailing row comment, but today the manual action is also projected as an
   `entry_comment` and the rebuilt source renders it as a full-line comment before the entry label. Define separate

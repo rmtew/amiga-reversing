@@ -25,4 +25,4 @@ def test_runtime_label_rename_uses_generated_absolute_address() -> None:
     assert kind == "create_manual_label"
     assert payload["label"]["address_domain"] == "runtime"
     assert payload["label"]["addr"] == 0x1001E
-    assert payload["label"]["label_id"] == "catalog-label-runtime-h0-0001001E"
+    assert payload["label"]["label_id"] == "catalog-label-runtime-h0-0001001E-sk-s0_0000001E_label_245"
