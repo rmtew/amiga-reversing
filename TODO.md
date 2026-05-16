@@ -2,6 +2,11 @@
 
 ## Unsorted
 
+- Deferred: split manual comments into durable row comments vs generated source comments.
+  The web UI `;` edit targets a trailing row comment, but today the manual action is also projected as an
+  `entry_comment` and the rebuilt source renders it as a full-line comment before the entry label. Define separate
+  manual action/data model concepts so UI row annotations remain trailing comments, while explicit source comments are
+  the only ones emitted into generated assembly.
 - Row selection needs to be more flexible. As up or down cursor key moves the selected row, shift+up or down should
   extend the selection to cover the previous row and the current focus row. This implies there is a concept of focus
   row and selected rows, although I suspect there is a standard UI paradigm for this we can follow. This then applies
