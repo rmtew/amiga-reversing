@@ -915,6 +915,59 @@ def test_brave_cdp_first_open_selects_source_entrypoint(
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_first_open_uses_source_entrypoint_before_unmapped_runtime_address(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_raw_entrypoint_unmapped_runtime")
+    target_dir = tmp_path / "targets" / project.id
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "bin" / "demo.bin"
+    binary_path.parent.mkdir()
+    binary_path.write_bytes(b"\0" * 0x40)
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
+        load_address=0x20000,
+        entrypoint=0x20000,
+        code_start_offset=0,
+        display_path="bin/demo.bin",
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    rows = [
+        ListingRow(
+            row_id=f"r{i}",
+            kind="instruction",
+            text="nop\n",
+            addr=i * 2,
+            section_index=0,
+            start_offset=i * 2,
+            end_offset=i * 2 + 2,
+            stable_key=f"row-{i}",
+        )
+        for i in range(32)
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=source),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '0'")
+        assert page.evaluate("document.querySelectorAll('.listing-row').length") > 0
+        assert "No disassembly available." not in page.text_content("#listing-viewport")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_opens_and_executes_catalog_command(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_palette")
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]

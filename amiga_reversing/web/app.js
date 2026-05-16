@@ -7665,6 +7665,9 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   if (requestSeq !== state.virtualListing.requestSeq) {
     return listing;
   }
+  if (options.render === false || (options.renderEmpty === false && !listing.rows.length)) {
+    return listing;
+  }
   const renderMetrics = renderVirtualListingWindow(
     projectId,
     listing,
@@ -7747,21 +7750,25 @@ function preferenceListingLocation(payload) {
   };
 }
 
-function entrypointListingLocation(payload) {
+function entrypointListingLocations(payload) {
   const entrypoint = payload?.source_entrypoint;
   if (!entrypoint || typeof entrypoint !== "object") {
-    return null;
+    return [];
+  }
+  const locations = [];
+  const sourceOffset = Number(entrypoint.source_offset);
+  if (Number.isFinite(sourceOffset)) {
+    locations.push({kind: "source", sectionIndex: 0, sourceOffset});
   }
   const runtimeAddress = Number(entrypoint.runtime_address);
   if (Number.isFinite(runtimeAddress)) {
-    return {kind: "runtime", runtimeAddress};
-  }
-  const sourceOffset = Number(entrypoint.source_offset);
-  if (Number.isFinite(sourceOffset)) {
-    return {kind: "source", sectionIndex: 0, sourceOffset};
+    locations.push({kind: "runtime", runtimeAddress});
   }
   const addr = Number(entrypoint.addr);
-  return Number.isFinite(addr) ? {kind: "addr", addr} : null;
+  if (Number.isFinite(addr)) {
+    locations.push({kind: "addr", addr});
+  }
+  return locations;
 }
 
 async function loadInitialListingLocation(projectId, uiPreferences) {
@@ -7783,11 +7790,16 @@ async function applyInitialListingLocation(projectId, uiPreferences) {
     state.uiPreferences.initialApplied = true;
     return true;
   }
-  const entrypoint = entrypointListingLocation(uiPreferences);
-  if (entrypoint) {
-    const ok = await jumpToListingLocation(projectId, entrypoint);
-    state.uiPreferences.initialApplied = ok;
-    return ok;
+  const entrypoints = entrypointListingLocations(uiPreferences);
+  if (entrypoints.length) {
+    for (const entrypoint of entrypoints) {
+      if (await jumpToListingLocation(projectId, entrypoint)) {
+        state.uiPreferences.initialApplied = true;
+        return true;
+      }
+    }
+    state.uiPreferences.initialApplied = true;
+    return false;
   }
   state.uiPreferences.initialApplied = true;
   return false;
@@ -9349,9 +9361,9 @@ async function jumpToListingAddr(projectId, addr, matchText = null) {
   if (!scrollRowIntoView(viewport, addr, "center", matchText)) {
     const visibleRows = listingVisibleRowCount(viewport);
     const count = clampListingWindowCount(visibleRows * 3);
-    await loadListingWindow(projectId, addr, visibleRows, count - visibleRows);
+    await loadListingWindow(projectId, addr, visibleRows, count - visibleRows, {renderEmpty: false});
     if (!scrollRowIntoView(viewport, addr, "center", matchText)) {
-      await loadListingWindow(projectId, addr, count, count);
+      await loadListingWindow(projectId, addr, count, count, {renderEmpty: false});
       scrollRowIntoView(viewport, addr, "center", matchText);
     }
   }
@@ -9377,6 +9389,7 @@ async function jumpToListingSectionOffset(projectId, sectionIndex, offset) {
       await loadListingWindow(projectId, null, visibleRows, count - visibleRows, {
         sectionIndex,
         sourceOffset: offset,
+        renderEmpty: false,
       });
       row = selectListingRowBySectionOffset(viewport, sectionIndex, offset);
     }
@@ -9410,6 +9423,7 @@ async function jumpToListingRuntimeAddress(projectId, address) {
       const count = clampListingWindowCount(visibleRows * 3);
       await loadListingWindow(projectId, null, visibleRows, count - visibleRows, {
         runtimeAddress: address,
+        renderEmpty: false,
       });
       row = selectListingRowByRuntimeAddress(viewport, address);
     }
@@ -9443,7 +9457,7 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
   const suppressionToken = beginListingScrollSuppression();
   try {
     viewport.scrollTop = Math.max(0, (targetIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
-    await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true});
+    await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true, renderEmpty: false});
     scrollRowIntoView(viewport, addr, "center", matchText, stableKey, targetIndex);
     const row = selectBestListingRow(viewport, addr, matchText, stableKey, targetIndex);
     if (!row) {
