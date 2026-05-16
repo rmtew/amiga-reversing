@@ -5322,9 +5322,9 @@ function renderInlineParameterSession(session) {
   return `
     <form class="inline-parameter-session" data-inline-parameter-session="1">
       ${body}
-      ${session.submitError ? `<div class="command-parameter-error">${escapeHtml(session.submitError)}</div>` : ""}
       <button type="submit" class="command-parameter-submit"${session.submitting ? " disabled" : ""}>${session.submitting ? "Saving" : "Apply"}</button>
       <button type="button" class="command-parameter-cancel" data-inline-parameter-cancel="1">Cancel</button>
+      ${session.submitError ? `<div class="command-parameter-error">${escapeHtml(session.submitError)}</div>` : ""}
     </form>
   `;
 }

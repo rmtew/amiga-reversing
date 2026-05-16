@@ -1492,6 +1492,27 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.fill("[data-command-parameter-name='name']", "loc_reserved")
         page.press_key("Enter")
         page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('reserved')")
+        page.wait_for_expression(
+            """
+            (() => {
+              const form = document.querySelector("[data-inline-parameter-session]");
+              const input = form?.querySelector("[data-command-parameter-name='name']");
+              const submit = form?.querySelector(".command-parameter-submit");
+              const cancel = form?.querySelector(".command-parameter-cancel");
+              if (!form || !input || !submit || !cancel) return false;
+              const formRect = form.getBoundingClientRect();
+              const inputRect = input.getBoundingClientRect();
+              const submitRect = submit.getBoundingClientRect();
+              const cancelRect = cancel.getBoundingClientRect();
+              return inputRect.width >= 120
+                && submitRect.width >= 50
+                && cancelRect.width >= 50
+                && submitRect.left >= inputRect.right
+                && cancelRect.left >= submitRect.right
+                && cancelRect.right <= formRect.right + 1;
+            })()
+            """
+        )
         page.fill("[data-command-parameter-name='name']", "entrypoint")
         page.press_key("Enter")
         page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-code')?.textContent.trim() === 'entrypoint:'")

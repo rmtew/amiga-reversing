@@ -2042,8 +2042,18 @@ body {
 
 .inline-parameter-session .command-parameter-field {
   display: block;
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
   overflow: hidden;
+}
+
+.inline-parameter-session .command-parameter-submit {
+  grid-column: 2;
+}
+
+.inline-parameter-session .command-parameter-cancel {
+  grid-column: 3;
 }
 
 .inline-parameter-session .command-parameter-field label {
@@ -2071,11 +2081,20 @@ body {
 .inline-parameter-session .command-parameter-submit,
 .inline-parameter-session .command-parameter-cancel {
   flex: 0 0 auto;
+  grid-row: 1;
   height: 20px;
   min-width: 58px;
   box-sizing: border-box;
   padding: 1px 8px;
   line-height: 16px;
+}
+
+.inline-parameter-session .command-parameter-error {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .parameter-choice-grid,
