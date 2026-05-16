@@ -1,5 +1,9 @@
 # PRD 014: Range Listing Selection and Catalog Context
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Extend **Listing Selection** with focus, anchor, and selected row range so users can apply catalog actions to explicit listing ranges without inferring hidden rows or scraping rendered text.

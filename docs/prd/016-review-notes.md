@@ -1,5 +1,9 @@
 # PRD 016: Review Notes
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Add **Review Note** actions so user-authored notes and bookmarks become durable target annotations, with optional review-tracking mode for notes that should appear as **Manual Review Items**.

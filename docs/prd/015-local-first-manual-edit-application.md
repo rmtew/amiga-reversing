@@ -1,5 +1,9 @@
 # PRD 015: Local-First Manual Edit Application
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Make every manual edit feel local-first after durable **Manual Action Log** append. The UI should apply the best known local effect immediately, mark unresolved affected regions as in progress, and reconcile server-produced analysis/rendering results in place without blocking the viewport.

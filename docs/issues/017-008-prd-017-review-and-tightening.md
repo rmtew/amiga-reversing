@@ -18,7 +18,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
