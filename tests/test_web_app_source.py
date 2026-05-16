@@ -110,6 +110,10 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function applyManualActionApplication" in app_js
     assert "function applyManualLocalEffect" in app_js
     assert "function applyManualLabelRenameEffect" in app_js
+    assert "function closeSubmittedParameterSurface" in app_js
+    assert "function refreshProjectPayloadInBackground" in app_js
+    assert "closeSubmittedParameterSurface();" in app_js
+    assert "refreshProjectPayloadInBackground(state.project);" in app_js
     assert "function applyManualReviewNoteAddEffect" in app_js
     assert "function renderReviewNoteBadge" in app_js
     assert "function openInlineParameterSession" in app_js

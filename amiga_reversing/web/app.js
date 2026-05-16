@@ -508,6 +508,18 @@ async function refreshProjectPayload(projectId, token = null) {
   return projectData;
 }
 
+function refreshProjectPayloadInBackground(projectId) {
+  void refreshProjectPayload(projectId)
+    .then(() => {
+      if (state.project === projectId) {
+        renderCurrentListingWindow();
+      }
+    })
+    .catch((error) => {
+      console.warn("Project payload refresh failed after manual action", error);
+    });
+}
+
 function formatProjectTimestamp(timestamp, emptyText) {
   if (!timestamp) {
     return {
@@ -1936,6 +1948,9 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
       const application = applyManualActionApplication(result?.application);
       if (application.reconciliationRequired || (!application.appliedLocalEffect && commandRequiresAnalysisRefresh(command))) {
         await refreshAnalysisAfterManualMetadataAction(state.project, {});
+      } else if (application.appliedLocalEffect) {
+        closeSubmittedParameterSurface();
+        refreshProjectPayloadInBackground(state.project);
       } else {
         await refreshProjectPayload(state.project);
         renderCurrentListingWindow();
@@ -1947,6 +1962,19 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
       renderCurrentListingWindow();
     }
   }
+}
+
+function closeSubmittedParameterSurface() {
+  if (state.parameterSession) {
+    state.parameterSession = null;
+    renderCurrentListingWindow();
+    return true;
+  }
+  if (state.commandPalette.editor) {
+    closeCommandPalette();
+    return true;
+  }
+  return false;
 }
 
 function applyManualActionApplication(application) {
