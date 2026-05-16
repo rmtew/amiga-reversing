@@ -69,14 +69,23 @@ def build_diagnostic_inventory(
     assembler_forms: list[FormLike] | None = None,
     disassembler_forms: list[FormLike] | None = None,
     assembler_sample_entries: list[dict[str, Any]] | None = None,
+    ea_sample_plan_entries: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if assembler_forms is None or disassembler_forms is None:
-        loaded_assembler_forms, loaded_disassembler_forms, loaded_sample_entries = _load_current_forms()
+        (
+            loaded_assembler_forms,
+            loaded_disassembler_forms,
+            loaded_sample_entries,
+            loaded_ea_plan_entries,
+        ) = _load_current_forms()
         assembler_forms = loaded_assembler_forms if assembler_forms is None else assembler_forms
         disassembler_forms = loaded_disassembler_forms if disassembler_forms is None else disassembler_forms
         assembler_sample_entries = loaded_sample_entries if assembler_sample_entries is None else assembler_sample_entries
+        ea_sample_plan_entries = loaded_ea_plan_entries if ea_sample_plan_entries is None else ea_sample_plan_entries
     if assembler_sample_entries is None:
         assembler_sample_entries = []
+    if ea_sample_plan_entries is None:
+        ea_sample_plan_entries = []
 
     asm_by_key = {_form_key(form): _form_identity(form) for form in assembler_forms}
     disasm_by_key = {_form_key(form): _form_identity(form) for form in disassembler_forms}
@@ -122,6 +131,7 @@ def build_diagnostic_inventory(
         "sample_status_counts": dict(sorted(sample_status_counts.items())),
         "unsupported_counts": dict(sorted(unsupported_counts.items())),
         "unsupported_inventory": unsupported_inventory,
+        "ea_sample_plans": ea_sample_plan_entries,
         "entries": entries,
     }
 
@@ -192,7 +202,7 @@ def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]
     return failures
 
 
-def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str, Any]]]:
+def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str, Any]], list[dict[str, Any]]]:
     if str(SCRIPTS_DIR) not in sys.path:
         sys.path.insert(0, str(SCRIPTS_DIR))
     assembler_subset = __import__("generate_c99_assembler_subset")
@@ -215,6 +225,25 @@ def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str
                 "missing_operand_kinds": list(entry.missing_operand_kinds),
             }
             for entry in assembler_corpus.generate_sample_coverage()
+        ],
+        [
+            {
+                "mnemonic": str(entry.mnemonic),
+                "kb_mnemonic": str(entry.kb_mnemonic),
+                "local_form_index": int(entry.local_form_index),
+                "form_index": int(entry.form_index),
+                "syntax": str(entry.syntax),
+                "size": entry.size,
+                "target_cpu": str(entry.target_cpu),
+                "operand_index": int(entry.operand_index),
+                "operand_kind": str(entry.operand_kind),
+                "operand_role": entry.operand_role,
+                "required_families": list(entry.required_families),
+                "covered_families": list(entry.covered_families),
+                "missing_families": list(entry.missing_families),
+                "sample_families": list(entry.sample_families),
+            }
+            for entry in assembler_corpus.generate_ea_sample_plans()
         ],
     )
 
@@ -309,6 +338,28 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
         print("unsupported entries:")
         for entry in unsupported_inventory:
             print(f"  {entry['family_id']}: {entry['status']} forms={entry['form_count']}")
+    ea_sample_plans = inventory.get("ea_sample_plans", [])
+    if ea_sample_plans:
+        missing_ea_plans = [entry for entry in ea_sample_plans if entry.get("missing_families")]
+        print("ea sample families:")
+        print(f"  plan operands: {len(ea_sample_plans)}")
+        print(f"  complete operands: {len(ea_sample_plans) - len(missing_ea_plans)}")
+        print(f"  missing-family operands: {len(missing_ea_plans)}")
+        if missing_ea_plans:
+            print("missing ea family entries:")
+            for entry in missing_ea_plans:
+                size = entry.get("size") or "-"
+                role = entry.get("operand_role") or "-"
+                required = ",".join(entry.get("required_families", []))
+                covered = ",".join(entry.get("covered_families", []))
+                missing = ",".join(entry.get("missing_families", []))
+                print(
+                    "  "
+                    f"{entry['kb_mnemonic']}#{entry['local_form_index']} "
+                    f"{entry['mnemonic']} {entry['syntax']} size={size} "
+                    f"operand={entry['operand_index']} role={role} "
+                    f"required={required} covered={covered} missing={missing}"
+                )
     print(f"deletion: {inventory['deletion_criteria']}")
     missing_sample_entries = [
         (entry["key"], sample)

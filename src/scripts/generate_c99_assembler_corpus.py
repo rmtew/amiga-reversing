@@ -322,6 +322,24 @@ class OperandSampleRegistryEntry:
     samples: tuple[dict[str, object], ...] = ()
 
 
+@dataclass(frozen=True, slots=True)
+class EaSamplePlanEntry:
+    mnemonic: str
+    kb_mnemonic: str
+    local_form_index: int
+    form_index: int
+    syntax: str
+    size: str | None
+    target_cpu: str
+    operand_index: int
+    operand_kind: str
+    operand_role: str | None
+    required_families: tuple[str, ...]
+    covered_families: tuple[str, ...]
+    missing_families: tuple[str, ...]
+    sample_families: tuple[str, ...]
+
+
 SAMPLE_STATUS_SAMPLED = "sampled"
 SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY = "missing_sample_strategy"
 SAMPLE_STATUS_INTENTIONALLY_UNSUPPORTED = "intentionally_unsupported"
@@ -438,6 +456,20 @@ INDEX_DOMAIN = (
     {"index_is_address": 0, "index_reg": 1, "index_long": 0, "scale": 0, "brief_word_prefix": 0x1000, "suffix": "d1.w"},
     {"index_is_address": 1, "index_reg": 3, "index_long": 1, "scale": 0, "brief_word_prefix": 0xB800, "suffix": "a3.l"},
 )
+EA_MODE_FAMILIES = {
+    "dn": "register",
+    "an": "register",
+    "ind": "memory",
+    "postinc": "memory",
+    "predec": "memory",
+    "disp": "displacement",
+    "index": "indexed",
+    "pcdisp": "pc_relative",
+    "pcindex": "pc_relative",
+    "absw": "absolute",
+    "absl": "absolute",
+    "imm": "immediate",
+}
 
 
 def _register_samples(prefix: str) -> tuple[RegisterSample, ...]:
@@ -620,6 +652,42 @@ def _ea_mode_encoding(kb: dict[str, object]) -> dict[str, tuple[int, int | None]
         str(name): (int(bits[0]), None if bits[1] is None else int(bits[1]))
         for name, bits in encoding.items()
     }
+
+
+def _ea_mode_name_by_encoding(kb: dict[str, object]) -> dict[tuple[int, int | None], str]:
+    return {
+        (mode, reg_override if mode == 7 else None): name
+        for name, (mode, reg_override) in _ea_mode_encoding(kb).items()
+    }
+
+
+def _ea_mode_name_for_sample(sample: EASample, kb: dict[str, object]) -> str:
+    return _ea_mode_name_by_encoding(kb)[(sample.mode, sample.reg if sample.mode == 7 else None)]
+
+
+def _ea_family_for_mode_name(mode_name: str) -> str:
+    return EA_MODE_FAMILIES[mode_name]
+
+
+def _ea_sample_family(sample: EASample, kb: dict[str, object]) -> str:
+    mode_name = _ea_mode_name_for_sample(sample, kb)
+    if mode_name == "index" and (
+        sample.full_ext_base_suppress
+        or sample.full_ext_index_suppress
+        or sample.full_ext_base_disp_size
+        or sample.full_ext_outer_disp_size
+        or sample.full_ext_iis
+    ):
+        return "full_indexed"
+    if mode_name == "pcindex" and (
+        sample.full_ext_base_suppress
+        or sample.full_ext_index_suppress
+        or sample.full_ext_base_disp_size
+        or sample.full_ext_outer_disp_size
+        or sample.full_ext_iis
+    ):
+        return "full_pc_relative"
+    return _ea_family_for_mode_name(mode_name)
 
 
 def _full_ext_fields(kb: dict[str, object]) -> dict[str, tuple[int, int]]:
@@ -1316,14 +1384,14 @@ def _filter_routed_immediate_modes(
     return frozenset(mode for mode in allowed_modes if mode != "imm")
 
 
-def _ea_sample_options(
+def _ea_mode_names_for_context(
     context: FormContext,
     item: dict[str, object],
     kb: dict[str, object],
     forms: list[object],
     subset_module: object,
     operand_role: str | None,
-) -> tuple[object, ...]:
+) -> tuple[str, ...]:
     constraints = item.get("constraints", {})
     assert isinstance(constraints, dict)
     an_sizes = frozenset(str(size) for size in constraints.get("an_sizes", ()))
@@ -1341,9 +1409,8 @@ def _ea_sample_options(
     )
     ea_mode_order = tuple(name for name in _ea_mode_encoding(kb) if name in allowed_ea_modes)
     return tuple(
-        sample
+        mode_name
         for mode_name in ea_mode_order
-        for sample in _ea_samples_for_mode(mode_name, kb, forms, item, context.size, context.target_cpu)
         if context.size is None or context.size in ea_mode_sizes.get(mode_name, frozenset())
         if not (
             an_sizes
@@ -1360,6 +1427,21 @@ def _ea_sample_options(
                 or (mode_name != "dn" and context.size != bit_op_sizes.get("memory"))
             )
         )
+    )
+
+
+def _ea_sample_options(
+    context: FormContext,
+    item: dict[str, object],
+    kb: dict[str, object],
+    forms: list[object],
+    subset_module: object,
+    operand_role: str | None,
+) -> tuple[object, ...]:
+    return tuple(
+        sample
+        for mode_name in _ea_mode_names_for_context(context, item, kb, forms, subset_module, operand_role)
+        for sample in _ea_samples_for_mode(mode_name, kb, forms, item, context.size, context.target_cpu)
     )
 
 
@@ -2026,6 +2108,70 @@ def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool
             options = _sample_options(context, item, kb, forms, subset_module)
             entries.append(_sample_status_for_options(context, options))
     return entries
+
+
+def generate_ea_sample_plans(target_cpu: str = "68000") -> tuple[EaSamplePlanEntry, ...]:
+    subset_module, forms, kb = _load_forms_and_kb()
+    entries: list[EaSamplePlanEntry] = []
+    for form in forms:
+        if not _form_supports_cpu(form, target_cpu):
+            continue
+        item = _mnemonic_item(kb, form.kb_mnemonic)
+        form_source = _raw_form_for_generated_form(kb, item, form)
+        operand_roles = _operand_roles(kb, item, form.sampling_operand_kinds)
+        for size in _sizes_for_target_form(form, target_cpu):
+            context = FormContext(
+                form=form,
+                size=size,
+                syntax=form.syntax,
+                operand_kinds=form.sampling_operand_kinds,
+                operand_roles=operand_roles,
+                target_cpu=target_cpu,
+                form_source=form_source,
+            )
+            for operand_index, (operand_kind, operand_role) in enumerate(
+                zip(context.operand_kinds, context.operand_roles, strict=True)
+            ):
+                if operand_kind == "ea":
+                    required_modes = _ea_mode_names_for_context(
+                        context,
+                        item,
+                        kb,
+                        forms,
+                        subset_module,
+                        operand_role,
+                    )
+                    samples = _ea_sample_options(context, item, kb, forms, subset_module, operand_role)
+                elif operand_kind == "bf_ea":
+                    required_modes = tuple(
+                        mode_name
+                        for mode_name in _ea_mode_names_for_context(context, item, kb, forms, subset_module, "ea")
+                        if mode_name != "imm"
+                    )
+                    samples = _bf_ea_sample_options(context, item, kb, forms, subset_module)
+                else:
+                    continue
+                ea_samples = tuple(sample for sample in samples if isinstance(sample, EASample))
+                required_families = tuple(sorted({_ea_family_for_mode_name(mode_name) for mode_name in required_modes}))
+                covered_families = tuple(sorted({_ea_family_for_mode_name(_ea_mode_name_for_sample(sample, kb)) for sample in ea_samples}))
+                sample_families = tuple(sorted({_ea_sample_family(sample, kb) for sample in ea_samples}))
+                entries.append(EaSamplePlanEntry(
+                    mnemonic=str(form.mnemonic),
+                    kb_mnemonic=str(form.kb_mnemonic),
+                    local_form_index=int(form.local_form_index),
+                    form_index=int(form.form_index),
+                    syntax=str(form.syntax),
+                    size=size,
+                    target_cpu=target_cpu,
+                    operand_index=operand_index,
+                    operand_kind=operand_kind,
+                    operand_role=operand_role,
+                    required_families=required_families,
+                    covered_families=covered_families,
+                    missing_families=tuple(family for family in required_families if family not in covered_families),
+                    sample_families=sample_families,
+                ))
+    return tuple(entries)
 
 
 def generate_full_ext_cases() -> list[CorpusCase]:

@@ -31,6 +31,9 @@ def test_diagnostic_inventory_loads_current_generated_form_tables() -> None:
     assert inventory["counts"]["matched_forms"] > 0
     assert inventory["sample_status_counts"]["sampled"] > 0
     assert len(inventory["entries"]) >= inventory["counts"]["matched_forms"]
+    assert len(inventory["ea_sample_plans"]) > 0
+    assert inventory["ea_sample_plans"][0]["required_families"]
+    assert "missing_families" in inventory["ea_sample_plans"][0]
     assert "canonical-model coverage" in inventory["deletion_criteria"]
 
 
@@ -146,6 +149,7 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "disasm-only forms:" in output
     assert "sample statuses:" in output
     assert "unsupported statuses:" in output
+    assert "ea sample families:" in output
 
 
 def test_diagnostic_check_command_succeeds_with_current_classified_data(capsys) -> None:

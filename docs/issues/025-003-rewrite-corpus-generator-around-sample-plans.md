@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/025-m68k-generated-sample-plans-and-strict-coverage.md`
 Type: AFK
-Blocked by: `docs/issues/025-001-generate-operand-sample-registry.md`, `docs/issues/025-002-generate-ea-family-sample-plans.md`
+Blocked by: None
 
 ## Scope
 

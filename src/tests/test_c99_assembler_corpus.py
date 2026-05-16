@@ -287,6 +287,44 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         self.assertEqual(registry["imm"].status, "missing_sample_strategy")
         self.assertIn("no generated sample schema", registry["imm"].reason)
 
+    def test_ea_sample_plans_cover_representative_roles(self) -> None:
+        plans = _corpus_generator().generate_ea_sample_plans("68000")
+        move_src = next(
+            plan
+            for plan in plans
+            if plan.mnemonic == "MOVE"
+            and plan.syntax == "MOVE <ea>,<ea>"
+            and plan.size == "b"
+            and plan.operand_role == "src"
+        )
+        move_dst = next(
+            plan
+            for plan in plans
+            if plan.mnemonic == "MOVE"
+            and plan.syntax == "MOVE <ea>,<ea>"
+            and plan.size == "b"
+            and plan.operand_role == "dst"
+        )
+        tas_rw = next(plan for plan in plans if plan.mnemonic == "TAS")
+
+        self.assertIn("immediate", move_src.required_families)
+        self.assertIn("pc_relative", move_src.required_families)
+        self.assertNotIn("immediate", move_dst.required_families)
+        self.assertEqual(move_dst.required_families, move_dst.covered_families)
+        self.assertEqual(tas_rw.operand_role, "ea")
+        self.assertIn("memory", tas_rw.covered_families)
+
+    def test_ea_sample_plans_record_cpu_tier_full_indexing(self) -> None:
+        plans_68000 = _corpus_generator().generate_ea_sample_plans("68000")
+        plans_68020 = _corpus_generator().generate_ea_sample_plans("68020")
+        lea_68000 = next(plan for plan in plans_68000 if plan.mnemonic == "LEA")
+        lea_68020 = next(plan for plan in plans_68020 if plan.mnemonic == "LEA")
+
+        self.assertIn("indexed", lea_68000.sample_families)
+        self.assertNotIn("full_indexed", lea_68000.sample_families)
+        self.assertIn("indexed", lea_68020.required_families)
+        self.assertIn("full_indexed", lea_68020.sample_families)
+
     def test_native_line_cpu_gating_rejects_expected_cases(self) -> None:
         samples = (
             ("68000", "moves.w d0,(a0)"),
