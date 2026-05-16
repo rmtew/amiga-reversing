@@ -30,6 +30,11 @@ CPU_CODES = {
 CPU_NAMES = ("68000", "68010", "68020", "68030", "68040", "68060")
 TARGET_LABEL_RE = re.compile(r"\btarget\b")
 UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS = unsupported_mmu_round_trip_mnemonics_upper()
+UNSUPPORTED_CANONICAL_PARITY_MNEMONICS = UNSUPPORTED_MMU_ROUND_TRIP_MNEMONICS | {
+    "CPRESTORE",
+    "CPSAVE",
+    "PFLUSH",
+}
 M68K_DIAG_SEVERITY_ERROR = 3
 M68K_DIAG_MESSAGE_SIZE = 160
 M68K_DIAG_LIST_CAPACITY = 8
@@ -244,6 +249,15 @@ def _round_trip_case(case, cpu_name: str) -> None:
         raise AssertionError(f"{case.case_id}: decoded mnemonic_id is NONE for {rendered}")
     if info.canonical_form_id == 0:
         raise AssertionError(f"{case.case_id}: decoded canonical_form_id is NONE for {rendered}")
+    if str(case.mnemonic).upper() not in UNSUPPORTED_CANONICAL_PARITY_MNEMONICS and (
+        info.canonical_form_id != case.canonical_form_id
+    ):
+        raise AssertionError(
+            f"{case.case_id}: canonical form mismatch for {rendered}\n"
+            f"asm={' | '.join(case.asm_lines)}\n"
+            f"expected_id={case.canonical_form_id} decoded_id={info.canonical_form_id}\n"
+            f"bytes={original[:byte_count].hex()}"
+        )
     if not info_mnemonic:
         raise AssertionError(f"{case.case_id}: decoded mnemonic text is empty")
     if TARGET_LABEL_RE.search(rendered):
@@ -380,6 +394,11 @@ class C99DisassemblerCorpusTests(unittest.TestCase):
         result = _disassemble_info_for_cpu(bytes.fromhex("4e71"), "68000")
         self.assertEqual(result.byte_count, 2)
         self.assertEqual(result.canonical_form_id, _canonical_form_id_for_syntax("NOP"))
+
+    def test_conditional_family_case_preserves_canonical_form_id(self) -> None:
+        case = _cases_by_first_line("68000")["bhi.b target"]
+        result = _disassemble_info_for_cpu(_case_original_bytes(case), "68000")
+        self.assertEqual(result.canonical_form_id, case.canonical_form_id)
 
     def test_signed_displacement_families_render_signed(self) -> None:
         samples = (

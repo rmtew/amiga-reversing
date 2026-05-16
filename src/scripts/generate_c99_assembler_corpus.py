@@ -101,6 +101,7 @@ class CorpusCase:
     asm_lines: tuple[str, ...]
     expected_hex: str
     instruction_specs: tuple[dict[str, object], ...]
+    canonical_form_id: int
     offset: int = 0
     size: int = 0
 
@@ -601,6 +602,10 @@ def _instruction_spec(
         "patch_values": patch_values,
         "operand_specs": operand_specs,
     }
+
+
+def _canonical_form_ids_by_key(subset_module) -> dict[tuple[object, ...], int]:
+    return subset_module._canonical_form_id_map(subset_module._load_canonical_forms(KB_PATH))
 
 
 def _text_manifest(case_list: list[CorpusCase]) -> str:
@@ -1801,6 +1806,7 @@ def _case_id(context: FormContext, samples: tuple[object, ...]) -> str:
 def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[CorpusCase]:
     subset_module, forms, kb = _load_forms_and_kb()
     routed_immediates = subset_module._supported_immediate_routes(forms, KB_PATH)
+    canonical_form_ids = _canonical_form_ids_by_key(subset_module)
     cases: list[CorpusCase] = []
     for form in forms:
         if not _form_supports_cpu(form, target_cpu):
@@ -1847,6 +1853,7 @@ def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) 
                             asm_lines=asm_lines,
                             expected_hex=encoded_case.encoded.hex(),
                             instruction_specs=instruction_specs,
+                            canonical_form_id=canonical_form_ids[subset_module._form_identity_key(form)],
                         )
                     )
     return cases
@@ -1901,7 +1908,8 @@ def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool
 
 
 def generate_full_ext_cases() -> list[CorpusCase]:
-    _, forms, kb = _load_forms_and_kb()
+    subset_module, forms, kb = _load_forms_and_kb()
+    canonical_form_ids = _canonical_form_ids_by_key(subset_module)
     item = _mnemonic_item(kb, "LEA")
     form = next(form for form in forms if form.mnemonic == "LEA")
     bd_sizes = _full_ext_bd_sizes(kb)
@@ -2003,6 +2011,7 @@ def generate_full_ext_cases() -> list[CorpusCase]:
                 asm_lines=tuple(sample["asm_lines"]),
                 expected_hex=encoded_case.encoded.hex(),
                 instruction_specs=instruction_specs,
+                canonical_form_id=canonical_form_ids[subset_module._form_identity_key(form)],
             )
         )
     return cases
@@ -2022,6 +2031,7 @@ def write_corpus(output_dir: Path = DEFAULT_OUTPUT_DIR) -> tuple[Path, Path, Pat
                 asm_lines=case.asm_lines,
                 expected_hex=case.expected_hex,
                 instruction_specs=case.instruction_specs,
+                canonical_form_id=case.canonical_form_id,
                 offset=offset,
                 size=size,
             )
