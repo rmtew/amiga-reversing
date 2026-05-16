@@ -8,18 +8,22 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Add palette-visible and key-bindable follow/back navigation for clear label and equate references from the current **Listing Selection** or **Listing Element**.
 
 ## Acceptance criteria
 
-- [ ] Follow-reference command appears in the catalog/palette when selection has one clear target.
-- [ ] Back command returns through the navigation stack.
-- [ ] Commands show assigned key-binding badges when bound.
-- [ ] Existing Ctrl-click navigation remains compatible.
-- [ ] CDP/e2e tests cover follow and back for label/equate references.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Follow-reference command appears in the catalog/palette when selection has one clear target.
+- [x] Back command returns through the navigation stack.
+- [x] Commands show assigned key-binding badges when bound.
+- [x] Existing Ctrl-click navigation remains compatible.
+- [x] CDP/e2e tests cover follow and back for label/equate references.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

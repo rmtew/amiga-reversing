@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Review the completed PRD 009 navigation work, identify missed reference types, confusing key behavior, over-complicated navigation state, or weak fixtures, and address them directly or split follow-up issues.
 
 ## Acceptance criteria
 
-- [ ] Review follow/back, ambiguous references, relative navigation, struct/RS fixtures, palette visibility, and tests against PRD 009.
-- [ ] Simplify duplicated or fragile navigation behavior found during review.
-- [ ] Add missing tests or issue follow-ups for broader gaps.
-- [ ] PRD 009 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Review follow/back, ambiguous references, relative navigation, struct/RS fixtures, palette visibility, and tests against PRD 009.
+- [x] Simplify duplicated or fragile navigation behavior found during review.
+- [x] Add missing tests or issue follow-ups for broader gaps.
+- [x] PRD 009 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

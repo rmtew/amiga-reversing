@@ -1,5 +1,9 @@
 # PRD 009: Symbol, Equate, and Struct Navigation
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Make symbolic navigation keyboard-driven and palette-visible for labels, RS values, equates, structs, and other semantic references in the listing.
@@ -43,5 +47,15 @@ Make symbolic navigation keyboard-driven and palette-visible for labels, RS valu
 
 ## Open Questions
 
-- Exact default bindings for follow/back when browser/platform shortcuts conflict.
-- Whether ambiguous references should default to first match or force the detail list.
+- Resolved: direct follow/back use ArrowRight/ArrowLeft, relative labels use
+  Ctrl+ArrowUp/Ctrl+ArrowDown, and hunk movement is exposed through palette
+  commands.
+- Resolved: ambiguous references open or focus the Navigate detail list instead
+  of silently choosing a target.
+
+## Completion Notes
+
+- Symbol, equate, app-slot/struct-style, history, relative label, and relative
+  hunk navigation are palette-visible transient catalog commands.
+- Focused PRD009 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_web_e2e_cdp.py tests\test_disasm_server.py tests\test_web_app_source.py -q -k "selected_row_follows_reference_and_goes_back or relative_label_and_hunk_navigation or command_palette_sends_structured_symbol_context or app_slot_navigation_drills_to_refs or equate_navigation_lists_refs_and_source_links or navigation_buttons_move_history or navigation_overlay_opens_on_listing or route_listing_navigation_indexes_label_definition_and_refs or manual_action_catalog_returns_target_commands or command_palette_and_selection_model"`.

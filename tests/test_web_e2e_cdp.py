@@ -1644,6 +1644,78 @@ def test_brave_cdp_selected_row_follows_reference_and_goes_back(monkeypatch: pyt
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_relative_label_and_hunk_navigation(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_relative_navigation")
+    rows = [
+        ListingRow(
+            row_id="h0-start",
+            kind="label",
+            text="start:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            stable_key="h0-start",
+            label="start",
+        ),
+        ListingRow(
+            row_id="h0-code",
+            kind="instruction",
+            text="nop\n",
+            addr=2,
+            section_index=0,
+            start_offset=2,
+            stable_key="h0-code",
+        ),
+        ListingRow(
+            row_id="h0-next",
+            kind="label",
+            text="next_label:\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            stable_key="h0-next",
+            label="next_label",
+        ),
+        ListingRow(
+            row_id="h1-start",
+            kind="label",
+            text="hunk_one:\n",
+            addr=0x100,
+            section_index=1,
+            start_offset=0,
+            stable_key="h1-start",
+            label="hunk_one",
+        ),
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-stable-key='h0-start']")
+        page.evaluate("document.querySelector('[data-row-stable-key=\"h0-start\"]').click()")
+
+        page.press_key("ArrowDown", modifiers=2)
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h0-next'")
+        page.press_key("ArrowUp", modifiers=2)
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h0-start'")
+
+        page.press_key("p")
+        page.wait_for_selector("#command-palette-overlay")
+        page.press_key("Backspace")
+        page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Next Hunk')")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'next hunk'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Next Hunk')")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h1-start'")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_listing_ready_refreshes_analysis_review_badge(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_analysis_review")
     rows = [
