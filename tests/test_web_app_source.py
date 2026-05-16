@@ -245,6 +245,8 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "function renderReproPanel()" in app_js
     assert "function renderReproductionPolicySummary(report)" in app_js
     assert "function setReproductionProfile(profileId)" in app_js
+    assert "tool_availability" in app_js
+    assert "tool-availability-warning" in app_js
     assert "function currentReproIssue()" in app_js
     assert "function reproductionReportKey(report)" in app_js
     assert "const previousReportKey = state.reproduction.reportKey || reproductionReportKey(state.reproduction.report);" in app_js
@@ -265,6 +267,7 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "listing-row-repro-issue" in app_js
     assert ".repro-panel" in styles_css
     assert ".repro-policy-summary" in styles_css
+    assert ".tool-availability-warning" in styles_css
     assert ".project-badge-repro-exact" in styles_css
 
 

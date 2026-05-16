@@ -1030,6 +1030,19 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
     monkeypatch.setattr(disasm_server, "load_reproduction_report", load_report)
     monkeypatch.setattr(
         disasm_server,
+        "tool_availability_records",
+        lambda tool_ids, required_tool_ids=(), project_root=None: [
+            {
+                "tool_id": tool_id,
+                "status": "missing",
+                "required": tool_id in required_tool_ids,
+                "message": f"{tool_id} was not found",
+            }
+            for tool_id in tool_ids
+        ],
+    )
+    monkeypatch.setattr(
+        disasm_server,
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
     )
@@ -1053,7 +1066,7 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
         page.evaluate(
             """
             Array.from(document.querySelectorAll('.parameter-choice'))
-              .find((button) => button.textContent.includes('Content semantic comparison'))
+              .find((button) => button.textContent.includes('GenAm/DevPac source oracle'))
               .click()
             """
         )
@@ -1061,14 +1074,15 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
         page.wait_for_expression("state.analysisStatus.text === 'Reproduction profile saved'")
         page.evaluate("openReproPanel()")
         page.wait_for_selector("#repro-overlay")
-        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Content semantic comparison')")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('GenAm/DevPac source oracle')")
+        page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('vamos')")
         page.wait_for_expression("document.querySelector('#repro-overlay')?.textContent.includes('Needs repro')")
         page.wait_for_expression("document.querySelector('#project-details')?.textContent.includes('Needs repro')")
         page.assert_no_errors()
 
     edits = json.loads((target_dir / "target_ui_edits.json").read_text(encoding="utf-8"))
     assert edits[0]["kind"] == "reproduction_options"
-    assert edits[0]["options"]["profile_id"] == "content-semantic"
+    assert edits[0]["options"]["profile_id"] == "source-devpac"
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 

@@ -2126,6 +2126,16 @@ body {
   font-size: 12px;
 }
 
+.tool-availability-warning {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #b65a5a;
+  color: #742020;
+  background: #fff7f7;
+  font-size: 12px;
+}
+
 .repro-diagnostics {
   max-height: 180px;
   overflow: auto;

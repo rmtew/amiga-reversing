@@ -62,6 +62,10 @@ from amiga_reversing.disasm.target_ui_edits import (
     TARGET_UI_EDITS_FILE_NAME,
     target_ui_edit_kind_from_json,
 )
+from amiga_reversing.disasm.tool_registry import (
+    oracle_tool_ids_for_modes,
+    tool_availability_records,
+)
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -954,6 +958,7 @@ def reproduction_input_stamp(
     assembler = _effective_reproduction_assembler(assembler, options)
     assembler_cpu = _effective_reproduction_cpu(options)
     reproduction_policy = reproduction_policy_for_options(options)
+    oracle_tool_availability = oracle_tool_availability_for_options(options, project_root=project_root)
     assembler_path = _platform_file_lib_path(project_root)
     assembler_stamp = _file_stamp(assembler_path)
     tool_path = str(assembler_path)
@@ -965,6 +970,7 @@ def reproduction_input_stamp(
         "source_renderer": "c-backend",
         "analysis_backend": REPRODUCTION_ANALYSIS_STAMP,
         "source_renderer_tool_stamps": source_renderer_tool_stamps(project_root),
+        "oracle_tool_availability": oracle_tool_availability,
         "assembler": assembler,
         "assembler_cpu": assembler_cpu,
         "assembler_tool_path": tool_path,
@@ -982,6 +988,18 @@ def reproduction_options_for_target(target_dir: Path) -> dict[str, object]:
     return options
 
 
+def oracle_tool_availability_for_options(
+    options: Mapping[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> list[dict[str, object]]:
+    oracle_modes = options.get("oracle_modes")
+    tool_ids = oracle_tool_ids_for_modes(oracle_modes if isinstance(oracle_modes, list) else [])
+    if not tool_ids:
+        return []
+    return tool_availability_records(tool_ids, required_tool_ids=tool_ids, project_root=project_root)
+
+
 def unresolved_reproduction_input_stamp(
     target_name: str,
     *,
@@ -995,6 +1013,7 @@ def unresolved_reproduction_input_stamp(
         options = reproduction_options_for_target(target_dir)
     assembler = _effective_reproduction_assembler(assembler, options)
     reproduction_policy = reproduction_policy_for_options(options)
+    oracle_tool_availability = oracle_tool_availability_for_options(options, project_root=project_root)
     return {
         "target": target_name,
         "original_sha256": None,
@@ -1005,6 +1024,7 @@ def unresolved_reproduction_input_stamp(
         "source_renderer": "c-backend",
         "analysis_backend": REPRODUCTION_ANALYSIS_STAMP,
         "source_renderer_tool_stamps": source_renderer_tool_stamps(project_root),
+        "oracle_tool_availability": oracle_tool_availability,
         "assembler": assembler,
         "assembler_cpu": _effective_reproduction_cpu(options),
         "assembler_tool_path": str(_platform_file_lib_path(project_root)),

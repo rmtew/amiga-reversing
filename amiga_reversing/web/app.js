@@ -2549,6 +2549,9 @@ function renderReproductionPolicySummary(report) {
   const oracles = Array.isArray(options.oracle_modes) && options.oracle_modes.length
     ? options.oracle_modes.join(", ")
     : "none";
+  const availability = Array.isArray(summary.tool_availability)
+    ? summary.tool_availability.filter((record) => record && record.status !== "available")
+    : [];
   return `
     <div class="repro-policy-summary">
       <div><span>Profile</span><strong>${escapeHtml(profileLabel)}</strong></div>
@@ -2560,6 +2563,11 @@ function renderReproductionPolicySummary(report) {
       <div><span>Comparison</span><strong>${escapeHtml(policy.comparison || options.comparison || "?")}</strong></div>
       <div><span>Oracles</span><strong>${escapeHtml(oracles)}</strong></div>
     </div>
+    ${availability.length ? `
+      <div class="tool-availability-warning">
+        ${availability.map((record) => `<div>${escapeHtml(record.tool_id || "tool")}: ${escapeHtml(record.message || record.status || "unavailable")}</div>`).join("")}
+      </div>
+    ` : ""}
   `;
 }
 

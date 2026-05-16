@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,14 +18,13 @@ Detect availability for `vasm`, `genam`, and `vamos` from configured paths and P
 
 ## Acceptance criteria
 
-- [ ] Detector returns **Tool Availability Records** with required fields.
-- [ ] Configured paths take precedence over PATH lookup.
-- [ ] Cheap version and executable stamps are included when possible.
-- [ ] Status values are `available`, `missing`, `unsupported`, or `error`.
-- [ ] Tests cover fake available tools, missing tools, bad paths, and probe errors.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Detector returns **Tool Availability Records** with required fields.
+- [x] Configured paths take precedence over PATH lookup.
+- [x] Cheap version and executable stamps are included when possible.
+- [x] Status values are `available`, `missing`, `unsupported`, or `error`.
+- [x] Tests cover fake available tools, missing tools, bad paths, and probe errors.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - [019-001: Tool Registry Storage](019-001-tool-registry-storage.md)
-

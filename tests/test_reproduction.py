@@ -1613,6 +1613,31 @@ def test_reproduction_input_stamp_includes_profile_concrete_policy(tmp_path: Pat
     assert options["oracle_modes"] == ["devpac"]
     assert policy["mode"] == "exact"
     assert policy["requested_exactness"] == "full_file"
+    availability = cast(list[dict[str, object]], stamp["oracle_tool_availability"])
+    assert [record["tool_id"] for record in availability] == ["genam", "vamos"]
+    assert all(record["required"] is True for record in availability)
+
+
+def test_reproduction_input_stamp_omits_unrequested_oracle_availability(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "demo.bin"
+    binary_path.write_bytes(b"\x00\x01")
+    write_source_descriptor(
+        target_dir,
+        {
+            "kind": "raw_binary",
+            "path": str(binary_path),
+            "address_model": "local_offset",
+            "load_address": 0,
+            "entrypoint": 0,
+            "code_start_offset": 0,
+        },
+    )
+
+    stamp = reproduction_input_stamp("demo", project_root=tmp_path)
+
+    assert stamp["oracle_tool_availability"] == []
 
 
 def test_reproduction_options_reject_alias_spellings(tmp_path: Path) -> None:

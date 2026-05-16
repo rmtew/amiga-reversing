@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,13 +18,12 @@ Add project/workspace **Tool Registry** storage for external oracle tool paths a
 
 ## Acceptance criteria
 
-- [ ] Tool Registry is separate from target metadata and **Manual Action Log**.
-- [ ] Registry supports `vasm`, `genam`, and `vamos` tool ids.
-- [ ] Invalid registry payloads fail with clear errors.
-- [ ] Tests cover missing, empty, and populated registry files.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Tool Registry is separate from target metadata and **Manual Action Log**.
+- [x] Registry supports `vasm`, `genam`, and `vamos` tool ids.
+- [x] Invalid registry payloads fail with clear errors.
+- [x] Tests cover missing, empty, and populated registry files.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - None
-

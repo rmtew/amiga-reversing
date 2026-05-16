@@ -8,6 +8,10 @@ Add a project/workspace **Tool Registry** and structured **Tool Availability Rec
 
 - PRD 018: Reproduction Profiles and Policy Summary.
 
+## Status
+
+Complete. Implemented registry storage, availability detection, API/CLI/UI surfacing, and requested-oracle report stamping.
+
 ## Scope
 
 - Store user-local paths and discovery hints outside target metadata and the **Manual Action Log**.
@@ -40,6 +44,7 @@ Add a project/workspace **Tool Registry** and structured **Tool Availability Rec
 - Route/CLI tests for availability payloads.
 - Report-stamp tests proving only requested oracle availability is stamped.
 - Web tests for visible missing-tool reasons.
+- Verified with related tests, focused CDP UI coverage, ruff, and `src\precommit.bat`.
 
 ## Issues
 

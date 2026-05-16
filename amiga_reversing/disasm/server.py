@@ -87,6 +87,13 @@ from amiga_reversing.disasm.reproduction import (
     validated_reproduction_options_payload,
 )
 from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
+from amiga_reversing.disasm.tool_registry import (
+    load_tool_registry,
+    oracle_tool_ids_for_modes,
+    save_tool_registry,
+    set_tool_path,
+    tool_availability_records,
+)
 from amiga_reversing.disasm.ui_preferences import (
     load_ui_preferences,
     save_ui_preferences,
@@ -515,6 +522,28 @@ def _reproduction_profile_payload(project_name: str) -> dict[str, object]:
     return _safe_reproduction_policy_summary(project_name)
 
 
+def _project_tool_availability_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "tool availability")
+    profile_id = _first_query_value(query, "profile_id")
+    oracle_modes = _query_csv(query, "oracle_modes")
+    if profile_id:
+        options = expand_reproduction_profile(profile_id)
+        raw_modes = cast(list[object], options.get("oracle_modes", []))
+    elif oracle_modes:
+        raw_modes = list(oracle_modes)
+    else:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+        options = reproduction_options_for_target(paths.target_dir)
+        raw_modes = cast(list[object], options.get("oracle_modes", [])) if isinstance(options.get("oracle_modes"), list) else []
+    tool_ids = oracle_tool_ids_for_modes(raw_modes)
+    return {
+        "project": project_name,
+        "profile_id": profile_id,
+        "oracle_modes": raw_modes,
+        "availability": tool_availability_records(tool_ids, required_tool_ids=tool_ids, project_root=PROJECT_ROOT),
+    }
+
+
 def _set_reproduction_profile_payload(project_name: str, body: dict[str, object] | None) -> dict[str, object]:
     _require_ready_binary_project(project_name, "target reproduction profile")
     profile_id = (body or {}).get("profile_id")
@@ -581,6 +610,7 @@ def _safe_reproduction_policy_summary(project_name: str) -> dict[str, object]:
         "profile": active_profile,
         "options": options,
         "policy": policy,
+        "tool_availability": _project_tool_availability_payload(project_name, {})["availability"],
         "profiles": builtin_reproduction_profiles(),
     }
 
@@ -726,6 +756,13 @@ def _first_query_value(values: dict[str, list[str]], key: str) -> str | None:
     if raw in (None, ""):
         return None
     return raw
+
+
+def _query_csv(values: dict[str, list[str]], key: str) -> list[str]:
+    raw = _first_query_value(values, key)
+    if raw is None:
+        return []
+    return [part.strip() for part in raw.split(",") if part.strip()]
 
 
 def _empty_listing_payload(addr: int | None) -> EmptyListingPayload:
@@ -2207,6 +2244,34 @@ def route_request(
                 for project in list_projects()
             ],
         }
+    if method == "GET" and path == "/api/tool-registry":
+        return {"ok": True, "data": load_tool_registry(project_root=PROJECT_ROOT)}
+    if method == "PUT" and path == "/api/tool-registry":
+        registry = cast(dict[str, object], body or {})
+        save_tool_registry(registry, project_root=PROJECT_ROOT)
+        return {"ok": True, "data": load_tool_registry(project_root=PROJECT_ROOT)}
+    if method == "GET" and path == "/api/tools/availability":
+        tool_ids = _query_csv(query, "tool_ids")
+        required_ids = _query_csv(query, "required_tool_ids")
+        return {
+            "ok": True,
+            "data": {
+                "availability": tool_availability_records(
+                    tool_ids or None,
+                    required_tool_ids=required_ids,
+                    project_root=PROJECT_ROOT,
+                )
+            },
+        }
+    if method == "POST" and path == "/api/tools/path":
+        tool_id = (body or {}).get("tool_id")
+        path_value = (body or {}).get("path")
+        if not isinstance(tool_id, str) or not tool_id:
+            raise ValueError("tool_id is required")
+        if path_value is not None and not isinstance(path_value, str):
+            raise ValueError("path must be a string")
+        registry = set_tool_path(tool_id, path_value, project_root=PROJECT_ROOT)
+        return {"ok": True, "data": registry}
     if method == "POST" and path == "/api/projects":
         if "media_base64" in (body or {}):
             job = _start_project_create_job(cast(dict[str, object], body or {}))
@@ -2384,6 +2449,8 @@ def route_request(
             return {"ok": True, "data": _set_reproduction_profile_payload(project_name, body)}
         if method == "POST" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "policy":
             return {"ok": True, "data": _set_reproduction_policy_payload(project_name, body)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "tool-availability":
+            return {"ok": True, "data": _project_tool_availability_payload(project_name, query)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY:

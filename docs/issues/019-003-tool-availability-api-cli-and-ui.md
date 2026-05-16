@@ -10,7 +10,7 @@ AFK
 
 ## Labels
 
-ready-for-agent
+done
 
 ## What to build
 
@@ -18,14 +18,13 @@ Expose **Tool Availability Records** through API, CLI, and Web UI surfaces.
 
 ## Acceptance criteria
 
-- [ ] API returns availability for requested profile/oracle context.
-- [ ] CLI can list detected tools and missing reasons.
-- [ ] UI surfaces unavailable required tools instead of hiding options.
-- [ ] Missing `vamos` makes built-in GenAm oracle unavailable with a clear reason.
-- [ ] Tests cover API, CLI, and UI payload rendering.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] API returns availability for requested profile/oracle context.
+- [x] CLI can list detected tools and missing reasons.
+- [x] UI surfaces unavailable required tools instead of hiding options.
+- [x] Missing `vamos` makes built-in GenAm oracle unavailable with a clear reason.
+- [x] Tests cover API, CLI, and UI payload rendering.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
 
 ## Blocked by
 
 - [019-002: Oracle Tool Availability Detector](019-002-oracle-tool-availability-detector.md)
-

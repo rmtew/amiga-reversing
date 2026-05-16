@@ -1,5 +1,6 @@
 # Claude Code local settings
 .claude/settings.local.json
+.amiga_reversing/
 
 # Temporary/transient files
 tmp/*
