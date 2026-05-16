@@ -122,54 +122,6 @@ Proposal: `docs/proposals/004-amiga-platform-knowledge.md`.
 
 ## Future Work
 
-### M68K KB / Executor
-
-Proposal: `docs/proposals/005-m68k-generated-coverage.md`.
-
-- [ ] Add full upstream `RTE` stack/PC/SR semantics extraction to generated M68K metadata if a target needs it; keep this spec-driven, not executor-hardcoded
-- [ ] Extend the new PDF-driven compare-swap KB semantics through full `CAS2` decode/disasm/executor support; current decoded operand model cleanly supports single-`CAS`, but `CAS2` still needs first-class paired-memory operand modeling
-
-### M68K Assembler Coverage Audit
-
-Proposal: `docs/proposals/005-m68k-generated-coverage.md`.
-
-- [ ] Make the C assembler audit comprehensive over canonical generated forms, not just one representative sample per form
-- [ ] Add explicit alias coverage on top of canonical-form coverage so generated syntax aliases are tested separately from canonical forms
-- [ ] Generate multiple valid EA samples per canonical `ea` form from KB `EA_MODE_TABLES`, not just the first working mode
-- [ ] Extend audit sample generation from the current basic operand classes to full special-form operand synthesis where generated form metadata is not enough on its own
-- [ ] Move any remaining audit-side operand guessing into generated C metadata where possible, so the audit stops encoding assembler knowledge locally
-- [ ] Add a strict failure for any new canonical generated form that has neither a sample strategy nor an explicit unsupported reason
-- [ ] Add a strict failure for any stale explicit unsupported reason once the form becomes sampleable
-- [ ] Consider adding a parallel decode/disasm generated-form coverage-contract slice so KB/form drift is checked on both assembler and decoder sides
-
-### Remaining Assembler Coverage Work
-
-Proposal: `docs/proposals/005-m68k-generated-coverage.md`.
-
-- [ ] Implement `MOVEC` control-register syntax and remove its explicit unsupported forms from C assembler coverage tests
-- [ ] Implement `MOVES` forms and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement `CHK2/CMP2` forms and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement bitfield forms (`BFCHG/BFCLR/BFEXTS/BFEXTU/BFFFO/BFINS/BFSET/BFTST`) and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement `CAS/CAS2` forms and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement long multiply/divide register-pair syntax (`MULS/MULU/DIVS/DIVU` long forms) and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement `RTD` immediate extension encoding and remove its explicit unsupported form from C assembler coverage tests
-- [ ] Implement `STOP` immediate extension encoding and remove its explicit unsupported form from C assembler coverage tests
-- [ ] Implement `TRAPcc` forms and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement `MOVE16` forms and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement FPU save/restore forms (`FSAVE/FRESTORE`) and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement PMMU forms (`PFLUSH/PFLUSHA/PFLUSHR/PMOVE/PRESTORE/PSAVE/PScc/PTRAPcc/PVALID/PBcc/PDBcc`) and remove their explicit unsupported forms from C assembler coverage tests
-- [ ] Implement generic coprocessor forms (`cpBcc/cpDBcc/cpGEN/cpRESTORE/cpSAVE/cpScc/cpTRAPcc`) and remove their explicit unsupported forms from C assembler coverage tests
-
-### M68K Generated Metadata / Audit Plumbing
-
-Proposal: `docs/proposals/005-m68k-generated-coverage.md`.
-
-- [ ] Export any additional generated C tables needed for audit/sample generation from the C metadata pipeline
-- [ ] Decide whether special-form operand sample templates should live in generated C metadata instead of coverage helpers
-- [ ] Clean up extension-word/form modeling where raw encoding counts exceed canonical form counts (`CHK2/CMP2`, bitfield ops, `CALLM`, PMMU families) so coverage tooling can reason about form support without encoding-level guesswork
-- [ ] Replace mnemonic-specific audit overrides with generated canonical syntax metadata where possible
-- [ ] Add a small report mode for the C coverage suite so unsupported-form inventory can be viewed without reading test code
-
 ### Compiler Fingerprinting
 
 Proposal: `docs/proposals/003-runtime-tracing.md`.
@@ -195,8 +147,4 @@ Proposal: `docs/proposals/006-target-import-and-analysis-architecture.md`.
 - [ ] Auto-create non-DOS loader stage targets only when bootloader analysis can materialize concrete stage bytes plus load address and entrypoint, so inferred-only regions stay honest
 - [ ] Extend runtime-built Amiga resident/device analysis for targets such as `amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c`, where resident/device structures and dispatch code are copied and relocated before `AddDevice`; keep any source refresh gated on clean direct rebuild or explicitly classified relocation semantics.
 - [ ] Keep the mojibake check in `amiga_reversing.tools.check_mojibake` tight and data-oriented; if more broken encodings appear, extend the explicit pattern list with focused regression tests rather than broad punctuation bans
-- [ ] Continue the remaining M68K/disasm audit slices beyond the assembler coverage work:
-  Proposal: `docs/proposals/005-m68k-generated-coverage.md`.
-  - decoder/disassembler generated-form consistency in the C disassembler/IR metadata
-  - unsupported special-form implementation vs generated-form cleanup in the C generator pipeline
-  - any remaining honest unresolved indirect-call classification work in the analysis path if benchmarks expose avoidable `unknown` cases
+- [ ] Continue any remaining honest unresolved indirect-call classification work in the analysis path if benchmarks expose avoidable `unknown` cases
