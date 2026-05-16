@@ -1848,6 +1848,8 @@ function commandPaletteRowSnapshot(row) {
     end_offset: row.end_offset ?? null,
     bytes: row.bytes || null,
     label: row.label || null,
+    manual_label_id: row.manual_label_id || null,
+    manual_label_address_domain: row.manual_label_address_domain || null,
     opcode_or_directive: row.opcode_or_directive || null,
     data_class: row.data_class || null,
     structured_data: row.structured_data || null,
@@ -2102,6 +2104,8 @@ function applyManualLabelRenameEffect(effect) {
     kind: rows[existingIndex].kind || "label",
     label: name,
     text: `${name}:\n`,
+    manual_label_id: effect.label_id || rows[existingIndex].manual_label_id || null,
+    manual_label_address_domain: effect.address_domain || rows[existingIndex].manual_label_address_domain || null,
   };
   state.listingRows = rows;
   return true;

@@ -487,6 +487,49 @@ def _manual_entry_matches_row(entry: Mapping[str, object], row: Mapping[str, obj
     return row_addr == addr
 
 
+def _row_label_address_domain(row: Mapping[str, object]) -> str | None:
+    label = row.get("label")
+    if not isinstance(label, str):
+        text = row.get("text")
+        label = text.strip().rstrip(":") if isinstance(text, str) else ""
+    if label.startswith("abs_"):
+        return "runtime"
+    if label.startswith("loc_"):
+        return "source"
+    return None
+
+
+def _manual_label_address_domain(label: Mapping[str, object]) -> str:
+    domain = label.get("address_domain")
+    return domain if domain in {"runtime", "source"} else "source"
+
+
+def _manual_label_matches_row(
+    label: Mapping[str, object],
+    row: Mapping[str, object],
+    row_index: int,
+) -> bool:
+    row_domain = _row_label_address_domain(row)
+    if row_domain is not None and _manual_label_address_domain(label) != row_domain:
+        return False
+    return _manual_entry_matches_row(label, row, row_index)
+
+
+def _manual_label_for_projection(
+    row: Mapping[str, object],
+    labels: Sequence[Mapping[str, object]],
+    row_index: int,
+) -> Mapping[str, object] | None:
+    best_label: Mapping[str, object] | None = None
+    for label in labels:
+        name = label.get("name")
+        if not isinstance(name, str) or not name.strip():
+            continue
+        if _manual_label_matches_row(label, row, row_index):
+            best_label = label
+    return best_label
+
+
 def _apply_manual_listing_projection(
     row: Mapping[str, object],
     labels: Sequence[Mapping[str, object]],
@@ -494,19 +537,20 @@ def _apply_manual_listing_projection(
     row_index: int,
 ) -> dict[str, object]:
     projected = dict(row)
-    for label in labels:
+    label = _manual_label_for_projection(row, labels, row_index)
+    if label is not None:
         name = label.get("name")
         if (
             isinstance(name, str)
             and name.strip()
             and (row.get("kind") == "label" or isinstance(row.get("label"), str))
-            and _manual_entry_matches_row(label, row, row_index)
         ):
             clean_name = name.strip().rstrip(":")
             projected["kind"] = projected.get("kind") or "label"
             projected["label"] = clean_name
             projected["text"] = f"{clean_name}:\n"
-            break
+            projected["manual_label_id"] = label.get("label_id")
+            projected["manual_label_address_domain"] = _manual_label_address_domain(label)
     for comment in comments:
         text = comment.get("text")
         if isinstance(text, str) and text.strip() and _manual_entry_matches_row(comment, row, row_index):
@@ -1834,6 +1878,8 @@ def _catalog_row_snapshot(row: Mapping[str, object]) -> dict[str, object]:
         "end_offset": row.get("end_offset"),
         "bytes": row.get("bytes"),
         "label": row.get("label"),
+        "manual_label_id": row.get("manual_label_id"),
+        "manual_label_address_domain": row.get("manual_label_address_domain"),
         "opcode_or_directive": row.get("opcode_or_directive"),
         "data_class": row.get("data_class"),
         "structured_data": row.get("structured_data"),
@@ -1980,7 +2026,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
                 binary_source=binary_source,
             )
         )
-        application_parts.append(_manual_action_application_payload(kind, action_payload, context))
+        application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
     if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
         _cancel_listing_jobs(project_name)
         _cancel_reproduction_jobs(project_name)
@@ -1995,7 +2041,15 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
     }
 
 
+def _manual_label_by_id(project_name: str, label_id: str) -> dict[str, object] | None:
+    for label in _project_manual_labels(_project_manual_state(project_name)):
+        if label.get("label_id") == label_id:
+            return label
+    return None
+
+
 def _manual_action_application_payload(
+    project_name: str,
     kind: str,
     action_payload: Mapping[str, object],
     context: Mapping[str, object],
@@ -2012,10 +2066,31 @@ def _manual_action_application_payload(
                     "stable_key": label.get("stable_key"),
                     "name": label.get("name"),
                     "previous_name": label.get("previous_name"),
+                    "label_id": label.get("label_id"),
+                    "address_domain": label.get("address_domain"),
                     "hunk": label.get("hunk"),
                     "addr": label.get("addr"),
                 }
             )
+    elif kind == "rename_manual_label":
+        label_id = action_payload.get("label_id")
+        name = action_payload.get("name")
+        if isinstance(label_id, str) and isinstance(name, str) and name.strip():
+            label = _manual_label_by_id(project_name, label_id)
+            if label is not None:
+                local_effects.append(
+                    {
+                        "kind": "label_rename",
+                        "row_index": _optional_int(label.get("row_index")) or _optional_int(context.get("row_index")),
+                        "stable_key": label.get("stable_key"),
+                        "name": name.strip(),
+                        "previous_name": label.get("name"),
+                        "label_id": label_id,
+                        "address_domain": label.get("address_domain"),
+                        "hunk": label.get("hunk"),
+                        "addr": label.get("addr"),
+                    }
+                )
     elif kind == "create_manual_representation":
         representation = action_payload.get("representation")
         if isinstance(representation, Mapping):

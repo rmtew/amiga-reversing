@@ -1747,10 +1747,93 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert local_effect["kind"] == "label_rename"
     assert local_effect["row_index"] == 0
     assert local_effect["name"] == "start"
+    assert local_effect["label_id"] == "catalog-label-source-h0-00000000"
     assert appended_actions == [action]
     assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
     disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
+
+
+def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_id(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        manual_state={
+            "labels": [
+                {
+                    "label_id": "catalog-label-runtime-h0-0001001E",
+                    "name": "copy_loop",
+                    "address_domain": "runtime",
+                    "hunk": 0,
+                    "addr": 0x1001E,
+                    "row_index": 245,
+                    "stable_key": "s0:0000001E:label:245",
+                }
+            ]
+        },
+    )
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "label.rename",
+            "context": {
+                "kind": "element",
+                "row_index": 245,
+                "element_kind": "label",
+                "symbol": "copy_loop",
+                "row": {
+                    "row_index": 245,
+                    "row_id": "r0",
+                    "kind": "label",
+                    "text": "copy_loop:\n",
+                    "addr": 0x1001E,
+                    "runtime_address": 0x1001E,
+                    "section_index": 0,
+                    "start_offset": 0x1E,
+                    "end_offset": 0x1E,
+                    "label": "copy_loop",
+                    "stable_key": "s0:0000001E:label:245",
+                    "manual_label_id": "catalog-label-runtime-h0-0001001E",
+                    "manual_label_address_domain": "runtime",
+                },
+            },
+            "parameters": {"name": "copy_loop_again"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "rename_manual_label"
+    assert action["payload"] == {
+        "label_id": "catalog-label-runtime-h0-0001001E",
+        "name": "copy_loop_again",
+    }
+    assert local_effect["label_id"] == "catalog-label-runtime-h0-0001001E"
+    assert local_effect["address_domain"] == "runtime"
+    assert local_effect["name"] == "copy_loop_again"
+    assert appended_actions == [action]
 
 
 def test_route_manual_action_catalog_execute_uses_visible_row_snapshot_without_artifact(
@@ -4582,6 +4665,15 @@ def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.
         manual_state={
             "labels": [
                 {
+                    "label_id": "catalog-label-source-h0-0000001E",
+                    "name": "wrong_source_label",
+                    "address_domain": "source",
+                    "hunk": 0,
+                    "addr": 0x1E,
+                    "row_index": 0,
+                    "stable_key": "label-row",
+                },
+                {
                     "label_id": "catalog-label-runtime-h0-0001001E",
                     "name": "renamed_label",
                     "address_domain": "runtime",
@@ -4621,6 +4713,8 @@ def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.
     assert payload["ok"] is True
     assert returned_rows[0]["label"] == "renamed_label"
     assert returned_rows[0]["text"] == "renamed_label:\n"
+    assert returned_rows[0]["manual_label_id"] == "catalog-label-runtime-h0-0001001E"
+    assert returned_rows[0]["manual_label_address_domain"] == "runtime"
     assert returned_rows[0]["comment_text"] == "confirmed copy loop"
     assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
     assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY

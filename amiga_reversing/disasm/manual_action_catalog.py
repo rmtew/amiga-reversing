@@ -502,6 +502,10 @@ def listing_catalog_manual_payload(
     if ui_action == "create_manual_register_seed":
         return "create_manual_register_seed", {"register_seed": _register_seed_payload(row, params)}
     if ui_action == "create_manual_label":
+        manual_label_id = row.get("manual_label_id")
+        name = params.get("name")
+        if isinstance(manual_label_id, str) and manual_label_id and isinstance(name, str) and name.strip():
+            return "rename_manual_label", {"label_id": manual_label_id, "name": name.strip()}
         return "create_manual_label", {"label": _row_label_payload(row, element_context, params)}
     if ui_action == "create_manual_comment":
         return "create_manual_comment", {"comment": _row_comment_payload(row, params)}
