@@ -16,6 +16,11 @@ STYLE_LINE_LENGTH = 140
 BUCKET_BITS = 12
 BUCKET_COUNT = 1 << BUCKET_BITS
 
+if str(SRC_DIR / "scripts") not in sys.path:
+    sys.path.insert(0, str(SRC_DIR / "scripts"))
+
+import m68k_canonical_model
+
 
 @dataclass(frozen=True, slots=True)
 class FormBucket:
@@ -213,30 +218,9 @@ def _wrapped_lines(values: list[int]) -> list[str]:
     return lines
 
 
-def _form_identity_key(form) -> tuple[object, ...]:
-    return (
-        str(form.kb_mnemonic),
-        int(form.local_form_index),
-        str(form.syntax),
-        str(form.mnemonic),
-        int(form.opword_base),
-        int(form.opword_mask),
-        tuple(int(base) for base in form.bound_word_bases),
-        tuple(int(mask) for mask in form.bound_word_masks),
-    )
-
-
-def _canonical_form_id_map(subset) -> dict[tuple[object, ...], int]:
-    canonical_forms = subset._load_canonical_forms(KB_PATH)
-    return {
-        _form_identity_key(form): index + 1
-        for index, form in enumerate(canonical_forms)
-    }
-
-
 def _asm_form_index_map(subset) -> dict[tuple[object, ...], int]:
     return {
-        _form_identity_key(form): int(form.form_index)
+        m68k_canonical_model.form_identity_key(form): int(form.form_index)
         for form in subset._load_forms(KB_PATH, supported_mnemonics=subset.SUPPORTED_MNEMONICS)
     }
 
@@ -246,7 +230,8 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
     extension_rows: list[str] = []
     form_rows: list[str] = []
     control_register_rows: list[str] = []
-    canonical_form_ids = _canonical_form_id_map(subset)
+    canonical_forms = m68k_canonical_model.load_canonical_forms(KB_PATH, subset._load_forms)
+    canonical_form_ids = m68k_canonical_model.canonical_form_id_map(canonical_forms)
     asm_form_indexes = _asm_form_index_map(subset)
     patch_index = 0
     extension_index = 0
@@ -261,7 +246,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
         "disp16_always": "M68K_ASM_EXTENSION_DISP16_ALWAYS",
     }
     for form in forms:
-        form_key = _form_identity_key(form)
+        form_key = m68k_canonical_model.form_identity_key(form)
         asm_form_index = asm_form_indexes.get(form_key)
         canonical_form_id = canonical_form_ids[form_key]
         asm_form_index_expr = f"{asm_form_index}u" if asm_form_index is not None else "M68K_ASM_FORM_NONE"

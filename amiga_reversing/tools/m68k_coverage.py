@@ -339,6 +339,10 @@ def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str
     assembler_corpus = __import__("generate_c99_assembler_corpus")
     raw_assembler_forms = list(assembler_subset._load_forms(assembler_subset.KB_PATH))
     raw_disassembler_forms = list(disassembler_subset._load_forms())
+    canonical_model = __import__("m68k_canonical_model")
+    canonical_model.validate_canonical_forms(
+        canonical_model.load_canonical_forms(assembler_subset.KB_PATH, assembler_subset._load_forms)
+    )
     assembler_form_ids = _generated_canonical_form_ids(ASM_TABLE_PATH)
     assembler_forms = _forms_with_generated_canonical_ids(
         raw_assembler_forms,

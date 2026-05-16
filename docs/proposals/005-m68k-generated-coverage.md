@@ -1958,6 +1958,33 @@ extract canonical model generation into its own module/generator, then make
 assembler, disassembler, simulator, corpus, and coverage consume it.
 ```
 
+2026-05-17 implementation update: issue 027-004 moved canonical form identity
+ownership into `src/scripts/m68k_canonical_model.py`. The assembler generator
+still writes `src/generated/m68k_form_model.h` as part of its current file set,
+but canonical form loading, identity keys, id assignment, validation, snapshot
+digesting, and header rendering now live in the canonical-model module.
+
+Current consumers:
+
+```text
+generate_c99_assembler_subset.py
+generate_c99_disassembler_subset.py
+generate_c99_simulator_subset.py
+generate_c99_assembler_corpus.py
+amiga_reversing.tools.m68k_coverage
+```
+
+Canonical ids did not change. The canonical model snapshot digest is:
+
+```text
+4d319d2946003599f2c4df73ebb21a0148d9b6e55bff2df2d36f8920f2338985
+```
+
+A generator test now fails if that digest changes accidentally. The only
+generated artifact change from 027-004 is the provenance comment in
+`src/generated/m68k_form_model.h`, which now names
+`src/scripts/m68k_canonical_model.py`.
+
 #### 5. Canonical Model Data Lives In A Static Header
 
 `m68k_form_model.h` defines large `static const` arrays directly in the header.

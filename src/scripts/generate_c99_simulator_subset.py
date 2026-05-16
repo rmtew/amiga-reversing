@@ -13,6 +13,11 @@ KB_PATH = ROOT / "knowledge" / "m68k_instructions.json"
 SUBSET_GENERATOR_PATH = SRC_DIR / "scripts" / "generate_c99_assembler_subset.py"
 OUT_PATH = GENERATED_DIR / "m68k_simulator_tables.h"
 
+if str(SRC_DIR / "scripts") not in sys.path:
+    sys.path.insert(0, str(SRC_DIR / "scripts"))
+
+import m68k_canonical_model
+
 FLOW_ENUM = {
     "none": "M68K_SIM_FLOW_NONE",
     "sequential": "M68K_SIM_FLOW_SEQUENTIAL",
@@ -756,7 +761,8 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
     _require_execution_for_forms(forms, kb)
     by_mnemonic = _instruction_by_mnemonic(kb)
     subset = _load_subset_module()
-    canonical_form_ids = subset._canonical_form_id_map(subset._load_canonical_forms(KB_PATH))
+    canonical_forms = m68k_canonical_model.load_canonical_forms(KB_PATH, subset._load_forms)
+    canonical_form_ids = m68k_canonical_model.canonical_form_id_map(canonical_forms)
     meta = kb.get("_meta", {})
     assert isinstance(meta, dict)
     ccr_bits = meta.get("ccr_bit_positions", {})
@@ -1024,7 +1030,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
                 f"\"{str(effect.get('operand', ''))}\" "
                 "},"
             )
-        canonical_form_id = canonical_form_ids[subset._form_identity_key(form)]
+        canonical_form_id = canonical_form_ids[m68k_canonical_model.form_identity_key(form)]
         semantic_status = _semantic_status_for_execution(execution, form)
         form_rows.extend([
             "    {",

@@ -15,6 +15,11 @@ DEFAULT_OUTPUT_DIR = ROOT / "src" / "tests" / "generated"
 SUBSET_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_subset.py"
 VASM = ROOT / "tools" / "vasmm68k_mot.exe"
 
+if str(ROOT / "src" / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src" / "scripts"))
+
+import m68k_canonical_model
+
 SIZE_BIT_TO_SUFFIX = {1 << 0: "b", 1 << 1: "w", 1 << 2: "l"}
 SIZE_BIT = {"b": 1 << 0, "w": 1 << 1, "l": 1 << 2}
 SIZE_TO_ENCODING = {"b": 0, "w": 1, "l": 2}
@@ -913,7 +918,8 @@ def _instruction_spec(
 
 
 def _canonical_form_ids_by_key(subset_module) -> dict[tuple[object, ...], int]:
-    return subset_module._canonical_form_id_map(subset_module._load_canonical_forms(KB_PATH))
+    canonical_forms = m68k_canonical_model.load_canonical_forms(KB_PATH, subset_module._load_forms)
+    return m68k_canonical_model.canonical_form_id_map(canonical_forms)
 
 
 def _text_manifest(case_list: list[CorpusCase]) -> str:
@@ -2327,7 +2333,7 @@ def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) 
                         asm_lines=asm_lines,
                         expected_hex=encoded_case.encoded.hex(),
                         instruction_specs=instruction_specs,
-                        canonical_form_id=canonical_form_ids[subset_module._form_identity_key(context.form)],
+                        canonical_form_id=canonical_form_ids[m68k_canonical_model.form_identity_key(context.form)],
                     )
                 )
     return cases
@@ -2538,7 +2544,7 @@ def generate_full_ext_cases() -> list[CorpusCase]:
                 asm_lines=tuple(sample["asm_lines"]),
                 expected_hex=encoded_case.encoded.hex(),
                 instruction_specs=instruction_specs,
-                canonical_form_id=canonical_form_ids[subset_module._form_identity_key(form)],
+                canonical_form_id=canonical_form_ids[m68k_canonical_model.form_identity_key(form)],
             )
         )
     return cases
