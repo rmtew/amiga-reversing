@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -35,6 +36,7 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             raise AssertionError(str(exc))
         cls._tables_c = (cls._outdir / "m68k_asm_tables.c").read_text(encoding="ascii")
         cls._tables_h = (cls._outdir / "m68k_asm_tables.h").read_text(encoding="ascii")
+        cls._form_model_h = (cls._outdir / "m68k_form_model.h").read_text(encoding="ascii")
         cls._metadata_h = (ROOT / "src" / "m68k_asm_metadata.h").read_text(encoding="ascii")
         cls._checker = _load_module(STYLE_CHECKER, "src_test_generate_c99_assembler_style_checker")
 
@@ -90,9 +92,36 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             self._metadata_h,
         )
 
+    def test_generates_canonical_form_model(self) -> None:
+        self.assertIn("typedef uint16_t M68kFormId;\n", self._form_model_h)
+        self.assertIn("typedef uint16_t M68kFormRow;\n", self._form_model_h)
+        self.assertIn("typedef uint8_t M68kOperandSlot;\n", self._form_model_h)
+        self.assertIn("M68K_FORM_ID_NONE = 0u,\n", self._form_model_h)
+        self.assertIn("M68K_FORM_ROW_NONE = 0xFFFFu,\n", self._form_model_h)
+        self.assertIn("M68K_OPERAND_SLOT_NONE = 0xFFu,\n", self._form_model_h)
+        self.assertIn("m68k_form_id_for_row", self._form_model_h)
+        self.assertIn("m68k_form_row_for_id", self._form_model_h)
+
+        rows = [
+            (int(match.group(1)), int(match.group(2)))
+            for match in re.finditer(r"\{\s+(\d+)u,\s+(\d+)u,\s+\"", self._form_model_h)
+        ]
+
+        ids = [form_id for form_id, _row in rows]
+        dense_rows = [row for _form_id, row in rows]
+        self.assertNotIn(0, ids)
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(dense_rows, list(range(len(rows))))
+        self.assertEqual(ids, [row + 1 for row in dense_rows])
+        self.assertIn("    M68K_FORM_ROW_NONE,\n    0u,\n", self._form_model_h)
+
     def test_generated_files_pass_style_checker(self) -> None:
         issues = []
-        for path in (self._outdir / "m68k_asm_tables.c", self._outdir / "m68k_asm_tables.h"):
+        for path in (
+            self._outdir / "m68k_asm_tables.c",
+            self._outdir / "m68k_asm_tables.h",
+            self._outdir / "m68k_form_model.h",
+        ):
             issues.extend(self._checker.check_file(path, self._checker.DEFAULT_LINE_LENGTH))
         self.assertEqual(issues, [])
 
