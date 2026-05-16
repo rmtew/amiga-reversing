@@ -82,6 +82,34 @@ _Avoid_: Profile configuration
 A structured **Tool Availability** entry with tool id, status, required flag, resolved path, cheap version, discovery source, user-facing message, and executable stamp when possible.
 _Avoid_: Console probe output
 
+**PRM-Derived Knowledge Base**:
+Structured Motorola 68000 instruction facts extracted or parser-asserted from the Programmer's Reference Manual.
+_Avoid_: Hardcoded ISA facts, handwritten instruction table
+
+**Canonical Form**:
+A single generated identity for one M68K instruction form, shared by assembler, decoder, disassembler, simulator, sample plans, and coverage.
+_Avoid_: Assembler form, disassembler form, table row
+
+**Canonical Form Model**:
+The generated model that owns **Canonical Forms**, aliases, operand roles, generated tool views, sample plans, and coverage status.
+_Avoid_: Assembler metadata when referring to shared form identity
+
+**Generated Tool View**:
+A tool-specific generated projection of the **Canonical Form Model**, such as assembler encode metadata, decoder candidates, render metadata, or simulator metadata.
+_Avoid_: Separate form model
+
+**Sample Plan**:
+Generated data that describes representative assembler source cases for a **Canonical Form**.
+_Avoid_: Corpus-local operand knowledge
+
+**Coverage Manifest**:
+The generated or bootstrap report data that classifies every form's tool, sample, oracle, and unsupported status.
+_Avoid_: Test count, corpus size
+
+**Unsupported Inventory**:
+Structured data explaining why a form or family is intentionally unsupported and when that reason becomes stale.
+_Avoid_: Skip list, TODO comment
+
 **Oracle Compatibility Report**:
 A report section for a non-gating assembler oracle whose primary result is the achieved comparison level, with tool execution status and diagnostics as supporting evidence.
 _Avoid_: Exactness gate result
@@ -311,6 +339,13 @@ _Avoid_: Text span
 - **Tool Availability Records** use status values `available`, `missing`, `unsupported`, or `error`, and discovery source values such as `configured_path`, `path_lookup`, `bundled`, or `not_checked`.
 - Built-in oracle tool ids for this PRD slice are `vasm`, `genam`, and `vamos`; DevPac is assembler/profile/family wording unless a directly supported DevPac executable is added later.
 - A missing optional oracle tool reports an oracle missing outcome, while a missing required exactness tool is a round-trip verification tool error.
+- The **PRM-Derived Knowledge Base** feeds the **Canonical Form Model**.
+- A **Canonical Form** is not a dense generated table row; nullable form identity and storage indexes are separate concepts.
+- A **Canonical Form Model** produces **Generated Tool Views** for assembler, decoder, disassembler, simulator, sample generation, and coverage reporting.
+- A **Sample Plan** belongs to a **Canonical Form** and is consumed by corpus generation.
+- A **Coverage Manifest** classifies every generated form and fails strict checks when a required form is unclassified.
+- An **Unsupported Inventory** entry must explain the missing schema, missing generated semantics, oracle limitation, or deliberately deferred instruction family.
+- A stale **Unsupported Inventory** entry fails strict coverage once the **Canonical Form Model** can sample or implement that form.
 - **Original File Structure** is the user-facing way to describe **Container Shape** differences.
 - **Container Shape** can differ while **Reproduction Comparison** still reports **Content Exactness**.
 - **Container Layout** gives Python the byte ranges it needs for report and row issue mapping.

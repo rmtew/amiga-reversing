@@ -435,14 +435,22 @@ Missing sample strategy:
   FRESTORE:0 operands=[ea]
 ```
 
-Example command shape:
+Canonical command surface:
 
 ```powershell
-uv run python src/scripts/generate_c99_assembler_corpus.py --coverage-report
+uv run python -m amiga_reversing.tools.m68k_coverage report --phase diagnostic
+uv run python -m amiga_reversing.tools.m68k_coverage check --phase diagnostic
+uv run python -m amiga_reversing.tools.m68k_coverage report --phase canonical
+uv run python -m amiga_reversing.tools.m68k_coverage check --phase canonical
 ```
 
-The exact command can differ, but the report should be generated from the same
-manifest used by strict tests.
+`report` is human-readable and must not fail because coverage gaps exist.
+`check` is strict and fails on unclassified forms, stale unsupported reasons,
+asm/decode mismatches, missing sample plans, and equivalent coverage failures.
+
+`diagnostic` reads the temporary bootstrap manifest. `canonical` reads the
+canonical form model. Tests and PRD issue work should use this command surface;
+unit tests may still exercise internals directly.
 
 ### Step 4: Make Unsupported Reasons Stale-Proof
 

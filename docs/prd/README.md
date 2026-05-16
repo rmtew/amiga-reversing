@@ -19,9 +19,9 @@ Do not reuse numbers after deleting stale PRDs. Number gaps are useful history.
 
 ## Number Allocation
 
-Last allocated PRD number: `022`.
+Last allocated PRD number: `026`.
 
-The next PRD should normally use `023`, unless a newer PRD already exists.
+The next PRD should normally use `027`, unless a newer PRD already exists.
 
 When creating a new PRD, update this section in the same change. Issue parent
 numbers follow PRD numbers, so this is also the source of truth for allocated
