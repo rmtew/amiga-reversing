@@ -214,8 +214,17 @@ def test_bootstrap_unsupported_inventory_classifies_current_families() -> None:
     unsupported_by_id = {entry["family_id"]: entry for entry in inventory["unsupported_inventory"]}
     assert {"move16", "fsave_frestore", "pmmu", "generic_coprocessor"} <= set(unsupported_by_id)
     assert unsupported_by_id["move16"]["status"] == "implemented_unsupported"
+    assert unsupported_by_id["move16"]["reason_category"] == "generated_semantics_missing"
+    assert "generated_semantics" in unsupported_by_id["move16"]["blocking_artifacts"]
     assert unsupported_by_id["generic_coprocessor"]["status"] == "intentionally_unsupported"
+    assert unsupported_by_id["generic_coprocessor"]["reason_category"] == "missing_schema"
     assert all(entry["form_count"] > 0 for entry in unsupported_by_id.values())
+    assert all(entry["stale_conditions"] for entry in unsupported_by_id.values())
+    assert all(
+        condition["stale"] is False
+        for entry in unsupported_by_id.values()
+        for condition in entry["stale_conditions"]
+    )
     assert inventory["unsupported_counts"] == {
         "implemented_unsupported": 3,
         "intentionally_unsupported": 1,
@@ -242,6 +251,20 @@ def test_diagnostic_check_fails_stale_unsupported_reason() -> None:
             "message": "synthetic unsupported entry matched no current generated forms",
         }
     ]
+
+
+def test_strict_coverage_fails_asm_decode_parity_mismatch() -> None:
+    asm_only = FakeForm("ADD", "ADD", 1, 1, "ADD Dn,<ea>")
+    disasm_only = FakeForm("SUB", "SUB", 2, 20, "SUB <ea>,Dn")
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[asm_only],
+        disassembler_forms=[disasm_only],
+    )
+
+    failures = m68k_coverage.strict_coverage_failures(inventory)
+
+    assert inventory["unsupported_inventory"] == []
+    assert {failure["kind"] for failure in failures} == {"asm_decode_parity_mismatch"}
 
 
 def test_explicit_unsupported_sample_status_is_classified() -> None:

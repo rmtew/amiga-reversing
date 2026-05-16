@@ -24,32 +24,53 @@ DIAGNOSTIC_SAMPLE_STATUSES = {
     "oracle_unavailable",
 }
 DIAGNOSTIC_UNSUPPORTED_SAMPLE_STATUSES = {"intentionally_unsupported", "implemented_unsupported"}
-BOOTSTRAP_UNSUPPORTED_FAMILIES = (
+CANONICAL_UNSUPPORTED_FAMILIES = (
     {
         "family_id": "move16",
         "status": "implemented_unsupported",
         "mnemonics": ("MOVE16",),
-        "reason": "Deferred family named by PRD 023/025 until canonical sample and semantics coverage owns it.",
+        "reason_category": "generated_semantics_missing",
+        "blocking_artifacts": ("canonical_sample_plan", "generated_semantics", "oracle_support"),
+        "reason": (
+            "MOVE16 decode/render forms exist, but generated sample plans and semantics do not yet model "
+            "cache-line transfer behavior or oracle support."
+        ),
     },
     {
         "family_id": "fsave_frestore",
         "status": "implemented_unsupported",
         "mnemonics": ("FSAVE", "FRESTORE"),
-        "reason": "Deferred FPU state-frame family named by PRD 023/025.",
+        "reason_category": "generated_semantics_missing",
+        "blocking_artifacts": ("canonical_sample_plan", "generated_semantics", "oracle_support"),
+        "reason": (
+            "FPU state-frame save/restore forms are generated, but sample plans and semantics do not yet "
+            "represent implementation-specific state frames or oracle support."
+        ),
     },
     {
         "family_id": "pmmu",
         "status": "implemented_unsupported",
         "mnemonics": ("PBCC", "PDBCC", "PFLUSH", "PFLUSHA", "PFLUSHR", "PLOADR", "PLOADW", "PMOVE", "PSCC", "PTESTR", "PTESTW", "PTRAPCC", "PVALID"),
-        "reason": "Deferred PMMU family named by PRD 023/025.",
+        "reason_category": "decode_render_metadata_missing",
+        "blocking_artifacts": ("canonical_sample_plan", "decode_render_metadata", "generated_semantics", "oracle_support"),
+        "reason": (
+            "PMMU forms are present but lack complete generated operand metadata, semantics, and oracle "
+            "coverage for strict canonical parity."
+        ),
     },
     {
         "family_id": "generic_coprocessor",
         "status": "intentionally_unsupported",
         "mnemonics": ("CPBCC", "CPDBCC", "CPRESTORE", "CPSAVE", "CPSCC", "CPTRAPCC"),
-        "reason": "Generic coprocessor coverage is deliberately deferred until canonical unsupported inventory owns it.",
+        "reason_category": "missing_schema",
+        "blocking_artifacts": ("canonical_schema", "decode_render_metadata", "oracle_support"),
+        "reason": (
+            "Generic coprocessor forms require coprocessor-ID schema and generated metadata before they can "
+            "be treated as required canonical coverage."
+        ),
     },
 )
+BOOTSTRAP_UNSUPPORTED_FAMILIES = CANONICAL_UNSUPPORTED_FAMILIES
 
 
 class FormLike(Protocol):
@@ -202,6 +223,23 @@ def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]
     return failures
 
 
+def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
+    failures = diagnostic_check_failures(inventory)
+    for entry in inventory["entries"]:
+        status = str(entry["status"])
+        if status not in {"asm_only", "disasm_only"}:
+            continue
+        key = entry["key"]
+        failures.append({
+            "kind": "asm_decode_parity_mismatch",
+            "message": (
+                f"{key['kb_mnemonic']}#{key['local_form_index']} "
+                f"{key['mnemonic']} {key['syntax']} is {status}"
+            ),
+        })
+    return failures
+
+
 def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str, Any]], list[dict[str, Any]]]:
     if str(SCRIPTS_DIR) not in sys.path:
         sys.path.insert(0, str(SCRIPTS_DIR))
@@ -298,13 +336,30 @@ def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict
         ]
         if not matched_forms:
             continue
+        stale_conditions = [
+            {
+                "condition_id": "current_generated_forms_present",
+                "stale_when": "no_current_generated_form_matches_mnemonics",
+                "stale": False,
+                "message": "Unsupported family no longer matches any current generated form.",
+            },
+            {
+                "condition_id": "blocking_artifacts_still_missing",
+                "stale_when": "canonical strict coverage reports no missing blocking artifact for this family",
+                "stale": False,
+                "message": "Unsupported reason must be removed when all blocking artifacts are generated.",
+            },
+        ]
         inventory.append({
             "family_id": family["family_id"],
             "status": family["status"],
             "mnemonics": list(family["mnemonics"]),
+            "reason_category": family["reason_category"],
+            "blocking_artifacts": list(family["blocking_artifacts"]),
             "reason": family["reason"],
             "stale_condition": "stale_when_no_current_generated_form_matches_mnemonics",
-            "stale": False,
+            "stale_conditions": stale_conditions,
+            "stale": any(condition["stale"] for condition in stale_conditions),
             "form_count": len(matched_forms),
             "forms": matched_forms,
         })
@@ -337,7 +392,11 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
     if unsupported_inventory:
         print("unsupported entries:")
         for entry in unsupported_inventory:
-            print(f"  {entry['family_id']}: {entry['status']} forms={entry['form_count']}")
+            blockers = ",".join(entry.get("blocking_artifacts", []))
+            print(
+                f"  {entry['family_id']}: {entry['status']} "
+                f"reason={entry.get('reason_category', '-')} forms={entry['form_count']} blockers={blockers}"
+            )
     ea_sample_plans = inventory.get("ea_sample_plans", [])
     if ea_sample_plans:
         missing_ea_plans = [entry for entry in ea_sample_plans if entry.get("missing_families")]
