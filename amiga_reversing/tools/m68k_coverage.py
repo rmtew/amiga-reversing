@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = ROOT / "src" / "scripts"
+ASM_TABLE_PATH = ROOT / "src" / "generated" / "m68k_asm_tables.c"
+DISASM_TABLE_PATH = ROOT / "src" / "generated" / "m68k_disassembler_tables.h"
+GENERATED_FORM_ROW_RE = re.compile(
+    r'^\s*\{\s*"(?P<mnemonic>(?:\\.|[^"])*)",\s*"(?P<syntax>(?:\\.|[^"])*)",\s*'
+    r"M68K_ASM_MNEMONIC_[A-Za-z0-9_]+,\s*(?P<form_index>\d+)u?,\s*(?P<canonical_form_id>\d+)u?,"
+)
+NUMBER_RE = re.compile(r"0x[0-9A-Fa-f]+|\d+")
 
 DIAGNOSTIC_DELETION_CRITERIA = (
     "Temporary bootstrap inventory. Delete or fold into canonical-model coverage "
@@ -88,6 +97,22 @@ class FormLike(Protocol):
     opword_base: int
     opword_mask: int
     cpu_mask: int
+
+
+@dataclass(frozen=True, slots=True)
+class CoverageForm:
+    mnemonic: str
+    kb_mnemonic: str
+    local_form_index: int
+    form_index: int
+    syntax: str
+    operand_kinds: tuple[str, ...]
+    sampling_operand_kinds: tuple[str, ...]
+    opword_base: int
+    opword_mask: int
+    cpu_mask: int
+    canonical_form_id: int | None
+    canonical_form_id_source: str
 
 
 def build_diagnostic_inventory(
@@ -209,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.format == "json":
             print(json.dumps(inventory, indent=2, sort_keys=True))
         else:
-            _print_diagnostic_report(inventory)
+            _print_canonical_report(inventory) if args.phase == "canonical" else _print_diagnostic_report(inventory)
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
 
@@ -252,12 +277,25 @@ def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
     for entry in inventory["entries"]:
         status = str(entry["status"])
         key = entry["key"]
+        if _entry_key(key) in unsupported_form_keys:
+            continue
         if status not in {"asm_only", "disasm_only"}:
             assembler = entry.get("assembler")
             disassembler = entry.get("disassembler")
             if isinstance(assembler, dict) and isinstance(disassembler, dict):
                 asm_canonical = assembler.get("canonical_form_id")
                 disasm_canonical = disassembler.get("canonical_form_id")
+                if (
+                    ("canonical_form_id" in assembler or "canonical_form_id" in disassembler)
+                    and (asm_canonical is None or disasm_canonical is None)
+                ):
+                    failures.append({
+                        "kind": "missing_canonical_form_identity",
+                        "message": (
+                            f"{key['kb_mnemonic']}#{key['local_form_index']} "
+                            f"{key['mnemonic']} {key['syntax']} is missing a generated canonical id"
+                        ),
+                    })
                 if asm_canonical is not None and disasm_canonical is not None and asm_canonical != disasm_canonical:
                     failures.append({
                         "kind": "canonical_form_identity_mismatch",
@@ -286,9 +324,24 @@ def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str
     assembler_subset = __import__("generate_c99_assembler_subset")
     disassembler_subset = __import__("generate_c99_disassembler_subset")
     assembler_corpus = __import__("generate_c99_assembler_corpus")
+    raw_assembler_forms = list(assembler_subset._load_forms(assembler_subset.KB_PATH))
+    raw_disassembler_forms = list(disassembler_subset._load_forms())
+    assembler_form_ids = _generated_canonical_form_ids(ASM_TABLE_PATH)
+    assembler_forms = _forms_with_generated_canonical_ids(
+        raw_assembler_forms,
+        assembler_form_ids,
+        "src/generated/m68k_asm_tables.c",
+        lambda form: int(form.form_index),
+    )
+    disassembler_forms = _forms_with_generated_canonical_ids(
+        raw_disassembler_forms,
+        _generated_disassembler_canonical_form_ids(DISASM_TABLE_PATH),
+        "src/generated/m68k_disassembler_tables.h",
+        _generated_match_key,
+    )
     return (
-        cast(list[FormLike], list(assembler_subset._load_forms(assembler_subset.KB_PATH))),
-        cast(list[FormLike], list(disassembler_subset._load_forms())),
+        cast(list[FormLike], assembler_forms),
+        cast(list[FormLike], disassembler_forms),
         [
             {
                 "mnemonic": str(entry.mnemonic),
@@ -336,7 +389,7 @@ def _form_key(form: FormLike) -> tuple[str, int, str, str]:
 
 
 def _form_identity(form: FormLike) -> dict[str, Any]:
-    return {
+    identity = {
         "mnemonic": str(form.mnemonic),
         "kb_mnemonic": str(form.kb_mnemonic),
         "local_form_index": int(form.local_form_index),
@@ -348,6 +401,128 @@ def _form_identity(form: FormLike) -> dict[str, Any]:
         "opword_mask": int(form.opword_mask),
         "cpu_mask": int(form.cpu_mask),
     }
+    canonical_form_id = getattr(form, "canonical_form_id", None)
+    if canonical_form_id is not None:
+        identity["canonical_form_id"] = int(canonical_form_id)
+        identity["canonical_form_id_source"] = str(getattr(form, "canonical_form_id_source", "provided"))
+    return identity
+
+
+def _generated_canonical_form_ids(table_path: Path) -> dict[int, int]:
+    form_ids: dict[int, int] = {}
+    for row in _generated_form_rows(table_path):
+        first_line = row.splitlines()[0]
+        match = GENERATED_FORM_ROW_RE.match(first_line)
+        if match is None:
+            continue
+        form_index = _parse_generated_int(match.group("form_index"))
+        canonical_form_id = _parse_generated_int(match.group("canonical_form_id"))
+        if form_index in form_ids:
+            raise ValueError(f"{table_path} contains duplicate generated form index {form_index}")
+        form_ids[form_index] = canonical_form_id
+    if not form_ids:
+        raise ValueError(f"{table_path} contains no generated canonical form ids")
+    return form_ids
+
+
+def _generated_disassembler_canonical_form_ids(
+    table_path: Path,
+) -> dict[tuple[Any, ...], int | None]:
+    form_ids: dict[tuple[Any, ...], int | None] = {}
+    for row in _generated_form_rows(table_path):
+        first_line = row.splitlines()[0]
+        match = GENERATED_FORM_ROW_RE.match(first_line)
+        if match is None:
+            continue
+        key = _generated_row_match_key(row, match)
+        canonical_form_id = _parse_generated_int(match.group("canonical_form_id"))
+        if key in form_ids and form_ids[key] != canonical_form_id:
+            form_ids[key] = None
+            continue
+        form_ids[key] = canonical_form_id
+    if not form_ids:
+        raise ValueError(f"{table_path} contains no generated disassembler canonical form ids")
+    return form_ids
+
+
+def _forms_with_generated_canonical_ids(
+    forms: Any,
+    canonical_form_ids: dict[Any, int | None],
+    source: str,
+    key_fn: Any,
+) -> list[CoverageForm]:
+    loaded = list(forms)
+    def canonical_id_for(form: Any) -> int | None:
+        form_id = canonical_form_ids.get(key_fn(form))
+        return int(form_id) if form_id is not None else None
+
+    return [
+        CoverageForm(
+            mnemonic=str(form.mnemonic),
+            kb_mnemonic=str(form.kb_mnemonic),
+            local_form_index=int(form.local_form_index),
+            form_index=int(form.form_index),
+            syntax=str(form.syntax),
+            operand_kinds=tuple(str(kind) for kind in form.operand_kinds),
+            sampling_operand_kinds=tuple(str(kind) for kind in form.sampling_operand_kinds),
+            opword_base=int(form.opword_base),
+            opword_mask=int(form.opword_mask),
+            cpu_mask=int(form.cpu_mask),
+            canonical_form_id=canonical_id_for(form),
+            canonical_form_id_source=source,
+        )
+        for form in loaded
+    ]
+
+
+def _generated_form_rows(table_path: Path) -> list[str]:
+    rows: list[str] = []
+    current: list[str] = []
+    for line in table_path.read_text(encoding="utf-8").splitlines():
+        if not current and not line.lstrip().startswith('{ "'):
+            continue
+        current.append(line)
+        if line.rstrip().endswith("},"):
+            rows.append("\n".join(current))
+            current = []
+    return rows
+
+
+def _generated_row_match_key(row: str, match: re.Match[str]) -> tuple[Any, ...]:
+    operand_token = row.find("M68K_ASM_OPERAND_")
+    operand_start = row.rfind("{", 0, operand_token)
+    operand_end = row.find("}", operand_token)
+    if operand_token < 0 or operand_start < 0 or operand_end < 0:
+        raise ValueError(f"Generated row has no operand array: {match.group('syntax')}")
+    numeric_tail = row[operand_end + 1:]
+    numbers = [_parse_generated_int(value.group(0)) for value in NUMBER_RE.finditer(numeric_tail)]
+    if len(numbers) < 18:
+        raise ValueError(f"Generated row has too few numeric fields: {match.group('syntax')}")
+    return (
+        match.group("mnemonic").lower(),
+        match.group("syntax"),
+        numbers[4],
+        numbers[7],
+        numbers[8],
+        tuple(numbers[14:16]),
+        tuple(numbers[16:18]),
+    )
+
+
+def _generated_match_key(form: Any) -> tuple[Any, ...]:
+    return (
+        str(form.mnemonic).lower(),
+        str(form.syntax),
+        int(form.cpu_mask),
+        int(form.opword_base),
+        int(form.opword_mask),
+        tuple(int(value) for value in getattr(form, "bound_word_bases", (0, 0))),
+        tuple(int(value) for value in getattr(form, "bound_word_masks", (0, 0))),
+    )
+
+
+def _parse_generated_int(value: str) -> int:
+    return int(value.rstrip("uU"), 0)
 
 
 def _sample_entries_by_key(entries: list[dict[str, Any]]) -> dict[tuple[str, int, str, str], list[dict[str, Any]]]:

@@ -1784,6 +1784,32 @@ coverage inventory must read or compute canonical_form_id for assembler and
 disassembler forms, then fail strict mode on real id mismatches.
 ```
 
+2026-05-17 implementation update: issue 027-001 addressed the immediate gate.
+Canonical coverage now reads canonical ids from the generated assembler and
+disassembler C artifacts, records those ids in inventory entries, fails strict
+mode for required matched asm/disasm canonical id drift, and prints canonical
+summaries on successful `check --phase canonical`.
+
+Important implementation factors found during 027-001:
+
+- Disassembler generated table row order is not the Python form index order.
+  The checker must not join by slot. It currently joins disassembler artifact
+  rows by encoding identity: mnemonic, syntax, CPU mask, opword base/mask, and
+  bound-word base/mask.
+- Syntax strings can contain braces, e.g. bitfield `{offset:width}`. Generated
+  artifact parsing must locate the operand array before reading numeric fields;
+  splitting on the first `}` corrupts bitfield rows.
+- Some unsupported PMMU rows share the current coarse inventory identity while
+  carrying distinct canonical ids. Strict canonical id parity therefore skips
+  forms already classified under unsupported families. This is not a general
+  exemption: once 027-003/027-004/027-005 remove the unsupported reason or
+  replace the coarse identity with the canonical model, those rows must be
+  required again.
+- Artifact parsing in `m68k_coverage.py` is an interim validator. It is useful
+  because it checks emitted data rather than only recomputing generator helper
+  output, but the clean end state is still a generated canonical manifest/model
+  owned upstream.
+
 #### 2. Unsupported Stale Checks Are Mostly Placeholders
 
 Unsupported inventory entries contain `stale_conditions`, but

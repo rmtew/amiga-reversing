@@ -19,6 +19,8 @@ class FakeForm:
     opword_base: int = 0
     opword_mask: int = 0
     cpu_mask: int = 0
+    canonical_form_id: int | None = None
+    canonical_form_id_source: str = "fixture"
 
 
 def test_diagnostic_inventory_loads_current_generated_form_tables() -> None:
@@ -173,12 +175,49 @@ def test_canonical_inventory_summarizes_current_generated_data() -> None:
     assert inventory["summaries"]["ea_family"]["required"]
     assert "executor_semantic" in inventory["summaries"]
     assert inventory["summaries"]["unsupported"]["families"]
+    unsupported_keys = {
+        (
+            form["kb_mnemonic"],
+            form["local_form_index"],
+            form["syntax"],
+            form["mnemonic"],
+        )
+        for unsupported in inventory["unsupported_inventory"]
+        for form in unsupported["forms"]
+    }
+    matched_entries = [entry for entry in inventory["entries"] if entry["status"] == "matched"]
+    required_matched_entries = [
+        entry
+        for entry in matched_entries
+        if (
+            entry["key"]["kb_mnemonic"],
+            entry["key"]["local_form_index"],
+            entry["key"]["syntax"],
+            entry["key"]["mnemonic"],
+        )
+        not in unsupported_keys
+    ]
+    assert required_matched_entries
+    assert all(isinstance(entry["assembler"]["canonical_form_id"], int) for entry in required_matched_entries)
+    assert all(isinstance(entry["disassembler"]["canonical_form_id"], int) for entry in required_matched_entries)
+    assert all(
+        entry["assembler"]["canonical_form_id"] == entry["disassembler"]["canonical_form_id"]
+        for entry in required_matched_entries
+    )
 
 
 def test_diagnostic_check_command_succeeds_with_current_classified_data(capsys) -> None:
     assert m68k_coverage.main(["check", "--phase", "diagnostic"]) == 0
 
     assert "M68K diagnostic coverage" in capsys.readouterr().out
+
+
+def test_canonical_check_command_prints_canonical_summaries(capsys) -> None:
+    assert m68k_coverage.main(["check", "--phase", "canonical"]) == 0
+
+    output = capsys.readouterr().out
+    assert "canonical summaries:" in output
+    assert "executor semantics:" in output
 
 
 def test_diagnostic_check_fails_synthetic_unclassified_form() -> None:
@@ -304,13 +343,12 @@ def test_strict_coverage_allows_canonical_unsupported_parity_mismatch() -> None:
 
 
 def test_strict_coverage_fails_canonical_identity_mismatch() -> None:
-    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    asm_form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn", canonical_form_id=10)
+    disasm_form = FakeForm("MOVE", "MOVE", 0, 10, "MOVE <ea>,Dn", canonical_form_id=11)
     inventory = m68k_coverage.build_canonical_inventory(
-        assembler_forms=[form],
-        disassembler_forms=[form],
+        assembler_forms=[asm_form],
+        disassembler_forms=[disasm_form],
     )
-    inventory["entries"][0]["assembler"]["canonical_form_id"] = 10
-    inventory["entries"][0]["disassembler"]["canonical_form_id"] = 11
 
     failures = m68k_coverage.strict_coverage_failures(inventory)
 
