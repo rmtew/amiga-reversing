@@ -622,6 +622,37 @@ def test_reproduction_sweep_tracks_facts_v2_comparison_invariants(tmp_path: Path
     ]
 
 
+def test_reproduction_sweep_records_oracle_compatibility_levels(tmp_path: Path) -> None:
+    record = record_from_reproduction_report(
+        "demo",
+        {
+            "status": "exact",
+            "exact": True,
+            "input_stamp": {"reproduction_policy": {}},
+            "comparison": {"status": "exact_file", "full_file_exact": True},
+            "oracle_compatibility": [
+                {
+                    "oracle_id": "vasm",
+                    "comparison_level": "oracle.content_match",
+                    "assembler_status": "accepted",
+                },
+                {
+                    "oracle_id": "genam-devpac",
+                    "comparison_level": "oracle.not_run",
+                    "assembler_status": "rejected",
+                },
+            ],
+        },
+    )
+
+    assert record["status"] == "exact"
+    assert record["oracle_comparison_levels"] == {
+        "vasm": "oracle.content_match",
+        "genam-devpac": "oracle.not_run",
+    }
+    assert record["oracle_compatibility"][1]["assembler_status"] == "rejected"
+
+
 def test_reproduction_sweep_tracks_non_exact_content_matches(tmp_path: Path) -> None:
     content_match = record_from_reproduction_report(
         "content",

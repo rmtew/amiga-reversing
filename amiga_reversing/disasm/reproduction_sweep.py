@@ -161,6 +161,7 @@ def record_from_reproduction_report(target_name: str, report: JsonObject) -> Jso
     file_shape_diagnostics = _dict_list(report.get("file_shape_diagnostics"))
     canonical_file_shape_diagnostics = _dict_list(report.get("canonical_file_shape_diagnostics"))
     comparison = _dict_or_none(report.get("comparison"))
+    oracle_compatibility = _dict_list(report.get("oracle_compatibility"))
     first_diff = _dict_or_none(report.get("first_diff"))
     first_diff_offset = _int_or_none(first_diff.get("offset") if first_diff else None)
     first_diff_layout = (
@@ -213,6 +214,8 @@ def record_from_reproduction_report(target_name: str, report: JsonObject) -> Jso
             comparison.get("relocation_encoding_exact") if comparison else None
         ),
         "comparison_failure_kinds": _list_str(comparison.get("failure_kinds") if comparison else None),
+        "oracle_compatibility": oracle_compatibility,
+        "oracle_comparison_levels": _oracle_comparison_levels(oracle_compatibility),
         "issue_counts": _issue_counts(issues),
         "assembler_diagnostic_count": len(diagnostics),
         "assembler_error_signature": _assembler_signature(
@@ -241,6 +244,16 @@ def record_from_reproduction_report(target_name: str, report: JsonObject) -> Jso
         record["status"] = ReproductionSweepStatus.ACCEPTED_MISMATCH
         record["accepted_mismatch_kind"] = accepted_kind
     return record
+
+
+def _oracle_comparison_levels(oracle_compatibility: list[JsonObject]) -> dict[str, str]:
+    levels: dict[str, str] = {}
+    for oracle in oracle_compatibility:
+        oracle_id = _str_or_none(oracle.get("oracle_id"))
+        comparison_level = _str_or_none(oracle.get("comparison_level"))
+        if oracle_id is not None and comparison_level is not None:
+            levels[oracle_id] = comparison_level
+    return levels
 
 
 def reproduction_sweep_summary(

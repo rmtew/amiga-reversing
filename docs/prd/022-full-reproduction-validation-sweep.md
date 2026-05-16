@@ -10,6 +10,10 @@ Refresh full reproduction validation for GenAm and Bloodwych using the new profi
 - PRD 019: Tool Registry and Oracle Availability.
 - PRD 020: Oracle Compatibility Reports.
 
+## Status
+
+Complete. Refreshed GenAm and Bloodwych gate reports, recorded oracle classifications, and added repeatable validation notes.
+
 ## Scope
 
 - Re-run full reproduction validation for GenAm and Bloodwych.
@@ -37,6 +41,7 @@ Refresh full reproduction validation for GenAm and Bloodwych using the new profi
 - Tests or fixtures proving classification parsing for gate and oracle sections.
 - Documentation or generated report notes summarizing classifications.
 - Existing full reproduction tests remain green where applicable.
+- Verified with related tests, ruff, and `src\precommit.bat`.
 
 ## Issues
 
@@ -44,4 +49,3 @@ Refresh full reproduction validation for GenAm and Bloodwych using the new profi
 - [022-002: Bloodwych Full Reproduction Validation Refresh](../issues/022-002-bloodwych-full-reproduction-validation-refresh.md)
 - [022-003: Validation Classification Notes](../issues/022-003-validation-classification-notes.md)
 - [022-004: PRD 022 Review and Tightening](../issues/022-004-prd-022-review-and-tightening.md)
-
