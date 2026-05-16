@@ -85,6 +85,7 @@ def test_web_app_command_palette_and_selection_model_are_contextual() -> None:
     assert 'command === "next_hunk"' in app_js
     assert "function listingSelectionRangeBounds" in app_js
     assert "function resolveRenderedListingRangeSelection" in app_js
+    assert "bounds && listingSelectionIsRange(selection) && globalIndex >= bounds.start" in app_js
     assert "function commandPaletteRangeQuery" in app_js
     assert 'params.set("context", "range");' in app_js
     assert "void moveListingSelection(event.key === \"ArrowDown\" ? 1 : -1, event.shiftKey);" in app_js
@@ -189,6 +190,17 @@ def test_web_app_typed_navigation_uses_data_class_rows() -> None:
     assert "row.comment_text || row.data_class || item.semantic_role" in app_js
     assert "const typedDataSeen = new Set();" in app_js
     assert "if (!typedDataSeen.has(key)) {" in app_js
+
+
+def test_web_app_does_not_duplicate_source_comment_rows() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'if (row.kind === "comment") {' in app_js
+    assert 'return `; ${row.comment_text}`;' in app_js
 
 
 def test_web_app_generation_refresh_restores_only_applied_request() -> None:

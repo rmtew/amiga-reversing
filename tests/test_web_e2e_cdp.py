@@ -1544,6 +1544,67 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_stable_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = _binary_project("amiga_hunk_comment_row_rendering")
+    rows = [
+        ListingRow(
+            row_id="comment",
+            kind="comment",
+            text="    ; Test\n",
+            comment_text="Test",
+            section_index=0,
+            stable_key="comment-row",
+        ),
+        ListingRow(
+            row_id="entry",
+            kind="label",
+            text="ENTRYPOINT0000:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT0000",
+            stable_key="entry-row",
+        ),
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.listing-row').length === 2")
+
+        assert page.evaluate("document.querySelector('[data-row-stable-key=\"comment-row\"] .listing-code')?.textContent.trim()") == "; Test"
+        assert page.evaluate("document.querySelector('[data-row-stable-key=\"comment-row\"] .listing-comment')?.textContent.trim()") == ""
+        page.evaluate(
+            """
+            state.listingSelection = {
+              rowIndex: 0,
+              focusRowIndex: 0,
+              anchorRowIndex: 0,
+              rangeStartRowIndex: 0,
+              rangeEndRowIndex: 0,
+              stableKey: "entry-row",
+              focusStableKey: "entry-row",
+              anchorStableKey: "entry-row",
+              rangeStartStableKey: "entry-row",
+              rangeEndStableKey: "entry-row",
+              rowCode: "ENTRYPOINT0000:",
+              precisionLost: false,
+            };
+            applyRenderedListingSelection();
+            """
+        )
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowStableKey") == "entry-row"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

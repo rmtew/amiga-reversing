@@ -5364,6 +5364,9 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
 }
 
 function renderListingComment(row) {
+  if (row.kind === "comment") {
+    return "";
+  }
   if (row.comment_text) {
     return `; ${row.comment_text}`;
   }
@@ -5579,7 +5582,7 @@ function listingRowIsSelected(row, globalIndex) {
     return false;
   }
   const bounds = listingSelectionRangeBounds(selection);
-  if (bounds && globalIndex >= bounds.start && globalIndex <= bounds.end) {
+  if (bounds && listingSelectionIsRange(selection) && globalIndex >= bounds.start && globalIndex <= bounds.end) {
     return true;
   }
   if (selection.stableKey && row.stable_key && selection.stableKey === row.stable_key) {
