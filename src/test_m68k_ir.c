@@ -1446,6 +1446,55 @@ static int test_decode_ir_records_branch_target_candidate(void) {
   return 0;
 }
 
+static int test_decode_ir_records_generated_flow_target_kinds(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kDecodeIR decode;
+  const M68kDecodeCandidate *candidate;
+  uint8_t bytes[20] = {
+    0x61u, 0x06u,
+    0x51u, 0xc8u, 0x00u, 0x04u,
+    0x4eu, 0xb9u, 0x00u, 0x00u, 0x00u, 0x10u,
+    0x4eu, 0xf9u, 0x00u, 0x00u, 0x00u, 0x12u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_decode_ir_init(&decode);
+  M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060, m68k_diag_sink(NULL)));
+  candidate = m68k_decode_ir_find_candidate_at_offset(&decode.sections[0], 0U);
+  M68K_C_ASSERT(candidate != NULL);
+  M68K_C_ASSERT_INT(1, candidate->target_count);
+  M68K_C_ASSERT_INT(M68K_DECODE_TARGET_CALL, candidate->targets[0].kind);
+  M68K_C_ASSERT_U32(8U, candidate->targets[0].offset);
+  candidate = m68k_decode_ir_find_candidate_at_offset(&decode.sections[0], 2U);
+  M68K_C_ASSERT(candidate != NULL);
+  M68K_C_ASSERT_INT(1, candidate->target_count);
+  M68K_C_ASSERT_INT(M68K_DECODE_TARGET_BRANCH, candidate->targets[0].kind);
+  M68K_C_ASSERT_U32(8U, candidate->targets[0].offset);
+  M68K_C_ASSERT_U32(1U, candidate->targets[0].operand_index);
+  candidate = m68k_decode_ir_find_candidate_at_offset(&decode.sections[0], 6U);
+  M68K_C_ASSERT(candidate != NULL);
+  M68K_C_ASSERT_INT(1, candidate->target_count);
+  M68K_C_ASSERT_INT(M68K_DECODE_TARGET_CALL, candidate->targets[0].kind);
+  M68K_C_ASSERT_U32(16U, candidate->targets[0].offset);
+  candidate = m68k_decode_ir_find_candidate_at_offset(&decode.sections[0], 12U);
+  M68K_C_ASSERT(candidate != NULL);
+  M68K_C_ASSERT_INT(1, candidate->target_count);
+  M68K_C_ASSERT_INT(M68K_DECODE_TARGET_JUMP, candidate->targets[0].kind);
+  M68K_C_ASSERT_U32(18U, candidate->targets[0].offset);
+  m68k_decode_ir_destroy(&decode);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_decode_ir_branch_word_target_uses_opcode_pc(void) {
   M68kObject object;
   M68kSection section;
@@ -19325,6 +19374,7 @@ int m68k_c_ir_tests(void) {
     {"decode_ir_negative_cache_preserves_higher_cpu_decode",
       test_decode_ir_negative_cache_preserves_higher_cpu_decode},
     {"decode_ir_records_branch_target_candidate", test_decode_ir_records_branch_target_candidate},
+    {"decode_ir_records_generated_flow_target_kinds", test_decode_ir_records_generated_flow_target_kinds},
     {"decode_ir_branch_word_target_uses_opcode_pc", test_decode_ir_branch_word_target_uses_opcode_pc},
     {"decode_ir_records_pc_relative_data_target_candidate",
       test_decode_ir_records_pc_relative_data_target_candidate},

@@ -2,6 +2,7 @@
 #include "generated/amiga_os_runtime.h"
 #include "m68k_bitset.h"
 #include "m68k_ir_codec.h"
+#include "m68k_simulator.h"
 
 #include <string.h>
 
@@ -263,18 +264,28 @@ static int bootloader_stage_offset_for_address(const AmigaDiskBootloaderStage *s
     return 1;
 }
 
-static int bootloader_mnemonic_is_conditional_branch(uint8_t mnemonic_id) {
-    return mnemonic_id >= M68K_ASM_MNEMONIC_BHI && mnemonic_id <= M68K_ASM_MNEMONIC_BLE;
+static const M68kSimFormMetadata *bootloader_instruction_metadata(const M68kInstructionIR *instruction) {
+    if (instruction == NULL) return NULL;
+    return m68k_sim_metadata_for_instruction(instruction);
 }
 
-static int bootloader_mnemonic_is_dbcc(uint8_t mnemonic_id) {
-    return mnemonic_id >= M68K_ASM_MNEMONIC_DBT && mnemonic_id <= M68K_ASM_MNEMONIC_DBLE;
+static int bootloader_instruction_ends_path(const M68kInstructionIR *instruction) {
+    const M68kSimFormMetadata *metadata = bootloader_instruction_metadata(instruction);
+    if (metadata == NULL) return 0;
+    return metadata->flow_kind == M68K_SIM_FLOW_RETURN ||
+        (metadata->flow_kind == M68K_SIM_FLOW_TRAP && metadata->flow_conditional == 0U);
 }
 
-static int bootloader_mnemonic_ends_path(uint8_t mnemonic_id) {
-    return mnemonic_id == M68K_ASM_MNEMONIC_RTS || mnemonic_id == M68K_ASM_MNEMONIC_RTE ||
-        mnemonic_id == M68K_ASM_MNEMONIC_RTR || mnemonic_id == M68K_ASM_MNEMONIC_STOP ||
-        mnemonic_id == M68K_ASM_MNEMONIC_ILLEGAL;
+static uint8_t bootloader_instruction_target_operand_index(const M68kInstructionIR *instruction,
+    const M68kSimFormMetadata **out_metadata) {
+    const M68kSimFormMetadata *metadata = bootloader_instruction_metadata(instruction);
+    if (out_metadata != NULL) *out_metadata = metadata;
+    if (metadata == NULL || metadata->target_operand_index >= instruction->operand_count ||
+        metadata->target_operand_index >= 4U ||
+        metadata->operand_access_kinds[metadata->target_operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET) {
+        return 0xFFU;
+    }
+    return metadata->target_operand_index;
 }
 
 static void bootloader_update_address_registers(const M68kInstructionIR *instruction, uint32_t instruction_addr,
@@ -524,41 +535,27 @@ static int enqueue_bootloader_successors(AmigaDiskAnalysis *analysis, AmigaDiskB
     const M68kInstructionIR *instruction, const uint32_t *address_regs, uint32_t data_reg_known,
     const uint32_t *data_regs, const BootloaderDecodeQueueItem *state) {
     uint32_t instruction_addr = state != NULL && state->runtime_addr != 0U ? state->runtime_addr : stage->base_addr + (uint32_t)offset;
+    const M68kSimFormMetadata *metadata = NULL;
+    uint8_t target_operand_index = bootloader_instruction_target_operand_index(instruction, &metadata);
     uint32_t target_addr = 0U;
-    if (bootloader_mnemonic_ends_path(instruction->mnemonic_id)) return 0;
-    if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_BRA || instruction->mnemonic_id == M68K_ASM_MNEMONIC_BSR ||
-        bootloader_mnemonic_is_conditional_branch(instruction->mnemonic_id)) {
-        if (instruction->operand_count != 0U &&
-            bootloader_operand_direct_code_address(stage, instruction, &instruction->operands[0], instruction_addr,
+    if (bootloader_instruction_ends_path(instruction)) return 0;
+    if (metadata != NULL &&
+        (metadata->flow_kind == M68K_SIM_FLOW_BRANCH || metadata->flow_kind == M68K_SIM_FLOW_CALL ||
+         metadata->flow_kind == M68K_SIM_FLOW_JUMP)) {
+        if (target_operand_index != 0xFFU &&
+            bootloader_operand_direct_code_address(stage, instruction, &instruction->operands[target_operand_index],
+                instruction_addr,
                 address_regs, &target_addr) &&
             enqueue_bootloader_code_address(analysis, stage, queue, queue_count, queue_capacity, target_addr, address_regs,
                 data_reg_known, data_regs, state) != 0) {
             return -1;
         }
-        if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_BRA) return 0;
-        return enqueue_bootloader_fallthrough(analysis, stage, queue, queue_count, queue_capacity, offset, instruction,
-            address_regs, data_reg_known, data_regs, state);
-    }
-    if (bootloader_mnemonic_is_dbcc(instruction->mnemonic_id)) {
-        if (instruction->operand_count >= 2U &&
-            bootloader_operand_direct_code_address(stage, instruction, &instruction->operands[1], instruction_addr,
-                address_regs, &target_addr) &&
-            enqueue_bootloader_code_address(analysis, stage, queue, queue_count, queue_capacity, target_addr, address_regs,
-                data_reg_known, data_regs, state) != 0) {
-            return -1;
+        if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+            (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+            return 0;
         }
         return enqueue_bootloader_fallthrough(analysis, stage, queue, queue_count, queue_capacity, offset, instruction,
             address_regs, data_reg_known, data_regs, state);
-    }
-    if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP || instruction->mnemonic_id == M68K_ASM_MNEMONIC_JSR) {
-        if (instruction->operand_count != 0U &&
-            bootloader_operand_direct_code_address(stage, instruction, &instruction->operands[0], instruction_addr,
-                address_regs, &target_addr) &&
-            enqueue_bootloader_code_address(analysis, stage, queue, queue_count, queue_capacity, target_addr, address_regs,
-                data_reg_known, data_regs, state) != 0) {
-            return -1;
-        }
-        if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_JMP) return 0;
     }
     return enqueue_bootloader_fallthrough(analysis, stage, queue, queue_count, queue_capacity, offset, instruction,
         address_regs, data_reg_known, data_regs, state);

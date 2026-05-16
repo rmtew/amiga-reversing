@@ -33,11 +33,10 @@ Delete this issue last, after all Proposal 005 follow-up issue files are either
 completed and deleted or deliberately superseded.
 
 Blocked by:
-- `027-010-remove-remaining-downstream-flow-family-knowledge.md`
+- None
 
 Notes for agents:
-Blocked by the remaining Proposal 005 implementation slice, currently
-`027-010`.
+All preceding Proposal 005 implementation slices are complete as of 2026-05-17.
 
 Running precommit may update `src\benchmark.json`; keep it if it reflects the
 current run.

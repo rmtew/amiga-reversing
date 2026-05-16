@@ -2088,6 +2088,32 @@ exact mnemonic ids or mnemonic ranges for control-flow classification, including
 but each remaining range or flow-family check needs either generated metadata or
 an explicit local justification. Tracked by `docs/issues/027-010-remove-remaining-downstream-flow-family-knowledge.md`.
 
+2026-05-17 implementation update: issue 027-010 removed the residual broad
+flow/family classifiers from those paths. Decode target collection now derives
+branch/call/jump target kind and target operand index from simulator flow
+metadata. Symbolic parsing uses generated mnemonic family metadata for relative
+label operands. Bootloader successor tracing, render state invalidation,
+helper fallthrough, call clobbering, and direct control-target helpers now use
+generated simulator flow metadata instead of local Bcc/DBcc/JSR/JMP/return
+lists.
+
+Exact mnemonic checks that remain after this pass are intentional recognizers
+for local project idioms rather than replacement flow classifiers:
+
+```text
+DBF:
+  bootblock runtime-copy loop detection requires the DBF counter-loop idiom,
+  not any DBcc-family branch.
+
+RTS:
+  local wrapper and helper-output recognition requires a normal subroutine
+  return boundary. RTE/RTR are not equivalent wrapper completions.
+
+JMP:
+  Amiga LVO wrapper recognition treats JMP through an LVO as a tail-call
+  wrapper. That exact tail-call shape is distinct from generic jump flow.
+```
+
 #### 8. Sample Plans Are Still Partly Corpus-Owned
 
 The corpus generator has a sample-plan surface, but it still owns special
@@ -2153,9 +2179,9 @@ Strong:
   missing sample strategy is testable
   EA family coverage is visible and currently complete
   disassembler ambiguity sorting moved upstream
+  downstream broad flow/family classifiers now use generated metadata
 
 Weak:
-  broader downstream flow/family classification audit remains
   final deletion/verification pass is still pending
 ```
 
@@ -2163,8 +2189,7 @@ The next implementation pass should prioritize correctness of the gate over more
 coverage breadth:
 
 ```text
-1. audit and remove or justify remaining downstream flow/family classifications
-2. run the final Proposal 005 verification and deletion pass
+1. run the final Proposal 005 verification and deletion pass
 ```
 
 ### Follow-Up Issue Tracking

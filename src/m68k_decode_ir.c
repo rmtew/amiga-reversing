@@ -91,84 +91,56 @@ static int32_t signed_operand_value(const M68kAsmOperandValue *operand) {
   return (int32_t)operand->value;
 }
 
+static uint8_t decode_target_kind_for_flow(uint8_t flow_kind) {
+  switch (flow_kind) {
+    case M68K_SIM_FLOW_BRANCH: return M68K_DECODE_TARGET_BRANCH;
+    case M68K_SIM_FLOW_CALL: return M68K_DECODE_TARGET_CALL;
+    case M68K_SIM_FLOW_JUMP: return M68K_DECODE_TARGET_JUMP;
+    default: return 0U;
+  }
+}
+
 static void collect_control_targets(M68kDecodeCandidate *candidate, const M68kDisasmResult *decoded,
     size_t section_index, uint32_t section_size) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  const M68kAsmOperandValue *operand;
+  uint8_t target_kind;
+  uint8_t target_operand_index;
   uint32_t branch_base;
   uint32_t target_offset;
   int32_t disp;
   if (candidate == NULL || decoded == NULL || decoded->operand_count == 0U) return;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->target_operand_index >= decoded->operand_count ||
+      metadata->target_operand_index >= M68K_DECODE_IR_MAX_OPERANDS) {
+    return;
+  }
+  target_kind = decode_target_kind_for_flow(metadata->flow_kind);
+  if (target_kind == 0U) return;
+  target_operand_index = metadata->target_operand_index;
+  if (metadata->operand_access_kinds[target_operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET) return;
+  operand = &decoded->operands[target_operand_index];
   branch_base = candidate->offset + 2U;
-  switch (decoded->mnemonic_id) {
-    case M68K_ASM_MNEMONIC_BHI:
-    case M68K_ASM_MNEMONIC_BLS:
-    case M68K_ASM_MNEMONIC_BCC:
-    case M68K_ASM_MNEMONIC_BCS:
-    case M68K_ASM_MNEMONIC_BNE:
-    case M68K_ASM_MNEMONIC_BEQ:
-    case M68K_ASM_MNEMONIC_BVC:
-    case M68K_ASM_MNEMONIC_BVS:
-    case M68K_ASM_MNEMONIC_BPL:
-    case M68K_ASM_MNEMONIC_BMI:
-    case M68K_ASM_MNEMONIC_BGE:
-    case M68K_ASM_MNEMONIC_BLT:
-    case M68K_ASM_MNEMONIC_BGT:
-    case M68K_ASM_MNEMONIC_BLE:
-    case M68K_ASM_MNEMONIC_DBT:
-    case M68K_ASM_MNEMONIC_DBF:
-    case M68K_ASM_MNEMONIC_DBHI:
-    case M68K_ASM_MNEMONIC_DBLS:
-    case M68K_ASM_MNEMONIC_DBCC:
-    case M68K_ASM_MNEMONIC_DBCS:
-    case M68K_ASM_MNEMONIC_DBNE:
-    case M68K_ASM_MNEMONIC_DBEQ:
-    case M68K_ASM_MNEMONIC_DBVC:
-    case M68K_ASM_MNEMONIC_DBVS:
-    case M68K_ASM_MNEMONIC_DBPL:
-    case M68K_ASM_MNEMONIC_DBMI:
-    case M68K_ASM_MNEMONIC_DBGE:
-    case M68K_ASM_MNEMONIC_DBLT:
-    case M68K_ASM_MNEMONIC_DBGT:
-    case M68K_ASM_MNEMONIC_DBLE:
-      disp = signed_operand_value(&decoded->operands[decoded->operand_count - 1U]);
-      target_offset = (uint32_t)((int32_t)branch_base + disp);
-      (void)append_target(candidate, M68K_DECODE_TARGET_BRANCH, section_index, target_offset, 1U,
-        (uint8_t)(decoded->operand_count - 1U));
-      break;
-    case M68K_ASM_MNEMONIC_BRA:
-      disp = signed_operand_value(&decoded->operands[0]);
-      target_offset = (uint32_t)((int32_t)branch_base + disp);
-      (void)append_target(candidate, M68K_DECODE_TARGET_BRANCH, section_index, target_offset, 1U, 0U);
-      break;
-    case M68K_ASM_MNEMONIC_BSR:
-      disp = signed_operand_value(&decoded->operands[0]);
-      target_offset = (uint32_t)((int32_t)branch_base + disp);
-      (void)append_target(candidate, M68K_DECODE_TARGET_CALL, section_index, target_offset, 1U, 0U);
-      break;
-    case M68K_ASM_MNEMONIC_JMP:
-      if (decoded->operands[0].kind == M68K_ASM_OPERAND_EA &&
-          decoded->operands[0].ea_mode == 7U && decoded->operands[0].ea_reg == 1U &&
-          target_in_section(decoded->operands[0].value, section_size)) {
-        (void)append_target(candidate, M68K_DECODE_TARGET_JUMP, section_index, decoded->operands[0].value, 1U, 0U);
-      }
-      break;
-    case M68K_ASM_MNEMONIC_JSR:
-      if (decoded->operands[0].kind == M68K_ASM_OPERAND_EA &&
-          decoded->operands[0].ea_mode == 7U && decoded->operands[0].ea_reg == 1U &&
-          target_in_section(decoded->operands[0].value, section_size)) {
-        (void)append_target(candidate, M68K_DECODE_TARGET_CALL, section_index, decoded->operands[0].value, 1U, 0U);
-      }
-      break;
-    default:
-      break;
+  if (operand->kind == M68K_ASM_OPERAND_LABEL) {
+    disp = signed_operand_value(operand);
+    target_offset = (uint32_t)((int32_t)branch_base + disp);
+    (void)append_target(candidate, target_kind, section_index, target_offset, 1U, target_operand_index);
+  } else if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 7U && operand->ea_reg == 1U &&
+      target_in_section(operand->value, section_size)) {
+    (void)append_target(candidate, target_kind, section_index, operand->value, 1U, target_operand_index);
   }
 }
 
 static void collect_pc_relative_ea_targets(M68kDecodeCandidate *candidate, size_t section_index,
     uint32_t section_size) {
   M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
   M68kAsmOperandValue layout_operands[M68K_DECODE_IR_MAX_OPERANDS];
   size_t operand_index;
   if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
   for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
     layout_operands[operand_index] = candidate->operands[operand_index];
     layout_operands[operand_index].kind = candidate->operand_kinds[operand_index];
@@ -187,9 +159,9 @@ static void collect_pc_relative_ea_targets(M68kDecodeCandidate *candidate, size_
     pc_base = candidate->offset + (uint32_t)relative_base;
     if (!m68k_instruction_decoded_ea_target(operand, shape, pc_base, section_size, 1, &target_offset))
       continue;
-    if (shape != M68K_SIM_EA_SHAPE_PC_INDEX) {
-      if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JSR) target_kind = M68K_DECODE_TARGET_CALL;
-      else if (candidate->mnemonic_id == M68K_ASM_MNEMONIC_JMP) target_kind = M68K_DECODE_TARGET_JUMP;
+    if (shape != M68K_SIM_EA_SHAPE_PC_INDEX && metadata != NULL && metadata->target_operand_index == operand_index) {
+      uint8_t flow_target_kind = decode_target_kind_for_flow(metadata->flow_kind);
+      if (flow_target_kind != 0U) target_kind = flow_target_kind;
     }
     (void)append_target(candidate, target_kind, section_index, target_offset, 1U, (uint8_t)operand_index);
   }

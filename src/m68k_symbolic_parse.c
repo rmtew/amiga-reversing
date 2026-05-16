@@ -21,43 +21,10 @@ static int is_register_like_symbol(const char *text, uint8_t target_cpu) {
 
 static int mnemonic_uses_relative_label_operand(const char *mnemonic) {
   uint8_t mnemonic_id = m68k_parse_mnemonic_token(mnemonic).mnemonic_id;
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_BRA:
-  case M68K_ASM_MNEMONIC_BSR:
-  case M68K_ASM_MNEMONIC_BHI:
-  case M68K_ASM_MNEMONIC_BLS:
-  case M68K_ASM_MNEMONIC_BCC:
-  case M68K_ASM_MNEMONIC_BCS:
-  case M68K_ASM_MNEMONIC_BNE:
-  case M68K_ASM_MNEMONIC_BEQ:
-  case M68K_ASM_MNEMONIC_BVC:
-  case M68K_ASM_MNEMONIC_BVS:
-  case M68K_ASM_MNEMONIC_BPL:
-  case M68K_ASM_MNEMONIC_BMI:
-  case M68K_ASM_MNEMONIC_BGE:
-  case M68K_ASM_MNEMONIC_BLT:
-  case M68K_ASM_MNEMONIC_BGT:
-  case M68K_ASM_MNEMONIC_BLE:
-  case M68K_ASM_MNEMONIC_DBT:
-  case M68K_ASM_MNEMONIC_DBF:
-  case M68K_ASM_MNEMONIC_DBHI:
-  case M68K_ASM_MNEMONIC_DBLS:
-  case M68K_ASM_MNEMONIC_DBCC:
-  case M68K_ASM_MNEMONIC_DBCS:
-  case M68K_ASM_MNEMONIC_DBNE:
-  case M68K_ASM_MNEMONIC_DBEQ:
-  case M68K_ASM_MNEMONIC_DBVC:
-  case M68K_ASM_MNEMONIC_DBVS:
-  case M68K_ASM_MNEMONIC_DBPL:
-  case M68K_ASM_MNEMONIC_DBMI:
-  case M68K_ASM_MNEMONIC_DBGE:
-  case M68K_ASM_MNEMONIC_DBLT:
-  case M68K_ASM_MNEMONIC_DBGT:
-  case M68K_ASM_MNEMONIC_DBLE:
-    return 1;
-  default:
-    return 0;
-  }
+  uint8_t family;
+  if (mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) return 0;
+  family = g_m68k_asm_mnemonic_metadata[mnemonic_id].family;
+  return family == M68K_ASM_MNEMONIC_FAMILY_BRANCH || family == M68K_ASM_MNEMONIC_FAMILY_DBCC;
 }
 
 static M68kSourceConstantResult lookup_constant_symbol_for_expression(const char *name, void *user_data) {
