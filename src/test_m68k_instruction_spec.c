@@ -146,6 +146,24 @@ static int test_assembler_canonical_form_resolution(void) {
   return 0;
 }
 
+static int test_generated_mnemonic_metadata(void) {
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_FAMILY_BRANCH,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_BNE].family);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_FAMILY_DBCC,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_DBNE].family);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_FAMILY_SCC,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_SNE].family);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_FAMILY_TRAP,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_TRAPNE].family);
+  M68K_C_ASSERT(g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_MOVEQ].render_size_flags &
+    M68K_ASM_RENDER_SIZE_EXPLICIT_LONG);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_FRESTORE,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_CPRESTORE].fpu_alias_target_mnemonic_id);
+  M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_CPSAVE,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_FSAVE].fpu_coprocessor_mnemonic_id);
+  return 0;
+}
+
 int m68k_c_instruction_spec_tests(void) {
   static const M68kCTestCase cases[] = {
     {"direct_register_detection", test_direct_register_detection},
@@ -153,6 +171,7 @@ int m68k_c_instruction_spec_tests(void) {
     {"decoded_ea_target_resolution", test_decoded_ea_target_resolution},
     {"instruction_spec_mnemonic_resolution", test_instruction_spec_mnemonic_resolution},
     {"assembler_canonical_form_resolution", test_assembler_canonical_form_resolution},
+    {"generated_mnemonic_metadata", test_generated_mnemonic_metadata},
   };
   return m68k_c_test_run_suite("m68k_instruction_spec", cases, sizeof(cases) / sizeof(cases[0]));
 }

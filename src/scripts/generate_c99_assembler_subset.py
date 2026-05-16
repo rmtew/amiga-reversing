@@ -229,6 +229,29 @@ EA_TEXT_VALUE_KIND_ENUM = {
     "numeric_or_label": "M68K_ASM_EA_VALUE_NUMERIC_OR_LABEL",
 }
 
+MNEMONIC_FAMILY_ENUM = {
+    "none": "M68K_ASM_MNEMONIC_FAMILY_NONE",
+    "bit_test": "M68K_ASM_MNEMONIC_FAMILY_BIT_TEST",
+    "branch": "M68K_ASM_MNEMONIC_FAMILY_BRANCH",
+    "dbcc": "M68K_ASM_MNEMONIC_FAMILY_DBCC",
+    "scc": "M68K_ASM_MNEMONIC_FAMILY_SCC",
+    "trap": "M68K_ASM_MNEMONIC_FAMILY_TRAP",
+    "mul_div_word_default": "M68K_ASM_MNEMONIC_FAMILY_MUL_DIV_WORD_DEFAULT",
+    "ext": "M68K_ASM_MNEMONIC_FAMILY_EXT",
+}
+
+RENDER_SIZE_FLAGS = {
+    "explicit_long": "M68K_ASM_RENDER_SIZE_EXPLICIT_LONG",
+    "explicit_word": "M68K_ASM_RENDER_SIZE_EXPLICIT_WORD",
+    "ext_any": "M68K_ASM_RENDER_SIZE_EXT_ANY",
+    "scc_byte": "M68K_ASM_RENDER_SIZE_SCC_BYTE",
+    "dbcc_word": "M68K_ASM_RENDER_SIZE_DBCC_WORD",
+    "branch": "M68K_ASM_RENDER_SIZE_BRANCH",
+    "bit_test": "M68K_ASM_RENDER_SIZE_BIT_TEST",
+    "mul_div_word_default": "M68K_ASM_RENDER_SIZE_MUL_DIV_WORD_DEFAULT",
+    "trap_with_operand": "M68K_ASM_RENDER_SIZE_TRAP_WITH_OPERAND",
+}
+
 
 def _load_supported_mnemonics(manifest_path: Path = SUBSET_MANIFEST_PATH) -> tuple[str, ...]:
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -1207,6 +1230,68 @@ def _canonical_form_id_map(canonical_forms: list[FormDef]) -> dict[tuple[object,
     return {_form_identity_key(form): index + 1 for index, form in enumerate(canonical_forms)}
 
 
+def _mnemonic_family(mnemonic: str, forms_by_mnemonic: dict[str, list[FormDef]]) -> str:
+    kb_mnemonics = {form.kb_mnemonic for form in forms_by_mnemonic.get(mnemonic, [])}
+    if "Bcc" in kb_mnemonics or mnemonic in {"BRA", "BSR"}:
+        return "branch"
+    if "DBcc" in kb_mnemonics:
+        return "dbcc"
+    if "Scc" in kb_mnemonics:
+        return "scc"
+    if "TRAPcc" in kb_mnemonics or mnemonic in {"TRAP", "TRAPV"}:
+        return "trap"
+    if kb_mnemonics & {"BCHG", "BCLR", "BSET", "BTST"}:
+        return "bit_test"
+    if kb_mnemonics & {"MULS", "MULU", "DIVS, DIVSL", "DIVU, DIVUL"}:
+        return "mul_div_word_default"
+    if "EXT, EXTB" in kb_mnemonics:
+        return "ext"
+    return "none"
+
+
+def _mnemonic_render_size_flags(mnemonic: str, family: str) -> list[str]:
+    flags: list[str] = []
+    if mnemonic in {"LEA", "LINK", "MOVEQ", "PEA"}:
+        flags.append("explicit_long")
+    if mnemonic == "SWAP":
+        flags.append("explicit_word")
+    if family == "ext":
+        flags.append("ext_any")
+    if family == "scc":
+        flags.append("scc_byte")
+    if family == "dbcc":
+        flags.append("dbcc_word")
+    if family == "branch":
+        flags.append("branch")
+    if family == "bit_test":
+        flags.append("bit_test")
+    if family == "mul_div_word_default":
+        flags.append("mul_div_word_default")
+    if family == "trap":
+        flags.append("trap_with_operand")
+    return flags
+
+
+def _mnemonic_metadata_rows(mnemonic_list: list[str], forms: list[FormDef]) -> list[str]:
+    forms_by_mnemonic: dict[str, list[FormDef]] = {}
+    mnemonic_ids = {mnemonic: index for index, mnemonic in enumerate(mnemonic_list, start=1)}
+    for form in forms:
+        forms_by_mnemonic.setdefault(form.mnemonic, []).append(form)
+    rows = ["    { M68K_ASM_MNEMONIC_FAMILY_NONE, 0u, M68K_ASM_MNEMONIC_NONE, M68K_ASM_MNEMONIC_NONE },"]
+    for mnemonic in mnemonic_list:
+        family = _mnemonic_family(mnemonic, forms_by_mnemonic)
+        flags = _mnemonic_render_size_flags(mnemonic, family)
+        flag_expr = " | ".join(RENDER_SIZE_FLAGS[flag] for flag in flags) if flags else "0u"
+        fpu_alias_target = {"CPRESTORE": "FRESTORE", "CPSAVE": "FSAVE"}.get(mnemonic)
+        fpu_coprocessor = {"FRESTORE": "CPRESTORE", "FSAVE": "CPSAVE"}.get(mnemonic)
+        alias_expr = f"M68K_ASM_MNEMONIC_{fpu_alias_target}" if fpu_alias_target in mnemonic_ids else "M68K_ASM_MNEMONIC_NONE"
+        coprocessor_expr = f"M68K_ASM_MNEMONIC_{fpu_coprocessor}" if fpu_coprocessor in mnemonic_ids else "M68K_ASM_MNEMONIC_NONE"
+        rows.append(
+            f"    {{ {MNEMONIC_FAMILY_ENUM[family]}, {flag_expr}, {alias_expr}, {coprocessor_expr} }},"
+        )
+    return rows
+
+
 def _render_header(forms: list[FormDef], kb: dict[str, object], mnemonic_list: list[str] | None = None) -> str:
     if mnemonic_list is None:
         mnemonic_list = _runtime_mnemonic_list(forms)
@@ -1248,6 +1333,29 @@ typedef enum {{
     M68K_ASM_CONTROL_REGISTER_NONE = 255,
 {control_register_ids}
 }} M68kAsmControlRegisterId;
+
+typedef enum {{
+    M68K_ASM_MNEMONIC_FAMILY_NONE = 0,
+    M68K_ASM_MNEMONIC_FAMILY_BIT_TEST = 1,
+    M68K_ASM_MNEMONIC_FAMILY_BRANCH = 2,
+    M68K_ASM_MNEMONIC_FAMILY_DBCC = 3,
+    M68K_ASM_MNEMONIC_FAMILY_SCC = 4,
+    M68K_ASM_MNEMONIC_FAMILY_TRAP = 5,
+    M68K_ASM_MNEMONIC_FAMILY_MUL_DIV_WORD_DEFAULT = 6,
+    M68K_ASM_MNEMONIC_FAMILY_EXT = 7
+}} M68kAsmMnemonicFamily;
+
+enum {{
+    M68K_ASM_RENDER_SIZE_EXPLICIT_LONG = 1u << 0,
+    M68K_ASM_RENDER_SIZE_EXPLICIT_WORD = 1u << 1,
+    M68K_ASM_RENDER_SIZE_EXT_ANY = 1u << 2,
+    M68K_ASM_RENDER_SIZE_SCC_BYTE = 1u << 3,
+    M68K_ASM_RENDER_SIZE_DBCC_WORD = 1u << 4,
+    M68K_ASM_RENDER_SIZE_BRANCH = 1u << 5,
+    M68K_ASM_RENDER_SIZE_BIT_TEST = 1u << 6,
+    M68K_ASM_RENDER_SIZE_MUL_DIV_WORD_DEFAULT = 1u << 7,
+    M68K_ASM_RENDER_SIZE_TRAP_WITH_OPERAND = 1u << 8
+}};
 
 typedef enum {{
     M68K_ASM_CPU_68000 = 0,
@@ -1412,6 +1520,7 @@ def _render_tables(
         canonical_forms = forms
     canonical_form_ids = _canonical_form_id_map(canonical_forms)
     mnemonic_name_rows = ['    "",'] + [f'    "{mnemonic.lower()}",' for mnemonic in mnemonic_list]
+    mnemonic_metadata_rows = _mnemonic_metadata_rows(mnemonic_list, forms)
     sorted_mnemonics = sorted(mnemonic_list, key=str.lower)
     mnemonic_lookup_rows = [
         f'    {{ "{mnemonic.lower()}", M68K_ASM_MNEMONIC_{mnemonic} }},'
@@ -1577,6 +1686,10 @@ def _render_tables(
 
 const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {{
 {chr(10).join(mnemonic_name_rows)}
+}};
+
+const M68kAsmMnemonicMetadata g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_COUNT] = {{
+{chr(10).join(mnemonic_metadata_rows)}
 }};
 
 const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[{mnemonic_lookup_array_len}] = {{

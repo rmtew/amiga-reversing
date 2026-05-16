@@ -10,157 +10,17 @@
 #include <string.h>
 
 
-static int mnemonic_id_is_bit_test_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_BCHG:
-  case M68K_ASM_MNEMONIC_BCLR:
-  case M68K_ASM_MNEMONIC_BSET:
-  case M68K_ASM_MNEMONIC_BTST:
-    return 1;
-  default:
-    return 0;
-  }
+static const M68kAsmMnemonicMetadata *mnemonic_metadata(uint8_t mnemonic_id) {
+  if (mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) return &g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_NONE];
+  return &g_m68k_asm_mnemonic_metadata[mnemonic_id];
 }
 
-static int mnemonic_id_is_branch_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_BHI:
-  case M68K_ASM_MNEMONIC_BLS:
-  case M68K_ASM_MNEMONIC_BCC:
-  case M68K_ASM_MNEMONIC_BCS:
-  case M68K_ASM_MNEMONIC_BNE:
-  case M68K_ASM_MNEMONIC_BEQ:
-  case M68K_ASM_MNEMONIC_BVC:
-  case M68K_ASM_MNEMONIC_BVS:
-  case M68K_ASM_MNEMONIC_BPL:
-  case M68K_ASM_MNEMONIC_BMI:
-  case M68K_ASM_MNEMONIC_BGE:
-  case M68K_ASM_MNEMONIC_BLT:
-  case M68K_ASM_MNEMONIC_BGT:
-  case M68K_ASM_MNEMONIC_BLE:
-  case M68K_ASM_MNEMONIC_BRA:
-  case M68K_ASM_MNEMONIC_BSR:
-    return 1;
-  default:
-    return 0;
-  }
+static int mnemonic_has_render_size_flag(uint8_t mnemonic_id, uint16_t flag) {
+  return (mnemonic_metadata(mnemonic_id)->render_size_flags & flag) != 0U;
 }
 
-static int mnemonic_id_is_dbcc_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_DBT:
-  case M68K_ASM_MNEMONIC_DBF:
-  case M68K_ASM_MNEMONIC_DBHI:
-  case M68K_ASM_MNEMONIC_DBLS:
-  case M68K_ASM_MNEMONIC_DBCC:
-  case M68K_ASM_MNEMONIC_DBCS:
-  case M68K_ASM_MNEMONIC_DBNE:
-  case M68K_ASM_MNEMONIC_DBEQ:
-  case M68K_ASM_MNEMONIC_DBVC:
-  case M68K_ASM_MNEMONIC_DBVS:
-  case M68K_ASM_MNEMONIC_DBPL:
-  case M68K_ASM_MNEMONIC_DBMI:
-  case M68K_ASM_MNEMONIC_DBGE:
-  case M68K_ASM_MNEMONIC_DBLT:
-  case M68K_ASM_MNEMONIC_DBGT:
-  case M68K_ASM_MNEMONIC_DBLE:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_is_scc_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_ST:
-  case M68K_ASM_MNEMONIC_SF:
-  case M68K_ASM_MNEMONIC_SHI:
-  case M68K_ASM_MNEMONIC_SLS:
-  case M68K_ASM_MNEMONIC_SCC:
-  case M68K_ASM_MNEMONIC_SCS:
-  case M68K_ASM_MNEMONIC_SNE:
-  case M68K_ASM_MNEMONIC_SEQ:
-  case M68K_ASM_MNEMONIC_SVC:
-  case M68K_ASM_MNEMONIC_SVS:
-  case M68K_ASM_MNEMONIC_SPL:
-  case M68K_ASM_MNEMONIC_SMI:
-  case M68K_ASM_MNEMONIC_SGE:
-  case M68K_ASM_MNEMONIC_SLT:
-  case M68K_ASM_MNEMONIC_SGT:
-  case M68K_ASM_MNEMONIC_SLE:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_is_trap_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_TRAPT:
-  case M68K_ASM_MNEMONIC_TRAPF:
-  case M68K_ASM_MNEMONIC_TRAPHI:
-  case M68K_ASM_MNEMONIC_TRAPLS:
-  case M68K_ASM_MNEMONIC_TRAPCC:
-  case M68K_ASM_MNEMONIC_TRAPCS:
-  case M68K_ASM_MNEMONIC_TRAPNE:
-  case M68K_ASM_MNEMONIC_TRAPEQ:
-  case M68K_ASM_MNEMONIC_TRAPVC:
-  case M68K_ASM_MNEMONIC_TRAPVS:
-  case M68K_ASM_MNEMONIC_TRAPPL:
-  case M68K_ASM_MNEMONIC_TRAPMI:
-  case M68K_ASM_MNEMONIC_TRAPGE:
-  case M68K_ASM_MNEMONIC_TRAPLT:
-  case M68K_ASM_MNEMONIC_TRAPGT:
-  case M68K_ASM_MNEMONIC_TRAPLE:
-  case M68K_ASM_MNEMONIC_TRAPV:
-  case M68K_ASM_MNEMONIC_TRAP:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_is_mul_div_word_default(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_MULU:
-  case M68K_ASM_MNEMONIC_MULS:
-  case M68K_ASM_MNEMONIC_DIVU:
-  case M68K_ASM_MNEMONIC_DIVS:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_requires_long_size_suffix(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_LEA:
-  case M68K_ASM_MNEMONIC_LINK:
-  case M68K_ASM_MNEMONIC_MOVEQ:
-  case M68K_ASM_MNEMONIC_PEA:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_is_ext_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_EXT:
-  case M68K_ASM_MNEMONIC_EXTB:
-    return 1;
-  default:
-    return 0;
-  }
-}
-
-static int mnemonic_id_requires_word_size_suffix(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_SWAP:
-    return 1;
-  default:
-    return 0;
-  }
+static int mnemonic_is_family(uint8_t mnemonic_id, uint8_t family) {
+  return mnemonic_metadata(mnemonic_id)->family == family;
 }
 
 static int append_format(char *out_text, size_t out_text_size, size_t *inout_used, const char *format, ...) {
@@ -550,28 +410,44 @@ static int instruction_uses_short_branch_suffix(const M68kInstructionIR *instruc
   uint8_t mnemonic_id;
   if (instruction->size_suffix != 'b' || instruction->operand_count == 0U) return 0;
   mnemonic_id = instruction->mnemonic_id;
-  if (!mnemonic_id_is_branch_family(mnemonic_id)) return 0;
+  if (!mnemonic_is_family(mnemonic_id, M68K_ASM_MNEMONIC_FAMILY_BRANCH)) return 0;
   return instruction->operand_count == 1U;
 }
 
-static int instruction_requires_explicit_size_suffix( const M68kInstructionIR *instruction) {
+static int instruction_requires_explicit_size_suffix(const M68kInstructionIR *instruction) {
   uint8_t mnemonic_id;
   mnemonic_id = instruction->mnemonic_id;
-  if (mnemonic_id_requires_long_size_suffix(mnemonic_id) && instruction->size_suffix == 'l') return 1;
-  if (mnemonic_id_is_ext_family(mnemonic_id) && instruction->size_suffix != '\0') return 1;
-  if (mnemonic_id_requires_word_size_suffix(mnemonic_id) && instruction->size_suffix == 'w') return 1;
-  if (mnemonic_id_is_scc_family(mnemonic_id) && instruction->size_suffix == 'b') return 1;
-  if (mnemonic_id_is_dbcc_family(mnemonic_id) && instruction->size_suffix == 'w') return 1;
-  if (mnemonic_id_is_branch_family(mnemonic_id) && instruction->operand_count == 1U) return 1;
-  if (mnemonic_id_is_bit_test_family(mnemonic_id) || mnemonic_id_is_mul_div_word_default(mnemonic_id)) return 1;
-  if (mnemonic_id_is_trap_family(mnemonic_id) && instruction->operand_count != 0U) return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_EXPLICIT_LONG) &&
+      instruction->size_suffix == 'l')
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_EXT_ANY) &&
+      instruction->size_suffix != '\0')
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_EXPLICIT_WORD) &&
+      instruction->size_suffix == 'w')
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_SCC_BYTE) &&
+      instruction->size_suffix == 'b')
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_DBCC_WORD) &&
+      instruction->size_suffix == 'w')
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_BRANCH) &&
+      instruction->operand_count == 1U)
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_BIT_TEST) ||
+      mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_MUL_DIV_WORD_DEFAULT))
+    return 1;
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_TRAP_WITH_OPERAND) &&
+      instruction->operand_count != 0U)
+    return 1;
   return 0;
 }
 
 static char instruction_render_size_suffix(const M68kInstructionIR *instruction, const M68kAsmFormDef *form) {
   uint8_t mnemonic_id;
   mnemonic_id = instruction->mnemonic_id;
-  if (mnemonic_id_is_bit_test_family(mnemonic_id)) {
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_BIT_TEST)) {
     if (instruction->operand_count != 2U) return instruction->size_suffix;
     const M68kOperandIR *target = &instruction->operands[1];
     int target_is_memory = 0;
@@ -585,7 +461,7 @@ static char instruction_render_size_suffix(const M68kInstructionIR *instruction,
     return '\0';
   }
   if (instruction->size_suffix != '\0') return instruction->size_suffix;
-  if (mnemonic_id_is_mul_div_word_default(mnemonic_id)) return 'w';
+  if (mnemonic_has_render_size_flag(mnemonic_id, M68K_ASM_RENDER_SIZE_MUL_DIV_WORD_DEFAULT)) return 'w';
   (void)form;
   return '\0';
 }

@@ -59,12 +59,19 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
         self.assertIn("    M68K_ASM_CONTROL_REGISTER_VBR = 26,\n", self._tables_h)
         self.assertIn("    M68K_ASM_FORM_COUNT =", self._tables_h)
         self.assertIn("    M68K_ASM_PATCH_COUNT =", self._tables_h)
+        self.assertIn("M68K_ASM_MNEMONIC_FAMILY_BRANCH", self._tables_h)
+        self.assertIn("M68K_ASM_RENDER_SIZE_DBCC_WORD", self._tables_h)
         self.assertIn("  uint8_t mnemonic_id;\n", self._metadata_h)
         self.assertIn("  uint16_t asm_form_index;\n", self._metadata_h)
         self.assertIn("  M68kFormId canonical_form_id;\n", self._metadata_h)
+        self.assertIn("} M68kAsmMnemonicMetadata;\n", self._metadata_h)
         self.assertIn("} M68kAsmFormRange;\n", self._metadata_h)
         self.assertIn(
             "extern const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT];\n",
+            self._metadata_h,
+        )
+        self.assertIn(
+            "extern const M68kAsmMnemonicMetadata g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_COUNT];\n",
             self._metadata_h,
         )
         self.assertIn(
@@ -75,6 +82,15 @@ class GenerateC99AssemblerSubsetTests(unittest.TestCase):
             'const char *const g_m68k_asm_mnemonic_names[M68K_ASM_MNEMONIC_COUNT] = {\n    "",\n',
             self._tables_c,
         )
+        self.assertIn(
+            "const M68kAsmMnemonicMetadata g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_COUNT] = {\n",
+            self._tables_c,
+        )
+        self.assertIn("M68K_ASM_MNEMONIC_FAMILY_BRANCH, M68K_ASM_RENDER_SIZE_BRANCH", self._tables_c)
+        self.assertIn("M68K_ASM_MNEMONIC_FAMILY_DBCC, M68K_ASM_RENDER_SIZE_DBCC_WORD", self._tables_c)
+        self.assertIn("M68K_ASM_MNEMONIC_FAMILY_SCC, M68K_ASM_RENDER_SIZE_SCC_BYTE", self._tables_c)
+        self.assertIn("M68K_ASM_MNEMONIC_FAMILY_TRAP, M68K_ASM_RENDER_SIZE_TRAP_WITH_OPERAND", self._tables_c)
+        self.assertIn("M68K_ASM_MNEMONIC_FRESTORE", self._tables_c)
         self.assertIn(
             'const M68kAsmMnemonicLookupEntry g_m68k_asm_mnemonic_lookup[',
             self._tables_c,

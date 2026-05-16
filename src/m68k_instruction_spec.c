@@ -205,14 +205,14 @@ static int cpu_uses_external_fpu_id(uint8_t target_cpu) {
 }
 
 static uint8_t fpu_id_alias_mnemonic(uint8_t mnemonic_id) {
-  if (mnemonic_id == M68K_ASM_MNEMONIC_CPRESTORE) return M68K_ASM_MNEMONIC_FRESTORE;
-  if (mnemonic_id == M68K_ASM_MNEMONIC_CPSAVE) return M68K_ASM_MNEMONIC_FSAVE;
+  if (mnemonic_id < M68K_ASM_MNEMONIC_COUNT)
+    return g_m68k_asm_mnemonic_metadata[mnemonic_id].fpu_alias_target_mnemonic_id;
   return M68K_ASM_MNEMONIC_NONE;
 }
 
 static uint8_t fpu_id_coprocessor_mnemonic(uint8_t mnemonic_id) {
-  if (mnemonic_id == M68K_ASM_MNEMONIC_FRESTORE) return M68K_ASM_MNEMONIC_CPRESTORE;
-  if (mnemonic_id == M68K_ASM_MNEMONIC_FSAVE) return M68K_ASM_MNEMONIC_CPSAVE;
+  if (mnemonic_id < M68K_ASM_MNEMONIC_COUNT)
+    return g_m68k_asm_mnemonic_metadata[mnemonic_id].fpu_coprocessor_mnemonic_id;
   return M68K_ASM_MNEMONIC_NONE;
 }
 
