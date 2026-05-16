@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/026-m68k-tool-replacement-and-unsupported-closure.md`
 Type: AFK
-Blocked by: `docs/issues/026-003-delete-legacy-form-identity-and-fallback-paths.md`
+Blocked by: None
 
 ## Scope
 

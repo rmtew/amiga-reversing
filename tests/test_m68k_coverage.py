@@ -290,6 +290,19 @@ def test_strict_coverage_fails_asm_decode_parity_mismatch() -> None:
     assert {failure["kind"] for failure in failures} == {"asm_decode_parity_mismatch"}
 
 
+def test_strict_coverage_allows_canonical_unsupported_parity_mismatch() -> None:
+    disasm_only = FakeForm("CPBCC", "cpBcc", 0, 20, "cpBcc <label>")
+    inventory = m68k_coverage.build_canonical_inventory(
+        assembler_forms=[],
+        disassembler_forms=[disasm_only],
+    )
+
+    failures = m68k_coverage.strict_coverage_failures(inventory)
+
+    assert inventory["unsupported_inventory"][0]["family_id"] == "generic_coprocessor"
+    assert failures == []
+
+
 def test_strict_coverage_fails_canonical_identity_mismatch() -> None:
     form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
     inventory = m68k_coverage.build_canonical_inventory(

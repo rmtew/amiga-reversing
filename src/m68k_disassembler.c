@@ -130,7 +130,7 @@ static M68kDisasmResult make_result(size_t byte_count, const char *text, uint16_
   const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
   uint16_t asm_form_index;
   memset(&result, 0, sizeof(result));
-  asm_form_index = m68k_asm_form_index_for_canonical_id(form->canonical_form_id);
+  asm_form_index = form->asm_form_index;
   result.byte_count = byte_count;
   result.asm_form_index = asm_form_index;
   result.disasm_form_index = disasm_form_index;
@@ -907,9 +907,8 @@ static M68kDisasmResult m68k_disassemble_one_impl(const uint8_t *data, size_t si
   }
   bucket_index = (uint16_t)(m68k_read_u16be(data) >> 4);
   for (candidate_index = 0; candidate_index < g_m68k_disasm_buckets[bucket_index].count; ++candidate_index) {
-    M68kFormId candidate_form_id = g_m68k_disasm_bucket_candidates[g_m68k_disasm_buckets[bucket_index].start + candidate_index];
-    uint16_t disasm_form_index = candidate_form_id <= M68K_CANONICAL_FORM_COUNT ?
-      g_m68k_disasm_form_index_by_canonical_id[candidate_form_id] : M68K_DISASM_FORM_NONE;
+    uint16_t disasm_form_index =
+      g_m68k_disasm_bucket_candidates[g_m68k_disasm_buckets[bucket_index].start + candidate_index];
     const M68kAsmFormDef *form = &g_m68k_disasm_forms[disasm_form_index];
     M68kAsmOperandValue operands[4];
     char rendered_text[128];

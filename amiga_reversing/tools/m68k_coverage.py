@@ -248,6 +248,7 @@ def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]
 
 def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
     failures = diagnostic_check_failures(inventory)
+    unsupported_form_keys = _unsupported_form_keys(inventory)
     for entry in inventory["entries"]:
         status = str(entry["status"])
         key = entry["key"]
@@ -266,6 +267,8 @@ def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
                             f"{asm_canonical} and decoder canonical id {disasm_canonical}"
                         ),
                     })
+            continue
+        if _entry_key(key) in unsupported_form_keys:
             continue
         failures.append({
             "kind": "asm_decode_parity_mismatch",
@@ -358,6 +361,26 @@ def _sample_entries_by_key(entries: list[dict[str, Any]]) -> dict[tuple[str, int
         )
         grouped[key].append(entry)
     return dict(grouped)
+
+
+def _entry_key(key: dict[str, Any]) -> tuple[str, int, str, str]:
+    return (
+        str(key["kb_mnemonic"]),
+        int(key["local_form_index"]),
+        str(key["syntax"]),
+        str(key["mnemonic"]),
+    )
+
+
+def _unsupported_form_keys(inventory: dict[str, Any]) -> set[tuple[str, int, str, str]]:
+    keys: set[tuple[str, int, str, str]] = set()
+    for unsupported in inventory.get("unsupported_inventory", []):
+        if not isinstance(unsupported, dict):
+            continue
+        for form in unsupported.get("forms", []):
+            if isinstance(form, dict):
+                keys.add(_entry_key(form))
+    return keys
 
 
 def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:

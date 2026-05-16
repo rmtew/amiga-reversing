@@ -344,16 +344,12 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
 
 def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> str:
     buckets, candidate_indexes = _build_buckets(forms)
-    canonical_form_ids = _canonical_form_id_map(subset)
     zero_means_eight = _load_zero_means_eight_flags(forms, kb)
     operand_shape_codes = _load_operand_shape_codes(forms)
     operand_ea_mode_masks = _load_operand_ea_mode_masks(forms)
     patch_rows, extension_rows, form_rows, control_register_rows = _emit_form_table_lines(forms, subset)
     bucket_lines = [f"    {{ {bucket.start}u, {bucket.count}u }}," for bucket in buckets]
-    candidate_lines = _wrapped_lines([canonical_form_ids[_form_identity_key(forms[index])] for index in candidate_indexes])
-    disasm_index_by_form_id_rows = ["    M68K_DISASM_FORM_NONE,"] * (len(subset._load_canonical_forms(KB_PATH)) + 1)
-    for index, form in enumerate(forms):
-        disasm_index_by_form_id_rows[canonical_form_ids[_form_identity_key(form)]] = f"    {index}u,"
+    candidate_lines = _wrapped_lines(candidate_indexes)
     zero_means_lines = _wrapped_lines([*zero_means_eight, 0])
     operand_shape_lines = [
         f"    {{ {row[0]}u, {row[1]}u, {row[2]}u, {row[3]}u }},"
@@ -397,11 +393,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
         *bucket_lines,
         "};",
         "",
-        f"static const uint16_t g_m68k_disasm_form_index_by_canonical_id[{len(disasm_index_by_form_id_rows)}] = {{",
-        *disasm_index_by_form_id_rows,
-        "};",
-        "",
-        "static const M68kFormId g_m68k_disasm_bucket_candidates[] = {",
+        "static const uint16_t g_m68k_disasm_bucket_candidates[] = {",
         *candidate_lines,
         "};",
         "",
