@@ -14,6 +14,16 @@ DIAGNOSTIC_DELETION_CRITERIA = (
     "Temporary bootstrap inventory. Delete or fold into canonical-model coverage "
     "after PRD 024/025 own canonical form identity and sample coverage."
 )
+DIAGNOSTIC_FORM_STATUSES = {"matched", "asm_only", "disasm_only"}
+DIAGNOSTIC_SAMPLE_STATUSES = {
+    "sampled",
+    "missing_sample_strategy",
+    "intentionally_unsupported",
+    "implemented_unsupported",
+    "not_target_cpu",
+    "oracle_unavailable",
+}
+DIAGNOSTIC_UNSUPPORTED_SAMPLE_STATUSES = {"intentionally_unsupported", "implemented_unsupported"}
 
 
 class FormLike(Protocol):
@@ -69,6 +79,11 @@ def build_diagnostic_inventory(
         for samples in samples_by_key.values()
         for sample in samples
     )
+    unsupported_counts = {
+        status: count
+        for status, count in sorted(sample_status_counts.items())
+        if status in DIAGNOSTIC_UNSUPPORTED_SAMPLE_STATUSES
+    }
 
     return {
         "phase": "diagnostic",
@@ -82,6 +97,7 @@ def build_diagnostic_inventory(
             "disasm_only_forms": sum(1 for entry in entries if entry["status"] == "disasm_only"),
         },
         "sample_status_counts": dict(sorted(sample_status_counts.items())),
+        "unsupported_counts": unsupported_counts,
         "entries": entries,
     }
 
@@ -103,12 +119,14 @@ def main(argv: list[str] | None = None) -> int:
             _print_diagnostic_report(inventory)
         return 0
     if args.command == "check":
-        unclassified = [
-            entry for entry in inventory["entries"]
-            if entry["status"] not in {"matched", "asm_only", "disasm_only"}
-        ]
-        if unclassified:
-            print(f"diagnostic coverage check failed: {len(unclassified)} unclassified forms")
+        failures = diagnostic_check_failures(inventory)
+        if failures:
+            if args.format == "json":
+                print(json.dumps({"ok": False, "failures": failures}, indent=2, sort_keys=True))
+            else:
+                print(f"diagnostic coverage check failed: {len(failures)} failures")
+                for failure in failures:
+                    print(f"  {failure['kind']}: {failure['message']}")
             return 1
         if args.format == "json":
             print(json.dumps(inventory, indent=2, sort_keys=True))
@@ -116,6 +134,32 @@ def main(argv: list[str] | None = None) -> int:
             _print_diagnostic_report(inventory)
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
+    failures: list[dict[str, str]] = []
+    for entry in inventory["entries"]:
+        key = entry["key"]
+        form_name = f"{key['kb_mnemonic']}#{key['local_form_index']} {key['mnemonic']} {key['syntax']}"
+        status = str(entry["status"])
+        if status not in DIAGNOSTIC_FORM_STATUSES:
+            failures.append({
+                "kind": "unclassified_form",
+                "message": f"{form_name} has unknown form status {status}",
+            })
+        for sample in entry["sample_statuses"]:
+            sample_status = str(sample["status"])
+            if sample_status not in DIAGNOSTIC_SAMPLE_STATUSES:
+                failures.append({
+                    "kind": "unclassified_sample_status",
+                    "message": f"{form_name} has unknown sample status {sample_status}",
+                })
+            if sample_status == "missing_sample_strategy":
+                failures.append({
+                    "kind": "missing_sample_strategy",
+                    "message": f"{form_name} has no sample strategy for size {sample.get('size') or '-'}",
+                })
+    return failures
 
 
 def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str, Any]]]:
@@ -194,6 +238,13 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
     sample_status_counts = inventory["sample_status_counts"]
     if sample_status_counts:
         for status, count in sample_status_counts.items():
+            print(f"  {status}: {count}")
+    else:
+        print("  none: 0")
+    print("unsupported statuses:")
+    unsupported_counts = inventory["unsupported_counts"]
+    if unsupported_counts:
+        for status, count in unsupported_counts.items():
             print(f"  {status}: {count}")
     else:
         print("  none: 0")

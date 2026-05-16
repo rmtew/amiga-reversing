@@ -3,7 +3,7 @@
 Status: Ready for agent
 Parent PRD or proposal: `docs/prd/023-m68k-diagnostic-coverage-manifest.md`
 Type: AFK
-Blocked by: `docs/issues/023-003-add-diagnostic-coverage-report-and-strict-mode.md`
+Blocked by: None
 
 ## Scope
 

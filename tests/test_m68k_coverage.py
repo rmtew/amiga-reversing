@@ -110,6 +110,10 @@ def test_diagnostic_inventory_keeps_missing_sample_strategy_distinct() -> None:
         "intentionally_unsupported": 1,
         "missing_sample_strategy": 1,
     }
+    assert inventory["unsupported_counts"] == {
+        "implemented_unsupported": 1,
+        "intentionally_unsupported": 1,
+    }
     entry = inventory["entries"][0]
     assert [sample["status"] for sample in entry["sample_statuses"]] == [
         "missing_sample_strategy",
@@ -145,6 +149,63 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "asm-only forms:" in output
     assert "disasm-only forms:" in output
     assert "sample statuses:" in output
+    assert "unsupported statuses:" in output
+
+
+def test_diagnostic_check_command_succeeds_with_current_classified_data(capsys) -> None:
+    assert m68k_coverage.main(["check", "--phase", "diagnostic"]) == 0
+
+    assert "M68K diagnostic coverage" in capsys.readouterr().out
+
+
+def test_diagnostic_check_fails_synthetic_unclassified_form() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[],
+    )
+    inventory["entries"][0]["status"] = "unknown"
+
+    failures = m68k_coverage.diagnostic_check_failures(inventory)
+
+    assert failures == [
+        {
+            "kind": "unclassified_form",
+            "message": "MOVE#0 MOVE MOVE <ea>,Dn has unknown form status unknown",
+        }
+    ]
+
+
+def test_diagnostic_check_fails_synthetic_missing_sample_strategy() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "w",
+                "target_cpu": "68000",
+                "status": "missing_sample_strategy",
+                "reason": "one or more operands produced no sample options",
+                "missing_operand_kinds": ["ea"],
+            }
+        ],
+    )
+
+    failures = m68k_coverage.diagnostic_check_failures(inventory)
+
+    assert failures == [
+        {
+            "kind": "missing_sample_strategy",
+            "message": "MOVE#0 MOVE MOVE <ea>,Dn has no sample strategy for size w",
+        }
+    ]
 
 
 def _load_corpus_script():
