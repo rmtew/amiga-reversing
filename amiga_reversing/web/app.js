@@ -1498,6 +1498,10 @@ function renderCommandParameterEditor(editor) {
   `;
 }
 
+function autofillIgnoreAttributes() {
+  return ' autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore="true" data-lpignore="true" data-bwignore="true" data-protonpass-ignore="true" data-form-type="other"';
+}
+
 function renderParameterChoiceGrid(editor) {
   const interaction = editor.action?.interaction_schema || {};
   const parameter = interaction.parameter || "representation";
@@ -1539,7 +1543,7 @@ function renderParameterFilteredChooser(editor) {
   const selectedIndex = Math.max(0, Math.min(options.length - 1, Number(editor.selectedIndex || 0)));
   return `
     <div class="parameter-filtered-chooser">
-      <input class="parameter-filter-input" data-parameter-filter-input="1" type="search" value="${escapeHtml(editor.filter || "")}" autocomplete="off">
+      <input class="parameter-filter-input" data-parameter-filter-input="1" type="search" value="${escapeHtml(editor.filter || "")}"${autofillIgnoreAttributes()}>
       <div class="parameter-filter-options">
         ${options.length ? options.map((option, index) => `
           <button type="button" class="parameter-filter-option${index === selectedIndex ? " selected" : ""}" data-parameter-filter-index="${index}">
@@ -1580,21 +1584,21 @@ function renderCommandParameterField(field, editor) {
     control = `
       <label>
         <span>${label}</span>
-        <input type="number" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${field.type === "integer" ? ' step="1"' : ""}${required}>
+        <input type="number" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${field.type === "integer" ? ' step="1"' : ""}${required}${autofillIgnoreAttributes()}>
       </label>
     `;
   } else if (field.type === "string") {
     control = `
       <label>
         <span>${label}</span>
-        <input type="text" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${required}>
+        <input type="text" data-command-parameter-name="${escapeHtml(field.name)}" value="${escapeHtml(value ?? "")}"${required}${autofillIgnoreAttributes()}>
       </label>
     `;
   } else {
     control = `
       <label>
         <span>${label}</span>
-        <input type="text" value="Unsupported parameter type: ${escapeHtml(field.type)}" disabled>
+        <input type="text" value="Unsupported parameter type: ${escapeHtml(field.type)}" disabled${autofillIgnoreAttributes()}>
       </label>
     `;
   }

@@ -1455,6 +1455,19 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
         page.evaluate("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'F2', bubbles: true}))")
         page.wait_for_selector("[data-inline-parameter-session]")
+        assert page.evaluate(
+            """
+            (() => {
+              const input = document.querySelector("[data-inline-parameter-session] [data-command-parameter-name='name']");
+              return input?.getAttribute("data-1p-ignore") === "true"
+                && input?.getAttribute("data-lpignore") === "true"
+                && input?.getAttribute("data-bwignore") === "true"
+                && input?.getAttribute("data-protonpass-ignore") === "true"
+                && input?.getAttribute("data-form-type") === "other"
+                && input?.getAttribute("autocomplete") === "off";
+            })()
+            """
+        )
         page.fill("[data-command-parameter-name='name']", "loc_reserved")
         page.press_key("Enter")
         page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('reserved')")
