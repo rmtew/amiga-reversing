@@ -774,6 +774,8 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
     ]
     sp_rows: list[str] = []
     form_rows: list[str] = []
+    lookup_index_by_form_id = ["M68K_SIM_FORM_LOOKUP_NONE"] * (len(canonical_forms) + 1)
+    semantic_status_by_form_id = ["M68K_SIM_SEMANTICS_GENERATED_SEMANTICS_MISSING"] * (len(canonical_forms) + 1)
     emitted_form_count = 0
     sp_start = 0
     for form in forms:
@@ -1032,6 +1034,8 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             )
         canonical_form_id = canonical_form_ids[m68k_canonical_model.form_identity_key(form)]
         semantic_status = _semantic_status_for_execution(execution, form)
+        lookup_index_by_form_id[canonical_form_id] = f"{emitted_form_count}u"
+        semantic_status_by_form_id[canonical_form_id] = SEMANTIC_STATUS_ENUM[semantic_status]
         form_rows.extend([
             "    {",
             f"      {canonical_form_id}u, {form.form_index}u, {SEMANTIC_STATUS_ENUM[semantic_status]}, 0u,",
@@ -1160,6 +1164,14 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
         *_emit_exception_tables(kb),
         f"static const M68kSimFormLookup g_m68k_sim_form_lookup[{emitted_form_count}] = {{",
         *form_rows,
+        "};",
+        "",
+        "static const uint16_t g_m68k_sim_lookup_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+        *[f"    {value}," for value in lookup_index_by_form_id],
+        "};",
+        "",
+        "static const uint8_t g_m68k_sim_semantic_status_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+        *[f"    {value}," for value in semantic_status_by_form_id],
         "};",
         "",
     ])

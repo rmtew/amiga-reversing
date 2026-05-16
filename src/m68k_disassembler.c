@@ -14,6 +14,15 @@ typedef struct {
 
 #include "generated/m68k_disassembler_tables.h"
 
+uint16_t m68k_disasm_form_index_for_canonical_id(M68kFormId form_id) {
+  uint16_t disasm_form_index;
+  if (form_id == M68K_FORM_ID_NONE || form_id > M68K_CANONICAL_FORM_COUNT) return M68K_DISASM_FORM_NONE;
+  disasm_form_index = g_m68k_disasm_form_index_by_canonical_id[form_id];
+  if (disasm_form_index >= M68K_DISASM_FORM_COUNT) return M68K_DISASM_FORM_NONE;
+  if (g_m68k_disasm_forms[disasm_form_index].canonical_form_id != form_id) return M68K_DISASM_FORM_NONE;
+  return disasm_form_index;
+}
+
 static uint16_t extract_bits16(uint16_t value, uint8_t bit_hi, uint8_t bit_lo) {
   uint16_t width = (uint16_t)(bit_hi - bit_lo + 1U);
   uint16_t mask = (uint16_t)((1U << width) - 1U);

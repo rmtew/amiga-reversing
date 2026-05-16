@@ -1,4 +1,5 @@
 #include "m68k_c_unit_test.h"
+#include "m68k_disassembler.h"
 #include "m68k_instruction_spec.h"
 #include "m68k_simulator.h"
 
@@ -124,6 +125,7 @@ static int test_assembler_canonical_form_resolution(void) {
   M68kAsmOperandValue operands[2];
   M68kFormId form_id;
   uint16_t asm_form_index;
+  uint16_t disasm_form_index;
   const M68kAsmFormDef *form;
 
   memset(operands, 0, sizeof(operands));
@@ -143,6 +145,8 @@ static int test_assembler_canonical_form_resolution(void) {
   M68K_C_ASSERT_INT(M68K_ASM_MNEMONIC_ADD, form->mnemonic_id);
   M68K_C_ASSERT_U32(form_id, form->canonical_form_id);
   M68K_C_ASSERT_U32((uint32_t)asm_form_index, (uint32_t)form->asm_form_index);
+  disasm_form_index = m68k_disasm_form_index_for_canonical_id(form_id);
+  M68K_C_ASSERT(disasm_form_index != M68K_DISASM_FORM_NONE);
   return 0;
 }
 

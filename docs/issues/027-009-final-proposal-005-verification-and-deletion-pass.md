@@ -33,17 +33,12 @@ Delete this issue last, after all Proposal 005 follow-up issue files are either
 completed and deleted or deliberately superseded.
 
 Blocked by:
-- `027-001-real-canonical-coverage-gate.md`
-- `027-002-real-unsupported-stale-checks.md`
-- `027-003-simulator-semantic-status-reconciliation.md`
-- `027-004-extract-canonical-model-generator.md`
-- `027-005-split-generated-form-model-storage.md`
-- `027-006-direct-canonical-lookup-tables.md`
 - `027-007-generated-sample-plan-ownership.md`
 - `027-008-remove-downstream-branch-family-knowledge.md`
 
 Notes for agents:
-Blocked by `027-001` through `027-008`.
+Blocked by the remaining Proposal 005 implementation slices, currently
+`027-007` and `027-008`.
 
 Running precommit may update `src\benchmark.json`; keep it if it reflects the
 current run.

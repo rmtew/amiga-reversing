@@ -402,6 +402,10 @@ typedef enum M68kSimSemanticStatus {
   M68K_SIM_SEMANTICS_INTENTIONALLY_UNSUPPORTED = 3
 } M68kSimSemanticStatus;
 
+enum {
+  M68K_SIM_FORM_LOOKUP_NONE = 0xFFFFu
+};
+
 typedef struct M68kSimExceptionFrameDef {
   uint8_t frame_kind;
   uint8_t format_code;

@@ -2040,6 +2040,21 @@ emit direct lookup tables:
   mnemonic id + operand shape -> candidate range or resolver row
 ```
 
+2026-05-17 implementation update: issue 027-006 completed the direct lookup
+slice. The existing generated assembler table already provides canonical form
+id -> assembler row lookup. The disassembler generator now emits
+`g_m68k_disasm_form_index_by_canonical_id`, exposed through
+`m68k_disasm_form_index_for_canonical_id()`. The simulator generator now emits
+both `g_m68k_sim_lookup_index_by_canonical_id` and
+`g_m68k_sim_semantic_status_by_canonical_id`; valid canonical forms without a
+simulator row report generated semantics missing rather than form-not-found.
+
+The remaining assembler resolver scan is limited to the generated mnemonic
+candidate range while matching operand shape. It is not a whole-form-table
+fallback. Further replacement with mnemonic+operand-shape resolver rows is a
+possible optimization, not a blocker for this proposal's direct canonical-id
+lookup requirement.
+
 #### 7. Some Downstream M68K Family Knowledge Remains
 
 `m68k_ir_codec.c` no longer carries the old mnemonic-family helper switches, but
@@ -2114,24 +2129,18 @@ Strong:
   disassembler ambiguity sorting moved upstream
 
 Weak:
-  canonical coverage does not verify real canonical id parity
-  unsupported stale-proofing is incomplete
-  simulator semantic coverage is inconsistent
-  canonical model ownership still lives under assembler generation
   sample-plan ownership still lives partly in corpus generation
-  direct canonical-id indexing is incomplete
   one downstream branch-family switch remains
+  final deletion/verification pass is still pending
 ```
 
 The next implementation pass should prioritize correctness of the gate over more
 coverage breadth:
 
 ```text
-1. make canonical coverage consume real generated canonical ids
-2. make unsupported stale checks compute real blockers
-3. reconcile simulator semantic status with unsupported inventory
-4. extract canonical model ownership out of assembler generation
-5. move generated form model storage out of static headers
+1. promote sample-plan ownership out of corpus generation
+2. replace the remaining downstream branch-family switch
+3. run the final Proposal 005 verification and deletion pass
 ```
 
 ### Follow-Up Issue Tracking

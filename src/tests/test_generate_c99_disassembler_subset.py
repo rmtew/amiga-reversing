@@ -47,7 +47,10 @@ class GenerateC99DisassemblerSubsetTests(unittest.TestCase):
     def test_generates_lookup_tables(self) -> None:
         self.assertIn("static const M68kDisasmBucket g_m68k_disasm_buckets[] = {", self._tables)
         self.assertIn("static const uint16_t g_m68k_disasm_bucket_candidates[] = {", self._tables)
-        self.assertNotIn("g_m68k_disasm_form_index_by_canonical_id", self._tables)
+        self.assertIn(
+            "static const uint16_t g_m68k_disasm_form_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+            self._tables,
+        )
 
     def test_uses_widened_form_set(self) -> None:
         self.assertIn(

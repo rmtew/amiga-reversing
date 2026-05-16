@@ -505,18 +505,22 @@ static uint8_t sim_find_operand_index_by_access(const M68kSimFormMetadata *metad
 
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
     const M68kSimFormMetadata **out_metadata) {
-  size_t index;
+  uint16_t lookup_index;
+  uint8_t semantic_status;
+  const M68kSimFormLookup *entry;
   if (out_metadata != NULL) *out_metadata = NULL;
   if (form_id == M68K_FORM_ID_NONE || form_id > M68K_CANONICAL_FORM_COUNT) return M68K_SIM_METADATA_FORM_NOT_FOUND;
-  for (index = 0; index < sizeof(g_m68k_sim_form_lookup) / sizeof(g_m68k_sim_form_lookup[0]); ++index) {
-    const M68kSimFormLookup *entry = &g_m68k_sim_form_lookup[index];
-    if (entry->canonical_form_id != form_id) continue;
-    if (entry->semantic_status != M68K_SIM_SEMANTICS_AVAILABLE)
-      return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
-    if (out_metadata != NULL) *out_metadata = &entry->metadata;
-    return M68K_SIM_METADATA_OK;
-  }
-  return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
+  semantic_status = g_m68k_sim_semantic_status_by_canonical_id[form_id];
+  lookup_index = g_m68k_sim_lookup_index_by_canonical_id[form_id];
+  if (lookup_index == M68K_SIM_FORM_LOOKUP_NONE ||
+      lookup_index >= (uint16_t)(sizeof(g_m68k_sim_form_lookup) / sizeof(g_m68k_sim_form_lookup[0])))
+    return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
+  entry = &g_m68k_sim_form_lookup[lookup_index];
+  if (entry->canonical_form_id != form_id) return M68K_SIM_METADATA_FORM_NOT_FOUND;
+  if (entry->semantic_status != semantic_status) return M68K_SIM_METADATA_FORM_NOT_FOUND;
+  if (semantic_status != M68K_SIM_SEMANTICS_AVAILABLE) return M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING;
+  if (out_metadata != NULL) *out_metadata = &entry->metadata;
+  return M68K_SIM_METADATA_OK;
 }
 
 const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructionIR *instruction) {

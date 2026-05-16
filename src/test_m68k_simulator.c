@@ -37,6 +37,16 @@ static int test_metadata_lookup_reports_missing_generated_semantics(void) {
   return 0;
 }
 
+static int test_metadata_lookup_reports_missing_for_canonical_form_without_sim_row(void) {
+  const M68kSimFormMetadata *metadata = NULL;
+  M68kFormId form_id = test_form_id_by_syntax("cpBcc <label>");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_GENERATED_SEMANTICS_MISSING,
+    m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata == NULL);
+  return 0;
+}
+
 static int test_metadata_lookup_does_not_fallback_to_mnemonic_shape(void) {
   M68kInstructionIR instruction;
   m68k_ir_instruction_init(&instruction);
@@ -370,6 +380,8 @@ int m68k_c_simulator_tests(void) {
     {"metadata_lookup_uses_canonical_form_id", test_metadata_lookup_uses_canonical_form_id},
     {"metadata_lookup_reports_missing_generated_semantics",
       test_metadata_lookup_reports_missing_generated_semantics},
+    {"metadata_lookup_reports_missing_for_canonical_form_without_sim_row",
+      test_metadata_lookup_reports_missing_for_canonical_form_without_sim_row},
     {"metadata_lookup_does_not_fallback_to_mnemonic_shape",
       test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},

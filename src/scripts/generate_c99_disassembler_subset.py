@@ -225,7 +225,7 @@ def _asm_form_index_map(subset) -> dict[tuple[object, ...], int]:
     }
 
 
-def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list[str], list[str], list[str]]:
+def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
     patch_rows: list[str] = []
     extension_rows: list[str] = []
     form_rows: list[str] = []
@@ -233,6 +233,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
     canonical_forms = m68k_canonical_model.load_canonical_forms(KB_PATH, subset._load_forms)
     canonical_form_ids = m68k_canonical_model.canonical_form_id_map(canonical_forms)
     asm_form_indexes = _asm_form_index_map(subset)
+    disasm_index_by_key: dict[tuple[object, ...], int] = {}
     patch_index = 0
     extension_index = 0
     control_register_index = 0
@@ -247,6 +248,7 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
     }
     for form in forms:
         form_key = m68k_canonical_model.form_identity_key(form)
+        disasm_index_by_key[form_key] = len(disasm_index_by_key)
         asm_form_index = asm_form_indexes.get(form_key)
         canonical_form_id = canonical_form_ids[form_key]
         asm_form_index_expr = f"{asm_form_index}u" if asm_form_index is not None else "M68K_ASM_FORM_NONE"
@@ -324,7 +326,14 @@ def _emit_form_table_lines(forms: list[object], subset) -> tuple[list[str], list
         for control_register_id in form.control_register_ids:
             control_register_rows.append(f"    {control_register_id}u,")
         control_register_index += len(form.control_register_ids)
-    return patch_rows, extension_rows, form_rows, control_register_rows
+    disasm_index_by_form_id_rows = ["    M68K_DISASM_FORM_NONE,"]
+    for canonical_form in canonical_forms:
+        disasm_form_index = disasm_index_by_key.get(m68k_canonical_model.form_identity_key(canonical_form))
+        if disasm_form_index is None:
+            disasm_index_by_form_id_rows.append("    M68K_DISASM_FORM_NONE,")
+        else:
+            disasm_index_by_form_id_rows.append(f"    {disasm_form_index}u,")
+    return patch_rows, extension_rows, form_rows, control_register_rows, disasm_index_by_form_id_rows
 
 
 def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> str:
@@ -332,7 +341,7 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
     zero_means_eight = _load_zero_means_eight_flags(forms, kb)
     operand_shape_codes = _load_operand_shape_codes(forms)
     operand_ea_mode_masks = _load_operand_ea_mode_masks(forms)
-    patch_rows, extension_rows, form_rows, control_register_rows = _emit_form_table_lines(forms, subset)
+    patch_rows, extension_rows, form_rows, control_register_rows, disasm_index_by_form_id_rows = _emit_form_table_lines(forms, subset)
     bucket_lines = [f"    {{ {bucket.start}u, {bucket.count}u }}," for bucket in buckets]
     candidate_lines = _wrapped_lines(candidate_indexes)
     zero_means_lines = _wrapped_lines([*zero_means_eight, 0])
@@ -372,6 +381,10 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object], subset) -> 
         "static const M68kAsmFormDef g_m68k_disasm_forms[M68K_DISASM_FORM_SLOT_COUNT] = {",
         *form_rows,
         *nil_form_row,
+        "};",
+        "",
+        "static const uint16_t g_m68k_disasm_form_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+        *disasm_index_by_form_id_rows,
         "};",
         "",
         "static const M68kDisasmBucket g_m68k_disasm_buckets[] = {",

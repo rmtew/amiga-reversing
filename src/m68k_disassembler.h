@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "generated/m68k_disassembler_metadata.h"
 #include "m68k_asm_metadata.h"
 #include "m68k_diagnostics.h"
 
@@ -27,5 +28,6 @@ typedef struct {
 M68kDisasmResult m68k_disassemble_one(const uint8_t *data, size_t size, M68kDiagSink diagnostics);
 M68kDisasmResult m68k_disassemble_one_for_cpu(const uint8_t *data, size_t size, uint8_t target_cpu,
   M68kDiagSink diagnostics);
+uint16_t m68k_disasm_form_index_for_canonical_id(M68kFormId form_id);
 
 #endif

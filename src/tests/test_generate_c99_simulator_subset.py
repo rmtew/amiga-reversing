@@ -43,6 +43,14 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
 
     def test_generates_form_metadata(self) -> None:
         self.assertIn("static const M68kSimFormLookup g_m68k_sim_form_lookup[", self._tables)
+        self.assertIn(
+            "static const uint16_t g_m68k_sim_lookup_index_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+            self._tables,
+        )
+        self.assertIn(
+            "static const uint8_t g_m68k_sim_semantic_status_by_canonical_id[M68K_CANONICAL_FORM_COUNT + 1u] = {",
+            self._tables,
+        )
         self.assertIn("static const uint16_t g_m68k_sim_condition_masks[16] = {", self._tables)
         self.assertIn("M68K_SIM_FLOW_JUMP", self._tables)
         self.assertIn("M68K_SIM_FLOW_CALL", self._tables)
