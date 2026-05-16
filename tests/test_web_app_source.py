@@ -130,7 +130,9 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "commandRequiresAnalysisRefresh" not in app_js
     assert "function applyManualReviewNoteAddEffect" in app_js
     assert "function flashManualActionApplication" in app_js
+    assert "function flashManualActionLocations" in app_js
     assert "function manualActionLocationMatchesRow" in app_js
+    assert "function showManualReviewActionSaved" in app_js
     assert "function renderReviewNoteBadge" in app_js
     assert "function openInlineParameterSession" in app_js
     assert "function renderInlineParameterSession" in app_js
@@ -147,6 +149,8 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "listing-row-manual-pending" in app_js
     assert "listing-row-manual-saved" in app_js
     assert 'setAnalysisStatus("Manual action saved", "ready", 2000)' not in app_js
+    assert 'setAnalysisStatus("Manual seed saved", "ready", 2000)' not in app_js
+    assert "focusTarget: false" in app_js
     assert ".project-badge-review-note" in styles_css
     assert ".command-parameter-editor" in styles_css
     assert ".command-parameter-field-error" in styles_css

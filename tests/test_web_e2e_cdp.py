@@ -2220,6 +2220,10 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
             "document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')",
             timeout=10.0,
         )
+        page.wait_for_expression("state.manualEdit.savedFlashRanges.length > 0", timeout=10.0)
+        assert "Manual seed saved" not in page.text_content("#analysis-status")
+        assert page.evaluate("document.querySelector('.listing-row-manual-saved') !== null")
+        assert page.evaluate("document.querySelector('.listing-row-focus') === null")
         assert "Review clear" not in page.text_content("#project-details")
         assert "0 of 0" not in page.text_content("#review-overlay")
         page.assert_no_errors()

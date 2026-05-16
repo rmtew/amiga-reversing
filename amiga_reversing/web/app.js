@@ -1281,7 +1281,7 @@ async function postManualReviewAction(payload, options = {}) {
   return result;
 }
 
-async function refreshAnalysisAfterManualMetadataAction(projectId, item) {
+async function refreshAnalysisAfterManualMetadataAction(projectId, item, options = {}) {
   const token = state.loadingToken;
   const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
     method: "POST",
@@ -1307,8 +1307,31 @@ async function refreshAnalysisAfterManualMetadataAction(projectId, item) {
   renderNavigationOverlay();
   const addr = reviewItemAddress(item);
   const sectionIndex = Number(item?.hunk ?? item?.section_index);
+  const focusTarget = options.focusTarget !== false;
   if (Number.isInteger(sectionIndex) && Number.isFinite(addr)) {
-    await jumpToListingSectionOffset(projectId, sectionIndex, addr);
+    await jumpToListingSectionOffset(projectId, sectionIndex, addr, {focus: focusTarget});
+  } else if (Number.isFinite(addr)) {
+    await jumpToListingAddr(projectId, addr, null, {focus: focusTarget});
+  }
+}
+
+function reviewItemManualActionLocation(item) {
+  const addr = reviewItemAddress(item);
+  if (!Number.isFinite(addr)) {
+    return null;
+  }
+  const end = reviewItemEnd(item);
+  const sectionIndex = Number(item?.hunk ?? item?.section_index);
+  return {
+    hunk: Number.isInteger(sectionIndex) ? sectionIndex : null,
+    addr,
+    end: Number.isFinite(end) && end > addr ? end : null,
+  };
+}
+
+function showManualReviewActionSaved(item, fallbackText) {
+  if (!flashManualActionLocations([reviewItemManualActionLocation(item)])) {
+    setAnalysisStatus(fallbackText, "ready", 1200);
   }
 }
 
@@ -1332,8 +1355,8 @@ async function applyReviewAction(item, button) {
       return;
     }
     await postManualReviewAction({kind: "create_manual_seed", seed}, {refreshProject: false});
-    await refreshAnalysisAfterManualMetadataAction(state.project, item);
-    setAnalysisStatus("Manual seed saved", "ready", 2000);
+    await refreshAnalysisAfterManualMetadataAction(state.project, item, {focusTarget: false});
+    showManualReviewActionSaved(item, "Manual seed saved");
     return;
   }
   if (action === "remove_manual_annotation") {
@@ -1342,8 +1365,8 @@ async function applyReviewAction(item, button) {
     } else if (item.comment_id) {
       await postManualReviewAction({kind: "remove_manual_comment", comment_id: item.comment_id}, {refreshProject: false});
     }
-    await refreshAnalysisAfterManualMetadataAction(state.project, item);
-    setAnalysisStatus("Manual annotation removed", "ready", 2000);
+    await refreshAnalysisAfterManualMetadataAction(state.project, item, {focusTarget: false});
+    showManualReviewActionSaved(item, "Manual annotation removed");
     return;
   }
   if (action === "resolve_review_item") {
@@ -2061,7 +2084,13 @@ function applyManualActionApplication(application) {
 }
 
 function flashManualActionApplication(application) {
-  const ranges = manualActionFlashRanges(application);
+  return flashManualActionLocations(manualActionFlashRanges(application));
+}
+
+function flashManualActionLocations(locations) {
+  const ranges = Array.isArray(locations)
+    ? locations.map(normalizeManualActionLocation).filter(Boolean)
+    : [];
   if (!ranges.length) {
     return false;
   }
@@ -2085,7 +2114,7 @@ function manualActionFlashRanges(application) {
   return [
     ...localEffects.flatMap(manualActionEffectSubjects),
     ...pendingRanges,
-  ].map(normalizeManualActionLocation).filter(Boolean);
+  ];
 }
 
 function manualActionEffectSubjects(effect) {
@@ -9524,7 +9553,7 @@ async function importDiskProjectFile(projectId, entryPath) {
   }
 }
 
-async function jumpToListingAddr(projectId, addr, matchText = null) {
+async function jumpToListingAddr(projectId, addr, matchText = null, options = {}) {
   const viewport = document.getElementById("listing-viewport");
   if (!viewport) {
     return false;
@@ -9542,11 +9571,13 @@ async function jumpToListingAddr(projectId, addr, matchText = null) {
   if (!row) {
     return false;
   }
-  focusListingRow(row);
+  if (options.focus !== false) {
+    focusListingRow(row);
+  }
   return true;
 }
 
-async function jumpToListingSectionOffset(projectId, sectionIndex, offset) {
+async function jumpToListingSectionOffset(projectId, sectionIndex, offset, options = {}) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !Number.isInteger(sectionIndex) || !Number.isFinite(offset)) {
     return false;
@@ -9574,7 +9605,9 @@ async function jumpToListingSectionOffset(projectId, sectionIndex, offset) {
     } else {
       row.scrollIntoView({block: "center", behavior: "auto"});
     }
-    focusListingRow(row);
+    if (options.focus !== false) {
+      focusListingRow(row);
+    }
     return true;
   } finally {
     releaseListingScrollSuppression(projectId, viewport, suppressionToken);
