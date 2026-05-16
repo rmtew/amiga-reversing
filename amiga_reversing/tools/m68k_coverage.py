@@ -274,9 +274,12 @@ def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]
                 })
     for unsupported in inventory.get("unsupported_inventory", []):
         if unsupported.get("stale") is True:
+            message = unsupported.get("stale_reason")
+            if not isinstance(message, str):
+                message = f"{unsupported['family_id']} unsupported entry has no active blockers"
             failures.append({
                 "kind": "stale_unsupported_reason",
-                "message": f"{unsupported['family_id']} unsupported entry matched no current generated forms",
+                "message": message,
             })
     return failures
 
@@ -632,12 +635,21 @@ def _canonical_summaries(inventory: dict[str, Any]) -> dict[str, Any]:
 
 
 def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _unsupported_inventory_for_families(entries, BOOTSTRAP_UNSUPPORTED_FAMILIES)
+
+
+def _unsupported_inventory_for_families(
+    entries: list[dict[str, Any]],
+    families: Any,
+    simulator_semantic_statuses: dict[int, str] | None = None,
+) -> list[dict[str, Any]]:
     by_mnemonic: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in entries:
         by_mnemonic[str(entry["key"]["mnemonic"]).upper()].append(entry)
-    simulator_semantic_statuses = _generated_simulator_semantic_statuses()
+    if simulator_semantic_statuses is None:
+        simulator_semantic_statuses = _generated_simulator_semantic_statuses()
     inventory: list[dict[str, Any]] = []
-    for family in BOOTSTRAP_UNSUPPORTED_FAMILIES:
+    for family in families:
         matched_entries = [
             entry
             for mnemonic in family["mnemonics"]
@@ -652,35 +664,130 @@ def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict
             for canonical_id in [_entry_canonical_form_id(entry)]
             if canonical_id is not None
         )
-        stale_conditions = [
-            {
-                "condition_id": "current_generated_forms_present",
-                "stale_when": "no_current_generated_form_matches_mnemonics",
-                "stale": False,
-                "message": "Unsupported family no longer matches any current generated form.",
-            },
-            {
-                "condition_id": "blocking_artifacts_still_missing",
-                "stale_when": "canonical strict coverage reports no missing blocking artifact for this family",
-                "stale": False,
-                "message": "Unsupported reason must be removed when all blocking artifacts are generated.",
-            },
-        ]
+        active_blockers, stale_conditions = _unsupported_blocker_state(
+            family,
+            matched_entries,
+            semantic_status_counts,
+        )
+        stale = not active_blockers
         inventory.append({
             "family_id": family["family_id"],
             "status": family["status"],
             "mnemonics": list(family["mnemonics"]),
             "reason_category": family["reason_category"],
             "blocking_artifacts": list(family["blocking_artifacts"]),
+            "active_blocking_artifacts": active_blockers,
             "semantic_status_counts": dict(sorted(semantic_status_counts.items())),
             "reason": family["reason"],
-            "stale_condition": "stale_when_no_current_generated_form_matches_mnemonics",
             "stale_conditions": stale_conditions,
-            "stale": any(condition["stale"] for condition in stale_conditions),
+            "stale": stale,
+            "stale_reason": _unsupported_stale_reason(family, matched_entries, active_blockers) if stale else None,
             "form_count": len(matched_forms),
             "forms": matched_forms,
         })
     return inventory
+
+
+def _unsupported_blocker_state(
+    family: dict[str, Any],
+    matched_entries: list[dict[str, Any]],
+    semantic_status_counts: Counter[str],
+) -> tuple[list[str], list[dict[str, Any]]]:
+    active_blockers: list[str] = []
+    current_forms_present = bool(matched_entries)
+    stale_conditions: list[dict[str, Any]] = [
+        {
+            "condition_id": "current_generated_forms_present",
+            "active": current_forms_present,
+            "stale": not current_forms_present,
+            "message": "Unsupported family still matches current generated forms.",
+        }
+    ]
+    for blocker in family["blocking_artifacts"]:
+        active = _unsupported_blocker_active(str(blocker), matched_entries, semantic_status_counts)
+        if active:
+            active_blockers.append(str(blocker))
+        stale_conditions.append({
+            "condition_id": f"blocker_{blocker}",
+            "blocker": str(blocker),
+            "active": active,
+            "stale": not active,
+            "message": _unsupported_blocker_message(str(blocker), active),
+        })
+    return active_blockers, stale_conditions
+
+
+def _unsupported_blocker_active(
+    blocker: str,
+    matched_entries: list[dict[str, Any]],
+    semantic_status_counts: Counter[str],
+) -> bool:
+    if not matched_entries:
+        return False
+    if blocker == "canonical_sample_plan":
+        return any(_entry_sample_plan_is_blocked(entry) for entry in matched_entries)
+    if blocker == "decode_render_metadata":
+        return any(_entry_decode_render_metadata_is_blocked(entry) for entry in matched_entries)
+    if blocker == "generated_semantics":
+        return bool(
+            semantic_status_counts.get("generated_semantics_missing", 0)
+            or semantic_status_counts.get("intentionally_unsupported", 0)
+        )
+    if blocker == "oracle_support":
+        return any(_entry_oracle_support_is_blocked(entry) for entry in matched_entries)
+    if blocker == "canonical_schema":
+        return True
+    return True
+
+
+def _entry_sample_plan_is_blocked(entry: dict[str, Any]) -> bool:
+    statuses = _entry_sample_statuses(entry)
+    if not statuses:
+        return True
+    return any(status in {"missing_sample_strategy", "intentionally_unsupported", "implemented_unsupported"} for status in statuses)
+
+
+def _entry_decode_render_metadata_is_blocked(entry: dict[str, Any]) -> bool:
+    if entry.get("status") != "matched":
+        return True
+    assembler = entry.get("assembler")
+    disassembler = entry.get("disassembler")
+    if not isinstance(assembler, dict) or not isinstance(disassembler, dict):
+        return True
+    return not isinstance(assembler.get("canonical_form_id"), int) or not isinstance(disassembler.get("canonical_form_id"), int)
+
+
+def _entry_oracle_support_is_blocked(entry: dict[str, Any]) -> bool:
+    statuses = _entry_sample_statuses(entry)
+    if "oracle_unavailable" in statuses:
+        return True
+    return "sampled" not in statuses
+
+
+def _entry_sample_statuses(entry: dict[str, Any]) -> set[str]:
+    return {
+        str(sample["status"])
+        for sample in entry.get("sample_statuses", [])
+        if isinstance(sample, dict) and "status" in sample
+    }
+
+
+def _unsupported_blocker_message(blocker: str, active: bool) -> str:
+    state = "still blocks" if active else "no longer blocks"
+    return f"{blocker} {state} this unsupported family."
+
+
+def _unsupported_stale_reason(
+    family: dict[str, Any],
+    matched_entries: list[dict[str, Any]],
+    active_blockers: list[str],
+) -> str:
+    family_id = str(family["family_id"])
+    if not matched_entries:
+        return f"{family_id} unsupported entry matched no current generated forms"
+    if not active_blockers:
+        return f"{family_id} unsupported entry has no active blockers"
+    return f"{family_id} unsupported entry is stale"
 
 
 def _entry_canonical_form_id(entry: dict[str, Any]) -> int | None:
@@ -730,9 +837,11 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
         print("unsupported entries:")
         for entry in unsupported_inventory:
             blockers = ",".join(entry.get("blocking_artifacts", []))
+            active_blockers = ",".join(entry.get("active_blocking_artifacts", [])) or "-"
             print(
                 f"  {entry['family_id']}: {entry['status']} "
-                f"reason={entry.get('reason_category', '-')} forms={entry['form_count']} blockers={blockers}"
+                f"reason={entry.get('reason_category', '-')} forms={entry['form_count']} "
+                f"blockers={blockers} active={active_blockers}"
             )
     ea_sample_plans = inventory.get("ea_sample_plans", [])
     if ea_sample_plans:

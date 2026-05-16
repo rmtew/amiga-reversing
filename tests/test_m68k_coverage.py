@@ -151,6 +151,7 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "disasm-only forms:" in output
     assert "sample statuses:" in output
     assert "unsupported statuses:" in output
+    assert "active=" in output
     assert "ea sample families:" in output
 
 
@@ -281,21 +282,83 @@ def test_bootstrap_unsupported_inventory_classifies_current_families() -> None:
     assert unsupported_by_id["move16"]["status"] == "implemented_unsupported"
     assert unsupported_by_id["move16"]["reason_category"] == "generated_semantics_missing"
     assert "generated_semantics" in unsupported_by_id["move16"]["blocking_artifacts"]
+    assert "generated_semantics" in unsupported_by_id["move16"]["active_blocking_artifacts"]
     assert unsupported_by_id["move16"]["semantic_status_counts"]["generated_semantics_missing"] > 0
     assert unsupported_by_id["generic_coprocessor"]["semantic_status_counts"]["intentionally_unsupported"] > 0
     assert unsupported_by_id["generic_coprocessor"]["status"] == "intentionally_unsupported"
     assert unsupported_by_id["generic_coprocessor"]["reason_category"] == "missing_schema"
+    assert "canonical_schema" in unsupported_by_id["generic_coprocessor"]["active_blocking_artifacts"]
     assert all(entry["form_count"] > 0 for entry in unsupported_by_id.values())
     assert all(entry["stale_conditions"] for entry in unsupported_by_id.values())
-    assert all(
-        condition["stale"] is False
-        for entry in unsupported_by_id.values()
-        for condition in entry["stale_conditions"]
-    )
+    assert all(entry["active_blocking_artifacts"] for entry in unsupported_by_id.values())
+    assert all(entry["stale"] is False for entry in unsupported_by_id.values())
     assert inventory["unsupported_counts"] == {
         "implemented_unsupported": 3,
         "intentionally_unsupported": 1,
     }
+
+
+def test_resolved_synthetic_unsupported_family_is_stale() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn", canonical_form_id=1)
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[_sample_status(form, "sampled")],
+    )
+    unsupported = m68k_coverage._unsupported_inventory_for_families(
+        inventory["entries"],
+        (
+            {
+                "family_id": "synthetic",
+                "status": "implemented_unsupported",
+                "mnemonics": ("MOVE",),
+                "reason_category": "fixture",
+                "blocking_artifacts": (
+                    "canonical_sample_plan",
+                    "decode_render_metadata",
+                    "generated_semantics",
+                    "oracle_support",
+                ),
+                "reason": "fixture",
+            },
+        ),
+        simulator_semantic_statuses={1: "available"},
+    )
+
+    assert unsupported[0]["active_blocking_artifacts"] == []
+    assert unsupported[0]["stale"] is True
+    assert m68k_coverage.diagnostic_check_failures({"entries": [], "unsupported_inventory": unsupported}) == [
+        {
+            "kind": "stale_unsupported_reason",
+            "message": "synthetic unsupported entry has no active blockers",
+        }
+    ]
+
+
+def test_oracle_unavailable_keeps_unsupported_family_active() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn", canonical_form_id=1)
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[_sample_status(form, "oracle_unavailable")],
+    )
+    unsupported = m68k_coverage._unsupported_inventory_for_families(
+        inventory["entries"],
+        (
+            {
+                "family_id": "synthetic",
+                "status": "implemented_unsupported",
+                "mnemonics": ("MOVE",),
+                "reason_category": "fixture",
+                "blocking_artifacts": ("oracle_support",),
+                "reason": "fixture",
+            },
+        ),
+        simulator_semantic_statuses={1: "available"},
+    )
+
+    assert unsupported[0]["active_blocking_artifacts"] == ["oracle_support"]
+    assert unsupported[0]["stale"] is False
 
 
 def test_diagnostic_check_fails_stale_unsupported_reason() -> None:
@@ -315,7 +378,7 @@ def test_diagnostic_check_fails_stale_unsupported_reason() -> None:
     assert failures == [
         {
             "kind": "stale_unsupported_reason",
-            "message": "synthetic unsupported entry matched no current generated forms",
+            "message": "synthetic unsupported entry has no active blockers",
         }
     ]
 
@@ -430,3 +493,18 @@ def _load_corpus_script():
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     return __import__("generate_c99_assembler_corpus")
+
+
+def _sample_status(form: FakeForm, status: str) -> dict[str, object]:
+    return {
+        "mnemonic": form.mnemonic,
+        "kb_mnemonic": form.kb_mnemonic,
+        "local_form_index": form.local_form_index,
+        "form_index": form.form_index,
+        "syntax": form.syntax,
+        "size": "w",
+        "target_cpu": "68000",
+        "status": status,
+        "reason": "fixture",
+        "missing_operand_kinds": [],
+    }

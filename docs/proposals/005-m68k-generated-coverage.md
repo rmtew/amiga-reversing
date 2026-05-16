@@ -1702,6 +1702,11 @@ unsupported families:
   fsave_frestore: 2 forms
   pmmu: 54 forms
   generic_coprocessor: 8 forms
+active unsupported blockers:
+  move16: generated_semantics, oracle_support
+  fsave_frestore: oracle_support
+  pmmu: canonical_sample_plan, decode_render_metadata, oracle_support
+  generic_coprocessor: canonical_schema, decode_render_metadata, oracle_support
 ea sample families:
   plan operands: 163
   complete operands: 163
@@ -1715,7 +1720,8 @@ uv run python -m amiga_reversing.tools.m68k_coverage check --phase canonical
 uv run python -m pytest tests\test_m68k_coverage.py -q
 ```
 
-Both pass. `tests\test_m68k_coverage.py` reports 17 passing tests.
+Both pass. After issue 027-002, `tests\test_m68k_coverage.py` reports 20
+passing tests.
 
 ### What Is Now Done
 
@@ -1833,6 +1839,48 @@ compute each stale condition from current generated data:
   generated semantics present or explicitly missing
   oracle support present or explicitly unavailable
 ```
+
+2026-05-17 implementation update: issue 027-002 replaced the placeholder stale
+logic with computed active blockers. Unsupported families now stay classified
+only while at least one configured blocker is active in current generated data.
+Strict coverage fails if an unsupported entry has no active blockers.
+
+Current active blockers:
+
+```text
+MOVE16:
+  generated_semantics
+  oracle_support
+
+FSAVE/FRESTORE:
+  oracle_support
+
+PMMU:
+  canonical_sample_plan
+  decode_render_metadata
+  oracle_support
+
+generic coprocessor:
+  canonical_schema
+  decode_render_metadata
+  oracle_support
+```
+
+Important implementation factors found during 027-002:
+
+- `generated_semantics` is no longer treated as active for a family merely
+  because the family was listed unsupported. Coverage reads simulator semantic
+  status counts; FSAVE/FRESTORE currently have structural simulator metadata and
+  are kept unsupported by oracle coverage, not by missing simulator rows.
+- `oracle_support` is currently derived from sample coverage status. An
+  `oracle_unavailable` sample or an unsampled family keeps the blocker active.
+  When oracle ownership becomes more explicit, this should read that artifact
+  directly instead of inferring from sample statuses.
+- `decode_render_metadata` is active when a family has unmatched asm/disasm
+  rows or missing canonical ids. It catches current PMMU and generic
+  coprocessor disasm-only rows.
+- `canonical_schema` remains an explicit blocker for generic coprocessor forms
+  because no generated coprocessor-ID schema artifact exists yet.
 
 #### 3. Simulator Semantic Coverage Is Contradictory
 
