@@ -1517,6 +1517,12 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.press_key("Enter")
         page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-code')?.textContent.trim() === 'loc_reserved:'")
         page.wait_for_expression("state.manualEdit.inFlight === false && state.parameterSession === null")
+        assert page.evaluate("invokeSelectedCatalogBinding(';')") is True
+        page.wait_for_selector("[data-inline-parameter-session]")
+        page.fill("[data-command-parameter-name='text']", "entry label")
+        page.click("[data-inline-parameter-session] .command-parameter-submit")
+        page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-comment')?.textContent.includes('entry label')")
 
         page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
         page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")

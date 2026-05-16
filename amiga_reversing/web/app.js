@@ -5364,7 +5364,7 @@ function renderListingCodeHtml(row, globalRowIndex = null) {
 }
 
 function renderListingComment(row) {
-  if ((row.kind === "instruction" || row.kind === "data") && row.comment_text) {
+  if (row.comment_text) {
     return `; ${row.comment_text}`;
   }
   return "";
