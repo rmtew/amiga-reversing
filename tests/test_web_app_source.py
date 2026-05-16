@@ -96,7 +96,7 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
     styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
 
-    assert "const WEB_APP_CONTRACT_VERSION = 1;" in app_js
+    assert "const WEB_APP_CONTRACT_VERSION = 2;" in app_js
     assert 'const WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract";' in app_js
     assert "function assertWebAppContract(payload)" in app_js
     assert "function verifyWebAppContract()" in app_js
@@ -118,6 +118,10 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function applyManualLabelRenameEffect" in app_js
     assert "function closeSubmittedParameterSurface" in app_js
     assert "closeSubmittedParameterSurface();" in app_js
+    assert "function commandPaletteRowQuery" in app_js
+    assert "function appendCommandPaletteRowSnapshot" in app_js
+    assert "function commandPaletteRowSnapshot" in app_js
+    assert 'params.set("rows", JSON.stringify([commandPaletteRowSnapshot' in app_js
     assert "function manualActionRefreshMode" in app_js
     assert 'mode === "none" || mode === "project" || mode === "analysis"' in app_js
     assert "Server returned incompatible manual action refresh mode" in app_js

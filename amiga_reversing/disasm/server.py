@@ -168,7 +168,7 @@ _LISTING_PHASE_COUNT = 2
 _REPRODUCTION_PHASE_COUNT = 4
 _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT = 4
 _PROJECT_CREATE_DISK_PHASE_COUNT = 5
-WEB_APP_CONTRACT_VERSION = 1
+WEB_APP_CONTRACT_VERSION = 2
 _WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract"
 
 _OS_CORRECTIONS_PATH = (
@@ -1599,14 +1599,22 @@ def _manual_action_catalog_payload(project_name: str, query: dict[str, list[str]
         row_index = _parse_int_arg(query, "row_index")
         if row_index is None:
             raise ValueError("row_index is required")
-        row = _catalog_listing_row(project_name, row_index)
+        row = _query_catalog_listing_row(project_name, query, row_index)
         if context == "row":
-            return {"context": {"kind": "row", "row_index": row_index}, "actions": listing_row_action_catalog(row)}
+            actions = listing_row_action_catalog(row)
+            _attach_row_snapshot_to_catalog_actions(actions, row)
+            return {
+                "context": {"kind": "row", "row_index": row_index, "row": _catalog_row_snapshot(row)},
+                "actions": actions,
+            }
         element_selector = _query_element_selector(query)
         element_context = selected_listing_element_context(row, element_selector)
+        element_context["row"] = _catalog_row_snapshot(row)
+        actions = listing_element_action_catalog(row, element_context)
+        _attach_row_snapshot_to_catalog_actions(actions, row)
         return {
             "context": element_context,
-            "actions": listing_element_action_catalog(row, element_context),
+            "actions": actions,
         }
     raise ValueError(f"Unsupported manual action catalog context: {context}")
 
@@ -1671,22 +1679,80 @@ def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]
     return row
 
 
+def _query_catalog_listing_row(
+    project_name: str, query: dict[str, list[str]], row_index: int
+) -> dict[str, object]:
+    rows = _query_catalog_row_snapshots(query)
+    if rows:
+        if len(rows) != 1:
+            raise ValueError("row context requires exactly one row snapshot")
+        row = rows[0]
+        if row.get("row_index") != row_index:
+            raise ValueError("row snapshot does not match row_index")
+        return row
+    return _catalog_listing_row(project_name, row_index)
+
+
+def _context_catalog_listing_row(project_name: str, context: Mapping[str, object], row_index: int) -> dict[str, object]:
+    row = context.get("row")
+    if isinstance(row, Mapping):
+        snapshot = dict(row)
+        if snapshot.get("row_index") != row_index:
+            raise ValueError("context row snapshot does not match row_index")
+        return snapshot
+    return _catalog_listing_row(project_name, row_index)
+
+
+def _attach_row_snapshot_to_catalog_actions(actions: list[dict[str, object]], row: Mapping[str, object]) -> None:
+    snapshot = _catalog_row_snapshot(row)
+    for action in actions:
+        context = action.get("target_context")
+        if isinstance(context, dict) and context.get("kind") in {"row", "element"}:
+            context["row"] = snapshot
+
+
+def _catalog_row_snapshot(row: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "row_index": row.get("row_index"),
+        "row_id": row.get("row_id"),
+        "stable_key": row.get("stable_key"),
+        "kind": row.get("kind"),
+        "addr": row.get("addr"),
+        "section_index": row.get("section_index"),
+        "start_offset": row.get("start_offset"),
+        "end_offset": row.get("end_offset"),
+        "bytes": row.get("bytes"),
+        "label": row.get("label"),
+        "opcode_or_directive": row.get("opcode_or_directive"),
+        "data_class": row.get("data_class"),
+        "structured_data": row.get("structured_data"),
+        "comment_text": row.get("comment_text") or "",
+    }
+
+
+def _query_catalog_row_snapshots(query: dict[str, list[str]]) -> list[dict[str, object]]:
+    raw_rows = _first_query_value(query, "rows")
+    if not raw_rows:
+        return []
+    parsed_rows = json.loads(raw_rows)
+    if not isinstance(parsed_rows, list):
+        raise ValueError("rows must be a JSON array")
+    rows: list[dict[str, object]] = []
+    for raw_row in parsed_rows:
+        if not isinstance(raw_row, dict):
+            raise ValueError("rows entries must be objects")
+        row = dict(cast(dict[str, object], raw_row))
+        row_index = row.get("row_index")
+        if not isinstance(row_index, int) or isinstance(row_index, bool):
+            raise ValueError("rows entries require row_index")
+        rows.append(row)
+    return rows
+
+
 def _query_range_catalog_rows(project_name: str, query: dict[str, list[str]]) -> list[dict[str, object]]:
     row_indexes = _parse_row_indexes_arg(query)
-    raw_rows = _first_query_value(query, "rows")
-    if raw_rows:
-        parsed_rows = json.loads(raw_rows)
-        if not isinstance(parsed_rows, list):
-            raise ValueError("rows must be a JSON array")
-        rows: list[dict[str, object]] = []
-        for raw_row in parsed_rows:
-            if not isinstance(raw_row, dict):
-                raise ValueError("rows entries must be objects")
-            row = dict(cast(dict[str, object], raw_row))
-            row_index = row.get("row_index")
-            if not isinstance(row_index, int) or isinstance(row_index, bool):
-                raise ValueError("rows entries require row_index")
-            rows.append(row)
+    rows = _query_catalog_row_snapshots(query)
+    if rows:
         if row_indexes and [int(row["row_index"]) for row in rows] != row_indexes:
             raise ValueError("rows metadata does not match row_indexes")
         row_indexes = [int(row["row_index"]) for row in rows]
@@ -1763,7 +1829,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
         row_index = context.get("row_index")
         if not isinstance(row_index, int) or isinstance(row_index, bool):
             raise ValueError("context.row_index is required")
-        row = _catalog_listing_row(project_name, row_index)
+        row = _context_catalog_listing_row(project_name, context, row_index)
         element_context = selected_listing_element_context(row, context) if context_kind == "element" else None
         kind, action_payload = listing_catalog_manual_payload(
             row,

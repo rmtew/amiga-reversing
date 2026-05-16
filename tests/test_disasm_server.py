@@ -1750,6 +1750,74 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
+def test_route_manual_action_catalog_execute_uses_visible_row_snapshot_without_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    row = {
+        "row_index": 0,
+        "row_id": "r0",
+        "kind": "label",
+        "text": "loc_0_00000000:\n",
+        "addr": 0,
+        "section_index": 0,
+        "start_offset": 0,
+        "end_offset": 0,
+        "label": "loc_0_00000000",
+        "stable_key": "label-0",
+    }
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    disasm_server._clear_project_listing_cache("bloodwych")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/manual-action-catalog",
+        {
+            "context": ["element"],
+            "row_index": ["0"],
+            "element_kind": ["label"],
+            "symbol": ["loc_0_00000000"],
+            "rows": [json.dumps([row])],
+        },
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["actions"])
+    label_action = next(action for action in actions if action["action_id"] == "label.rename")
+    context = cast(dict[str, object], label_action["target_context"])
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "label.rename",
+            "context": context,
+            "parameters": {"name": "start"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
+
+    assert cast(dict[str, object], context["row"])["label"] == "loc_0_00000000"
+    assert action["kind"] == "create_manual_label"
+    assert label["name"] == "start"
+    assert appended_actions == [action]
+
+
 def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

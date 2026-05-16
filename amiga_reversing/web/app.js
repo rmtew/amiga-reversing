@@ -1,4 +1,4 @@
-const WEB_APP_CONTRACT_VERSION = 1;
+const WEB_APP_CONTRACT_VERSION = 2;
 const WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract";
 
 const state = {
@@ -1812,12 +1812,47 @@ function commandPaletteElementQuery(selection) {
   const params = new URLSearchParams();
   params.set("context", "element");
   params.set("row_index", String(rowIndex));
+  appendCommandPaletteRowSnapshot(params, rowIndex);
   Object.entries(elementSelector).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== "") {
       params.set(key, String(value));
     }
   });
   return params.toString();
+}
+
+function commandPaletteRowQuery(rowIndex) {
+  const params = new URLSearchParams();
+  params.set("context", "row");
+  params.set("row_index", String(rowIndex));
+  appendCommandPaletteRowSnapshot(params, rowIndex);
+  return params.toString();
+}
+
+function appendCommandPaletteRowSnapshot(params, rowIndex) {
+  const row = listingRowDataForIndex(rowIndex);
+  if (row) {
+    params.set("rows", JSON.stringify([commandPaletteRowSnapshot({...row, row_index: rowIndex})]));
+  }
+}
+
+function commandPaletteRowSnapshot(row) {
+  return {
+    row_index: row.row_index,
+    row_id: row.row_id || null,
+    stable_key: row.stable_key || null,
+    kind: row.kind || null,
+    addr: row.addr ?? null,
+    section_index: row.section_index ?? null,
+    start_offset: row.start_offset ?? null,
+    end_offset: row.end_offset ?? null,
+    bytes: row.bytes || null,
+    label: row.label || null,
+    opcode_or_directive: row.opcode_or_directive || null,
+    data_class: row.data_class || null,
+    structured_data: row.structured_data || null,
+    comment_text: row.comment_text || "",
+  };
 }
 
 function currentListingSelectionRowIndex(selection = state.listingSelection) {
@@ -1846,6 +1881,10 @@ function listingRowDataForSelection(selection) {
   if (!Number.isFinite(rowIndex)) {
     return null;
   }
+  return listingRowDataForIndex(rowIndex);
+}
+
+function listingRowDataForIndex(rowIndex) {
   const localIndex = rowIndex - Number(state.virtualListing?.start || 0);
   return Array.isArray(state.listingRows) && localIndex >= 0 && localIndex < state.listingRows.length
     ? state.listingRows[localIndex]
@@ -1918,7 +1957,7 @@ async function loadContextualCommandCatalogs() {
     if (rangeQuery) {
       catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${rangeQuery}`));
     } else {
-      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
+      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${commandPaletteRowQuery(rowIndex)}`));
       const elementQuery = commandPaletteElementQuery(state.listingSelection);
       if (elementQuery) {
         catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
@@ -8157,22 +8196,7 @@ function commandPaletteRangeQuery(selection = state.listingSelection) {
   const params = new URLSearchParams();
   params.set("context", "range");
   params.set("row_indexes", rows.map((row) => String(row.row_index)).join(","));
-  params.set("rows", JSON.stringify(rows.map((row) => ({
-    row_index: row.row_index,
-    row_id: row.row_id || null,
-    stable_key: row.stable_key || null,
-    kind: row.kind || null,
-    addr: row.addr ?? null,
-    section_index: row.section_index ?? null,
-    start_offset: row.start_offset ?? null,
-    end_offset: row.end_offset ?? null,
-    bytes: row.bytes || null,
-    label: row.label || null,
-    opcode_or_directive: row.opcode_or_directive || null,
-    data_class: row.data_class || null,
-    structured_data: row.structured_data || null,
-    comment_text: row.comment_text || "",
-  }))));
+  params.set("rows", JSON.stringify(rows.map(commandPaletteRowSnapshot)));
   return params.toString();
 }
 
