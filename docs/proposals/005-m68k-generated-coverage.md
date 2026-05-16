@@ -1,5 +1,11 @@
 # Proposal 005: M68K Generated Coverage
 
+Status: Closed for Proposal 005 follow-up implementation.
+Status changed: 2026-05-17.
+
+The generated coverage gate work is complete. Remaining unsupported M68K
+families are explicit future-work inventory, not open `027-*` follow-up work.
+
 ## Checkpoint Index
 
 - [ ] Why This Exists
