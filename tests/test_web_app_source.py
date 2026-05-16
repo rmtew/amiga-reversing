@@ -112,6 +112,15 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function applyManualLabelRenameEffect" in app_js
     assert "function applyManualReviewNoteAddEffect" in app_js
     assert "function renderReviewNoteBadge" in app_js
+    assert "function openInlineParameterSession" in app_js
+    assert "function renderInlineParameterSession" in app_js
+    assert "function renderParameterChoiceGrid" in app_js
+    assert "function renderParameterFilteredChooser" in app_js
+    assert "function invokeEditSelectedCommand" in app_js
+    assert "function commandLabelValidationError" in app_js
+    assert "interaction_schema?.primary_rank" in app_js
+    assert "action.action === \"set_representation\") return 2" not in app_js
+    assert "validation.local_labels_supported === false" in app_js
     assert '["review-notes", "Review Notes"]' in app_js
     assert "openNavigationOverlay(\"review-notes\", noteId)" in app_js
     assert "state.manualEdit.inFlight" in app_js

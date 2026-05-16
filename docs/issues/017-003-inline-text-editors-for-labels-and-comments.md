@@ -25,13 +25,18 @@ Review Note text editing is integrated by PRD 016 after note actions exist; this
 
 ## Acceptance criteria
 
-- [ ] Selected label can become an inline text editor with the current label prefilled.
-- [ ] Selected comment/comment slot can become an inline text editor with current text prefilled when available.
-- [ ] Enter commits through the catalog action; Escape cancels and restores rendered text.
-- [ ] Inline editing does not mutate rendered source text directly.
-- [ ] Local validation state and server validation errors are visible in the editor.
-- [ ] CDP tests cover inline label edit and inline comment edit.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Selected label can become an inline text editor with the current label prefilled.
+- [x] Selected comment/comment slot can become an inline text editor with current text prefilled when available.
+- [x] Enter commits through the catalog action; Escape cancels and restores rendered text.
+- [x] Inline editing does not mutate rendered source text directly.
+- [x] Local validation state and server validation errors are visible in the editor.
+- [x] CDP tests cover inline label edit and inline comment edit.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- `F2` opens inline label editing and `;` opens inline manual comment editing for the current selection.
+- Both submit through `/manual-action-catalog/execute` and apply local-first effects.
 
 ## Blocked by
 

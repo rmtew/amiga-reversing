@@ -1079,6 +1079,107 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_inline_parameter_sessions")
+    rows = [
+        ListingRow(
+            row_id="label",
+            kind="label",
+            text="loc_0_00000000:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="loc_0_00000000",
+            stable_key="label-0",
+        ),
+        ListingRow(
+            row_id="ret",
+            kind="instruction",
+            text="rts\n",
+            addr=2,
+            section_index=0,
+            start_offset=2,
+            end_offset=4,
+            stable_key="row-1",
+        ),
+        ListingRow(
+            row_id="byte",
+            kind="data",
+            text="dc.b $41\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=5,
+            stable_key="row-2",
+            bytes=b"A",
+            opcode_or_directive="dc.b",
+            operand_text="$41",
+        ),
+    ]
+    representations: list[dict[str, object]] = []
+
+    def project_record(project_name: str) -> ProjectRecord:
+        return replace(project, manual_state={"representations": representations})
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"kind": kind, "payload": payload}
+        if kind == "create_manual_representation":
+            representations.append(cast(dict[str, object], payload["representation"]))
+        return action
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
+    monkeypatch.setattr(disasm_server, "get_project", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-index='0']")
+
+        page.evaluate("document.querySelector('[data-row-index=\"0\"]').click()")
+        page.evaluate("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'F2', bubbles: true}))")
+        page.wait_for_selector("[data-inline-parameter-session]")
+        page.fill("[data-command-parameter-name='name']", "loc_reserved")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('.command-parameter-field-error')?.textContent.includes('reserved')")
+        page.fill("[data-command-parameter-name='name']", "entrypoint")
+        page.press_key("Enter")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-code')?.textContent.trim() === 'entrypoint:'")
+        page.wait_for_expression("state.manualEdit.inFlight === false && state.parameterSession === null")
+
+        page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
+        assert page.evaluate("invokeSelectedCatalogBinding(';')") is True
+        page.wait_for_selector("[data-inline-parameter-session]")
+        page.fill("[data-command-parameter-name='text']", "manual return")
+        page.click("[data-inline-parameter-session] .command-parameter-submit")
+        page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"1\"] .listing-comment')?.textContent.includes('manual return')")
+
+        page.evaluate("document.querySelector('[data-row-index=\"2\"]').click()")
+        assert page.evaluate("invokeSelectedCatalogBinding('r')") is True
+        page.wait_for_selector("[data-inline-parameter-session] .parameter-choice")
+        page.evaluate("Array.from(document.querySelectorAll('.parameter-choice')).find((button) => button.textContent.includes('Character')).click()")
+        page.click("[data-inline-parameter-session] .command-parameter-submit")
+        page.wait_for_expression("document.querySelector('[data-row-index=\"2\"] .listing-code')?.textContent.trim() === \"dc.b 'A'\"")
+        assert representations and representations[0]["style"] == "character"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

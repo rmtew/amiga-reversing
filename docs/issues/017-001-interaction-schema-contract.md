@@ -24,12 +24,17 @@ Extend catalog action responses with context-specific **Interaction Schema** met
 
 ## Acceptance criteria
 
-- [ ] Catalog entries can include interaction type, host suitability, option metadata, validation metadata, default selection, and typed preview metadata.
-- [ ] `parameter_schema` remains the authoritative validation/submission schema.
-- [ ] `interaction_schema` contains no backend HTML.
-- [ ] Interaction schema can describe text, choice-grid, and filtered-chooser sessions.
-- [ ] Backend and route tests cover schemas for at least one label edit, representation choice, and semantic chooser fixture.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Catalog entries can include interaction type, host suitability, option metadata, validation metadata, default selection, and typed preview metadata.
+- [x] `parameter_schema` remains the authoritative validation/submission schema.
+- [x] `interaction_schema` contains no backend HTML.
+- [x] Interaction schema can describe text, choice-grid, and filtered-chooser sessions.
+- [x] Backend and route tests cover schemas for at least one label edit, representation choice, and semantic chooser fixture.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Manual Action Catalog entries now expose `interaction_schema` for text, choice-grid, filtered-chooser, and generic form sessions.
+- `primary_rank` lets the UI choose the default edit action without action-id heuristics.
 
 ## Blocked by
 

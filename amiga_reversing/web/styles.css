@@ -2030,6 +2030,59 @@ body {
   font-size: 12px;
 }
 
+.inline-parameter-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.inline-parameter-session .command-parameter-field {
+  display: inline-flex;
+}
+
+.parameter-choice-grid,
+.parameter-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.parameter-choice,
+.parameter-filter-option {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid #8a8a8a;
+  background: #f8f8f8;
+  color: #222;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.parameter-choice.selected,
+.parameter-filter-option.selected {
+  border-color: #2f5f9f;
+  background: #e9f1ff;
+}
+
+.parameter-choice small,
+.parameter-filter-option small {
+  color: #555;
+  font-size: 11px;
+}
+
+.parameter-filtered-chooser {
+  display: grid;
+  gap: 6px;
+}
+
+.parameter-filter-input {
+  min-width: 180px;
+}
+
 .repro-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

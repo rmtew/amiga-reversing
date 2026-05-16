@@ -23,13 +23,18 @@ Add the catalog-driven **Edit Selected Command** and default key bindings for co
 
 ## Acceptance criteria
 
-- [ ] `.` invokes the catalog-provided primary edit action for the current **Listing Selection**.
-- [ ] If no primary action is dominant, `.` shows explicit edit alternatives.
-- [ ] `;` opens comment edit, `r` opens representation choice, `s` opens semantic interpretation, and `F2` opens label rename when valid.
-- [ ] Key bindings appear in command palette entries.
-- [ ] UI priority is catalog-driven, not hardcoded by key handler.
-- [ ] Tests cover selected label, comment, literal, semantic operand, ambiguous context, and no editable context.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] `.` invokes the catalog-provided primary edit action for the current **Listing Selection**.
+- [x] If no primary action is dominant, `.` shows explicit edit alternatives.
+- [x] `;` opens comment edit, `r` opens representation choice, `s` opens semantic interpretation, and `F2` opens label rename when valid.
+- [x] Key bindings appear in command palette entries.
+- [x] UI priority is catalog-driven, not hardcoded by key handler.
+- [x] Tests cover selected label, comment, literal, semantic operand, ambiguous context, and no editable context.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Direct bindings resolve through contextual catalog queries before falling back to target-level panels.
+- `.` sorts editable actions by `interaction_schema.primary_rank`.
 
 ## Blocked by
 

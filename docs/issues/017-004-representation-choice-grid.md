@@ -23,13 +23,18 @@ Add choice-grid **Parameter Sessions** for **Manual Representation** actions so 
 
 ## Acceptance criteria
 
-- [ ] Representation options are backend-provided and rendered as a compact choice grid.
-- [ ] Options show type and rendered-value preview, such as binary, hex, decimal, or char form.
-- [ ] Moving selection updates local preview without server round-trips.
-- [ ] Enter commits a **Manual Representation** action; Escape cancels.
-- [ ] Works in inline host and palette host from the same interaction schema.
-- [ ] Tests cover preview, commit, cancel, and catalog payload.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Representation options are backend-provided and rendered as a compact choice grid.
+- [x] Options show type and rendered-value preview, such as binary, hex, decimal, or char form.
+- [x] Moving selection updates local preview without server round-trips.
+- [x] Enter commits a **Manual Representation** action; Escape cancels.
+- [x] Works in inline host and palette host from the same interaction schema.
+- [x] Tests cover preview, commit, cancel, and catalog payload.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- `representation.choose` is the grouped schema-backed action for `r`.
+- Existing direct representation actions remain available as command-palette shortcuts.
 
 ## Blocked by
 

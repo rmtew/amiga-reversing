@@ -1316,9 +1316,19 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
+    comment_action = next(action for action in row_actions if action["action_id"] == "comment.edit")
+    assert comment_action["default_key_binding"] == ";"
+    assert comment_action["interaction_schema"]["type"] == "text"
+    assert comment_action["interaction_schema"]["hosts"] == ["palette", "inline"]
+    assert comment_action["interaction_schema"]["primary_rank"] == 10
     review_note = next(action for action in row_actions if action["action_id"] == "review_note.add")
     assert review_note["action"] == "add_review_note"
     assert review_note["parameter_schema"]["properties"]["tracking"]["enum"] == ["note_only", "needs_review"]
+    representation_choice = next(action for action in element_actions if action["action_id"] == "representation.choose")
+    assert representation_choice["default_key_binding"] == "r"
+    assert representation_choice["interaction_schema"]["type"] == "choice_grid"
+    assert representation_choice["interaction_schema"]["primary_rank"] == 20
+    assert representation_choice["interaction_schema"]["options"][0]["value"] == "hex"
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
@@ -1381,6 +1391,65 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     assert note["row_indexes"] == [0]
     assert application["status"] == "applied"
     assert local_effect["kind"] == "review_note_add"
+    assert appended_actions == [action]
+    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+
+
+def test_route_manual_action_catalog_execute_appends_comment_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/manual-action-catalog/execute",
+        {},
+        {
+            "action_id": "comment.edit",
+            "context": {"kind": "row", "row_index": 0},
+            "parameters": {"text": "manual return"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    comment = cast(dict[str, object], cast(dict[str, object], action["payload"])["comment"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "create_manual_comment"
+    assert comment["text"] == "manual return"
+    assert comment["addr"] == 4
+    assert comment["row_index"] == 0
+    assert application["status"] == "applied"
+    assert local_effect["kind"] == "comment"
     assert appended_actions == [action]
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
@@ -1524,7 +1593,12 @@ def test_route_manual_action_catalog_ignores_numeric_label_text_for_semantic_hin
     )
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
 
+    label_action = next(action for action in actions if action["action_id"] == "label.rename")
     assert [action["action_id"] for action in actions] == ["navigation.follow_reference", "label.rename"]
+    assert label_action["default_key_binding"] == "F2"
+    assert label_action["interaction_schema"]["type"] == "text"
+    assert label_action["interaction_schema"]["primary_rank"] == 0
+    assert label_action["interaction_schema"]["validation"]["active_profile"] == "vasm"
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
@@ -2071,6 +2145,10 @@ def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helper
     equate_action = next(action for action in equate_actions if str(action["action_id"]).startswith("semantic.equate."))
     assert any(action["action_id"] == "semantic.lvo.exec.library_OpenLibrary" for action in lvo_actions)
     assert any(str(action["action_id"]).startswith("semantic.struct_offset.") for action in struct_actions)
+    assert equate_action["default_key_binding"] == "s"
+    assert equate_action["interaction_schema"]["type"] == "filtered_chooser"
+    assert equate_action["interaction_schema"]["primary_rank"] == 30
+    assert equate_action["interaction_schema"]["options"][0]["parameters"]["domain"] == "equate"
 
     execute_payload = disasm_server.route_request(
         "POST",

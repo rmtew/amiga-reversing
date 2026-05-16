@@ -125,6 +125,7 @@ const state = {
     inFlight: false,
     pendingRanges: [],
   },
+  parameterSession: null,
   commandPalette: {
     open: false,
     query: "",
@@ -1474,6 +1475,12 @@ function renderCommandPalette() {
 function renderCommandParameterEditor(editor) {
   const action = editor.action || {};
   const fields = commandParameterSchemaFields(action);
+  const interactionType = action?.interaction_schema?.type || "";
+  const fieldHtml = interactionType === "choice_grid"
+    ? renderParameterChoiceGrid(editor)
+    : interactionType === "filtered_chooser"
+      ? renderParameterFilteredChooser(editor)
+      : fields.map((field) => renderCommandParameterField(field, editor)).join("");
   return `
     <form class="command-parameter-editor" id="command-parameter-editor">
       <div class="command-parameter-header">
@@ -1481,13 +1488,67 @@ function renderCommandParameterEditor(editor) {
         <button type="button" class="command-parameter-cancel" data-command-parameter-cancel="1">Cancel</button>
       </div>
       <div class="command-parameter-fields">
-        ${fields.map((field) => renderCommandParameterField(field, editor)).join("")}
+        ${fieldHtml}
       </div>
       ${editor.submitError ? `<div class="command-parameter-error">${escapeHtml(editor.submitError)}</div>` : ""}
       <div class="command-parameter-actions">
         <button type="submit" class="command-parameter-submit"${editor.submitting ? " disabled" : ""}>${editor.submitting ? "Saving" : "Apply"}</button>
       </div>
     </form>
+  `;
+}
+
+function renderParameterChoiceGrid(editor) {
+  const interaction = editor.action?.interaction_schema || {};
+  const parameter = interaction.parameter || "representation";
+  const options = Array.isArray(interaction.options) ? interaction.options : [];
+  const value = editor.values[parameter] || interaction.default || "";
+  return `
+    <div class="parameter-choice-grid" data-parameter-choice-grid="${escapeHtml(parameter)}">
+      ${options.map((option) => {
+        const selected = String(option.value) === String(value);
+        const preview = option.preview?.text || "";
+        return `
+          <button type="button" class="parameter-choice${selected ? " selected" : ""}" data-parameter-choice-value="${escapeHtml(String(option.value))}" aria-pressed="${selected ? "true" : "false"}">
+            <span>${escapeHtml(option.label || option.value)}</span>
+            ${preview ? `<small>${escapeHtml(preview)}</small>` : ""}
+          </button>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function filteredChooserOptions(editor) {
+  const interaction = editor.action?.interaction_schema || {};
+  const options = Array.isArray(interaction.options) ? interaction.options : [];
+  const query = String(editor.filter || "").trim().toLowerCase();
+  if (!query) {
+    return options;
+  }
+  return options.filter((option) => [
+    option.label,
+    option.value,
+    option.parameters?.domain,
+    option.parameters?.symbol,
+  ].map((value) => String(value || "").toLowerCase()).join(" ").includes(query));
+}
+
+function renderParameterFilteredChooser(editor) {
+  const options = filteredChooserOptions(editor);
+  const selectedIndex = Math.max(0, Math.min(options.length - 1, Number(editor.selectedIndex || 0)));
+  return `
+    <div class="parameter-filtered-chooser">
+      <input class="parameter-filter-input" data-parameter-filter-input="1" type="search" value="${escapeHtml(editor.filter || "")}" autocomplete="off">
+      <div class="parameter-filter-options">
+        ${options.length ? options.map((option, index) => `
+          <button type="button" class="parameter-filter-option${index === selectedIndex ? " selected" : ""}" data-parameter-filter-index="${index}">
+            <span>${escapeHtml(option.label || option.value)}</span>
+            ${option.preview?.symbol ? `<small>${escapeHtml(String(option.preview.symbol))}</small>` : ""}
+          </button>
+        `).join("") : '<div class="command-palette-empty">No options</div>'}
+      </div>
+    </div>
   `;
 }
 
@@ -1618,21 +1679,7 @@ async function openCommandPalette() {
   state.commandPalette.editor = null;
   renderCommandPalette();
   try {
-    const catalogs = [];
-    catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=target`));
-    const rowIndex = currentListingSelectionRowIndex();
-    if (Number.isFinite(rowIndex)) {
-      const rangeQuery = commandPaletteRangeQuery(state.listingSelection);
-      if (rangeQuery) {
-        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${rangeQuery}`));
-      } else {
-        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
-        const elementQuery = commandPaletteElementQuery(state.listingSelection);
-        if (elementQuery) {
-          catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
-        }
-      }
-    }
+    const catalogs = await loadContextualCommandCatalogs();
     const actionMap = new Map();
     catalogs.forEach((catalog, catalogIndex) => {
       const catalogRank = catalog.context?.kind === "target" && catalogs.length > 1 ? 1 : 0;
@@ -1662,6 +1709,64 @@ function commandPaletteActionIdentity(action) {
     return `transient:${actionId}`;
   }
   return `${action?.target_context?.kind || "target"}:${actionId}`;
+}
+
+function catalogActionsFromCatalogs(catalogs) {
+  return catalogs.flatMap((catalog) => Array.isArray(catalog.actions) ? catalog.actions : []);
+}
+
+function actionSupportsInlineSession(action) {
+  const hosts = action?.interaction_schema?.hosts;
+  return Array.isArray(hosts) && hosts.includes("inline");
+}
+
+function parameterActionPriority(action) {
+  const rank = Number(action?.interaction_schema?.primary_rank);
+  return Number.isFinite(rank) ? rank : 1000;
+}
+
+async function openInlineSessionForAction(action) {
+  const rowIndex = currentListingSelectionRowIndex();
+  if (!Number.isFinite(rowIndex) || !action) {
+    return false;
+  }
+  if (!actionSupportsInlineSession(action)) {
+    openCommandParameterEditor(action);
+    return true;
+  }
+  openInlineParameterSession(action, rowIndex);
+  return true;
+}
+
+async function invokeSelectedCatalogBinding(binding) {
+  if (!state.project || state.manualEdit.inFlight || state.parameterSession) {
+    return false;
+  }
+  const catalogs = await loadContextualCommandCatalogs();
+  const actions = catalogActionsFromCatalogs(catalogs)
+    .filter((action) => action.enabled !== false)
+    .filter((action) => action.default_key_binding === binding);
+  if (!actions.length) {
+    return false;
+  }
+  actions.sort((left, right) => parameterActionPriority(left) - parameterActionPriority(right));
+  return openInlineSessionForAction(actions[0]);
+}
+
+async function invokeEditSelectedCommand() {
+  if (!state.project || state.manualEdit.inFlight || state.parameterSession) {
+    return false;
+  }
+  const catalogs = await loadContextualCommandCatalogs();
+  const actions = catalogActionsFromCatalogs(catalogs)
+    .filter((action) => action.enabled !== false)
+    .filter(actionSupportsInlineSession)
+    .sort((left, right) => parameterActionPriority(left) - parameterActionPriority(right));
+  if (!actions.length) {
+    setAnalysisStatus("No editable selection", "ready", 2000);
+    return false;
+  }
+  return openInlineSessionForAction(actions[0]);
 }
 
 function commandPaletteElementQuery(selection) {
@@ -1774,6 +1879,25 @@ async function executeCommandPaletteAction(action) {
   }
 }
 
+async function loadContextualCommandCatalogs() {
+  const catalogs = [];
+  catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=target`));
+  const rowIndex = currentListingSelectionRowIndex();
+  if (Number.isFinite(rowIndex)) {
+    const rangeQuery = commandPaletteRangeQuery(state.listingSelection);
+    if (rangeQuery) {
+      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${rangeQuery}`));
+    } else {
+      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=row&row_index=${encodeURIComponent(String(rowIndex))}`));
+      const elementQuery = commandPaletteElementQuery(state.listingSelection);
+      if (elementQuery) {
+        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
+      }
+    }
+  }
+  return catalogs;
+}
+
 async function submitCommandPaletteCatalogAction(action, parameters) {
   const command = String(action?.action || "");
   if (action?.appends_to_manual_action_log === true) {
@@ -1840,6 +1964,9 @@ function applyManualLocalEffect(effect) {
   if (effect.kind === "representation") {
     return applyManualRepresentationEffect(effect);
   }
+  if (effect.kind === "comment") {
+    return applyManualCommentEffect(effect);
+  }
   if (effect.kind === "review_note_add") {
     return applyManualReviewNoteAddEffect(effect);
   }
@@ -1896,6 +2023,33 @@ function applyManualRepresentationEffect(effect) {
     ...existing.filter((item) => item.representation_id !== representation.representation_id),
     representation,
   ];
+  return true;
+}
+
+function applyManualCommentEffect(effect) {
+  const comment = effect.comment;
+  if (!comment || typeof comment !== "object") {
+    return false;
+  }
+  const text = String(comment.text || "").trim();
+  if (!text) {
+    return false;
+  }
+  const rowIndex = Number(comment.row_index);
+  const stableKey = String(comment.stable_key || "");
+  const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
+  const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
+  const existingIndex = localIndex >= 0 && localIndex < rows.length
+    ? localIndex
+    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
+  if (existingIndex < 0) {
+    return false;
+  }
+  rows[existingIndex] = {
+    ...rows[existingIndex],
+    comment_text: text,
+  };
+  state.listingRows = rows;
   return true;
 }
 
@@ -2026,15 +2180,29 @@ function commandRequiresAnalysisRefresh(command) {
 }
 
 function actionNeedsParameterEditor(action) {
+  const interactionType = action?.interaction_schema?.type || "";
+  if (["choice_grid", "filtered_chooser"].includes(interactionType)) {
+    return true;
+  }
   const fields = commandParameterSchemaFields(action);
   return fields.length > 0;
 }
 
-function openCommandParameterEditor(action) {
+function parameterSessionInitialValues(action) {
   const fields = commandParameterSchemaFields(action);
+  const values = Object.fromEntries(fields.map((field) => [field.name, defaultCommandParameterValue(action, field)]));
+  const interaction = action?.interaction_schema || {};
+  if (interaction.parameter && values[interaction.parameter] === undefined) {
+    values[interaction.parameter] = interaction.default || "";
+  }
+  return values;
+}
+
+function openCommandParameterEditor(action) {
   state.commandPalette.editor = {
+    host: "palette",
     action,
-    values: Object.fromEntries(fields.map((field) => [field.name, defaultCommandParameterValue(action, field)])),
+    values: parameterSessionInitialValues(action),
     errors: {},
     submitError: "",
     submitting: false,
@@ -2045,6 +2213,26 @@ function openCommandParameterEditor(action) {
 function cancelCommandParameterEditor() {
   state.commandPalette.editor = null;
   renderCommandPalette();
+}
+
+function openInlineParameterSession(action, rowIndex) {
+  state.parameterSession = {
+    host: "inline",
+    action,
+    rowIndex,
+    values: parameterSessionInitialValues(action),
+    errors: {},
+    submitError: "",
+    submitting: false,
+    filter: "",
+    selectedIndex: 0,
+  };
+  renderCurrentListingWindow();
+}
+
+function cancelInlineParameterSession() {
+  state.parameterSession = null;
+  renderCurrentListingWindow();
 }
 
 function commandParameterSchemaFields(action) {
@@ -2094,8 +2282,8 @@ function bindCommandParameterEditor() {
   }
   const fields = commandParameterSchemaFields(editor.action);
   form.querySelectorAll("[data-command-parameter-name]").forEach((control) => {
-    control.addEventListener("input", () => updateCommandParameterValue(control, fields));
-    control.addEventListener("change", () => updateCommandParameterValue(control, fields));
+    control.addEventListener("input", () => updateCommandParameterValue(editor, control, fields));
+    control.addEventListener("change", () => updateCommandParameterValue(editor, control, fields));
     control.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -2111,6 +2299,8 @@ function bindCommandParameterEditor() {
   form.querySelector("[data-command-parameter-cancel]")?.addEventListener("click", () => {
     cancelCommandParameterEditor();
   });
+  bindParameterChoiceGrid(form, editor, () => renderCommandPalette());
+  bindParameterFilteredChooser(form, editor, () => renderCommandPalette(), () => submitCommandParameterEditor());
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     void submitCommandParameterEditor();
@@ -2124,8 +2314,7 @@ function bindCommandParameterEditor() {
   }
 }
 
-function updateCommandParameterValue(control, fields) {
-  const editor = state.commandPalette.editor;
+function updateCommandParameterValue(editor, control, fields) {
   if (!editor || !(control instanceof HTMLInputElement || control instanceof HTMLSelectElement)) {
     return;
   }
@@ -2145,13 +2334,59 @@ function updateCommandParameterValue(control, fields) {
   editor.submitError = "";
 }
 
+function bindParameterChoiceGrid(root, editor, rerender) {
+  root.querySelectorAll("[data-parameter-choice-value]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const parameter = editor.action?.interaction_schema?.parameter || "representation";
+      editor.values[parameter] = button.dataset.parameterChoiceValue || "";
+      editor.errors = {};
+      editor.submitError = "";
+      rerender();
+    });
+  });
+}
+
+function bindParameterFilteredChooser(root, editor, rerender, submit) {
+  const input = root.querySelector("[data-parameter-filter-input]");
+  if (input instanceof HTMLInputElement) {
+    input.addEventListener("input", () => {
+      editor.filter = input.value;
+      editor.selectedIndex = 0;
+      rerender();
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const options = filteredChooserOptions(editor);
+        const delta = event.key === "ArrowDown" ? 1 : -1;
+        editor.selectedIndex = Math.max(0, Math.min(options.length - 1, Number(editor.selectedIndex || 0) + delta));
+        rerender();
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        submit();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        editor.host === "inline" ? cancelInlineParameterSession() : cancelCommandParameterEditor();
+      }
+    });
+  }
+  root.querySelectorAll("[data-parameter-filter-index]").forEach((button) => {
+    button.addEventListener("click", () => {
+      editor.selectedIndex = Number(button.dataset.parameterFilterIndex || 0);
+      submit();
+    });
+  });
+}
+
 async function submitCommandParameterEditor() {
   const editor = state.commandPalette.editor;
   if (!editor || editor.submitting) {
     return;
   }
   const fields = commandParameterSchemaFields(editor.action);
-  const {parameters, errors} = commandParameterPayload(fields, editor.values);
+  const {parameters, errors} = commandParameterPayload(fields, editor.values, editor.action);
   editor.errors = errors;
   editor.submitError = "";
   if (Object.keys(errors).length) {
@@ -2173,7 +2408,7 @@ async function submitCommandParameterEditor() {
   }
 }
 
-function commandParameterPayload(fields, values) {
+function commandParameterPayload(fields, values, action = null) {
   const parameters = {};
   const errors = {};
   fields.forEach((field) => {
@@ -2213,9 +2448,34 @@ function commandParameterPayload(fields, values) {
       errors[field.name] = "Choose a valid value";
       return;
     }
+    const labelError = commandLabelValidationError(field, text, action);
+    if (labelError) {
+      errors[field.name] = labelError;
+      return;
+    }
     parameters[field.name] = text;
   });
   return {parameters, errors};
+}
+
+function commandLabelValidationError(field, text, action) {
+  if (field.name !== "name" || action?.interaction_schema?.preview?.kind !== "label") {
+    return "";
+  }
+  const validation = action.interaction_schema.validation || {};
+  const messages = validation.messages || {};
+  const pattern = validation.name_pattern ? new RegExp(validation.name_pattern) : null;
+  if (pattern && !pattern.test(text)) {
+    return messages.invalid_syntax || "Invalid label syntax";
+  }
+  if (text.startsWith(".") && validation.local_labels_supported === false) {
+    return messages.local_disallowed || "Local labels are not allowed";
+  }
+  const reserved = Array.isArray(validation.reserved_prefixes) ? validation.reserved_prefixes : [];
+  if (reserved.some((prefix) => text.startsWith(prefix))) {
+    return messages.reserved || "Reserved generated name";
+  }
+  return "";
 }
 
 function sameIssueField(left, right) {
@@ -4831,6 +5091,9 @@ function renderOperandAppSlotRefsHtml(row, operand, globalRowIndex) {
 }
 
 function renderListingCodeHtml(row, globalRowIndex = null) {
+  if (inlineParameterSessionMatches(globalRowIndex, "code")) {
+    return renderInlineParameterSession(state.parameterSession);
+  }
   const globalRsEqu = parseGlobalRsEquRow(row);
   if (globalRsEqu) {
     const typedInfo = isAppSlotSymbolName(globalRsEqu.label) ? appSlotTypedInfoForSymbol(globalRsEqu.label) : null;
@@ -4879,6 +5142,48 @@ function renderListingComment(row) {
     return `; ${row.comment_text}`;
   }
   return "";
+}
+
+function renderListingCommentHtml(row, globalRowIndex = null) {
+  if (inlineParameterSessionMatches(globalRowIndex, "comment")) {
+    return renderInlineParameterSession(state.parameterSession);
+  }
+  return escapeHtml(renderListingComment(row));
+}
+
+function inlineParameterSessionMatches(globalRowIndex, slot) {
+  const session = state.parameterSession;
+  if (!session || session.host !== "inline" || !Number.isFinite(globalRowIndex) || session.rowIndex !== globalRowIndex) {
+    return false;
+  }
+  const action = session.action || {};
+  const interactionType = action.interaction_schema?.type || "";
+  if (slot === "comment") {
+    return action.action === "create_manual_comment";
+  }
+  return action.action !== "create_manual_comment" && ["text", "choice_grid", "filtered_chooser"].includes(interactionType);
+}
+
+function renderInlineParameterSession(session) {
+  if (!session) {
+    return "";
+  }
+  const action = session.action || {};
+  const fields = commandParameterSchemaFields(action);
+  const interactionType = action?.interaction_schema?.type || "";
+  const body = interactionType === "choice_grid"
+    ? renderParameterChoiceGrid(session)
+    : interactionType === "filtered_chooser"
+      ? renderParameterFilteredChooser(session)
+      : fields.map((field) => renderCommandParameterField(field, session)).join("");
+  return `
+    <form class="inline-parameter-session" data-inline-parameter-session="1">
+      ${body}
+      ${session.submitError ? `<div class="command-parameter-error">${escapeHtml(session.submitError)}</div>` : ""}
+      <button type="submit" class="command-parameter-submit"${session.submitting ? " disabled" : ""}>${session.submitting ? "Saving" : "Apply"}</button>
+      <button type="button" class="command-parameter-cancel" data-inline-parameter-cancel="1">Cancel</button>
+    </form>
+  `;
 }
 
 function renderListingAnnotations(row) {
@@ -5033,7 +5338,7 @@ function renderListingRows(rows, globalStart = 0) {
       <span class="listing-runtime">${escapeHtml(formatListingRuntimeAddress(row))}</span>
       <span class="listing-bytes">${escapeHtml(formatRowBytes(row.bytes))}</span>
       <span class="listing-code">${renderListingCodeHtml(row, globalStart + rowIndex)}</span>
-      <span class="listing-comment">${escapeHtml(renderListingComment(row))}${renderListingComment(row) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}</span>
+      <span class="listing-comment">${renderListingCommentHtml(row, globalStart + rowIndex)}${renderListingComment(row, globalStart + rowIndex) && renderListingAnnotations(row) ? " " : ""}${renderListingAnnotations(row)}${renderReproIssueBadges(row)}${renderApiTypeBadges(row)}${renderUnresolvedTypedAccessBadges(row)}${(renderListingAnnotations(row) || renderReproIssueBadges(row) || renderApiTypeBadges(row) || renderUnresolvedTypedAccessBadges(row)) ? " " : ""}${renderApiEditButton(row, globalStart + rowIndex)}</span>
       <span class="listing-column-resizer listing-column-resizer-offset" data-listing-column-resize="offset" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-runtime" data-listing-column-resize="runtime" aria-hidden="true"></span>
       <span class="listing-column-resizer listing-column-resizer-bytes" data-listing-column-resize="bytes" aria-hidden="true"></span>
@@ -5162,6 +5467,7 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
   applyListingColumnWidths();
   measureRenderedListingRowHeight(viewport);
   bindListingEditors(projectId, listing.rows);
+  bindInlineParameterSession();
   bindListingSelection();
   applyRenderedListingSelection();
   bindVirtualListingScroller(projectId, viewport);
@@ -7070,6 +7376,91 @@ function bindListingEditors(projectId, rows) {
       }
     });
   });
+}
+
+function bindInlineParameterSession() {
+  const form = document.querySelector("[data-inline-parameter-session]");
+  const editor = state.parameterSession;
+  if (!(form instanceof HTMLFormElement) || !editor) {
+    return;
+  }
+  const fields = commandParameterSchemaFields(editor.action);
+  form.querySelectorAll("[data-command-parameter-name]").forEach((control) => {
+    control.addEventListener("input", () => updateCommandParameterValue(editor, control, fields));
+    control.addEventListener("change", () => updateCommandParameterValue(editor, control, fields));
+    control.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cancelInlineParameterSession();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void submitInlineParameterSession();
+      }
+    });
+  });
+  bindParameterChoiceGrid(form, editor, () => renderCurrentListingWindow());
+  bindParameterFilteredChooser(form, editor, () => renderCurrentListingWindow(), () => submitInlineParameterSession());
+  form.querySelector("[data-inline-parameter-cancel]")?.addEventListener("click", () => {
+    cancelInlineParameterSession();
+  });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitInlineParameterSession();
+  });
+  const firstControl = form.querySelector("[data-command-parameter-name], [data-parameter-filter-input]");
+  if (firstControl instanceof HTMLInputElement || firstControl instanceof HTMLSelectElement) {
+    firstControl.focus();
+    if (firstControl instanceof HTMLInputElement && firstControl.type !== "checkbox") {
+      firstControl.select();
+    }
+  }
+}
+
+async function submitInlineParameterSession() {
+  const editor = state.parameterSession;
+  if (!editor || editor.submitting) {
+    return;
+  }
+  const fields = commandParameterSchemaFields(editor.action);
+  const {parameters, errors} = commandParameterPayload(fields, editor.values, editor.action);
+  editor.errors = errors;
+  editor.submitError = "";
+  if (Object.keys(errors).length) {
+    renderCurrentListingWindow();
+    return;
+  }
+  editor.submitting = true;
+  renderCurrentListingWindow();
+  try {
+    await submitCommandPaletteCatalogAction(editor.action, parameters);
+    applyInlineSubmittedFallback(editor, parameters);
+    state.parameterSession = null;
+    renderCurrentListingWindow();
+  } catch (error) {
+    const activeEditor = state.parameterSession;
+    if (activeEditor) {
+      activeEditor.submitting = false;
+      activeEditor.submitError = String(error.message || error);
+      renderCurrentListingWindow();
+    }
+  }
+}
+
+function applyInlineSubmittedFallback(editor, parameters) {
+  if (!editor || editor.action?.action !== "create_manual_comment") {
+    return;
+  }
+  const text = String(parameters.text || "").trim();
+  const rowIndex = Number(editor.rowIndex);
+  const localIndex = rowIndex - Number(state.virtualListing.start || 0);
+  if (!text || localIndex < 0 || localIndex >= state.listingRows.length) {
+    return;
+  }
+  const rows = state.listingRows.slice();
+  rows[localIndex] = {...rows[localIndex], comment_text: text};
+  state.listingRows = rows;
 }
 
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
@@ -9414,6 +9805,11 @@ document.addEventListener("mouseup", endListingColumnResize);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (state.parameterSession) {
+      event.preventDefault();
+      cancelInlineParameterSession();
+      return;
+    }
     if (state.commandPalette.open || document.getElementById("command-palette-overlay")) {
       event.preventDefault();
       if (state.commandPalette.editor) {
@@ -9477,6 +9873,37 @@ document.addEventListener("keydown", (event) => {
   if (isEditableTarget(event.target)) {
     return;
   }
+  if (!modalOrPanelHasKeyboardFocus() && !event.altKey && !event.ctrlKey && !event.metaKey) {
+    if (event.key === ".") {
+      event.preventDefault();
+      void invokeEditSelectedCommand();
+      return;
+    }
+    if (event.key === "F2") {
+      event.preventDefault();
+      void invokeSelectedCatalogBinding("F2");
+      return;
+    }
+    if (event.key === ";") {
+      event.preventDefault();
+      void invokeSelectedCatalogBinding(";");
+      return;
+    }
+    if (!event.shiftKey && (event.key === "r" || event.key === "R")) {
+      event.preventDefault();
+      void invokeSelectedCatalogBinding("r").then((handled) => {
+        if (!handled) openManualReviewPanel();
+      });
+      return;
+    }
+    if (!event.shiftKey && (event.key === "s" || event.key === "S")) {
+      event.preventDefault();
+      void invokeSelectedCatalogBinding("s").then((handled) => {
+        if (!handled) openStatsOverlay();
+      });
+      return;
+    }
+  }
   if (!modalOrPanelHasKeyboardFocus() && !event.altKey && !event.metaKey && event.ctrlKey && event.key === "ArrowUp") {
     event.preventDefault();
     void moveToRelativeLabel(-1);
@@ -9539,19 +9966,9 @@ document.addEventListener("keydown", (event) => {
       void openCommandPalette();
       return;
     }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "r" || event.key === "R")) {
-      event.preventDefault();
-      openManualReviewPanel();
-      return;
-    }
     if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "n" || event.key === "N")) {
       event.preventDefault();
       void openNavigationOverlay();
-      return;
-    }
-    if (!event.altKey && !event.ctrlKey && !event.metaKey && (event.key === "s" || event.key === "S")) {
-      event.preventDefault();
-      openStatsOverlay();
       return;
     }
     return;

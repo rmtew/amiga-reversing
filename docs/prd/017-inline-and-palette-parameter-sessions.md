@@ -4,6 +4,10 @@
 
 Create reusable **Parameter Session** hosts so catalog-backed edits can happen either inside the command palette or directly on the selected listing element. Inline editing remains a UI affordance over **Manual Action Catalog** actions, not direct source-text editing.
 
+## Status
+
+Implemented. Catalog actions now expose schema-backed text, choice-grid, and filtered-chooser sessions for palette and inline hosts.
+
 ## Dependencies
 
 - PRD 011: Structured Contextual Action Metadata.
@@ -60,6 +64,12 @@ Create reusable **Parameter Session** hosts so catalog-backed edits can happen e
 - Tests for `.` choosing the catalog-provided primary edit action or showing alternatives.
 - Tests for label validation metadata, including policy-disallowed local label names.
 - Regression tests proving edits submit catalog actions and do not mutate rendered source text directly.
+
+Implemented verification:
+
+- Focused route/source/CLI tests cover interaction schemas, catalog payloads, local effects, and source wiring.
+- Focused CDP tests cover inline label/comment/representation sessions plus existing palette rename/representation flows.
+- `src\precommit.bat` is the final commit gate.
 
 ## Issues
 

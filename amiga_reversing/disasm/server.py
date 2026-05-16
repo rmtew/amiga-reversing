@@ -1655,6 +1655,14 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
         ManualActionKind.ADD_REVIEW_NOTE,
         ManualActionKind.EDIT_REVIEW_NOTE,
         ManualActionKind.CLEAR_REVIEW_NOTE,
+        ManualActionKind.CREATE_MANUAL_LABEL,
+        ManualActionKind.REMOVE_MANUAL_LABEL,
+        ManualActionKind.RENAME_MANUAL_LABEL,
+        ManualActionKind.CHANGE_LABEL_SCOPE,
+        ManualActionKind.CREATE_MANUAL_COMMENT,
+        ManualActionKind.REMOVE_MANUAL_COMMENT,
+        ManualActionKind.CREATE_MANUAL_REPRESENTATION,
+        ManualActionKind.REMOVE_MANUAL_REPRESENTATION,
         ManualActionKind.RESOLVE_REVIEW_ITEM,
     }
     if any(manual_action_kind(kind) not in non_metadata_kinds for kind, _ in action_payloads):
@@ -1694,6 +1702,10 @@ def _manual_action_application_payload(
         representation = action_payload.get("representation")
         if isinstance(representation, Mapping):
             local_effects.append({"kind": "representation", "representation": dict(representation)})
+    elif kind == "create_manual_comment":
+        comment = action_payload.get("comment")
+        if isinstance(comment, Mapping):
+            local_effects.append({"kind": "comment", "comment": dict(comment)})
     elif kind == "add_review_note":
         note = action_payload.get("note")
         if isinstance(note, Mapping):

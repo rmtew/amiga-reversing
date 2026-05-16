@@ -146,6 +146,15 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
             _review_note_parameter_schema(),
         ),
         _context_log_action(
+            "comment.edit",
+            "Edit comment",
+            "create_manual_comment",
+            context,
+            {},
+            _comment_parameter_schema(),
+            ";",
+        ),
+        _context_log_action(
             "review_note.edit",
             "Edit review note",
             "edit_review_note",
@@ -233,6 +242,15 @@ def listing_element_action_catalog(
         actions.extend(
             [
                 _context_log_action(
+                    "representation.choose",
+                    "Choose representation",
+                    "set_representation",
+                    context,
+                    {},
+                    _representation_parameter_schema(),
+                    "r",
+                ),
+                _context_log_action(
                     "representation.hex",
                     "Hex",
                     "set_representation",
@@ -268,6 +286,7 @@ def listing_element_action_catalog(
                     "properties": {"name": {"type": "string"}},
                     "required": ["name"],
                 },
+                "F2",
             )
         )
     if _is_structured_a6_lvo_context(context):
@@ -481,6 +500,8 @@ def listing_catalog_manual_payload(
         return "create_manual_register_seed", {"register_seed": _register_seed_payload(row, params)}
     if ui_action == "create_manual_label":
         return "create_manual_label", {"label": _row_label_payload(row, element_context, params)}
+    if ui_action == "create_manual_comment":
+        return "create_manual_comment", {"comment": _row_comment_payload(row, params)}
     if ui_action == "create_manual_semantic_hint":
         return "create_manual_semantic_hint", {"semantic_hint": _semantic_hint_payload(row, element_context, params)}
     if ui_action == "set_representation":
@@ -575,6 +596,26 @@ def _review_note_edit_parameter_schema() -> dict[str, object]:
     return schema
 
 
+def _comment_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "text": {"type": "string"},
+        },
+        "required": ["text"],
+    }
+
+
+def _representation_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+        },
+        "required": ["representation"],
+    }
+
+
 def _review_note_clear_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -650,6 +691,29 @@ def _row_review_note_payload(row: Mapping[str, object], params: Mapping[str, obj
     if isinstance(stable_key, str) and stable_key:
         note["stable_key"] = stable_key
     return note
+
+
+def _row_comment_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    text = params.get("text")
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError("create_manual_comment requires parameter text")
+    addr = _int_field(row, "start_offset", fallback="addr")
+    comment: dict[str, object] = {
+        "comment_id": f"catalog-comment-h{_int_field(row, 'section_index', default=0)}-{addr:08X}",
+        "text": text.strip(),
+        "hunk": _int_field(row, "section_index", default=0),
+        "addr": addr,
+    }
+    end = _optional_int(row.get("end_offset"))
+    if end is not None and end > addr:
+        comment["end"] = end
+    row_index = _optional_int(row.get("row_index"))
+    if row_index is not None:
+        comment["row_index"] = row_index
+    stable_key = row.get("stable_key")
+    if isinstance(stable_key, str) and stable_key:
+        comment["stable_key"] = stable_key
+    return comment
 
 
 def _range_review_note_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
@@ -842,6 +906,8 @@ def _semantic_hint_actions(context: Mapping[str, object]) -> list[dict[str, obje
                         "element_kind": context.get("element_kind"),
                         "operand_index": context.get("operand_index"),
                     },
+                    None,
+                    "s",
                 )
             )
     return actions
@@ -1141,8 +1207,9 @@ def _context_log_action(
     context: Mapping[str, object],
     parameters: Mapping[str, object],
     parameter_schema: Mapping[str, object] | None = None,
+    default_key_binding: str | None = None,
 ) -> dict[str, object]:
-    return _context_entry(action_id, label, ui_action, context, True, parameters, None, parameter_schema)
+    return _context_entry(action_id, label, ui_action, context, True, parameters, default_key_binding, parameter_schema)
 
 
 def _range_seed_action(
@@ -1251,7 +1318,7 @@ def _context_entry(
     default_key_binding: str | None,
     parameter_schema: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    entry = {
         "action_id": action_id,
         "label": label,
         "description": label,
@@ -1263,6 +1330,10 @@ def _context_entry(
         "action": ui_action,
         "parameters": dict(parameters),
     }
+    interaction = _interaction_schema(action_id, label, ui_action, context, parameters, parameter_schema)
+    if interaction:
+        entry["interaction_schema"] = interaction
+    return entry
 
 
 def _entry(
@@ -1274,22 +1345,27 @@ def _entry(
     parameters: Mapping[str, object] | None,
     parameter_schema: Mapping[str, object] | None,
 ) -> dict[str, object]:
-    return {
+    context = {
+        "kind": "review_item",
+        "item_id": item.get("item_id"),
+        "review_item_kind": str(item.get("kind") or ""),
+    }
+    entry = {
         "action_id": action_id,
         "label": label,
         "description": label,
         "enabled": True,
-        "target_context": {
-            "kind": "review_item",
-            "item_id": item.get("item_id"),
-            "review_item_kind": str(item.get("kind") or ""),
-        },
+        "target_context": context,
         "parameter_schema": dict(parameter_schema or {"type": "object", "properties": {}, "required": []}),
         "default_key_binding": None,
         "appends_to_manual_action_log": appends_to_log,
         "action": ui_action,
         "parameters": dict(parameters or {}),
     }
+    interaction = _interaction_schema(action_id, label, ui_action, context, parameters or {}, parameter_schema, item=item)
+    if interaction:
+        entry["interaction_schema"] = interaction
+    return entry
 
 
 def _int_field(
@@ -1309,6 +1385,120 @@ def _int_field(
     if default is not None:
         return default
     raise ValueError(f"Review item has no integer {name}")
+
+
+def _interaction_schema(
+    action_id: str,
+    label: str,
+    ui_action: str,
+    context: Mapping[str, object],
+    parameters: Mapping[str, object],
+    parameter_schema: Mapping[str, object] | None,
+    *,
+    item: Mapping[str, object] | None = None,
+) -> dict[str, object] | None:
+    if ui_action in {"create_manual_label", "rename_manual_label"}:
+        return {
+            "type": "text",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 0,
+            "primary_field": "name",
+            "submit_label": label,
+            "preview": {"kind": "label", "symbol": context.get("symbol") or (item or {}).get("message")},
+            "validation": _label_validation_metadata(context),
+        }
+    if ui_action == "create_manual_comment":
+        return {
+            "type": "text",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 10,
+            "primary_field": "text",
+            "submit_label": label,
+            "preview": {"kind": "comment", "addr": context.get("addr")},
+        }
+    if ui_action in {"add_review_note", "edit_review_note"}:
+        return {
+            "type": "text",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 40,
+            "primary_field": "title",
+            "submit_label": label,
+            "preview": {"kind": "review_note", "addr": context.get("addr")},
+        }
+    if ui_action == "set_representation" and action_id == "representation.choose":
+        return {
+            "type": "choice_grid",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 20,
+            "parameter": "representation",
+            "default": parameters.get("representation") or "hex",
+            "options": _representation_options(context),
+            "preview": {"kind": "representation", "value": context.get("value"), "width_bytes": context.get("width_bytes")},
+        }
+    if ui_action == "create_manual_semantic_hint":
+        return {
+            "type": "filtered_chooser",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 30,
+            "parameter": "semantic_option",
+            "default": action_id,
+            "options": [
+                {
+                    "value": action_id,
+                    "label": label,
+                    "parameters": dict(parameters),
+                    "preview": {
+                        "kind": "semantic_hint",
+                        "domain": parameters.get("domain"),
+                        "symbol": parameters.get("symbol"),
+                        "value": parameters.get("value"),
+                    },
+                }
+            ],
+        }
+    if parameter_schema is not None:
+        return {
+            "type": "form",
+            "hosts": ["palette"],
+            "submit_label": label,
+        }
+    return None
+
+
+def _label_validation_metadata(context: Mapping[str, object]) -> dict[str, object]:
+    symbol = str(context.get("symbol") or "")
+    return {
+        "active_profile": "vasm",
+        "local_labels_supported": True,
+        "allowed_scopes": ["global", "local"],
+        "current_scope": "global",
+        "current_name": symbol,
+        "name_pattern": r"^[A-Za-z_.$][A-Za-z0-9_.$]*$",
+        "reserved_prefixes": ["loc_", "abs_", "sub_"],
+        "messages": {
+            "invalid_syntax": "Invalid label syntax",
+            "local_disallowed": "Local labels are not allowed by the active profile",
+            "reserved": "Name uses a reserved generated prefix",
+            "conflict": "Name may conflict with an existing symbol",
+            "stale": "Validation may be stale; server will recheck on save",
+            "ready": "Ready",
+        },
+    }
+
+
+def _representation_options(context: Mapping[str, object]) -> list[dict[str, object]]:
+    value = _optional_int(context.get("value")) or 0
+    return [
+        {"value": "hex", "label": "Hex", "preview": {"kind": "literal", "text": f"${value:X}"}},
+        {"value": "binary", "label": "Binary", "preview": {"kind": "literal", "text": f"%{value:b}"}},
+        {"value": "character", "label": "Character", "preview": {"kind": "literal", "text": _character_preview(value)}},
+    ]
+
+
+def _character_preview(value: int) -> str:
+    if 32 <= value <= 126:
+        return repr(chr(value))
+    return "not printable"
 
 
 def _optional_int(value: object) -> int | None:

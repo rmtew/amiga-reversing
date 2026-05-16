@@ -23,13 +23,18 @@ Render filtered chooser **Parameter Sessions** for semantic helper actions using
 
 ## Acceptance criteria
 
-- [ ] Backend-provided semantic options render in a filtered chooser with top input.
-- [ ] Typing filters returned options locally.
-- [ ] Arrow keys move selection and Enter commits the selected option.
-- [ ] Option metadata supports local preview through typed preview kinds.
-- [ ] UI does not compute semantic eligibility or option ranking.
-- [ ] Tests cover chooser mechanics with fixture options for a semantic helper action.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Backend-provided semantic options render in a filtered chooser with top input.
+- [x] Typing filters returned options locally.
+- [x] Arrow keys move selection and Enter commits the selected option.
+- [x] Option metadata supports local preview through typed preview kinds.
+- [x] UI does not compute semantic eligibility or option ranking.
+- [x] Tests cover chooser mechanics with fixture options for a semantic helper action.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- Semantic helper actions now expose filtered-chooser metadata with backend-owned options and `s` as the direct binding.
+- UI filtering and selection are local; payload parameters come from the selected backend option.
 
 ## Blocked by
 

@@ -26,14 +26,19 @@ Review inline and palette **Parameter Sessions** against PRD 017, ensuring both 
 
 ## Acceptance criteria
 
-- [ ] Palette and inline hosts share interaction schema behavior.
-- [ ] Inline editing does not mutate source text, instruction operands, or bytes directly.
-- [ ] Representation and semantic choosers use backend-provided option metadata.
-- [ ] `.` and direct key bindings are catalog-driven.
-- [ ] Label validation metadata handles assembler/profile policy correctly.
-- [ ] Non-manual target tooling command reuse does not blur Manual Action Catalog semantics.
-- [ ] PRD 017 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and relevant focused tests pass before commit.
+- [x] Palette and inline hosts share interaction schema behavior.
+- [x] Inline editing does not mutate source text, instruction operands, or bytes directly.
+- [x] Representation and semantic choosers use backend-provided option metadata.
+- [x] `.` and direct key bindings are catalog-driven.
+- [x] Label validation metadata handles assembler/profile policy correctly.
+- [x] Non-manual target tooling command reuse does not blur Manual Action Catalog semantics.
+- [x] PRD 017 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and relevant focused tests pass before commit.
+
+## Completion Notes
+
+- PRD 017 is implemented through catalog metadata, shared session rendering, and catalog execution only.
+- Target-tooling reuse remains limited to schema-compatible controls; Manual Action Catalog semantics stay separate.
 
 ## Blocked by
 
