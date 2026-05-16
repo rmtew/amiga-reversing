@@ -1,3 +1,6 @@
+const WEB_APP_CONTRACT_VERSION = 1;
+const WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract";
+
 const state = {
   project: null,
   projectData: null,
@@ -246,12 +249,33 @@ const JOB_PHASE_LABELS = {
 };
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, withWebAppContractHeaders(options));
   const payload = await response.json();
+  assertWebAppContract(payload);
   if (!payload.ok) {
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
   return payload.data;
+}
+
+function withWebAppContractHeaders(options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set(WEB_APP_CONTRACT_HEADER, String(WEB_APP_CONTRACT_VERSION));
+  return {...options, headers};
+}
+
+function assertWebAppContract(payload) {
+  const serverVersion = payload?.web_app_contract_version;
+  if (serverVersion === WEB_APP_CONTRACT_VERSION) {
+    return;
+  }
+  throw new Error(
+    `Server/client version mismatch; hard refresh required (client=${WEB_APP_CONTRACT_VERSION}, server=${serverVersion ?? "missing"})`,
+  );
+}
+
+async function verifyWebAppContract() {
+  await fetchJson("/api/app-contract");
 }
 
 function isAbortError(error) {
@@ -506,18 +530,6 @@ async function refreshProjectPayload(projectId, token = null) {
   renderManualReviewPanel();
   renderReproPanel();
   return projectData;
-}
-
-function refreshProjectPayloadInBackground(projectId) {
-  void refreshProjectPayload(projectId)
-    .then(() => {
-      if (state.project === projectId) {
-        renderCurrentListingWindow();
-      }
-    })
-    .catch((error) => {
-      console.warn("Project payload refresh failed after manual action", error);
-    });
 }
 
 function formatProjectTimestamp(timestamp, emptyText) {
@@ -1946,13 +1958,13 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
         body: JSON.stringify(body),
       });
       const application = applyManualActionApplication(result?.application);
-      if (application.reconciliationRequired || (!application.appliedLocalEffect && commandRequiresAnalysisRefresh(command))) {
+      if (application.refreshMode === "analysis" || application.reconciliationRequired) {
         await refreshAnalysisAfterManualMetadataAction(state.project, {});
-      } else if (application.appliedLocalEffect) {
-        closeSubmittedParameterSurface();
-        refreshProjectPayloadInBackground(state.project);
-      } else {
+      } else if (application.refreshMode === "project") {
         await refreshProjectPayload(state.project);
+        renderCurrentListingWindow();
+      } else {
+        closeSubmittedParameterSurface();
         renderCurrentListingWindow();
       }
       setAnalysisStatus("Manual action saved", "ready", 2000);
@@ -1978,6 +1990,7 @@ function closeSubmittedParameterSurface() {
 }
 
 function applyManualActionApplication(application) {
+  const refreshMode = manualActionRefreshMode(application);
   const localEffects = Array.isArray(application?.local_effects) ? application.local_effects : [];
   const pendingRanges = Array.isArray(application?.pending_ranges) ? application.pending_ranges : [];
   let appliedLocalEffect = false;
@@ -1993,7 +2006,16 @@ function applyManualActionApplication(application) {
   return {
     appliedLocalEffect,
     reconciliationRequired: Boolean(application?.reconciliation?.required || pendingRanges.length),
+    refreshMode,
   };
+}
+
+function manualActionRefreshMode(application) {
+  const mode = application?.refresh?.mode;
+  if (mode === "none" || mode === "project" || mode === "analysis") {
+    return mode;
+  }
+  throw new Error(`Server returned incompatible manual action refresh mode: ${mode || "missing"}`);
 }
 
 function applyManualLocalEffect(effect) {
@@ -2213,12 +2235,6 @@ function renderCurrentListingWindow() {
     total_rows: state.virtualListing.totalRows,
     analysis_generation: state.virtualListing.generation,
   }, true);
-}
-
-function commandRequiresAnalysisRefresh(command) {
-  return command === "create_manual_seed"
-    || command === "create_manual_register_seed"
-    || command === "create_manual_label";
 }
 
 function actionNeedsParameterEditor(action) {
@@ -9891,6 +9907,7 @@ function navigateToProject(projectId) {
 async function route() {
   const projectId = currentProjectId();
   try {
+    await verifyWebAppContract();
     if (projectId) {
       await renderProject(projectId);
     } else {

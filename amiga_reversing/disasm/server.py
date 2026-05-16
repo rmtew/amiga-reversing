@@ -10,7 +10,7 @@ import queue
 import threading
 import time
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import NotRequired, TypedDict, cast
@@ -146,6 +146,7 @@ class ProjectPayload(TypedDict):
 class ApiResponse(TypedDict):
     ok: bool
     data: object
+    web_app_contract_version: NotRequired[int]
 
 
 class StaticResponse(TypedDict):
@@ -167,6 +168,8 @@ _LISTING_PHASE_COUNT = 2
 _REPRODUCTION_PHASE_COUNT = 4
 _PROJECT_CREATE_EXECUTABLE_PHASE_COUNT = 4
 _PROJECT_CREATE_DISK_PHASE_COUNT = 5
+WEB_APP_CONTRACT_VERSION = 1
+_WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract"
 
 _OS_CORRECTIONS_PATH = (
     Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_corrections.json"
@@ -742,6 +745,11 @@ def _prewarm_analysis_review_items(project_name: str) -> None:
 
 
 def _json_bytes(payload: object) -> bytes:
+    if isinstance(payload, dict) and "ok" in payload:
+        payload = {
+            **payload,
+            "web_app_contract_version": WEB_APP_CONTRACT_VERSION,
+        }
     return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
 
 
@@ -1870,12 +1878,29 @@ def _manual_action_application_payload(
         "local_effects": local_effects,
         "pending_ranges": pending_ranges,
         "reconciliation": {"required": bool(pending_ranges)},
+        "refresh": {
+            "mode": _manual_action_application_refresh_mode(
+                local_effects, pending_ranges
+            )
+        },
     }
+
+
+def _manual_action_application_refresh_mode(
+    local_effects: Sequence[Mapping[str, object]],
+    pending_ranges: Sequence[Mapping[str, object]],
+) -> str:
+    if pending_ranges:
+        return "analysis"
+    if local_effects:
+        return "none"
+    return "project"
 
 
 def _merge_manual_action_applications(parts: list[dict[str, object]]) -> dict[str, object]:
     local_effects: list[dict[str, object]] = []
     pending_ranges: list[dict[str, object]] = []
+    refresh_modes: list[str] = []
     for part in parts:
         local_effects.extend(
             effect for effect in part.get("local_effects", []) if isinstance(effect, dict)
@@ -1883,11 +1908,23 @@ def _merge_manual_action_applications(parts: list[dict[str, object]]) -> dict[st
         pending_ranges.extend(
             pending for pending in part.get("pending_ranges", []) if isinstance(pending, dict)
         )
+        refresh = part.get("refresh")
+        if isinstance(refresh, Mapping):
+            mode = refresh.get("mode")
+            if isinstance(mode, str):
+                refresh_modes.append(mode)
+    if "analysis" in refresh_modes or pending_ranges:
+        refresh_mode = "analysis"
+    elif "project" in refresh_modes or not local_effects:
+        refresh_mode = "project"
+    else:
+        refresh_mode = "none"
     return {
         "status": "pending" if pending_ranges else "applied",
         "local_effects": local_effects,
         "pending_ranges": pending_ranges,
         "reconciliation": {"required": bool(pending_ranges)},
+        "refresh": {"mode": refresh_mode},
     }
 
 
@@ -2029,6 +2066,27 @@ def resolve_static_response(path: str) -> StaticResponse:
 class DisasmApiHandler(BaseHTTPRequestHandler):
     server_version = "DisasmApi/0.1"
 
+    def _reject_incompatible_web_app_contract(self, path: str) -> bool:
+        if (
+            not path.startswith("/api/")
+            or path in {"/api/app-contract", "/api/jobs/events"}
+        ):
+            return False
+        client_version = self.headers.get(_WEB_APP_CONTRACT_HEADER)
+        if client_version == str(WEB_APP_CONTRACT_VERSION):
+            return False
+        error = (
+            "Server/client version mismatch; hard refresh required "
+            f"(client={client_version or 'missing'}, server={WEB_APP_CONTRACT_VERSION})"
+        )
+        body = _json_bytes({"ok": False, "error": error})
+        self.send_response(409)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return True
+
     def _reject_forbidden_api_origin(self, path: str) -> bool:
         if not path.startswith("/api/") or _has_allowed_browser_origin(
             cast(Mapping[str, str], self.headers)
@@ -2151,6 +2209,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if self._reject_forbidden_api_origin(parsed.path):
             return
+        if self._reject_incompatible_web_app_contract(parsed.path):
+            return
         if parsed.path == "/api/jobs/events":
             try:
                 self._handle_job_events(parse_qs(parsed.query))
@@ -2178,6 +2238,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if self._reject_forbidden_api_origin(parsed.path):
             return
+        if self._reject_incompatible_web_app_contract(parsed.path):
+            return
 
         def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
             content_length = int(self.headers.get("Content-Length", "0"))
@@ -2199,6 +2261,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if self._reject_forbidden_api_origin(parsed.path):
             return
+        if self._reject_incompatible_web_app_contract(parsed.path):
+            return
 
         def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
             content_length = int(self.headers.get("Content-Length", "0"))
@@ -2219,6 +2283,8 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         if self._reject_forbidden_api_origin(parsed.path):
+            return
+        if self._reject_incompatible_web_app_contract(parsed.path):
             return
 
         def handler() -> tuple[bytes, str, int, dict[str, str] | None]:
@@ -2247,6 +2313,11 @@ def route_request(
     query: dict[str, list[str]],
     body: dict[str, object] | None = None,
 ) -> ApiResponse:
+    if method == "GET" and path == "/api/app-contract":
+        return {
+            "ok": True,
+            "data": {"web_app_contract_version": WEB_APP_CONTRACT_VERSION},
+        }
     if method == "GET" and path == "/api/projects":
         return {
             "ok": True,

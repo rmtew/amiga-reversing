@@ -949,6 +949,14 @@ def test_route_projects_returns_project_list(monkeypatch: pytest.MonkeyPatch) ->
     assert payload["data"] == [_binary_project("bloodwych", ready=True).to_dict()]
 
 
+def test_route_app_contract_returns_web_version() -> None:
+    payload = disasm_server.route_request("GET", "/api/app-contract", {})
+    data = cast(dict[str, object], payload["data"])
+
+    assert payload["ok"] is True
+    assert data["web_app_contract_version"] == disasm_server.WEB_APP_CONTRACT_VERSION
+
+
 def test_installed_disasm_server_serves_web_static_assets() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     port = _free_tcp_port()
@@ -998,12 +1006,30 @@ def test_installed_disasm_server_serves_web_static_assets() -> None:
         assert b"body {" in styles_css
         assert styles_content_type.startswith("text/css")
 
-        api_body, api_content_type = _read_http_bytes_with_headers(
-            f"{base_url}/api/projects",
+        contract_body, contract_content_type = _read_http_bytes_with_headers(
+            f"{base_url}/api/app-contract",
             {"Origin": f"http://localhost:{port}"},
         )
+        assert b'"web_app_contract_version"' in contract_body
+        assert contract_content_type.startswith("application/json")
+
+        api_body, api_content_type = _read_http_bytes_with_headers(
+            f"{base_url}/api/projects",
+            {
+                "Origin": f"http://localhost:{port}",
+                "X-Amiga-Web-App-Contract": str(disasm_server.WEB_APP_CONTRACT_VERSION),
+            },
+        )
         assert b'"ok":true' in api_body.replace(b" ", b"")
+        assert b'"web_app_contract_version"' in api_body
         assert api_content_type.startswith("application/json")
+
+        with pytest.raises(urllib.error.HTTPError) as exc_info:
+            _read_http_bytes_with_headers(
+                f"{base_url}/api/projects",
+                {"Origin": f"http://localhost:{port}"},
+            )
+        assert exc_info.value.code == 409
 
         with pytest.raises(urllib.error.HTTPError) as exc_info:
             _read_http_bytes_with_headers(
@@ -1621,6 +1647,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     assert seed["end"] == 4
     assert seed["row_indexes"] == [1, 2]
     assert application["status"] == "pending"
+    assert cast(dict[str, object], application["refresh"])["mode"] == "analysis"
     assert pending_ranges[0]["row_indexes"] == [1, 2]
     assert appended_actions == [action]
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
@@ -1715,6 +1742,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert label["hunk"] == 0
     assert label["addr"] == 0
     assert application["status"] == "applied"
+    assert cast(dict[str, object], application["refresh"])["mode"] == "none"
     assert local_effect["kind"] == "label_rename"
     assert local_effect["row_index"] == 0
     assert local_effect["name"] == "start"
@@ -1945,9 +1973,11 @@ def test_route_manual_action_catalog_execute_appends_label_rename_action(
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
 
     assert action["kind"] == "rename_manual_label"
     assert action["payload"] == {"label_id": "l1", "name": "renamed_label"}
+    assert cast(dict[str, object], application["refresh"])["mode"] == "project"
     assert appended_actions == [action]
 
 
@@ -5033,7 +5063,11 @@ def test_cancel_listing_job_publishes_failed_event() -> None:
 def test_json_bytes_returns_valid_json() -> None:
     body = disasm_server._json_bytes({"ok": True, "data": {"x": 1}})
 
-    assert json.loads(body.decode("utf-8")) == {"ok": True, "data": {"x": 1}}
+    assert json.loads(body.decode("utf-8")) == {
+        "ok": True,
+        "data": {"x": 1},
+        "web_app_contract_version": disasm_server.WEB_APP_CONTRACT_VERSION,
+    }
 
 
 def test_resolve_static_response_serves_index() -> None:
