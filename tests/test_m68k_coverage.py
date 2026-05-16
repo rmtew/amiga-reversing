@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from amiga_reversing.tools import m68k_coverage
 
@@ -27,6 +29,7 @@ def test_diagnostic_inventory_loads_current_generated_form_tables() -> None:
     assert inventory["counts"]["assembler_forms"] > 0
     assert inventory["counts"]["disassembler_forms"] > 0
     assert inventory["counts"]["matched_forms"] > 0
+    assert inventory["sample_status_counts"]["sampled"] > 0
     assert len(inventory["entries"]) >= inventory["counts"]["matched_forms"]
     assert "canonical-model coverage" in inventory["deletion_criteria"]
 
@@ -56,6 +59,82 @@ def test_diagnostic_inventory_reports_unmatched_forms() -> None:
     assert asm_only_entry["disassembler"] is None
 
 
+def test_diagnostic_inventory_keeps_missing_sample_strategy_distinct() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "w",
+                "target_cpu": "68000",
+                "status": "missing_sample_strategy",
+                "reason": "one or more operands produced no sample options",
+                "missing_operand_kinds": ["ea"],
+            },
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "l",
+                "target_cpu": "68000",
+                "status": "intentionally_unsupported",
+                "reason": "synthetic unsupported fixture",
+                "missing_operand_kinds": [],
+            },
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "b",
+                "target_cpu": "68000",
+                "status": "implemented_unsupported",
+                "reason": "synthetic unsupported fixture",
+                "missing_operand_kinds": [],
+            },
+        ],
+    )
+
+    assert inventory["sample_status_counts"] == {
+        "implemented_unsupported": 1,
+        "intentionally_unsupported": 1,
+        "missing_sample_strategy": 1,
+    }
+    entry = inventory["entries"][0]
+    assert [sample["status"] for sample in entry["sample_statuses"]] == [
+        "missing_sample_strategy",
+        "intentionally_unsupported",
+        "implemented_unsupported",
+    ]
+
+
+def test_empty_sample_options_produce_missing_strategy_status() -> None:
+    corpus = _load_corpus_script()
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <unknown>", sampling_operand_kinds=("unknown",), operand_kinds=("unknown",))
+    context = corpus.FormContext(
+        form=form,
+        size="w",
+        syntax=form.syntax,
+        operand_kinds=("unknown",),
+        operand_roles=(None,),
+    )
+
+    entry = corpus._sample_status_for_options(context, ((),))
+
+    assert entry.status == "missing_sample_strategy"
+    assert entry.missing_operand_kinds == ("unknown",)
+
+
 def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert m68k_coverage.main(["report", "--phase", "diagnostic"]) == 0
 
@@ -65,3 +144,11 @@ def test_diagnostic_report_command_prints_counts(capsys) -> None:
     assert "matched forms:" in output
     assert "asm-only forms:" in output
     assert "disasm-only forms:" in output
+    assert "sample statuses:" in output
+
+
+def _load_corpus_script():
+    scripts_dir = Path(__file__).resolve().parents[1] / "src" / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    return __import__("generate_c99_assembler_corpus")

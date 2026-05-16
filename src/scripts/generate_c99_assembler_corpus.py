@@ -88,7 +88,7 @@ def _instruction_has_oracle_cpu(item: dict[str, object], form_source: dict[str, 
 
 def _raw_form_for_generated_form(kb: dict[str, object], item: dict[str, object], form: object) -> dict[str, object] | None:
     forms = _item_forms(kb, item)
-    form_index = int(getattr(form, "local_form_index", getattr(form, "form_index")))
+    form_index = int(form.local_form_index if hasattr(form, "local_form_index") else form.form_index)
     if 0 <= form_index < len(forms):
         return forms[form_index]
     return None
@@ -300,6 +300,28 @@ class FormContext:
 
 
 @dataclass(frozen=True, slots=True)
+class SampleCoverageEntry:
+    mnemonic: str
+    kb_mnemonic: str
+    local_form_index: int
+    form_index: int
+    syntax: str
+    size: str | None
+    target_cpu: str
+    status: str
+    reason: str
+    missing_operand_kinds: tuple[str, ...] = ()
+
+
+SAMPLE_STATUS_SAMPLED = "sampled"
+SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY = "missing_sample_strategy"
+SAMPLE_STATUS_INTENTIONALLY_UNSUPPORTED = "intentionally_unsupported"
+SAMPLE_STATUS_IMPLEMENTED_UNSUPPORTED = "implemented_unsupported"
+SAMPLE_STATUS_NOT_TARGET_CPU = "not_target_cpu"
+SAMPLE_STATUS_ORACLE_UNAVAILABLE = "oracle_unavailable"
+
+
+@dataclass(frozen=True, slots=True)
 class EncodedCase:
     patch_values: tuple[int, ...]
     ext_words: tuple[int, ...]
@@ -383,7 +405,7 @@ def _sizes_for_mask(size_mask: int) -> tuple[str | None, ...]:
 
 
 def _form_supports_cpu(form: object, target_cpu: str) -> bool:
-    return (int(getattr(form, "cpu_mask")) & (1 << CPU_RANK[target_cpu])) != 0
+    return (int(form.cpu_mask) & (1 << CPU_RANK[target_cpu])) != 0
 
 
 def _sizes_for_target_form(form: object, target_cpu: str) -> tuple[str | None, ...]:
@@ -1360,6 +1382,42 @@ def _sample_options(
     )
 
 
+def _sample_coverage_entry(
+    context: FormContext,
+    status: str,
+    reason: str,
+    missing_operand_kinds: tuple[str, ...] = (),
+) -> SampleCoverageEntry:
+    return SampleCoverageEntry(
+        mnemonic=str(context.form.mnemonic),
+        kb_mnemonic=str(context.form.kb_mnemonic),
+        local_form_index=int(context.form.local_form_index),
+        form_index=int(context.form.form_index),
+        syntax=str(context.form.syntax),
+        size=context.size,
+        target_cpu=context.target_cpu,
+        status=status,
+        reason=reason,
+        missing_operand_kinds=missing_operand_kinds,
+    )
+
+
+def _sample_status_for_options(context: FormContext, options: tuple[tuple[object, ...], ...]) -> SampleCoverageEntry:
+    missing = tuple(
+        operand_kind
+        for operand_kind, choices in zip(context.operand_kinds, options, strict=True)
+        if not choices
+    )
+    if missing and "reglist" not in context.operand_kinds:
+        return _sample_coverage_entry(
+            context,
+            SAMPLE_STATUS_MISSING_SAMPLE_STRATEGY,
+            "one or more operands produced no sample options",
+            missing,
+        )
+    return _sample_coverage_entry(context, SAMPLE_STATUS_SAMPLED, "sample options available")
+
+
 def _expand_reglist_options(context: FormContext, base_samples: tuple[object, ...], kb: dict[str, object]) -> tuple[tuple[object, ...], ...]:
     reglist_indexes = [index for index, kind in enumerate(context.operand_kinds) if kind == "reglist"]
     if not reglist_indexes:
@@ -1792,6 +1850,54 @@ def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) 
                         )
                     )
     return cases
+
+
+def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[SampleCoverageEntry]:
+    subset_module, forms, kb = _load_forms_and_kb()
+    entries: list[SampleCoverageEntry] = []
+    for form in forms:
+        item = _mnemonic_item(kb, form.kb_mnemonic)
+        form_source = _raw_form_for_generated_form(kb, item, form)
+        operand_roles = _operand_roles(kb, item, form.sampling_operand_kinds)
+        if not _form_supports_cpu(form, target_cpu):
+            entries.append(SampleCoverageEntry(
+                mnemonic=str(form.mnemonic),
+                kb_mnemonic=str(form.kb_mnemonic),
+                local_form_index=int(form.local_form_index),
+                form_index=int(form.form_index),
+                syntax=str(form.syntax),
+                size=None,
+                target_cpu=target_cpu,
+                status=SAMPLE_STATUS_NOT_TARGET_CPU,
+                reason=f"form does not support {target_cpu}",
+            ))
+            continue
+        if require_oracle_cpu and not _instruction_has_oracle_cpu(item, form_source, target_cpu):
+            entries.append(SampleCoverageEntry(
+                mnemonic=str(form.mnemonic),
+                kb_mnemonic=str(form.kb_mnemonic),
+                local_form_index=int(form.local_form_index),
+                form_index=int(form.form_index),
+                syntax=str(form.syntax),
+                size=None,
+                target_cpu=target_cpu,
+                status=SAMPLE_STATUS_ORACLE_UNAVAILABLE,
+                reason=f"oracle unavailable for {target_cpu}",
+            ))
+            continue
+        for size in _sizes_for_target_form(form, target_cpu):
+            context = FormContext(
+                form=form,
+                size=size,
+                syntax=form.syntax,
+                operand_kinds=form.sampling_operand_kinds,
+                operand_roles=operand_roles,
+                target_cpu=target_cpu,
+                form_source=form_source,
+            )
+            options = _sample_options(context, item, kb, forms, subset_module)
+            entries.append(_sample_status_for_options(context, options))
+    return entries
 
 
 def generate_full_ext_cases() -> list[CorpusCase]:
