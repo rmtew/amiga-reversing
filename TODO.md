@@ -96,12 +96,6 @@ Proposal: `docs/proposals/003-runtime-tracing.md`.
 - [ ] Coverage feedback loop: emulation traces -> new entry points -> re-analyze
 - [ ] Identify dead code: addresses never executed across all input variations
 
-### Data Structure Enumeration
-
-Proposal: `docs/proposals/006-target-import-and-analysis-architecture.md`.
-
-- [ ] Extend jump table pattern recognition for new table formats
-
 ## Round-Trip Validation
 
 Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
@@ -129,22 +123,3 @@ Proposal: `docs/proposals/003-runtime-tracing.md`.
 - [ ] Inventory Amiga compilers (SAS/C, Lattice, DICE, Aztec/Manx, GCC)
 - [ ] Run under vamos, extract signatures (startup, prologues, runtime)
 - [ ] Build fingerprint database for auto-identifying compiler/language
-
-### Analysis Architecture
-
-Proposal: `docs/proposals/006-target-import-and-analysis-architecture.md`.
-
-- [ ] Decide whether any remaining indirect-analysis orchestration in C should stay monolithic or split further from lower-level reusable analysis
-- [ ] Add a small number of whole-target integration checks around GenAm / Bloodwych output so renderer and analysis regressions are caught above the unit-test level
-- [ ] Keep strict `mypy` coverage focused on the Python web/orchestration layer and C-backed adapters
-- [ ] Add first-class support for non-AmigaDOS/custom-track disks in the import path; current strict importer only accepts AmigaDOS disks
-- [ ] Extract structured file-signature KB from primary or project-trusted sources so packer/cruncher detection is KB-driven instead of omitted
-- [ ] Replace sector-image non-DOS heuristics with real raw-track/custom-loader format decoding once we ingest non-ADF track data or add custom-format descriptors to the KB
-- [ ] Extend typed executable structure analysis beyond resident/library classification to parse Exec library init/vector structure and surface NDK-driven exported function names in the executable view
-- [ ] Tighten the remaining resident/library/device structured-entrypoint work now that bootblocks and resident auto-init vectors are modeled: finish Exec init/vector executable-layout parsing from primary-source metadata for any still-missing formal entry code, make emitted/exported entry labels version-aware from the OS KB, and add whole-target regressions that pin real exported handler coverage/naming on resident binaries
-- [ ] If we import seeded target-local facts from external reverse-engineering sources, keep them in an optional import workflow and never make tests, normal target rendering, or precommit depend on the external source being present
-- [ ] Add Add Project UI flow for manual raw-binary targets that requires user-supplied load address and entrypoint, using the new strict `source_binary.json` raw-binary source kind
-- [ ] Auto-create non-DOS loader stage targets only when bootloader analysis can materialize concrete stage bytes plus load address and entrypoint, so inferred-only regions stay honest
-- [ ] Extend runtime-built Amiga resident/device analysis for targets such as `amiga_disk_carrier-command-1994-kixx-budget__amiga_hunk_devs__ramdrive.device_2c146d8c`, where resident/device structures and dispatch code are copied and relocated before `AddDevice`; keep any source refresh gated on clean direct rebuild or explicitly classified relocation semantics.
-- [ ] Keep the mojibake check in `amiga_reversing.tools.check_mojibake` tight and data-oriented; if more broken encodings appear, extend the explicit pattern list with focused regression tests rather than broad punctuation bans
-- [ ] Continue any remaining honest unresolved indirect-call classification work in the analysis path if benchmarks expose avoidable `unknown` cases
