@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Preserve **Listing Selection** across virtual listing fetches and reanalysis refreshes when the selected row can still be identified.
 
 ## Acceptance criteria
 
-- [ ] Selection persists across listing window reloads using stable row identity where available.
-- [ ] Selection falls back predictably when the row no longer exists.
-- [ ] Manual action refreshes preserve selection when possible.
-- [ ] Tests cover virtual reload and reanalysis refresh behavior.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Selection persists across listing window reloads using stable row identity where available.
+- [x] Selection falls back predictably when the row no longer exists.
+- [x] Manual action refreshes preserve selection when possible.
+- [x] Tests cover virtual reload and reanalysis refresh behavior.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

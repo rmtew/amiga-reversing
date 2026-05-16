@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Make keyboard movement operate on **Listing Selection**: Up/Down moves the selected row, while Home/End/PageUp/PageDown move the viewport without changing selection.
 
 ## Acceptance criteria
 
-- [ ] Up and Down move selected row by one listing row.
-- [ ] Home, End, PageUp, and PageDown preserve selected row while moving the viewport.
-- [ ] Keyboard handling does not steal input from editable controls or open dialogs.
-- [ ] CDP/e2e tests cover row movement and viewport-only movement.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Up and Down move selected row by one listing row.
+- [x] Home, End, PageUp, and PageDown preserve selected row while moving the viewport.
+- [x] Keyboard handling does not steal input from editable controls or open dialogs.
+- [x] CDP/e2e tests cover row movement and viewport-only movement.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

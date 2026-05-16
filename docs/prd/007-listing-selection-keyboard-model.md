@@ -1,5 +1,9 @@
 # PRD 007: Listing Selection and Keyboard Model
 
+## Status
+
+Complete as of 2026-05-16.
+
 ## Purpose
 
 Add a durable **Listing Selection** model so keyboard, command palette, context menu, review navigation, and API-driven workflows have a precise current target in the rendered analysis listing.
@@ -43,8 +47,17 @@ Add a durable **Listing Selection** model so keyboard, command palette, context 
 
 ## Open Questions
 
-- Whether the first element in a row should be auto-selected when an action needs element precision.
-- Visual styling for selected row versus transient focused row.
+- Resolved: row selection remains the default; element precision is selected
+  explicitly or inferred only for unambiguous element-only bindings.
+- Resolved: selected rows use distinct styling from transient focused rows.
+
+## Completion Notes
+
+- Listing selection now tracks row and optional element context, drives catalog
+  queries, and survives listing refresh by stable row identity with explicit
+  precision-loss fallback.
+- Focused PRD007 verification passed on 2026-05-16:
+  `uv run python -m pytest tests\test_web_e2e_cdp.py tests\test_web_app_source.py -q -k "listing_selection_keyboard_navigation or listing_selection_survives_refresh_by_stable_key or manual_review_panel_filters_and_navigates or command_palette_sends_structured_symbol_context or command_palette_applies_manual_representation or page_level_listing_keys_route_to_listing_viewport or command_palette_and_selection_model"`.
 
 ## Follow-On PRDs
 

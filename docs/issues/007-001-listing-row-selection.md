@@ -8,18 +8,22 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Introduce durable selected-row state for the listing so Review and Navigate jumps set **Listing Selection** instead of only applying a temporary highlight.
 
 ## Acceptance criteria
 
-- [ ] The listing tracks one selected row independently from transient focus/highlight.
-- [ ] Review item navigation sets selected row.
-- [ ] Navigate dialog activation sets selected row.
-- [ ] Selected row styling is distinct from temporary jump focus.
-- [ ] Web tests cover selection state transitions.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] The listing tracks one selected row independently from transient focus/highlight.
+- [x] Review item navigation sets selected row.
+- [x] Navigate dialog activation sets selected row.
+- [x] Selected row styling is distinct from temporary jump focus.
+- [x] Web tests cover selection state transitions.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 

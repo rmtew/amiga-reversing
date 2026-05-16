@@ -719,6 +719,80 @@ def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.Mon
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_listing_selection_survives_refresh_by_stable_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _binary_project("amiga_hunk_selection_refresh")
+    rows = [
+        ListingRow(
+            row_id=f"r{index}",
+            kind="instruction",
+            text=f"moveq #{index},d0\n",
+            addr=index * 2,
+            stable_key=f"row-{index}",
+        )
+        for index in range(10)
+    ]
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_selector("[data-row-stable-key='row-6']")
+        page.evaluate("document.querySelector('[data-row-stable-key=\"row-6\"]').click()")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'row-6'")
+
+        page.evaluate(
+            """
+            (() => {
+              const refreshed = state.listingRows.map((row) => ({...row}));
+              const [selected] = refreshed.splice(6, 1);
+              refreshed.splice(2, 0, selected);
+              refreshed.forEach((row, index) => { row.row_index = index; });
+              renderVirtualListingWindow(state.project, {
+                rows: refreshed,
+                start: 0,
+                end: refreshed.length,
+                total_rows: refreshed.length,
+                analysis_generation: "stable-refresh",
+              }, true);
+            })()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'row-6'")
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "2"
+
+        page.evaluate(
+            """
+            (() => {
+              const refreshed = state.listingRows
+                .filter((row) => row.stable_key !== "row-6")
+                .map((row) => ({...row}));
+              refreshed.splice(6, 0, {
+                ...state.listingRows.find((row) => row.stable_key === "row-6"),
+                stable_key: "replacement-row-6",
+                row_id: "replacement-r6",
+                row_index: 6,
+              });
+              refreshed.forEach((row, index) => { row.row_index = index; });
+              renderVirtualListingWindow(state.project, {
+                rows: refreshed,
+                start: 0,
+                end: refreshed.length,
+                total_rows: refreshed.length,
+                analysis_generation: "fallback-refresh",
+              }, true);
+            })()
+            """
+        )
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'replacement-row-6'")
+        assert page.evaluate("state.listingSelection.precisionLost === true")
+        page.wait_for_expression("document.querySelector('#analysis-status')?.textContent.includes('Selection precision lost')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_listing_range_selection_and_palette_reasons(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

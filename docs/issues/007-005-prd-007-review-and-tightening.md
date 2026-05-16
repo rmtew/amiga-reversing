@@ -8,17 +8,21 @@
 
 AFK
 
+## Labels
+
+done
+
 ## What to build
 
 Review the completed PRD 007 selection and keyboard work, identify missed edge cases, over-complicated selection state, or weak tests, and address them directly or split follow-up issues.
 
 ## Acceptance criteria
 
-- [ ] Review selection behavior across Review, Navigate, keyboard, reload, and element-selection flows.
-- [ ] Simplify duplicated or fragile selection state found during review.
-- [ ] Add missing tests or issue follow-ups for broader gaps.
-- [ ] PRD 007 links and issue statuses remain accurate after review.
-- [ ] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
+- [x] Review selection behavior across Review, Navigate, keyboard, reload, and element-selection flows.
+- [x] Simplify duplicated or fragile selection state found during review.
+- [x] Add missing tests or issue follow-ups for broader gaps.
+- [x] PRD 007 links and issue statuses remain accurate after review.
+- [x] `src\precommit.bat` and any relevant tests not covered by it pass before commit.
 
 ## Blocked by
 
