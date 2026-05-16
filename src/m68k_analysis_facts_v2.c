@@ -1338,27 +1338,25 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
   return 0;
 }
 
-static int is_conditional_branch_or_dbcc(uint8_t mnemonic_id) {
-  return (mnemonic_id >= M68K_ASM_MNEMONIC_BHI && mnemonic_id <= M68K_ASM_MNEMONIC_BLE) ||
-    (mnemonic_id >= M68K_ASM_MNEMONIC_DBT && mnemonic_id <= M68K_ASM_MNEMONIC_DBLE);
-}
-
-static int instruction_has_fallthrough(uint8_t mnemonic_id) {
-  if (mnemonic_id == M68K_ASM_MNEMONIC_RTS || mnemonic_id == M68K_ASM_MNEMONIC_RTR ||
-      mnemonic_id == M68K_ASM_MNEMONIC_RTE || mnemonic_id == M68K_ASM_MNEMONIC_BRA ||
-      mnemonic_id == M68K_ASM_MNEMONIC_JMP) {
-    return 0;
-  }
-  return 1;
+static int candidate_has_generated_conditional_branch_flow(const M68kDecodeCandidate *candidate) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  return metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional != 0U;
 }
 
 static int candidate_has_normal_fallthrough(const M68kDecodeCandidate *candidate) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
-  if (candidate == NULL || !instruction_has_fallthrough(candidate->mnemonic_id)) return 0;
+  if (candidate == NULL) return 0;
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 1;
   metadata = m68k_sim_metadata_for_instruction(&instruction);
   if (metadata == NULL) return 1;
+  if (metadata->flow_kind == M68K_SIM_FLOW_RETURN || metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
+    return 0;
+  }
   return !(metadata->flow_kind == M68K_SIM_FLOW_TRAP &&
     metadata->exception_trigger == M68K_SIM_EXCEPTION_TRIGGER_ALWAYS &&
     metadata->exception_pc_source == M68K_SIM_EXCEPTION_PC_CURRENT);
@@ -3551,11 +3549,16 @@ static int candidate_adds_address_reg_to_same_reg(const M68kDecodeCandidate *can
 
 static int candidate_dbcc_branches_to_offset_with_reg(const M68kDecodeCandidate *candidate, uint8_t reg,
     uint32_t target_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
   size_t target_index;
   uint8_t db_reg = 0U;
-  if (candidate == NULL || candidate->operand_count < 1U ||
-      candidate->mnemonic_id < M68K_ASM_MNEMONIC_DBT || candidate->mnemonic_id > M68K_ASM_MNEMONIC_DBLE ||
-      !operand_is_data_register_direct(&candidate->operands[0], &db_reg) || db_reg != reg) {
+  if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_DBCC ||
+      metadata->source_operand_index >= candidate->operand_count ||
+      !operand_is_data_register_direct(&candidate->operands[metadata->source_operand_index], &db_reg) ||
+      db_reg != reg) {
     return 0;
   }
   for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
@@ -8392,7 +8395,7 @@ static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, 
       uint32_t fallthrough_runtime = 0U;
       uint8_t fallthrough_has_runtime = (uint8_t)runtime_address_space_source_to_runtime_near(runtime_addresses,
         section_index, next_cursor, 0U, 0U, &fallthrough_runtime);
-      uint8_t fallthrough_confidence = is_conditional_branch_or_dbcc(candidate->mnemonic_id)
+      uint8_t fallthrough_confidence = candidate_has_generated_conditional_branch_flow(candidate)
         ? M68K_FACT_CONFIDENCE_TOOL_INFERRED : M68K_FACT_CONFIDENCE_SPECULATIVE;
       if (queue != NULL && trace_state_can_drive_indirect_control(&next_state)) {
         if (enqueue_code_start_runtime_ex(facts, queue, profile, section_index, next_cursor,
@@ -8765,7 +8768,7 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         uint8_t fallthrough_allow_trace_variant = item.allow_trace_variant &&
           (trace_state_can_drive_indirect_control(&next_trace_state) ||
            trace_state_can_drive_runtime_sink(object->platform_backend_kind, &next_trace_state));
-        uint8_t fallthrough_confidence = is_conditional_branch_or_dbcc(candidate->mnemonic_id)
+        uint8_t fallthrough_confidence = candidate_has_generated_conditional_branch_flow(candidate)
           ? M68K_FACT_CONFIDENCE_TOOL_INFERRED : M68K_FACT_CONFIDENCE_SPECULATIVE;
         if (item.has_runtime_address && item.runtime_address <= UINT32_MAX - candidate->byte_count) {
           fallthrough_has_runtime = 1U;

@@ -200,28 +200,9 @@ static int fixup_target_offset_local(const M68kObject *object, const M68kFixup *
   return 1;
 }
 
-static int mnemonic_id_is_branch_family(uint8_t mnemonic_id) {
-  switch (mnemonic_id) {
-  case M68K_ASM_MNEMONIC_BHI:
-  case M68K_ASM_MNEMONIC_BLS:
-  case M68K_ASM_MNEMONIC_BCC:
-  case M68K_ASM_MNEMONIC_BCS:
-  case M68K_ASM_MNEMONIC_BNE:
-  case M68K_ASM_MNEMONIC_BEQ:
-  case M68K_ASM_MNEMONIC_BVC:
-  case M68K_ASM_MNEMONIC_BVS:
-  case M68K_ASM_MNEMONIC_BPL:
-  case M68K_ASM_MNEMONIC_BMI:
-  case M68K_ASM_MNEMONIC_BGE:
-  case M68K_ASM_MNEMONIC_BLT:
-  case M68K_ASM_MNEMONIC_BGT:
-  case M68K_ASM_MNEMONIC_BLE:
-  case M68K_ASM_MNEMONIC_BRA:
-  case M68K_ASM_MNEMONIC_BSR:
-    return 1;
-  default:
-    return 0;
-  }
+static int instruction_mnemonic_is_generated_branch_family(const M68kInstructionIR *instruction) {
+  if (instruction == NULL || instruction->mnemonic_id >= M68K_ASM_MNEMONIC_COUNT) return 0;
+  return g_m68k_asm_mnemonic_metadata[instruction->mnemonic_id].family == M68K_ASM_MNEMONIC_FAMILY_BRANCH;
 }
 
 const M68kSimFormMetadata *instruction_sim_metadata(const M68kInstructionIR *instruction) {
@@ -245,8 +226,8 @@ static int instruction_branch_target(const M68kInstructionIR *instruction, uint3
 
 static int instruction_branch_target_from_bytes(const M68kInstructionIR *instruction, const uint8_t *data, size_t size,
     uint32_t offset, uint32_t *out_target) {
-  if (data == NULL || out_target == NULL) return 0;
-  if (instruction->byte_count == 2U && size >= 2U && mnemonic_id_is_branch_family(instruction->mnemonic_id)) {
+  if (instruction == NULL || data == NULL || out_target == NULL) return 0;
+  if (instruction->byte_count == 2U && size >= 2U && instruction_mnemonic_is_generated_branch_family(instruction)) {
     *out_target = offset + 2U + (uint32_t)((int32_t)(int8_t)data[1]);
     return 1;
   }

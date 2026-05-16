@@ -3511,7 +3511,9 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT_STR(source, plan_source);
   M68K_C_ASSERT(strstr(source, "    SECTION section,code") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004:") != NULL);
-  M68K_C_ASSERT(strstr(source, "bra") != NULL);
+  M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_FAMILY_BRANCH,
+    g_m68k_asm_mnemonic_metadata[M68K_ASM_MNEMONIC_BRA].family);
+  M68K_C_ASSERT(strstr(source, "\tbra.b loc_0_00000004\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000004") != NULL);
   M68K_C_ASSERT(strstr(source, "facts_v2 instruction bytes") == NULL);
   for (row_index = 0U; row_index < source_plan.row_count; ++row_index) {

@@ -2059,7 +2059,8 @@ lookup requirement.
 
 `m68k_ir_codec.c` no longer carries the old mnemonic-family helper switches, but
 `platform_file_core.c` still has `mnemonic_id_is_branch_family()` for byte-sized
-branch target recovery.
+branch target recovery. The implementation pass also found a facts-v2 DBcc
+range check and conditional branch/DBcc fallthrough-confidence check.
 
 Impact:
 
@@ -2073,6 +2074,19 @@ Required follow-up:
 replace this with generated mnemonic/form family metadata or simulator flow
 metadata.
 ```
+
+2026-05-17 implementation update: issue 027-008 replaced the
+`platform_file_core.c` byte-sized branch family switch with generated mnemonic
+family metadata. It also replaced the facts-v2 conditional branch/DBcc range
+checks with generated simulator flow and operation metadata.
+
+Residual follow-up from the same audit: other analysis/rendering paths still use
+exact mnemonic ids or mnemonic ranges for control-flow classification, including
+`m68k_decode_ir.c`, `m68k_symbolic_parse.c`,
+`platform_amiga_bootloader_analysis.c`, `m68k_analysis_render_lookup.c`, and
+`m68k_render_ir.c`. Some exact mnemonic checks may be domain-specific behavior,
+but each remaining range or flow-family check needs either generated metadata or
+an explicit local justification. Tracked by `docs/issues/027-010-remove-remaining-downstream-flow-family-knowledge.md`.
 
 #### 8. Sample Plans Are Still Partly Corpus-Owned
 
@@ -2141,7 +2155,7 @@ Strong:
   disassembler ambiguity sorting moved upstream
 
 Weak:
-  one downstream branch-family switch remains
+  broader downstream flow/family classification audit remains
   final deletion/verification pass is still pending
 ```
 
@@ -2149,7 +2163,7 @@ The next implementation pass should prioritize correctness of the gate over more
 coverage breadth:
 
 ```text
-1. replace the remaining downstream branch-family switch
+1. audit and remove or justify remaining downstream flow/family classifications
 2. run the final Proposal 005 verification and deletion pass
 ```
 
