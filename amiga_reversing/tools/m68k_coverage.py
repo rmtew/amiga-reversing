@@ -24,6 +24,32 @@ DIAGNOSTIC_SAMPLE_STATUSES = {
     "oracle_unavailable",
 }
 DIAGNOSTIC_UNSUPPORTED_SAMPLE_STATUSES = {"intentionally_unsupported", "implemented_unsupported"}
+BOOTSTRAP_UNSUPPORTED_FAMILIES = (
+    {
+        "family_id": "move16",
+        "status": "implemented_unsupported",
+        "mnemonics": ("MOVE16",),
+        "reason": "Deferred family named by PRD 023/025 until canonical sample and semantics coverage owns it.",
+    },
+    {
+        "family_id": "fsave_frestore",
+        "status": "implemented_unsupported",
+        "mnemonics": ("FSAVE", "FRESTORE"),
+        "reason": "Deferred FPU state-frame family named by PRD 023/025.",
+    },
+    {
+        "family_id": "pmmu",
+        "status": "implemented_unsupported",
+        "mnemonics": ("PBCC", "PDBCC", "PFLUSH", "PFLUSHA", "PFLUSHR", "PLOADR", "PLOADW", "PMOVE", "PSCC", "PTESTR", "PTESTW", "PTRAPCC", "PVALID"),
+        "reason": "Deferred PMMU family named by PRD 023/025.",
+    },
+    {
+        "family_id": "generic_coprocessor",
+        "status": "intentionally_unsupported",
+        "mnemonics": ("CPBCC", "CPDBCC", "CPRESTORE", "CPSAVE", "CPSCC", "CPTRAPCC"),
+        "reason": "Generic coprocessor coverage is deliberately deferred until canonical unsupported inventory owns it.",
+    },
+)
 
 
 class FormLike(Protocol):
@@ -79,11 +105,8 @@ def build_diagnostic_inventory(
         for samples in samples_by_key.values()
         for sample in samples
     )
-    unsupported_counts = {
-        status: count
-        for status, count in sorted(sample_status_counts.items())
-        if status in DIAGNOSTIC_UNSUPPORTED_SAMPLE_STATUSES
-    }
+    unsupported_inventory = _bootstrap_unsupported_inventory(entries)
+    unsupported_counts = Counter(str(entry["status"]) for entry in unsupported_inventory)
 
     return {
         "phase": "diagnostic",
@@ -97,7 +120,8 @@ def build_diagnostic_inventory(
             "disasm_only_forms": sum(1 for entry in entries if entry["status"] == "disasm_only"),
         },
         "sample_status_counts": dict(sorted(sample_status_counts.items())),
-        "unsupported_counts": unsupported_counts,
+        "unsupported_counts": dict(sorted(unsupported_counts.items())),
+        "unsupported_inventory": unsupported_inventory,
         "entries": entries,
     }
 
@@ -159,6 +183,12 @@ def diagnostic_check_failures(inventory: dict[str, Any]) -> list[dict[str, str]]
                     "kind": "missing_sample_strategy",
                     "message": f"{form_name} has no sample strategy for size {sample.get('size') or '-'}",
                 })
+    for unsupported in inventory.get("unsupported_inventory", []):
+        if unsupported.get("stale") is True:
+            failures.append({
+                "kind": "stale_unsupported_reason",
+                "message": f"{unsupported['family_id']} unsupported entry matched no current generated forms",
+            })
     return failures
 
 
@@ -226,6 +256,32 @@ def _sample_entries_by_key(entries: list[dict[str, Any]]) -> dict[tuple[str, int
     return dict(grouped)
 
 
+def _bootstrap_unsupported_inventory(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_mnemonic: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for entry in entries:
+        by_mnemonic[str(entry["key"]["mnemonic"]).upper()].append(entry["key"])
+    inventory: list[dict[str, Any]] = []
+    for family in BOOTSTRAP_UNSUPPORTED_FAMILIES:
+        matched_forms = [
+            form
+            for mnemonic in family["mnemonics"]
+            for form in by_mnemonic.get(str(mnemonic), [])
+        ]
+        if not matched_forms:
+            continue
+        inventory.append({
+            "family_id": family["family_id"],
+            "status": family["status"],
+            "mnemonics": list(family["mnemonics"]),
+            "reason": family["reason"],
+            "stale_condition": "stale_when_no_current_generated_form_matches_mnemonics",
+            "stale": False,
+            "form_count": len(matched_forms),
+            "forms": matched_forms,
+        })
+    return inventory
+
+
 def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
     counts = inventory["counts"]
     print("M68K diagnostic coverage")
@@ -248,6 +304,11 @@ def _print_diagnostic_report(inventory: dict[str, Any]) -> None:
             print(f"  {status}: {count}")
     else:
         print("  none: 0")
+    unsupported_inventory = inventory.get("unsupported_inventory", [])
+    if unsupported_inventory:
+        print("unsupported entries:")
+        for entry in unsupported_inventory:
+            print(f"  {entry['family_id']}: {entry['status']} forms={entry['form_count']}")
     print(f"deletion: {inventory['deletion_criteria']}")
     missing_sample_entries = [
         (entry["key"], sample)

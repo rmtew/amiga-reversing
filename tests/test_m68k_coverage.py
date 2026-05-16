@@ -110,10 +110,6 @@ def test_diagnostic_inventory_keeps_missing_sample_strategy_distinct() -> None:
         "intentionally_unsupported": 1,
         "missing_sample_strategy": 1,
     }
-    assert inventory["unsupported_counts"] == {
-        "implemented_unsupported": 1,
-        "intentionally_unsupported": 1,
-    }
     entry = inventory["entries"][0]
     assert [sample["status"] for sample in entry["sample_statuses"]] == [
         "missing_sample_strategy",
@@ -206,6 +202,66 @@ def test_diagnostic_check_fails_synthetic_missing_sample_strategy() -> None:
             "message": "MOVE#0 MOVE MOVE <ea>,Dn has no sample strategy for size w",
         }
     ]
+
+
+def test_bootstrap_unsupported_inventory_classifies_current_families() -> None:
+    inventory = m68k_coverage.build_diagnostic_inventory()
+
+    unsupported_by_id = {entry["family_id"]: entry for entry in inventory["unsupported_inventory"]}
+    assert {"move16", "fsave_frestore", "pmmu", "generic_coprocessor"} <= set(unsupported_by_id)
+    assert unsupported_by_id["move16"]["status"] == "implemented_unsupported"
+    assert unsupported_by_id["generic_coprocessor"]["status"] == "intentionally_unsupported"
+    assert all(entry["form_count"] > 0 for entry in unsupported_by_id.values())
+    assert inventory["unsupported_counts"] == {
+        "implemented_unsupported": 3,
+        "intentionally_unsupported": 1,
+    }
+
+
+def test_diagnostic_check_fails_stale_unsupported_reason() -> None:
+    inventory = {
+        "entries": [],
+        "unsupported_inventory": [
+            {
+                "family_id": "synthetic",
+                "status": "intentionally_unsupported",
+                "stale": True,
+            }
+        ],
+    }
+
+    failures = m68k_coverage.diagnostic_check_failures(inventory)
+
+    assert failures == [
+        {
+            "kind": "stale_unsupported_reason",
+            "message": "synthetic unsupported entry matched no current generated forms",
+        }
+    ]
+
+
+def test_explicit_unsupported_sample_status_is_classified() -> None:
+    form = FakeForm("MOVE", "MOVE", 0, 0, "MOVE <ea>,Dn")
+    inventory = m68k_coverage.build_diagnostic_inventory(
+        assembler_forms=[form],
+        disassembler_forms=[form],
+        assembler_sample_entries=[
+            {
+                "mnemonic": "MOVE",
+                "kb_mnemonic": "MOVE",
+                "local_form_index": 0,
+                "form_index": 0,
+                "syntax": "MOVE <ea>,Dn",
+                "size": "w",
+                "target_cpu": "68000",
+                "status": "intentionally_unsupported",
+                "reason": "synthetic unsupported fixture",
+                "missing_operand_kinds": [],
+            }
+        ],
+    )
+
+    assert m68k_coverage.diagnostic_check_failures(inventory) == []
 
 
 def _load_corpus_script():
