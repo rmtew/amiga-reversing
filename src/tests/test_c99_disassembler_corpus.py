@@ -18,6 +18,7 @@ DISASM_DLL_PATH = ROOT / "src" / "build" / "m68k_disassembler_lib.dll"
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
 ASM_TABLES_HEADER_PATH = ROOT / "src" / "generated" / "m68k_asm_tables.h"
 FORM_MODEL_HEADER_PATH = ROOT / "src" / "generated" / "m68k_form_model.h"
+FORM_MODEL_SOURCE_PATH = ROOT / "src" / "generated" / "m68k_form_model.c"
 
 CPU_CODES = {
     "68000": 0,
@@ -121,7 +122,7 @@ def _asm_form_none() -> int:
 
 @lru_cache(maxsize=None)
 def _canonical_form_id_for_syntax(syntax: str) -> int:
-    text = FORM_MODEL_HEADER_PATH.read_text()
+    text = FORM_MODEL_SOURCE_PATH.read_text()
     match = re.search(rf"\{{\s+(\d+)u,\s+\d+u,\s+\"[^\"]+\",\s+\"[^\"]+\",\s+\d+u,\s+\"{re.escape(syntax)}\",", text)
     assert match is not None
     return int(match.group(1))

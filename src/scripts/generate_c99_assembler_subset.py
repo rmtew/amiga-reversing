@@ -1946,8 +1946,10 @@ def generate_files(output_dir: Path, kb_path: Path = KB_PATH) -> dict[str, str]:
     tables_header = _style_generated_c_text(_render_header(forms, kb, mnemonic_list))
     tables_source = _style_generated_c_text(_render_tables(forms, kb, mnemonic_list, canonical_forms))
     form_model_header = _style_generated_c_text(m68k_canonical_model.render_form_model_header(canonical_forms))
+    form_model_source = _style_generated_c_text(m68k_canonical_model.render_form_model_source(canonical_forms))
     files = {
         "m68k_form_model.h": form_model_header,
+        "m68k_form_model.c": form_model_source,
         "m68k_asm_tables.h": tables_header,
         "m68k_asm_tables.c": tables_source,
     }

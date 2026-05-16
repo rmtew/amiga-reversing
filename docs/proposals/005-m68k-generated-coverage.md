@@ -2004,6 +2004,18 @@ Required follow-up:
 split declarations into m68k_forms.h and storage into m68k_forms.c.
 ```
 
+2026-05-17 implementation update: issue 027-005 kept the existing public
+artifact name `src/generated/m68k_form_model.h` and added
+`src/generated/m68k_form_model.c`. The header now exposes only types,
+constants, extern arrays, and lookup declarations. The C file owns
+`g_m68k_canonical_forms`, `g_m68k_canonical_form_id_by_row`,
+`g_m68k_canonical_form_row_by_id`, `m68k_form_id_for_row()`, and
+`m68k_form_row_for_id()`.
+
+The generated artifact names differ from the earlier illustrative
+`m68k_forms.h` / `m68k_forms.c` wording to avoid gratuitous include churn while
+still removing duplicate static header storage.
+
 #### 6. Runtime Lookup Is Improved But Not Fully Indexed
 
 Assembler resolution now uses generated mnemonic ranges instead of scanning all
