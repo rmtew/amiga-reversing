@@ -795,7 +795,13 @@ def _row_label_payload(
     parsed_symbol = _parse_generated_label_symbol(symbol_text)
     address_domain = "runtime" if parsed_symbol is not None and symbol_text.startswith("abs_") else "source"
     hunk = parsed_symbol[0] if parsed_symbol is not None else _int_field(row, "section_index", default=0)
-    addr = parsed_symbol[1] if parsed_symbol is not None else _int_field(row, "start_offset", fallback="addr")
+    runtime_address = _optional_int(row.get("runtime_address"))
+    if address_domain == "runtime" and runtime_address is not None:
+        addr = runtime_address
+    elif parsed_symbol is not None:
+        addr = parsed_symbol[1]
+    else:
+        addr = _int_field(row, "start_offset", fallback="addr")
     label: dict[str, object] = {
         "label_id": f"catalog-label-{address_domain}-h{hunk}-{addr:08X}",
         "name": name.strip(),
