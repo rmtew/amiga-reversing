@@ -2168,7 +2168,9 @@ check summary.
 
 ### Updated State Assessment
 
-The current implementation is a useful intermediate state, not closure.
+The Proposal 005 follow-up implementation is closed for the generated coverage
+gate. Remaining unsupported families are explicit inventory with active
+blockers; they are not hidden corpus skips or downstream fallback behavior.
 
 ```text
 Strong:
@@ -2182,14 +2184,10 @@ Strong:
   downstream broad flow/family classifiers now use generated metadata
 
 Weak:
-  final deletion/verification pass is still pending
-```
-
-The next implementation pass should prioritize correctness of the gate over more
-coverage breadth:
-
-```text
-1. run the final Proposal 005 verification and deletion pass
+  MOVE16 still lacks generated executable semantics and oracle coverage
+  FSAVE/FRESTORE still lack oracle coverage
+  PMMU still lacks complete sample/decode-render/oracle coverage
+  generic coprocessor forms still lack schema/decode-render/oracle coverage
 ```
 
 ### Follow-Up Issue Tracking
@@ -2297,6 +2295,54 @@ available oracle check or update this proposal with the accepted deferral.
 unit tests, unittest unit/integration/explicit suites, and some oracle-facing
 integration checks. It also updates `src\benchmark.json`; that file should be
 treated as expected generated benchmark output when precommit is run.
+
+### Final Follow-Up Verification: 2026-05-17
+
+All Proposal 005 follow-up issue slices have been completed and deleted. The
+final open issue, `027-009`, was only the verification/deletion pass and should
+be deleted with this update.
+
+Generated artifacts were regenerated with:
+
+```text
+uv run python src\scripts\generate_c99_assembler_subset.py
+uv run python src\scripts\generate_c99_disassembler_subset.py
+uv run python src\scripts\generate_c99_simulator_subset.py
+uv run python src\scripts\generate_c99_assembler_corpus.py
+```
+
+No tracked `src/generated` or `src/tests/generated` drift remained after those
+commands.
+
+Final coverage state:
+
+```text
+assembler forms: 300
+disassembler forms: 313
+matched forms: 299
+asm-only forms: 0
+disasm-only forms: 13
+sample statuses: sampled=284, not_target_cpu=137
+EA sample families: 163 planned operands, 163 complete, 0 missing-family
+executor semantics: available=293, generated_semantics_missing=5,
+  intentionally_unsupported=2
+unsupported families: 4
+```
+
+The 13 disasm-only entries are the explicit PMMU/generic coprocessor inventory
+reported by canonical coverage, not accidental asm/disasm drift.
+
+Final commands run:
+
+```text
+uv run python -m amiga_reversing.tools.m68k_coverage report --phase canonical
+uv run python -m amiga_reversing.tools.m68k_coverage check --phase canonical
+uv run python -m pytest tests\test_m68k_coverage.py -q
+cmd /c src\precommit.bat
+```
+
+All final commands passed. No required oracle command was skipped; `precommit`
+included the current vasm/MMU oracle integration coverage.
 
 ## Verification
 
