@@ -2094,6 +2094,18 @@ promote operand sample registries and per-form sample plans into generated
 canonical artifacts. The corpus generator should only expand those plans.
 ```
 
+2026-05-17 implementation update: issue 027-007 added
+`src/generated/m68k_corpus_sample_plans.json` as the generated corpus sample
+plan artifact. The corpus generator now builds serializable
+`GeneratedCorpusSamplePlanEntry` rows and consumes those rows back into runtime
+sample objects before emitting cases. This makes case generation an expansion
+step over generated sample-plan data instead of a direct walk over ad hoc
+operand helper output.
+
+The generated entries include `form_index` as part of their identity. That is
+required because forms such as `LINK.W` and `LINK.L` can share KB mnemonic,
+local form index, and syntax while differing in generated form row and opcode.
+
 #### 9. Canonical Check Output Uses Diagnostic Formatting
 
 `m68k_coverage check --phase canonical` prints the diagnostic report on success
@@ -2129,7 +2141,6 @@ Strong:
   disassembler ambiguity sorting moved upstream
 
 Weak:
-  sample-plan ownership still lives partly in corpus generation
   one downstream branch-family switch remains
   final deletion/verification pass is still pending
 ```
@@ -2138,9 +2149,8 @@ The next implementation pass should prioritize correctness of the gate over more
 coverage breadth:
 
 ```text
-1. promote sample-plan ownership out of corpus generation
-2. replace the remaining downstream branch-family switch
-3. run the final Proposal 005 verification and deletion pass
+1. replace the remaining downstream branch-family switch
+2. run the final Proposal 005 verification and deletion pass
 ```
 
 ### Follow-Up Issue Tracking

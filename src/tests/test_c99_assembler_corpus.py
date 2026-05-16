@@ -5,13 +5,16 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from functools import lru_cache
 from pathlib import Path
 
-from src.tests._build_helpers import prepare_test_exe
-from src.tests._build_helpers import require_built_tools
-from src.tests._build_helpers import prepare_test_dll
+from src.tests._build_helpers import (
+    prepare_test_dll,
+    prepare_test_exe,
+    require_built_tools,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_corpus.py"
@@ -327,6 +330,13 @@ class C99AssemblerCorpusTests(unittest.TestCase):
 
     def test_corpus_sample_plans_drive_normal_special_and_ea_forms(self) -> None:
         corpus = _corpus_generator()
+        generated = corpus.generate_generated_corpus_sample_plans("68020")
+        generated_movec = next(
+            plan
+            for plan in generated
+            if plan.mnemonic == "MOVEC"
+            and plan.syntax == "MOVEC Rc,Rn"
+        )
         plans = corpus.generate_corpus_sample_plans("68020")
         move = next(
             plan
@@ -346,8 +356,20 @@ class C99AssemblerCorpusTests(unittest.TestCase):
         self.assertEqual(move.status, "sampled")
         self.assertEqual(len(move.operand_options), 2)
         self.assertTrue(all(move.operand_options))
+        self.assertTrue(any(sample["asm"] == "vbr" for sample in generated_movec.operand_options[0]))
         self.assertTrue(any(sample.asm_text == "vbr" for sample in movec.operand_options[0]))
         self.assertTrue(any(sample.full_ext_base_disp_size for sample in lea.operand_options[0]))
+
+    def test_generated_sample_plan_artifact_is_written(self) -> None:
+        corpus = _corpus_generator()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            artifact_path = Path(tmpdir) / "m68k_corpus_sample_plans.json"
+            corpus.write_generated_sample_plan_artifact(artifact_path)
+            payload = json.loads(artifact_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(payload["schema_version"], 1)
+        self.assertIn("68020", payload["targets"])
+        self.assertTrue(any(entry["mnemonic"] == "MOVEC" for entry in payload["targets"]["68020"]))
 
     def test_corpus_sample_plans_record_non_sampleable_status(self) -> None:
         plans = _corpus_generator().generate_corpus_sample_plans("68000")

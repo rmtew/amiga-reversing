@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 KB_PATH = ROOT / "knowledge" / "m68k_instructions.json"
 DEFAULT_OUTPUT_DIR = ROOT / "src" / "tests" / "generated"
+DEFAULT_SAMPLE_PLAN_PATH = ROOT / "src" / "generated" / "m68k_corpus_sample_plans.json"
 SUBSET_GENERATOR_PATH = ROOT / "src" / "scripts" / "generate_c99_assembler_subset.py"
 VASM = ROOT / "tools" / "vasmm68k_mot.exe"
 
@@ -353,6 +354,21 @@ class CorpusSamplePlanEntry:
     reason: str
     missing_operand_kinds: tuple[str, ...]
     operand_options: tuple[tuple[object, ...], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GeneratedCorpusSamplePlanEntry:
+    mnemonic: str
+    kb_mnemonic: str
+    local_form_index: int
+    form_index: int
+    syntax: str
+    size: str | None
+    target_cpu: str
+    status: str
+    reason: str
+    missing_operand_kinds: tuple[str, ...]
+    operand_options: tuple[tuple[dict[str, object], ...], ...]
 
 
 SAMPLE_STATUS_SAMPLED = "sampled"
@@ -2211,6 +2227,72 @@ def _corpus_sample_plan_entry(
     )
 
 
+def _generated_corpus_sample_plan_entry(plan: CorpusSamplePlanEntry) -> GeneratedCorpusSamplePlanEntry:
+    context = plan.context
+    return GeneratedCorpusSamplePlanEntry(
+        mnemonic=str(context.form.mnemonic),
+        kb_mnemonic=str(context.form.kb_mnemonic),
+        local_form_index=int(context.form.local_form_index),
+        form_index=int(context.form.form_index),
+        syntax=str(context.form.syntax),
+        size=context.size,
+        target_cpu=context.target_cpu,
+        status=plan.status,
+        reason=plan.reason,
+        missing_operand_kinds=plan.missing_operand_kinds,
+        operand_options=tuple(
+            tuple(_sample_to_registry_dict(sample) for sample in option_group)
+            for option_group in plan.operand_options
+        ),
+    )
+
+
+def _context_for_generated_sample_plan(
+    entry: GeneratedCorpusSamplePlanEntry,
+    forms: list[object],
+    kb: dict[str, object],
+) -> FormContext:
+    form = next(
+        form for form in forms
+        if str(form.kb_mnemonic) == entry.kb_mnemonic
+        and int(form.local_form_index) == entry.local_form_index
+        and int(form.form_index) == entry.form_index
+        and str(form.syntax) == entry.syntax
+    )
+    item = _mnemonic_item(kb, form.kb_mnemonic)
+    return FormContext(
+        form=form,
+        size=entry.size,
+        syntax=form.syntax,
+        operand_kinds=form.sampling_operand_kinds,
+        operand_roles=_operand_roles(kb, item, form.sampling_operand_kinds),
+        target_cpu=entry.target_cpu,
+        form_source=_raw_form_for_generated_form(kb, item, form),
+    )
+
+
+def _corpus_sample_plan_from_generated_entry(
+    entry: GeneratedCorpusSamplePlanEntry,
+    forms: list[object],
+    kb: dict[str, object],
+) -> CorpusSamplePlanEntry:
+    context = _context_for_generated_sample_plan(entry, forms, kb)
+    if entry.operand_options:
+        options = tuple(
+            tuple(_sample_from_registry_dict(operand_kind, sample) for sample in option_group)
+            for operand_kind, option_group in zip(context.operand_kinds, entry.operand_options, strict=True)
+        )
+    else:
+        options = ()
+    return CorpusSamplePlanEntry(
+        context=context,
+        status=entry.status,
+        reason=entry.reason,
+        missing_operand_kinds=entry.missing_operand_kinds,
+        operand_options=options,
+    )
+
+
 def _generate_corpus_sample_plans(
     subset_module: object,
     forms: list[object],
@@ -2288,12 +2370,42 @@ def _generate_corpus_sample_plans(
     return plans
 
 
+def _generate_generated_corpus_sample_plans(
+    subset_module: object,
+    forms: list[object],
+    kb: dict[str, object],
+    target_cpu: str,
+    require_oracle_cpu: bool,
+) -> tuple[GeneratedCorpusSamplePlanEntry, ...]:
+    return tuple(
+        _generated_corpus_sample_plan_entry(plan)
+        for plan in _generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+    )
+
+
+def _consume_generated_corpus_sample_plans(
+    entries: tuple[GeneratedCorpusSamplePlanEntry, ...],
+    forms: list[object],
+    kb: dict[str, object],
+) -> tuple[CorpusSamplePlanEntry, ...]:
+    return tuple(_corpus_sample_plan_from_generated_entry(entry, forms, kb) for entry in entries)
+
+
+def generate_generated_corpus_sample_plans(
+    target_cpu: str = "68000",
+    require_oracle_cpu: bool = False,
+) -> tuple[GeneratedCorpusSamplePlanEntry, ...]:
+    subset_module, forms, kb = _load_forms_and_kb()
+    return _generate_generated_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+
+
 def generate_corpus_sample_plans(
     target_cpu: str = "68000",
     require_oracle_cpu: bool = False,
 ) -> tuple[CorpusSamplePlanEntry, ...]:
     subset_module, forms, kb = _load_forms_and_kb()
-    return tuple(_generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu))
+    generated_entries = _generate_generated_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+    return _consume_generated_corpus_sample_plans(generated_entries, forms, kb)
 
 
 def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[CorpusCase]:
@@ -2301,7 +2413,8 @@ def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) 
     routed_immediates = subset_module._supported_immediate_routes(forms, KB_PATH)
     canonical_form_ids = _canonical_form_ids_by_key(subset_module)
     cases: list[CorpusCase] = []
-    for plan in _generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu):
+    generated_plans = _generate_generated_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+    for plan in _consume_generated_corpus_sample_plans(generated_plans, forms, kb):
         context = plan.context
         if plan.status != SAMPLE_STATUS_SAMPLED:
             continue
@@ -2341,6 +2454,7 @@ def generate_cases(target_cpu: str = "68000", require_oracle_cpu: bool = False) 
 
 def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool = False) -> list[SampleCoverageEntry]:
     subset_module, forms, kb = _load_forms_and_kb()
+    generated_plans = _generate_generated_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
     return [
         SampleCoverageEntry(
             mnemonic=str(plan.context.form.mnemonic),
@@ -2354,7 +2468,7 @@ def generate_sample_coverage(target_cpu: str = "68000", require_oracle_cpu: bool
             reason=plan.reason,
             missing_operand_kinds=plan.missing_operand_kinds,
         )
-        for plan in _generate_corpus_sample_plans(subset_module, forms, kb, target_cpu, require_oracle_cpu)
+        for plan in _consume_generated_corpus_sample_plans(generated_plans, forms, kb)
     ]
 
 
@@ -2550,8 +2664,29 @@ def generate_full_ext_cases() -> list[CorpusCase]:
     return cases
 
 
+def write_generated_sample_plan_artifact(path: Path = DEFAULT_SAMPLE_PLAN_PATH) -> Path:
+    subset_module, forms, kb = _load_forms_and_kb()
+    targets = {
+        "68000_oracle": _generate_generated_corpus_sample_plans(subset_module, forms, kb, "68000", True),
+        "68020": _generate_generated_corpus_sample_plans(subset_module, forms, kb, "68020", False),
+        "68040": _generate_generated_corpus_sample_plans(subset_module, forms, kb, "68040", False),
+        "68060": _generate_generated_corpus_sample_plans(subset_module, forms, kb, "68060", False),
+    }
+    payload = {
+        "schema_version": 1,
+        "targets": {
+            target_name: [asdict(entry) for entry in entries]
+            for target_name, entries in targets.items()
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
+    return path
+
+
 def write_corpus(output_dir: Path = DEFAULT_OUTPUT_DIR) -> tuple[Path, Path, Path | None]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    write_generated_sample_plan_artifact()
     raw_cases = generate_cases("68000", require_oracle_cpu=True)
     cases: list[CorpusCase] = []
     offset = 0
