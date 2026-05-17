@@ -157,10 +157,6 @@ class StaticResponse(TypedDict):
 
 
 _MISSING = object()
-_PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
-_PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
-_PROJECT_LISTING_PRESENTATION_DIRTY: set[str] = set()
-_PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
 _LISTING_PROJECTION_SERVICE = ListingProjectionService()
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
@@ -207,32 +203,21 @@ def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
 
 
 def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
-    artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
-    if project_name in _PROJECT_LISTING_CACHE_KEY:
-        cache_key = _project_listing_cache_key(project_name)
-        if _PROJECT_LISTING_CACHE_KEY.get(project_name) != cache_key:
-            if artifact is not None and project_name in _PROJECT_LISTING_PRESENTATION_DIRTY:
-                return None
-            _clear_project_listing_cache(project_name)
-            return None
-    else:
-        cache_key = None
-    if (
-        artifact is not None
-        and cache_key is not None
-        and _PROJECT_LISTING_CACHE_KEY.get(project_name) == cache_key
-    ):
-        return artifact
-    return None
+    if not _LISTING_PROJECTION_SERVICE.has_project_state(project_name):
+        return None
+    return cast(
+        CListingArtifact | None,
+        _LISTING_PROJECTION_SERVICE.valid_artifact(project_name, _project_listing_cache_key(project_name)),
+    )
 
 
 def _listing_read_artifact(project_name: str) -> CListingArtifact | None:
-    artifact = _valid_c_listing_artifact(project_name)
-    if artifact is not None:
-        return artifact
-    if project_name in _PROJECT_LISTING_PRESENTATION_DIRTY:
-        return _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
-    return None
+    if not _LISTING_PROJECTION_SERVICE.has_project_state(project_name):
+        return None
+    return cast(
+        CListingArtifact | None,
+        _LISTING_PROJECTION_SERVICE.read_artifact(project_name, _project_listing_cache_key(project_name)),
+    )
 
 
 _PRESENTATION_MANUAL_ACTION_KINDS = {
@@ -259,20 +244,11 @@ def _cached_analysis_review_items(
     project_name: str,
     listing_artifact: CListingArtifact,
 ) -> tuple[dict[str, object], ...]:
-    cache_key = _PROJECT_LISTING_CACHE_KEY.get(project_name)
-    if cache_key is None:
-        return ()
-    cached = _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.get(project_name)
-    artifact_id = id(listing_artifact)
-    if cached is not None and cached[0] == cache_key and cached[1] == artifact_id:
-        return cached[2]
-    analysis_payload_fn = getattr(listing_artifact, "analysis_payload", None)
-    if not callable(analysis_payload_fn):
-        return ()
-    analysis_payload, _ = analysis_payload_fn()
-    items = tuple(analysis_review_items(analysis_payload))
-    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE[project_name] = (cache_key, artifact_id, items)
-    return items
+    return _LISTING_PROJECTION_SERVICE.cached_analysis_review_items(
+        project_id=project_name,
+        artifact=listing_artifact,
+        item_factory=analysis_review_items,
+    )
 
 
 def _review_warnings_for_project_dict(project: Mapping[str, object]) -> list[dict[str, object]]:
@@ -376,12 +352,7 @@ def _write_api_input_type_override(
     _OS_CORRECTIONS_PATH.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    for artifact in _PROJECT_C_LISTING_ARTIFACT_CACHE.values():
-        artifact.close()
-    _PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    _PROJECT_LISTING_CACHE_KEY.clear()
-    _PROJECT_LISTING_PRESENTATION_DIRTY.clear()
-    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
+    _LISTING_PROJECTION_SERVICE.reset()
     _cancel_listing_jobs()
 
 
@@ -889,12 +860,7 @@ def _review_note_navigation_entries(notes: list[dict[str, object]]) -> list[dict
 
 
 def _clear_project_listing_cache(project_name: str) -> None:
-    artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.pop(project_name, None)
-    if artifact is not None:
-        artifact.close()
-    _PROJECT_LISTING_CACHE_KEY.pop(project_name, None)
-    _PROJECT_LISTING_PRESENTATION_DIRTY.discard(project_name)
-    _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.pop(project_name, None)
+    _LISTING_PROJECTION_SERVICE.clear_project(project_name)
 
 
 def _prewarm_analysis_review_items(project_name: str) -> None:
@@ -996,32 +962,21 @@ def _publish_listing_artifact_ready_event(
 ) -> None:
     _publish_job_event_payload(
         job_id,
-        {
-            "_event_type": "listing_artifact_ready",
-            "project_id": project_name,
-            "total_rows": total_rows,
-            "changed_ranges": [],
-        },
+        _LISTING_PROJECTION_SERVICE.listing_artifact_ready_event(
+            project_id=project_name,
+            total_rows=total_rows,
+        ),
     )
 
 
 def _cancel_listing_jobs(project_name: str | None = None) -> None:
-    canceled: list[tuple[str, dict[str, object]]] = []
-    with _JOB_LOCK:
-        stale_job_ids = [
-            job_id
-            for job_id, job in _ASYNC_JOBS.items()
-            if job["job_kind"] == _LISTING_ARTIFACT_JOB_KIND
-            and (project_name is None or job["project_id"] == project_name)
-        ]
-        for job_id in stale_job_ids:
-            job = dict(_ASYNC_JOBS[job_id])
-            job["status"] = "failed"
-            job["phase_id"] = "error"
-            job["error"] = "job canceled"
-            job["finished_at"] = time.time()
-            canceled.append((job_id, dict(job)))
-            del _ASYNC_JOBS[job_id]
+    canceled = _LISTING_PROJECTION_SERVICE.cancel_listing_jobs(
+        jobs=cast(dict[str, dict[str, object]], _ASYNC_JOBS),
+        lock=_JOB_LOCK,
+        job_kind=_LISTING_ARTIFACT_JOB_KIND,
+        now=time.time,
+        project_id=project_name,
+    )
     for job_id, payload in canceled:
         _publish_job_event_payload(job_id, payload)
 
@@ -1161,11 +1116,7 @@ def _project_listing_cache_key(project_name: str) -> str:
 
 
 def _cache_satisfies_listing(project_name: str, cache_key: str) -> bool:
-    if project_name not in _PROJECT_LISTING_CACHE_KEY:
-        return False
-    if _PROJECT_LISTING_CACHE_KEY.get(project_name) != cache_key:
-        return False
-    return _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name) is not None
+    return _LISTING_PROJECTION_SERVICE.cache_satisfies_listing(project_name, cache_key)
 
 
 def _build_rows_job(job_id: str, project_name: str) -> None:
@@ -1210,14 +1161,13 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
                 if listing_artifact is not None:
                     listing_artifact.close()
                 return
-            _PROJECT_LISTING_CACHE_KEY[project_name] = cache_key
-            old_artifact = _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name)
             if listing_artifact is not None:
-                _PROJECT_C_LISTING_ARTIFACT_CACHE[project_name] = listing_artifact
-                _PROJECT_LISTING_PRESENTATION_DIRTY.discard(project_name)
+                _LISTING_PROJECTION_SERVICE.set_artifact(
+                    project_id=project_name,
+                    cache_key=cache_key,
+                    artifact=listing_artifact,
+                )
                 listing_artifact = None
-            if old_artifact is not None and old_artifact is not _PROJECT_C_LISTING_ARTIFACT_CACHE.get(project_name):
-                old_artifact.close()
         _prewarm_analysis_review_items(project_name)
         _log_event(
             "listing_job artifact_ready",
@@ -1271,71 +1221,32 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
 
 def _start_listing_job(project_name: str) -> AsyncJobPayload:
     cache_key = _project_listing_cache_key(project_name)
-    if _cache_satisfies_listing(project_name, cache_key):
-        _prewarm_analysis_review_items(project_name)
-        total_rows = _c_listing_artifact_total_rows(project_name)
-        job_id = f"cached-listing-artifact-{project_name}"
-        payload: AsyncJobPayload = {
-            "job_id": job_id,
-            "job_kind": _LISTING_ARTIFACT_JOB_KIND,
-            "project_id": project_name,
-            "result_project_id": project_name,
-            "status": "ready",
-            "phase_id": "done",
-            "phase_index": _LISTING_PHASE_COUNT,
-            "phase_count": _LISTING_PHASE_COUNT,
-            "progress_mode": "determinate",
-            "progress_current": _LISTING_PHASE_COUNT,
-            "progress_total": _LISTING_PHASE_COUNT,
-            "progress_percent": 100,
-            "total_rows": total_rows,
-            "error": None,
-            "created_at": time.time(),
-            "finished_at": time.time(),
-            "cache_key": cache_key,
-        }
-        with _JOB_LOCK:
-            _ASYNC_JOBS[job_id] = payload
-        _start_reproduction_job_if_needed(project_name)
-        return payload
+    return cast(
+        AsyncJobPayload,
+        _LISTING_PROJECTION_SERVICE.start_listing_job(
+            project_id=project_name,
+            cache_key=cache_key,
+            jobs=cast(dict[str, dict[str, object]], _ASYNC_JOBS),
+            lock=_JOB_LOCK,
+            job_kind=_LISTING_ARTIFACT_JOB_KIND,
+            phase_count=_LISTING_PHASE_COUNT,
+            now=time.time,
+            make_job_id=lambda: str(uuid.uuid4()),
+            total_rows=lambda: _c_listing_artifact_total_rows(project_name),
+            prewarm=lambda: _prewarm_analysis_review_items(project_name),
+            on_ready=lambda: _start_reproduction_job_if_needed(project_name),
+            start_worker=_start_listing_worker,
+        ),
+    )
 
-    with _JOB_LOCK:
-        for _existing_id, job in _ASYNC_JOBS.items():
-            if (
-                job["job_kind"] == _LISTING_ARTIFACT_JOB_KIND
-                and job["project_id"] == project_name
-                and job.get("cache_key") == cache_key
-                and job["status"] in {"queued", "building"}
-            ):
-                return cast(AsyncJobPayload, dict(job))
-        job_id = str(uuid.uuid4())
-        _ASYNC_JOBS[job_id] = {
-            "job_id": job_id,
-            "job_kind": _LISTING_ARTIFACT_JOB_KIND,
-            "project_id": project_name,
-            "result_project_id": project_name,
-            "status": "queued",
-            "phase_id": "queued",
-            "phase_index": 0,
-            "phase_count": _LISTING_PHASE_COUNT,
-            "progress_mode": "determinate",
-            "progress_current": 0,
-            "progress_total": _LISTING_PHASE_COUNT,
-            "progress_percent": 0,
-            "total_rows": None,
-            "error": None,
-            "created_at": time.time(),
-            "finished_at": None,
-            "cache_key": cache_key,
-        }
 
+def _start_listing_worker(job_id: str, project_name: str) -> None:
     worker = threading.Thread(
         target=_build_rows_job,
         args=(job_id, project_name),
         daemon=True,
     )
     worker.start()
-    return _job_payload(job_id)
 
 
 def _reproduction_cache_key(project_name: str) -> str:
@@ -2037,7 +1948,7 @@ def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, 
         _cancel_reproduction_jobs(project_name)
         _clear_project_listing_cache(project_name)
     else:
-        _PROJECT_LISTING_PRESENTATION_DIRTY.add(project_name)
+        _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
     mark_project_updated(paths.target_dir)
     return {
         "action": appended_actions[0],
@@ -2865,7 +2776,7 @@ def route_request(
                 _cancel_reproduction_jobs(project_name)
                 _clear_project_listing_cache(project_name)
             else:
-                _PROJECT_LISTING_PRESENTATION_DIRTY.add(project_name)
+                _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
             mark_project_updated(paths.target_dir)
             return {"ok": True, "data": {"action": action}}
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
@@ -2944,7 +2855,10 @@ def route_request(
                 "ok": True,
                 "data": _LISTING_PROJECTION_SERVICE.normalize_window(
                     target_id=project_name,
-                    projection_hash=_project_listing_cache_key(project_name),
+                    projection_hash=_LISTING_PROJECTION_SERVICE.projection_hash(
+                        project_id=project_name,
+                        current_cache_key=_project_listing_cache_key(project_name),
+                    ),
                     payload=annotated_payload,
                 ),
             }

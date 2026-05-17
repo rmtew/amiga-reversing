@@ -1879,6 +1879,12 @@ function commandPaletteRowSnapshot(row) {
     manual_label_id: row.manual_label_id || null,
     manual_label_address_domain: row.manual_label_address_domain || null,
     opcode_or_directive: row.opcode_or_directive || null,
+    operand_parts: row.operand_parts || null,
+    operand_accesses: row.operand_accesses || null,
+    operand_registers: row.operand_registers || null,
+    app_slot_refs: row.app_slot_refs || null,
+    typed_accesses: row.typed_accesses || null,
+    unresolved_typed_accesses: row.unresolved_typed_accesses || null,
     data_class: row.data_class || null,
     structured_data: row.structured_data || null,
     comment_text: row.comment_text || "",
@@ -7817,6 +7823,26 @@ function applyInlineSubmittedFallback(editor, parameters) {
   state.listingRows = rows;
 }
 
+function normalizeListingProjectionPayload(listing) {
+  if (!listing || !Array.isArray(listing.rows)) {
+    return listing;
+  }
+  return {
+    ...listing,
+    rows: listing.rows.map((row) => {
+      const rowKey = row.row_key || row.stable_key || row.stableKey || null;
+      if (!rowKey) {
+        return row;
+      }
+      return {
+        ...row,
+        stable_key: row.stable_key || rowKey,
+        stableKey: row.stableKey || rowKey,
+      };
+    }),
+  };
+}
+
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
   const requestSeq = ++state.virtualListing.requestSeq;
   if (options.abortPrevious && state.virtualListing.fetchAbortController) {
@@ -7875,6 +7901,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   if (!listing) {
     return null;
   }
+  listing = normalizeListingProjectionPayload(listing);
   const fetchedAt = performance.now();
   const fetchMs = fetchedAt - startedAt;
   if (requestSeq !== state.virtualListing.requestSeq) {

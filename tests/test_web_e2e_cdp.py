@@ -75,14 +75,17 @@ def _cache_full_project_rows(
     app_slot_analysis: dict[str, object] | None = None,
     type_flow_analysis: dict[str, object] | None = None,
 ) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE[project_id] = _FakeCListingArtifact(
-        rows,
-        project_name=project_id,
-        api_calls_by_row_id=api_calls_by_row_id,
-        app_slot_analysis=app_slot_analysis,
-        type_flow_analysis=type_flow_analysis,
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        project_id,
+        _FakeCListingArtifact(
+            rows,
+            project_name=project_id,
+            api_calls_by_row_id=api_calls_by_row_id,
+            app_slot_analysis=app_slot_analysis,
+            type_flow_analysis=type_flow_analysis,
+        ),
+        cache_key="test-cache",
     )
-    disasm_server._PROJECT_LISTING_CACHE_KEY[project_id] = "test-cache"
 
 
 def _test_row_code(row: ListingRow) -> str:
@@ -250,7 +253,9 @@ def _test_navigation_payload(
     groups["labels"] = sorted(labels.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     groups["equates"] = sorted(equates.values(), key=lambda entry: cast(int, entry.get("row_index", -1)))
     return {
-        "analysis_generation": "full" if project_name in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE else None,
+        "analysis_generation": "full"
+        if disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project_name) is not None
+        else None,
         "total_rows": len(rows),
         "groups": groups,
         "app_slot_analysis": app_slot_analysis or {},
@@ -538,19 +543,17 @@ def _clear_disasm_server_listing_state(monkeypatch: pytest.MonkeyPatch) -> Itera
     original_cache_key = disasm_server._project_listing_cache_key
 
     def project_listing_cache_key(project_name: str) -> str:
-        cached = disasm_server._PROJECT_LISTING_CACHE_KEY.get(project_name)
+        cached = disasm_server._LISTING_PROJECTION_SERVICE.cache_key_for_test(project_name)
         if cached is not None:
             return cached
         return original_cache_key(project_name)
 
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", project_listing_cache_key)
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
     yield
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
 
@@ -1050,9 +1053,9 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
             labels.append(label)
             new_name = cast(str, label["name"])
             rows[0] = replace(rows[0], text=f"{new_name}:\n", label=new_name)
-            artifact = disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.get(project.id)
+            artifact = disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id)
             if artifact is not None:
-                artifact.rows[0] = rows[0]
+                cast(_FakeCListingArtifact, artifact).rows[0] = rows[0]
         return action
 
     _cache_full_project_rows(project.id, rows)
@@ -2209,9 +2212,12 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
         assert "0 of 0" not in page.text_content("#review-overlay")
         release_second_build.set()
         deadline = time.monotonic() + 10.0
-        while time.monotonic() < deadline and project.id not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE:
+        while (
+            time.monotonic() < deadline
+            and disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id) is None
+        ):
             time.sleep(0.05)
-        assert project.id in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
+        assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test(project.id) is not None
         page.wait_for_expression(
             "document.querySelector('#project-details')?.textContent.includes('Blocked')",
             timeout=10.0,
@@ -3015,7 +3021,7 @@ def test_brave_cdp_full_enrichment_preserves_virtual_scroll(
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -3110,7 +3116,7 @@ def test_brave_cdp_full_enrichment_keeps_section_anchor_when_prefix_rows_appear(
         assert release_full.wait(timeout=15.0)
         return len(full_rows), {}, _FakeCListingArtifact(full_rows, project_name=project_name)
 
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -4050,10 +4056,7 @@ def test_brave_cdp_project_delete_confirms_and_removes_project(monkeypatch: pyte
 def test_brave_cdp_real_c_backend_listing_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     _skip_without_c_backend()
     project_id = "amiga_hunk_genam"
-    for artifact in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.values():
-        artifact.close()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     monkeypatch.setattr(
         disasm_server,

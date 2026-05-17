@@ -1,11 +1,99 @@
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from amiga_reversing.disasm.listing_projection import (
     ListingLocatorError,
     ListingProjectionService,
 )
+
+
+class _Artifact:
+    def __init__(self) -> None:
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_listing_projection_service_owns_artifact_cache_lifecycle() -> None:
+    service = ListingProjectionService()
+    old_artifact = _Artifact()
+    new_artifact = _Artifact()
+
+    service.set_artifact(project_id="demo", cache_key="cache-a", artifact=old_artifact)
+    assert service.valid_artifact("demo", "cache-a") is old_artifact
+
+    service.set_artifact(project_id="demo", cache_key="cache-b", artifact=new_artifact)
+    assert old_artifact.closed is True
+    assert service.valid_artifact("demo", "cache-b") is new_artifact
+
+    service.reset()
+    assert new_artifact.closed is True
+    assert service.debug_state()["artifact_projects"] == []
+
+
+def test_listing_projection_service_allows_dirty_presentation_reads() -> None:
+    service = ListingProjectionService()
+    artifact = _Artifact()
+    service.set_artifact(project_id="demo", cache_key="old-cache", artifact=artifact)
+    service.mark_presentation_dirty("demo")
+
+    assert service.valid_artifact("demo", "new-cache") is None
+    assert service.read_artifact("demo", "new-cache") is artifact
+
+
+def test_listing_projection_service_starts_reuses_and_cancels_listing_jobs() -> None:
+    service = ListingProjectionService()
+    jobs: dict[str, dict[str, object]] = {}
+    lock = threading.Lock()
+    started: list[tuple[str, str]] = []
+
+    payload = service.start_listing_job(
+        project_id="demo",
+        cache_key="cache-a",
+        jobs=jobs,
+        lock=lock,
+        job_kind="listing_artifact",
+        phase_count=2,
+        now=lambda: 1.0,
+        make_job_id=lambda: "job-1",
+        total_rows=lambda: 3,
+        prewarm=lambda: None,
+        on_ready=lambda: None,
+        start_worker=lambda job_id, project_id: started.append((job_id, project_id)),
+    )
+    reused = service.start_listing_job(
+        project_id="demo",
+        cache_key="cache-a",
+        jobs=jobs,
+        lock=lock,
+        job_kind="listing_artifact",
+        phase_count=2,
+        now=lambda: 2.0,
+        make_job_id=lambda: "job-2",
+        total_rows=lambda: 3,
+        prewarm=lambda: None,
+        on_ready=lambda: None,
+        start_worker=lambda job_id, project_id: started.append((job_id, project_id)),
+    )
+
+    assert payload["job_id"] == "job-1"
+    assert reused["job_id"] == "job-1"
+    assert started == [("job-1", "demo")]
+
+    canceled = service.cancel_listing_jobs(
+        jobs=jobs,
+        lock=lock,
+        job_kind="listing_artifact",
+        now=lambda: 3.0,
+        project_id="demo",
+    )
+
+    assert canceled[0][1]["status"] == "failed"
+    assert jobs == {}
 
 
 def test_listing_projection_normalizes_rows_to_locator_contract() -> None:

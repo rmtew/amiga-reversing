@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import cast
+from typing import Any, Protocol, cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
+
+
+class ListingArtifactLike(Protocol):
+    def close(self) -> None: ...
 
 
 class ListingLocatorError(ValueError):
@@ -56,6 +61,239 @@ class ListingRowLocator:
 
 
 class ListingProjectionService:
+    def __init__(self) -> None:
+        self._artifacts: dict[str, ListingArtifactLike] = {}
+        self._cache_keys: dict[str, str] = {}
+        self._presentation_dirty: set[str] = set()
+        self._review_items_cache: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
+
+    def debug_state(self) -> dict[str, object]:
+        return {
+            "artifact_projects": sorted(self._artifacts),
+            "cache_keys": dict(sorted(self._cache_keys.items())),
+            "presentation_dirty_projects": sorted(self._presentation_dirty),
+            "review_item_cache_projects": sorted(self._review_items_cache),
+        }
+
+    def reset(self) -> None:
+        for artifact in self._artifacts.values():
+            _close_artifact(artifact)
+        self._artifacts.clear()
+        self._cache_keys.clear()
+        self._presentation_dirty.clear()
+        self._review_items_cache.clear()
+
+    def clear_project(self, project_id: str) -> None:
+        artifact = self._artifacts.pop(project_id, None)
+        if artifact is not None:
+            _close_artifact(artifact)
+        self._cache_keys.pop(project_id, None)
+        self._presentation_dirty.discard(project_id)
+        self._review_items_cache.pop(project_id, None)
+
+    def mark_presentation_dirty(self, project_id: str) -> None:
+        self._presentation_dirty.add(project_id)
+
+    def is_presentation_dirty(self, project_id: str) -> bool:
+        return project_id in self._presentation_dirty
+
+    def set_artifact(
+        self,
+        *,
+        project_id: str,
+        cache_key: str,
+        artifact: ListingArtifactLike,
+    ) -> None:
+        old_artifact = self._artifacts.get(project_id)
+        self._cache_keys[project_id] = cache_key
+        self._artifacts[project_id] = artifact
+        self._presentation_dirty.discard(project_id)
+        self._review_items_cache.pop(project_id, None)
+        if old_artifact is not None and old_artifact is not artifact:
+            _close_artifact(old_artifact)
+
+    def seed_artifact_for_test(
+        self,
+        project_id: str,
+        artifact: ListingArtifactLike,
+        *,
+        cache_key: str = "cache",
+    ) -> None:
+        self.set_artifact(project_id=project_id, cache_key=cache_key, artifact=artifact)
+
+    def artifact_for_test(self, project_id: str) -> ListingArtifactLike | None:
+        return self._artifacts.get(project_id)
+
+    def cache_key_for_test(self, project_id: str) -> str | None:
+        return self._cache_keys.get(project_id)
+
+    def has_project_state(self, project_id: str) -> bool:
+        return project_id in self._cache_keys or project_id in self._artifacts
+
+    def seed_cache_key_for_test(self, project_id: str, *, cache_key: str) -> None:
+        self._cache_keys[project_id] = cache_key
+
+    def cache_satisfies_listing(self, project_id: str, cache_key: str) -> bool:
+        return self._cache_keys.get(project_id) == cache_key and self._artifacts.get(project_id) is not None
+
+    def valid_artifact(self, project_id: str, current_cache_key: str) -> ListingArtifactLike | None:
+        artifact = self._artifacts.get(project_id)
+        cached_key = self._cache_keys.get(project_id)
+        if cached_key is None:
+            return None
+        if cached_key != current_cache_key:
+            if artifact is not None and project_id in self._presentation_dirty:
+                return None
+            self.clear_project(project_id)
+            return None
+        return artifact
+
+    def read_artifact(self, project_id: str, current_cache_key: str) -> ListingArtifactLike | None:
+        artifact = self.valid_artifact(project_id, current_cache_key)
+        if artifact is not None:
+            return artifact
+        if project_id in self._presentation_dirty:
+            return self._artifacts.get(project_id)
+        return None
+
+    def cached_analysis_review_items(
+        self,
+        *,
+        project_id: str,
+        artifact: object,
+        item_factory: Callable[[dict[str, object]], list[dict[str, object]]],
+    ) -> tuple[dict[str, object], ...]:
+        cache_key = self._cache_keys.get(project_id)
+        if cache_key is None:
+            return ()
+        artifact_id = id(artifact)
+        cached = self._review_items_cache.get(project_id)
+        if cached is not None and cached[0] == cache_key and cached[1] == artifact_id:
+            return cached[2]
+        analysis_payload_fn = getattr(artifact, "analysis_payload", None)
+        if not callable(analysis_payload_fn):
+            return ()
+        analysis_payload, _ = analysis_payload_fn()
+        items = tuple(item_factory(cast(dict[str, object], analysis_payload)))
+        self._review_items_cache[project_id] = (cache_key, artifact_id, items)
+        return items
+
+    def projection_hash(self, *, project_id: str, current_cache_key: str) -> str:
+        cached_key = self._cache_keys.get(project_id)
+        return cached_key if cached_key == current_cache_key else current_cache_key
+
+    def listing_artifact_ready_event(self, *, project_id: str, total_rows: int) -> dict[str, object]:
+        return {
+            "_event_type": "listing_artifact_ready",
+            "project_id": project_id,
+            "total_rows": total_rows,
+            "changed_ranges": [],
+        }
+
+    def cancel_listing_jobs(
+        self,
+        *,
+        jobs: dict[str, dict[str, object]],
+        lock: Any,
+        job_kind: str,
+        now: Callable[[], float],
+        project_id: str | None = None,
+    ) -> list[tuple[str, dict[str, object]]]:
+        canceled: list[tuple[str, dict[str, object]]] = []
+        with lock:
+            stale_job_ids = [
+                job_id
+                for job_id, job in jobs.items()
+                if job.get("job_kind") == job_kind
+                and (project_id is None or job.get("project_id") == project_id)
+            ]
+            for job_id in stale_job_ids:
+                job = dict(jobs[job_id])
+                job["status"] = "failed"
+                job["phase_id"] = "error"
+                job["error"] = "job canceled"
+                job["finished_at"] = now()
+                canceled.append((job_id, dict(job)))
+                del jobs[job_id]
+        return canceled
+
+    def start_listing_job(
+        self,
+        *,
+        project_id: str,
+        cache_key: str,
+        jobs: dict[str, dict[str, object]],
+        lock: Any,
+        job_kind: str,
+        phase_count: int,
+        now: Callable[[], float],
+        make_job_id: Callable[[], str],
+        total_rows: Callable[[], int | None],
+        prewarm: Callable[[], None],
+        on_ready: Callable[[], None],
+        start_worker: Callable[[str, str], None],
+    ) -> dict[str, object]:
+        if self.cache_satisfies_listing(project_id, cache_key):
+            prewarm()
+            job_id = f"cached-listing-artifact-{project_id}"
+            timestamp = now()
+            payload: dict[str, object] = {
+                "job_id": job_id,
+                "job_kind": job_kind,
+                "project_id": project_id,
+                "result_project_id": project_id,
+                "status": "ready",
+                "phase_id": "done",
+                "phase_index": phase_count,
+                "phase_count": phase_count,
+                "progress_mode": "determinate",
+                "progress_current": phase_count,
+                "progress_total": phase_count,
+                "progress_percent": 100,
+                "total_rows": total_rows(),
+                "error": None,
+                "created_at": timestamp,
+                "finished_at": timestamp,
+                "cache_key": cache_key,
+            }
+            with lock:
+                jobs[job_id] = dict(payload)
+            on_ready()
+            return payload
+
+        with lock:
+            for job in jobs.values():
+                if (
+                    job.get("job_kind") == job_kind
+                    and job.get("project_id") == project_id
+                    and job.get("cache_key") == cache_key
+                    and job.get("status") in {"queued", "building"}
+                ):
+                    return dict(job)
+            job_id = make_job_id()
+            jobs[job_id] = {
+                "job_id": job_id,
+                "job_kind": job_kind,
+                "project_id": project_id,
+                "result_project_id": project_id,
+                "status": "queued",
+                "phase_id": "queued",
+                "phase_index": 0,
+                "phase_count": phase_count,
+                "progress_mode": "determinate",
+                "progress_current": 0,
+                "progress_total": phase_count,
+                "progress_percent": 0,
+                "total_rows": None,
+                "error": None,
+                "created_at": now(),
+                "finished_at": None,
+                "cache_key": cache_key,
+            }
+        start_worker(job_id, project_id)
+        with lock:
+            return dict(jobs[job_id])
+
     def normalize_window(
         self,
         *,
@@ -149,3 +387,9 @@ def _optional_int(value: object) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool):
         return value
     return None
+
+
+def _close_artifact(artifact: object) -> None:
+    close = getattr(artifact, "close", None)
+    if callable(close):
+        close()

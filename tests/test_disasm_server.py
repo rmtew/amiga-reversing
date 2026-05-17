@@ -298,14 +298,16 @@ def _seed_c_listing_artifact(
     monkeypatch: pytest.MonkeyPatch,
     project_name: str,
     artifact: object,
+    *,
+    cache_key: str = "cache",
 ) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
-    disasm_server._PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, project_name, artifact)
-    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, project_name, "cache")
-    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: "cache")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        project_name,
+        artifact,
+        cache_key=cache_key,
+    )
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: cache_key)
 
 
 def _test_listing_row_code(row: ListingRow) -> str:
@@ -1146,7 +1148,7 @@ def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest
     assert review_items[0]["kind"] == "unreconciled_data_range"
     action_ids = [action["action_id"] for action in cast(list[dict[str, object]], review_items[0]["catalog_actions"])]
     assert "review.seed.data.string" in action_ids
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1463,7 +1465,7 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert representation_choice["interaction_schema"]["primary_rank"] == 20
     assert representation_choice["interaction_schema"]["options"][0]["value"] == "hex"
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_review_note_action(
@@ -1525,7 +1527,7 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     assert application["status"] == "applied"
     assert local_effect["kind"] == "review_note_add"
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_comment_action(
@@ -1584,7 +1586,7 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     assert application["status"] == "applied"
     assert local_effect["kind"] == "comment"
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
@@ -1652,7 +1654,7 @@ def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
     assert comments[0]["comment_id"] != comments[1]["comment_id"]
     assert comments[0]["stable_key"] == "entry-a-key"
     assert comments[1]["stable_key"] == "entry-b-key"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
@@ -1720,7 +1722,7 @@ def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
     assert labels[0]["label_id"] != labels[1]["label_id"]
     assert labels[0]["stable_key"] == "entry-a-key"
     assert labels[1]["stable_key"] == "entry-b-key"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_manual_projection_uses_precise_comment_locator_without_address_fallback() -> None:
@@ -1852,7 +1854,7 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     assert code_seed["range_availability"] == "partial"
     assert semantic_helpers["range_availability"] == "unavailable"
     assert semantic_helpers["enabled"] is False
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_range_uses_visible_metadata_without_hidden_rows(
@@ -1884,7 +1886,7 @@ def test_route_manual_action_catalog_range_uses_visible_metadata_without_hidden_
         {"row_indexes": [1], "row_ids": ["visible-data-1"], "start_offset": 2, "end_offset": 3},
         {"row_indexes": [3], "row_ids": ["visible-data-2"], "start_offset": 5, "end_offset": 6},
     ]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subranges(
@@ -1938,7 +1940,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     assert cast(dict[str, object], application["refresh"])["mode"] == "analysis"
     assert pending_ranges[0]["row_indexes"] == [1, 2]
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_ignores_numeric_label_text_for_semantic_hints(
@@ -1970,7 +1972,7 @@ def test_route_manual_action_catalog_ignores_numeric_label_text_for_semantic_hin
     assert label_action["interaction_schema"]["type"] == "text"
     assert label_action["interaction_schema"]["primary_rank"] == 0
     assert label_action["interaction_schema"]["validation"]["active_profile"] == "vasm"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_label_rename_override(
@@ -2036,9 +2038,8 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert local_effect["name"] == "start"
     assert local_effect["label_id"] == "catalog-label-source-h0-00000000-sk-label-0"
     assert appended_actions == [action]
-    assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
+    assert disasm_server._LISTING_PROJECTION_SERVICE.is_presentation_dirty("bloodwych")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_id(
@@ -2242,7 +2243,7 @@ def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
     assert label["address_domain"] == "runtime"
     assert label["addr"] == 0x10000
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action(
@@ -2302,7 +2303,7 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
     assert seed["addr"] == 4
     assert seed["end"] == 8
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_valid_log_action(
@@ -2479,7 +2480,7 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
     assert representation["end"] == 5
     assert representation["stable_key"] == "row-0"
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_execute_appends_library_base_semantic_action(
@@ -2552,7 +2553,7 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
     assert register_seed["kind"] == "library_base"
     assert register_seed["library_name"] == "exec.library"
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_rejects_library_base_semantic_action_without_lvo_context(
@@ -2584,7 +2585,7 @@ def test_route_manual_action_catalog_rejects_library_base_semantic_action_withou
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
 
     assert not any(action["action_id"] == "semantic.library_base.exec" for action in actions)
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helpers(
@@ -2691,7 +2692,7 @@ def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helper
     assert hint["symbol"]
     assert hint["value"] == 65536
     assert appended_actions == [action]
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_project_overlays_cached_analysis_review_blocker(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -2734,7 +2735,7 @@ def test_route_project_overlays_cached_analysis_review_blocker(monkeypatch: pyte
     assert project["review_state"] == "blocked"
     assert review_items[0]["kind"] == "decompression_blocker"
     assert review_items[0]["review_blocker"] is True
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_project_reproduction_and_listing_include_review_warnings(
@@ -2775,7 +2776,7 @@ def test_route_project_reproduction_and_listing_include_review_warnings(
         warnings = cast(list[dict[str, object]], data["review_warnings"])
         assert warnings[0]["review_state"] == "blocked"
         assert warnings[0]["blocker_count"] == 1
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_reproduction_read_run_and_status(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -3005,8 +3006,11 @@ def test_route_reproduction_stale_listing_artifact_exposes_background_job(
 ) -> None:
     started: list[tuple[str, bool]] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _FakeCListingArtifact()
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        _FakeCListingArtifact(),
+        cache_key="cache",
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -3060,8 +3064,7 @@ def test_route_reproduction_stale_listing_artifact_exposes_background_job(
     assert data["stale"] is True
     assert data["refreshing"] is True
     assert active_job["job_id"] == "repro-bg"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_project_returns_disk_manifest_for_disk_project(
@@ -4077,7 +4080,7 @@ def test_route_listing_returns_empty_payload_for_unready_project(monkeypatch: py
 
 
 def test_route_listing_raises_if_c_artifact_not_loaded(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -4206,7 +4209,7 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
     assert payload["ok"] is True
     assert calls == [(2, 2)]
     assert rows_data[0]["row_key"] == "from-c"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4255,7 +4258,7 @@ def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.Mon
     assert payload["ok"] is True
     assert calls == [("SECTION section,code", 2)]
     assert rows_data[0]["row_key"] == "from-c-anchor"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4304,7 +4307,7 @@ def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.Mon
     assert payload["ok"] is True
     assert calls == [(4, 1, 1)]
     assert rows_data[0]["row_key"] == "from-c-addr"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4351,10 +4354,12 @@ def test_listing_navigation_payload_uses_all_rows(monkeypatch: pytest.MonkeyPatc
 
 def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     artifact = _FakeCListingArtifact()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
-    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "bloodwych", "cache")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        artifact,
+        cache_key="cache",
+    )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -4372,7 +4377,7 @@ def test_route_listing_navigation_uses_c_artifact_cache(monkeypatch: pytest.Monk
     assert artifact.navigation_calls == 1
     assert [entry["summary"] for entry in groups["labels"]] == ["from_c:"]
     assert groups["manual-review"][0]["kind"] == "unreconciled_data_range"
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_listing_navigation_indexes_instruction_typed_accesses(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4894,12 +4899,14 @@ def test_listing_navigation_exposes_rsset_layout_regions_and_gaps(monkeypatch: p
 
 
 def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact(
-        [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        _RowsCListingArtifact(
+            [ListingRow(row_id="r0", kind="label", text="stale:\n", addr=0, label="stale:")]
+        ),
+        cache_key="old-cache",
     )
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "old-cache"
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -4918,8 +4925,8 @@ def test_route_listing_navigation_rejects_stale_cache(monkeypatch: pytest.Monkey
             {},
         )
 
-    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
-    assert "bloodwych" not in disasm_server._PROJECT_LISTING_CACHE_KEY
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
+    assert disasm_server._LISTING_PROJECTION_SERVICE.cache_key_for_test("bloodwych") is None
 
 
 def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4980,12 +4987,13 @@ def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.
         },
     )
     artifact = _RowsCListingArtifact(rows)
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "bloodwych", artifact)
-    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "bloodwych", "old-cache")
-    disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY.add("bloodwych")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        artifact,
+        cache_key="old-cache",
+    )
+    disasm_server._LISTING_PROJECTION_SERVICE.mark_presentation_dirty("bloodwych")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "new-cache")
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
 
@@ -5003,8 +5011,8 @@ def test_route_listing_allows_projection_dirty_window_reads(monkeypatch: pytest.
     assert returned_rows[0]["manual_label_id"] == "catalog-label-runtime-h0-0001001E"
     assert returned_rows[0]["manual_label_address_domain"] == "runtime"
     assert returned_rows[0]["comment_text"] == "confirmed copy loop"
-    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
-    assert "bloodwych" in disasm_server._PROJECT_LISTING_PRESENTATION_DIRTY
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is artifact
+    assert disasm_server._LISTING_PROJECTION_SERVICE.is_presentation_dirty("bloodwych")
 
 
 def test_project_listing_cache_key_includes_renderer_tool_stamps(
@@ -5339,7 +5347,7 @@ def test_start_listing_job_ignores_stale_ready_job_without_rows(
 def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     build_calls: list[tuple[str, str]] = []
     artifact = _FakeCListingArtifact()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
@@ -5367,7 +5375,7 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
 
     disasm_server._build_rows_job("job-1", "bloodwych")
 
-    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is artifact
     assert artifact.closed is False
     assert build_calls == ["bloodwych"]
     assert disasm_server._ASYNC_JOBS["job-1"]["status"] == "ready"
@@ -5415,7 +5423,7 @@ def test_build_rows_job_stops_if_job_was_cleared() -> None:
 
 
 def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
@@ -5444,11 +5452,11 @@ def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPa
 
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
 
 
 def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
     disasm_server._JOB_EVENT_SUBSCRIBERS.clear()
     subscriber: queue.Queue[dict[str, object]] = queue.Queue()
@@ -5480,7 +5488,7 @@ def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypa
     }
     disasm_server._build_rows_job("job-full", "bloodwych")
 
-    assert disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] is artifact
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is artifact
     events: list[dict[str, object]] = []
     while not subscriber.empty():
         events.append(subscriber.get_nowait())
@@ -5637,8 +5645,7 @@ def test_resolve_static_response_rejects_missing_file() -> None:
 def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
     artifact = _FakeCListingArtifact()
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
@@ -5678,16 +5685,18 @@ def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatc
 
     assert queued == ["bloodwych"]
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_cached_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatch) -> None:
     queued: list[str] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _FakeCListingArtifact()
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        _FakeCListingArtifact(),
+        cache_key="cache",
+    )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
     monkeypatch.setattr(
         disasm_server,
@@ -5701,19 +5710,17 @@ def test_cached_listing_artifact_job_queues_reproduction(monkeypatch: pytest.Mon
     assert payload["total_rows"] == 1
     assert queued == ["bloodwych"]
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_listing_cache_requires_c_artifact(monkeypatch: pytest.MonkeyPatch) -> None:
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_cache_key_for_test("bloodwych", cache_key="cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
 
     assert not disasm_server._cache_satisfies_listing("bloodwych", "cache")
 
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_reproduction_job_does_not_use_stale_cached_rows(
@@ -5721,8 +5728,8 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
 ) -> None:
     calls: list[dict[str, object]] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "old-cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_cache_key_for_test("bloodwych", cache_key="old-cache")
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "fresh-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
     monkeypatch.setattr(
@@ -5759,7 +5766,7 @@ def test_reproduction_job_does_not_use_stale_cached_rows(
     assert "rows" not in calls[0]["kwargs"]
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_reproduction_job_reuses_artifact_source(
@@ -5769,10 +5776,12 @@ def test_reproduction_job_reuses_artifact_source(
     captured_profile: list[object] = []
     artifact = _FakeCListingArtifact()
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "carrier-raw", artifact)
-    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "carrier-raw", "listing-cache")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "carrier-raw",
+        artifact,
+        cache_key="listing-cache",
+    )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
 
@@ -5816,8 +5825,7 @@ def test_reproduction_job_reuses_artifact_source(
     assert captured_profile == [{"generation": "fake-source"}]
     assert disasm_server._ASYNC_JOBS["repro-job"]["status"] == "ready"
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
@@ -5829,10 +5837,12 @@ def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
 
     calls: list[object] = []
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
-    monkeypatch.setitem(disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE, "carrier-raw", BrokenSourceArtifact())
-    monkeypatch.setitem(disasm_server._PROJECT_LISTING_CACHE_KEY, "carrier-raw", "listing-cache")
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "carrier-raw",
+        BrokenSourceArtifact(),
+        cache_key="listing-cache",
+    )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "listing-cache")
     monkeypatch.setattr(disasm_server, "_reproduction_cache_key", lambda project_name: "repro-cache")
     monkeypatch.setattr(disasm_server, "run_reproduction", lambda *args, **kwargs: calls.append((args, kwargs)))
@@ -5867,8 +5877,7 @@ def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
     assert job["phase_id"] == "error"
     assert job["error"] == "artifact source unavailable: source export failed"
     disasm_server._ASYNC_JOBS.clear()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
-    disasm_server._PROJECT_LISTING_CACHE_KEY.clear()
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
 def test_metadata_edit_route_invalidates_listing_and_reproduction(
@@ -5877,8 +5886,11 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     canceled: list[str] = []
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact([])
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        _RowsCListingArtifact([]),
+        cache_key="cache",
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -5902,7 +5914,7 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
     )
 
     assert cast(dict[str, object], cast(dict[str, object], payload["data"])["edit"])["kind"] == "entrypoint"
-    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
     assert canceled == ["listing:bloodwych", "repro:bloodwych"]
 
 
@@ -5914,8 +5926,11 @@ def test_manual_action_route_appends_action_and_invalidates_analysis(
     canceled: list[str] = []
     appended: list[dict[str, object]] = []
     binary_source = object()
-    disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE["bloodwych"] = _RowsCListingArtifact([])
-    disasm_server._PROJECT_LISTING_CACHE_KEY["bloodwych"] = "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
+        "bloodwych",
+        _RowsCListingArtifact([]),
+        cache_key="cache",
+    )
     monkeypatch.setattr(
         disasm_server,
         "get_project",
@@ -5954,7 +5969,7 @@ def test_manual_action_route_appends_action_and_invalidates_analysis(
             "binary_source": binary_source,
         }
     ]
-    assert "bloodwych" not in disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
     assert canceled == ["listing:bloodwych", "repro:bloodwych"]
 
 

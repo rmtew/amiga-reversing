@@ -1692,6 +1692,22 @@ legacy row identity names until `028-004`, `028-009`, and `028-010` move those
 contracts to locators. `028-002` still owns moving cache/job/debug state into
 the service.
 
+Implementation note from `028-002`: `ListingProjectionService` now owns the
+listing artifact cache, cache keys, presentation-dirty state, cached review-item
+projection, cache reset/close hooks, listing job start/reuse/cancel decisions,
+and listing artifact-ready event payloads. `server.py` keeps the generic async
+job transport and C-backend build adapter, but no longer owns the project
+listing cache dictionaries. Browser tests seed cache state through service
+helpers, and the frontend maps wire-level `row_key` back into its current
+internal `stable_key` fields after fetch so the `/listing` API does not regain a
+dual identity contract.
+
+Remaining out of scope for `028-002`: command/catalog execution still passes
+row snapshots and selector parameters rather than service-resolved locators.
+Navigation payloads and persisted browser state still use legacy stable-key
+field names internally until the locator command and browser-state slices replace
+those contracts.
+
 Do not implement `028-001` as a locator helper called from the old route globals.
 That would preserve the shallow interface this proposal is trying to delete.
 
