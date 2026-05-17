@@ -58,11 +58,16 @@ def test_genam_artifact_available_missing_vamos_is_not_runnable(tmp_path: Path) 
     assert record["probe_evidence"]["version_text"] is None
 
 
-def test_assemble_devpac_source_resolves_genam_through_vamos(tmp_path: Path) -> None:
+def test_assemble_devpac_source_resolves_genam_through_vamos(monkeypatch, tmp_path: Path) -> None:
     genam = tmp_path / "GenAm"
     vamos = tmp_path / "vamos.exe"
     genam.write_bytes(b"genam")
     vamos.write_bytes(b"vamos")
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, stdout="vamos 1.0\n", stderr="")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
     tool_graph.save_tool_registry(
         {
             "version": 2,
@@ -82,9 +87,15 @@ def test_assemble_devpac_source_resolves_genam_through_vamos(tmp_path: Path) -> 
     assert selected["runnable_status"] == "available"
 
 
-def test_assemble_vasm_source_resolves_vasm_through_host(tmp_path: Path) -> None:
+def test_assemble_vasm_source_resolves_vasm_through_host(monkeypatch, tmp_path: Path) -> None:
     vasm = tmp_path / "vasmm68k_mot.exe"
     vasm.write_bytes(b"vasm")
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, stdout="vasm 1.0\n", stderr="")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
     tool_graph.save_tool_registry(
         {"version": 2, "functional_tools": {"vasm": {"path": str(vasm)}}},
         project_root=tmp_path,
@@ -158,10 +169,66 @@ def test_native_probe_failure_does_not_record_error_as_version(monkeypatch, tmp_
     )
 
     evidence = record["probe_evidence"]
-    assert evidence["probe_status"] == "error"
+    assert evidence["probe_status"] == "unsupported"
     assert evidence["version_text"] is None
     assert evidence["stderr_excerpt"] == "usage: vasm --help"
     assert evidence["executable_stamp"]["sha256"]
+
+
+def test_existing_but_non_executable_native_tool_is_not_runnable(monkeypatch, tmp_path: Path) -> None:
+    vasm = tmp_path / "vasm.exe"
+    vasm.write_bytes(b"not executable")
+    tool_graph.save_tool_registry(
+        {"version": 2, "functional_tools": {"vasm": {"path": str(vasm)}}},
+        project_root=tmp_path,
+    )
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise OSError("not executable")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
+    resolution = tool_graph.resolve_capability(
+        "assemble_vasm_source",
+        project_root=tmp_path,
+        env_path="",
+    )
+
+    selected = resolution["selected"]
+    assert resolution["available"] is False
+    assert selected["artifact_status"] == "available"
+    assert selected["runnable_status"] == "error"
+    assert selected["probe_evidence"]["probe_status"] == "error"
+    assert selected["probe_evidence"]["executable_stamp"]["sha256"]
+
+
+def test_existing_but_invalid_runtime_makes_chain_unavailable(monkeypatch, tmp_path: Path) -> None:
+    genam = tmp_path / "GenAm"
+    vamos = tmp_path / "vamos.exe"
+    genam.write_bytes(b"genam")
+    vamos.write_bytes(b"not executable")
+    tool_graph.save_tool_registry(
+        {
+            "version": 2,
+            "runtime_tools": {"vamos": {"path": str(vamos)}},
+            "functional_tools": {"genam": {"path": str(genam)}},
+        },
+        project_root=tmp_path,
+    )
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise OSError("not executable")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
+    resolution = tool_graph.resolve_capability("assemble_devpac_source", project_root=tmp_path)
+
+    selected = resolution["selected"]
+    assert resolution["available"] is False
+    assert selected["functional_tool_id"] == "genam"
+    assert selected["artifact_status"] == "available"
+    assert selected["runtime_status"] == "error"
+    assert selected["missing_runtime_ids"] == ["vamos"]
 
 
 def test_native_probe_timeout_and_os_error_keep_stamp(monkeypatch, tmp_path: Path) -> None:

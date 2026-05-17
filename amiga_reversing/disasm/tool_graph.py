@@ -201,9 +201,14 @@ def functional_tool_record(
     missing_runtime_ids = [
         runtime_id for runtime_id in supported if runtime_statuses.get(runtime_id) != "available"
     ]
-    artifact_status = cast(str, artifact["status"])
-    runnable_status = "available" if artifact_status == "available" and not missing_runtime_ids else artifact_status
-    if artifact_status == "available" and missing_runtime_ids:
+    artifact_status = cast(str, artifact.get("artifact_status") or artifact["status"])
+    artifact_runnable_status = cast(str, artifact.get("runnable_status") or artifact_status)
+    runnable_status = (
+        "available"
+        if artifact_runnable_status == "available" and not missing_runtime_ids
+        else artifact_runnable_status
+    )
+    if artifact_runnable_status == "available" and missing_runtime_ids:
         runnable_status = "missing"
     return {
         "functional_tool_id": functional_tool_id,
@@ -325,9 +330,14 @@ def _capability_candidate(
     runtime_id = cast(str, runtime_record["runtime_tool_id"])
     runtime_status = cast(str, runtime_record["status"])
     artifact_status = cast(str, functional_record["artifact_status"])
+    functional_runnable_status = cast(str, functional_record["runnable_status"])
     missing_runtime_ids = [] if runtime_status == "available" else [runtime_id]
-    runnable_status = "available" if artifact_status == "available" and runtime_status == "available" else artifact_status
-    if artifact_status == "available" and runtime_status != "available":
+    runnable_status = (
+        "available"
+        if functional_runnable_status == "available" and runtime_status == "available"
+        else functional_runnable_status
+    )
+    if functional_runnable_status == "available" and runtime_status != "available":
         runnable_status = "missing"
     tool_chain = [functional_id] if runtime_id == "host" else [runtime_id, functional_id]
     return {
@@ -501,6 +511,8 @@ def _availability_for_path(
             "tool_id": tool_id,
             "tool_kind": tool_kind,
             "status": "missing",
+            "artifact_status": "missing",
+            "runnable_status": "missing",
             "resolved_path": str(path),
             "discovery_source": discovery_source,
             "message": f"{tool_id} configured path does not exist: {path}",
@@ -512,6 +524,8 @@ def _availability_for_path(
             "tool_id": tool_id,
             "tool_kind": tool_kind,
             "status": "unsupported",
+            "artifact_status": "unsupported",
+            "runnable_status": "unsupported",
             "resolved_path": str(path),
             "discovery_source": discovery_source,
             "message": f"{tool_id} path is a directory: {path}",
@@ -520,14 +534,17 @@ def _availability_for_path(
     try:
         stamp = _executable_stamp(path)
         probe = _probe_for_path(path, probe_method)
+        runnable_status = _runnable_status_from_probe(probe_method, probe)
         return {
             id_key: tool_id,
             "tool_id": tool_id,
             "tool_kind": tool_kind,
-            "status": "available",
+            "status": runnable_status,
+            "artifact_status": "available",
+            "runnable_status": runnable_status,
             "resolved_path": str(path),
             "discovery_source": discovery_source,
-            "message": f"{tool_id} is available",
+            "message": f"{tool_id} is available" if runnable_status == "available" else f"{tool_id} is not runnable",
             "probe_evidence": _probe_evidence(
                 probe_method,
                 cast(str, probe["probe_status"]),
@@ -542,6 +559,8 @@ def _availability_for_path(
             "tool_id": tool_id,
             "tool_kind": tool_kind,
             "status": "error",
+            "artifact_status": "error",
+            "runnable_status": "error",
             "resolved_path": str(path),
             "discovery_source": discovery_source,
             "message": str(exc),
@@ -579,6 +598,15 @@ def _probe_for_path(path: Path, probe_method: str) -> dict[str, object]:
     return {"probe_status": "unsupported", "version_text": None}
 
 
+def _runnable_status_from_probe(probe_method: str, probe: Mapping[str, object]) -> str:
+    if probe_method == "hash_only":
+        return "available"
+    probe_status = probe.get("probe_status")
+    if probe_status in {"available", "unsupported"}:
+        return "available"
+    return "error"
+
+
 def _native_version_probe(path: Path) -> dict[str, object]:
     if os.name == "nt" and path.suffix.lower() not in {".exe", ".bat", ".cmd"}:
         return {"probe_status": "unsupported", "version_text": None}
@@ -604,8 +632,9 @@ def _native_version_probe(path: Path) -> dict[str, object]:
         }
     text = (result.stdout or result.stderr).strip().splitlines()
     if result.returncode != 0:
+        probe_status = "unsupported" if text else "error"
         return {
-            "probe_status": "error",
+            "probe_status": probe_status,
             "version_text": None,
             "stdout_excerpt": _first_output_line(result.stdout),
             "stderr_excerpt": _first_output_line(result.stderr),
@@ -642,4 +671,6 @@ def _functional_message(
         return f"{functional_tool_id} is runnable"
     if artifact_status == "available" and missing_runtime_ids:
         return f"{functional_tool_id} artifact is available but missing runtime: {', '.join(missing_runtime_ids)}"
+    if artifact_status == "available":
+        return f"{functional_tool_id} artifact is available but not runnable: {runnable_status}"
     return f"{functional_tool_id} artifact is {artifact_status}"

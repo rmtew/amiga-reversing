@@ -687,3 +687,9 @@ diagnostic/report payloads.
 `OSError` probe results as failed probe evidence rather than version identity.
 `version_text` is populated only for successful native probes; failure stdout or
 stderr is carried separately, and executable stamps remain identity evidence.
+
+2026-05-17 follow-up: user-facing runnable availability now comes from the
+native launch/probe result instead of artifact presence. A native tool that
+launches but does not support `--version` can still be runnable with
+`probe_status=unsupported`; a timeout or `OSError` probe keeps the artifact
+stamp but makes the tool chain unavailable.
