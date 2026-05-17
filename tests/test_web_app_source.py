@@ -120,9 +120,12 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "function closeSubmittedParameterSurface" in app_js
     assert "closeSubmittedParameterSurface();" in app_js
     assert "function commandPaletteRowQuery" in app_js
-    assert "function appendCommandPaletteRowSnapshot" in app_js
-    assert "function commandPaletteRowSnapshot" in app_js
-    assert 'params.set("rows", JSON.stringify([commandPaletteRowSnapshot' in app_js
+    assert "function listingRowLocator" in app_js
+    assert "function commandPaletteElementId" in app_js
+    assert 'params.set("locator", JSON.stringify(locator));' in app_js
+    assert 'params.set("locators", JSON.stringify(locators));' in app_js
+    assert 'manual-action-catalog' not in app_js
+    assert 'params.set("rows"' not in app_js
     assert "function manualActionRefreshMode" in app_js
     assert 'mode === "none" || mode === "project" || mode === "analysis"' in app_js
     assert "Server returned incompatible manual action refresh mode" in app_js

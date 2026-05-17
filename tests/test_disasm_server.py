@@ -10,6 +10,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
@@ -308,6 +309,65 @@ def _seed_c_listing_artifact(
         cache_key=cache_key,
     )
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda requested: cache_key)
+
+
+def _row_locator(
+    row: ListingRow | Mapping[str, object],
+    *,
+    target_id: str = "bloodwych",
+    projection_hash: str = "cache",
+) -> dict[str, object]:
+    if isinstance(row, ListingRow):
+        row_key = row.stable_key or row.row_id
+        section_index = row.section_index
+        start_offset = row.start_offset
+        end_offset = row.end_offset
+        kind = row.kind
+        storage_address = row.addr
+        runtime_address = None
+    else:
+        row_key = str(row.get("row_key") or row.get("stable_key") or row.get("row_id") or "")
+        section_index = row.get("section_index")
+        start_offset = row.get("start_offset")
+        end_offset = row.get("end_offset")
+        kind = str(row.get("kind") or "")
+        storage_address = row.get("storage_address", row.get("addr"))
+        runtime_address = row.get("runtime_address")
+    return {
+        "target_id": target_id,
+        "projection_hash": projection_hash,
+        "row_key": row_key,
+        "section_index": section_index,
+        "start_offset": start_offset,
+        "end_offset": end_offset,
+        "kind": kind,
+        "storage_address": storage_address,
+        "runtime_address": runtime_address,
+    }
+
+
+def _row_command_context(row: ListingRow | Mapping[str, object]) -> dict[str, object]:
+    return {"kind": "row", "locator": _row_locator(row)}
+
+
+def _element_command_context(row: ListingRow | Mapping[str, object], element_id: str) -> dict[str, object]:
+    return {"kind": "element", "locator": _row_locator(row), "element_id": element_id}
+
+
+def _range_command_context(rows: Sequence[ListingRow | Mapping[str, object]]) -> dict[str, object]:
+    return {"kind": "range", "locators": [_row_locator(row) for row in rows]}
+
+
+def _row_command_query(row: ListingRow | Mapping[str, object]) -> dict[str, list[str]]:
+    return {"context": ["row"], "locator": [json.dumps(_row_locator(row))]}
+
+
+def _element_command_query(row: ListingRow | Mapping[str, object], element_id: str) -> dict[str, list[str]]:
+    return {"context": ["element"], "locator": [json.dumps(_row_locator(row))], "element_id": [element_id]}
+
+
+def _range_command_query(rows: Sequence[ListingRow | Mapping[str, object]]) -> dict[str, list[str]]:
+    return {"context": ["range"], "locators": [json.dumps([_row_locator(row) for row in rows])]}
 
 
 def _test_listing_row_code(row: ListingRow) -> str:
@@ -1172,34 +1232,31 @@ def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: py
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["review-item"], "review_index": ["0"]},
+        "/api/projects/bloodwych/commands",
+        {"context": ["review-item"], "item_id": ["unreconciled:h0:00000004-00000008"]},
     )
     data = cast(dict[str, object], payload["data"])
-    actions = cast(list[dict[str, object]], data["actions"])
+    actions = cast(list[dict[str, object]], data["commands"])
 
     assert data["context"] == {
         "kind": "review_item",
         "item_id": "unreconciled:h0:00000004-00000008",
-        "review_index": 0,
     }
     assert actions[0]["action_id"] == "review.navigate"
-    assert {
-        "action_id": "review.seed.data.string",
-        "label": "String",
-        "description": "String",
-        "enabled": True,
-        "target_context": {
-            "kind": "review_item",
-            "item_id": "unreconciled:h0:00000004-00000008",
-            "review_item_kind": "unreconciled_data_range",
-        },
-        "parameter_schema": {"type": "object", "properties": {}, "required": []},
-        "default_key_binding": None,
-        "appends_to_manual_action_log": True,
-        "action": "create_manual_seed",
-        "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
-    } in actions
+    seed_action = next(action for action in actions if action["command_id"] == "review.seed.data.string")
+    assert seed_action["effect"] == "manual_mutation"
+    assert seed_action["target_context"] == {
+        "kind": "review_item",
+        "item_id": "unreconciled:h0:00000004-00000008",
+    }
+    assert seed_action["parameters"] == {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"}
+    assert seed_action["typed_error"]["codes"] == [
+        "missing_locator",
+        "stale_locator",
+        "ambiguous_locator",
+        "non_mutable_command",
+        "invalid_command_context",
+    ]
 
 
 def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1207,23 +1264,16 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
+        "/api/projects/bloodwych/commands",
         {"context": ["target"]},
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
-    assert {
-        "action_id": "target.open_command_palette",
-        "label": "Open Command Palette",
-        "description": "Open Command Palette",
-        "enabled": True,
-        "target_context": {"kind": "target"},
-        "parameter_schema": {"type": "object", "properties": {}, "required": []},
-        "default_key_binding": "p",
-        "appends_to_manual_action_log": False,
-        "action": "open_command_palette",
-        "parameters": {},
-    } in actions
+    palette_action = next(action for action in actions if action["command_id"] == "target.open_command_palette")
+    assert palette_action["effect"] == "navigation"
+    assert palette_action["target_context"] == {"kind": "target"}
+    assert palette_action["parameter_schema"] == {"type": "object", "properties": {}, "required": []}
+    assert palette_action["default_key_binding"] == "p"
     profile_action = next(action for action in actions if action["action_id"] == "target.reproduction_profile")
     assert profile_action["category"] == "target_tooling"
     assert profile_action["appends_to_manual_action_log"] is False
@@ -1306,10 +1356,10 @@ def test_route_manual_action_catalog_returns_label_fix_actions(monkeypatch: pyte
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["review-item"], "review_index": ["0"]},
+        "/api/projects/bloodwych/commands",
+        {"context": ["review-item"], "item_id": ["label_scope_conflict:l1:missing-owner"]},
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     assert any(action["action_id"] == "review.label.rename" for action in actions)
     change_scope = next(action for action in actions if action["action_id"] == "review.label.change_scope")
@@ -1349,10 +1399,10 @@ def test_route_manual_action_catalog_returns_review_note_item_actions(monkeypatc
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["review-item"], "review_index": ["0"]},
+        "/api/projects/bloodwych/commands",
+        {"context": ["review-item"], "item_id": ["review_note:h0:$00000004-$00000006"]},
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     assert [action["action_id"] for action in actions] == [
         "review.navigate",
@@ -1384,12 +1434,27 @@ def test_route_manual_action_catalog_execute_edits_and_clears_review_note(
         ),
     )
     appended_actions: list[dict[str, object]] = []
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="label",
+            text="copy_loop:\n",
+            addr=0x1001E,
+            runtime_address=0x1001E,
+            section_index=0,
+            start_offset=0x1E,
+            end_offset=0x1E,
+            label="copy_loop",
+            stable_key="s0:0000001E:label:245",
+        )
+    ]
 
     def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
         action = {"kind": kind, "payload": payload}
         appended_actions.append(action)
         return action
 
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(
         disasm_server,
@@ -1402,21 +1467,21 @@ def test_route_manual_action_catalog_execute_edits_and_clears_review_note(
 
     edit_payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "review_note.edit",
-            "context": {"kind": "review_item", "review_index": 0},
+            "command_id": "review_note.edit",
+            "context": {"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
             "parameters": {"title": "Updated", "tracking": "note_only"},
         },
     )
     clear_payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "review_note.clear",
-            "context": {"kind": "review_item", "review_index": 0},
+            "command_id": "review_note.clear",
+            "context": {"kind": "review_item", "item_id": "review_note:h0:$00000004-$00000006"},
         },
     )
 
@@ -1437,16 +1502,16 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
 
     row_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["row"], "row_index": ["0"]},
+        "/api/projects/bloodwych/commands",
+        _row_command_query(rows[0]),
     )
-    row_actions = cast(list[dict[str, object]], cast(dict[str, object], row_payload["data"])["actions"])
+    row_actions = cast(list[dict[str, object]], cast(dict[str, object], row_payload["data"])["commands"])
     element_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["0"], "element_kind": ["data_literal"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:data_literal:0"),
     )
-    element_actions = cast(list[dict[str, object]], cast(dict[str, object], element_payload["data"])["actions"])
+    element_actions = cast(list[dict[str, object]], cast(dict[str, object], element_payload["data"])["commands"])
 
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
@@ -1465,6 +1530,24 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert representation_choice["interaction_schema"]["primary_rank"] == 20
     assert representation_choice["interaction_schema"]["options"][0]["value"] == "hex"
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
+def test_route_command_catalog_reports_malformed_locator_as_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0, stable_key="row-0")]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+
+    locator = _row_locator(rows[0])
+    del locator["row_key"]
+    with pytest.raises(disasm_server.CommandContractError) as exc:
+        disasm_server.route_request(
+            "GET",
+            "/api/projects/bloodwych/commands",
+            {"context": ["row"], "locator": [json.dumps(locator)]},
+        )
+
+    assert exc.value.code == "missing_locator"
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
@@ -1504,11 +1587,11 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "review_note.add",
-            "context": {"kind": "row", "row_index": 0},
+            "command_id": "review_note.add",
+            "context": _row_command_context(rows[0]),
             "parameters": {"title": "Check RTS", "body": "Verify return path", "tracking": "needs_review"},
         },
     )
@@ -1566,11 +1649,11 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "comment.edit",
-            "context": {"kind": "row", "row_index": 0},
+            "command_id": "comment.edit",
+            "context": _row_command_context(rows[0]),
             "parameters": {"text": "manual return"},
         },
     )
@@ -1638,11 +1721,11 @@ def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
     for row_index in (0, 1):
         disasm_server.route_request(
             "POST",
-            "/api/projects/bloodwych/manual-action-catalog/execute",
+            "/api/projects/bloodwych/commands/execute",
             {},
             {
-                "action_id": "comment.edit",
-                "context": {"kind": "row", "row_index": row_index},
+                "command_id": "comment.edit",
+                "context": _row_command_context(rows[row_index]),
                 "parameters": {"text": f"comment {row_index}"},
             },
         )
@@ -1706,11 +1789,11 @@ def test_route_manual_action_catalog_label_id_distinguishes_same_address_rows(
     for row_index in (0, 1):
         disasm_server.route_request(
             "POST",
-            "/api/projects/bloodwych/manual-action-catalog/execute",
+            "/api/projects/bloodwych/commands/execute",
             {},
             {
-                "action_id": "label.rename",
-                "context": {"kind": "element", "row_index": row_index, "element_kind": "label"},
+                "command_id": "label.rename",
+                "context": _element_command_context(rows[row_index], f"entry-{chr(97 + row_index)}-key:label:ENTRYPOINT000{row_index + 1}"),
                 "parameters": {"name": f"entry_{row_index}"},
             },
         )
@@ -1839,10 +1922,10 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["range"], "row_indexes": ["0,1,2"]},
+        "/api/projects/bloodwych/commands",
+        _range_command_query(rows),
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     raw_block = next(action for action in actions if action["action_id"] == "range.seed.data.raw")
     code_seed = next(action for action in actions if action["action_id"] == "range.seed.code")
@@ -1869,16 +1952,12 @@ def test_route_manual_action_catalog_range_uses_visible_metadata_without_hidden_
     _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
 
-    visible_rows = [
-        {"row_index": 1, "row_id": "visible-data-1", "kind": "data", "start_offset": 2, "end_offset": 3},
-        {"row_index": 3, "row_id": "visible-data-2", "kind": "data", "start_offset": 5, "end_offset": 6},
-    ]
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["range"], "row_indexes": ["1,3"], "rows": [json.dumps(visible_rows)]},
+        "/api/projects/bloodwych/commands",
+        _range_command_query([rows[1], rows[3]]),
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
     raw_block = next(action for action in actions if action["action_id"] == "range.seed.data.raw")
 
     assert raw_block["range_availability"] == "applicable"
@@ -1920,11 +1999,11 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "range.seed.data.raw",
-            "context": {"kind": "range", "row_indexes": [0, 1, 2]},
+            "command_id": "range.seed.data.raw",
+            "context": _range_command_context(rows),
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -1961,10 +2040,10 @@ def test_route_manual_action_catalog_ignores_numeric_label_text_for_semantic_hin
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["0"], "element_kind": ["label"], "symbol": ["abs_0_00010488"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "label-10488:label:abs_0_00010488"),
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     label_action = next(action for action in actions if action["action_id"] == "label.rename")
     assert [action["action_id"] for action in actions] == ["navigation.follow_reference", "label.rename"]
@@ -2012,11 +2091,11 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "label.rename",
-            "context": {"kind": "element", "row_index": 0, "element_kind": "label", "symbol": "loc_0_00000000"},
+            "command_id": "label.rename",
+            "context": _element_command_context(rows[0], "label-0:label:loc_0_00000000"),
             "parameters": {"name": "start"},
         },
     )
@@ -2063,12 +2142,40 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
         },
     )
     appended_actions: list[dict[str, object]] = []
+    rows = [
+        {
+            "row_index": 245,
+            "row_id": "r0",
+            "kind": "label",
+            "text": "copy_loop:\n",
+            "addr": 0x1001E,
+            "runtime_address": 0x1001E,
+            "section_index": 0,
+            "start_offset": 0x1E,
+            "end_offset": 0x1E,
+            "label": "copy_loop",
+            "stable_key": "s0:0000001E:label:245",
+            "manual_label_id": "catalog-label-runtime-h0-0001001E",
+            "manual_label_address_domain": "runtime",
+        }
+    ]
+
+    class DictRowsArtifact:
+        def close(self) -> None:
+            return None
+
+        def summary_payload(self):
+            return {"total_rows": len(rows)}, {}
+
+        def window_payload(self, *, start: int, count: int):
+            return {"rows": rows[start : start + count]}, {}
 
     def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
         action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
         appended_actions.append(action)
         return action
 
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", DictRowsArtifact())
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(
         disasm_server,
@@ -2081,31 +2188,11 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "label.rename",
-            "context": {
-                "kind": "element",
-                "row_index": 245,
-                "element_kind": "label",
-                "symbol": "copy_loop",
-                "row": {
-                    "row_index": 245,
-                    "row_id": "r0",
-                    "kind": "label",
-                    "text": "copy_loop:\n",
-                    "addr": 0x1001E,
-                    "runtime_address": 0x1001E,
-                    "section_index": 0,
-                    "start_offset": 0x1E,
-                    "end_offset": 0x1E,
-                    "label": "copy_loop",
-                    "stable_key": "s0:0000001E:label:245",
-                    "manual_label_id": "catalog-label-runtime-h0-0001001E",
-                    "manual_label_address_domain": "runtime",
-                },
-            },
+            "command_id": "label.rename",
+            "context": _element_command_context(rows[0], "s0:0000001E:label:245:label:copy_loop"),
             "parameters": {"name": "copy_loop_again"},
         },
     )
@@ -2124,9 +2211,8 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
     assert appended_actions == [action]
 
 
-def test_route_manual_action_catalog_execute_uses_visible_row_snapshot_without_artifact(
+def test_route_command_execute_rejects_locator_without_artifact(
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
 ) -> None:
     row = {
         "row_index": 0,
@@ -2140,56 +2226,22 @@ def test_route_manual_action_catalog_execute_uses_visible_row_snapshot_without_a
         "label": "loc_0_00000000",
         "stable_key": "label-0",
     }
-    appended_actions: list[dict[str, object]] = []
-
-    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
-        appended_actions.append(action)
-        return action
 
     disasm_server._clear_project_listing_cache("bloodwych")
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
-    monkeypatch.setattr(
-        disasm_server,
-        "resolve_project_paths",
-        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
-    )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
-    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
-    catalog_payload = disasm_server.route_request(
-        "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {
-            "context": ["element"],
-            "row_index": ["0"],
-            "element_kind": ["label"],
-            "symbol": ["loc_0_00000000"],
-            "rows": [json.dumps([row])],
-        },
-    )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["actions"])
-    label_action = next(action for action in actions if action["action_id"] == "label.rename")
-    context = cast(dict[str, object], label_action["target_context"])
-
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
-        {},
-        {
-            "action_id": "label.rename",
-            "context": context,
-            "parameters": {"name": "start"},
-        },
-    )
-    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
-    label = cast(dict[str, object], cast(dict[str, object], action["payload"])["label"])
-
-    assert cast(dict[str, object], context["row"])["label"] == "loc_0_00000000"
-    assert action["kind"] == "create_manual_label"
-    assert label["name"] == "start"
-    assert appended_actions == [action]
+    with pytest.raises(disasm_server.CommandContractError) as exc:
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/commands/execute",
+            {},
+            {
+                "command_id": "label.rename",
+                "context": _element_command_context(row, "label-0:label:loc_0_00000000"),
+                "parameters": {"name": "start"},
+            },
+        )
+    assert exc.value.code == "missing_locator"
 
 
 def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
@@ -2228,11 +2280,11 @@ def test_route_manual_action_catalog_execute_preserves_absolute_label_domain(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "label.rename",
-            "context": {"kind": "element", "row_index": 0, "element_kind": "label", "symbol": "abs_0_00010000"},
+            "command_id": "label.rename",
+            "context": _element_command_context(rows[0], "label-0:label:abs_0_00010000"),
             "parameters": {"name": "ENTRYPOINT0000"},
         },
     )
@@ -2285,11 +2337,11 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "row.seed.data.pointer_table",
-            "context": {"kind": "row", "row_index": 0},
+            "command_id": "row.seed.data.pointer_table",
+            "context": _row_command_context(rows[0]),
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -2346,11 +2398,11 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "review.seed.data.string",
-            "context": {"kind": "review_item", "review_index": 0},
+            "command_id": "review.seed.data.string",
+            "context": {"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -2406,11 +2458,11 @@ def test_route_manual_action_catalog_execute_appends_label_rename_action(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "review.label.rename",
-            "context": {"kind": "review_item", "review_index": 0},
+            "command_id": "review.label.rename",
+            "context": {"kind": "review_item", "item_id": "label_scope_conflict:l1:missing-owner"},
             "parameters": {"name": "renamed_label"},
         },
     )
@@ -2462,11 +2514,11 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "representation.character",
-            "context": {"kind": "element", "row_index": 0, "element_kind": "data_literal"},
+            "command_id": "representation.character",
+            "context": _element_command_context(rows[0], "row-0:data_literal:4"),
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -2529,19 +2581,19 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
 
     catalog_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["0"], "element_kind": ["symbol"], "symbol": ["_LVOOpenLibrary"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
     assert any(action["action_id"] == "semantic.library_base.exec" for action in actions)
 
     payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "action_id": "semantic.library_base.exec",
-            "context": {"kind": "element", "row_index": 0, "element_kind": "symbol", "symbol": "_LVOOpenLibrary"},
+            "command_id": "semantic.library_base.exec",
+            "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -2579,10 +2631,10 @@ def test_route_manual_action_catalog_rejects_library_base_semantic_action_withou
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["0"], "element_kind": ["immediate"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:immediate:0:1"),
     )
-    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["actions"])
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     assert not any(action["action_id"] == "semantic.library_base.exec" for action in actions)
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
@@ -2653,22 +2705,22 @@ def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helper
 
     equate_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["0"], "element_kind": ["immediate"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:immediate:0:65536"),
     )
     lvo_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["1"], "element_kind": ["immediate"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[1], "row-1:immediate:0:-552"),
     )
     struct_payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/manual-action-catalog",
-        {"context": ["element"], "row_index": ["2"], "element_kind": ["immediate"]},
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[2], "row-2:immediate:0:20"),
     )
-    equate_actions = cast(list[dict[str, object]], cast(dict[str, object], equate_payload["data"])["actions"])
-    lvo_actions = cast(list[dict[str, object]], cast(dict[str, object], lvo_payload["data"])["actions"])
-    struct_actions = cast(list[dict[str, object]], cast(dict[str, object], struct_payload["data"])["actions"])
+    equate_actions = cast(list[dict[str, object]], cast(dict[str, object], equate_payload["data"])["commands"])
+    lvo_actions = cast(list[dict[str, object]], cast(dict[str, object], lvo_payload["data"])["commands"])
+    struct_actions = cast(list[dict[str, object]], cast(dict[str, object], struct_payload["data"])["commands"])
 
     equate_action = next(action for action in equate_actions if str(action["action_id"]).startswith("semantic.equate."))
     assert any(action["action_id"] == "semantic.lvo.exec.library_OpenLibrary" for action in lvo_actions)
@@ -2680,9 +2732,9 @@ def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helper
 
     execute_payload = disasm_server.route_request(
         "POST",
-        "/api/projects/bloodwych/manual-action-catalog/execute",
+        "/api/projects/bloodwych/commands/execute",
         {},
-        {"action_id": equate_action["action_id"], "context": {"kind": "element", "row_index": 0, "element_kind": "immediate"}},
+        {"command_id": equate_action["command_id"], "context": _element_command_context(rows[0], "row-0:immediate:0:65536")},
     )
     action = cast(dict[str, object], cast(dict[str, object], execute_payload["data"])["action"])
     hint = cast(dict[str, object], cast(dict[str, object], action["payload"])["semantic_hint"])

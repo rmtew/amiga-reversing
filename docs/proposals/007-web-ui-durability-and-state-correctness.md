@@ -1766,6 +1766,16 @@ workflows still backed by `target_ui_edits.json` or legacy row-index/stable-key
 browser state until 028-004, 028-006, 028-009, and 028-010 replace those
 contracts.
 
+Implementation note from `028-004`: the web command surface is now
+`GET /api/projects/{project_id}/commands` and
+`POST /api/projects/{project_id}/commands/execute`. Row, range, and element
+command contexts are resolved through `ListingProjectionService` from
+`ListingRowLocator` payloads; element contexts add `element_id`. The browser no
+longer sends row snapshots or row indexes as command authority, and the legacy
+`/manual-action-catalog` routes/callers were removed. Command entries now expose
+stable `command_id`, effect classification, target context, required parameter
+metadata, typed result shape, and typed contract error codes.
+
 ### Slice 3: Delete Target UI Edits And Unify Manual Mutation Pipeline
 
 Remove `target_ui_edits.py` and `/target-edits` as durable UI mutation paths.

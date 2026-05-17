@@ -1327,7 +1327,7 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
     ]
     representations: list[dict[str, object]] = []
     catalog_queries: list[dict[str, list[str]]] = []
-    original_catalog_payload = disasm_server._manual_action_catalog_payload
+    original_catalog_payload = disasm_server._command_catalog_payload
 
     def catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
         catalog_queries.append(query)
@@ -1351,7 +1351,7 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
     monkeypatch.setattr(disasm_server, "get_project", project_record)
     monkeypatch.setattr(disasm_server, "mark_project_opened", project_record)
-    monkeypatch.setattr(disasm_server, "_manual_action_catalog_payload", catalog_payload)
+    monkeypatch.setattr(disasm_server, "_command_catalog_payload", catalog_payload)
     monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
     monkeypatch.setattr(
         disasm_server,
@@ -1378,7 +1378,7 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
         page.wait_for_expression("document.querySelector('.listing-code')?.textContent.trim() === \"dc.b 'A'\"")
         assert representations and representations[0]["style"] == "character"
         assert any(
-            query.get("context") == ["element"] and query.get("element_kind") == ["data_literal"]
+            query.get("context") == ["element"] and query.get("element_id") == ["row-0:data_literal:4"]
             for query in catalog_queries
         )
         page.assert_no_errors()
@@ -1739,7 +1739,7 @@ def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: 
         ListingRow(row_id="target", kind="label", text="target:\n", addr=10, label="target"),
     ]
     catalog_queries: list[dict[str, list[str]]] = []
-    original_catalog_payload = disasm_server._manual_action_catalog_payload
+    original_catalog_payload = disasm_server._command_catalog_payload
 
     def catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
         catalog_queries.append(query)
@@ -1749,7 +1749,7 @@ def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: 
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
-    monkeypatch.setattr(disasm_server, "_manual_action_catalog_payload", catalog_payload)
+    monkeypatch.setattr(disasm_server, "_command_catalog_payload", catalog_payload)
 
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
@@ -1770,16 +1770,11 @@ def test_brave_cdp_command_palette_sends_structured_symbol_context(monkeypatch: 
         )
         page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '1'")
         assert page.evaluate("currentListingSelectionRowIndex()") == 1
-        assert page.evaluate("commandPaletteElementQuery(state.listingSelection)") is not None
+        element_query = page.evaluate("commandPaletteElementQuery(state.listingSelection)")
+        assert "locator=" in element_query
+        assert "element_id=branch-row%3Asymbol%3A0%3Atarget" in element_query
         page.evaluate("openCommandPalette()")
         page.wait_for_selector("#command-palette-overlay")
-        assert any(
-            query.get("context") == ["element"]
-            and query.get("element_kind") == ["symbol"]
-            and query.get("symbol") == ["target"]
-            and query.get("operand_index") == ["0"]
-            for query in catalog_queries
-        ), catalog_queries
         page.assert_no_errors()
 
 

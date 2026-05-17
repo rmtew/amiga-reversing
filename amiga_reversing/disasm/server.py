@@ -39,7 +39,10 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.listing_context import selected_listing_element_context
-from amiga_reversing.disasm.listing_projection import ListingProjectionService
+from amiga_reversing.disasm.listing_projection import (
+    ListingLocatorError,
+    ListingProjectionService,
+)
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
@@ -158,6 +161,8 @@ class StaticResponse(TypedDict):
 
 _MISSING = object()
 _LISTING_PROJECTION_SERVICE = ListingProjectionService()
+WEB_STATE_COMMAND_CONTRACT = "locator-command-v1"
+_COMMAND_AVAILABILITY_CACHE: dict[str, dict[str, object]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
@@ -861,6 +866,13 @@ def _review_note_navigation_entries(notes: list[dict[str, object]]) -> list[dict
 
 def _clear_project_listing_cache(project_name: str) -> None:
     _LISTING_PROJECTION_SERVICE.clear_project(project_name)
+    prefix = '{"context_kind":'
+    stale_keys = [
+        key for key in _COMMAND_AVAILABILITY_CACHE
+        if f'"project_id":"{project_name}"' in key and key.startswith(prefix)
+    ]
+    for key in stale_keys:
+        del _COMMAND_AVAILABILITY_CACHE[key]
 
 
 def _prewarm_analysis_review_items(project_name: str) -> None:
@@ -1652,42 +1664,445 @@ def _catalog_review_item(project_name: str, item_id: str | None, review_index: i
     raise ValueError("Review item was not found")
 
 
-def _manual_action_catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+class CommandContractError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+def _command_contract_error(code: str, message: str) -> CommandContractError:
+    return CommandContractError(code, message)
+
+
+def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    context, rows = _command_context_from_query(project_name, query)
+    cache_key = _command_availability_cache_key(project_name, context)
+    cached = _COMMAND_AVAILABILITY_CACHE.get(cache_key)
+    if cached is not None:
+        return dict(cached)
+    context_kind = context["kind"]
+    if context_kind == "target":
+        actions = target_action_catalog()
+    elif context_kind == "review_item":
+        item_id = context.get("item_id")
+        if not isinstance(item_id, str):
+            raise _command_contract_error("missing_locator", "review item_id is required")
+        item = _catalog_review_item(project_name, item_id, None)
+        actions = review_item_action_catalog(item)
+    elif context_kind == "range":
+        actions = listing_range_action_catalog(rows)
+    elif context_kind == "row":
+        actions = listing_row_action_catalog(rows[0])
+    elif context_kind == "element":
+        actions = listing_element_action_catalog(rows[0], context)
+    else:
+        raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
+    commands = [_command_entry(action, context) for action in actions]
+    payload = {
+        "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
+        "context": _public_command_context(context),
+        "cache_key": cache_key,
+        "commands": commands,
+    }
+    _COMMAND_AVAILABILITY_CACHE[cache_key] = dict(payload)
+    return payload
+
+
+def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
+    kind = context.get("kind")
+    if kind == "row":
+        return {"kind": "row", "locator": context["locator"]}
+    if kind == "element":
+        public = {
+            "kind": "element",
+            "locator": context["locator"],
+            "element_id": context["element_id"],
+            "element_kind": context.get("element_kind"),
+        }
+        for key in ("symbol", "access", "operand_index", "value"):
+            if key in context:
+                public[key] = context[key]
+        return public
+    if kind == "range":
+        return {"kind": "range", "locators": context["locators"], "row_count": context.get("row_count")}
+    if kind == "review_item":
+        return {"kind": "review_item", "item_id": context.get("item_id")}
+    return {"kind": "target"}
+
+
+def _command_entry(action: Mapping[str, object], context: Mapping[str, object]) -> dict[str, object]:
+    entry = dict(action)
+    command_id = str(entry.get("action_id") or "")
+    entry["command_id"] = command_id
+    entry["effect"] = _command_effect(entry)
+    entry["target_context"] = _public_command_context(context)
+    entry["required_parameters"] = _command_required_parameters(entry)
+    entry["typed_result"] = {
+        "ok": True,
+        "kind": "manual_action" if entry.get("appends_to_manual_action_log") is True else entry["effect"],
+    }
+    entry["typed_error"] = {
+        "ok": False,
+        "codes": [
+            "missing_locator",
+            "stale_locator",
+            "ambiguous_locator",
+            "non_mutable_command",
+            "invalid_command_context",
+        ],
+    }
+    return entry
+
+
+def _command_effect(action: Mapping[str, object]) -> str:
+    if action.get("appends_to_manual_action_log") is True:
+        return "manual_mutation"
+    raw = str(action.get("action") or "")
+    if raw in {"export_source"}:
+        return "clipboard"
+    if raw in {"set_reproduction_profile"}:
+        return "preference"
+    if raw.startswith(("open_", "history_")) or raw in {
+        "follow_reference",
+        "previous_label",
+        "next_label",
+        "previous_hunk",
+        "next_hunk",
+        "selection_up",
+        "selection_down",
+        "viewport_page_up",
+        "viewport_page_down",
+        "navigate",
+    }:
+        return "navigation"
+    return "inspection"
+
+
+def _command_required_parameters(action: Mapping[str, object]) -> list[dict[str, object]]:
+    schema = action.get("parameter_schema")
+    if not isinstance(schema, Mapping):
+        return []
+    properties = schema.get("properties")
+    if not isinstance(properties, Mapping):
+        return []
+    required = schema.get("required")
+    required_names = {str(name) for name in required} if isinstance(required, list) else set()
+    parameters: list[dict[str, object]] = []
+    for name, raw_schema in properties.items():
+        if not isinstance(name, str) or not isinstance(raw_schema, Mapping):
+            continue
+        field = dict(raw_schema)
+        field["name"] = name
+        field["required"] = name in required_names
+        parameters.append(field)
+    return parameters
+
+
+def _command_availability_cache_key(project_name: str, context: Mapping[str, object]) -> str:
+    payload = {
+        "project_id": project_name,
+        "context_kind": context.get("kind"),
+        "projection_hash": context.get("projection_hash"),
+        "locator": context.get("locator"),
+        "locators": context.get("locators"),
+        "element_id": context.get("element_id"),
+        "item_id": context.get("item_id"),
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def _command_context_from_query(
+    project_name: str,
+    query: dict[str, list[str]],
+) -> tuple[dict[str, object], list[dict[str, object]]]:
     context = _first_query_value(query, "context") or "target"
     if context == "target":
-        return {"context": {"kind": "target"}, "actions": target_action_catalog()}
+        return {"kind": "target"}, []
     if context == "review-item":
-        review_index = _parse_int_arg(query, "review_index")
-        item = _catalog_review_item(project_name, _first_query_value(query, "item_id"), review_index)
-        return {
-            "context": {"kind": "review_item", "item_id": item.get("item_id"), "review_index": review_index},
-            "actions": review_item_action_catalog(item),
-        }
+        item_id = _first_query_value(query, "item_id")
+        if not item_id:
+            raise _command_contract_error("missing_locator", "item_id is required")
+        return {"kind": "review_item", "item_id": item_id}, []
+    if context == "row":
+        locator = _query_locator(query)
+        row, projection_hash = _resolve_command_locator(project_name, locator)
+        command_context = {"kind": "row", "locator": locator, "projection_hash": projection_hash}
+        return command_context, [row]
+    if context == "element":
+        locator = _query_locator(query)
+        element_id = _first_query_value(query, "element_id")
+        if not element_id:
+            raise _command_contract_error("missing_locator", "element_id is required")
+        row, projection_hash = _resolve_command_locator(project_name, locator)
+        element_context = _selected_command_element_context(row, element_id)
+        element_context["locator"] = locator
+        element_context["projection_hash"] = projection_hash
+        return element_context, [row]
     if context == "range":
-        rows = _query_range_catalog_rows(project_name, query)
-        return {"context": {"kind": "range", "row_count": len(rows)}, "actions": listing_range_action_catalog(rows)}
-    if context in {"row", "element"}:
-        row_index = _parse_int_arg(query, "row_index")
-        if row_index is None:
-            raise ValueError("row_index is required")
-        row = _query_catalog_listing_row(project_name, query, row_index)
-        if context == "row":
-            actions = listing_row_action_catalog(row)
-            _attach_row_snapshot_to_catalog_actions(actions, row)
-            return {
-                "context": {"kind": "row", "row_index": row_index, "row": _catalog_row_snapshot(row)},
-                "actions": actions,
-            }
-        element_selector = _query_element_selector(query)
-        element_context = selected_listing_element_context(row, element_selector)
-        element_context["row"] = _catalog_row_snapshot(row)
-        actions = listing_element_action_catalog(row, element_context)
-        _attach_row_snapshot_to_catalog_actions(actions, row)
+        locators = _query_locators(query)
+        if len(locators) < 2:
+            raise _command_contract_error("missing_locator", "range context requires at least two locators")
+        rows: list[dict[str, object]] = []
+        projection_hash = ""
+        row_keys: set[str] = set()
+        for locator in locators:
+            row, projection_hash = _resolve_command_locator(project_name, locator)
+            row_key = str(row.get("row_key") or "")
+            if row_key in row_keys:
+                raise _command_contract_error("ambiguous_locator", "range locators must be unique")
+            row_keys.add(row_key)
+            rows.append(row)
         return {
-            "context": element_context,
-            "actions": actions,
+            "kind": "range",
+            "locators": locators,
+            "row_count": len(rows),
+            "projection_hash": projection_hash,
+        }, rows
+    raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context}")
+
+
+def _command_context_from_body(
+    project_name: str,
+    raw_context: Mapping[str, object],
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    kind = raw_context.get("kind")
+    if kind == "review_item":
+        item_id = raw_context.get("item_id")
+        if not isinstance(item_id, str) or not item_id:
+            raise _command_contract_error("missing_locator", "context.item_id is required")
+        return {"kind": "review_item", "item_id": item_id}, []
+    if kind == "row":
+        locator = raw_context.get("locator")
+        row, projection_hash = _resolve_command_locator(project_name, locator)
+        return {"kind": "row", "locator": locator, "projection_hash": projection_hash}, [row]
+    if kind == "element":
+        locator = raw_context.get("locator")
+        element_id = raw_context.get("element_id")
+        if not isinstance(element_id, str) or not element_id:
+            raise _command_contract_error("missing_locator", "context.element_id is required")
+        row, projection_hash = _resolve_command_locator(project_name, locator)
+        element_context = _selected_command_element_context(row, element_id)
+        element_context["locator"] = locator
+        element_context["projection_hash"] = projection_hash
+        return element_context, [row]
+    if kind == "range":
+        raw_locators = raw_context.get("locators")
+        if not isinstance(raw_locators, list):
+            raise _command_contract_error("missing_locator", "context.locators is required")
+        if len(raw_locators) < 2:
+            raise _command_contract_error("missing_locator", "range context requires at least two locators")
+        rows = []
+        projection_hash = ""
+        row_keys: set[str] = set()
+        for locator in raw_locators:
+            row, projection_hash = _resolve_command_locator(project_name, locator)
+            row_key = str(row.get("row_key") or "")
+            if row_key in row_keys:
+                raise _command_contract_error("ambiguous_locator", "range locators must be unique")
+            row_keys.add(row_key)
+            rows.append(row)
+        return {
+            "kind": "range",
+            "locators": raw_locators,
+            "row_count": len(rows),
+            "projection_hash": projection_hash,
+        }, rows
+    raise _command_contract_error("invalid_command_context", f"Unsupported command context: {kind}")
+
+
+def _query_locator(query: dict[str, list[str]]) -> dict[str, object]:
+    raw = _first_query_value(query, "locator")
+    if not raw:
+        raise _command_contract_error("missing_locator", "locator is required")
+    locator = json.loads(raw)
+    if not isinstance(locator, dict):
+        raise _command_contract_error("missing_locator", "locator must be an object")
+    return cast(dict[str, object], locator)
+
+
+def _query_locators(query: dict[str, list[str]]) -> list[dict[str, object]]:
+    raw = _first_query_value(query, "locators")
+    if not raw:
+        raise _command_contract_error("missing_locator", "locators is required")
+    locators = json.loads(raw)
+    if not isinstance(locators, list):
+        raise _command_contract_error("missing_locator", "locators must be a JSON array")
+    return [cast(dict[str, object], locator) for locator in locators if isinstance(locator, dict)]
+
+
+def _selected_command_element_context(row: Mapping[str, object], element_id: str) -> dict[str, object]:
+    try:
+        return selected_listing_element_context(row, {"element_id": element_id})
+    except ValueError:
+        row_key = str(row.get("row_key") or row.get("stable_key") or "")
+        if row.get("kind") == "label" and element_id.startswith(f"{row_key}:label:"):
+            return selected_listing_element_context(row, {"element_kind": "label"})
+        raise
+
+
+def _resolve_command_locator(project_name: str, locator: object) -> tuple[dict[str, object], str]:
+    try:
+        projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
+            project_id=project_name,
+            current_cache_key=_project_listing_cache_key(project_name),
+        )
+        row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+            target_id=project_name,
+            projection_hash=projection_hash,
+            rows=_all_listing_rows(project_name),
+            locator_payload=locator,
+        )
+    except ListingLocatorError as exc:
+        code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
+        raise _command_contract_error(code, str(exc)) from exc
+    row = dict(row)
+    row["stable_key"] = row.get("row_key")
+    row["stableKey"] = row.get("row_key")
+    row["row_id"] = row.get("row_key")
+    return row, projection_hash
+
+
+def _locator_has_required_identity(locator: object) -> bool:
+    return isinstance(locator, dict) and all(
+        isinstance(locator.get(key), str) and locator.get(key)
+        for key in ("target_id", "projection_hash", "row_key", "kind")
+    )
+
+
+def _all_listing_rows(project_name: str) -> list[dict[str, object]]:
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is None:
+        raise _command_contract_error("missing_locator", f"C listing artifact not loaded for project: {project_name}")
+    summary_payload = getattr(artifact, "summary_payload", None)
+    if callable(summary_payload):
+        summary, _ = summary_payload()
+        total_rows = _optional_int(summary.get("total_rows")) or 0
+    else:
+        artifact_rows = getattr(artifact, "rows", [])
+        total_rows = len(artifact_rows) if isinstance(artifact_rows, list) else 0
+    payload, _ = artifact.window_payload(start=0, count=total_rows)
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
+        raise _command_contract_error("missing_locator", "listing rows are not available")
+    resolved: list[dict[str, object]] = []
+    for index, raw_row in enumerate(rows):
+        if not isinstance(raw_row, dict):
+            continue
+        row = dict(cast(dict[str, object], raw_row))
+        row.setdefault("row_index", index)
+        resolved.append(row)
+    return resolved
+
+
+def _execute_command(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    payload_body = dict(body or {})
+    command_id = payload_body.get("command_id")
+    if not isinstance(command_id, str) or not command_id:
+        raise _command_contract_error("invalid_command_context", "command_id is required")
+    context = payload_body.get("context")
+    if not isinstance(context, dict):
+        raise _command_contract_error("invalid_command_context", "context is required")
+    parameters = payload_body.get("parameters")
+    if parameters is not None and not isinstance(parameters, dict):
+        raise _command_contract_error("invalid_command_context", "parameters must be an object")
+    command_context, rows = _command_context_from_body(project_name, context)
+    catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+    commands = cast(list[dict[str, object]], catalog["commands"])
+    command = next((candidate for candidate in commands if candidate.get("command_id") == command_id), None)
+    if command is None:
+        raise _command_contract_error("invalid_command_context", f"Command is not available: {command_id}")
+    if command.get("appends_to_manual_action_log") is not True:
+        raise _command_contract_error("non_mutable_command", f"Command is not mutable: {command_id}")
+    result = _execute_manual_action_command(
+        project_name,
+        command_id,
+        command_context,
+        rows,
+        cast(dict[str, object] | None, parameters),
+    )
+    return {
+        **result,
+        "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
+        "command_id": command_id,
+        "effect": command["effect"],
+        "context": _public_command_context(command_context),
+    }
+
+
+def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list[str]]:
+    kind = context.get("kind")
+    if kind == "row":
+        return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+    if kind == "element":
+        return {
+            "context": ["element"],
+            "locator": [json.dumps(context["locator"])],
+            "element_id": [str(context["element_id"])],
         }
-    raise ValueError(f"Unsupported manual action catalog context: {context}")
+    if kind == "range":
+        return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
+    if kind == "review_item":
+        return {"context": ["review-item"], "item_id": [str(context["item_id"])]}
+    return {"context": ["target"]}
+
+
+def _execute_manual_action_command(
+    project_name: str,
+    action_id: str,
+    context: Mapping[str, object],
+    rows: list[dict[str, object]],
+    parameters: dict[str, object] | None,
+) -> dict[str, object]:
+    project = get_project(project_name)
+    if project.kind is not ProjectKind.BINARY or not project.ready:
+        raise ValueError(f"Project {project_name} is not ready for manual review actions")
+    context_kind = context.get("kind")
+    if context_kind == "review_item":
+        item = _catalog_review_item(project_name, cast(str, context.get("item_id")), None)
+        kind, action_payload = review_item_catalog_manual_payload(item, action_id, parameters)
+        action_payloads = [(kind, action_payload)]
+    elif context_kind in {"row", "element"}:
+        element_context = context if context_kind == "element" else None
+        kind, action_payload = listing_catalog_manual_payload(
+            rows[0],
+            action_id,
+            element_context=element_context,
+            parameters=parameters,
+        )
+        action_payloads = [(kind, action_payload)]
+    elif context_kind == "range":
+        action_payloads = listing_range_catalog_manual_payload(rows, action_id, parameters=parameters)
+    else:
+        raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
+    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    binary_source = resolve_target_binary_source(paths.target_dir)
+    if binary_source is None:
+        raise ValueError(f"Project {project_name} has no source binary")
+    appended_actions: list[dict[str, object]] = []
+    application_parts: list[dict[str, object]] = []
+    for kind, action_payload in action_payloads:
+        validate_manual_action_payload(action_payload)
+        appended_actions.append(
+            append_manual_action(
+                paths.target_dir,
+                kind=manual_action_kind(kind),
+                payload=action_payload,
+                binary_source=binary_source,
+            )
+        )
+        application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
+    if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
+        _cancel_listing_jobs(project_name)
+        _cancel_reproduction_jobs(project_name)
+        _clear_project_listing_cache(project_name)
+    else:
+        _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
+    mark_project_updated(paths.target_dir)
+    return {
+        "action": appended_actions[0],
+        "actions": appended_actions,
+        "application": _merge_manual_action_applications(application_parts),
+    }
 
 
 def _source_entrypoint_payload(project_name: str) -> dict[str, object] | None:
@@ -1737,125 +2152,6 @@ def _save_ui_preferences_payload(project_name: str, body: Mapping[str, object] |
     return {"preferences": preferences}
 
 
-def _catalog_listing_row(project_name: str, row_index: int) -> dict[str, object]:
-    artifact = _valid_c_listing_artifact(project_name)
-    if artifact is None:
-        raise ValueError(f"C listing artifact not loaded for project: {project_name}")
-    payload, _ = artifact.window_payload(start=row_index, count=1)
-    rows = payload.get("rows")
-    if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
-        raise ValueError(f"Listing row is not available: {row_index}")
-    row = dict(cast(dict[str, object], rows[0]))
-    row["row_index"] = row_index
-    return row
-
-
-def _query_catalog_listing_row(
-    project_name: str, query: dict[str, list[str]], row_index: int
-) -> dict[str, object]:
-    rows = _query_catalog_row_snapshots(query)
-    if rows:
-        if len(rows) != 1:
-            raise ValueError("row context requires exactly one row snapshot")
-        row = rows[0]
-        if row.get("row_index") != row_index:
-            raise ValueError("row snapshot does not match row_index")
-        return row
-    return _catalog_listing_row(project_name, row_index)
-
-
-def _context_catalog_listing_row(project_name: str, context: Mapping[str, object], row_index: int) -> dict[str, object]:
-    row = context.get("row")
-    if isinstance(row, Mapping):
-        snapshot = dict(row)
-        if snapshot.get("row_index") != row_index:
-            raise ValueError("context row snapshot does not match row_index")
-        return snapshot
-    return _catalog_listing_row(project_name, row_index)
-
-
-def _attach_row_snapshot_to_catalog_actions(actions: list[dict[str, object]], row: Mapping[str, object]) -> None:
-    snapshot = _catalog_row_snapshot(row)
-    for action in actions:
-        context = action.get("target_context")
-        if isinstance(context, dict) and context.get("kind") in {"row", "element"}:
-            context["row"] = snapshot
-
-
-def _catalog_row_snapshot(row: Mapping[str, object]) -> dict[str, object]:
-    return {
-        "row_index": row.get("row_index"),
-        "row_id": row.get("row_id"),
-        "stable_key": row.get("stable_key"),
-        "kind": row.get("kind"),
-        "addr": row.get("addr"),
-        "section_index": row.get("section_index"),
-        "start_offset": row.get("start_offset"),
-        "end_offset": row.get("end_offset"),
-        "bytes": row.get("bytes"),
-        "label": row.get("label"),
-        "manual_label_id": row.get("manual_label_id"),
-        "manual_label_address_domain": row.get("manual_label_address_domain"),
-        "opcode_or_directive": row.get("opcode_or_directive"),
-        "data_class": row.get("data_class"),
-        "structured_data": row.get("structured_data"),
-        "comment_text": row.get("comment_text") or "",
-    }
-
-
-def _query_catalog_row_snapshots(query: dict[str, list[str]]) -> list[dict[str, object]]:
-    raw_rows = _first_query_value(query, "rows")
-    if not raw_rows:
-        return []
-    parsed_rows = json.loads(raw_rows)
-    if not isinstance(parsed_rows, list):
-        raise ValueError("rows must be a JSON array")
-    rows: list[dict[str, object]] = []
-    for raw_row in parsed_rows:
-        if not isinstance(raw_row, dict):
-            raise ValueError("rows entries must be objects")
-        row = dict(cast(dict[str, object], raw_row))
-        row_index = row.get("row_index")
-        if not isinstance(row_index, int) or isinstance(row_index, bool):
-            raise ValueError("rows entries require row_index")
-        rows.append(row)
-    return rows
-
-
-def _query_range_catalog_rows(project_name: str, query: dict[str, list[str]]) -> list[dict[str, object]]:
-    row_indexes = _parse_row_indexes_arg(query)
-    rows = _query_catalog_row_snapshots(query)
-    if rows:
-        if row_indexes and [int(row["row_index"]) for row in rows] != row_indexes:
-            raise ValueError("rows metadata does not match row_indexes")
-        row_indexes = [int(row["row_index"]) for row in rows]
-    else:
-        rows = [_catalog_listing_row(project_name, row_index) for row_index in row_indexes]
-    if len(row_indexes) < 2:
-        raise ValueError("range context requires at least two selected rows")
-    if len(set(row_indexes)) != len(row_indexes):
-        raise ValueError("range context row_indexes must be unique")
-    return rows
-
-
-def _parse_row_indexes_arg(query: dict[str, list[str]]) -> list[int]:
-    values = query.get("row_indexes") or query.get("row_index") or []
-    indexes: list[int] = []
-    for value in values:
-        for part in str(value).split(","):
-            text = part.strip()
-            if not text:
-                continue
-            try:
-                row_index = int(text)
-            except ValueError as exc:
-                raise ValueError(f"Invalid row index: {text}") from exc
-            if row_index < 0:
-                raise ValueError("row_indexes must be non-negative")
-            indexes.append(row_index)
-    return indexes
-
-
 def _optional_int(value: object) -> int | None:
     if isinstance(value, bool):
         return None
@@ -1867,94 +2163,6 @@ def _optional_int(value: object) -> int | None:
         except ValueError:
             return None
     return None
-
-
-def _execute_manual_action_catalog_action(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
-    project = get_project(project_name)
-    if project.kind is not ProjectKind.BINARY or not project.ready:
-        raise ValueError(f"Project {project_name} is not ready for manual review actions")
-    payload_body = dict(body or {})
-    action_id = payload_body.get("action_id")
-    if not isinstance(action_id, str) or not action_id:
-        raise ValueError("action_id is required")
-    context = payload_body.get("context")
-    if not isinstance(context, dict):
-        raise ValueError("context is required")
-    parameters = payload_body.get("parameters")
-    if parameters is not None and not isinstance(parameters, dict):
-        raise ValueError("parameters must be an object")
-    context_kind = context.get("kind")
-    action_payloads: list[tuple[str, dict[str, object]]]
-    if context_kind == "review_item":
-        review_index = context.get("review_index")
-        item = _catalog_review_item(
-            project_name,
-            context.get("item_id") if isinstance(context.get("item_id"), str) else None,
-            review_index if isinstance(review_index, int) and not isinstance(review_index, bool) else None,
-        )
-        kind, action_payload = review_item_catalog_manual_payload(
-            item,
-            action_id,
-            cast(dict[str, object] | None, parameters),
-        )
-        action_payloads = [(kind, action_payload)]
-    elif context_kind in {"row", "element"}:
-        row_index = context.get("row_index")
-        if not isinstance(row_index, int) or isinstance(row_index, bool):
-            raise ValueError("context.row_index is required")
-        row = _context_catalog_listing_row(project_name, context, row_index)
-        element_context = selected_listing_element_context(row, context) if context_kind == "element" else None
-        kind, action_payload = listing_catalog_manual_payload(
-            row,
-            action_id,
-            element_context=element_context,
-            parameters=cast(dict[str, object] | None, parameters),
-        )
-        action_payloads = [(kind, action_payload)]
-    elif context_kind == "range":
-        raw_row_indexes = context.get("row_indexes")
-        if not isinstance(raw_row_indexes, list):
-            raise ValueError("context.row_indexes is required")
-        row_indexes = [index for index in raw_row_indexes if isinstance(index, int) and not isinstance(index, bool)]
-        if len(row_indexes) != len(raw_row_indexes):
-            raise ValueError("context.row_indexes must contain integers")
-        rows = [_catalog_listing_row(project_name, row_index) for row_index in row_indexes]
-        action_payloads = listing_range_catalog_manual_payload(
-            rows,
-            action_id,
-            parameters=cast(dict[str, object] | None, parameters),
-        )
-    else:
-        raise ValueError(f"Unsupported catalog execution context: {context_kind}")
-    paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-    binary_source = resolve_target_binary_source(paths.target_dir)
-    if binary_source is None:
-        raise ValueError(f"Project {project_name} has no source binary")
-    appended_actions: list[dict[str, object]] = []
-    application_parts: list[dict[str, object]] = []
-    for kind, action_payload in action_payloads:
-        validate_manual_action_payload(action_payload)
-        appended_actions.append(
-            append_manual_action(
-                paths.target_dir,
-                kind=manual_action_kind(kind),
-                payload=action_payload,
-                binary_source=binary_source,
-            )
-        )
-        application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
-    if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
-        _cancel_listing_jobs(project_name)
-        _cancel_reproduction_jobs(project_name)
-        _clear_project_listing_cache(project_name)
-    else:
-        _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
-    mark_project_updated(paths.target_dir)
-    return {
-        "action": appended_actions[0],
-        "actions": appended_actions,
-        "application": _merge_manual_action_applications(application_parts),
-    }
 
 
 def _manual_label_by_id(project_name: str, label_id: str) -> dict[str, object] | None:
@@ -2118,24 +2326,6 @@ def _manual_action_pending_range(
     return pending
 
 
-def _query_element_selector(query: dict[str, list[str]]) -> dict[str, object]:
-    selector: dict[str, object] = {}
-    for query_key, selector_key in (
-        ("element_id", "element_id"),
-        ("element_kind", "element_kind"),
-        ("symbol", "symbol"),
-        ("access", "access"),
-    ):
-        text_value = _first_query_value(query, query_key)
-        if text_value:
-            selector[selector_key] = text_value
-    for query_key, selector_key in (("operand_index", "operand_index"), ("value", "value")):
-        int_value = _parse_int_arg(query, query_key)
-        if int_value is not None:
-            selector[selector_key] = int_value
-    return selector
-
-
 def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str, object]:
     project = get_project(project_name)
     if project.kind is not ProjectKind.DISK:
@@ -2271,6 +2461,10 @@ class DisasmApiHandler(BaseHTTPRequestHandler):
             body = _json_bytes({"ok": False, "error": str(exc)})
             content_type = "application/json; charset=utf-8"
             status = 404
+        except (CommandContractError, ListingLocatorError) as exc:
+            body = _json_bytes({"ok": False, "error": str(exc), "code": exc.code})
+            content_type = "application/json; charset=utf-8"
+            status = 400
         except (FileExistsError, ValueError) as exc:
             body = _json_bytes({"ok": False, "error": str(exc)})
             content_type = "application/json; charset=utf-8"
@@ -2666,8 +2860,8 @@ def route_request(
             and parts[4] == "type-catalog"
         ):
             return {"ok": True, "data": _type_catalog_payload(project_name)}
-        if method == "GET" and len(parts) == 4 and parts[3] == "manual-action-catalog":
-            return {"ok": True, "data": _manual_action_catalog_payload(project_name, query)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "commands":
+            return {"ok": True, "data": _command_catalog_payload(project_name, query)}
         if method == "GET" and len(parts) == 4 and parts[3] == "ui-preferences":
             return {"ok": True, "data": _ui_preferences_payload(project_name)}
         if method == "PUT" and len(parts) == 4 and parts[3] == "ui-preferences":
@@ -2675,10 +2869,10 @@ def route_request(
         if (
             method == "POST"
             and len(parts) == 5
-            and parts[3] == "manual-action-catalog"
+            and parts[3] == "commands"
             and parts[4] == "execute"
         ):
-            return {"ok": True, "data": _execute_manual_action_catalog_action(project_name, body)}
+            return {"ok": True, "data": _execute_command(project_name, body)}
         if method == "GET" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "profiles":
             return {"ok": True, "data": _reproduction_profiles_payload(project_name)}
         if method == "GET" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "profile":

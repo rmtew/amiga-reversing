@@ -1739,7 +1739,7 @@ async function openCommandPalette() {
     const actionMap = new Map();
     catalogs.forEach((catalog, catalogIndex) => {
       const catalogRank = catalog.context?.kind === "target" && catalogs.length > 1 ? 1 : 0;
-      (Array.isArray(catalog.actions) ? catalog.actions : []).forEach((action) => {
+      (Array.isArray(catalog.commands) ? catalog.commands : []).forEach((action) => {
         const key = commandPaletteActionIdentity(action);
         const existing = actionMap.get(key);
         const rankedAction = {...action, palette_context_rank: catalogRank, palette_catalog_index: catalogIndex};
@@ -1768,7 +1768,7 @@ function commandPaletteActionIdentity(action) {
 }
 
 function catalogActionsFromCatalogs(catalogs) {
-  return catalogs.flatMap((catalog) => Array.isArray(catalog.actions) ? catalog.actions : []);
+  return catalogs.flatMap((catalog) => Array.isArray(catalog.commands) ? catalog.commands : []);
 }
 
 function actionSupportsInlineSession(action) {
@@ -1837,58 +1837,73 @@ function commandPaletteElementQuery(selection) {
   if (!Number.isFinite(rowIndex)) {
     return null;
   }
+  const row = listingRowDataForIndex(rowIndex);
+  const locator = listingRowLocator(row);
+  const elementId = commandPaletteElementId(row, elementSelector, rowIndex);
+  if (!locator || !elementId) {
+    return null;
+  }
   const params = new URLSearchParams();
   params.set("context", "element");
-  params.set("row_index", String(rowIndex));
-  appendCommandPaletteRowSnapshot(params, rowIndex);
-  Object.entries(elementSelector).forEach(([key, value]) => {
-    if (value !== null && value !== undefined && value !== "") {
-      params.set(key, String(value));
-    }
-  });
+  params.set("locator", JSON.stringify(locator));
+  params.set("element_id", elementId);
   return params.toString();
 }
 
 function commandPaletteRowQuery(rowIndex) {
+  const locator = listingRowLocator(listingRowDataForIndex(rowIndex));
+  if (!locator) {
+    return "";
+  }
   const params = new URLSearchParams();
   params.set("context", "row");
-  params.set("row_index", String(rowIndex));
-  appendCommandPaletteRowSnapshot(params, rowIndex);
+  params.set("locator", JSON.stringify(locator));
   return params.toString();
 }
 
-function appendCommandPaletteRowSnapshot(params, rowIndex) {
-  const row = listingRowDataForIndex(rowIndex);
-  if (row) {
-    params.set("rows", JSON.stringify([commandPaletteRowSnapshot({...row, row_index: rowIndex})]));
+function listingRowLocator(row) {
+  const locator = row?.locator || {
+    target_id: row?.target_id,
+    projection_hash: row?.projection_hash,
+    row_key: row?.row_key,
+    section_index: row?.section_index ?? null,
+    start_offset: row?.start_offset ?? null,
+    end_offset: row?.end_offset ?? null,
+    kind: row?.kind,
+    storage_address: row?.storage_address ?? row?.addr ?? null,
+    runtime_address: row?.runtime_address ?? null,
+  };
+  if (!locator || typeof locator !== "object" || Array.isArray(locator)) {
+    return null;
   }
+  if (!locator.target_id || !locator.projection_hash || !locator.row_key) {
+    return null;
+  }
+  return locator;
 }
 
-function commandPaletteRowSnapshot(row) {
-  return {
-    row_index: row.row_index,
-    row_id: row.row_id || null,
-    stable_key: row.stable_key || null,
-    kind: row.kind || null,
-    addr: row.addr ?? null,
-    section_index: row.section_index ?? null,
-    start_offset: row.start_offset ?? null,
-    end_offset: row.end_offset ?? null,
-    bytes: row.bytes || null,
-    label: row.label || null,
-    manual_label_id: row.manual_label_id || null,
-    manual_label_address_domain: row.manual_label_address_domain || null,
-    opcode_or_directive: row.opcode_or_directive || null,
-    operand_parts: row.operand_parts || null,
-    operand_accesses: row.operand_accesses || null,
-    operand_registers: row.operand_registers || null,
-    app_slot_refs: row.app_slot_refs || null,
-    typed_accesses: row.typed_accesses || null,
-    unresolved_typed_accesses: row.unresolved_typed_accesses || null,
-    data_class: row.data_class || null,
-    structured_data: row.structured_data || null,
-    comment_text: row.comment_text || "",
-  };
+function commandPaletteElementId(row, selector, rowIndex) {
+  if (!row || !selector) {
+    return null;
+  }
+  const base = row.stable_key || row.stableKey || row.row_key || row.row_id || rowIndex;
+  const kind = selector.element_kind || "data_literal";
+  if (kind === "label" && selector.symbol) {
+    return `${base}:label:${selector.symbol}`;
+  }
+  if (kind === "app_slot" && selector.symbol) {
+    const operandIndex = Number.isInteger(Number(selector.operand_index)) ? Number(selector.operand_index) : "";
+    return `${base}:app_slot:${operandIndex}:${selector.symbol}:${selector.access || "reference"}`;
+  }
+  if (selector.symbol) {
+    const operandIndex = Number.isInteger(Number(selector.operand_index)) ? Number(selector.operand_index) : 0;
+    return `${base}:symbol:${operandIndex}:${selector.symbol}`;
+  }
+  if (kind === "data_literal") {
+    return `${base}:data_literal:${row.start_offset ?? row.addr}`;
+  }
+  const operandIndex = Number.isInteger(Number(selector.operand_index)) ? Number(selector.operand_index) : 0;
+  return `${base}:${kind}:${operandIndex}:${selector.value ?? "operand"}`;
 }
 
 function currentListingSelectionRowIndex(selection = state.listingSelection) {
@@ -1986,21 +2001,44 @@ async function executeCommandPaletteAction(action) {
 
 async function loadContextualCommandCatalogs() {
   const catalogs = [];
-  catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?context=target`));
+  catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/commands?context=target`));
   const rowIndex = currentListingSelectionRowIndex();
   if (Number.isFinite(rowIndex)) {
     const rangeQuery = commandPaletteRangeQuery(state.listingSelection);
     if (rangeQuery) {
-      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${rangeQuery}`));
+      const rangeCatalog = await fetchOptionalCommandCatalog(`/api/projects/${encodeURIComponent(state.project)}/commands?${rangeQuery}`);
+      if (rangeCatalog) {
+        catalogs.push(rangeCatalog);
+      }
     } else {
-      catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${commandPaletteRowQuery(rowIndex)}`));
+      const rowQuery = commandPaletteRowQuery(rowIndex);
+      if (rowQuery) {
+        const rowCatalog = await fetchOptionalCommandCatalog(`/api/projects/${encodeURIComponent(state.project)}/commands?${rowQuery}`);
+        if (rowCatalog) {
+          catalogs.push(rowCatalog);
+        }
+      }
       const elementQuery = commandPaletteElementQuery(state.listingSelection);
       if (elementQuery) {
-        catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog?${elementQuery}`));
+        const elementCatalog = await fetchOptionalCommandCatalog(`/api/projects/${encodeURIComponent(state.project)}/commands?${elementQuery}`);
+        if (elementCatalog) {
+          catalogs.push(elementCatalog);
+        }
       }
     }
   }
   return catalogs;
+}
+
+async function fetchOptionalCommandCatalog(url) {
+  try {
+    return await fetchJson(url);
+  } catch (error) {
+    if (String(error?.message || error).includes("locator") || String(error?.message || error).includes("Listing element is not available")) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 async function submitCommandPaletteCatalogAction(action, parameters) {
@@ -2019,7 +2057,7 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
       return;
     }
     const body = {
-      action_id: action.action_id,
+      command_id: action.command_id || action.action_id,
       context: action.target_context,
     };
     if (Object.keys(parameters).length) {
@@ -2027,7 +2065,7 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
     }
     state.manualEdit.inFlight = true;
     try {
-      const result = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/manual-action-catalog/execute`, {
+      const result = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/commands/execute`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body),
@@ -8352,10 +8390,13 @@ function commandPaletteRangeQuery(selection = state.listingSelection) {
   if (rows.length < 2) {
     return null;
   }
+  const locators = rows.map(listingRowLocator);
+  if (locators.some((locator) => !locator)) {
+    return null;
+  }
   const params = new URLSearchParams();
   params.set("context", "range");
-  params.set("row_indexes", rows.map((row) => String(row.row_index)).join(","));
-  params.set("rows", JSON.stringify(rows.map(commandPaletteRowSnapshot)));
+  params.set("locators", JSON.stringify(locators));
   return params.toString();
 }
 
