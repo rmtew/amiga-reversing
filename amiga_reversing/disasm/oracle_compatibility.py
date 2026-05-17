@@ -20,6 +20,10 @@ from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.tool_graph import resolve_capability
+from amiga_reversing.disasm.workflow_profile import (
+    WorkflowProfile,
+    workflow_profile_payload,
+)
 
 ORACLE_OUTPUT_EXCERPT_CHARS = 4000
 ORACLE_TIMEOUT_SECONDS = 120
@@ -56,7 +60,11 @@ def oracle_compatibility_reports_for_options(
 
 
 def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
-    capability = resolve_capability("assemble_vasm_source", project_root=project_root)
+    capability, workflow_profile = _resolve_capability_with_workflow(
+        target_name,
+        "assemble_vasm_source",
+        project_root=project_root,
+    )
     availability = [_availability_record_from_capability(capability)]
     tool_chain = _tool_chain_from_capability(capability, ["vasm"])
     missing = _missing_or_error_report(
@@ -66,26 +74,33 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
         availability=availability,
     )
     if missing is not None:
-        return missing
+        return _with_workflow_profile(missing, workflow_profile)
     vasm_path = _selected_capability_path(capability, "functional_resolved_path")
     if vasm_path is None:
-        return _tool_error_report("vasm", "vasm", tool_chain, availability, "capability selected no vasm path")
+        return _with_workflow_profile(
+            _tool_error_report("vasm", "vasm", tool_chain, availability, "capability selected no vasm path"),
+            workflow_profile,
+        )
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
     try:
         output_format = _vasm_format_for_source_kind(binary_source.kind)
     except ValueError as exc:
-        return _base_report(
-            oracle_id="vasm",
-            source_profile="vasm",
-            tool_chain=tool_chain,
-            availability=availability,
-            comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
-            assembler_status="not_run",
-            message=str(exc),
+        return _with_workflow_profile(
+            _base_report(
+                oracle_id="vasm",
+                source_profile="vasm",
+                tool_chain=tool_chain,
+                availability=availability,
+                comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
+                assembler_status="not_run",
+                message=str(exc),
+            ),
+            workflow_profile,
         )
     temp_root = Path(tempfile.mkdtemp(prefix="oracle_vasm_"))
+    invocation_started_at = time.perf_counter()
     try:
         source_path = temp_root / f"{target_name}.s"
         output_path = temp_root / Path(binary_source.display_path).name
@@ -105,7 +120,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
             str(source_path),
         ]
         completed = _run_command(command, cwd=project_root)
-        return _report_from_command(
+        report = _report_from_command(
             oracle_id="vasm",
             source_profile="vasm",
             tool_chain=tool_chain,
@@ -121,13 +136,29 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
             target_dir=paths.target_dir,
         )
     except Exception as exc:
-        return _tool_error_report("vasm", "vasm", tool_chain, availability, str(exc))
+        report = _tool_error_report("vasm", "vasm", tool_chain, availability, str(exc))
     finally:
+        workflow_profile.add_span(
+            "oracle_invocation",
+            time.perf_counter() - invocation_started_at,
+            module="oracle_compatibility",
+            detail=_oracle_invocation_span_detail(
+                capability,
+                oracle_id="vasm",
+                source_profile="vasm",
+                tool_chain=tool_chain,
+            ),
+        )
         shutil.rmtree(temp_root, ignore_errors=True)
+    return _with_workflow_profile(report, workflow_profile)
 
 
 def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
-    capability = resolve_capability("assemble_devpac_source", project_root=project_root)
+    capability, workflow_profile = _resolve_capability_with_workflow(
+        target_name,
+        "assemble_devpac_source",
+        project_root=project_root,
+    )
     availability = [_availability_record_from_capability(capability)]
     tool_chain = _tool_chain_from_capability(capability, ["vamos", "genam"])
     missing = _missing_or_error_report(
@@ -137,31 +168,38 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
         availability=availability,
     )
     if missing is not None:
-        return missing
+        return _with_workflow_profile(missing, workflow_profile)
     vamos_path = _selected_capability_path(capability, "runtime_resolved_path")
     genam_path = _selected_capability_path(capability, "functional_resolved_path")
     if vamos_path is None or genam_path is None:
-        return _tool_error_report(
-            "genam-devpac",
-            "devpac",
-            tool_chain,
-            availability,
-            "capability selected no GenAm runtime chain paths",
+        return _with_workflow_profile(
+            _tool_error_report(
+                "genam-devpac",
+                "devpac",
+                tool_chain,
+                availability,
+                "capability selected no GenAm runtime chain paths",
+            ),
+            workflow_profile,
         )
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
     if isinstance(binary_source, DiskEntryBinarySource):
-        return _base_report(
-            oracle_id="genam-devpac",
-            source_profile="devpac",
-            tool_chain=tool_chain,
-            availability=availability,
-            comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
-            assembler_status="not_run",
-            message=f"GenAm oracle target must be file-backed: {target_name}",
+        return _with_workflow_profile(
+            _base_report(
+                oracle_id="genam-devpac",
+                source_profile="devpac",
+                tool_chain=tool_chain,
+                availability=availability,
+                comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
+                assembler_status="not_run",
+                message=f"GenAm oracle target must be file-backed: {target_name}",
+            ),
+            workflow_profile,
         )
     temp_root = Path(tempfile.mkdtemp(prefix="oracle_genam_"))
+    invocation_started_at = time.perf_counter()
     try:
         source_path = temp_root / f"{Path(binary_source.display_path).stem}.s"
         rendered_source, source_profile_payload = _render_devpac_source(binary_source, source_path, project_root)
@@ -186,7 +224,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
             *include_arg,
         ]
         completed = _run_command(command, cwd=project_root)
-        return _report_from_command(
+        report = _report_from_command(
             oracle_id="genam-devpac",
             source_profile="devpac",
             tool_chain=tool_chain,
@@ -202,9 +240,21 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
             target_dir=paths.target_dir,
         )
     except Exception as exc:
-        return _tool_error_report("genam-devpac", "devpac", tool_chain, availability, str(exc))
+        report = _tool_error_report("genam-devpac", "devpac", tool_chain, availability, str(exc))
     finally:
+        workflow_profile.add_span(
+            "oracle_invocation",
+            time.perf_counter() - invocation_started_at,
+            module="oracle_compatibility",
+            detail=_oracle_invocation_span_detail(
+                capability,
+                oracle_id="genam-devpac",
+                source_profile="devpac",
+                tool_chain=tool_chain,
+            ),
+        )
         shutil.rmtree(temp_root, ignore_errors=True)
+    return _with_workflow_profile(report, workflow_profile)
 
 
 def _render_vasm_source(binary_source: object, target_dir: Path, project_root: Path) -> tuple[str, dict[str, object]]:
@@ -410,6 +460,77 @@ def _base_report(
         "availability": availability,
         "assembler_status": assembler_status,
         "message": message,
+    }
+
+
+def _resolve_capability_with_workflow(
+    target_name: str,
+    capability_id: str,
+    *,
+    project_root: Path,
+) -> tuple[dict[str, object], WorkflowProfile]:
+    workflow_profile = WorkflowProfile("oracle_compatibility", target_id=target_name)
+    started_at = time.perf_counter()
+    capability = resolve_capability(capability_id, project_root=project_root)
+    workflow_profile.add_span(
+        "tool_capability_resolution",
+        time.perf_counter() - started_at,
+        module="tool_graph",
+        detail=_capability_resolution_span_detail(capability),
+    )
+    return capability, workflow_profile
+
+
+def _with_workflow_profile(report: Mapping[str, object], workflow_profile: WorkflowProfile) -> dict[str, object]:
+    payload = dict(report)
+    payload["workflow_profile"] = workflow_profile_payload(workflow_profile)
+    return payload
+
+
+def _capability_resolution_span_detail(capability: Mapping[str, object]) -> dict[str, object]:
+    candidates = capability.get("candidates")
+    candidate_summaries = [
+        _capability_candidate_summary(candidate)
+        for candidate in candidates
+        if isinstance(candidate, dict)
+    ] if isinstance(candidates, list) else []
+    selected = capability.get("selected")
+    return {
+        "capability_id": capability.get("capability_id"),
+        "status": capability.get("status"),
+        "available": capability.get("available"),
+        "selected": _capability_candidate_summary(selected) if isinstance(selected, dict) else None,
+        "candidates": candidate_summaries,
+    }
+
+
+def _oracle_invocation_span_detail(
+    capability: Mapping[str, object],
+    *,
+    oracle_id: str,
+    source_profile: str,
+    tool_chain: list[str],
+) -> dict[str, object]:
+    selected = capability.get("selected")
+    return {
+        "oracle_id": oracle_id,
+        "source_profile": source_profile,
+        "tool_chain": tool_chain,
+        "selected": _capability_candidate_summary(selected) if isinstance(selected, dict) else None,
+    }
+
+
+def _capability_candidate_summary(candidate: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "capability_id": candidate.get("capability_id"),
+        "functional_tool_id": candidate.get("functional_tool_id"),
+        "runtime_tool_id": candidate.get("runtime_tool_id"),
+        "tool_chain": candidate.get("tool_chain"),
+        "runnable_status": candidate.get("runnable_status"),
+        "artifact_status": candidate.get("artifact_status"),
+        "runtime_status": candidate.get("runtime_status"),
+        "missing_runtime_ids": candidate.get("missing_runtime_ids"),
+        "probe_evidence": candidate.get("probe_evidence"),
     }
 
 

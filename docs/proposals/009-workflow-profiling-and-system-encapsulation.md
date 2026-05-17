@@ -1055,6 +1055,17 @@ Implemented slice evidence:
     $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
   Lint passed:
     uv run ruff check tests\workflow_harness.py tests\test_api_workflow_harness.py tests\test_web_e2e_cdp.py
+
+009-009:
+  Proposal 008 Slice 1 is implemented, so the tool graph dependency is
+  available.
+  Oracle compatibility reports now include workflow_profile with
+  tool_capability_resolution spans and oracle_invocation spans when a selected
+  tool chain runs.
+  Focused tests passed:
+    uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_reproduction.py -q
+  Lint passed:
+    uv run ruff check amiga_reversing\disasm\oracle_compatibility.py tests\test_oracle_compatibility.py
 ```
 
 Observed during implementation:
@@ -1103,6 +1114,11 @@ command-palette tests outside the representative profiling harness workflow.
 The 009-008 harness checks pass for API and the focused CDP manual command
 workflow; the broader UI timeout cluster should be handled as separate browser
 stability work.
+
+Tool graph workflow spans are attached at the oracle report boundary rather
+than the resource-route boundary. Tool graph query routes remain resource
+queries, while oracle reports show resolution and invocation timing for the
+chains they consume.
 ```
 
 Current code evidence:

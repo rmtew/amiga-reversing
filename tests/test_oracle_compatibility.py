@@ -109,6 +109,12 @@ def test_vasm_oracle_reports_full_file_match_with_fake_tool(monkeypatch, tmp_pat
     assert report["rendered_source_sha256"]
     assert report["availability"][0]["tool_id"] == "vasm"
     assert report["comparison"]["full_file_exact"] is True
+    workflow_profile = report["workflow_profile"]
+    spans = workflow_profile["spans"]
+    assert [span["name"] for span in spans] == ["tool_capability_resolution", "oracle_invocation"]
+    assert spans[0]["module"] == "tool_graph"
+    assert spans[0]["detail"]["selected"]["functional_tool_id"] == "vasm"
+    assert spans[1]["detail"]["selected"]["tool_chain"] == ["vasm"]
 
 
 def test_vasm_oracle_reports_rejected_source(monkeypatch, tmp_path: Path) -> None:
@@ -207,6 +213,11 @@ def test_genam_oracle_reports_missing_vamos(monkeypatch, tmp_path: Path) -> None
     assert report["comparison_level"] == "oracle.missing"
     assert report["assembler_status"] == "not_run"
     assert report["availability"][0]["missing_runtime_ids"] == ["vamos"]
+    workflow_profile = report["workflow_profile"]
+    spans = workflow_profile["spans"]
+    assert [span["name"] for span in spans] == ["tool_capability_resolution"]
+    assert spans[0]["detail"]["selected"]["runnable_status"] == "missing"
+    assert spans[0]["detail"]["selected"]["missing_runtime_ids"] == ["vamos"]
 
 
 def test_genam_oracle_runs_selected_vamos_genam_chain(monkeypatch, tmp_path: Path) -> None:
@@ -255,3 +266,9 @@ def test_genam_oracle_runs_selected_vamos_genam_chain(monkeypatch, tmp_path: Pat
     assert report["tool_chain"] == ["vamos", "genam"]
     assert report["command"][0] == str(vamos_path)
     assert report["command"][4] == str(genam_path)
+    workflow_profile = report["workflow_profile"]
+    spans = workflow_profile["spans"]
+    assert [span["name"] for span in spans] == ["tool_capability_resolution", "oracle_invocation"]
+    assert spans[1]["detail"]["oracle_id"] == "genam-devpac"
+    assert spans[1]["detail"]["selected"]["runtime_tool_id"] == "vamos"
+    assert spans[1]["detail"]["selected"]["functional_tool_id"] == "genam"
