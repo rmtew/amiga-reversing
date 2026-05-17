@@ -11,11 +11,11 @@ from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import BinarySourceKind
-from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
-)
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.source_rendering import (
+    render_source_from_binary_source_or_raise,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -81,11 +81,15 @@ def roundtrip_vasm_target(target: str, *, project_root: Path = ROOT) -> VasmRoun
     newline = "\n" if profile.render.line_ending == "lf" else "\r\n"
 
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        rendered_source, _profile = listing_artifact_source_text_with_c_backend_profile(
-            binary_source,
+        rendering = render_source_from_binary_source_or_raise(
+            target_id=target,
+            binary_source=binary_source,
+            target_dir=paths.target_dir,
             metadata_path=metadata_path,
             project_root=project_root,
+            workflow_id="vasm_roundtrip_source_rendering",
         )
+        rendered_source = rendering.source_text
 
     temp_root = Path(tempfile.mkdtemp(prefix="vasm_roundtrip_"))
     try:

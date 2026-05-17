@@ -1182,3 +1182,11 @@ ADR-0002:
 ADR-0004:
   Manual review state is the Manual Action Log plus projection.
 ```
+
+## Follow-up Implementation Observations
+
+- 2026-05-17: Production source rendering had more direct low-level C backend
+  callers than Source Export and reproduction. Facts v2 source gate, vasm oracle
+  rendering, and the standalone vasm round-trip tool now route through the
+  shared source-rendering module; C backend tests remain the direct low-level
+  consumer.

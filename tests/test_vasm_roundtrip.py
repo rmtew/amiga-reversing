@@ -38,8 +38,12 @@ def test_roundtrip_vasm_target_reports_first_diff(monkeypatch, tmp_path: Path) -
     )
     monkeypatch.setattr(
         vasm_roundtrip,
-        "listing_artifact_source_text_with_c_backend_profile",
-        lambda *args, **kwargs: ("    SECTION code,CODE\n    rts\n", {}),
+        "render_source_from_binary_source_or_raise",
+        lambda *args, **kwargs: type(
+            "Rendering",
+            (),
+            {"source_text": "    SECTION code,CODE\n    rts\n"},
+        )(),
     )
 
     @contextmanager

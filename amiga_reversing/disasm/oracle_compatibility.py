@@ -11,14 +11,22 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
-from amiga_reversing.disasm.binary_source import BinarySourceKind, DiskEntryBinarySource
+from amiga_reversing.disasm.binary_source import (
+    BinarySource,
+    BinarySourceKind,
+    DiskEntryBinarySource,
+    HunkFileBinarySource,
+    RawBinarySource,
+)
 from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
     reproduction_compare_rebuilt_bytes_with_c_backend_profile,
 )
 from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.source_rendering import (
+    render_source_from_binary_source_or_raise,
+)
 from amiga_reversing.disasm.tool_graph import resolve_capability
 from amiga_reversing.disasm.workflow_profile import (
     WorkflowProfile,
@@ -104,7 +112,12 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
     try:
         source_path = temp_root / f"{target_name}.s"
         output_path = temp_root / Path(binary_source.display_path).name
-        rendered_source, source_profile_payload = _render_vasm_source(binary_source, paths.target_dir, project_root)
+        rendered_source, source_profile_payload = _render_vasm_source(
+            target_name,
+            binary_source,
+            paths.target_dir,
+            project_root,
+        )
         _write_source_text(source_path, rendered_source, "vasm")
         command = [
             vasm_path,
@@ -257,16 +270,29 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
     return _with_workflow_profile(report, workflow_profile)
 
 
-def _render_vasm_source(binary_source: object, target_dir: Path, project_root: Path) -> tuple[str, dict[str, object]]:
+def _render_vasm_source(
+    target_name: str,
+    binary_source: BinarySource,
+    target_dir: Path,
+    project_root: Path,
+) -> tuple[str, dict[str, object]]:
     with effective_metadata_file(target_dir) as metadata_path:
-        return listing_artifact_source_text_with_c_backend_profile(
-            binary_source,
+        rendering = render_source_from_binary_source_or_raise(
+            target_id=target_name,
+            binary_source=binary_source,
+            target_dir=target_dir,
             metadata_path=metadata_path,
             project_root=project_root,
+            workflow_id="oracle_compatibility_source_rendering",
         )
+        return rendering.source_text, rendering.listing_profile
 
 
-def _render_devpac_source(binary_source: object, source_path: Path, project_root: Path) -> tuple[str, dict[str, object]]:
+def _render_devpac_source(
+    binary_source: HunkFileBinarySource | RawBinarySource,
+    source_path: Path,
+    project_root: Path,
+) -> tuple[str, dict[str, object]]:
     binary_path = Path(binary_source.path)
     if not binary_path.is_absolute():
         binary_path = project_root / binary_path
@@ -297,7 +323,7 @@ def _report_from_command(
     source_profile: str,
     tool_chain: list[str],
     availability: list[dict[str, object]],
-    binary_source: object,
+    binary_source: BinarySource,
     output_path: Path,
     command: list[str],
     completed: subprocess.CompletedProcess[str],
@@ -359,7 +385,7 @@ def _report_from_command(
 
 
 def _compare_output(
-    binary_source: object,
+    binary_source: BinarySource,
     original_bytes: bytes,
     output_bytes: bytes,
     target_dir: Path,

@@ -38,7 +38,7 @@ def render_source_from_binary_source(
     target_id: str,
     binary_source: BinarySource,
     target_dir: Path,
-    metadata_path: Path,
+    metadata_path: Path | None,
     project_root: Path,
     workflow_id: str = "source_rendering",
 ) -> SourceRenderingResult:
@@ -80,7 +80,7 @@ def render_source_from_binary_source_or_raise(
     target_id: str,
     binary_source: BinarySource,
     target_dir: Path,
-    metadata_path: Path,
+    metadata_path: Path | None,
     project_root: Path,
     workflow_id: str = "source_rendering",
 ) -> SourceRenderingResult:

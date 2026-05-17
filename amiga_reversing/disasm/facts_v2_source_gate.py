@@ -7,11 +7,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
-from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
-)
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
 
 type JsonDict = dict[str, object]
 
@@ -59,12 +57,16 @@ def facts_v2_source_gate_report_for_target(
     try:
         paths = resolve_project_paths(target, project_root=project_root)
         with effective_metadata_file(paths.target_dir) as metadata_path:
-            source_text, raw_profile = listing_artifact_source_text_with_c_backend_profile(
-                paths.binary_source,
+            rendering = render_source_from_binary_source(
+                target_id=target,
+                binary_source=paths.binary_source,
+                target_dir=paths.target_dir,
                 metadata_path=metadata_path,
                 project_root=project_root,
+                workflow_id="facts_v2_source_gate",
             )
-            profile = raw_profile
+            source_text = rendering.source_text
+            profile = rendering.listing_profile
     except OSError as exc:
         source_errors["facts_v2_listing_artifact_source"] = str(exc)
     facts_v2 = _mapping_field(profile, "facts_v2")
