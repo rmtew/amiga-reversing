@@ -8,14 +8,16 @@ from amiga_reversing.disasm import server
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Inspect and configure oracle tool availability.")
+    parser = argparse.ArgumentParser(description="Inspect and configure runtime-aware oracle tools.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("registry", help="Show configured tool registry.")
 
-    availability = subparsers.add_parser("availability", help="List tool availability.")
-    availability.add_argument("--tool-ids", help="Comma-separated tool ids.")
-    availability.add_argument("--required-tool-ids", help="Comma-separated required tool ids.")
+    subparsers.add_parser("runtimes", help="List runtime tools.")
+    subparsers.add_parser("tools", help="List functional tools.")
+
+    capability = subparsers.add_parser("capability", help="Resolve a tool capability.")
+    capability.add_argument("capability_id")
 
     project_availability = subparsers.add_parser("project-availability", help="List availability for a project oracle context.")
     project_availability.add_argument("project")
@@ -23,6 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     project_availability.add_argument("--oracle-modes")
 
     set_path = subparsers.add_parser("set-path", help="Set or clear a configured tool path.")
+    set_path.add_argument("kind", choices=("runtime", "functional"))
     set_path.add_argument("tool_id")
     set_path.add_argument("path", nargs="?")
 
@@ -31,9 +34,16 @@ def main(argv: list[str] | None = None) -> int:
         payload = server.route_request("GET", "/api/tool-registry", {})
         _print_json(payload["data"])
         return 0
-    if args.command == "availability":
-        query = _query(tool_ids=args.tool_ids, required_tool_ids=args.required_tool_ids)
-        payload = server.route_request("GET", "/api/tools/availability", query)
+    if args.command == "runtimes":
+        payload = server.route_request("GET", "/api/tools/runtimes", {})
+        _print_json(payload["data"])
+        return 0
+    if args.command == "tools":
+        payload = server.route_request("GET", "/api/tools/functional", {})
+        _print_json(payload["data"])
+        return 0
+    if args.command == "capability":
+        payload = server.route_request("GET", f"/api/tools/capabilities/{args.capability_id}", {})
         _print_json(payload["data"])
         return 0
     if args.command == "project-availability":
@@ -46,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
             "POST",
             "/api/tools/path",
             {},
-            {"tool_id": args.tool_id, "path": args.path},
+            {"kind": args.kind, "tool_id": args.tool_id, "path": args.path},
         )
         _print_json(payload["data"])
         return 0

@@ -1203,15 +1203,16 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
     monkeypatch.setattr(disasm_server, "load_reproduction_report", load_report)
     monkeypatch.setattr(
         disasm_server,
-        "tool_availability_records",
-        lambda tool_ids, required_tool_ids=(), project_root=None: [
+        "capability_availability_for_modes",
+        lambda oracle_modes, project_root=None: [
             {
-                "tool_id": tool_id,
+                "capability_id": "assemble_devpac_source" if mode == "devpac" else "assemble_vasm_source",
+                "tool_id": "genam" if mode == "devpac" else "vasm",
                 "status": "missing",
-                "required": tool_id in required_tool_ids,
-                "message": f"{tool_id} was not found",
+                "required": True,
+                "message": f"{mode} tool was not runnable",
             }
-            for tool_id in tool_ids
+            for mode in oracle_modes
         ],
     )
     monkeypatch.setattr(

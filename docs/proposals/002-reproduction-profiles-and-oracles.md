@@ -65,9 +65,9 @@ The implementation now covers the core proposal:
   `content-semantic`.
 - `REPRODUCTION_ASSEMBLERS` is still `{"our"}`. `vasm` and `devpac` are oracle
   modes, not exactness assemblers.
-- `amiga_reversing/disasm/tool_registry.py` owns project-level discovery for
-  `vasm`, `genam`, and `vamos`, including configured paths, bundled paths, PATH
-  lookup, status, cheap version, and executable stamp.
+- `amiga_reversing/disasm/tool_graph.py` owns project-level discovery for
+  runtime tools and functional tools, including configured paths, bundled
+  paths, PATH lookup, runnable status, probe evidence, and executable stamps.
 - `amiga_reversing/disasm/oracle_compatibility.py` runs scoped vasm and
   GenAm-through-vamos compatibility checks and returns `oracle.*` levels.
 - `amiga_reversing/disasm/source_export.py` renders vasm/DevPac source exports
@@ -204,7 +204,7 @@ Proposal 002 is complete when:
 Existing focused coverage:
 
 - `tests/test_reproduction.py`
-- `tests/test_tool_registry.py`
+- `tests/test_tool_graph.py`
 - `tests/test_oracle_compatibility.py`
 - `tests/test_reproduction_sweep.py`
 - `tests/test_disasm_server.py`

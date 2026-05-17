@@ -21,6 +21,45 @@ def _available(tool_id: str, path: Path) -> dict[str, object]:
     }
 
 
+def _capability(
+    capability_id: str,
+    functional_tool_id: str,
+    path: Path,
+    *,
+    runtime_tool_id: str = "host",
+    runtime_path: Path | None = None,
+    status: str = "available",
+    artifact_status: str = "available",
+    runtime_status: str = "available",
+    missing_runtime_ids: list[str] | None = None,
+) -> dict[str, object]:
+    return {
+        "capability_id": capability_id,
+        "status": status,
+        "available": status == "available",
+        "selected": {
+            "capability_id": capability_id,
+            "functional_tool_id": functional_tool_id,
+            "runtime_tool_id": runtime_tool_id,
+            "tool_chain": [functional_tool_id] if runtime_tool_id == "host" else [runtime_tool_id, functional_tool_id],
+            "runnable_status": status,
+            "artifact_status": artifact_status,
+            "runtime_status": runtime_status,
+            "missing_runtime_ids": missing_runtime_ids or [],
+            "functional_resolved_path": str(path),
+            "runtime_resolved_path": str(runtime_path) if runtime_path is not None else None,
+            "message": f"{functional_tool_id} is runnable" if status == "available" else f"{functional_tool_id} unavailable",
+            "probe_evidence": {
+                "probe_method": "hash_only" if functional_tool_id == "genam" else "native_version",
+                "probe_status": artifact_status,
+                "version_text": None,
+                "executable_stamp": {"sha256": "0" * 64, "size": 1, "mtime_ns": 1},
+            },
+        },
+        "candidates": [],
+    }
+
+
 def test_oracle_comparison_levels_are_scoped() -> None:
     assert set(oracle_compatibility.ORACLE_COMPARISON_LEVELS) == {
         "oracle.full_file_match",
@@ -45,8 +84,8 @@ def test_vasm_oracle_reports_full_file_match_with_fake_tool(monkeypatch, tmp_pat
     )
     monkeypatch.setattr(
         oracle_compatibility,
-        "tool_availability_records",
-        lambda tool_ids, required_tool_ids=(), project_root=None: [_available("vasm", vasm_path)],
+        "resolve_capability",
+        lambda capability_id, project_root=None: _capability("assemble_vasm_source", "vasm", vasm_path),
     )
     monkeypatch.setattr(
         oracle_compatibility,
@@ -84,8 +123,8 @@ def test_vasm_oracle_reports_rejected_source(monkeypatch, tmp_path: Path) -> Non
     )
     monkeypatch.setattr(
         oracle_compatibility,
-        "tool_availability_records",
-        lambda tool_ids, required_tool_ids=(), project_root=None: [_available("vasm", vasm_path)],
+        "resolve_capability",
+        lambda capability_id, project_root=None: _capability("assemble_vasm_source", "vasm", vasm_path),
     )
     monkeypatch.setattr(
         oracle_compatibility,
@@ -119,8 +158,8 @@ def test_vasm_oracle_reports_content_match(monkeypatch, tmp_path: Path) -> None:
     )
     monkeypatch.setattr(
         oracle_compatibility,
-        "tool_availability_records",
-        lambda tool_ids, required_tool_ids=(), project_root=None: [_available("vasm", vasm_path)],
+        "resolve_capability",
+        lambda capability_id, project_root=None: _capability("assemble_vasm_source", "vasm", vasm_path),
     )
     monkeypatch.setattr(
         oracle_compatibility,
@@ -149,17 +188,17 @@ def test_vasm_oracle_reports_content_match(monkeypatch, tmp_path: Path) -> None:
 def test_genam_oracle_reports_missing_vamos(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         oracle_compatibility,
-        "tool_availability_records",
-        lambda tool_ids, required_tool_ids=(), project_root=None: [
-            _available("genam", tmp_path / "GenAm"),
-            {
-                "tool_id": "vamos",
-                "status": "missing",
-                "required": True,
-                "resolved_path": None,
-                "message": "vamos was not found",
-            },
-        ],
+        "resolve_capability",
+        lambda capability_id, project_root=None: _capability(
+            "assemble_devpac_source",
+            "genam",
+            tmp_path / "GenAm",
+            runtime_tool_id="vamos",
+            status="missing",
+            artifact_status="available",
+            runtime_status="missing",
+            missing_runtime_ids=["vamos"],
+        ),
     )
 
     report = oracle_compatibility.run_genam_oracle("demo", project_root=tmp_path)
@@ -167,4 +206,4 @@ def test_genam_oracle_reports_missing_vamos(monkeypatch, tmp_path: Path) -> None
     assert report["oracle_id"] == "genam-devpac"
     assert report["comparison_level"] == "oracle.missing"
     assert report["assembler_status"] == "not_run"
-    assert "vamos" in report["message"]
+    assert report["availability"][0]["missing_runtime_ids"] == ["vamos"]

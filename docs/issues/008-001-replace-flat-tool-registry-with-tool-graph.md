@@ -1,6 +1,6 @@
 # 008-001 Replace Flat Tool Registry With Tool Graph
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/008-tool-runtime-capability-graph.md`
 
 ## What to build
@@ -70,7 +70,7 @@ executable_stamp: optional
 - `amiga_reversing/disasm/reproduction.py`
 - `amiga_reversing/disasm/server.py`
 - `amiga_reversing/tools/tool_registry.py`
-- `tests/test_tool_registry.py`
+- `tests/test_tool_graph.py`
 - `tests/test_oracle_compatibility.py`
 - `tests/test_disasm_server.py`
 - `tests/test_tool_registry_cli.py`
@@ -147,12 +147,6 @@ Run focused tests:
 uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py -q
 ```
 
-If test files keep old names during the slice:
-
-```powershell
-uv run python -m pytest tests\test_tool_registry.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py -q
-```
-
 ## Cleanup / deletion
 
 - Delete `tool_registry.py` after production imports move, unless the issue
@@ -169,3 +163,6 @@ uv run python -m pytest tests\test_tool_registry.py tests\test_oracle_compatibil
 - No external compatibility is required. Prefer the clean model over wrappers.
 - Preserve Proposal 002's exactness rule: external tools are oracle inputs, not
   the reproduction gate.
+- Implementation note: the installed CLI name remains `amiga-tool-registry`,
+  but its command vocabulary is now graph-shaped: `runtimes`, `tools`,
+  `capability`, and typed `set-path`.

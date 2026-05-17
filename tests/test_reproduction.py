@@ -1591,7 +1591,8 @@ def test_reproduction_input_stamp_includes_profile_concrete_policy(tmp_path: Pat
     assert policy["mode"] == "exact"
     assert policy["requested_exactness"] == "full_file"
     availability = cast(list[dict[str, object]], stamp["oracle_tool_availability"])
-    assert [record["tool_id"] for record in availability] == ["genam", "vamos"]
+    assert [record["capability_id"] for record in availability] == ["assemble_devpac_source"]
+    assert [record["tool_id"] for record in availability] == ["genam"]
     assert all(record["required"] is True for record in availability)
 
 

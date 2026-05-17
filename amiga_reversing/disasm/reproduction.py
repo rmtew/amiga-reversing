@@ -60,10 +60,7 @@ from amiga_reversing.disasm.target_metadata import (
     TARGET_METADATA_FILE_NAME,
     TARGET_SEEDED_METADATA_FILE_NAME,
 )
-from amiga_reversing.disasm.tool_registry import (
-    oracle_tool_ids_for_modes,
-    tool_availability_records,
-)
+from amiga_reversing.disasm.tool_graph import capability_availability_for_modes
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -1025,10 +1022,9 @@ def oracle_tool_availability_for_options(
     project_root: Path = PROJECT_ROOT,
 ) -> list[dict[str, object]]:
     oracle_modes = options.get("oracle_modes")
-    tool_ids = oracle_tool_ids_for_modes(oracle_modes if isinstance(oracle_modes, list) else [])
-    if not tool_ids:
+    if not isinstance(oracle_modes, list) or not oracle_modes:
         return []
-    return tool_availability_records(tool_ids, required_tool_ids=tool_ids, project_root=project_root)
+    return capability_availability_for_modes(oracle_modes, project_root=project_root)
 
 
 def unresolved_reproduction_input_stamp(

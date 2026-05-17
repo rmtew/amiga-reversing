@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from enum import StrEnum
 from pathlib import Path
 from typing import cast
@@ -19,7 +19,7 @@ from amiga_reversing.disasm.c_backend import (
 from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
-from amiga_reversing.disasm.tool_registry import tool_availability_records
+from amiga_reversing.disasm.tool_graph import resolve_capability
 
 ORACLE_OUTPUT_EXCERPT_CHARS = 4000
 ORACLE_TIMEOUT_SECONDS = 120
@@ -56,11 +56,12 @@ def oracle_compatibility_reports_for_options(
 
 
 def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
-    availability = tool_availability_records(("vasm",), required_tool_ids=("vasm",), project_root=project_root)
+    capability = resolve_capability("assemble_vasm_source", project_root=project_root)
+    availability = [_availability_record_from_capability(capability)]
     missing = _missing_or_error_report(
         oracle_id="vasm",
         source_profile="vasm",
-        tool_chain=["vasm"],
+        tool_chain=_tool_chain_from_capability(capability, ["vasm"]),
         availability=availability,
     )
     if missing is not None:
@@ -74,7 +75,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
         return _base_report(
             oracle_id="vasm",
             source_profile="vasm",
-            tool_chain=["vasm"],
+            tool_chain=_tool_chain_from_capability(capability, ["vasm"]),
             availability=availability,
             comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
             assembler_status="not_run",
@@ -122,15 +123,13 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
 
 
 def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
-    availability = tool_availability_records(
-        ("genam", "vamos"),
-        required_tool_ids=("genam", "vamos"),
-        project_root=project_root,
-    )
+    capability = resolve_capability("assemble_devpac_source", project_root=project_root)
+    availability = [_availability_record_from_capability(capability)]
+    tool_chain = _tool_chain_from_capability(capability, ["vamos", "genam"])
     missing = _missing_or_error_report(
         oracle_id="genam-devpac",
         source_profile="devpac",
-        tool_chain=["vamos", "genam"],
+        tool_chain=tool_chain,
         availability=availability,
     )
     if missing is not None:
@@ -142,7 +141,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
         return _base_report(
             oracle_id="genam-devpac",
             source_profile="devpac",
-            tool_chain=["vamos", "genam"],
+            tool_chain=tool_chain,
             availability=availability,
             comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
             assembler_status="not_run",
@@ -161,13 +160,12 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
             if include_src.is_dir():
                 shutil.copytree(include_src, temp_root / "include")
                 include_arg = ["INCDIR", "TMP:include/"]
-        paths_by_id = _availability_paths_by_id(availability)
         command = [
-            paths_by_id["vamos"],
+            cast(str, availability[0]["runtime_resolved_path"]),
             "-V",
             f"TMP:{temp_root}",
             "--",
-            paths_by_id["genam"],
+            cast(str, availability[0]["resolved_path"]),
             f"TMP:{source_path.name}",
             *_devpac_output_args("devpac", output_name),
             "QUIET",
@@ -177,7 +175,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
         return _report_from_command(
             oracle_id="genam-devpac",
             source_profile="devpac",
-            tool_chain=["vamos", "genam"],
+            tool_chain=tool_chain,
             availability=availability,
             binary_source=binary_source,
             output_path=output_path,
@@ -190,7 +188,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
             target_dir=paths.target_dir,
         )
     except Exception as exc:
-        return _tool_error_report("genam-devpac", "devpac", ["vamos", "genam"], availability, str(exc))
+        return _tool_error_report("genam-devpac", "devpac", tool_chain, availability, str(exc))
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -401,14 +399,44 @@ def _base_report(
     }
 
 
-def _availability_paths_by_id(records: Sequence[Mapping[str, object]]) -> dict[str, str]:
-    paths: dict[str, str] = {}
-    for record in records:
-        tool_id = record.get("tool_id")
-        resolved_path = record.get("resolved_path")
-        if isinstance(tool_id, str) and isinstance(resolved_path, str):
-            paths[tool_id] = resolved_path
-    return paths
+def _availability_record_from_capability(capability: Mapping[str, object]) -> dict[str, object]:
+    selected = capability.get("selected")
+    if not isinstance(selected, dict):
+        return {
+            "capability_id": capability.get("capability_id"),
+            "tool_id": None,
+            "status": "missing",
+            "required": True,
+            "resolved_path": None,
+            "runtime_resolved_path": None,
+            "message": "no tool candidate found",
+        }
+    return {
+        "capability_id": capability["capability_id"],
+        "tool_id": selected["functional_tool_id"],
+        "functional_tool_id": selected["functional_tool_id"],
+        "runtime_tool_id": selected["runtime_tool_id"],
+        "tool_chain": selected["tool_chain"],
+        "status": selected["runnable_status"],
+        "runnable_status": selected["runnable_status"],
+        "artifact_status": selected["artifact_status"],
+        "runtime_status": selected["runtime_status"],
+        "missing_runtime_ids": selected["missing_runtime_ids"],
+        "required": True,
+        "resolved_path": selected["functional_resolved_path"],
+        "runtime_resolved_path": selected["runtime_resolved_path"],
+        "message": selected["message"],
+        "probe_evidence": selected["probe_evidence"],
+        "version": cast(Mapping[str, object], selected["probe_evidence"]).get("version_text"),
+        "executable_stamp": cast(Mapping[str, object], selected["probe_evidence"]).get("executable_stamp"),
+    }
+
+
+def _tool_chain_from_capability(capability: Mapping[str, object], fallback: list[str]) -> list[str]:
+    selected = capability.get("selected")
+    if isinstance(selected, dict) and isinstance(selected.get("tool_chain"), list):
+        return cast(list[str], selected["tool_chain"])
+    return fallback
 
 
 def _vasm_format_for_source_kind(source_kind: BinarySourceKind) -> str:

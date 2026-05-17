@@ -93,12 +93,15 @@ from amiga_reversing.disasm.reproduction import (
     write_target_reproduction_options,
 )
 from amiga_reversing.disasm.source_export import source_export_payload
-from amiga_reversing.disasm.tool_registry import (
+from amiga_reversing.disasm.tool_graph import (
+    capability_availability_for_modes,
+    capability_ids_for_oracle_modes,
+    functional_tool_records,
     load_tool_registry,
-    oracle_tool_ids_for_modes,
+    resolve_capability,
+    runtime_tool_records,
     save_tool_registry,
-    set_tool_path,
-    tool_availability_records,
+    set_tool_artifact_path,
 )
 from amiga_reversing.disasm.ui_preferences import (
     load_ui_preferences,
@@ -684,12 +687,13 @@ def _project_tool_availability_payload(project_name: str, query: dict[str, list[
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
         options = reproduction_options_for_target(paths.target_dir)
         raw_modes = cast(list[object], options.get("oracle_modes", [])) if isinstance(options.get("oracle_modes"), list) else []
-    tool_ids = oracle_tool_ids_for_modes(raw_modes)
+    capability_ids = capability_ids_for_oracle_modes(raw_modes)
     return {
         "project": project_name,
         "profile_id": profile_id,
         "oracle_modes": raw_modes,
-        "availability": tool_availability_records(tool_ids, required_tool_ids=tool_ids, project_root=PROJECT_ROOT),
+        "capability_ids": list(capability_ids),
+        "availability": capability_availability_for_modes(raw_modes, project_root=PROJECT_ROOT),
     }
 
 
@@ -2742,27 +2746,24 @@ def route_request(
         registry = cast(dict[str, object], body or {})
         save_tool_registry(registry, project_root=PROJECT_ROOT)
         return {"ok": True, "data": load_tool_registry(project_root=PROJECT_ROOT)}
-    if method == "GET" and path == "/api/tools/availability":
-        tool_ids = _query_csv(query, "tool_ids")
-        required_ids = _query_csv(query, "required_tool_ids")
-        return {
-            "ok": True,
-            "data": {
-                "availability": tool_availability_records(
-                    tool_ids or None,
-                    required_tool_ids=required_ids,
-                    project_root=PROJECT_ROOT,
-                )
-            },
-        }
+    if method == "GET" and path == "/api/tools/runtimes":
+        return {"ok": True, "data": {"runtimes": runtime_tool_records(project_root=PROJECT_ROOT)}}
+    if method == "GET" and path == "/api/tools/functional":
+        return {"ok": True, "data": {"tools": functional_tool_records(project_root=PROJECT_ROOT)}}
+    if method == "GET" and path.startswith("/api/tools/capabilities/"):
+        capability_id = path.rsplit("/", 1)[-1]
+        return {"ok": True, "data": resolve_capability(capability_id, project_root=PROJECT_ROOT)}
     if method == "POST" and path == "/api/tools/path":
+        kind = (body or {}).get("kind")
         tool_id = (body or {}).get("tool_id")
         path_value = (body or {}).get("path")
+        if not isinstance(kind, str) or not kind:
+            raise ValueError("kind is required")
         if not isinstance(tool_id, str) or not tool_id:
             raise ValueError("tool_id is required")
         if path_value is not None and not isinstance(path_value, str):
             raise ValueError("path must be a string")
-        registry = set_tool_path(tool_id, path_value, project_root=PROJECT_ROOT)
+        registry = set_tool_artifact_path(kind, tool_id, path_value, project_root=PROJECT_ROOT)
         return {"ok": True, "data": registry}
     if method == "POST" and path == "/api/projects":
         if "media_base64" in (body or {}):
@@ -2943,6 +2944,9 @@ def route_request(
             return {"ok": True, "data": _set_reproduction_policy_payload(project_name, body)}
         if method == "GET" and len(parts) == 4 and parts[3] == "tool-availability":
             return {"ok": True, "data": _project_tool_availability_payload(project_name, query)}
+        if method == "GET" and len(parts) == 5 and parts[3] == "tool-capabilities":
+            _require_ready_binary_project(project_name, "tool capability")
+            return {"ok": True, "data": resolve_capability(parts[4], project_root=PROJECT_ROOT)}
         if method == "GET" and len(parts) == 4 and parts[3] == "source-export":
             return {"ok": True, "data": _source_export_payload(project_name, query)}
         if method == "GET" and len(parts) == 4 and parts[3] == "reproduction":

@@ -1,6 +1,6 @@
 # Proposal 008: Tool Runtime Capability Graph
 
-Status: Draft for implementation issue.
+Status: Slice 1 implemented; remaining slices draft.
 Status changed: 2026-05-17.
 
 Proposal 002 made external assembler checks explicit, but the tool model is
@@ -116,7 +116,7 @@ should show both artifact and runtime status.
 
 ## Current State Read
 
-Current implementation:
+Pre-Slice 1 implementation read:
 
 - `amiga_reversing/disasm/tool_registry.py` defines flat tool ids:
   `vasm`, `genam`, `vamos`.
@@ -634,14 +634,10 @@ schema before adding many compilers.
 Initial implementation should run:
 
 ```powershell
-uv run python -m pytest tests\test_tool_registry.py tests\test_oracle_compatibility.py tests\test_disasm_server.py -q
+uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py -q
 ```
 
-If the test module is renamed with the implementation:
-
-```powershell
-uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py -q
-```
+Slice 1 renamed the focused registry tests to `tests\test_tool_graph.py`.
 
 If compiler fingerprint fixtures are added:
 
@@ -660,3 +656,13 @@ Proposal 007 was reviewed while resolving route shape. Its command routes are
 for target workflow commands and durable user mutations. Tool graph query
 routes remain resource routes; browser path configuration can become a command
 mutation only when there is a browser workflow for it.
+
+Slice 1 implementation kept the installed CLI entry point name
+`amiga-tool-registry` but changed the command vocabulary to graph concepts.
+This avoided package-entry churn while still removing the flat production
+registry module.
+
+An implementation wrinkle: tests that expected missing `vamos` had to configure
+an invalid runtime path explicitly, because developer machines may legitimately
+have `vamos` on `PATH`. Missing-runtime tests should pin discovery inputs rather
+than rely on ambient host state.

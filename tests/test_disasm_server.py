@@ -3036,44 +3036,43 @@ def test_route_reproduction_policy_rejects_invalid_options(
 
 def test_route_tool_registry_and_availability(monkeypatch: pytest.MonkeyPatch) -> None:
     saved: list[dict[str, object]] = []
-    availability_calls: list[tuple[object, object]] = []
-    monkeypatch.setattr(disasm_server, "load_tool_registry", lambda project_root=None: {"version": 1, "tools": {}})
+    monkeypatch.setattr(
+        disasm_server,
+        "load_tool_registry",
+        lambda project_root=None: {"version": 2, "runtime_tools": {}, "functional_tools": {}},
+    )
     monkeypatch.setattr(disasm_server, "save_tool_registry", lambda registry, project_root=None: saved.append(dict(registry)))
-
-    def availability(tool_ids=None, *, required_tool_ids=(), project_root=None):
-        availability_calls.append((tool_ids, required_tool_ids))
-        return [{"tool_id": "vasm", "status": "missing", "required": "vasm" in set(required_tool_ids)}]
-
-    monkeypatch.setattr(disasm_server, "tool_availability_records", availability)
-
-    registry_payload = disasm_server.route_request("GET", "/api/tool-registry", {})
-    save_payload = disasm_server.route_request("PUT", "/api/tool-registry", {}, {"version": 1, "tools": {}})
-    availability_payload = disasm_server.route_request(
-        "GET",
-        "/api/tools/availability",
-        {"tool_ids": ["vasm"], "required_tool_ids": ["vasm"]},
+    monkeypatch.setattr(disasm_server, "runtime_tool_records", lambda project_root=None: [{"runtime_tool_id": "host", "status": "available"}])
+    monkeypatch.setattr(disasm_server, "functional_tool_records", lambda project_root=None: [{"functional_tool_id": "vasm", "status": "missing"}])
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_capability",
+        lambda capability_id, project_root=None: {"capability_id": capability_id, "status": "missing"},
     )
 
-    assert cast(dict[str, object], registry_payload["data"])["version"] == 1
-    assert cast(dict[str, object], save_payload["data"])["tools"] == {}
-    assert saved == [{"version": 1, "tools": {}}]
-    assert cast(list[dict[str, object]], cast(dict[str, object], availability_payload["data"])["availability"])[0] == {
-        "tool_id": "vasm",
-        "status": "missing",
-        "required": True,
-    }
-    assert availability_calls == [(["vasm"], ["vasm"])]
+    registry_payload = disasm_server.route_request("GET", "/api/tool-registry", {})
+    save_payload = disasm_server.route_request("PUT", "/api/tool-registry", {}, {"version": 2, "runtime_tools": {}, "functional_tools": {}})
+    runtimes_payload = disasm_server.route_request("GET", "/api/tools/runtimes", {})
+    tools_payload = disasm_server.route_request("GET", "/api/tools/functional", {})
+    capability_payload = disasm_server.route_request("GET", "/api/tools/capabilities/assemble_vasm_source", {})
+
+    assert cast(dict[str, object], registry_payload["data"])["version"] == 2
+    assert cast(dict[str, object], save_payload["data"])["functional_tools"] == {}
+    assert saved == [{"version": 2, "runtime_tools": {}, "functional_tools": {}}]
+    assert cast(list[dict[str, object]], cast(dict[str, object], runtimes_payload["data"])["runtimes"])[0]["runtime_tool_id"] == "host"
+    assert cast(list[dict[str, object]], cast(dict[str, object], tools_payload["data"])["tools"])[0]["functional_tool_id"] == "vasm"
+    assert cast(dict[str, object], capability_payload["data"])["capability_id"] == "assemble_vasm_source"
 
 
 def test_route_project_tool_availability_for_profile_context(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[tuple[object, object]] = []
+    calls: list[object] = []
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
 
-    def availability(tool_ids=None, *, required_tool_ids=(), project_root=None):
-        calls.append((tool_ids, required_tool_ids))
-        return [{"tool_id": tool_id, "status": "missing", "required": True} for tool_id in tool_ids]
+    def availability(oracle_modes, *, project_root=None):
+        calls.append(oracle_modes)
+        return [{"capability_id": "assemble_devpac_source", "tool_id": "genam", "status": "missing", "missing_runtime_ids": ["vamos"]}]
 
-    monkeypatch.setattr(disasm_server, "tool_availability_records", availability)
+    monkeypatch.setattr(disasm_server, "capability_availability_for_modes", availability)
 
     payload = disasm_server.route_request(
         "GET",
@@ -3084,8 +3083,9 @@ def test_route_project_tool_availability_for_profile_context(monkeypatch: pytest
 
     assert data["profile_id"] == "source-devpac"
     assert data["oracle_modes"] == ["devpac"]
-    assert [record["tool_id"] for record in cast(list[dict[str, object]], data["availability"])] == ["genam", "vamos"]
-    assert calls == [(("genam", "vamos"), ("genam", "vamos"))]
+    assert data["capability_ids"] == ["assemble_devpac_source"]
+    assert cast(list[dict[str, object]], data["availability"])[0]["missing_runtime_ids"] == ["vamos"]
+    assert calls == [["devpac"]]
 
 
 def test_route_reproduction_stale_listing_artifact_exposes_background_job(
