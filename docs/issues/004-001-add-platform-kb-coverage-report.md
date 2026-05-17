@@ -1,6 +1,6 @@
 # 004-001 Add Platform KB Coverage Report
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -66,3 +66,8 @@ uv run amiga-platform-kb check
 focused platform KB report tests
 cmd /c src\precommit.bat
 ```
+
+Implementation note: `check` is expected to fail on the current repository
+until follow-up slices resolve `HUNK_OVERLAY` and preserve raw OS availability
+precision in generated runtime metadata. That failure is the intended strict
+signal from this issue, not a hidden command error.

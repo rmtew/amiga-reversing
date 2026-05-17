@@ -750,4 +750,13 @@ check was run instead.
 ## Verification
 
 This proposal was reviewed against current repository artifacts on 2026-05-17.
-No implementation is claimed here beyond the proposal and issue rewrite.
+Slice 1 implementation is now reflected in the notes below.
+
+## Implementation Notes
+
+Slice 1 added `amiga-platform-kb report` and `amiga-platform-kb check` against
+committed artifacts only. The first strict check failures are deliberate:
+`HUNK_OVERLAY` is present as an enum id without normalized record metadata, and
+raw OS availability values such as `1.2`, `2.04`, `2.1`, `3`, and `3.0` are
+still collapsed by generated runtime metadata. Those are follow-up issue inputs,
+not report-command failures.
