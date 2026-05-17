@@ -22,7 +22,7 @@ durable spec.
   - [ ] 1. The NDK Parser Is Already The Strongest Part
   - [ ] 2. Hardware Knowledge Has Two Different Sources
   - [ ] 3. Corrections Have Provenance But No Workflow
-  - [ ] 4. OS Compatibility Data Exists But Is Not A Target Summary
+  - [x] 4. OS Compatibility Data Exists As A Target Summary
   - [ ] 5. HUNK Runtime Metadata Is Not Used Everywhere
   - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
   - [ ] 7. Target Gaps Do Not Drive Parser Expansion Yet
@@ -34,7 +34,7 @@ durable spec.
 - [ ] Non-Goals
 - [ ] Proposed Rewrite
   - [ ] Slice 1: Platform KB Coverage Report
-  - [ ] Slice 2: Target OS Compatibility Summary
+  - [x] Slice 2: Target OS Compatibility Summary
   - [ ] Slice 3: Corrections Review Flow
   - [ ] Slice 4: Generated HUNK Comparison Helpers
   - [x] Slice 5: Resolve `HUNK_OVERLAY`
@@ -123,20 +123,19 @@ That means the old TODO note about "570 1.3 functions" is stale. There is
 still version trust debt, but the parser has already refined a large part of
 the original gap.
 
-OS compatibility metadata still exists, but the target-level output is
-incomplete:
+OS compatibility metadata now exists in generated runtime metadata and the
+source-analysis target platform summary:
 
 - `knowledge/amiga_ndk_other_parsed.json` keeps finer `available_since` values
   such as `1.1`, `1.2`, `2.04`, `2.1`, `3.0`, and `3.1`.
 - `src/generated/amiga_os_runtime.*` exposes compatibility helpers and stores
-  `available_since_version` plus `fd_version` on library vectors.
-- The generated runtime currently normalizes availability into the configured
-  compatibility enum values: `1.3`, `2.0`, `3.1`, and `3.5`.
+  raw `available_since`, normalized `available_since_version`, and `fd_version`
+  on library vectors.
 - Source analysis records recovered platform calls with `available_since` and
   `fd_version`.
-- JSON output exposes those per-call fields.
-- The rendered source currently emits the memory map header, but not the old OS
-  compatibility header or any replacement target-level compatibility summary.
+- JSON output exposes those per-call fields plus `platform_summary`.
+- Source export renders the C-generated memory map and OS compatibility header
+  from the same analysis path.
 
 The clean fix is not to restore a legacy string generator. The clean fix is to
 make target OS compatibility a generated summary artifact, then render that
@@ -646,11 +645,10 @@ inventory, and HUNK coverage from committed artifacts.
 
 Tracked by `docs/issues/004-002-add-target-os-compatibility-summary.md`.
 
-Preserve raw OS availability metadata through generated runtime tables,
-create the target platform summary/header owner, move the existing memory map
-header under it, aggregate observed target calls into the same summary, render
-the source compatibility header from that summary, and expose the same summary
-through web, API, export, and reports.
+Resolved in this slice: raw OS availability metadata is preserved through
+generated runtime tables, recovered calls aggregate into
+`platform_summary.os_compatibility`, source analysis JSON exposes that summary,
+and the C-rendered source header emits OS compatibility beside the memory map.
 
 ### Slice 3: Corrections Review Flow
 
@@ -753,16 +751,22 @@ check was run instead.
 ## Verification
 
 This proposal was reviewed against current repository artifacts on 2026-05-17.
-Slice 1 implementation is now reflected in the notes below.
+Slice 1 and completed follow-up slices are reflected in the notes below.
 
 ## Implementation Notes
 
 Slice 1 added `amiga-platform-kb report` and `amiga-platform-kb check` against
 committed artifacts only.
 
+Slice 2 preserved raw Amiga OS availability in generated runtime metadata and
+added target platform summary output. `amiga-platform-kb check` now passes: raw
+values such as `1.2`, `2.04`, `2.1`, `3`, and `3.0` are no longer collapsed out
+of runtime metadata. Source analysis JSON now exposes `platform_summary`, and
+source rendering emits an OS compatibility header from recovered-call summary
+data when analysis-backed source export is used. Explicit expected OS profile
+metadata is still absent from target manifests, so inferred project-year warning
+heuristics remain future work.
+
 Slice 5 resolved `HUNK_OVERLAY` by making it explicitly unsupported. The enum id
 remains for diagnostics, but it is no longer a valid load-file record and the
-loader now rejects it with a named unsupported-record diagnostic. Raw OS
-availability values such as `1.2`, `2.04`, `2.1`, `3`, and `3.0` are still
-collapsed by generated runtime metadata; that remaining strict check failure is
-the 004-002 input.
+loader now rejects it with a named unsupported-record diagnostic.

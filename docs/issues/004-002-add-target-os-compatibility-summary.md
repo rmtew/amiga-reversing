@@ -1,6 +1,6 @@
 # 004-002 Add Target OS Compatibility Summary
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -95,3 +95,23 @@ listing summary/API test proving structured os_compatibility is emitted
 source export test proving exported source includes the C-rendered header
 cmd /c src\precommit.bat
 ```
+
+## Implementation Notes
+
+Implemented in this issue:
+
+- generated Amiga OS runtime metadata now preserves `available_since_raw`
+  beside the normalized compatibility enum and `fd_version`
+- recovered platform calls keep raw availability text, so values such as `1.2`
+  and `3.0` survive analysis and summary aggregation
+- source analysis JSON exposes `platform_summary.memory_map` and
+  `platform_summary.os_compatibility`
+- source rendering emits an OS compatibility header from recovered-call summary
+  data adjacent to the memory-map header when source analysis is available
+- `status=no_os_calls` and `status=unknown` are explicit structured states
+- `amiga-platform-kb check` now passes, proving raw OS precision is represented
+  in generated runtime metadata
+
+Implementation observation: explicit expected target OS metadata does not yet
+exist in target manifests, so no inferred project-year warning heuristic was
+added here.

@@ -14654,6 +14654,7 @@ typedef struct AmigaOsLibraryVectorInfo {
   uint8_t returns_base_reg_index;
   uint8_t returns_base_name_reg_kind;
   uint8_t returns_base_name_reg_index;
+  const char *available_since_raw;
   uint16_t available_since_version;
   const char *fd_version;
   uint16_t input_start;
@@ -14839,6 +14840,7 @@ const char *amiga_os_find_struct_field_value_domain(const char *struct_name, con
 int amiga_os_find_constant_value_by_id(uint16_t symbol_id, int32_t *out_value);
 int amiga_os_find_constant_value(const char *symbol_name, int32_t *out_value);
 const char *amiga_os_compatibility_version_name(AmigaOsCompatVersion version);
+int amiga_os_compatibility_version_rank(const char *version, uint16_t *out_rank);
 AmigaOsCompatVersion amiga_os_parse_compatibility_version(const char *version);
 AmigaOsCompatVersion amiga_os_normalize_compatibility_version_enum(const char *version);
 AmigaOsCompatVersion amiga_os_find_include_min_compat_version_by_id(uint16_t include_id);

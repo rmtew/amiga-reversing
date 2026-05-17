@@ -2182,6 +2182,146 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   return count;
 }
 
+static size_t source_analysis_runtime_view_count(const M68kSourceAnalysisIR *source_analysis) {
+  size_t count = 0U;
+  size_t section_index;
+  if (source_analysis == NULL) return 0U;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index)
+    count += source_analysis->sections[section_index].runtime_view_count;
+  return count;
+}
+
+static int platform_summary_version_seen(const char versions[][16], size_t count, const char *version) {
+  size_t index;
+  if (version == NULL || version[0] == '\0') return 1;
+  for (index = 0U; index < count; ++index) {
+    if (strcmp(versions[index], version) == 0) return 1;
+  }
+  return 0;
+}
+
+static void platform_summary_append_version(char versions[][16], uint16_t ranks[], size_t *io_count,
+    const char *version) {
+  uint16_t rank;
+  size_t index;
+  if (versions == NULL || ranks == NULL || io_count == NULL || *io_count >= 16U ||
+      version == NULL || version[0] == '\0' || platform_summary_version_seen(versions, *io_count, version) ||
+      !amiga_os_compatibility_version_rank(version, &rank)) {
+    return;
+  }
+  index = *io_count;
+  while (index > 0U && ranks[index - 1U] > rank) {
+    ranks[index] = ranks[index - 1U];
+    snprintf(versions[index], sizeof(versions[index]), "%s", versions[index - 1U]);
+    --index;
+  }
+  ranks[index] = rank;
+  snprintf(versions[index], sizeof(versions[index]), "%s", version);
+  ++*io_count;
+}
+
+static const char *platform_summary_call_display_name(const M68kRecoveredPlatformCallIR *call) {
+  const char *name;
+  if (call == NULL) return "unknown";
+  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  if (name != NULL && name[0] != '\0') return name;
+  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  return name != NULL && name[0] != '\0' ? name : "unknown";
+}
+
+static int append_platform_summary_versions_json(JsonBuilder *builder, const char versions[][16], size_t count) {
+  size_t index;
+  if (builder == NULL || json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < count; ++index) {
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append_json_string(builder, versions[index]) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_platform_summary_json(JsonBuilder *builder, const M68kSourceAnalysisIR *source_analysis) {
+  char versions[16][16];
+  uint16_t version_ranks[16];
+  char fd_versions[16][16];
+  uint16_t fd_ranks[16];
+  uint16_t max_rank = 0U;
+  size_t version_count = 0U;
+  size_t fd_version_count = 0U;
+  size_t call_count = 0U;
+  size_t section_index;
+  if (builder == NULL || source_analysis == NULL) return -1;
+  memset(versions, 0, sizeof(versions));
+  memset(version_ranks, 0, sizeof(version_ranks));
+  memset(fd_versions, 0, sizeof(fd_versions));
+  memset(fd_ranks, 0, sizeof(fd_ranks));
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t call_index;
+    for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
+      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+      uint16_t rank = 0U;
+      if (call->symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+          call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+        continue;
+      }
+      ++call_count;
+      platform_summary_append_version(versions, version_ranks, &version_count, call->available_since);
+      platform_summary_append_version(fd_versions, fd_ranks, &fd_version_count, call->fd_version);
+      if (amiga_os_compatibility_version_rank(call->available_since, &rank) && rank > max_rank) max_rank = rank;
+    }
+  }
+  if (json_builder_appendf(builder,
+      "{\"memory_map\":{\"runtime_view_count\":%u},\"os_compatibility\":{",
+      (unsigned)source_analysis_runtime_view_count(source_analysis)) != 0) {
+    return -1;
+  }
+  if (call_count == 0U) {
+    if (json_builder_append(builder, "\"status\":\"no_os_calls\",\"minimum_required\":null,"
+        "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
+      return -1;
+  } else if (version_count == 0U) {
+    if (json_builder_append(builder, "\"status\":\"unknown\",\"minimum_required\":null,"
+        "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
+      return -1;
+  } else {
+    int first_driver = 1;
+    if (json_builder_append(builder, "\"status\":\"observed\",\"minimum_required\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, versions[version_count - 1U]) != 0) return -1;
+    if (json_builder_append(builder, ",\"observed_available_since\":") != 0) return -1;
+    if (append_platform_summary_versions_json(builder, versions, version_count) != 0) return -1;
+    if (json_builder_append(builder, ",\"observed_fd_versions\":") != 0) return -1;
+    if (append_platform_summary_versions_json(builder, fd_versions, fd_version_count) != 0) return -1;
+    if (json_builder_append(builder, ",\"max_requirement_drivers\":[") != 0) return -1;
+    for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+      const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+      size_t call_index;
+      for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
+        const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+        uint16_t rank = 0U;
+        const char *owner;
+        if (!amiga_os_compatibility_version_rank(call->available_since, &rank) || rank != max_rank) continue;
+        if (!first_driver && json_builder_append(builder, ",") != 0) return -1;
+        owner = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+        if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"call\":",
+            (unsigned)section->section_index, (unsigned)call->offset) != 0)
+          return -1;
+        if (json_builder_append_json_string(builder, platform_summary_call_display_name(call)) != 0) return -1;
+        if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
+        if (json_builder_append_nullable_string(builder, owner != NULL && owner[0] != '\0' ? owner : NULL) != 0)
+          return -1;
+        if (json_builder_append(builder, ",\"available_since\":") != 0) return -1;
+        if (json_builder_append_json_string(builder, call->available_since) != 0) return -1;
+        if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
+        if (json_builder_append_nullable_string(builder, call->fd_version) != 0) return -1;
+        if (json_builder_append(builder, "}") != 0) return -1;
+        first_driver = 0;
+      }
+    }
+    if (json_builder_append(builder, "]") != 0) return -1;
+  }
+  return json_builder_append(builder, "}}");
+}
+
 enum {
   MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE = 1,
   MEMORY_LAYOUT_RANGE_SPACE_RUNTIME_ABSOLUTE = 2,
@@ -2733,14 +2873,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   if (append_source_analysis_policy_structured_items_json(&builder, &source_analysis->policy) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
-      "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},"
-      "\"orphan_code_signal_count\":%u,\"orphan_code_signal_summary\":{"
+      "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},\"platform_summary\":",
+      (unsigned)source_analysis->findings.required_cpu,
+      (unsigned)source_analysis->findings.cpu_violation_count) != 0)
+    goto oom;
+  if (append_platform_summary_json(&builder, source_analysis) != 0)
+    goto oom;
+  if (json_builder_appendf(&builder,
+      ",\"orphan_code_signal_count\":%u,\"orphan_code_signal_summary\":{"
       "\"status\":{\"unresolved\":%u,\"rejected\":%u,\"suppressed\":%u,\"linked\":%u,\"promoted\":%u},"
       "\"missing_inbound\":{\"unknown\":%u,\"jump_table\":%u,\"callback\":%u,\"vector\":%u,"
       "\"runtime_copy\":%u,\"api\":%u,\"metadata\":%u,\"policy_seed\":%u}},"
       "\"table_record_count\":%u,\"table_records\":[",
-      (unsigned)source_analysis->findings.required_cpu,
-      (unsigned)source_analysis->findings.cpu_violation_count,
       (unsigned)orphan_code_signal_count,
       (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED],
       (unsigned)orphan_status_counts[M68K_ORPHAN_CODE_SIGNAL_REJECTED],

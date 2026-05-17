@@ -1805,7 +1805,7 @@ int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisI
   note_symbol_ref.domain_kind = M68K_PLATFORM_NAME_SYMBOL;
   note_symbol_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_SYMBOL, note_symbol_name);
   if (platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK && available_since != NULL && available_since[0] != '\0') {
-    available_since_version = (uint16_t)amiga_os_parse_compatibility_version(available_since);
+    available_since_version = (uint16_t)amiga_os_normalize_compatibility_version_enum(available_since);
   }
   for (index = 0; index < section_analysis->recovered_platform_call_count; ++index) {
     M68kRecoveredPlatformCallIR *existing = &section_analysis->recovered_platform_calls[index];

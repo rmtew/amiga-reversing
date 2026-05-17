@@ -5160,7 +5160,8 @@ static int test_facts_v2_reports_orphan_terminal_code_signal_without_promoting(v
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"findings\":{\"required_cpu\":0,\"cpu_violation_count\":0},"
-    "\"orphan_code_signal_count\":1") != NULL);
+    "\"platform_summary\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"orphan_code_signal_summary\":{\"status\":{\"unresolved\":1,"
     "\"rejected\":0,\"suppressed\":0,\"linked\":0,\"promoted\":0},\"missing_inbound\":{\"unknown\":0,"
     "\"jump_table\":1") != NULL);
@@ -10386,10 +10387,13 @@ static int test_facts_v2_render_asm_source_renders_seeded_lvo_symbol(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *analysis_json = NULL;
   char *source = NULL;
   uint8_t bytes[6] = {0x4eu, 0xaeu, 0xffu, 0x94u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -10406,13 +10410,21 @@ static int test_facts_v2_render_asm_source_renders_seeded_lvo_symbol(void) {
   policy.register_seeds[0].entry_offset = 0U;
   policy.register_seeds[0].section_index = 0U;
   snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "exec.library");
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "; OS compatibility\n") != NULL);
+  M68K_C_ASSERT(strstr(source, ";   minimum required: ") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOAlert(a6)\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_summary\":{\"memory_map\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"os_compatibility\":{\"status\":\"observed\"") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
 }

@@ -1743,11 +1743,9 @@ static void populate_amiga_callback_field_note_symbol(PlatformResolvedIndirectIn
 
 static void populate_amiga_call_version_info(const AmigaOsLibraryVectorInfo *entry,
     PlatformResolvedIndirectInfo *out_info) {
-  const char *available_since_name;
   if (entry == NULL || out_info == NULL) return;
-  available_since_name = amiga_os_compatibility_version_name((AmigaOsCompatVersion)entry->available_since_version);
-  if (available_since_name != NULL && available_since_name[0] != '\0')
-    snprintf(out_info->available_since, sizeof(out_info->available_since), "%s", available_since_name);
+  if (entry->available_since_raw != NULL && entry->available_since_raw[0] != '\0')
+    snprintf(out_info->available_since, sizeof(out_info->available_since), "%s", entry->available_since_raw);
   if (entry->fd_version != NULL && entry->fd_version[0] != '\0') {
     snprintf(out_info->fd_version, sizeof(out_info->fd_version), "%s", entry->fd_version);
   }

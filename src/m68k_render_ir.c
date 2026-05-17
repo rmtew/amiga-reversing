@@ -18,6 +18,7 @@
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -213,6 +214,7 @@ static int compare_asm_source_include_paths(const void *left, const void *right)
 }
 
 static void recompute_asm_source_plan_metrics(M68kRenderIRPreview *preview, const M68kRenderPlan *plan);
+static int asm_source_plan_row_is_late_header(const M68kRenderPlanRow *row, size_t body_start_byte);
 
 static void copy_asm_source_plan_row_metadata(M68kRenderPlanRow *row, const M68kRenderPlanRow *source) {
   if (row == NULL || source == NULL) return;
@@ -347,7 +349,8 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   m68k_render_plan_init(&final_plan);
   for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
-    if (row->start_byte >= (size_t)preview->asm_source_body_start_byte ||
+    if ((row->start_byte >= (size_t)preview->asm_source_body_start_byte &&
+          !asm_source_plan_row_is_late_header(row, (size_t)preview->asm_source_body_start_byte)) ||
         row->kind != M68K_RENDER_PLAN_ROW_DIAGNOSTIC) {
       continue;
     }
@@ -396,6 +399,7 @@ static int assemble_asm_source_plan_regions(M68kRenderIRPreview *preview, int em
   }
   for (row_index = 0U; row_index < preview->asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview->asm_source_plan.rows[row_index];
+    if (asm_source_plan_row_is_late_header(row, (size_t)preview->asm_source_body_start_byte)) continue;
     if (row->start_byte < (size_t)preview->asm_source_body_start_byte) continue;
     if (!append_asm_source_plan_row_copy(&final_plan, scratch_arena, row)) {
       m68k_render_plan_destroy(&final_plan);
@@ -1113,7 +1117,7 @@ static void preview_record_platform_vector_call(M68kRenderIRPreview *preview,
     library_name = amiga_os_name(M68K_PLATFORM_NAME_LIBRARY, vector->library_id);
     note_base_name = amiga_os_find_library_base_name(library_name);
   }
-  available_since = amiga_os_compatibility_version_name((AmigaOsCompatVersion)vector->available_since_version);
+  available_since = vector->available_since_raw;
   if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis,
       M68K_PLATFORM_BACKEND_AMIGA_HUNK, offset, kind, symbol_name, note_kind,
       note_base_name, note_symbol_name, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
@@ -1389,6 +1393,175 @@ static void render_asm_memory_map_header(M68kRenderIRPreview *preview, const M68
     hash_asm_text(preview, "\n");
     ++preview->asm_source_lines;
   }
+}
+
+static int asm_source_plan_row_is_late_header(const M68kRenderPlanRow *row, size_t body_start_byte) {
+  return row != NULL && row->start_byte >= body_start_byte &&
+    row->region_id == M68K_RENDER_PLAN_NO_SECTION &&
+    row->kind == M68K_RENDER_PLAN_ROW_DIAGNOSTIC;
+}
+
+static int append_summary_text(char *buf, size_t buf_size, size_t *io_size, const char *format, ...) {
+  va_list args;
+  int written;
+  if (buf == NULL || io_size == NULL || *io_size >= buf_size) return -1;
+  va_start(args, format);
+  written = vsnprintf(buf + *io_size, buf_size - *io_size, format, args);
+  va_end(args);
+  if (written < 0 || (size_t)written >= buf_size - *io_size) return -1;
+  *io_size += (size_t)written;
+  return 0;
+}
+
+static int version_seen(const char versions[][16], size_t count, const char *version) {
+  size_t index;
+  if (version == NULL || version[0] == '\0') return 1;
+  for (index = 0U; index < count; ++index) {
+    if (strcmp(versions[index], version) == 0) return 1;
+  }
+  return 0;
+}
+
+static int append_version(char versions[][16], uint16_t ranks[], size_t *io_count, const char *version) {
+  uint16_t rank;
+  size_t index;
+  if (versions == NULL || ranks == NULL || io_count == NULL || *io_count >= 16U ||
+      version == NULL || version[0] == '\0' || version_seen(versions, *io_count, version) ||
+      !amiga_os_compatibility_version_rank(version, &rank)) {
+    return 0;
+  }
+  index = *io_count;
+  while (index > 0U && ranks[index - 1U] > rank) {
+    ranks[index] = ranks[index - 1U];
+    snprintf(versions[index], sizeof(versions[index]), "%s", versions[index - 1U]);
+    --index;
+  }
+  ranks[index] = rank;
+  snprintf(versions[index], sizeof(versions[index]), "%s", version);
+  ++*io_count;
+  return 0;
+}
+
+static const char *platform_call_display_name(const M68kRecoveredPlatformCallIR *call) {
+  const char *name;
+  if (call == NULL) return "unknown";
+  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  if (name != NULL && name[0] != '\0') return name;
+  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  if (name != NULL && name[0] != '\0') return name;
+  return "unknown";
+}
+
+static const char *platform_call_owner_name(const M68kRecoveredPlatformCallIR *call) {
+  const char *name;
+  if (call == NULL) return NULL;
+  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+  return name != NULL && name[0] != '\0' ? name : NULL;
+}
+
+static int render_asm_os_compatibility_summary_row(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind) {
+  char text[4096];
+  char versions[16][16];
+  uint16_t version_ranks[16];
+  char fd_versions[16][16];
+  uint16_t fd_ranks[16];
+  char drivers[8][192];
+  size_t text_size = 0U;
+  size_t version_count = 0U;
+  size_t fd_version_count = 0U;
+  size_t driver_count = 0U;
+  uint16_t max_rank = 0U;
+  size_t section_index;
+  size_t call_count = 0U;
+  if (preview == NULL || source_analysis == NULL ||
+      platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  memset(versions, 0, sizeof(versions));
+  memset(version_ranks, 0, sizeof(version_ranks));
+  memset(fd_versions, 0, sizeof(fd_versions));
+  memset(fd_ranks, 0, sizeof(fd_ranks));
+  memset(drivers, 0, sizeof(drivers));
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t call_index;
+    for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
+      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
+      uint16_t rank = 0U;
+      if (call->symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+          call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+        continue;
+      }
+      ++call_count;
+      append_version(versions, version_ranks, &version_count, call->available_since);
+      append_version(fd_versions, fd_ranks, &fd_version_count, call->fd_version);
+      if (amiga_os_compatibility_version_rank(call->available_since, &rank) && rank >= max_rank) {
+        const char *owner = platform_call_owner_name(call);
+        char section_name[32];
+        snprintf(section_name, sizeof(section_name), "section_%u", (unsigned)section->section_index);
+        if (rank > max_rank) {
+          max_rank = rank;
+          driver_count = 0U;
+        }
+        if (driver_count < 8U) {
+          if (owner != NULL) {
+            snprintf(drivers[driver_count], sizeof(drivers[driver_count]),
+              "%s/%s at %s+$%08X requires %s%s%s",
+              owner, platform_call_display_name(call), section_name, (unsigned)call->offset,
+              call->available_since,
+              call->fd_version != NULL && call->fd_version[0] != '\0' ? ", fd v" : "",
+              call->fd_version != NULL && call->fd_version[0] != '\0' ? call->fd_version : "");
+          } else {
+            snprintf(drivers[driver_count], sizeof(drivers[driver_count]),
+              "%s at %s+$%08X requires %s%s%s",
+              platform_call_display_name(call), section_name, (unsigned)call->offset,
+              call->available_since,
+              call->fd_version != NULL && call->fd_version[0] != '\0' ? ", fd v" : "",
+              call->fd_version != NULL && call->fd_version[0] != '\0' ? call->fd_version : "");
+          }
+          ++driver_count;
+        }
+      }
+    }
+  }
+  if (append_summary_text(text, sizeof(text), &text_size, "; OS compatibility\n") != 0) return -1;
+  if (call_count == 0U) {
+    if (append_summary_text(text, sizeof(text), &text_size, ";   status: no_os_calls\n\n") != 0) return -1;
+  } else if (version_count == 0U) {
+    if (append_summary_text(text, sizeof(text), &text_size, ";   status: unknown\n\n") != 0) return -1;
+  } else {
+    size_t index;
+    if (append_summary_text(text, sizeof(text), &text_size, ";   minimum required: %s\n",
+        versions[version_count - 1U]) != 0) return -1;
+    if (append_summary_text(text, sizeof(text), &text_size, ";   observed API availability: ") != 0) return -1;
+    for (index = 0U; index < version_count; ++index) {
+      if (append_summary_text(text, sizeof(text), &text_size, "%s%s", index == 0U ? "" : ", ",
+          versions[index]) != 0) return -1;
+    }
+    if (append_summary_text(text, sizeof(text), &text_size, "\n;   observed FD/interface versions: ") != 0)
+      return -1;
+    if (fd_version_count == 0U) {
+      if (append_summary_text(text, sizeof(text), &text_size, "none") != 0) return -1;
+    } else {
+      for (index = 0U; index < fd_version_count; ++index) {
+        if (append_summary_text(text, sizeof(text), &text_size, "%sv%s", index == 0U ? "" : ", ",
+            fd_versions[index]) != 0) return -1;
+      }
+    }
+    if (append_summary_text(text, sizeof(text), &text_size, "\n;   max requirement drivers:\n") != 0) return -1;
+    for (index = 0U; index < driver_count; ++index) {
+      if (append_summary_text(text, sizeof(text), &text_size, ";     %s\n", drivers[index]) != 0) return -1;
+    }
+    if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
+  }
+  if (m68k_render_plan_append_text_row(&preview->asm_source_plan, M68K_RENDER_PLAN_ROW_DIAGNOSTIC,
+      M68K_RENDER_PLAN_NO_SECTION, text, NULL) != 0) {
+    return -1;
+  }
+  if (text_size > (size_t)UINT32_MAX - (size_t)preview->asm_source_bytes) return -1;
+  preview->asm_source_bytes += (uint32_t)text_size;
+  return 0;
 }
 
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address) {
@@ -9828,6 +10001,12 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   phase_end = clock();
   out_preview->walk_seconds = elapsed_seconds_local(phase_start, phase_end);
   if (out_preview->asm_source_allocation_failed) goto cleanup;
+  if (render_asm_source && collect_asm_source_text &&
+      render_asm_os_compatibility_summary_row(out_preview, out_source_analysis,
+        object->platform_backend_kind) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
   phase_start = clock();
   if (render_asm_source && collect_asm_source_text &&
       !assemble_asm_source_plan_regions(out_preview, emit_asm_source_text)) {
