@@ -19,9 +19,9 @@ Do not reuse numbers after deleting stale PRDs. Number gaps are useful history.
 
 ## Number Allocation
 
-Last allocated PRD number: `029`.
+Last allocated PRD number: `030`.
 
-The next PRD should normally use `030`, unless a newer PRD already exists.
+The next PRD should normally use `031`, unless a newer PRD already exists.
 
 When creating a new PRD, update this section in the same change. Issue parent
 numbers follow PRD numbers, so this is also the source of truth for allocated
@@ -37,6 +37,10 @@ spec.
 `029` is allocated to `docs/issues/029-*` for Proposal 008 tool runtime
 capability graph work. There is intentionally no matching PRD file; Proposal
 008 is the durable spec.
+
+`030` is allocated to `docs/issues/030-*` for Proposal 004 Amiga platform
+knowledge work. There is intentionally no matching PRD file; Proposal 004 is
+the durable spec.
 
 ## Lifecycle
 

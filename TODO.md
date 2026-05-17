@@ -110,13 +110,11 @@ Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 
 Proposal: `docs/proposals/004-amiga-platform-knowledge.md`.
 
-- [ ] Refine OS version tagging (570 "1.3" functions -> 1.0/1.1/1.2/1.3)
-- [ ] Complete hardware register bit definitions (104/245 done)
-- [ ] Extend NDK-derived hardware symbol coverage beyond `hardware/custom.i` and `hardware/cia.i` if targets use additional include-backed hardware families, so rendering stays source-accurate without falling back to generic absolute symbols
-- [ ] Review entries in `knowledge/amiga_ndk_corrections.json` and promote `review_status` from `seeded` to `validated` only when a human has explicitly checked the cited source
-- [ ] Add a seed-generation/review flow for corrections so autodoc-derived candidates can be proposed without being silently treated as validated KB
-- [ ] Verify HUNK_OVERLAY format against ADCD primary source
-- [ ] Add primary-source sample/fixture coverage for `HUNK_OVERLAY`; `vasm` hunk output has no overlay support, so this needs a different oracle or a vetted real sample
+- [ ] Add the platform KB coverage report/check from `docs/issues/030-001-add-platform-kb-coverage-report.md`.
+- [ ] Add the NDK corrections review flow from `docs/issues/030-002-add-amiga-ndk-corrections-review-flow.md`.
+- [ ] Move HUNK reproduction comparison onto generated platform runtime metadata via `docs/issues/030-003-generate-hunk-comparison-from-platform-runtime-metadata.md`.
+- [ ] Resolve `HUNK_OVERLAY` as supported-with-fixture or explicit unsupported inventory via `docs/issues/030-004-resolve-hunk-overlay-support-state.md`.
+- [ ] Add target-driven platform gap reporting via `docs/issues/030-005-add-target-driven-platform-gap-report.md`.
 
 ## Future Work
 
