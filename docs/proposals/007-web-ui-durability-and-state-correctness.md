@@ -1,5 +1,12 @@
 # Proposal 007: Web UI Durability And State Correctness
 
+Status: Closed for Proposal 007 follow-up implementation.
+Status changed: 2026-05-17.
+
+The web UI durability and state-correctness work is complete. Remaining
+observations are explicit future-work inventory, not open `028-*` follow-up
+work.
+
 ## Checkpoint Index
 
 - [ ] Why This Exists
