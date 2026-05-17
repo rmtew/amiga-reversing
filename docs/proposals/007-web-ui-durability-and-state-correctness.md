@@ -1837,6 +1837,16 @@ authoritative Manual Action Log mutation results. `028-005` prevents stale
 target-local UI/manual state from surviving reset/reimport boundaries; it does
 not delete the old mutation path.
 
+Implementation note from `028-006`: `target_ui_edits.py` and `/target-edits`
+were removed. Effective metadata no longer reads `target_ui_edits.json`, and
+reproduction profile state is written as target metadata `reproduction` options
+instead of a target UI edit. Command execution responses now include a shared
+`mutation` payload with durable action id, Manual Action Log count/head hash,
+projection/effective metadata hashes, and affected locators. The browser keeps
+only presentation effects for immediate visible feedback, then refreshes the
+authoritative listing window. Source and route tests assert the old target-edit
+route and durable local effect path are gone.
+
 Reimport cleanup should delete:
 
 ```text

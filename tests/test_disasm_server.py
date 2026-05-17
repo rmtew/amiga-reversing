@@ -1661,6 +1661,7 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     comment = cast(dict[str, object], cast(dict[str, object], action["payload"])["comment"])
     application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+    mutation = cast(dict[str, object], cast(dict[str, object], payload["data"])["mutation"])
 
     assert action["kind"] == "create_manual_comment"
     assert comment["text"] == "manual return"
@@ -1668,6 +1669,11 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     assert comment["row_index"] == 0
     assert application["status"] == "applied"
     assert local_effect["kind"] == "comment"
+    assert application["refresh"] == {"mode": "project"}
+    assert mutation["durable_action_id"] == ""
+    assert mutation["manual_action_log_count"] == 0
+    assert mutation["projection_hash"] == "cache"
+    assert cast(list[dict[str, object]], mutation["affected_locators"])[0]["row_key"] == "row-0"
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
@@ -2111,7 +2117,7 @@ def test_route_manual_action_catalog_execute_appends_label_rename_override(
     assert label["hunk"] == 0
     assert label["addr"] == 0
     assert application["status"] == "applied"
-    assert cast(dict[str, object], application["refresh"])["mode"] == "none"
+    assert cast(dict[str, object], application["refresh"])["mode"] == "project"
     assert local_effect["kind"] == "label_rename"
     assert local_effect["row_index"] == 0
     assert local_effect["name"] == "start"
@@ -2954,8 +2960,8 @@ def test_route_reproduction_profile_list_show_set_without_manual_log(
     profiles = cast(list[dict[str, object]], cast(dict[str, object], profiles_payload["data"])["profiles"])
     set_data = cast(dict[str, object], set_payload["data"])
     show_data = cast(dict[str, object], show_payload["data"])
-    edit = cast(dict[str, object], set_data["edit"])
-    options = cast(dict[str, object], edit["options"])
+    options = cast(dict[str, object], set_data["options"])
+    mutation = cast(dict[str, object], set_data["mutation"])
     reproduction_payload = cast(dict[str, object], set_data["reproduction"])
     policy_summary = cast(dict[str, object], reproduction_payload["policy_summary"])
 
@@ -2965,14 +2971,17 @@ def test_route_reproduction_profile_list_show_set_without_manual_log(
         "source-devpac",
         "content-semantic",
     ]
-    assert edit["kind"] == "reproduction_options"
     assert options["profile_id"] == "source-vasm"
     assert options["assembler"] == "our"
     assert options["oracle_modes"] == ["vasm"]
+    assert mutation["durable_action_id"] == "target_metadata.reproduction"
+    assert mutation["manual_action_log_count"] == 0
     assert policy_summary["profile_id"] == "source-vasm"
     assert show_data["profile_id"] == "source-vasm"
     assert updated == [target_dir]
     assert "old-repro" not in disasm_server._ASYNC_JOBS
+    assert json.loads((target_dir / "target_metadata.json").read_text(encoding="utf-8"))["reproduction"]["profile_id"] == "source-vasm"
+    assert not (target_dir / "target_ui_edits.json").exists()
     assert not (target_dir / "manual_actions.jsonl").exists()
     disasm_server._ASYNC_JOBS.clear()
 
@@ -5932,12 +5941,11 @@ def test_reproduction_job_fails_closed_when_artifact_source_unavailable(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-def test_metadata_edit_route_invalidates_listing_and_reproduction(
+def test_target_edits_route_is_removed(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
-    canceled: list[str] = []
     disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
         "bloodwych",
         _RowsCListingArtifact([]),
@@ -5953,21 +5961,15 @@ def test_metadata_edit_route_invalidates_listing_and_reproduction(
         "resolve_project_paths",
         lambda project_name, project_root: SimpleNamespace(target_dir=target_dir),
     )
-    monkeypatch.setattr(disasm_server, "append_target_ui_edit", lambda target_dir, body: {"kind": body["kind"], "addr": body["addr"]})
-    monkeypatch.setattr(disasm_server, "_cancel_listing_jobs", lambda project_name: canceled.append(f"listing:{project_name}"))
-    monkeypatch.setattr(disasm_server, "_cancel_reproduction_jobs", lambda project_name: canceled.append(f"repro:{project_name}"))
-    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
 
-    payload = disasm_server.route_request(
-        "POST",
-        "/api/projects/bloodwych/target-edits",
-        {},
-        {"kind": "entrypoint", "addr": 0x20},
-    )
-
-    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["edit"])["kind"] == "entrypoint"
-    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is None
-    assert canceled == ["listing:bloodwych", "repro:bloodwych"]
+    with pytest.raises(FileNotFoundError, match="Unknown route"):
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/target-edits",
+            {},
+            {"kind": "entrypoint", "addr": 0x20},
+        )
+    assert disasm_server._LISTING_PROJECTION_SERVICE.artifact_for_test("bloodwych") is not None
 
 
 def test_manual_action_route_appends_action_and_invalidates_analysis(

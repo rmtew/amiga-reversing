@@ -60,11 +60,6 @@ from amiga_reversing.disasm.target_metadata import (
     TARGET_METADATA_FILE_NAME,
     TARGET_SEEDED_METADATA_FILE_NAME,
 )
-from amiga_reversing.disasm.target_ui_edits import (
-    REPRODUCTION_TARGET_UI_EDIT_KINDS,
-    TARGET_UI_EDITS_FILE_NAME,
-    target_ui_edit_kind_from_json,
-)
 from amiga_reversing.disasm.tool_registry import (
     oracle_tool_ids_for_modes,
     tool_availability_records,
@@ -233,6 +228,39 @@ def validated_reproduction_options_payload(payload: Mapping[str, object]) -> dic
     _merge_reproduction_options(options, dict(payload))
     reproduction_policy_for_options(options)
     return _json_ready_reproduction_options(options)
+
+
+def write_target_reproduction_options(
+    target_dir: Path,
+    options: Mapping[str, object],
+) -> dict[str, object]:
+    path = target_dir / TARGET_METADATA_FILE_NAME
+    payload = _read_json_object(path)
+    if not payload:
+        payload = _empty_target_metadata_payload()
+    payload["reproduction"] = dict(options)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return dict(options)
+
+
+def _empty_target_metadata_payload() -> dict[str, object]:
+    return {
+        "target_type": "program",
+        "entry_register_seeds": [],
+        "bootblock": None,
+        "resident": None,
+        "library": None,
+        "custom_structs": [],
+        "rsset_layout_regions": [],
+        "seeded_entities": [],
+        "seeded_code_labels": [],
+        "seeded_code_entrypoints": [],
+        "absolute_code_labels": [],
+        "entry_comments": [],
+        "manual_representations": [],
+        "execution_views": [],
+        "suppressed_seeded_items": [],
+    }
 
 
 def rebuilt_target_dir(target_name: str, *, project_root: Path = PROJECT_ROOT) -> Path:
@@ -1980,17 +2008,6 @@ def _reproduction_option_payloads(target_dir: Path) -> list[dict[str, object]]:
         reproduction_payload = metadata_payload.get("reproduction")
         if isinstance(reproduction_payload, dict):
             payloads.append(cast(dict[str, object], reproduction_payload))
-    edits_payload = _read_json_list(target_dir / TARGET_UI_EDITS_FILE_NAME)
-    for edit in edits_payload:
-        if not isinstance(edit, dict):
-            continue
-        if target_ui_edit_kind_from_json(edit.get("kind")) not in REPRODUCTION_TARGET_UI_EDIT_KINDS:
-            continue
-        options_payload = edit.get("options")
-        if not isinstance(options_payload, dict):
-            options_payload = edit.get("reproduction")
-        if isinstance(options_payload, dict):
-            payloads.append(cast(dict[str, object], options_payload))
     return payloads
 
 
@@ -2252,16 +2269,6 @@ def _read_json_object(path: Path) -> dict[str, object]:
     except (OSError, json.JSONDecodeError):
         return {}
     return cast(dict[str, object], payload) if isinstance(payload, dict) else {}
-
-
-def _read_json_list(path: Path) -> list[object]:
-    if not path.exists():
-        return []
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    return payload if isinstance(payload, list) else []
 
 
 def _dict_list(value: object) -> list[dict[str, object]]:

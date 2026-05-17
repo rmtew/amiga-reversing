@@ -33,11 +33,6 @@ from amiga_reversing.disasm.reproduction_report import (
     ReproductionReportStatus,
     RoundTripReportBuilder,
 )
-from amiga_reversing.disasm.target_ui_edits import (
-    TargetUiEditKind,
-    append_target_ui_edit,
-    load_target_ui_edits,
-)
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
 
@@ -1408,7 +1403,17 @@ def test_reproduction_stamp_changes_when_binary_or_metadata_changes(tmp_path: Pa
     initial = reproduction_input_stamp("demo", project_root=tmp_path)
     binary_path.write_bytes(b"\x01\x03")
     binary_changed = reproduction_input_stamp("demo", project_root=tmp_path)
-    append_target_ui_edit(target_dir, {"kind": "entrypoint", "addr": 0, "name": "start"})
+    metadata = _empty_metadata()
+    metadata["seeded_code_entrypoints"] = [
+        {
+            "addr": 0,
+            "name": "start",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "test",
+        }
+    ]
+    (target_dir / "target_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
     metadata_changed = reproduction_input_stamp("demo", project_root=tmp_path)
 
     assert initial["original_sha256"] != binary_changed["original_sha256"]
@@ -1441,18 +1446,6 @@ def test_reproduction_stamp_changes_when_c_backend_tool_changes(tmp_path: Path) 
     changed = reproduction_input_stamp("demo", project_root=tmp_path)
 
     assert initial["source_renderer_tool_stamps"] != changed["source_renderer_tool_stamps"]
-
-
-def test_target_ui_edit_kind_is_parsed_at_boundary(tmp_path: Path) -> None:
-    target_dir = tmp_path / "targets" / "demo"
-    target_dir.mkdir(parents=True)
-
-    edit = append_target_ui_edit(target_dir, {"kind": "entrypoint", "addr": 0, "name": "start"})
-    loaded = load_target_ui_edits(target_dir)
-
-    assert edit["kind"] is TargetUiEditKind.ENTRYPOINT
-    assert loaded[0]["kind"] is TargetUiEditKind.ENTRYPOINT
-    assert json.loads((target_dir / "target_ui_edits.json").read_text(encoding="utf-8"))[0]["kind"] == "entrypoint"
 
 
 def test_reproduction_options_read_file_shape_policy(tmp_path: Path) -> None:
@@ -1498,7 +1491,7 @@ def test_builtin_reproduction_profiles_expand_to_concrete_options() -> None:
     assert semantic_policy["requested_exactness"] == "content"
 
 
-def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> None:
+def test_reproduction_options_merge_metadata_and_corrections(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
     manual = _empty_metadata()
@@ -1515,30 +1508,18 @@ def test_reproduction_options_merge_corrections_and_ui_edits(tmp_path: Path) -> 
     }
     corrections = _empty_metadata()
     corrections["reproduction"] = {
+        "mode": "content",
+        "cpu": "68060",
+        "container_policy": "preserve_original",
+        "relocation_policy": "preserve_original_encoding",
         "file_shape": {
             "relocation_order": "match_original",
             "relocation_record": "short",
+            "section_aux_order": "match_original",
         }
     }
     (target_dir / "target_metadata.json").write_text(json.dumps(manual), encoding="utf-8")
     (target_dir / "target_corrections.json").write_text(json.dumps(corrections), encoding="utf-8")
-    (target_dir / "target_ui_edits.json").write_text(
-        json.dumps(
-            [
-                {
-                    "kind": "reproduction_options",
-                    "options": {
-                        "mode": "content",
-                        "cpu": "68060",
-                        "container_policy": "preserve_original",
-                        "relocation_policy": "preserve_original_encoding",
-                        "file_shape": {"section_aux_order": "match_original"},
-                    },
-                }
-            ]
-        ),
-        encoding="utf-8",
-    )
 
     options = reproduction_options_for_target(target_dir)
 
@@ -1595,13 +1576,9 @@ def test_reproduction_input_stamp_includes_profile_concrete_policy(tmp_path: Pat
             "code_start_offset": 0,
         },
     )
-    append_target_ui_edit(
+    reproduction.write_target_reproduction_options(
         target_dir,
-        {
-            "kind": "reproduction_options",
-            "profile_id": "source-devpac",
-            "options": reproduction.expand_reproduction_profile("source-devpac"),
-        },
+        reproduction.expand_reproduction_profile("source-devpac"),
     )
 
     stamp = reproduction_input_stamp("demo", project_root=tmp_path)
@@ -1688,7 +1665,7 @@ def test_reproduction_options_reject_file_shape_alias_spellings(tmp_path: Path) 
         reproduction_options_for_target(target_dir)
 
 
-def test_effective_metadata_merge_includes_seeded_corrections_and_ui_edits(tmp_path: Path) -> None:
+def test_effective_metadata_merge_includes_seeded_and_corrections_without_ui_edits(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     manual = _empty_metadata()
@@ -1719,13 +1696,23 @@ def test_effective_metadata_merge_includes_seeded_corrections_and_ui_edits(tmp_p
             "citation": "fix",
         }
     ]
+    corrections["seeded_code_entrypoints"] = [
+        {
+            "addr": 0x40,
+            "hunk": 0,
+            "name": "corrected_entry",
+            "seed_origin": "manual_analysis",
+            "review_status": "seeded",
+            "citation": "fix",
+        }
+    ]
     (target_dir / "target_metadata.json").write_text(json.dumps(manual), encoding="utf-8")
     (target_dir / "target_seeded_metadata.json").write_text(json.dumps(seeded), encoding="utf-8")
     (target_dir / "target_corrections.json").write_text(json.dumps(corrections), encoding="utf-8")
-    append_target_ui_edit(target_dir, {"kind": "entrypoint", "addr": 0x40, "name": "ui_entry"})
 
     text = effective_metadata_text(target_dir)
 
     assert "pointer_table" in text
     assert "corrected_label" in text
-    assert "ui_entry" in text
+    assert "corrected_entry" in text
+    assert not (target_dir / "target_ui_edits.json").exists()

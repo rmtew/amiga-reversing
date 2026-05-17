@@ -35,15 +35,10 @@ from amiga_reversing.disasm.target_metadata import (
     TargetMetadataSeedOrigin,
     load_target_metadata,
 )
-from amiga_reversing.disasm.target_ui_edits import (
-    apply_target_ui_edits,
-    load_target_ui_edits,
-    target_ui_edits_stamp_text,
-)
 
 
 def effective_target_metadata(target_dir: Path) -> TargetMetadata | None:
-    metadata = apply_target_ui_edits(load_target_metadata(target_dir), load_target_ui_edits(target_dir))
+    metadata = load_target_metadata(target_dir)
     return _apply_manual_seed_projection(target_dir, metadata)
 
 
@@ -433,10 +428,6 @@ def _add_source_descriptor_execution_view(target_dir: Path, payload: dict[str, o
 def effective_metadata_hash(target_dir: Path) -> str:
     hasher = hashlib.sha256()
     hasher.update(effective_metadata_text(target_dir).encode("utf-8"))
-    edits_text = target_ui_edits_stamp_text(target_dir)
-    if edits_text:
-        hasher.update(b"\n--target-ui-edits--\n")
-        hasher.update(edits_text.encode("utf-8"))
     return hasher.hexdigest()
 
 

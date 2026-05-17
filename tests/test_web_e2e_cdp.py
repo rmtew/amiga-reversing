@@ -1142,7 +1142,8 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
     rows = [ListingRow(row_id="r0", kind="instruction", text="rts\n", addr=0)]
 
     def load_report(project_name: str, project_root=None) -> dict[str, object]:
-        stale = (target_dir / "target_ui_edits.json").exists()
+        metadata_path = target_dir / "target_metadata.json"
+        stale = metadata_path.exists() and "source-devpac" in metadata_path.read_text(encoding="utf-8")
         return {
             "target": project_name,
             "status": "exact",
@@ -1222,9 +1223,9 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
         page.wait_for_expression("document.querySelector('#project-details')?.textContent.includes('Needs repro')")
         page.assert_no_errors()
 
-    edits = json.loads((target_dir / "target_ui_edits.json").read_text(encoding="utf-8"))
-    assert edits[0]["kind"] == "reproduction_options"
-    assert edits[0]["options"]["profile_id"] == "source-devpac"
+    metadata = json.loads((target_dir / "target_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["reproduction"]["profile_id"] == "source-devpac"
+    assert not (target_dir / "target_ui_edits.json").exists()
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 

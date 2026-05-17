@@ -58,6 +58,7 @@ from amiga_reversing.disasm.manual_actions import (
     ReviewState,
     append_manual_action,
     manual_action_kind,
+    manual_action_log_path,
     review_item_is_open,
     validate_manual_action_payload,
 )
@@ -89,9 +90,9 @@ from amiga_reversing.disasm.reproduction import (
     run_reproduction,
     source_renderer_tool_stamps,
     validated_reproduction_options_payload,
+    write_target_reproduction_options,
 )
 from amiga_reversing.disasm.source_export import source_export_payload
-from amiga_reversing.disasm.target_ui_edits import append_target_ui_edit
 from amiga_reversing.disasm.tool_registry import (
     load_tool_registry,
     oracle_tool_ids_for_modes,
@@ -722,18 +723,16 @@ def _append_reproduction_policy_edit(
     profile_id: str | None,
 ) -> dict[str, object]:
     paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-    edit: dict[str, object] = {
-        "kind": "reproduction_options",
-        "options": dict(options),
-        "citation": "reproduction-profile",
-    }
-    if profile_id:
-        edit["profile_id"] = profile_id
-    written = append_target_ui_edit(paths.target_dir, edit)
+    written = write_target_reproduction_options(paths.target_dir, options)
     _cancel_reproduction_jobs(project_name)
     mark_project_updated(paths.target_dir)
     return {
-        "edit": written,
+        "options": written,
+        "mutation": _metadata_mutation_payload(
+            paths.target_dir,
+            durable_action_id="target_metadata.reproduction",
+            affected_locators=[],
+        ),
         "profile": builtin_reproduction_profile(profile_id) if profile_id else None,
         "active": _safe_reproduction_policy_summary(project_name),
         "reproduction": _current_reproduction_payload(project_name, auto_start=False),
@@ -2098,11 +2097,72 @@ def _execute_manual_action_command(
     else:
         _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
     mark_project_updated(paths.target_dir)
+    affected_locators = _affected_command_locators(context)
     return {
         "action": appended_actions[0],
         "actions": appended_actions,
         "application": _merge_manual_action_applications(application_parts),
+        "mutation": _metadata_mutation_payload(
+            paths.target_dir,
+            durable_action_id=str(appended_actions[-1].get("action_id") or ""),
+            affected_locators=affected_locators,
+            projection_hash=_command_projection_hash(context),
+        ),
     }
+
+
+def _affected_command_locators(context: Mapping[str, object]) -> list[dict[str, object]]:
+    if context.get("kind") in {"row", "element"}:
+        locator = context.get("locator")
+        return [dict(locator)] if isinstance(locator, Mapping) else []
+    if context.get("kind") == "range":
+        locators = context.get("locators")
+        if isinstance(locators, list):
+            return [dict(locator) for locator in locators if isinstance(locator, Mapping)]
+    return []
+
+
+def _command_projection_hash(context: Mapping[str, object]) -> str | None:
+    projection_hash = context.get("projection_hash")
+    return projection_hash if isinstance(projection_hash, str) and projection_hash else None
+
+
+def _metadata_mutation_payload(
+    target_dir: Path,
+    *,
+    durable_action_id: str,
+    affected_locators: list[dict[str, object]],
+    projection_hash: str | None = None,
+) -> dict[str, object]:
+    log_state = _manual_action_log_state(target_dir)
+    payload: dict[str, object] = {
+        "durable_action_id": durable_action_id,
+        "manual_action_log_count": log_state["count"],
+        "manual_action_log_head_hash": log_state["head_hash"],
+        "effective_metadata_hash": effective_metadata_hash(target_dir),
+        "affected_locators": affected_locators,
+    }
+    if projection_hash:
+        payload["projection_hash"] = projection_hash
+    return payload
+
+
+def _manual_action_log_state(target_dir: Path) -> dict[str, object]:
+    path = manual_action_log_path(target_dir)
+    if not path.exists():
+        return {"count": 0, "head_hash": None}
+    text = path.read_text(encoding="utf-8")
+    count = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(record, dict) and record.get("record") == "manual_action":
+            count += 1
+    return {"count": count, "head_hash": hashlib.sha256(text.encode("utf-8")).hexdigest()}
 
 
 def _source_entrypoint_payload(project_name: str) -> dict[str, object] | None:
@@ -2257,7 +2317,7 @@ def _manual_action_application_refresh_mode(
     if pending_ranges:
         return "analysis"
     if local_effects:
-        return "none"
+        return "project"
     return "project"
 
 
@@ -2279,10 +2339,10 @@ def _merge_manual_action_applications(parts: list[dict[str, object]]) -> dict[st
                 refresh_modes.append(mode)
     if "analysis" in refresh_modes or pending_ranges:
         refresh_mode = "analysis"
-    elif "project" in refresh_modes or not local_effects:
+    elif "project" in refresh_modes or local_effects:
         refresh_mode = "project"
     else:
-        refresh_mode = "none"
+        refresh_mode = "project"
     return {
         "status": "pending" if pending_ranges else "applied",
         "local_effects": local_effects,
@@ -2926,19 +2986,6 @@ def route_request(
             if not job_id:
                 raise ValueError("Missing job_id")
             return {"ok": True, "data": _job_payload(job_id)}
-        if method == "POST" and len(parts) == 4 and parts[3] == "target-edits":
-            project = get_project(project_name)
-            if project.kind is not ProjectKind.BINARY or not project.ready:
-                raise ValueError(
-                    f"Project {project_name} is not ready for target metadata edits"
-                )
-            paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-            edit = append_target_ui_edit(paths.target_dir, cast(dict[str, object], body or {}))
-            _cancel_listing_jobs(project_name)
-            _cancel_reproduction_jobs(project_name)
-            _clear_project_listing_cache(project_name)
-            mark_project_updated(paths.target_dir)
-            return {"ok": True, "data": {"edit": edit}}
         if method == "POST" and len(parts) == 4 and parts[3] == "manual-actions":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY or not project.ready:
@@ -2972,7 +3019,17 @@ def route_request(
             else:
                 _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
             mark_project_updated(paths.target_dir)
-            return {"ok": True, "data": {"action": action}}
+            return {
+                "ok": True,
+                "data": {
+                    "action": action,
+                    "mutation": _metadata_mutation_payload(
+                        paths.target_dir,
+                        durable_action_id=str(action.get("action_id") or ""),
+                        affected_locators=[],
+                    ),
+                },
+            }
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
             if project.kind is not ProjectKind.BINARY:

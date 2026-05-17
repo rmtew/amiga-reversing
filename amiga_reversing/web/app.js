@@ -2071,13 +2071,13 @@ async function submitCommandPaletteCatalogAction(action, parameters) {
         body: JSON.stringify(body),
       });
       const application = applyManualActionApplication(result?.application);
+      closeSubmittedParameterSurface();
       if (application.refreshMode === "analysis" || application.reconciliationRequired) {
         await refreshAnalysisAfterManualMetadataAction(state.project, {});
       } else if (application.refreshMode === "project") {
         await refreshProjectPayload(state.project);
-        renderCurrentListingWindow();
+        await refreshCurrentListingWindow();
       } else {
-        closeSubmittedParameterSurface();
         renderCurrentListingWindow();
       }
       if (!flashManualActionApplication(application)) {
@@ -2108,14 +2108,14 @@ function applyManualActionApplication(application) {
   const refreshMode = manualActionRefreshMode(application);
   const localEffects = Array.isArray(application?.local_effects) ? application.local_effects : [];
   const pendingRanges = Array.isArray(application?.pending_ranges) ? application.pending_ranges : [];
-  let appliedLocalEffect = false;
+  let appliedPresentationEffect = false;
   localEffects.forEach((effect) => {
-    if (applyManualLocalEffect(effect)) {
-      appliedLocalEffect = true;
+    if (applyManualPresentationEffect(effect)) {
+      appliedPresentationEffect = true;
     }
   });
   state.manualEdit.pendingRanges = pendingRanges;
-  if (appliedLocalEffect || pendingRanges.length) {
+  if (appliedPresentationEffect || pendingRanges.length) {
     renderCurrentListingWindow();
   }
   return {
@@ -2215,214 +2215,6 @@ function manualActionRefreshMode(application) {
   throw new Error(`Server returned incompatible manual action refresh mode: ${mode || "missing"}`);
 }
 
-function applyManualLocalEffect(effect) {
-  if (!effect || typeof effect !== "object") {
-    return false;
-  }
-  if (effect.kind === "label_rename") {
-    return applyManualLabelRenameEffect(effect);
-  }
-  if (effect.kind === "representation") {
-    return applyManualRepresentationEffect(effect);
-  }
-  if (effect.kind === "comment") {
-    return applyManualCommentEffect(effect);
-  }
-  if (effect.kind === "review_note_add") {
-    return applyManualReviewNoteAddEffect(effect);
-  }
-  if (effect.kind === "review_note_edit") {
-    return applyManualReviewNoteEditEffect(effect);
-  }
-  if (effect.kind === "review_note_clear") {
-    return applyManualReviewNoteClearEffect(effect);
-  }
-  return false;
-}
-
-function applyManualLabelRenameEffect(effect) {
-  const name = String(effect.name || "").trim();
-  if (!name) {
-    return false;
-  }
-  const rowIndex = Number(effect.row_index);
-  const stableKey = String(effect.stable_key || "");
-  const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
-  const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
-  const existingIndex = localIndex >= 0 && localIndex < rows.length
-    ? localIndex
-    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
-  if (existingIndex < 0) {
-    return false;
-  }
-  rows[existingIndex] = {
-    ...rows[existingIndex],
-    kind: rows[existingIndex].kind || "label",
-    label: name,
-    text: `${name}:\n`,
-    manual_label_id: effect.label_id || rows[existingIndex].manual_label_id || null,
-    manual_label_address_domain: effect.address_domain || rows[existingIndex].manual_label_address_domain || null,
-  };
-  state.listingRows = rows;
-  return true;
-}
-
-function applyManualRepresentationEffect(effect) {
-  const representation = effect.representation;
-  if (!representation || typeof representation !== "object") {
-    return false;
-  }
-  const project = state.projectData?.project;
-  if (!project) {
-    return false;
-  }
-  if (!project.manual_state || typeof project.manual_state !== "object") {
-    project.manual_state = {};
-  }
-  const existing = Array.isArray(project.manual_state.representations)
-    ? project.manual_state.representations
-    : [];
-  project.manual_state.representations = [
-    ...existing.filter((item) => item.representation_id !== representation.representation_id),
-    representation,
-  ];
-  return true;
-}
-
-function applyManualCommentEffect(effect) {
-  const comment = effect.comment;
-  if (!comment || typeof comment !== "object") {
-    return false;
-  }
-  const text = String(comment.text || "").trim();
-  if (!text) {
-    return false;
-  }
-  const rowIndex = Number(comment.row_index);
-  const stableKey = String(comment.stable_key || "");
-  const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
-  const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
-  const existingIndex = localIndex >= 0 && localIndex < rows.length
-    ? localIndex
-    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
-  if (existingIndex < 0) {
-    return false;
-  }
-  rows[existingIndex] = {
-    ...rows[existingIndex],
-    comment_text: text,
-  };
-  state.listingRows = rows;
-  return true;
-}
-
-function ensureManualReviewNotes() {
-  const project = state.projectData?.project;
-  if (!project) {
-    return null;
-  }
-  if (!project.manual_state || typeof project.manual_state !== "object") {
-    project.manual_state = {};
-  }
-  if (!Array.isArray(project.manual_state.review_notes)) {
-    project.manual_state.review_notes = [];
-  }
-  return project.manual_state.review_notes;
-}
-
-function applyManualReviewNoteAddEffect(effect) {
-  const note = effect.note;
-  if (!note || typeof note !== "object") {
-    return false;
-  }
-  const notes = ensureManualReviewNotes();
-  if (!notes) {
-    return false;
-  }
-  const nextNote = {...note};
-  const noteId = String(nextNote.note_id || "");
-  if (!noteId) {
-    return false;
-  }
-  const index = notes.findIndex((item) => item.note_id === noteId);
-  if (index >= 0) {
-    notes[index] = nextNote;
-  } else {
-    notes.push(nextNote);
-  }
-  applyReviewNoteToListingRows(nextNote);
-  return true;
-}
-
-function applyManualReviewNoteEditEffect(effect) {
-  const patch = effect.note;
-  const noteId = String(patch?.note_id || "");
-  const notes = ensureManualReviewNotes();
-  if (!noteId || !notes) {
-    return false;
-  }
-  const index = notes.findIndex((item) => item.note_id === noteId);
-  if (index < 0) {
-    return false;
-  }
-  const updated = {...notes[index], ...patch};
-  notes[index] = updated;
-  removeReviewNoteFromListingRows(noteId);
-  applyReviewNoteToListingRows(updated);
-  return true;
-}
-
-function applyManualReviewNoteClearEffect(effect) {
-  const noteId = String(effect.note_id || "");
-  const notes = ensureManualReviewNotes();
-  if (!noteId || !notes) {
-    return false;
-  }
-  const index = notes.findIndex((item) => item.note_id === noteId);
-  if (index >= 0) {
-    notes.splice(index, 1);
-  }
-  removeReviewNoteFromListingRows(noteId);
-  return true;
-}
-
-function noteMatchesListingRow(note, row, globalIndex) {
-  const rowIndexes = Array.isArray(note.row_indexes) ? note.row_indexes : [];
-  if (rowIndexes.includes(globalIndex)) {
-    return true;
-  }
-  if (note.stable_key && row.stable_key && note.stable_key === row.stable_key) {
-    return true;
-  }
-  const start = Number(note.addr);
-  const end = Number(note.end);
-  const rowStart = Number(row.start_offset ?? row.addr);
-  if (!Number.isFinite(start) || !Number.isFinite(rowStart)) {
-    return false;
-  }
-  return Number.isFinite(end) && end > start ? rowStart >= start && rowStart < end : rowStart === start;
-}
-
-function applyReviewNoteToListingRows(note) {
-  state.listingRows = (Array.isArray(state.listingRows) ? state.listingRows : []).map((row, localIndex) => {
-    const globalIndex = Number(state.virtualListing.start || 0) + localIndex;
-    if (!noteMatchesListingRow(note, row, globalIndex)) {
-      return row;
-    }
-    const existing = Array.isArray(row.review_notes) ? row.review_notes.filter((item) => item.note_id !== note.note_id) : [];
-    return {...row, review_notes: [...existing, note]};
-  });
-}
-
-function removeReviewNoteFromListingRows(noteId) {
-  state.listingRows = (Array.isArray(state.listingRows) ? state.listingRows : []).map((row) => {
-    if (!Array.isArray(row.review_notes)) {
-      return row;
-    }
-    return {...row, review_notes: row.review_notes.filter((note) => note.note_id !== noteId)};
-  });
-}
-
 function renderCurrentListingWindow() {
   if (!state.project) {
     return;
@@ -2434,6 +2226,75 @@ function renderCurrentListingWindow() {
     total_rows: state.virtualListing.totalRows,
     analysis_generation: state.virtualListing.generation,
   }, true);
+}
+
+function applyManualPresentationEffect(effect) {
+  if (!effect || typeof effect !== "object") {
+    return false;
+  }
+  if (effect.kind === "label_rename") {
+    return applyManualLabelPresentationEffect(effect);
+  }
+  if (effect.kind === "comment") {
+    return applyManualCommentPresentationEffect(effect);
+  }
+  return false;
+}
+
+function applyManualLabelPresentationEffect(effect) {
+  const name = String(effect.name || "").trim();
+  if (!name) {
+    return false;
+  }
+  return updatePresentationRow(effect, (row) => ({
+    ...row,
+    kind: row.kind || "label",
+    label: name,
+    text: `${name}:\n`,
+    manual_label_id: effect.label_id || row.manual_label_id || null,
+    manual_label_address_domain: effect.address_domain || row.manual_label_address_domain || null,
+  }));
+}
+
+function applyManualCommentPresentationEffect(effect) {
+  const comment = effect.comment;
+  const text = String(comment?.text || "").trim();
+  if (!comment || typeof comment !== "object" || !text) {
+    return false;
+  }
+  return updatePresentationRow(comment, (row) => ({...row, comment_text: text}));
+}
+
+function updatePresentationRow(subject, update) {
+  const rowIndex = Number(subject.row_index);
+  const stableKey = String(subject.stable_key || "");
+  const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
+  const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
+  const existingIndex = localIndex >= 0 && localIndex < rows.length
+    ? localIndex
+    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
+  if (existingIndex < 0) {
+    return false;
+  }
+  rows[existingIndex] = update(rows[existingIndex]);
+  state.listingRows = rows;
+  return true;
+}
+
+async function refreshCurrentListingWindow() {
+  if (!state.project) {
+    return null;
+  }
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    renderCurrentListingWindow();
+    return null;
+  }
+  const windowSpec = currentListingIndexWindow(viewport);
+  return loadListingWindow(state.project, null, 0, windowSpec.count, {
+    ...windowSpec,
+    preserveScroll: true,
+  });
 }
 
 function actionNeedsParameterEditor(action) {
@@ -2850,22 +2711,7 @@ function renderReproPanelBody(report) {
   const firstDiff = report?.first_diff || null;
   const diagnostics = Array.isArray(report?.assembler_diagnostics) ? report.assembler_diagnostics : [];
   const issue = currentReproIssue();
-  const suggestedActions = issue && Number.isFinite(issue.addr)
-    ? `
-      <div class="repro-actions">
-        <button type="button" data-repro-edit-kind="code_range">Code</button>
-        <button type="button" data-repro-edit-kind="data_range">Data</button>
-        <button type="button" data-repro-edit-kind="text_range">Text</button>
-        <button type="button" data-repro-edit-kind="pointer_table">Ptrs</button>
-        <button type="button" data-repro-edit-kind="jump_table">Jump</button>
-        <button type="button" data-repro-edit-kind="entrypoint">Entry</button>
-        <button type="button" data-repro-edit-kind="label">Label</button>
-        <button type="button" data-repro-edit-kind="external_symbol">Ext Symbol</button>
-        <button type="button" data-repro-edit-kind="suppress_inferred_code">No Code</button>
-        <button type="button" data-repro-edit-kind="suppress_inferred_pointer">No Ptr</button>
-      </div>
-    `
-    : "";
+  const suggestedActions = "";
   return `
     <div class="repro-summary-grid">
       <div><span>Status</span><strong>${escapeHtml(reproductionStatusText(report))}</strong></div>
@@ -3027,58 +2873,6 @@ async function exportSource(assemblerProfile) {
   setAnalysisStatus("Source exported", "ready", 2500);
 }
 
-async function applyReproTargetEdit(kind) {
-  if (!state.project) {
-    return;
-  }
-  const issue = currentReproIssue();
-  const anchor = captureViewportAnchor();
-  const addr = Number.isFinite(issue?.addr) ? issue.addr : anchor?.addr;
-  if (!Number.isFinite(addr)) {
-    return;
-  }
-  const payload = {kind, addr};
-  if (kind === "label" || kind === "external_symbol") {
-    const name = window.prompt(
-      kind === "label" ? "Label name" : "External symbol name",
-      defaultReproSymbolName(issue, kind, addr),
-    );
-    if (!name || !name.trim()) {
-      return;
-    }
-    payload.name = name.trim();
-  }
-  const hunk = Number.isInteger(issue?.hunk)
-    ? issue.hunk
-    : (Number.isInteger(issue?.section_index)
-      ? issue.section_index
-      : (Number.isInteger(anchor?.hunk) ? anchor.hunk : null));
-  if (hunk !== null) {
-    payload.hunk = hunk;
-  }
-  const length = Number(issue?.diff_range?.length || 0);
-  if (length > 1 && kind !== "entrypoint" && !kind.startsWith("suppress_")) {
-    payload.end = addr + length;
-  }
-  await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/target-edits`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload),
-  });
-  if (state.projectData) {
-    state.projectData.reproduction = {
-      ...(state.projectData.reproduction || {}),
-      status: state.projectData.reproduction?.status || "not_ready",
-      stale: true,
-    };
-  }
-  state.navigation.entries = null;
-  state.reproduction.selectedIssueEntry = null;
-  refreshProjectBadges();
-  renderReproPanel();
-  setAnalysisStatus("Metadata edit saved", "ready", 2000);
-}
-
 function defaultReproSymbolName(issue, kind, addr) {
   const text = String(issue?.match_text || issue?.message || issue?.summary || "");
   const symbolMatch = text.match(/\b[A-Za-z_.$][A-Za-z0-9_.$]*\b/);
@@ -3099,11 +2893,6 @@ function bindReproPanel() {
     if (state.project) {
       void runReproduction(state.project);
     }
-  });
-  overlay.querySelectorAll("[data-repro-edit-kind]").forEach((button) => {
-    button.addEventListener("click", () => {
-      void applyReproTargetEdit(button.dataset.reproEditKind || "");
-    });
   });
 }
 

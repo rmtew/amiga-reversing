@@ -115,8 +115,8 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "commandPaletteRangeAvailabilityRank" in app_js
     assert "action.availability_reason" in app_js
     assert "function applyManualActionApplication" in app_js
-    assert "function applyManualLocalEffect" in app_js
-    assert "function applyManualLabelRenameEffect" in app_js
+    assert "function applyManualLocalEffect" not in app_js
+    assert "function applyManualLabelRenameEffect" not in app_js
     assert "function closeSubmittedParameterSurface" in app_js
     assert "closeSubmittedParameterSurface();" in app_js
     assert "function commandPaletteRowQuery" in app_js
@@ -131,7 +131,7 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "Server returned incompatible manual action refresh mode" in app_js
     assert "refreshProjectPayloadInBackground" not in app_js
     assert "commandRequiresAnalysisRefresh" not in app_js
-    assert "function applyManualReviewNoteAddEffect" in app_js
+    assert "function applyManualReviewNoteAddEffect" not in app_js
     assert "function flashManualActionApplication" in app_js
     assert "function flashManualActionLocations" in app_js
     assert "function manualActionLocationMatchesRow" in app_js
@@ -294,12 +294,9 @@ def test_web_app_exposes_reproduction_badge_panel_and_issue_navigation() -> None
     assert "state.reproduction.selectedIssueEntry = entry;" in app_js
     assert '`/api/projects/${encodeURIComponent(projectId)}/reproduction/run`' in app_js
     assert '`/api/projects/${encodeURIComponent(state.project)}/reproduction/profile`' in app_js
-    assert '`/api/projects/${encodeURIComponent(state.project)}/target-edits`' in app_js
-    assert "payload.hunk = hunk;" in app_js
-    assert 'data-repro-edit-kind="label"' in app_js
-    assert 'data-repro-edit-kind="external_symbol"' in app_js
-    assert "defaultReproSymbolName(issue, kind, addr)" in app_js
-    assert 'data-repro-edit-kind="suppress_inferred_pointer"' in app_js
+    assert "target-edits" not in app_js
+    assert "data-repro-edit-kind" not in app_js
+    assert "applyManualLocalEffect" not in app_js
     assert 'return {label: "Unsupported"' in app_js
     assert '"repro-issues": []' in app_js
     assert '["repro-issues", "Repro Issues"]' in app_js
