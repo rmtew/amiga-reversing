@@ -2234,6 +2234,13 @@ virtualization, rendering, corpus snippets, and diagnostics. It must not be the
 subject identity for mutation commands, preferences, URL/deep-link state, or
 Manual Action Log payload construction.
 
+Implementation note from `028-013`: the final audit is recorded in
+`docs/issues/028-013-historical-fixtures-and-stale-name-cleanup-audit.md`.
+Production callers now use command routes and locator context; remaining retired
+names are either historical docs/tests, obsolete-state cleanup, private
+projection/cache invalidation, diagnostics, or compatibility inputs normalized
+before web-facing listing payloads.
+
 Useful report artifacts:
 
 ```text

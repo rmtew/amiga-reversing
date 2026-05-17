@@ -242,8 +242,8 @@ _Avoid_: Probability score
 A structured next action offered for a **Manual Review Item** that can append a domain action to the **Manual Action Log**.
 _Avoid_: Help text
 
-**Manual Action Catalog**:
-The canonical set of currently valid manual analysis actions exposed to UI, keyboard, command palette, CLI, and API callers.
+**Command Catalog**:
+The canonical set of currently valid target commands exposed to UI, keyboard, command palette, CLI, and API callers. Commands declare whether they append to the **Manual Action Log**, navigate, inspect, copy, or run target tooling.
 _Avoid_: Separate UI action list, Review dialog buttons
 
 **Target Tooling Command**:
@@ -251,7 +251,7 @@ A command that runs target-scoped tooling such as source export, reproduction pr
 _Avoid_: Manual action
 
 **Command Parameter Editor**:
-A reusable UI surface that renders a **Manual Action Catalog** entry's parameter schema, collects required values, and submits the same catalog action without browser-native prompts.
+A reusable UI surface that renders a **Command Catalog** entry's parameter schema, collects required values, and submits the same catalog command without browser-native prompts.
 _Avoid_: Rename dialog, web-only prompt
 
 **Interaction Schema**:
@@ -259,27 +259,27 @@ Context-specific catalog metadata that tells UI hosts how to collect action para
 _Avoid_: Hardcoded web editor behavior, backend HTML
 
 **Parameter Session**:
-A transient UI interaction that collects parameters for one **Manual Action Catalog** action in either a command palette host or inline listing host.
+A transient UI interaction that collects parameters for one **Command Catalog** entry in either a command palette host or inline listing host.
 _Avoid_: Separate palette action path, direct source edit
 
 **Edit Selected Command**:
-The catalog-driven command that opens the primary **Parameter Session** for the current **Listing Selection**, or offers explicit alternatives when no single edit is dominant.
+The catalog-driven command that opens the primary **Parameter Session** for the current **Locator-Based Listing Selection**, or offers explicit alternatives when no single edit is dominant.
 _Avoid_: Hardcoded dot-key behavior
 
 **UI Preference State**:
 Project-local workflow state that preserves user interface location and choices without changing reverse-engineering facts.
 _Avoid_: Manual action, analysis metadata
 
-**Immediate Manual Projection**:
-A UI update that applies a known visible effect after a **Manual Action Log** append succeeds and before server reconciliation finishes.
-_Avoid_: Pre-write optimistic edit, direct source edit
+**Authoritative Mutation Result**:
+The server response for a durable command that names the appended manual action, action log count and head hash, affected locators, metadata hash, projection hash when applicable, and any immediate presentation effect.
+_Avoid_: Client-only mutation success, optimistic edit as source of truth
 
 **Manual Edit Application**:
 The local-first user experience for a successful manual action, where known visible effects are applied immediately after durable log append and unresolved affected rows or ranges remain visible as pending work until server reconciliation replaces them in place.
 _Avoid_: Full listing reload, action-specific UI patch
 
-**Listing Selection**:
-The active target of a user or tool action in the rendered analysis listing, consisting of row focus, optional range anchor and selected row range, and optionally a selected element inside the focused row.
+**Locator-Based Listing Selection**:
+The active target of a user or tool action in the rendered analysis listing, consisting of selected/focused **ListingRowLocator** values, optional range anchor and selected row range, and optionally a selected element inside the focused row.
 _Avoid_: Temporary row highlight
 
 **Listing Element**:
@@ -294,7 +294,7 @@ _Avoid_: Text span
 - **Source Export** reports target identity, metadata hash, assembler profile, source-rendering profile, and refusal diagnostics.
 - In the Web UI, **Source Export** is delivered through the standard browser file-save flow; the saved file is user-owned external output, not a project-owned generated artifact.
 - **Source Export** includes a minimal generated header with target name, assembler profile, metadata or target identity hash, generated timestamp, and a statement that export is not a verification result.
-- **Source Export** is a target/tooling command, not a **Manual Action Catalog** action, even if the UI reuses parameter-session controls to choose an assembler profile.
+- **Source Export** is a target/tooling command, not a Manual Action Log mutation, even if the UI reuses parameter-session controls to choose an assembler profile.
 - A **Source Export Result** is command feedback only; target status is derived from **Round-Trip Verification** and manual review, not from exporting a source file.
 - **Project Rebuild** supplies an **Assembler Policy** to **Assembly**.
 - **Source Rendering** consumes an **Assembler Profile** for syntax features such as local labels.
@@ -414,26 +414,26 @@ _Avoid_: Text span
 - A **Manual Seed** may target a subrange inside an existing generated block; analysis normalizes the range and splits rendered blocks as needed.
 - A **Manual Review Item** may include **Suggested Review Actions** for creating seeds, resolving review work, or opening related evidence.
 - Navigational **Suggested Review Actions** are transient UI actions and are not appended to the **Manual Action Log**.
-- The **Manual Action Catalog** supplies **Suggested Review Actions** and contextual manual-editing commands for all caller surfaces.
-- Review dialog buttons, command palette entries, hotkeys, context menus, CLI commands, and API clients invoke **Manual Action Catalog** entries rather than defining separate behavior.
-- The **Manual Action Catalog** is backend-owned; UI surfaces render catalog entries instead of hardcoding manual action eligibility.
+- The **Command Catalog** supplies **Suggested Review Actions** and contextual manual-editing commands for all caller surfaces.
+- Review dialog buttons, command palette entries, hotkeys, context menus, CLI commands, and API clients invoke **Command Catalog** entries rather than defining separate behavior.
+- The **Command Catalog** is backend-owned; UI surfaces render catalog entries instead of hardcoding manual action eligibility.
 - The command palette can centralize manual actions, navigation commands, and **Target Tooling Commands** while preserving their different persistence semantics.
 - A **Target Tooling Command** may be stateful or transient, but it does not append to the **Manual Action Log** unless it delegates to an explicit manual action.
 - Changing a target's active **Reproduction Policy** is a **Target Tooling Command** that persists target reproduction configuration, invalidates stale reproduction reports, and does not affect review state until **Round-Trip Verification** runs.
-- A **Command Parameter Editor** collects parameters for a selected **Manual Action Catalog** entry; it does not define action eligibility or append behavior itself.
+- A **Command Parameter Editor** collects parameters for a selected **Command Catalog** entry; it does not define action eligibility or append behavior itself.
 - An **Interaction Schema** complements parameter validation schema; it describes parameter collection UX but not action validity.
 - A **Parameter Session** may render in the command palette or inline at the selected listing element, but both hosts submit the same catalog action payload.
 - An **Edit Selected Command** is catalog-driven and may choose label edit, comment edit, representation choice, semantic chooser, or an alternatives list from the current structured context.
-- Navigation commands that operate on **Listing Selection** are visible in the same command palette catalog and can show assigned key-binding badges even when they do not append to the **Manual Action Log**.
+- Navigation commands that operate on **Locator-Based Listing Selection** are visible in the same command palette catalog and can show assigned key-binding badges even when they do not append to the **Manual Action Log**.
 - **UI Preference State** may remember listing location, selection, scroll anchors, key-binding overrides, render profile choice, and reproduction profile choice.
 - **UI Preference State** may remember the last selected **Reproduction Profile** view, but target-affecting **Reproduction Policy** belongs in target configuration.
 - **UI Preference State** is not written to the **Manual Action Log** because it is not user-authored analysis intent.
-- **Immediate Manual Projection** can update visible listing rows, review counts, or badges only after the related **Manual Action Log** entry is durable.
-- **Immediate Manual Projection** does not replace analysis, source rendering, or round-trip verification when an action changes classification, policy, or emitted source.
+- An **Authoritative Mutation Result** can include an immediate presentation effect only after the related **Manual Action Log** entry is durable.
+- An **Authoritative Mutation Result** does not replace analysis, source rendering, or round-trip verification when an action changes classification, policy, or emitted source.
 - **Manual Edit Application** applies to every successful manual edit; actions with unknown final visible shape mark affected rows or ranges as pending rather than forcing a disruptive full listing reload.
 - **Manual Edit Application** reconciles server-produced analysis and rendering results into the current viewport in place where possible.
-- A **Listing Selection** identifies the current **Manual Action Catalog** context.
-- A **Listing Selection** always has row focus and may have a row range or **Listing Element** target when an action needs range-level, operand-level, symbol-level, or literal-level precision.
+- A **Locator-Based Listing Selection** identifies the current **Command Catalog** context.
+- A **Locator-Based Listing Selection** always has row focus and may have a row range or **Listing Element** target when an action needs range-level, operand-level, symbol-level, or literal-level precision.
 - Manual review UI is checklist-first, with facets for kind, confidence, state, section, source, or range as secondary filtering.
 - Entrypoint seeds remain primary analysis evidence; **Manual Seeds** augment the same analysis run with lower provenance priority.
 - Seed provenance priority is entrypoint, metadata or policy, required **Manual Seed**, then suggested **Manual Seed**.
@@ -463,6 +463,6 @@ _Avoid_: Text span
 - "no issues" and "issues" were used for target-level review status; resolved: use **Review State** values `clear`, `needs_review`, and `blocked`.
 - "understood" was used as a loose target state; resolved: use **Reconciled Range** and **Unreconciled Range** for byte-range explanation.
 - "entity" was used for generated ranges and user annotation state in `entities.jsonl`; resolved: treat that as **Legacy Entity State** and replace it with C analysis facts plus manual review concepts.
-- "Review buttons", "hotkeys", and "LLM/API actions" were used as separate surfaces; resolved: use **Manual Action Catalog** for the canonical callable action set.
-- "selected row" and "temporary highlight" were used loosely; resolved: use **Listing Selection** for durable action focus and **Listing Element** for intra-row targets.
+- "Review buttons", "hotkeys", and "LLM/API actions" were used as separate surfaces; resolved: use **Command Catalog** for the canonical callable command set.
+- "selected row" and "temporary highlight" were used loosely; resolved: use **Locator-Based Listing Selection** for durable action focus and **Listing Element** for intra-row targets.
 - "change representation" was mixed with data typing; resolved: **Manual Representation** controls display syntax, while **Manual Seed** controls analysis classification.

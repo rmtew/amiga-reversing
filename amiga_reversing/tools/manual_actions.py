@@ -8,7 +8,7 @@ from amiga_reversing.disasm import server
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="List and invoke Manual Action Catalog entries.")
+    parser = argparse.ArgumentParser(description="List and invoke Command Catalog entries.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     list_parser = subparsers.add_parser("list", help="List catalog actions.")
@@ -18,7 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_context_args(show_parser)
     show_parser.add_argument("action_id")
 
-    invoke_parser = subparsers.add_parser("invoke", help="Invoke a log catalog action.")
+    invoke_parser = subparsers.add_parser("invoke", help="Invoke a command catalog entry.")
     _add_context_args(invoke_parser)
     invoke_parser.add_argument("action_id")
     invoke_parser.add_argument(
@@ -34,21 +34,21 @@ def main(argv: list[str] | None = None) -> int:
         _print_json(_catalog(args))
         return 0
     if args.command == "show":
-        actions = cast(list[dict[str, object]], _catalog(args)["actions"])
-        for action in actions:
-            if action.get("action_id") == args.action_id:
-                _print_json(action)
+        commands = cast(list[dict[str, object]], _catalog(args)["commands"])
+        for command in commands:
+            if command.get("action_id") == args.action_id:
+                _print_json(command)
                 return 0
-        raise SystemExit(f"Catalog action not found: {args.action_id}")
+        raise SystemExit(f"Catalog command not found: {args.action_id}")
     if args.command == "invoke":
         body = {
-            "action_id": args.action_id,
+            "command_id": args.action_id,
             "context": _context_body(args),
             "parameters": _parse_params(args.param),
         }
         payload = server.route_request(
             "POST",
-            f"/api/projects/{args.project}/manual-action-catalog/execute",
+            f"/api/projects/{args.project}/commands/execute",
             {},
             body,
         )
@@ -61,8 +61,8 @@ def _add_context_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("project")
     parser.add_argument("--context", choices=("target", "review-item", "row", "element", "range"), default="target")
     parser.add_argument("--review-index", type=int)
-    parser.add_argument("--row-index", type=int)
-    parser.add_argument("--row-indexes")
+    parser.add_argument("--locator", help="ListingRowLocator JSON for row or element context.")
+    parser.add_argument("--locators", help="JSON list of ListingRowLocator objects for range context.")
     parser.add_argument("--item-id")
     parser.add_argument("--element-id")
     parser.add_argument("--element-kind")
@@ -78,10 +78,10 @@ def _catalog(args: argparse.Namespace) -> dict[str, object]:
         query["review_index"] = [str(args.review_index)]
     if args.item_id:
         query["item_id"] = [args.item_id]
-    if args.row_index is not None:
-        query["row_index"] = [str(args.row_index)]
-    if args.row_indexes:
-        query["row_indexes"] = [args.row_indexes]
+    if args.locator:
+        query["locator"] = [args.locator]
+    if args.locators:
+        query["locators"] = [args.locators]
     if args.element_kind:
         query["element_kind"] = [args.element_kind]
     if args.element_id:
@@ -96,7 +96,7 @@ def _catalog(args: argparse.Namespace) -> dict[str, object]:
         query["value"] = [str(args.value)]
     payload = server.route_request(
         "GET",
-        f"/api/projects/{args.project}/manual-action-catalog",
+        f"/api/projects/{args.project}/commands",
         query,
     )
     return cast(dict[str, object], payload["data"])
@@ -108,14 +108,10 @@ def _context_body(args: argparse.Namespace) -> dict[str, object]:
         context["review_index"] = args.review_index
     if args.item_id:
         context["item_id"] = args.item_id
-    if args.row_index is not None:
-        context["row_index"] = args.row_index
-    if args.row_indexes:
-        context["row_indexes"] = [
-            int(part.strip(), 0)
-            for part in args.row_indexes.split(",")
-            if part.strip()
-        ]
+    if args.locator:
+        context["locator"] = _parse_json_arg(args.locator, "--locator")
+    if args.locators:
+        context["locators"] = _parse_json_arg(args.locators, "--locators")
     if args.element_kind:
         context["element_kind"] = args.element_kind
     if args.element_id:
@@ -142,6 +138,13 @@ def _parse_params(values: list[str]) -> dict[str, object]:
         except json.JSONDecodeError:
             params[name] = raw
     return params
+
+
+def _parse_json_arg(value: str, name: str) -> object:
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid {name} JSON: {value}") from exc
 
 
 def _print_json(value: object) -> None:

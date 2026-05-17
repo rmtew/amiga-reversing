@@ -5,10 +5,10 @@ from pathlib import Path
 from amiga_reversing.disasm.manual_actions import MANUAL_ACTION_LOG_FILE_NAME
 from amiga_reversing.disasm.ui_preferences import UI_PREFERENCES_FILE_NAME
 
-TARGET_UI_EDITS_FILE_NAME = "target_ui_edits.json"
+OBSOLETE_TARGET_UI_EDITS_FILE_NAME = "target_ui_edits.json"
 
 OBSOLETE_TARGET_LOCAL_STATE_FILES = (
-    TARGET_UI_EDITS_FILE_NAME,
+    OBSOLETE_TARGET_UI_EDITS_FILE_NAME,
     UI_PREFERENCES_FILE_NAME,
     MANUAL_ACTION_LOG_FILE_NAME,
 )

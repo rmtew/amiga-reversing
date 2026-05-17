@@ -32,7 +32,6 @@
   profiles like what disassemblers to try it against.
   Proposal: `docs/proposals/001-manual-review-ui-workflows.md`.
 - Reproduction profiles, oracle modes, source export, and external tool availability are implemented.
-  Remaining cleanup for profile persistence through `target_ui_edits.json` belongs to Proposal 007 issue `028-006`.
   Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 - The manual review list currently contains things that the analysis identified. However there is value in the user
   being able to mark rows/ranges and add notes about things they want to come back to, and have them appear in their
