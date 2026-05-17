@@ -409,7 +409,8 @@ WorkflowProfile:
   counters: dict[str, int | float | str | bool]
 ```
 
-`PhaseTimer` can become an adapter or internal helper.
+`PhaseTimer` was deleted after `workflow_profile.py` became the shared timing
+contract.
 
 #### Step 2: Attach Spans To Existing Reports
 
@@ -1195,3 +1196,6 @@ ADR-0004:
   listing source rendering. Moving those into `CProfiledOperation` removed the
   touched duplicate `out_profile_json` ownership blocks without changing the C
   ABI.
+- 2026-05-17: `PhaseTimer` had no live imports after `workflow_profile.py`
+  landed, so the helper file was deleted rather than retained as a dormant
+  compatibility surface.
