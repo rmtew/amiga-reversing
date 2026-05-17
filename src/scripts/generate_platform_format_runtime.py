@@ -709,6 +709,7 @@ def _write_runtime_json(path_json: Path, payload: dict[str, Any]) -> None:
     output = {
         "meta": payload.get("_meta", {}),
         "container_magic_wire_ids": _container_magic_wire_ids(payload),
+        "unsupported_record_types": payload.get("unsupported_record_types", {}),
     }
     path_json.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

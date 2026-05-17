@@ -115,6 +115,7 @@ def format_report(report: Mapping[str, object]) -> str:
         f"  enum ids: {hunk['enum_ids']}",
         f"  normalized record types: {hunk['record_types']}",
         f"  valid load-file record types: {hunk['valid_load_file_record_types']}",
+        f"  unsupported record types: {', '.join(cast(list[str], hunk['unsupported_record_types'])) or 'none'}",
         f"  half-represented record types: {', '.join(cast(list[str], hunk['half_represented_record_types'])) or 'none'}",
         "",
         "Target platform summary:",
@@ -192,6 +193,7 @@ def _corrections_report(corrections: Mapping[str, object]) -> dict[str, object]:
 def _hunk_report(hunk: Mapping[str, object]) -> dict[str, object]:
     hunk_type = _mapping(_mapping(hunk.get("enums")).get("hunk_type"))
     record_types = _mapping(hunk.get("record_types"))
+    unsupported = _mapping(hunk.get("unsupported_record_types"))
     groups = _mapping(hunk.get("groups"))
     section_block = _mapping(groups.get("section_block"))
     valid_load = {
@@ -200,11 +202,12 @@ def _hunk_report(hunk: Mapping[str, object]) -> dict[str, object]:
         *cast(list[str], section_block.get("aux_types", [])),
         *cast(list[str], section_block.get("terminator_types", [])),
     }
-    half_represented = sorted(set(hunk_type) - set(record_types))
+    half_represented = sorted(set(hunk_type) - set(record_types) - set(unsupported))
     return {
         "enum_ids": len(hunk_type),
         "record_types": len(record_types),
         "valid_load_file_record_types": len(valid_load),
+        "unsupported_record_types": sorted(unsupported),
         "half_represented_record_types": half_represented,
     }
 

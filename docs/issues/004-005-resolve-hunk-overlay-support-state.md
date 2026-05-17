@@ -1,6 +1,6 @@
 # 004-005 Resolve HUNK_OVERLAY Support State
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -54,3 +54,12 @@ uv run amiga-platform-kb check
 focused HUNK parser/runtime tests
 cmd /c src\precommit.bat
 ```
+
+Decision: `HUNK_OVERLAY` is explicitly unsupported. The enum id remains for
+diagnostics, it is removed from valid load-file records, it is listed as
+unsupported platform KB inventory, and the HUNK loader rejects it with
+`Unsupported HUNK_OVERLAY record`.
+
+`amiga-platform-kb check` no longer reports overlay as half-represented. The
+command still fails on raw OS availability precision until 004-002 resolves
+that separate issue.

@@ -38,5 +38,6 @@
         "type": "repo_local_source"
       }
     ]
-  }
+  },
+  "unsupported_record_types": {}
 }

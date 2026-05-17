@@ -166,6 +166,29 @@ static int test_hunk_parser_result_survives_workflow_teardown(void) {
   return 0;
 }
 
+static int test_hunk_loader_rejects_overlay_as_explicit_unsupported(void) {
+  static const unsigned char hunk[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x03, 0xE9,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x03, 0xF5,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(-1, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_STR("Unsupported HUNK_OVERLAY record", m68k_diag_first_message(&diagnostics));
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_ideal_assembler_policy_has_no_preservation_metadata(void) {
   M68kAssemblerPolicy policy;
   m68k_assembler_policy_init_ideal(&policy);
@@ -625,6 +648,8 @@ int m68k_c_container_metadata_tests(void) {
     {"backend_definitions_expose_platform_ids", test_backend_definitions_expose_platform_ids},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
+    {"hunk_loader_rejects_overlay_as_explicit_unsupported",
+      test_hunk_loader_rejects_overlay_as_explicit_unsupported},
     {"ideal_assembler_policy_has_no_preservation_metadata", test_ideal_assembler_policy_has_no_preservation_metadata},
     {"preservation_policy_derives_hunk_relocation_encoding_ids",
       test_preservation_policy_derives_hunk_relocation_encoding_ids},

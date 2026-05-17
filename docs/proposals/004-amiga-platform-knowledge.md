@@ -24,7 +24,7 @@ durable spec.
   - [ ] 3. Corrections Have Provenance But No Workflow
   - [ ] 4. OS Compatibility Data Exists But Is Not A Target Summary
   - [ ] 5. HUNK Runtime Metadata Is Not Used Everywhere
-  - [ ] 6. `HUNK_OVERLAY` Is Half-Represented
+  - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
   - [ ] 7. Target Gaps Do Not Drive Parser Expansion Yet
 - [ ] Tutorial: Platform KB Coverage Report
 - [ ] Tutorial: Target OS Compatibility Summary
@@ -37,7 +37,7 @@ durable spec.
   - [ ] Slice 2: Target OS Compatibility Summary
   - [ ] Slice 3: Corrections Review Flow
   - [ ] Slice 4: Generated HUNK Comparison Helpers
-  - [ ] Slice 5: Resolve `HUNK_OVERLAY`
+  - [x] Slice 5: Resolve `HUNK_OVERLAY`
   - [ ] Slice 6: Target-Driven Platform Gap Report
 - [ ] Acceptance Criteria
 - [ ] Deletion Checklist
@@ -251,10 +251,12 @@ That duplicates platform format knowledge downstream from the KB. The rewrite
 should move comparison onto generated helpers and delete the hardcoded HUNK
 tables from `src/m68k_reproduction_compare.c`.
 
-### 6. `HUNK_OVERLAY` Is Half-Represented
+### 6. `HUNK_OVERLAY` Is Explicitly Unsupported
 
-`HUNK_OVERLAY` is currently neither cleanly supported nor cleanly unsupported.
-It is in the enum and valid-record list, but not in normalized record metadata.
+`HUNK_OVERLAY` is now cleanly unsupported. It remains in the enum inventory for
+diagnostics, is removed from valid load-file record types, and is listed in
+unsupported record inventory until primary-source evidence and fixture coverage
+exist.
 
 Target behavior:
 
@@ -267,7 +269,7 @@ Or:
   inventory until primary-source evidence exists
 ```
 
-The current halfway state should not remain.
+The previous halfway state should not return.
 
 ### 7. Target Gaps Do Not Drive Parser Expansion Yet
 
@@ -669,8 +671,9 @@ constants and local skip classification.
 
 Tracked by `docs/issues/004-005-resolve-hunk-overlay-support-state.md`.
 
-Make overlay state explicit. Prefer unsupported inventory unless the issue adds
-primary-source layout evidence and fixture tests in the same change.
+Resolved in `10b4d05`: overlay state is explicit unsupported inventory. The
+loader rejects overlay records with a named diagnostic, and platform KB strict
+checks no longer report overlay as half-represented.
 
 ### Slice 6: Target-Driven Platform Gap Report
 
@@ -755,8 +758,11 @@ Slice 1 implementation is now reflected in the notes below.
 ## Implementation Notes
 
 Slice 1 added `amiga-platform-kb report` and `amiga-platform-kb check` against
-committed artifacts only. The first strict check failures are deliberate:
-`HUNK_OVERLAY` is present as an enum id without normalized record metadata, and
-raw OS availability values such as `1.2`, `2.04`, `2.1`, `3`, and `3.0` are
-still collapsed by generated runtime metadata. Those are follow-up issue inputs,
-not report-command failures.
+committed artifacts only.
+
+Slice 5 resolved `HUNK_OVERLAY` by making it explicitly unsupported. The enum id
+remains for diagnostics, but it is no longer a valid load-file record and the
+loader now rejects it with a named unsupported-record diagnostic. Raw OS
+availability values such as `1.2`, `2.04`, `2.1`, `3`, and `3.0` are still
+collapsed by generated runtime metadata; that remaining strict check failure is
+the 004-002 input.

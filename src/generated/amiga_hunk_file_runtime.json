@@ -42,5 +42,11 @@
         "type": "official"
       }
     ]
+  },
+  "unsupported_record_types": {
+    "HUNK_OVERLAY": {
+      "citation": "knowledge/amiga_hunk_format.json load_file_citation: LOADSEG.ASM rejects OVERLAY through lssFail; no primary-source fixture currently proves overlay payload support.",
+      "reason": "Recognized hunk id retained for diagnostics, but overlay load-file support is intentionally unsupported until primary-source layout evidence and fixtures are added."
+    }
   }
 }

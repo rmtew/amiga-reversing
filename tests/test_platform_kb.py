@@ -45,6 +45,20 @@ def test_platform_kb_check_reports_enforced_debt(tmp_path: Path) -> None:
     assert any("raw OS availability precision" in violation for violation in violations)
 
 
+def test_platform_kb_check_allows_explicit_unsupported_hunk_records(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    hunk = tmp_path / "knowledge" / "amiga_hunk_file.json"
+    payload = json.loads(hunk.read_text(encoding="utf-8"))
+    payload["unsupported_record_types"] = {"HUNK_OVERLAY": {"reason": "unsupported", "citation": "fixture"}}
+    _write_json(hunk, payload)
+
+    report = platform_kb.build_report(tmp_path)
+
+    assert report["hunk"]["unsupported_record_types"] == ["HUNK_OVERLAY"]
+    assert report["hunk"]["half_represented_record_types"] == []
+    assert not any("HUNK records are half-represented" in violation for violation in platform_kb.check_report(report))
+
+
 def test_platform_kb_report_text_is_stable(tmp_path: Path) -> None:
     _write_fixture_tree(tmp_path)
 

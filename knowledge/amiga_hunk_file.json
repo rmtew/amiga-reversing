@@ -796,7 +796,6 @@
       "HUNK_DREL32",
       "HUNK_END",
       "HUNK_HEADER",
-      "HUNK_OVERLAY",
       "HUNK_BREAK"
     ],
     "library_payload_forbids": [
@@ -804,6 +803,12 @@
       "HUNK_NAME"
     ],
     "index_string_table_must_be_even_bytes": true
+  },
+  "unsupported_record_types": {
+    "HUNK_OVERLAY": {
+      "citation": "knowledge/amiga_hunk_format.json load_file_citation: LOADSEG.ASM rejects OVERLAY through lssFail; no primary-source fixture currently proves overlay payload support.",
+      "reason": "Recognized hunk id retained for diagnostics, but overlay load-file support is intentionally unsupported until primary-source layout evidence and fixtures are added."
+    }
   },
   "notes": [
     {

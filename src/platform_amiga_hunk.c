@@ -24,6 +24,7 @@ enum {
     HUNK_DEBUG = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_DEBUG,
     HUNK_END = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_END,
     HUNK_HEADER = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_HEADER,
+    HUNK_OVERLAY = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_OVERLAY,
     HUNK_BREAK = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_BREAK,
     HUNK_DREL32 = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_DREL32,
     HUNK_DREL16 = AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_DREL16,
@@ -596,7 +597,10 @@ static int parse_section_body(Reader *reader, Arena *workflow_arena, M68kObject 
             return 0;
         }
         if (m68k_reader_read_u32be(reader, &raw) != 0) return -1;
-        if (hunk_id == HUNK_SYMBOL) {
+        if (hunk_id == HUNK_OVERLAY) {
+            platform_file_diag_error(diagnostics, "Unsupported HUNK_OVERLAY record");
+            return -1;
+        } else if (hunk_id == HUNK_SYMBOL) {
             if (parse_symbol_block(reader, workflow_arena, object, section_index, diagnostics) != 0) return -1;
         } else if (hunk_id == HUNK_DEBUG) {
             if (parse_debug_block(reader, workflow_arena, object, section_index, diagnostics) != 0) return -1;
@@ -815,6 +819,9 @@ static int parse_hunk_object(Reader *reader, Arena *workflow_arena, M68kObject *
                     platform_file_diag_error(diagnostics, "Failed reading HUNK_NAME");
                     return -1;
                 }
+            } else if (hunk_id == HUNK_OVERLAY) {
+                platform_file_diag_error(diagnostics, "Unsupported HUNK_OVERLAY record");
+                return -1;
             } else if (hunk_id == HUNK_CODE || hunk_id == HUNK_DATA || hunk_id == HUNK_BSS) {
                 const char *section_name = (pending_name != NULL) ? pending_name : "";
                 if (add_section_from_hunk(object, raw, section_name, 0U, 0U, reader, workflow_arena, 0,
