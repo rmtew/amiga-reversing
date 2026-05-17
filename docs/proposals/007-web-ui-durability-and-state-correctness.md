@@ -1936,6 +1936,16 @@ selection restore, first-open entrypoint selection, virtual scrolling, and
 navigation tests pass without depending on row text as normal identity
 ```
 
+Implementation note from `028-009`: `app.js` now has explicit in-file
+`ListingSession`, `SelectionModel`, `PreferenceSync`, and `NavigationSession`
+facades for listing windows, selection, preferences, and navigation history.
+Rendered listing rows carry locator JSON, selection/focus/range state stores
+locators, rendered selection resolves by locator before legacy fallbacks, and
+stale listing responses are rejected through `ListingSession.shouldApplyResponse`.
+Source tests assert the model contracts, and focused CDP coverage passed for
+selection, first-open entrypoint selection, virtual listing, and navigation
+history behavior.
+
 ### Slice 6: Durability Matrix
 
 Add a matrix runner that can apply refresh/reopen/restart boundaries.

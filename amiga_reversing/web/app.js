@@ -147,6 +147,106 @@ const state = {
   },
 };
 
+const ListingSession = {
+  rows() {
+    return state.listingRows;
+  },
+  start() {
+    return Number(state.virtualListing.start || 0);
+  },
+  rowHeight() {
+    return Math.max(1, state.virtualListing.rowHeight || 22);
+  },
+  beginRequest() {
+    state.virtualListing.requestSeq += 1;
+    return state.virtualListing.requestSeq;
+  },
+  shouldApplyResponse(requestSeq) {
+    return requestSeq === state.virtualListing.requestSeq;
+  },
+  setFetchAbortController(controller) {
+    state.virtualListing.fetchAbortController = controller;
+  },
+  clearFetchAbortController(controller) {
+    if (state.virtualListing.fetchAbortController === controller) {
+      state.virtualListing.fetchAbortController = null;
+    }
+  },
+  applyWindow(listing) {
+    state.listingRows = listing.rows;
+    state.virtualListing.start = listing.start || 0;
+    state.virtualListing.end = listing.end || state.virtualListing.start + listing.rows.length;
+    state.virtualListing.totalRows = listing.total_rows || listing.rows.length;
+    state.virtualListing.generation = listing.analysis_generation || state.virtualListing.generation;
+  },
+  debugState() {
+    return {
+      start: state.virtualListing.start,
+      end: state.virtualListing.end,
+      totalRows: state.virtualListing.totalRows,
+      generation: state.virtualListing.generation,
+      requestSeq: state.virtualListing.requestSeq,
+      rowCount: state.listingRows.length,
+    };
+  },
+};
+
+const SelectionModel = {
+  current() {
+    return state.listingSelection;
+  },
+  set(selection) {
+    state.listingSelection = selection;
+    return state.listingSelection;
+  },
+  clear() {
+    state.listingSelection = null;
+  },
+  fromRowElement(row) {
+    return listingSelectionFromRow(row);
+  },
+};
+
+const PreferenceSync = {
+  payload() {
+    return state.uiPreferences.payload;
+  },
+  setPayload(payload) {
+    state.uiPreferences.payload = payload;
+    return state.uiPreferences.payload;
+  },
+  existingPreferences() {
+    return state.uiPreferences.payload?.preferences || {};
+  },
+  mergePreferences(preferences) {
+    state.uiPreferences.payload = {
+      ...(state.uiPreferences.payload || {}),
+      preferences: {
+        ...PreferenceSync.existingPreferences(),
+        ...preferences,
+      },
+    };
+    return state.uiPreferences.payload;
+  },
+};
+
+const NavigationSession = {
+  applyPayload(payload) {
+    state.navigation.entries = payload.groups || null;
+    state.navigation.appSlotAnalysis = payload.app_slot_analysis || null;
+    state.navigation.generation = payload.analysis_generation || null;
+    return state.navigation.entries;
+  },
+  currentLocation() {
+    return state.navigation.currentLocation;
+  },
+  pushHistory(origin, current) {
+    state.navigation.historyBack.push(origin);
+    state.navigation.historyForward = [];
+    state.navigation.currentLocation = current;
+  },
+};
+
 const LISTING_INITIAL_ROW_WINDOW = 240;
 const LISTING_MIN_WINDOW_ROWS = 120;
 const LISTING_MAX_WINDOW_ROWS = 600;
@@ -1223,9 +1323,7 @@ async function navigateToReviewItem(item) {
   }
   const current = captureViewportAnchor();
   if (jumped && origin && current && !navigationEntriesSameLocation(origin, current)) {
-    state.navigation.historyBack.push(origin);
-    state.navigation.historyForward = [];
-    state.navigation.currentLocation = current;
+    NavigationSession.pushHistory(origin, current);
   }
 }
 
@@ -1882,6 +1980,32 @@ function listingRowLocator(row) {
   return locator;
 }
 
+function listingRowLocatorAttribute(row) {
+  const locator = listingRowLocator(row);
+  return locator ? `data-row-locator="${escapeHtml(JSON.stringify(locator))}"` : "";
+}
+
+function listingRowLocatorFromElement(row) {
+  if (!(row instanceof HTMLElement) || !row.dataset.rowLocator) {
+    return null;
+  }
+  try {
+    const locator = JSON.parse(row.dataset.rowLocator);
+    return listingRowLocator({locator});
+  } catch (error) {
+    return null;
+  }
+}
+
+function listingLocatorsSameRow(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    left.target_id === right.target_id &&
+    left.row_key === right.row_key,
+  );
+}
+
 function commandPaletteElementId(row, selector, rowIndex) {
   if (!row || !selector) {
     return null;
@@ -1906,7 +2030,7 @@ function commandPaletteElementId(row, selector, rowIndex) {
   return `${base}:${kind}:${operandIndex}:${selector.value ?? "operand"}`;
 }
 
-function currentListingSelectionRowIndex(selection = state.listingSelection) {
+function currentListingSelectionRowIndex(selection = SelectionModel.current()) {
   const rowIndex = Number(selection?.focusRowIndex ?? selection?.rowIndex);
   if (Number.isFinite(rowIndex)) {
     return rowIndex;
@@ -1936,9 +2060,10 @@ function listingRowDataForSelection(selection) {
 }
 
 function listingRowDataForIndex(rowIndex) {
-  const localIndex = rowIndex - Number(state.virtualListing?.start || 0);
-  return Array.isArray(state.listingRows) && localIndex >= 0 && localIndex < state.listingRows.length
-    ? state.listingRows[localIndex]
+  const rows = ListingSession.rows();
+  const localIndex = rowIndex - ListingSession.start();
+  return Array.isArray(rows) && localIndex >= 0 && localIndex < rows.length
+    ? rows[localIndex]
     : null;
 }
 
@@ -2004,7 +2129,7 @@ async function loadContextualCommandCatalogs() {
   catalogs.push(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/commands?context=target`));
   const rowIndex = currentListingSelectionRowIndex();
   if (Number.isFinite(rowIndex)) {
-    const rangeQuery = commandPaletteRangeQuery(state.listingSelection);
+    const rangeQuery = commandPaletteRangeQuery();
     if (rangeQuery) {
       const rangeCatalog = await fetchOptionalCommandCatalog(`/api/projects/${encodeURIComponent(state.project)}/commands?${rangeQuery}`);
       if (rangeCatalog) {
@@ -2018,7 +2143,7 @@ async function loadContextualCommandCatalogs() {
           catalogs.push(rowCatalog);
         }
       }
-      const elementQuery = commandPaletteElementQuery(state.listingSelection);
+      const elementQuery = commandPaletteElementQuery(SelectionModel.current());
       if (elementQuery) {
         const elementCatalog = await fetchOptionalCommandCatalog(`/api/projects/${encodeURIComponent(state.project)}/commands?${elementQuery}`);
         if (elementCatalog) {
@@ -2861,14 +2986,7 @@ async function exportSource(assemblerProfile) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-  const existing = state.uiPreferences.payload?.preferences || {};
-  state.uiPreferences.payload = {
-    ...(state.uiPreferences.payload || {}),
-    preferences: {
-      ...existing,
-      source_export_assembler: profile,
-    },
-  };
+  PreferenceSync.mergePreferences({source_export_assembler: profile});
   await saveUiPreferenceState();
   setAnalysisStatus("Source exported", "ready", 2500);
 }
@@ -5494,6 +5612,7 @@ function renderListingRows(rows, globalStart = 0) {
       data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
       data-row-code="${escapeHtml(renderListingCode(row))}"
+      ${listingRowLocatorAttribute(row)}
       ${row.stable_key ? `data-row-stable-key="${escapeHtml(row.stable_key)}"` : ""}
       ${row.analysis_generation ? `data-analysis-generation="${escapeHtml(row.analysis_generation)}"` : ""}
       ${row.analysis_phase ? `data-analysis-phase="${escapeHtml(row.analysis_phase)}"` : ""}
@@ -5519,7 +5638,7 @@ function renderListingRows(rows, globalStart = 0) {
 }
 
 function listingRowIsSelected(row, globalIndex) {
-  const selection = state.listingSelection;
+  const selection = SelectionModel.current();
   if (!selection) {
     return false;
   }
@@ -5528,6 +5647,9 @@ function listingRowIsSelected(row, globalIndex) {
     return true;
   }
   if (selection.stableKey && row.stable_key && selection.stableKey === row.stable_key) {
+    return true;
+  }
+  if (listingLocatorsSameRow(selection.locator, listingRowLocator(row))) {
     return true;
   }
   if (Number.isFinite(selection.rowIndex) && selection.rowIndex === globalIndex) {
@@ -5636,12 +5758,8 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
   }
   listing = listingWindowWithGenerationTransitionAnchor(viewport, listing);
   const scrollTop = viewport.scrollTop;
-  state.listingRows = listing.rows;
-  state.virtualListing.start = listing.start || 0;
-  state.virtualListing.end = listing.end || state.virtualListing.start + listing.rows.length;
-  state.virtualListing.totalRows = listing.total_rows || listing.rows.length;
-  state.virtualListing.generation = listing.analysis_generation || state.virtualListing.generation;
-  const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
+  ListingSession.applyWindow(listing);
+  const rowHeight = ListingSession.rowHeight();
   const totalHeight = Math.max(rowHeight, state.virtualListing.totalRows * rowHeight);
   const top = state.virtualListing.start * rowHeight;
   viewport.innerHTML = `
@@ -5666,14 +5784,14 @@ function renderVirtualListingWindow(projectId, listing, preserveScroll = false, 
   renderNavigationOverlay();
   dispatchAppEvent("amiga:listing-window-rendered", {
     projectId,
-    start: state.virtualListing.start,
-    end: state.virtualListing.end,
-    totalRows: state.virtualListing.totalRows,
-    generation: state.virtualListing.generation,
+    start: ListingSession.debugState().start,
+    end: ListingSession.debugState().end,
+    totalRows: ListingSession.debugState().totalRows,
+    generation: ListingSession.debugState().generation,
     rowCount: listing.rows.length,
-    requestSeq: state.virtualListing.requestSeq,
+    requestSeq: ListingSession.debugState().requestSeq,
   });
-  if (!state.listingSelection && listing.rows.length) {
+  if (!SelectionModel.current() && listing.rows.length) {
     void maybeApplyInitialListingLocation(projectId);
   }
   return {renderMs: performance.now() - renderStartedAt};
@@ -5856,7 +5974,7 @@ function listingAnchorRowIndexInRows(rows, anchor) {
 }
 
 function listingAnchorRowIndex(anchor) {
-  return listingAnchorRowIndexInRows(state.listingRows, anchor);
+  return listingAnchorRowIndexInRows(ListingSession.rows(), anchor);
 }
 
 function listingAnchorScrollTop(listing, anchor) {
@@ -5919,7 +6037,7 @@ async function refreshListingAtCurrentAddressAnchor(projectId, token = null) {
   if (token !== null && token !== state.loadingToken) {
     return listing;
   }
-  if (state.virtualListing.requestSeq !== requestSeqBeforeRefresh + 1) {
+  if (!ListingSession.shouldApplyResponse(requestSeqBeforeRefresh + 1)) {
     return listing;
   }
   restoreListingAddressAnchor(document.getElementById("listing-viewport"), anchor);
@@ -5945,8 +6063,8 @@ async function handleListingArtifactReady(payload, token = null) {
   if (listing?.analysis_generation) {
     await loadNavigationEntries(state.project);
     renderNavigationOverlay();
-    if (!state.listingSelection) {
-      const uiPreferences = state.uiPreferences.payload || await loadUiPreferenceState(state.project);
+    if (!SelectionModel.current()) {
+      const uiPreferences = PreferenceSync.payload() || await loadUiPreferenceState(state.project);
       await applyInitialListingLocation(state.project, uiPreferences);
     }
     setAnalysisStatus("Analysis ready", "ready", 2000);
@@ -6589,9 +6707,7 @@ function currentNavigationEntries() {
 
 async function loadNavigationEntries(projectId) {
   const payload = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/navigation`);
-  state.navigation.entries = payload.groups || null;
-  state.navigation.appSlotAnalysis = payload.app_slot_analysis || null;
-  state.navigation.generation = payload.analysis_generation || null;
+  NavigationSession.applyPayload(payload);
   if (
     state.navigation.appSlotSymbol &&
     !((state.navigation.entries?.["app-slots"] || []).some((entry) => entry.symbol === state.navigation.appSlotSymbol))
@@ -7232,9 +7348,7 @@ function commitNavigationPreview() {
   if (!origin || !current || navigationEntriesSameLocation(origin, current)) {
     return;
   }
-  state.navigation.historyBack.push(origin);
-  state.navigation.historyForward = [];
-  state.navigation.currentLocation = current;
+  NavigationSession.pushHistory(origin, current);
 }
 
 function closeNavigationOverlay() {
@@ -7671,7 +7785,7 @@ function normalizeListingProjectionPayload(listing) {
 }
 
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
-  const requestSeq = ++state.virtualListing.requestSeq;
+  const requestSeq = ListingSession.beginRequest();
   if (options.abortPrevious && state.virtualListing.fetchAbortController) {
     try {
       state.virtualListing.fetchAbortController.abort();
@@ -7682,7 +7796,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     }
   }
   const abortController = new AbortController();
-  state.virtualListing.fetchAbortController = abortController;
+  ListingSession.setFetchAbortController(abortController);
   const params = new URLSearchParams();
   if (options.anchorCode) {
     params.set("anchor_code", String(options.anchorCode).trim());
@@ -7721,9 +7835,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     }
     throw error;
   } finally {
-    if (state.virtualListing.fetchAbortController === abortController) {
-      state.virtualListing.fetchAbortController = null;
-    }
+    ListingSession.clearFetchAbortController(abortController);
   }
   if (!listing) {
     return null;
@@ -7731,7 +7843,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   listing = normalizeListingProjectionPayload(listing);
   const fetchedAt = performance.now();
   const fetchMs = fetchedAt - startedAt;
-  if (requestSeq !== state.virtualListing.requestSeq) {
+  if (!ListingSession.shouldApplyResponse(requestSeq)) {
     return listing;
   }
   if (options.render === false || (options.renderEmpty === false && !listing.rows.length)) {
@@ -7765,10 +7877,10 @@ async function loadInitialListingWindow(projectId) {
 async function loadUiPreferenceState(projectId) {
   try {
     const payload = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/ui-preferences`);
-    state.uiPreferences.payload = payload;
+    PreferenceSync.setPayload(payload);
     return payload;
   } catch (error) {
-    state.uiPreferences.payload = null;
+    PreferenceSync.setPayload(null);
     return null;
   }
 }
@@ -7846,7 +7958,7 @@ async function loadInitialListingLocation(projectId, uiPreferences) {
 }
 
 async function applyInitialListingLocation(projectId, uiPreferences) {
-  if (!state.listingRows.length) {
+  if (!ListingSession.rows().length) {
     return false;
   }
   const explicit = explicitListingLocationFromUrl();
@@ -7879,13 +7991,13 @@ async function maybeApplyInitialListingLocation(projectId) {
     state.uiPreferences.initialApplied
     || state.uiPreferences.restoring
     || state.project !== projectId
-    || state.listingSelection
-    || !state.listingRows.length
+    || SelectionModel.current()
+    || !ListingSession.rows().length
   ) {
     return;
   }
-  const uiPreferences = state.uiPreferences.payload || await loadUiPreferenceState(projectId);
-  if (state.project !== projectId || state.listingSelection) {
+  const uiPreferences = PreferenceSync.payload() || await loadUiPreferenceState(projectId);
+  if (state.project !== projectId || SelectionModel.current()) {
     return;
   }
   const applied = await applyInitialListingLocation(projectId, uiPreferences);
@@ -7950,7 +8062,7 @@ function restorePreferenceScrollTop(location) {
 
 function currentUiListingLocation() {
   const viewport = document.getElementById("listing-viewport");
-  const selection = state.listingSelection || {};
+  const selection = SelectionModel.current() || {};
   const anchor = captureListingAddressAnchor(viewport);
   const location = {};
   const rowIndex = Number(selection.rowIndex ?? anchor?.rowIndex);
@@ -8004,17 +8116,17 @@ async function saveUiPreferenceState() {
   if (!state.project) {
     return;
   }
-  const existing = state.uiPreferences.payload?.preferences || {};
+  const existing = PreferenceSync.existingPreferences();
   const payload = {
     ...existing,
     listing_location: currentUiListingLocation(),
   };
   try {
-    state.uiPreferences.payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/ui-preferences`, {
+    PreferenceSync.setPayload(await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/ui-preferences`, {
       method: "PUT",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(payload),
-    });
+    }));
   } catch (error) {
     setAnalysisStatus("UI preference save failed", "failed", 2500);
   }
@@ -8119,7 +8231,13 @@ function listingSelectionFromRow(row) {
   const startOffset = row.dataset.startOffset !== "" && row.dataset.startOffset !== undefined
     ? Number(row.dataset.startOffset)
     : null;
+  const locator = listingRowLocatorFromElement(row);
   return {
+    locator,
+    focusLocator: locator,
+    anchorLocator: locator,
+    rangeStartLocator: locator,
+    rangeEndLocator: locator,
     rowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
     focusRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
     anchorRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
@@ -8141,7 +8259,7 @@ function listingSelectionFromRow(row) {
   };
 }
 
-function listingSelectionRangeBounds(selection = state.listingSelection) {
+function listingSelectionRangeBounds(selection = SelectionModel.current()) {
   const start = Number(selection?.rangeStartRowIndex);
   const end = Number(selection?.rangeEndRowIndex);
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
@@ -8150,12 +8268,12 @@ function listingSelectionRangeBounds(selection = state.listingSelection) {
   return {start: Math.min(start, end), end: Math.max(start, end)};
 }
 
-function listingSelectionIsRange(selection = state.listingSelection) {
+function listingSelectionIsRange(selection = SelectionModel.current()) {
   const bounds = listingSelectionRangeBounds(selection);
   return Boolean(bounds && bounds.end > bounds.start);
 }
 
-function selectedListingRangeRows(selection = state.listingSelection) {
+function selectedListingRangeRows(selection = SelectionModel.current()) {
   const bounds = listingSelectionRangeBounds(selection);
   if (!bounds) {
     return [];
@@ -8171,7 +8289,7 @@ function selectedListingRangeRows(selection = state.listingSelection) {
   return rows;
 }
 
-function commandPaletteRangeQuery(selection = state.listingSelection) {
+function commandPaletteRangeQuery(selection = SelectionModel.current()) {
   if (!listingSelectionIsRange(selection)) {
     return null;
   }
@@ -8235,6 +8353,16 @@ function renderedRowForListingSelection(viewport, selection) {
   if (!(viewport instanceof HTMLElement) || !selection) {
     return {row: null, precise: false};
   }
+  if (selection.locator) {
+    const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+    const located = rows.find((candidate) => (
+      candidate instanceof HTMLElement &&
+      listingLocatorsSameRow(listingRowLocatorFromElement(candidate), selection.locator)
+    ));
+    if (located instanceof HTMLElement) {
+      return {row: located, precise: rowContainsSelectedElement(located, selection)};
+    }
+  }
   if (selection.stableKey) {
     const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
     if (stable instanceof HTMLElement) {
@@ -8267,18 +8395,35 @@ function renderedRowIndexForStableKey(viewport, stableKey) {
   return Number.isFinite(rowIndex) ? rowIndex : null;
 }
 
+function renderedRowIndexForLocator(viewport, locator) {
+  if (!(viewport instanceof HTMLElement) || !locator) {
+    return null;
+  }
+  const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+  const row = rows.find((candidate) => (
+    candidate instanceof HTMLElement &&
+    listingLocatorsSameRow(listingRowLocatorFromElement(candidate), locator)
+  ));
+  if (!(row instanceof HTMLElement)) {
+    return null;
+  }
+  const rowIndex = Number(row.dataset.rowIndex);
+  return Number.isFinite(rowIndex) ? rowIndex : null;
+}
+
 function resolveRenderedListingRangeSelection(viewport, selection) {
   if (!(viewport instanceof HTMLElement) || !selection) {
     return selection;
   }
   const replacements = {};
   [
-    ["focusRowIndex", "focusStableKey"],
-    ["anchorRowIndex", "anchorStableKey"],
-    ["rangeStartRowIndex", "rangeStartStableKey"],
-    ["rangeEndRowIndex", "rangeEndStableKey"],
-  ].forEach(([indexKey, stableKey]) => {
-    const resolved = renderedRowIndexForStableKey(viewport, selection[stableKey]);
+    ["focusRowIndex", "focusLocator", "focusStableKey"],
+    ["anchorRowIndex", "anchorLocator", "anchorStableKey"],
+    ["rangeStartRowIndex", "rangeStartLocator", "rangeStartStableKey"],
+    ["rangeEndRowIndex", "rangeEndLocator", "rangeEndStableKey"],
+  ].forEach(([indexKey, locatorKey, stableKey]) => {
+    const resolved = renderedRowIndexForLocator(viewport, selection[locatorKey])
+      ?? renderedRowIndexForStableKey(viewport, selection[stableKey]);
     if (Number.isFinite(resolved) && resolved !== selection[indexKey]) {
       replacements[indexKey] = resolved;
     }
@@ -8302,12 +8447,12 @@ function applyRenderedListingSelection() {
     row.classList.remove("listing-row-selected");
     row.classList.remove("listing-row-range-focus");
   });
-  const selection = state.listingSelection;
+  const selection = SelectionModel.current();
   if (!selection) {
     return;
   }
-  state.listingSelection = resolveRenderedListingRangeSelection(viewport, selection);
-  const resolvedSelection = state.listingSelection;
+  SelectionModel.set(resolveRenderedListingRangeSelection(viewport, selection));
+  const resolvedSelection = SelectionModel.current();
   const bounds = listingSelectionRangeBounds(resolvedSelection);
   if (bounds && listingSelectionIsRange(resolvedSelection)) {
     const focusIndex = Number.isFinite(Number(resolvedSelection.focusRowIndex)) ? Number(resolvedSelection.focusRowIndex) : Number(resolvedSelection.rowIndex);
@@ -8329,17 +8474,17 @@ function applyRenderedListingSelection() {
   if (row instanceof HTMLElement) {
     row.classList.add("listing-row-selected");
     if (!precise && !resolvedSelection.precisionLost) {
-      state.listingSelection = {
+      SelectionModel.set({
         ...listingSelectionFromRow(row),
         precisionLost: true,
-      };
+      });
       setAnalysisStatus("Selection precision lost", "ready", 2500);
     }
   }
 }
 
 function setListingSelectionFromRow(row, element = null) {
-  const selection = listingSelectionFromRow(row);
+  const selection = SelectionModel.fromRowElement(row);
   if (!selection) {
     return;
   }
@@ -8348,9 +8493,9 @@ function setListingSelectionFromRow(row, element = null) {
     selection.elementKind = selection.elementSelector?.element_kind || listingElementKind(element);
     selection.elementText = element.textContent || "";
   }
-  state.listingSelection = selection;
+  SelectionModel.set(selection);
   applyRenderedListingSelection();
-  dispatchAppEvent("amiga:listing-row-selected", selection);
+  dispatchAppEvent("amiga:listing-row-selected", SelectionModel.current());
   scheduleUiPreferenceSave();
 }
 
@@ -8395,7 +8540,12 @@ function listingElementSelector(element, row = null) {
 }
 
 function setListingSelectionIndex(rowIndex) {
-  state.listingSelection = {
+  SelectionModel.set({
+    locator: null,
+    focusLocator: null,
+    anchorLocator: null,
+    rangeStartLocator: null,
+    rangeEndLocator: null,
     rowIndex,
     focusRowIndex: rowIndex,
     anchorRowIndex: rowIndex,
@@ -8411,26 +8561,30 @@ function setListingSelectionIndex(rowIndex) {
     startOffset: null,
     rowCode: "",
     precisionLost: true,
-  };
+  });
   applyRenderedListingSelection();
 }
 
 function extendListingSelectionToRow(row, targetIndex) {
   const target = listingSelectionFromRow(row) || {rowIndex: targetIndex, stableKey: null};
-  const current = state.listingSelection || {};
+  const current = SelectionModel.current() || {};
   const anchor = Number.isFinite(Number(current.anchorRowIndex))
     ? Number(current.anchorRowIndex)
     : Number(current.rowIndex);
   const anchorIndex = Number.isFinite(anchor) ? anchor : targetIndex;
   const start = Math.min(anchorIndex, targetIndex);
   const end = Math.max(anchorIndex, targetIndex);
-  state.listingSelection = {
+  SelectionModel.set({
     ...target,
     rowIndex: targetIndex,
     focusRowIndex: targetIndex,
     anchorRowIndex: anchorIndex,
     rangeStartRowIndex: start,
     rangeEndRowIndex: end,
+    focusLocator: target.locator || null,
+    anchorLocator: current.anchorLocator || current.locator || null,
+    rangeStartLocator: start === targetIndex ? target.locator || null : current.anchorLocator || current.locator || null,
+    rangeEndLocator: end === targetIndex ? target.locator || null : current.anchorLocator || current.locator || null,
     focusStableKey: target.stableKey || null,
     anchorStableKey: current.anchorStableKey || current.stableKey || null,
     rangeStartStableKey: start === targetIndex ? target.stableKey || null : current.anchorStableKey || current.stableKey || null,
@@ -8438,9 +8592,9 @@ function extendListingSelectionToRow(row, targetIndex) {
     elementKind: null,
     elementText: "",
     elementSelector: null,
-  };
+  });
   applyRenderedListingSelection();
-  dispatchAppEvent("amiga:listing-row-selected", state.listingSelection);
+  dispatchAppEvent("amiga:listing-row-selected", SelectionModel.current());
   scheduleUiPreferenceSave();
 }
 
@@ -8469,7 +8623,8 @@ async function moveListingSelection(delta, extend = false) {
   if (!(viewport instanceof HTMLElement) || !state.project) {
     return false;
   }
-  let currentIndex = Number(extend ? state.listingSelection?.focusRowIndex : state.listingSelection?.rowIndex);
+  const selection = SelectionModel.current();
+  let currentIndex = Number(extend ? selection?.focusRowIndex : selection?.rowIndex);
   if (!Number.isFinite(currentIndex)) {
     const firstRow = viewport.querySelector(".listing-row");
     currentIndex = firstRow instanceof HTMLElement ? Number(firstRow.dataset.rowIndex) : 0;
@@ -9569,7 +9724,17 @@ function selectedListingRowElement() {
   if (!(viewport instanceof HTMLElement)) {
     return null;
   }
-  const selection = state.listingSelection;
+  const selection = SelectionModel.current();
+  if (selection?.locator) {
+    const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+    const located = rows.find((candidate) => (
+      candidate instanceof HTMLElement &&
+      listingLocatorsSameRow(listingRowLocatorFromElement(candidate), selection.locator)
+    ));
+    if (located instanceof HTMLElement) {
+      return located;
+    }
+  }
   if (selection?.stableKey) {
     const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
     if (stable instanceof HTMLElement) {
@@ -9617,9 +9782,7 @@ async function followSelectedReference(openDetails = false) {
   }
   const current = captureViewportAnchor();
   if (followed && origin && current && !navigationEntriesSameLocation(origin, current)) {
-    state.navigation.historyBack.push(origin);
-    state.navigation.historyForward = [];
-    state.navigation.currentLocation = current;
+    NavigationSession.pushHistory(origin, current);
   }
   return followed;
 }
@@ -9636,7 +9799,7 @@ async function moveToRelativeLabel(delta) {
   if (!labels.length) {
     return false;
   }
-  const current = Number(state.listingSelection?.rowIndex);
+  const current = Number(SelectionModel.current()?.rowIndex);
   const currentIndex = Number.isFinite(current) ? current : state.virtualListing.start;
   const target = delta > 0
     ? labels.find((entry) => entry.rowIndex > currentIndex)
@@ -9654,7 +9817,7 @@ async function moveToRelativeLabel(delta) {
 }
 
 function currentListingSectionIndex() {
-  const selectionHunk = Number(state.listingSelection?.sectionIndex);
+  const selectionHunk = Number(SelectionModel.current()?.sectionIndex);
   if (Number.isInteger(selectionHunk)) {
     return selectionHunk;
   }

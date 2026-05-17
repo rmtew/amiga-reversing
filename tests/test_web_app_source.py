@@ -213,8 +213,32 @@ def test_web_app_generation_refresh_restores_only_applied_request() -> None:
     ).read_text(encoding="utf-8")
 
     assert "const requestSeqBeforeRefresh = state.virtualListing.requestSeq;" in app_js
-    assert "if (state.virtualListing.requestSeq !== requestSeqBeforeRefresh + 1) {" in app_js
+    assert "if (!ListingSession.shouldApplyResponse(requestSeqBeforeRefresh + 1)) {" in app_js
     assert "restoreListingAddressAnchor(document.getElementById(\"listing-viewport\"), anchor);" in app_js
+
+
+def test_web_app_listing_state_uses_internal_models() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "const ListingSession = {" in app_js
+    assert "beginRequest()" in app_js
+    assert "shouldApplyResponse(requestSeq)" in app_js
+    assert "ListingSession.applyWindow(listing);" in app_js
+    assert "if (!ListingSession.shouldApplyResponse(requestSeq)) {" in app_js
+    assert "const SelectionModel = {" in app_js
+    assert "locator," in app_js
+    assert "focusLocator: locator" in app_js
+    assert "data-row-locator=" in app_js
+    assert "listingLocatorsSameRow" in app_js
+    assert "const PreferenceSync = {" in app_js
+    assert "PreferenceSync.setPayload(await fetchJson" in app_js
+    assert "const NavigationSession = {" in app_js
+    assert "NavigationSession.applyPayload(payload);" in app_js
+    assert "NavigationSession.pushHistory(origin, current);" in app_js
 
 
 def test_web_app_generation_refresh_anchors_non_address_rows() -> None:
