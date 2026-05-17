@@ -897,6 +897,27 @@ def test_brave_cdp_first_open_selects_source_entrypoint(
         page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowIndex === '16'")
         assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "16"
         assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.runtimeAddress") == "24608"
+        browser_debug = page.evaluate("window.__amigaDebugState()")
+        server_debug = disasm_server._LISTING_PROJECTION_SERVICE.debug_state()
+        assert browser_debug["schema_version"] == 1
+        assert browser_debug["project_id"] == project.id
+        assert browser_debug["listing_projection_hash"] == server_debug["cache_keys"][project.id] == "test-cache"
+        assert browser_debug["layers"]["listing_session"]["owner"] == "ListingSession"
+        assert browser_debug["layers"]["selection"]["owner"] == "SelectionModel"
+        assert browser_debug["layers"]["mutation"]["pending_mutation_id"] is None
+        assert browser_debug["layers"]["selection"]["selected_locator"]["row_key"] == "row-16"
+        assert any(
+            locator["row_key"] == "row-16"
+            for locator in browser_debug["layers"]["listing_session"]["visible_locators"]
+        )
+        assert (
+            page.evaluate(
+                "const snapshot = window.__amigaDebugState(); "
+                "snapshot.layers.selection.selected_locator.row_key = 'mutated'; "
+                "window.__amigaDebugState().layers.selection.selected_locator.row_key"
+            )
+            == "row-16"
+        )
         assert not (target_dir / "manual_actions.jsonl").exists()
 
         page.click("[data-row-index='4']")

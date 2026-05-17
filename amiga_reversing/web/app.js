@@ -230,6 +230,74 @@ const PreferenceSync = {
   },
 };
 
+function jsonSafeDebugCopy(value) {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
+function listingProjectionHash() {
+  const row = ListingSession.rows().find((candidate) => listingRowLocator(candidate));
+  return listingRowLocator(row)?.projection_hash || state.virtualListing.generation || null;
+}
+
+function visibleListingLocators() {
+  return ListingSession.rows()
+    .map((row) => listingRowLocator(row))
+    .filter((locator) => locator !== null);
+}
+
+function currentSelectionDebugState() {
+  const selection = SelectionModel.current() || {};
+  return {
+    owner: "SelectionModel",
+    selected_locator: storedListingLocator(selection.locator, state.project),
+    focused_locator: storedListingLocator(selection.focusLocator || selection.locator, state.project),
+    anchor_locator: storedListingLocator(selection.anchorLocator || selection.locator, state.project),
+    range_start_locator: storedListingLocator(selection.rangeStartLocator || selection.locator, state.project),
+    range_end_locator: storedListingLocator(selection.rangeEndLocator || selection.locator, state.project),
+  };
+}
+
+function browserDebugState() {
+  const listing = ListingSession.debugState();
+  const selection = currentSelectionDebugState();
+  const projectionHash = listingProjectionHash();
+  const selectedLocator = selection.selected_locator;
+  return jsonSafeDebugCopy({
+    schema_version: 1,
+    project_id: state.project || null,
+    listing_projection_hash: projectionHash,
+    request_seq: listing.requestSeq,
+    selected_row_key: selectedLocator?.row_key || null,
+    layers: {
+      project: {
+        owner: "ProjectSession",
+        project_id: state.project || null,
+      },
+      listing_session: {
+        owner: "ListingSession",
+        projection_hash: projectionHash,
+        request_seq: listing.requestSeq,
+        start: listing.start,
+        end: listing.end,
+        total_rows: listing.totalRows,
+        row_count: listing.rowCount,
+        generation: listing.generation,
+        visible_locators: visibleListingLocators(),
+      },
+      selection,
+      mutation: {
+        owner: "ManualMutationState",
+        in_flight: Boolean(state.manualEdit.inFlight),
+        pending_mutation_id: state.manualEdit.inFlight ? "manual-action" : null,
+      },
+    },
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.__amigaDebugState = browserDebugState;
+}
+
 const NavigationSession = {
   applyPayload(payload) {
     state.navigation.entries = payload.groups || null;

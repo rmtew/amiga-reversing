@@ -1993,6 +1993,14 @@ projection hash, pending mutation id, and browser request sequence
 If debug state needs to expose too many special cases, that is a signal to
 simplify the underlying state model.
 
+Implementation note from `028-011`: the browser now exposes
+`window.__amigaDebugState()` as test/dev instrumentation. The hook returns a
+schema-versioned JSON-safe copy of project, listing session, selection, and
+mutation-layer state, including projection hash, request sequence, visible
+locators, selected/focused locators, and pending mutation id. CDP coverage
+compares the browser projection hash with `ListingProjectionService.debug_state`
+and verifies the returned snapshot is not a live mutable reference.
+
 ### Slice 8: CDP Semantic Assertions
 
 Update critical CDP tests to assert semantic state through API/debug helpers in

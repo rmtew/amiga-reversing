@@ -254,6 +254,25 @@ def test_web_app_listing_state_uses_internal_models() -> None:
     assert "storedListingLocator(entry.locator, state.project)" in app_js
 
 
+def test_web_app_exposes_copied_browser_debug_state_hook() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "window.__amigaDebugState = browserDebugState;" in app_js
+    assert "schema_version: 1" in app_js
+    assert "jsonSafeDebugCopy({" in app_js
+    assert "owner: \"ProjectSession\"" in app_js
+    assert "owner: \"ListingSession\"" in app_js
+    assert "owner: \"SelectionModel\"" in app_js
+    assert "owner: \"ManualMutationState\"" in app_js
+    assert "visible_locators: visibleListingLocators()" in app_js
+    assert "selected_locator: storedListingLocator(selection.locator, state.project)" in app_js
+    assert "pending_mutation_id" in app_js
+
+
 def test_web_app_generation_refresh_anchors_non_address_rows() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent
