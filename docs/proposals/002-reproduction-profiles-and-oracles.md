@@ -3,10 +3,9 @@
 Status: Closed as implemented; remaining state cleanup belongs to Proposal 007.
 Status changed: 2026-05-17.
 
-The original PRD split for this proposal has been deleted from `docs/prd/`.
-That is expected: PRDs are temporary planning artifacts. Durable behavior and
-follow-up notes now live here, in `docs/reproduction.md`, and in the current
-`docs/issues/028-*` state-correctness work.
+The original PRD split for this proposal has been removed. Durable behavior and
+follow-up notes now live here, in `docs/reproduction.md`, and in current issue
+files.
 
 ## Checkpoint Index
 

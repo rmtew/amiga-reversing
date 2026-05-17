@@ -1,4 +1,4 @@
-# 030-004 Resolve HUNK_OVERLAY Support State
+# 004-005 Resolve HUNK_OVERLAY Support State
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`

@@ -1,4 +1,4 @@
-# 030-001 Add Platform KB Coverage Report
+# 004-001 Add Platform KB Coverage Report
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`

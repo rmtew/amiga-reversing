@@ -1,4 +1,4 @@
-# 030-005 Add Target-Driven Platform Gap Report
+# 004-006 Add Target-Driven Platform Gap Report
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
@@ -33,7 +33,7 @@ positives should be explainable and grouped as candidates, not facts.
 - A command can report platform-looking gaps for a selected target.
 - Output groups candidates by likely owner/source family.
 - Output can flag unexpected-new OS/API usage using the target OS compatibility
-  summary from `docs/issues/030-006-add-target-os-compatibility-summary.md`.
+  summary from `docs/issues/004-002-add-target-os-compatibility-summary.md`.
 - Unexpected-new API findings distinguish explicit target-metadata expectations
   from inferred project/disk-year hints. Inferred hints are review candidates,
   not check failures.

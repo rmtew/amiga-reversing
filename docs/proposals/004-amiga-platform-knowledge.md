@@ -10,7 +10,7 @@ outcome is not only better names. It is a coherent platform summary for each
 target: memory map, OS compatibility, hardware/OS usage, unsupported container
 state, and target-driven KB gaps.
 
-Follow-up implementation lives in `docs/issues/030-*`. This proposal is the
+Follow-up implementation lives in `docs/issues/004-*`. This proposal is the
 durable spec.
 
 ## Checkpoint Index
@@ -634,7 +634,7 @@ Use that report to choose future parser expansions.
 
 ### Slice 1: Platform KB Coverage Report
 
-Tracked by `docs/issues/030-001-add-platform-kb-coverage-report.md`.
+Tracked by `docs/issues/004-001-add-platform-kb-coverage-report.md`.
 
 Add `amiga-platform-kb report` and `amiga-platform-kb check`. The first slice is
 mostly read-only: it should report current NDK, hardware, corrections, source
@@ -642,7 +642,7 @@ inventory, and HUNK coverage from committed artifacts.
 
 ### Slice 2: Target OS Compatibility Summary
 
-Tracked by `docs/issues/030-006-add-target-os-compatibility-summary.md`.
+Tracked by `docs/issues/004-002-add-target-os-compatibility-summary.md`.
 
 Preserve raw OS availability metadata through generated runtime tables,
 create the target platform summary/header owner, move the existing memory map
@@ -652,14 +652,14 @@ through web, API, export, and reports.
 
 ### Slice 3: Corrections Review Flow
 
-Tracked by `docs/issues/030-002-add-amiga-ndk-corrections-review-flow.md`.
+Tracked by `docs/issues/004-003-add-amiga-ndk-corrections-review-flow.md`.
 
 Add commands/tests for listing seeded corrections and promoting them to
 validated with preserved citation and review provenance.
 
 ### Slice 4: Generated HUNK Comparison Helpers
 
-Tracked by `docs/issues/030-003-generate-hunk-comparison-from-platform-runtime-metadata.md`.
+Tracked by `docs/issues/004-004-generate-hunk-comparison-from-platform-runtime-metadata.md`.
 
 Generate or expose HUNK helper functions from platform format metadata and move
 `src/m68k_reproduction_compare.c` onto those helpers. Delete duplicated HUNK
@@ -667,14 +667,14 @@ constants and local skip classification.
 
 ### Slice 5: Resolve `HUNK_OVERLAY`
 
-Tracked by `docs/issues/030-004-resolve-hunk-overlay-support-state.md`.
+Tracked by `docs/issues/004-005-resolve-hunk-overlay-support-state.md`.
 
 Make overlay state explicit. Prefer unsupported inventory unless the issue adds
 primary-source layout evidence and fixture tests in the same change.
 
 ### Slice 6: Target-Driven Platform Gap Report
 
-Tracked by `docs/issues/030-005-add-target-driven-platform-gap-report.md`.
+Tracked by `docs/issues/004-006-add-target-driven-platform-gap-report.md`.
 
 Report unresolved platform-looking symbols and addresses by likely owner so
 future KB parsing follows observed target needs.

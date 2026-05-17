@@ -1,4 +1,4 @@
-# 030-002 Add Amiga NDK Corrections Review Flow
+# 004-003 Add Amiga NDK Corrections Review Flow
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`

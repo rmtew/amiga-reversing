@@ -1,5 +1,7 @@
+# 008-001 Replace Flat Tool Registry With Tool Graph
+
 Status: Ready
-Parent proposal: docs/proposals/008-tool-runtime-capability-graph.md
+Source proposal: `docs/proposals/008-tool-runtime-capability-graph.md`
 
 ## What to build
 

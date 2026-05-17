@@ -1,4 +1,4 @@
-# 030-003 Generate HUNK Comparison From Platform Runtime Metadata
+# 004-004 Generate HUNK Comparison From Platform Runtime Metadata
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`

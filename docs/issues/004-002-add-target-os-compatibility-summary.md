@@ -1,4 +1,4 @@
-# 030-006 Add Target OS Compatibility Summary
+# 004-002 Add Target OS Compatibility Summary
 
 Status: Ready
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`

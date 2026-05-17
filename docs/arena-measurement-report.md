@@ -1,6 +1,6 @@
 # Arena Measurement Report
 
-Parent PRD: `docs/prd/005-advanced-arena-forms-research.md`
+Parent proposal: historical arena allocation research
 
 ## Measurement Scope
 
