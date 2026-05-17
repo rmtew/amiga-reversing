@@ -1031,6 +1031,18 @@ Implemented slice evidence:
     uv run python -m pytest tests\test_c_backend.py::test_c_profiled_operation_frees_bytes_profiles_and_error_buffers tests\test_c_backend.py::test_c_profiled_operation_frees_profile_and_error_on_failure_status tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_uses_direct_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_surfaces_refusal tests\test_c_backend.py::test_project_source_reproduction_compare_atari_uses_object_semantics tests\test_reproduction.py tests\test_source_export.py -q
   Lint passed:
     uv run ruff check amiga_reversing\disasm\c_backend.py tests\test_c_backend.py
+
+009-007:
+  Browser API calls now carry browser request ids and fetchJson records the last
+  profiled response when the data includes workflow_profile.
+  window.__amigaDebugState() exposes last_api_request_id,
+  last_profiled_api_request_id, last_workflow_profile, and the latest listing
+  fetch sample with its correlated API request id.
+  Focused tests passed:
+    uv run python -m pytest tests\test_web_app_source.py -q
+    $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
+  Lint passed:
+    uv run ruff check tests\test_web_app_source.py tests\test_web_e2e_cdp.py
 ```
 
 Observed during implementation:
@@ -1069,6 +1081,10 @@ test_real_dll_render_plan_data_classes_reach_listing_rows sees a generated
 comment row ending in ":" classified outside label/directive. The adapter slice
 keeps this as a follow-up observation rather than broadening into listing-row
 classification work.
+
+Browser/profile correlation is intentionally debug-state only. The existing
+stats overlay still renders queue/fetch/render totals, while LLM/CDP consumers
+read the correlated request/profile payload from window.__amigaDebugState().
 ```
 
 Current code evidence:

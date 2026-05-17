@@ -1,5 +1,8 @@
 const WEB_APP_CONTRACT_VERSION = 2;
 const WEB_APP_CONTRACT_HEADER = "X-Amiga-Web-App-Contract";
+const BROWSER_REQUEST_HEADER = "X-Amiga-Browser-Request-Id";
+
+const apiResponseDebug = new WeakMap();
 
 const state = {
   project: null,
@@ -105,6 +108,12 @@ const state = {
     overlayOpen: false,
     selectedTab: "fetch",
     fetchSamples: [],
+  },
+  debug: {
+    apiRequestSeq: 0,
+    lastApiRequest: null,
+    lastProfiledApiRequest: null,
+    lastWorkflowProfile: null,
   },
   reproduction: {
     panelOpen: false,
@@ -234,6 +243,31 @@ function jsonSafeDebugCopy(value) {
   return JSON.parse(JSON.stringify(value ?? null));
 }
 
+function nextBrowserApiRequestId() {
+  state.debug.apiRequestSeq += 1;
+  return `browser-${state.debug.apiRequestSeq}`;
+}
+
+function workflowProfileFromData(data) {
+  const profile = data && typeof data === "object" ? data.workflow_profile : null;
+  return profile && typeof profile === "object" ? profile : null;
+}
+
+function recordApiResponseDebug(data, debug) {
+  state.debug.lastApiRequest = debug;
+  if (data && typeof data === "object") {
+    apiResponseDebug.set(data, debug);
+  }
+  if (debug.workflow_profile) {
+    state.debug.lastProfiledApiRequest = debug;
+    state.debug.lastWorkflowProfile = debug.workflow_profile;
+  }
+}
+
+function apiResponseDebugFor(data) {
+  return data && typeof data === "object" ? apiResponseDebug.get(data) || null : null;
+}
+
 function listingProjectionHash() {
   const row = ListingSession.rows().find((candidate) => listingRowLocator(candidate));
   return listingRowLocator(row)?.projection_hash || state.virtualListing.generation || null;
@@ -262,11 +296,18 @@ function browserDebugState() {
   const selection = currentSelectionDebugState();
   const projectionHash = listingProjectionHash();
   const selectedLocator = selection.selected_locator;
+  const latestFetchSample = state.stats.fetchSamples[state.stats.fetchSamples.length - 1] || null;
+  const lastApiRequest = state.debug.lastApiRequest;
+  const lastProfiledApiRequest = state.debug.lastProfiledApiRequest;
   return jsonSafeDebugCopy({
     schema_version: 1,
     project_id: state.project || null,
     listing_projection_hash: projectionHash,
     request_seq: listing.requestSeq,
+    last_api_request_id: lastApiRequest?.request_id || null,
+    last_profiled_api_request_id: lastProfiledApiRequest?.request_id || null,
+    last_workflow_profile: state.debug.lastWorkflowProfile,
+    last_listing_fetch_sample: latestFetchSample,
     selected_row_key: selectedLocator?.row_key || null,
     layers: {
       project: {
@@ -289,6 +330,15 @@ function browserDebugState() {
         owner: "ManualMutationState",
         in_flight: Boolean(state.manualEdit.inFlight),
         pending_mutation_id: state.manualEdit.inFlight ? "manual-action" : null,
+      },
+      profiling: {
+        owner: "WorkflowProfileDebug",
+        last_api_request_id: lastApiRequest?.request_id || null,
+        last_profiled_api_request_id: lastProfiledApiRequest?.request_id || null,
+        last_api_request: lastApiRequest,
+        last_profiled_api_request: lastProfiledApiRequest,
+        last_workflow_profile: state.debug.lastWorkflowProfile,
+        last_listing_fetch_sample: latestFetchSample,
       },
     },
   });
@@ -423,18 +473,33 @@ const JOB_PHASE_LABELS = {
 };
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, withWebAppContractHeaders(options));
+  const requestId = nextBrowserApiRequestId();
+  const startedAt = performance.now();
+  const response = await fetch(url, withWebAppContractHeaders(options, requestId));
   const payload = await response.json();
   assertWebAppContract(payload);
+  const data = payload.data;
+  recordApiResponseDebug(data, {
+    request_id: requestId,
+    url: String(url),
+    method: String(options.method || "GET").toUpperCase(),
+    status: response.status,
+    ok: Boolean(payload.ok),
+    elapsed_ms: performance.now() - startedAt,
+    workflow_profile: workflowProfileFromData(data),
+  });
   if (!payload.ok) {
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
-  return payload.data;
+  return data;
 }
 
-function withWebAppContractHeaders(options = {}) {
+function withWebAppContractHeaders(options = {}, requestId = null) {
   const headers = new Headers(options.headers || {});
   headers.set(WEB_APP_CONTRACT_HEADER, String(WEB_APP_CONTRACT_VERSION));
+  if (requestId) {
+    headers.set(BROWSER_REQUEST_HEADER, requestId);
+  }
   return {...options, headers};
 }
 
@@ -7882,6 +7947,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   if (!listing) {
     return null;
   }
+  const listingApiDebug = apiResponseDebugFor(listing);
   listing = normalizeListingProjectionPayload(listing);
   const fetchedAt = performance.now();
   const fetchMs = fetchedAt - startedAt;
@@ -7898,6 +7964,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
     options.restoreAnchor ? listingAnchorScrollTop(listing, options.restoreAnchor) : null,
   );
   recordListingFetchSample({
+    apiRequestId: listingApiDebug?.request_id || null,
     totalMs: performance.now() - requestedAt,
     queueMs: Math.max(0, startedAt - requestedAt),
     fetchMs,
@@ -10049,6 +10116,9 @@ async function renderProject(projectId) {
   state.stats.overlayOpen = false;
   state.stats.selectedTab = "fetch";
   state.stats.fetchSamples = [];
+  state.debug.lastApiRequest = null;
+  state.debug.lastProfiledApiRequest = null;
+  state.debug.lastWorkflowProfile = null;
   state.reproduction.panelOpen = false;
   state.reproduction.report = null;
   state.reproduction.reportKey = null;

@@ -272,6 +272,14 @@ def test_web_app_exposes_copied_browser_debug_state_hook() -> None:
     assert "owner: \"ListingSession\"" in app_js
     assert "owner: \"SelectionModel\"" in app_js
     assert "owner: \"ManualMutationState\"" in app_js
+    assert "owner: \"WorkflowProfileDebug\"" in app_js
+    assert "last_api_request_id: lastApiRequest?.request_id || null" in app_js
+    assert "last_profiled_api_request_id: lastProfiledApiRequest?.request_id || null" in app_js
+    assert "last_workflow_profile: state.debug.lastWorkflowProfile" in app_js
+    assert "last_listing_fetch_sample: latestFetchSample" in app_js
+    assert "headers.set(BROWSER_REQUEST_HEADER, requestId);" in app_js
+    assert "apiResponseDebug.set(data, debug);" in app_js
+    assert "apiRequestId: listingApiDebug?.request_id || null" in app_js
     assert "visible_locators: visibleListingLocators()" in app_js
     assert "selected_locator: storedListingLocator(selection.locator, state.project)" in app_js
     assert "pending_mutation_id" in app_js

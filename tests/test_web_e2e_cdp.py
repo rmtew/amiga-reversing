@@ -1887,6 +1887,7 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
                 context_kind: command.target_context.kind,
                 server_debug_route: "/api/projects/" + projectId + "/commands",
                 browser_debug_hook: "window.__amigaDebugState()",
+                browser_debug_after_execute: window.__amigaDebugState(),
                 execute: executePayload,
               }};
             }})()
@@ -1894,6 +1895,18 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         ))
         assert command_result["command_id"] == "comment.edit"
         assert command_result["context_kind"] == "row"
+        browser_debug_after_execute = cast(dict[str, object], command_result["browser_debug_after_execute"])
+        workflow_profile = cast(dict[str, object], browser_debug_after_execute["last_workflow_profile"])
+        profile_layers = cast(dict[str, object], browser_debug_after_execute["layers"])
+        profiling_layer = cast(dict[str, object], profile_layers["profiling"])
+        listing_fetch_sample = cast(dict[str, object], browser_debug_after_execute["last_listing_fetch_sample"])
+        assert workflow_profile["workflow_id"] == "manual_command_execution"
+        assert workflow_profile["target_id"] == project.id
+        assert browser_debug_after_execute["last_api_request_id"] == browser_debug_after_execute["last_profiled_api_request_id"]
+        assert profiling_layer["owner"] == "WorkflowProfileDebug"
+        assert profiling_layer["last_workflow_profile"] == workflow_profile
+        assert isinstance(listing_fetch_sample["apiRequestId"], str)
+        assert {"queueMs", "fetchMs", "renderMs", "totalMs"} <= set(listing_fetch_sample)
         mutation = cast(dict[str, object], cast(dict[str, object], command_result["execute"])["mutation"])
 
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
