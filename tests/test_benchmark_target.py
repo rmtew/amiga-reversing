@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from amiga_reversing.disasm.binary_source import BinarySourceKind
+from amiga_reversing.disasm.source_rendering import SourceRenderingResult
 from amiga_reversing.tools import precommit
 from amiga_reversing.tools.benchmark_target import (
     TargetBenchmark,
@@ -90,18 +91,36 @@ def test_benchmark_binary_target_uses_c_analysis_and_render(
             output_path=disasm_path,
         ),
     )
+    rendering = SourceRenderingResult(
+        status="ok",
+        source_text="; demo\n",
+        listing_profile={"facts_v2": {"decoded_candidates": 3}},
+        workflow_profile={
+            "workflow_id": "benchmark_target_source_rendering",
+            "target_id": "demo",
+            "spans": [{"name": "source_rendering", "seconds": 0.0, "module": "c_backend"}],
+        },
+        metadata_hash="metadata-hash",
+        target_identity_sha256="identity",
+    )
     monkeypatch.setattr(
-        "amiga_reversing.tools.benchmark_target.benchmark_project_source_with_text_from_c_backend",
-        lambda source, metadata_path, project_root: (
-            {"analysis": {"violation_count": 1}, "analysis_backend": "facts_v2"},
-            "; demo\n",
-        ),
+        "amiga_reversing.tools.benchmark_target.render_source_from_binary_source_or_raise",
+        lambda **kwargs: rendering,
+    )
+    monkeypatch.setattr(
+        "amiga_reversing.tools.benchmark_target.benchmark_from_facts_v2_asm_source_profile",
+        lambda profile: {
+            "benchmark_version": 1,
+            "analysis": {"violation_count": profile["facts_v2"]["decoded_candidates"]},
+            "analysis_backend": "facts_v2",
+        },
     )
 
     record = _benchmark_binary_target("demo", write_output=True)
 
     assert record.status is TargetBenchmarkStatus.OK
-    assert record.analysis == {"violation_count": 1}
+    assert record.analysis == {"violation_count": 3}
+    assert record.workflow_profile == rendering.workflow_profile
     assert record.command == "uv run amiga-benchmark-target demo"
     assert disasm_path.read_text(encoding="utf-8") == "; demo\n"
 

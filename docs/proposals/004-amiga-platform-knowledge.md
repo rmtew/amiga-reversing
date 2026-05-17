@@ -1,17 +1,12 @@
 # Proposal 004: Amiga Platform Knowledge
 
-Status: Implemented; follow-up hardening complete.
-Status changed: 2026-05-17.
+Status: Closed for Proposal 004 follow-up implementation.
+Status changed: 2026-05-18.
 
-The Amiga platform KB work is no longer a broad "parse more ADCD" proposal.
-The useful path is narrower: make current platform facts auditable, reviewable,
-and generated all the way into the consumers that need them. The visible
-outcome is not only better names. It is a coherent platform summary for each
-target: memory map, OS compatibility, hardware/OS usage, unsupported container
-state, and target-driven KB gaps.
-
-Follow-up implementation lives in `docs/issues/004-*`. This proposal is the
-durable spec.
+The Amiga platform KB follow-up implementation is complete. Current platform
+facts are auditable, reviewable, and generated into the consumers that need
+them. Completed `004-*` issue files were deleted after their durable reasoning
+and verification notes were promoted here; this proposal is the archive.
 
 ## Checkpoint Index
 
@@ -637,15 +632,11 @@ Use that report to choose future parser expansions.
 
 ### Slice 1: Platform KB Coverage Report
 
-Tracked by `docs/issues/004-001-add-platform-kb-coverage-report.md`.
-
 Add `amiga-platform-kb report` and `amiga-platform-kb check`. The first slice is
 mostly read-only: it should report current NDK, hardware, corrections, source
 inventory, and HUNK coverage from committed artifacts.
 
 ### Slice 2: Target OS Compatibility Summary
-
-Tracked by `docs/issues/004-002-add-target-os-compatibility-summary.md`.
 
 Resolved in this slice: raw OS availability metadata is preserved through
 generated runtime tables, recovered calls aggregate into
@@ -654,16 +645,12 @@ and the C-rendered source header emits OS compatibility beside the memory map.
 
 ### Slice 3: Corrections Review Flow
 
-Tracked by `docs/issues/004-003-add-amiga-ndk-corrections-review-flow.md`.
-
 Resolved in this slice: `amiga-platform-kb corrections list/check/promote`
 lists corrections with stable ids and citations, enforces review-state debt,
 and promotes one seeded correction at a time with preserved citation/source
 fields plus reviewer/date provenance.
 
 ### Slice 4: Generated HUNK Comparison Helpers
-
-Tracked by `docs/issues/004-004-generate-hunk-comparison-from-platform-runtime-metadata.md`.
 
 Resolved in this slice: `src/m68k_reproduction_compare.c` now consumes
 generated HUNK runtime helpers for record lookup, section/terminator
@@ -672,15 +659,11 @@ classification. Local HUNK record id constants were removed.
 
 ### Slice 5: Resolve `HUNK_OVERLAY`
 
-Tracked by `docs/issues/004-005-resolve-hunk-overlay-support-state.md`.
-
 Resolved in `10b4d05`: overlay state is explicit unsupported inventory. The
 loader rejects overlay records with a named diagnostic, and platform KB strict
 checks no longer report overlay as half-represented.
 
 ### Slice 6: Target-Driven Platform Gap Report
-
-Tracked by `docs/issues/004-006-add-target-driven-platform-gap-report.md`.
 
 Resolved in this slice: `amiga-platform-kb target-gaps <target>` reports
 platform-looking target gaps grouped by likely owner/source family, including
@@ -690,16 +673,6 @@ summary data. Explicit target OS expectations and inferred year hints are
 distinguished in output.
 
 ### Follow-Up Hardening
-
-Tracked by:
-
-```text
-docs/issues/004-007-fix-raw-amiga-os-version-ranking.md
-docs/issues/004-008-centralize-target-platform-summary-rendering.md
-docs/issues/004-009-make-platform-kb-report-use-actual-summary-artifacts.md
-docs/issues/004-010-clean-proposal-004-tracking-docs.md
-docs/issues/004-011-structure-platform-source-inventory.md
-```
 
 Resolved in these slices: raw Amiga OS version ranking is explicit, target
 platform summary rendering is centralized in C, platform KB reports read actual
@@ -732,7 +705,7 @@ inventory counts come from structured JSON rather than markdown scraping.
 When a Proposal 004 issue is completed:
 
 - Promote any durable reasoning back into this proposal.
-- Keep the issue file in `docs/issues/004-*` as the implementation archive.
+- Delete the issue file once durable reasoning and verification notes are here.
 - Remove stale TODO entries that completed report/check/tooling now owns.
 - Keep generated artifacts and source inventory consistent.
 
@@ -826,5 +799,62 @@ initial slices:
   artifacts and report artifact-source counts.
 - Source inventory is structured in `knowledge/platform_source_inventory.json`;
   the markdown inventory is used as a drift check, not as the count source.
-- Proposal 004 and `TODO.md` now treat completed issue files as an archive
-  rather than live work.
+- Proposal 004 and `TODO.md` now treat this proposal as the durable archive
+  rather than keeping completed issue files as live work.
+
+## Review Addendum: 2026-05-18
+
+Review scope: checked completed Proposal 004 issue slices `004-001` through
+`004-011` against current code, generated artifacts, knowledge JSON, tests, and
+live command output.
+
+Conclusion: satisfactory. The implemented codebase reflects the proposal goals:
+platform KB state is reportable and checked, raw Amiga OS availability is
+preserved, target OS compatibility is represented as structured summary data,
+corrections have an operational review flow, HUNK comparison uses generated
+runtime metadata, `HUNK_OVERLAY` is explicit unsupported inventory, target gap
+reporting exists, and source inventory counts are structured.
+
+Evidence:
+
+```text
+uv run python -m pytest tests\test_platform_kb.py -q
+  15 passed
+
+uv run amiga-platform-kb report
+  NDK: 170 include paths, 43 libraries, 1114 functions
+  raw available_since includes 1.1, 1.2, 2.04, 2.1, 3, 3.0, 3.1
+  HUNK_OVERLAY unsupported; half-represented record types: none
+  source inventory rows: 62 from structured inventory
+
+uv run amiga-platform-kb check
+  Platform KB check passed.
+
+uv run amiga-platform-kb corrections check
+  Corrections check passed.
+
+uv run amiga-platform-kb target-gaps amiga_hunk_genam
+  no platform-looking gaps found
+
+uv run ruff check amiga_reversing\tools\platform_kb.py tests\test_platform_kb.py
+  All checks passed.
+
+cmd /c src\precommit.bat
+  style/unit/integration/explicit checks passed
+```
+
+Notes:
+
+- The repository has no committed `targets/*/source_analysis.json` or
+  `platform_summary.json` artifacts; `amiga-platform-kb report` therefore shows
+  target summary schema absent in committed target artifacts. This matches the
+  current archive decision: the command supports standalone and embedded summary
+  artifacts when present, while strict checks do not fail only because generated
+  per-target analysis output is gitignored.
+- The `004-008` review found that memory-map source comments are still emitted
+  through the render lookup phase, while JSON summary exposes memory-map count
+  through `M68kTargetPlatformSummary`. OS compatibility rendering and JSON now
+  share the C summary builder. This is acceptable for the completed proposal
+  state but remains the narrowest area to revisit if full memory-map row
+  serialization becomes important.
+- Existing dirty worktree entries outside this proposal review were not touched.

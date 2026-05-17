@@ -614,7 +614,11 @@ def benchmark_project_source_with_text_from_c_backend(
         metadata_path=metadata_path,
         project_root=project_root,
     )
-    return _benchmark_from_facts_v2_asm_source_profile(profile), source_text
+    return benchmark_from_facts_v2_asm_source_profile(profile), source_text
+
+
+def benchmark_from_facts_v2_asm_source_profile(profile: dict[str, object]) -> dict[str, object]:
+    return _benchmark_from_facts_v2_asm_source_profile(profile)
 
 
 def build_project_listing_artifact_profile(

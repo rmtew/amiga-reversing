@@ -14,12 +14,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
-from amiga_reversing.disasm.c_backend import (
-    benchmark_project_source_with_text_from_c_backend,
-)
+from amiga_reversing.disasm.c_backend import benchmark_from_facts_v2_asm_source_profile
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_ids import target_output_stem
 from amiga_reversing.disasm.project_paths import resolve_project_paths
+from amiga_reversing.disasm.source_rendering import (
+    render_source_from_binary_source_or_raise,
+)
 
 TARGETS_DIR = ROOT / "targets"
 
@@ -49,6 +50,7 @@ class TargetBenchmark:
     error: str | None = None
     targets: dict[str, TargetBenchmark] | None = None
     facts_v2: dict[str, object] | None = None
+    workflow_profile: dict[str, object] | None = None
 
 
 def _sum_c_timing(records: Sequence[TargetBenchmark]) -> dict[str, object] | None:
@@ -95,6 +97,7 @@ def _benchmark_record(
     render = c_benchmark.get("render") if c_benchmark is not None else None
     sections = c_benchmark.get("sections") if c_benchmark is not None else None
     facts_v2 = c_benchmark.get("facts_v2") if c_benchmark is not None else None
+    workflow_profile = c_benchmark.get("workflow_profile") if c_benchmark is not None else None
     return TargetBenchmark(
         target=target,
         binary=binary_display_path,
@@ -114,6 +117,7 @@ def _benchmark_record(
         error=error,
         targets=targets,
         facts_v2=facts_v2 if isinstance(facts_v2, dict) else None,
+        workflow_profile=workflow_profile if isinstance(workflow_profile, dict) else None,
     )
 
 
@@ -143,11 +147,17 @@ def _benchmark_binary_target(
     c_benchmark: dict[str, object] | None = None
     try:
         with effective_metadata_file(target_dir) as metadata_path:
-            c_benchmark, rendered_text = benchmark_project_source_with_text_from_c_backend(
-                paths.binary_source,
+            rendering = render_source_from_binary_source_or_raise(
+                target_id=target,
+                binary_source=paths.binary_source,
+                target_dir=target_dir,
                 metadata_path=metadata_path,
                 project_root=ROOT,
+                workflow_id="benchmark_target_source_rendering",
             )
+        rendered_text = rendering.source_text
+        c_benchmark = benchmark_from_facts_v2_asm_source_profile(rendering.listing_profile)
+        c_benchmark["workflow_profile"] = rendering.workflow_profile
         c_benchmark["path"] = paths.binary_source.display_path
         assembler_profile = load_assembler_profile(assembler_profile_name)
         newline = "\n" if assembler_profile.render.line_ending == "lf" else "\r\n"

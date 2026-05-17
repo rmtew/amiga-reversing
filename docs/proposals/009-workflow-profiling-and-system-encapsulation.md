@@ -1,8 +1,12 @@
 # Proposal 009: Workflow Profiling And System Encapsulation
 
-Status: Implemented.
+Status: Closed for Proposal 009 follow-up implementation.
 
-Status changed: 2026-05-17.
+Status changed: 2026-05-18.
+
+The workflow profiling and system encapsulation work is complete. The remaining
+RoundTripVerificationWorkflow separate-module move is explicit future-work
+inventory, not open `009-*` follow-up work.
 
 ## Contents
 
@@ -1148,6 +1152,10 @@ amiga_reversing/disasm/oracle_compatibility.py
   Oracle compatibility reports include tool graph capability-resolution and
   oracle-invocation workflow spans.
 
+amiga_reversing/tools/benchmark_target.py
+  Target benchmarking consumes the shared source-rendering module and carries
+  the rendering workflow_profile into benchmark records.
+
 amiga_reversing/disasm/server.py
   Normal command locator resolution uses the indexed/artifact-local listing
   projection path; range commands keep the explicit all-row path.
@@ -1208,3 +1216,58 @@ ADR-0004:
   A later module split could move this object into a separate file, but doing so
   now would mostly be file churn because the workflow still relies on many
   reproduction-local report helpers.
+
+## Review Addendum
+
+- 2026-05-18: Reviewed completed issues `009-001` through `009-015` against the
+  current code paths. The main proposal goals are represented in code:
+  `workflow_profile.py`, `source_rendering.py`, `RoundTripVerificationWorkflow`,
+  manual command spans, indexed normal locator resolution,
+  `CProfiledOperation`, browser debug correlation, harness assertions, and
+  oracle tool-graph spans all have direct implementation and test coverage.
+- 2026-05-18: Found one remaining production source-rendering gap:
+  `amiga_reversing/tools/benchmark_target.py` still called the low-level C
+  source-rendering benchmark helper directly. Routed it through
+  `render_source_from_binary_source_or_raise()` and preserved benchmark shaping
+  through `benchmark_from_facts_v2_asm_source_profile()`.
+- 2026-05-18: Benchmark records now retain the source-rendering
+  `workflow_profile`, so benchmark rendering is observable through the shared
+  contract instead of only through C timing details.
+- 2026-05-18: Focused verification passed:
+  `uv run python -m pytest tests\test_benchmark_target.py tests\test_source_rendering.py tests\test_c_backend.py -q`
+  and `uv run ruff check amiga_reversing\tools\benchmark_target.py amiga_reversing\disasm\c_backend.py tests\test_benchmark_target.py`.
+- 2026-05-18: Proposal-level verification passed:
+  `uv run python -m pytest tests\test_workflow_profile.py tests\test_source_export.py tests\test_source_rendering.py tests\test_reproduction.py tests\test_disasm_server.py tests\test_api_workflow_harness.py tests\test_listing_projection.py tests\test_web_app_source.py tests\test_oracle_compatibility.py tests\test_tool_graph.py tests\test_vasm_roundtrip.py tests\test_benchmark_target.py -q`,
+  proposal-owned `ruff check`, and
+  `$env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py -q`.
+
+### Final Follow-Up Verification: 2026-05-18
+
+All Proposal 009 follow-up issue slices have been completed and deleted. The
+proposal is now the durable implementation and review record.
+
+Final state:
+
+```text
+shared workflow profile contract: complete
+manual edit backend spans: complete
+normal locator indexed resolution: complete
+Source Rendering workflow module: complete
+Round-Trip Verification phase encapsulation: complete
+C profiled operation adapter for touched calls: complete
+browser/backend profile correlation: complete
+LLM-operable profiling harness: complete
+tool graph/oracle workflow spans: complete
+production benchmark source rendering through Source Rendering: complete
+dead PhaseTimer removal: complete
+```
+
+Final commands run:
+
+```text
+uv run python -m pytest tests\test_workflow_profile.py tests\test_source_export.py tests\test_source_rendering.py tests\test_reproduction.py tests\test_disasm_server.py tests\test_api_workflow_harness.py tests\test_listing_projection.py tests\test_web_app_source.py tests\test_oracle_compatibility.py tests\test_tool_graph.py tests\test_vasm_roundtrip.py tests\test_benchmark_target.py -q
+uv run ruff check amiga_reversing\disasm\workflow_profile.py amiga_reversing\disasm\source_rendering.py amiga_reversing\disasm\source_export.py amiga_reversing\disasm\reproduction.py amiga_reversing\disasm\listing_projection.py amiga_reversing\disasm\server.py amiga_reversing\disasm\c_backend.py amiga_reversing\disasm\oracle_compatibility.py amiga_reversing\tools\vasm_roundtrip.py amiga_reversing\tools\benchmark_target.py tests\test_workflow_profile.py tests\test_source_export.py tests\test_source_rendering.py tests\test_reproduction.py tests\test_disasm_server.py tests\test_api_workflow_harness.py tests\test_listing_projection.py tests\test_web_app_source.py tests\test_oracle_compatibility.py tests\test_tool_graph.py tests\test_vasm_roundtrip.py tests\test_benchmark_target.py tests\workflow_harness.py
+$env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py -q
+```
+
+All final commands passed.

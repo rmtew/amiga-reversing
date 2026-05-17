@@ -105,13 +105,6 @@ Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 
 - 2026-05-16 GenAm / Bloodwych sweep recorded in `docs/validation/reproduction-sweep-2026-05-16.md`.
 
-## Knowledge Base: Amiga Platform
-
-Proposal: `docs/proposals/004-amiga-platform-knowledge.md`.
-
-Proposal 004 implementation and follow-up hardening are complete. Completed
-issue files remain in `docs/issues/004-*` as the implementation archive.
-
 ## Future Work
 
 ### Compiler Fingerprinting
