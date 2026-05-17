@@ -1906,6 +1906,14 @@ CDP assertions can reuse the same semantic checks without inventing a parallel
 browser-only state contract
 ```
 
+Implementation note from `028-007`: `tests/workflow_harness.py` now exposes
+semantic snapshot assertions for manual mutation and preference workflows. The
+API workflow tests exercise real command execution through Manual Action Log
+state, project reload, projected listing rows, review state, stale locator
+recovery, UI preference reload, `ListingProjectionService` debug state, and
+browser-debug-shaped snapshots that later CDP tests can feed without relying on
+DOM-only checks.
+
 ### Slice 5: Refactor Browser Listing State
 
 Split `state.listingRows`, `state.listingSelection`, and
