@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from amiga_reversing.disasm import source_export
+from amiga_reversing.disasm.source_rendering import SourceRenderingResult
 from amiga_reversing.tools import source_export as source_export_cli
 
 
@@ -20,10 +21,20 @@ def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path:
     )
     monkeypatch.setattr(
         source_export,
-        "listing_artifact_source_text_with_c_backend_profile",
-        lambda *args, **kwargs: ("    rts\n", {"facts_v2": {}}),
+        "render_source_from_binary_source",
+        lambda **kwargs: SourceRenderingResult(
+            status="ok",
+            source_text="    rts\n",
+            listing_profile={"facts_v2": {}},
+            workflow_profile={
+                "workflow_id": "source_export",
+                "target_id": "demo target",
+                "spans": [{"name": "source_rendering", "seconds": 0.0, "module": "c_backend"}],
+            },
+            metadata_hash="metadata-hash",
+            target_identity_sha256="identity",
+        ),
     )
-    monkeypatch.setattr(source_export, "effective_metadata_hash", lambda target_dir: "metadata-hash")
 
     payload = source_export.source_export_payload("demo target", assembler_profile="devpac", project_root=tmp_path)
 
@@ -67,10 +78,21 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
     )
     monkeypatch.setattr(
         source_export,
-        "listing_artifact_source_text_with_c_backend_profile",
-        lambda *args, **kwargs: ("", profile),
+        "render_source_from_binary_source",
+        lambda **kwargs: SourceRenderingResult(
+            status="refused",
+            source_text="",
+            listing_profile=profile,
+            workflow_profile={
+                "workflow_id": "source_export",
+                "target_id": "demo",
+                "spans": [{"name": "source_rendering", "seconds": 0.0, "module": "c_backend"}],
+            },
+            metadata_hash="metadata-hash",
+            target_identity_sha256="identity",
+            refusal_message="facts_v2 asm source refused required_instruction_failure section=0 offset=2",
+        ),
     )
-    monkeypatch.setattr(source_export, "effective_metadata_hash", lambda target_dir: "metadata-hash")
 
     payload = source_export.source_export_payload("demo", project_root=tmp_path)
 

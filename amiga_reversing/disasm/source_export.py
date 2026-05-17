@@ -1,24 +1,14 @@
 from __future__ import annotations
 
-import hashlib
-import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
-from amiga_reversing.disasm.c_backend import (
-    listing_artifact_source_text_with_c_backend_profile,
-)
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
-    effective_metadata_hash,
-)
-from amiga_reversing.disasm.facts_v2_source_refusal import (
-    facts_v2_source_refusal_message,
-    facts_v2_source_refused,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
-from amiga_reversing.disasm.workflow_profile import WorkflowProfile
+from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
 
 SOURCE_EXPORT_ASSEMBLER_PROFILES = ("vasm", "devpac")
 
@@ -55,43 +45,36 @@ def render_source_export(
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        render_started_at = time.perf_counter()
-        source_text, listing_profile = listing_artifact_source_text_with_c_backend_profile(
-            binary_source,
+        rendering = render_source_from_binary_source(
+            target_id=target_name,
+            binary_source=binary_source,
+            target_dir=paths.target_dir,
             metadata_path=metadata_path,
             project_root=project_root,
+            workflow_id="source_export",
         )
-    workflow_profile = WorkflowProfile("source_export", target_id=target_name)
-    workflow_profile.add_span(
-        "source_rendering",
-        time.perf_counter() - render_started_at,
-        module="c_backend",
-        detail={"listing_profile": listing_profile},
-    )
-    metadata_hash = effective_metadata_hash(paths.target_dir)
-    identity_hash = _sha256_bytes(binary_source.read_bytes())
     filename = f"{_safe_filename(target_name)}-{profile}.s"
     generated_at = datetime.now(UTC).replace(microsecond=0).isoformat()
-    if facts_v2_source_refused(listing_profile):
+    if rendering.refused:
         raise SourceExportRefused(
             {
                 "status": "refused",
                 "target": target_name,
                 "assembler_profile": profile,
                 "filename": filename,
-                "message": facts_v2_source_refusal_message(listing_profile),
-                "listing_profile": listing_profile,
-                "workflow_profile": workflow_profile.to_payload(),
-                "metadata_hash": metadata_hash,
-                "target_identity_sha256": identity_hash,
+                "message": rendering.refusal_message,
+                "listing_profile": rendering.listing_profile,
+                "workflow_profile": rendering.workflow_profile,
+                "metadata_hash": rendering.metadata_hash,
+                "target_identity_sha256": rendering.target_identity_sha256,
                 "generated_at": generated_at,
             }
         )
     header = _source_export_header(
         target_name,
         assembler_profile=profile,
-        metadata_hash=metadata_hash,
-        target_identity_sha256=identity_hash,
+        metadata_hash=rendering.metadata_hash,
+        target_identity_sha256=rendering.target_identity_sha256,
         generated_at=generated_at,
     )
     return {
@@ -99,13 +82,13 @@ def render_source_export(
         "target": target_name,
         "assembler_profile": profile,
         "filename": filename,
-        "source_text": _join_header_and_source(header, source_text, assembler_profile=profile),
+        "source_text": _join_header_and_source(header, rendering.source_text, assembler_profile=profile),
         "header": header,
-        "metadata_hash": metadata_hash,
-        "target_identity_sha256": identity_hash,
+        "metadata_hash": rendering.metadata_hash,
+        "target_identity_sha256": rendering.target_identity_sha256,
         "generated_at": generated_at,
-        "listing_profile": listing_profile,
-        "workflow_profile": workflow_profile.to_payload(),
+        "listing_profile": rendering.listing_profile,
+        "workflow_profile": rendering.workflow_profile,
         "non_verification": True,
     }
 
@@ -148,7 +131,3 @@ def _join_header_and_source(header: str, source_text: str, *, assembler_profile:
 def _safe_filename(target_name: str) -> str:
     clean = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in target_name)
     return clean.strip("-") or "source-export"
-
-
-def _sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()

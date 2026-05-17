@@ -33,6 +33,7 @@ from amiga_reversing.disasm.reproduction_report import (
     ReproductionReportStatus,
     RoundTripReportBuilder,
 )
+from amiga_reversing.disasm.source_rendering import SourceRenderingResult
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
 
@@ -143,6 +144,21 @@ def _mock_c_compare_profile(original: bytes, rebuilt: bytes) -> dict[str, object
         "reproduction_compare_content_exact": exact,
         "reproduction_compare_container_oddity": False,
     }
+
+
+def _source_rendering_result(source_text: str, profile: dict[str, object]) -> SourceRenderingResult:
+    return SourceRenderingResult(
+        status="ok",
+        source_text=source_text,
+        listing_profile=profile,
+        workflow_profile={
+            "workflow_id": "source_rendering",
+            "target_id": "demo",
+            "spans": [{"name": "source_rendering", "seconds": 0.0, "module": "c_backend"}],
+        },
+        metadata_hash="metadata-hash",
+        target_identity_sha256="identity",
+    )
 
 
 def test_round_trip_report_builder_completed_shape(tmp_path: Path) -> None:
@@ -425,13 +441,13 @@ def test_run_reproduction_captures_assembler_failure(monkeypatch: pytest.MonkeyP
     )
     calls: list[dict[str, object]] = []
 
-    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def render_source(*args: object, **kwargs: object) -> SourceRenderingResult:
         calls.append({"args": args, "kwargs": kwargs})
-        return "bad\n", {"facts_v2": {"asm_source_refused": False}}
+        return _source_rendering_result("bad\n", {"facts_v2": {"asm_source_refused": False}})
 
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         render_source,
     )
     assemble_calls: list[dict[str, object]] = []
@@ -477,9 +493,12 @@ def test_run_reproduction_exact_match_skips_file_layout(
     render_calls: list[dict[str, object]] = []
     assemble_calls: list[dict[str, object]] = []
 
-    def render_exact(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def render_exact(*args: object, **kwargs: object) -> SourceRenderingResult:
         render_calls.append({"args": args, "kwargs": kwargs})
-        return "dc.l $000003F3\n", {"facts_v2": {"asm_source_refused": False}, "source_bytes": len(original)}
+        return _source_rendering_result(
+            "dc.l $000003F3\n",
+            {"facts_v2": {"asm_source_refused": False}, "source_bytes": len(original)},
+        )
 
     def assemble_exact(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assemble_calls.append({"args": args, "kwargs": kwargs})
@@ -491,7 +510,7 @@ def test_run_reproduction_exact_match_skips_file_layout(
 
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         render_exact,
     )
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_exact)
@@ -542,9 +561,12 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
     render_calls: list[dict[str, object]] = []
     assemble_calls: list[dict[str, object]] = []
 
-    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def render_source(*args: object, **kwargs: object) -> SourceRenderingResult:
         render_calls.append({"args": args, "kwargs": kwargs})
-        return "dc.l $000003F3\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
+        return _source_rendering_result(
+            "dc.l $000003F3\n",
+            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
+        )
 
     def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assemble_calls.append({"args": args, "kwargs": kwargs})
@@ -554,7 +576,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly(
             output_path.write_bytes(original)
         return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "render_source_from_binary_source_or_raise", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
     monkeypatch.setattr(
         reproduction,
@@ -599,7 +621,7 @@ def test_run_reproduction_preserves_pre_rendered_source_profile(
     )
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("source should already be rendered")),
     )
     source_profile = {
@@ -673,9 +695,12 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
     render_calls: list[dict[str, object]] = []
     assemble_calls: list[dict[str, object]] = []
 
-    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def render_source(*args: object, **kwargs: object) -> SourceRenderingResult:
         render_calls.append({"args": args, "kwargs": kwargs})
-        return "\trts\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
+        return _source_rendering_result(
+            "\trts\n",
+            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
+        )
 
     def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assemble_calls.append({"args": args, "kwargs": kwargs})
@@ -685,7 +710,7 @@ def test_run_reproduction_uses_listing_artifact_source_assembly_for_raw_binary(
             output_path.write_bytes(original)
         return original, {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "render_source_from_binary_source_or_raise", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
     monkeypatch.setattr(
         reproduction,
@@ -728,7 +753,7 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     )
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("source render should not run")),
     )
     monkeypatch.setattr(
@@ -825,7 +850,7 @@ def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("direct rebuild refusal must not render source")),
     )
 
@@ -882,15 +907,15 @@ def test_run_reproduction_direct_source_compare_does_not_override_direct_bytes(
             {"facts_v2_direct_rebuild": True, "direct_rebuild_refused": False, "rebuilt_bytes": len(direct_bytes)},
         )
 
-    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
-        return "dc.l $000003F3\n", source_profile
+    def render_source(*args: object, **kwargs: object) -> SourceRenderingResult:
+        return _source_rendering_result("dc.l $000003F3\n", source_profile)
 
     def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         assert kwargs.get("output_path") is None
         return original, {"assemble_c_api": True, "total_seconds": 0.01}
 
     monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
-    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "render_source_from_binary_source_or_raise", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
     monkeypatch.setattr(
         reproduction,
@@ -1144,8 +1169,11 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
             binary_source=source,
         ),
     )
-    def render_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
-        return "dc.l $000003F3\n", {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}}
+    def render_source(*args: object, **kwargs: object) -> SourceRenderingResult:
+        return _source_rendering_result(
+            "dc.l $000003F3\n",
+            {"generation": "facts_v2_asm_source", "facts_v2": {"asm_source_refused": False}},
+        )
 
     def assemble_source(*args: object, **kwargs: object) -> tuple[bytes, dict[str, object]]:
         output_path = kwargs.get("output_path")
@@ -1154,7 +1182,7 @@ def test_run_reproduction_fast_path_does_not_late_render_source_on_mismatch(
             output_path.write_bytes(rebuilt)
         return bytes(rebuilt), {"assemble_c_api": True, "total_seconds": 0.02}
 
-    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", render_source)
+    monkeypatch.setattr(reproduction, "render_source_from_binary_source_or_raise", render_source)
     monkeypatch.setattr(reproduction, "assemble_platform_source_text_with_c_backend", assemble_source)
     monkeypatch.setattr(
         reproduction,
@@ -1190,7 +1218,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
         ),
     )
 
-    def fail_render(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def fail_render(*args: object, **kwargs: object) -> SourceRenderingResult:
         raise reproduction.FactsV2SourceRefused(
             {
                 "facts_v2": {
@@ -1200,7 +1228,7 @@ def test_run_reproduction_captures_renderer_failure_as_render_error(
             }
         )
 
-    monkeypatch.setattr(reproduction, "listing_artifact_source_text_with_c_backend_profile", fail_render)
+    monkeypatch.setattr(reproduction, "render_source_from_binary_source_or_raise", fail_render)
 
     report = run_reproduction("demo", source_assembly_debug=True)
 
@@ -1238,12 +1266,12 @@ def test_run_reproduction_refuses_facts_v2_source_before_assemble(
             "asm_source_first_failure_offset": 4,
         }
     }
-    def refuse_source(*args: object, **kwargs: object) -> tuple[str, dict[str, object]]:
+    def refuse_source(*args: object, **kwargs: object) -> SourceRenderingResult:
         raise reproduction.FactsV2SourceRefused(listing_profile)
 
     monkeypatch.setattr(
         reproduction,
-        "listing_artifact_source_text_with_c_backend_profile",
+        "render_source_from_binary_source_or_raise",
         refuse_source,
     )
 

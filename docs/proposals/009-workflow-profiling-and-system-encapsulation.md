@@ -999,6 +999,17 @@ Implemented slice evidence:
     uv run python -m pytest tests\test_listing_projection.py tests\test_disasm_server.py -q
   Lint passed:
     uv run ruff check amiga_reversing\disasm\listing_projection.py amiga_reversing\disasm\server.py tests\test_listing_projection.py tests\test_disasm_server.py
+
+009-004:
+  Source Rendering is now a dedicated module owning the C renderer call,
+  listing profile, refusal interpretation, metadata hash, target identity hash,
+  and source_rendering workflow span.
+  Source Export and Round-Trip Verification source rendering paths consume the
+  module instead of calling the C backend renderer directly.
+  Focused tests passed:
+    uv run python -m pytest tests\test_source_rendering.py tests\test_source_export.py tests\test_reproduction.py -q
+  Lint passed:
+    uv run ruff check amiga_reversing\disasm\source_rendering.py amiga_reversing\disasm\source_export.py amiga_reversing\disasm\reproduction.py tests\test_source_rendering.py tests\test_source_export.py tests\test_reproduction.py
 ```
 
 Observed during implementation:
@@ -1019,6 +1030,12 @@ artifact's source-offset row lookup. The indexed resolver keeps a bounded
 single-row fallback for that shape; production C artifacts use
 row_for_source_offset and normal browser-origin commands use the row index built
 when the listing window is normalized.
+
+Source Rendering needed two consumer shapes: Source Export wants a refusal
+payload, while Round-Trip Verification wants the existing
+FactsV2SourceRefused exception path. The module owns refusal detection and
+offers both result and raise-on-refusal helpers so callers do not decode the C
+profile themselves.
 ```
 
 Current code evidence:

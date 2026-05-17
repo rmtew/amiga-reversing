@@ -21,7 +21,6 @@ from amiga_reversing.disasm.c_backend import (
     FactsV2ProfiledOperationFailed,
     assemble_platform_source_text_with_c_backend,
     facts_v2_direct_rebuild_project_source_with_c_backend_profile,
-    listing_artifact_source_text_with_c_backend_profile,
     reproduction_compare_rebuilt_bytes_with_c_backend_profile,
 )
 from amiga_reversing.disasm.effective_metadata import (
@@ -55,13 +54,19 @@ from amiga_reversing.disasm.reproduction_report import (
 from amiga_reversing.disasm.reproduction_report import (
     issue as make_issue,
 )
+from amiga_reversing.disasm.source_rendering import (
+    render_source_from_binary_source_or_raise,
+)
 from amiga_reversing.disasm.target_metadata import (
     TARGET_CORRECTIONS_FILE_NAME,
     TARGET_METADATA_FILE_NAME,
     TARGET_SEEDED_METADATA_FILE_NAME,
 )
 from amiga_reversing.disasm.tool_graph import capability_availability_for_modes
-from amiga_reversing.disasm.workflow_profile import WorkflowProfile, workflow_profile_payload
+from amiga_reversing.disasm.workflow_profile import (
+    WorkflowProfile,
+    workflow_profile_payload,
+)
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -402,13 +407,15 @@ def run_reproduction(
                     if facts_v2_direct_source_compare_enabled():
                         include_dir = _include_dir_for_backend(backend, project_root)
                         compare_started_at = time.perf_counter()
-                        rendered_source_text, source_compare_profile = (
-                            listing_artifact_source_text_with_c_backend_profile(
-                                paths.binary_source,
-                                metadata_path=metadata_path,
-                                project_root=project_root,
-                            )
+                        source_compare_rendering = render_source_from_binary_source_or_raise(
+                            target_id=target_name,
+                            binary_source=paths.binary_source,
+                            target_dir=paths.target_dir,
+                            metadata_path=metadata_path,
+                            project_root=project_root,
                         )
+                        rendered_source_text = source_compare_rendering.source_text
+                        source_compare_profile = source_compare_rendering.listing_profile
                         source_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
                             backend,
                             rendered_source_text,
@@ -610,11 +617,15 @@ def run_reproduction(
             )
             with effective_metadata_file(paths.target_dir) as metadata_path:
                 try:
-                    rendered_source_text, listing_profile = listing_artifact_source_text_with_c_backend_profile(
-                        paths.binary_source,
+                    rendering = render_source_from_binary_source_or_raise(
+                        target_id=target_name,
+                        binary_source=paths.binary_source,
+                        target_dir=paths.target_dir,
                         metadata_path=metadata_path,
                         project_root=project_root,
                     )
+                    rendered_source_text = rendering.source_text
+                    listing_profile = rendering.listing_profile
                 except FactsV2SourceRefused as exc:
                     message = str(exc)
                     _record_profile_timing(profile_timings, "render_source_seconds", phase_started_at)
