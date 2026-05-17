@@ -23,7 +23,7 @@ class ManualWorkflowExpectation:
 class PreferenceWorkflowExpectation:
     project_id: str
     source_export_assembler: str | None = None
-    listing_stable_key: str | None = None
+    listing_row_key: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,10 +56,11 @@ def assert_preference_workflow_snapshot(
         raise AssertionError("durable state: preference target_id mismatch")
     if preferences.get("source_export_assembler") != expected.source_export_assembler:
         raise AssertionError("durable state: source export assembler preference mismatch")
-    if expected.listing_stable_key is not None:
+    if expected.listing_row_key is not None:
         location = _mapping(preferences.get("listing_location"), "durable state: missing listing location")
-        if location.get("stable_key") != expected.listing_stable_key:
-            raise AssertionError("durable state: listing location stable_key mismatch")
+        locator = _mapping(location.get("locator"), "durable state: missing listing locator")
+        if locator.get("row_key") != expected.listing_row_key:
+            raise AssertionError("durable state: listing location row_key mismatch")
     _assert_preference_debug_state(snapshot, expected)
 
 
@@ -192,8 +193,8 @@ def _assert_preference_debug_state(
     browser = _mapping(browser_debug, "debug state: malformed browser debug state")
     if browser.get("project_id") != expected.project_id:
         raise AssertionError("debug state: browser project mismatch")
-    if expected.listing_stable_key is not None and browser.get("listing_stable_key") != expected.listing_stable_key:
-        raise AssertionError("debug state: browser listing stable_key mismatch")
+    if expected.listing_row_key is not None and browser.get("selected_row_key") != expected.listing_row_key:
+        raise AssertionError("debug state: browser listing row_key mismatch")
 
 
 def _row_by_key(rows: list[object], row_key: str | None) -> Mapping[str, object]:

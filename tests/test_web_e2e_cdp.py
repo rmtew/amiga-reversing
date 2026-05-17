@@ -41,6 +41,10 @@ from tests.listing_types_fixtures import (
     SemanticOperand,
     SymbolOperandMetadata,
 )
+from tests.workflow_harness import (
+    ManualWorkflowExpectation,
+    assert_manual_workflow_snapshot,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 pytestmark = pytest.mark.skipif(not brave_cdp_requested(), reason=brave_cdp_skip_reason())
@@ -1742,6 +1746,166 @@ def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
         page.wait_for_selector("#navigation-overlay")
         page.wait_for_expression("document.querySelector('[data-navigation-class]')?.value === 'review-notes'")
         page.wait_for_expression("document.querySelector('#navigation-overlay')?.textContent.includes('Check return')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = _binary_project("amiga_hunk_llm_command_smoke")
+    target_dir = tmp_path / project.id
+    target_dir.mkdir(parents=True)
+    binary_path = tmp_path / "bin" / "demo.bin"
+    binary_path.parent.mkdir()
+    binary_path.write_bytes(b"\0" * 16)
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=binary_path,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,
+        load_address=0x6000,
+        entrypoint=0x6004,
+        code_start_offset=0,
+        display_path="bin/demo.bin",
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+        )
+    ]
+    comments: list[dict[str, object]] = []
+    real_append_manual_action = disasm_server.append_manual_action
+
+    def project_record(project_name: str) -> ProjectRecord:
+        return replace(project, manual_state={"comments": comments})
+
+    def append_action(target_dir: Path, *, kind: object, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = real_append_manual_action(
+            target_dir,
+            kind=kind,
+            payload=payload,
+            binary_source=cast(RawBinarySource, binary_source),
+        )
+        if getattr(kind, "value", kind) == "create_manual_comment":
+            comments.append(cast(dict[str, object], payload["comment"]))
+        return action
+
+    _cache_full_project_rows(project.id, rows)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project_record(project.id)])
+    monkeypatch.setattr(disasm_server, "get_project", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", project_record)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_project_listing_artifact_profile",
+        lambda project_name: (len(rows), {}, _FakeCListingArtifact(rows, project_name=project.id)),
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=source),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: source)
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("window.__amigaDebugState()?.layers?.listing_session?.visible_locators?.length === 1")
+        initial_debug = cast(dict[str, object], page.evaluate("window.__amigaDebugState()"))
+        locator = cast(dict[str, object], cast(dict[str, object], initial_debug["layers"])["listing_session"])[
+            "visible_locators"
+        ][0]
+        selected_locator = page.evaluate(
+            f"""
+            (() => {{
+              const locator = {json.dumps(locator)};
+              const row = Array.from(document.querySelectorAll(".listing-row")).find((candidate) => {{
+                const current = JSON.parse(candidate.dataset.rowLocator || "null");
+                return current
+                  && current.target_id === locator.target_id
+                  && current.projection_hash === locator.projection_hash
+                  && current.row_key === locator.row_key;
+              }});
+              if (!row) throw new Error("locator row not rendered");
+              row.click();
+              return window.__amigaDebugState().layers.selection.selected_locator;
+            }})()
+            """
+        )
+        assert selected_locator["row_key"] == "row-0"
+
+        command_result = cast(dict[str, object], page.evaluate(
+            f"""
+            (async () => {{
+              const projectId = {json.dumps(project.id)};
+              const locator = {json.dumps(locator)};
+              const params = new URLSearchParams();
+              params.set("context", "row");
+              params.set("locator", JSON.stringify(locator));
+              const catalogPayload = await fetchJson(`/api/projects/${{encodeURIComponent(projectId)}}/commands?${{params.toString()}}`);
+              const command = catalogPayload.commands.find((candidate) => candidate.action_id === "comment.edit");
+              if (!command) throw new Error("comment.edit command missing");
+              const executePayload = await fetchJson(`/api/projects/${{encodeURIComponent(projectId)}}/commands/execute`, {{
+                method: "POST",
+                headers: {{"Content-Type": "application/json"}},
+                body: JSON.stringify({{
+                  command_id: command.action_id,
+                  context: command.target_context,
+                  parameters: {{text: "LLM smoke comment"}},
+                }}),
+              }});
+              return {{
+                command_id: command.action_id,
+                context_kind: command.target_context.kind,
+                server_debug_route: "/api/projects/" + projectId + "/commands",
+                browser_debug_hook: "window.__amigaDebugState()",
+                execute: executePayload,
+              }};
+            }})()
+            """
+        ))
+        assert command_result["command_id"] == "comment.edit"
+        assert command_result["context_kind"] == "row"
+        mutation = cast(dict[str, object], cast(dict[str, object], command_result["execute"])["mutation"])
+
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("window.__amigaDebugState()?.listing_projection_hash === 'test-cache'")
+        page.wait_for_expression("document.querySelector('.listing-comment')?.textContent.includes('LLM smoke comment')")
+        snapshot = {
+            "mutation": mutation,
+            "project": cast(dict[str, object], disasm_server.route_request("GET", f"/api/projects/{project.id}", {})["data"]),
+            "listing": cast(dict[str, object], disasm_server.route_request(
+                "GET",
+                f"/api/projects/{project.id}/listing",
+                {"start": ["0"], "count": ["20"]},
+            )["data"]),
+            "server_debug_state": disasm_server._LISTING_PROJECTION_SERVICE.debug_state(),
+            "browser_debug_state": page.evaluate("window.__amigaDebugState()"),
+        }
+        assert_manual_workflow_snapshot(
+            snapshot,
+            ManualWorkflowExpectation(
+                project_id=project.id,
+                manual_action_log_count=1,
+                durable_action_id=cast(str, mutation["durable_action_id"]),
+                row_key="row-0",
+                projection_hash="test-cache",
+                comment_text="LLM smoke comment",
+            ),
+        )
+        assert command_result["server_debug_route"] == f"/api/projects/{project.id}/commands"
+        assert command_result["browser_debug_hook"] == "window.__amigaDebugState()"
         page.assert_no_errors()
 
 

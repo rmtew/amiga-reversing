@@ -157,7 +157,20 @@ def test_api_harness_proves_preference_workflow_reload(
         {},
         {
             "source_export_assembler": "vasm",
-            "listing_location": {"stable_key": "row-0", "row_index": 0, "scroll_top": 12},
+            "listing_location": {
+                "locator": {
+                    "target_id": project_id,
+                    "projection_hash": "cache",
+                    "row_key": "row-0",
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 4,
+                    "end_offset": 6,
+                    "storage_address": 4,
+                    "runtime_address": None,
+                },
+                "viewport_anchor": {"scroll_top": 12, "window_start": 0},
+            },
         },
     )["data"])
     reloaded = cast(dict[str, object], disasm_server.route_request(
@@ -172,13 +185,13 @@ def test_api_harness_proves_preference_workflow_reload(
             "preferences": reloaded,
             "browser_debug_state": {
                 "project_id": project_id,
-                "listing_stable_key": "row-0",
+                "selected_row_key": "row-0",
             },
         },
         PreferenceWorkflowExpectation(
             project_id=project_id,
             source_export_assembler="vasm",
-            listing_stable_key="row-0",
+            listing_row_key="row-0",
         ),
     )
 

@@ -2017,6 +2017,15 @@ one smoke workflow can be followed by an LLM browser agent without row text,
 row index, or timing assumptions
 ```
 
+Implementation note from `028-012`: CDP now includes an LLM-operable
+`comment.edit` command smoke workflow. The test reads `window.__amigaDebugState`,
+selects a row by `ListingRowLocator`, discovers `comment.edit` through the
+`/commands` route, executes it with locator context, reloads the target, and
+asserts the shared workflow snapshot across mutation result, reloaded project,
+projected listing, server debug state, browser debug state, and final DOM. The
+test avoids row text, row index, screenshots, arbitrary sleeps, and direct live
+state objects as verification oracles.
+
 ### Slice 9: Historical Bug Fixtures
 
 Convert known fragile UI bugs into fixtures as the relevant subsystem is
