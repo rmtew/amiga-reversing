@@ -58,14 +58,18 @@ def oracle_compatibility_reports_for_options(
 def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
     capability = resolve_capability("assemble_vasm_source", project_root=project_root)
     availability = [_availability_record_from_capability(capability)]
+    tool_chain = _tool_chain_from_capability(capability, ["vasm"])
     missing = _missing_or_error_report(
         oracle_id="vasm",
         source_profile="vasm",
-        tool_chain=_tool_chain_from_capability(capability, ["vasm"]),
+        tool_chain=tool_chain,
         availability=availability,
     )
     if missing is not None:
         return missing
+    vasm_path = _selected_capability_path(capability, "functional_resolved_path")
+    if vasm_path is None:
+        return _tool_error_report("vasm", "vasm", tool_chain, availability, "capability selected no vasm path")
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
@@ -75,7 +79,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
         return _base_report(
             oracle_id="vasm",
             source_profile="vasm",
-            tool_chain=_tool_chain_from_capability(capability, ["vasm"]),
+            tool_chain=tool_chain,
             availability=availability,
             comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
             assembler_status="not_run",
@@ -88,7 +92,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
         rendered_source, source_profile_payload = _render_vasm_source(binary_source, paths.target_dir, project_root)
         _write_source_text(source_path, rendered_source, "vasm")
         command = [
-            cast(str, availability[0]["resolved_path"]),
+            vasm_path,
             output_format,
             "-m68000",
             "-no-opt",
@@ -104,7 +108,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
         return _report_from_command(
             oracle_id="vasm",
             source_profile="vasm",
-            tool_chain=["vasm"],
+            tool_chain=tool_chain,
             availability=availability,
             binary_source=binary_source,
             output_path=output_path,
@@ -117,7 +121,7 @@ def run_vasm_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> d
             target_dir=paths.target_dir,
         )
     except Exception as exc:
-        return _tool_error_report("vasm", "vasm", ["vasm"], availability, str(exc))
+        return _tool_error_report("vasm", "vasm", tool_chain, availability, str(exc))
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
@@ -134,6 +138,16 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
     )
     if missing is not None:
         return missing
+    vamos_path = _selected_capability_path(capability, "runtime_resolved_path")
+    genam_path = _selected_capability_path(capability, "functional_resolved_path")
+    if vamos_path is None or genam_path is None:
+        return _tool_error_report(
+            "genam-devpac",
+            "devpac",
+            tool_chain,
+            availability,
+            "capability selected no GenAm runtime chain paths",
+        )
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
@@ -161,11 +175,11 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
                 shutil.copytree(include_src, temp_root / "include")
                 include_arg = ["INCDIR", "TMP:include/"]
         command = [
-            cast(str, availability[0]["runtime_resolved_path"]),
+            vamos_path,
             "-V",
             f"TMP:{temp_root}",
             "--",
-            cast(str, availability[0]["resolved_path"]),
+            genam_path,
             f"TMP:{source_path.name}",
             *_devpac_output_args("devpac", output_name),
             "QUIET",
@@ -437,6 +451,14 @@ def _tool_chain_from_capability(capability: Mapping[str, object], fallback: list
     if isinstance(selected, dict) and isinstance(selected.get("tool_chain"), list):
         return cast(list[str], selected["tool_chain"])
     return fallback
+
+
+def _selected_capability_path(capability: Mapping[str, object], key: str) -> str | None:
+    selected = capability.get("selected")
+    if not isinstance(selected, dict):
+        return None
+    value = selected.get(key)
+    return value if isinstance(value, str) and value else None
 
 
 def _vasm_format_for_source_kind(source_kind: BinarySourceKind) -> str:

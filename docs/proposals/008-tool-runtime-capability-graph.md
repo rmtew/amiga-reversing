@@ -1,6 +1,6 @@
 # Proposal 008: Tool Runtime Capability Graph
 
-Status: Slice 1 implemented; remaining slices draft.
+Status: GenAm runtime chain cleanup implemented; compiler fingerprinting deferred.
 Status changed: 2026-05-17.
 
 Proposal 002 made external assembler checks explicit, but the tool model is
@@ -49,8 +49,8 @@ same architecture.
 - [ ] Non-Goals
 - [ ] Proposed Rewrite
   - [ ] Slice 1: Replace Flat Registry With Tool Graph
-  - [ ] Slice 2: GenAm Through Vamos As The First Runtime Chain
-  - [ ] Slice 3: Capability Queries For Oracle Workflows
+  - [x] Slice 2: GenAm Through Vamos As The First Runtime Chain
+  - [x] Slice 3: Capability Queries For Oracle Workflows
   - [ ] Slice 4: Probe Evidence And Identity Stamps
   - [ ] Slice 5: Compiler Fingerprint Fixtures
 - [ ] Acceptance Criteria
@@ -572,6 +572,12 @@ Move GenAm's `vamos` dependency out of `oracle_compatibility.py` and into the
 resolver. The DevPac oracle should request `assemble_devpac_source` and receive
 the GenAm-through-vamos chain.
 
+Resolved for the current oracle path in
+`docs/issues/008-002-consume-selected-genam-runtime-chain.md`: the DevPac
+oracle consumes the selected GenAm-through-vamos chain paths from the tool graph
+instead of reading executable paths back out of flattened availability
+diagnostics.
+
 ### Slice 3: Capability Queries For Oracle Workflows
 
 Update oracle and source-export workflows to ask for capabilities:
@@ -583,6 +589,11 @@ assemble_devpac_source
 
 The code should stop manually mapping profile names to tool dependencies except
 inside the tool graph.
+
+Resolved for current oracle workflows: vasm and DevPac oracle runs request
+`assemble_vasm_source` and `assemble_devpac_source` capabilities. Source export
+does not currently run external assembler tools, so there is no separate
+source-export tool dependency to move.
 
 ### Slice 4: Probe Evidence And Identity Stamps
 
@@ -666,3 +677,8 @@ An implementation wrinkle: tests that expected missing `vamos` had to configure
 an invalid runtime path explicitly, because developer machines may legitimately
 have `vamos` on `PATH`. Missing-runtime tests should pin discovery inputs rather
 than rely on ambient host state.
+
+Compiler fingerprinting remains intentionally deferred. The useful near-term
+cleanup after Slice 1 was the GenAm run path: oracle execution now consumes the
+tool graph's selected chain paths directly, while availability records stay as
+diagnostic/report payloads.

@@ -207,3 +207,51 @@ def test_genam_oracle_reports_missing_vamos(monkeypatch, tmp_path: Path) -> None
     assert report["comparison_level"] == "oracle.missing"
     assert report["assembler_status"] == "not_run"
     assert report["availability"][0]["missing_runtime_ids"] == ["vamos"]
+
+
+def test_genam_oracle_runs_selected_vamos_genam_chain(monkeypatch, tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    genam_path = tmp_path / "GenAm"
+    vamos_path = tmp_path / "vamos.exe"
+    genam_path.write_bytes(b"genam")
+    vamos_path.write_bytes(b"vamos")
+    binary_source = SimpleNamespace(
+        kind=BinarySourceKind.HUNK_FILE,
+        display_path="bin/Demo",
+        path=tmp_path / "Demo",
+        read_bytes=lambda: b"\x01\x02",
+    )
+    monkeypatch.setattr(
+        oracle_compatibility,
+        "resolve_capability",
+        lambda capability_id, project_root=None: _capability(
+            "assemble_devpac_source",
+            "genam",
+            genam_path,
+            runtime_tool_id="vamos",
+            runtime_path=vamos_path,
+        ),
+    )
+    monkeypatch.setattr(
+        oracle_compatibility,
+        "resolve_project_paths",
+        lambda target, project_root: SimpleNamespace(target_dir=target_dir, binary_source=binary_source),
+    )
+    monkeypatch.setattr(oracle_compatibility, "_render_devpac_source", lambda *args: ("    rts\n", {}))
+
+    def run(command: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+        assert command[0] == str(vamos_path)
+        assert command[3] == "--"
+        assert command[4] == str(genam_path)
+        (Path(command[2].removeprefix("TMP:")) / "Demo").write_bytes(b"\x01\x02")
+        return subprocess.CompletedProcess(command, 0, "ok", "")
+
+    monkeypatch.setattr(oracle_compatibility, "_run_command", run)
+
+    report = oracle_compatibility.run_genam_oracle("demo", project_root=tmp_path)
+
+    assert report["comparison_level"] == "oracle.full_file_match"
+    assert report["tool_chain"] == ["vamos", "genam"]
+    assert report["command"][0] == str(vamos_path)
+    assert report["command"][4] == str(genam_path)
