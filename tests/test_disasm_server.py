@@ -3132,14 +3132,8 @@ def test_route_reproduction_policy_rejects_invalid_options(
         )
 
 
-def test_route_tool_registry_and_availability(monkeypatch: pytest.MonkeyPatch) -> None:
-    saved: list[dict[str, object]] = []
-    monkeypatch.setattr(
-        disasm_server,
-        "load_tool_registry",
-        lambda project_root=None: {"version": 2, "runtime_tools": {}, "functional_tools": {}},
-    )
-    monkeypatch.setattr(disasm_server, "save_tool_registry", lambda registry, project_root=None: saved.append(dict(registry)))
+def test_route_tool_capability_resources(monkeypatch: pytest.MonkeyPatch) -> None:
+    configured: list[dict[str, object]] = []
     monkeypatch.setattr(disasm_server, "runtime_tool_records", lambda project_root=None: [{"runtime_tool_id": "host", "status": "available"}])
     monkeypatch.setattr(disasm_server, "functional_tool_records", lambda project_root=None: [{"functional_tool_id": "vasm", "status": "missing"}])
     monkeypatch.setattr(
@@ -3147,22 +3141,31 @@ def test_route_tool_registry_and_availability(monkeypatch: pytest.MonkeyPatch) -
         "resolve_capability",
         lambda capability_id, project_root=None: {"capability_id": capability_id, "status": "missing"},
     )
+    monkeypatch.setattr(
+        disasm_server,
+        "set_tool_artifact_path",
+        lambda kind, tool_id, path, project_root=None: configured.append({"kind": kind, "tool_id": tool_id, "path": path})
+        or {"version": 2, "runtime_tools": {}, "functional_tools": {tool_id: {"path": path}}},
+    )
 
-    registry_payload = disasm_server.route_request("GET", "/api/tool-registry", {})
-    save_payload = disasm_server.route_request("PUT", "/api/tool-registry", {}, {"version": 2, "runtime_tools": {}, "functional_tools": {}})
     runtimes_payload = disasm_server.route_request("GET", "/api/tools/runtimes", {})
     tools_payload = disasm_server.route_request("GET", "/api/tools/functional", {})
     capability_payload = disasm_server.route_request("GET", "/api/tools/capabilities/assemble_vasm_source", {})
+    configure_payload = disasm_server.route_request(
+        "POST",
+        "/api/tools/configuration/path",
+        {},
+        {"kind": "functional", "tool_id": "vasm", "path": "tools/vasm"},
+    )
 
-    assert cast(dict[str, object], registry_payload["data"])["version"] == 2
-    assert cast(dict[str, object], save_payload["data"])["functional_tools"] == {}
-    assert saved == [{"version": 2, "runtime_tools": {}, "functional_tools": {}}]
     assert cast(list[dict[str, object]], cast(dict[str, object], runtimes_payload["data"])["runtimes"])[0]["runtime_tool_id"] == "host"
     assert cast(list[dict[str, object]], cast(dict[str, object], tools_payload["data"])["tools"])[0]["functional_tool_id"] == "vasm"
     assert cast(dict[str, object], capability_payload["data"])["capability_id"] == "assemble_vasm_source"
+    assert cast(dict[str, object], cast(dict[str, object], configure_payload["data"])["functional_tools"])["vasm"] == {"path": "tools/vasm"}
+    assert configured == [{"kind": "functional", "tool_id": "vasm", "path": "tools/vasm"}]
 
 
-def test_route_project_tool_availability_for_profile_context(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_route_project_tool_capabilities_for_profile_context(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[object] = []
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
 
@@ -3174,7 +3177,7 @@ def test_route_project_tool_availability_for_profile_context(monkeypatch: pytest
 
     payload = disasm_server.route_request(
         "GET",
-        "/api/projects/bloodwych/tool-availability",
+        "/api/projects/bloodwych/tool-capabilities",
         {"profile_id": ["source-devpac"]},
     )
     data = cast(dict[str, object], payload["data"])
@@ -3182,7 +3185,7 @@ def test_route_project_tool_availability_for_profile_context(monkeypatch: pytest
     assert data["profile_id"] == "source-devpac"
     assert data["oracle_modes"] == ["devpac"]
     assert data["capability_ids"] == ["assemble_devpac_source"]
-    assert cast(list[dict[str, object]], data["availability"])[0]["missing_runtime_ids"] == ["vamos"]
+    assert cast(list[dict[str, object]], data["capabilities"])[0]["missing_runtime_ids"] == ["vamos"]
     assert calls == [["devpac"]]
 
 

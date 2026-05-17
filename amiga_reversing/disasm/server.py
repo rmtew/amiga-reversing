@@ -97,10 +97,8 @@ from amiga_reversing.disasm.tool_graph import (
     capability_availability_for_modes,
     capability_ids_for_oracle_modes,
     functional_tool_records,
-    load_tool_registry,
     resolve_capability,
     runtime_tool_records,
-    save_tool_registry,
     set_tool_artifact_path,
 )
 from amiga_reversing.disasm.ui_preferences import (
@@ -675,8 +673,8 @@ def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> di
     )
 
 
-def _project_tool_availability_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
-    _require_ready_binary_project(project_name, "tool availability")
+def _project_tool_capabilities_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
+    _require_ready_binary_project(project_name, "tool capabilities")
     profile_id = _first_query_value(query, "profile_id")
     oracle_modes = _query_csv(query, "oracle_modes")
     if profile_id:
@@ -694,7 +692,7 @@ def _project_tool_availability_payload(project_name: str, query: dict[str, list[
         "profile_id": profile_id,
         "oracle_modes": raw_modes,
         "capability_ids": list(capability_ids),
-        "availability": capability_availability_for_modes(raw_modes, project_root=PROJECT_ROOT),
+        "capabilities": capability_availability_for_modes(raw_modes, project_root=PROJECT_ROOT),
     }
 
 
@@ -762,7 +760,7 @@ def _safe_reproduction_policy_summary(project_name: str) -> dict[str, object]:
         "profile": active_profile,
         "options": options,
         "policy": policy,
-        "tool_availability": _project_tool_availability_payload(project_name, {})["availability"],
+        "tool_capabilities": _project_tool_capabilities_payload(project_name, {})["capabilities"],
         "profiles": builtin_reproduction_profiles(),
     }
 
@@ -2824,12 +2822,6 @@ def route_request(
                 for project in list_projects()
             ],
         }
-    if method == "GET" and path == "/api/tool-registry":
-        return {"ok": True, "data": load_tool_registry(project_root=PROJECT_ROOT)}
-    if method == "PUT" and path == "/api/tool-registry":
-        registry = cast(dict[str, object], body or {})
-        save_tool_registry(registry, project_root=PROJECT_ROOT)
-        return {"ok": True, "data": load_tool_registry(project_root=PROJECT_ROOT)}
     if method == "GET" and path == "/api/tools/runtimes":
         return {"ok": True, "data": {"runtimes": runtime_tool_records(project_root=PROJECT_ROOT)}}
     if method == "GET" and path == "/api/tools/functional":
@@ -2837,7 +2829,7 @@ def route_request(
     if method == "GET" and path.startswith("/api/tools/capabilities/"):
         capability_id = path.rsplit("/", 1)[-1]
         return {"ok": True, "data": resolve_capability(capability_id, project_root=PROJECT_ROOT)}
-    if method == "POST" and path == "/api/tools/path":
+    if method == "POST" and path == "/api/tools/configuration/path":
         kind = (body or {}).get("kind")
         tool_id = (body or {}).get("tool_id")
         path_value = (body or {}).get("path")
@@ -3026,8 +3018,8 @@ def route_request(
             return {"ok": True, "data": _set_reproduction_profile_payload(project_name, body)}
         if method == "POST" and len(parts) == 5 and parts[3] == "reproduction" and parts[4] == "policy":
             return {"ok": True, "data": _set_reproduction_policy_payload(project_name, body)}
-        if method == "GET" and len(parts) == 4 and parts[3] == "tool-availability":
-            return {"ok": True, "data": _project_tool_availability_payload(project_name, query)}
+        if method == "GET" and len(parts) == 4 and parts[3] == "tool-capabilities":
+            return {"ok": True, "data": _project_tool_capabilities_payload(project_name, query)}
         if method == "GET" and len(parts) == 5 and parts[3] == "tool-capabilities":
             _require_ready_binary_project(project_name, "tool capability")
             return {"ok": True, "data": resolve_capability(parts[4], project_root=PROJECT_ROOT)}

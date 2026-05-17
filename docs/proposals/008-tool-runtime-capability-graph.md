@@ -697,3 +697,8 @@ stamp but makes the tool chain unavailable.
 2026-05-17 follow-up: the persisted registry now rejects missing versions,
 legacy flat `tools` payloads, and unknown top-level keys. Missing registry files
 still synthesize an empty v2 registry; writes persist only the v2 shape.
+
+2026-05-17 follow-up: old route and CLI vocabulary was removed from production
+surfaces. Tool configuration now uses `/api/tools/configuration/path`, project
+capability summaries use `/api/projects/<project>/tool-capabilities`, and the
+CLI uses `project-capabilities` plus `configure-path`.

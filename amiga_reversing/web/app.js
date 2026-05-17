@@ -2921,8 +2921,8 @@ function renderReproductionPolicySummary(report) {
   const oracles = Array.isArray(options.oracle_modes) && options.oracle_modes.length
     ? options.oracle_modes.join(", ")
     : "none";
-  const availability = Array.isArray(summary.tool_availability)
-    ? summary.tool_availability.filter((record) => record && record.status !== "available")
+  const availability = Array.isArray(summary.tool_capabilities)
+    ? summary.tool_capabilities.filter((record) => record && record.status !== "available")
     : [];
   return `
     <div class="repro-policy-summary">
