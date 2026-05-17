@@ -519,6 +519,7 @@ def _availability_for_path(
         }
     try:
         stamp = _executable_stamp(path)
+        probe = _probe_for_path(path, probe_method)
         return {
             id_key: tool_id,
             "tool_id": tool_id,
@@ -529,9 +530,10 @@ def _availability_for_path(
             "message": f"{tool_id} is available",
             "probe_evidence": _probe_evidence(
                 probe_method,
-                "available",
-                _cheap_version(path) if probe_method == "native_version" else None,
+                cast(str, probe["probe_status"]),
+                cast(str | None, probe["version_text"]),
                 stamp,
+                extra=probe,
             ),
         }
     except OSError as exc:
@@ -552,18 +554,34 @@ def _probe_evidence(
     probe_status: str,
     version_text: str | None,
     executable_stamp: Mapping[str, object] | None,
+    *,
+    extra: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    evidence = {
         "probe_method": probe_method,
         "probe_status": probe_status,
         "version_text": version_text,
         "executable_stamp": dict(executable_stamp) if executable_stamp is not None else None,
     }
+    if extra is not None:
+        for key in ("stdout_excerpt", "stderr_excerpt", "probe_error"):
+            value = extra.get(key)
+            if value:
+                evidence[key] = value
+    return evidence
 
 
-def _cheap_version(path: Path) -> str | None:
+def _probe_for_path(path: Path, probe_method: str) -> dict[str, object]:
+    if probe_method == "hash_only":
+        return {"probe_status": "available", "version_text": None}
+    if probe_method == "native_version":
+        return _native_version_probe(path)
+    return {"probe_status": "unsupported", "version_text": None}
+
+
+def _native_version_probe(path: Path) -> dict[str, object]:
     if os.name == "nt" and path.suffix.lower() not in {".exe", ".bat", ".cmd"}:
-        return None
+        return {"probe_status": "unsupported", "version_text": None}
     try:
         result = subprocess.run(
             [str(path), "--version"],
@@ -572,10 +590,36 @@ def _cheap_version(path: Path) -> str | None:
             timeout=2,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "probe_status": "error",
+            "version_text": None,
+            "probe_error": f"version probe timed out after {exc.timeout:g}s",
+        }
+    except OSError as exc:
+        return {
+            "probe_status": "error",
+            "version_text": None,
+            "probe_error": str(exc),
+        }
     text = (result.stdout or result.stderr).strip().splitlines()
-    return text[0][:160] if text else None
+    if result.returncode != 0:
+        return {
+            "probe_status": "error",
+            "version_text": None,
+            "stdout_excerpt": _first_output_line(result.stdout),
+            "stderr_excerpt": _first_output_line(result.stderr),
+        }
+    version_text = text[0][:160] if text else None
+    return {
+        "probe_status": "available" if version_text else "unsupported",
+        "version_text": version_text,
+    }
+
+
+def _first_output_line(value: str) -> str | None:
+    lines = value.strip().splitlines()
+    return lines[0][:160] if lines else None
 
 
 def _executable_stamp(path: Path) -> dict[str, object]:

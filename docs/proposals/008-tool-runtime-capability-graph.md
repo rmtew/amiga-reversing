@@ -682,3 +682,8 @@ Compiler fingerprinting remains intentionally deferred. The useful near-term
 cleanup after Slice 1 was the GenAm run path: oracle execution now consumes the
 tool graph's selected chain paths directly, while availability records stay as
 diagnostic/report payloads.
+
+2026-05-17 follow-up: native version probing now treats non-zero, timeout, and
+`OSError` probe results as failed probe evidence rather than version identity.
+`version_text` is populated only for successful native probes; failure stdout or
+stderr is carried separately, and executable stamps remain identity evidence.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -115,3 +116,105 @@ def test_capability_availability_uses_runnable_status(tmp_path: Path) -> None:
     assert records[0]["artifact_status"] == "available"
     assert records[0]["status"] == "missing"
     assert records[0]["missing_runtime_ids"] == ["vamos"]
+
+
+def test_native_probe_success_records_version_text(monkeypatch, tmp_path: Path) -> None:
+    vasm = tmp_path / "vasm.exe"
+    vasm.write_bytes(b"vasm")
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert command == [str(vasm), "--version"]
+        return subprocess.CompletedProcess(command, 0, stdout="vasm 1.2\n", stderr="")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
+    record = tool_graph.functional_tool_record(
+        "vasm",
+        registry={"version": 2, "functional_tools": {"vasm": {"path": str(vasm)}}},
+        runtime_records={"host": tool_graph.runtime_tool_record("host")},
+        project_root=tmp_path,
+    )
+
+    evidence = record["probe_evidence"]
+    assert evidence["probe_status"] == "available"
+    assert evidence["version_text"] == "vasm 1.2"
+    assert evidence["executable_stamp"]["sha256"]
+
+
+def test_native_probe_failure_does_not_record_error_as_version(monkeypatch, tmp_path: Path) -> None:
+    vasm = tmp_path / "vasm.exe"
+    vasm.write_bytes(b"vasm")
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 2, stdout="", stderr="usage: vasm --help\n")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
+    record = tool_graph.functional_tool_record(
+        "vasm",
+        registry={"version": 2, "functional_tools": {"vasm": {"path": str(vasm)}}},
+        runtime_records={"host": tool_graph.runtime_tool_record("host")},
+        project_root=tmp_path,
+    )
+
+    evidence = record["probe_evidence"]
+    assert evidence["probe_status"] == "error"
+    assert evidence["version_text"] is None
+    assert evidence["stderr_excerpt"] == "usage: vasm --help"
+    assert evidence["executable_stamp"]["sha256"]
+
+
+def test_native_probe_timeout_and_os_error_keep_stamp(monkeypatch, tmp_path: Path) -> None:
+    vamos = tmp_path / "vamos.exe"
+    vamos.write_bytes(b"vamos")
+
+    def timeout(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired(command, timeout=2)
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", timeout)
+    timeout_record = tool_graph.runtime_tool_record(
+        "vamos",
+        registry={"version": 2, "runtime_tools": {"vamos": {"path": str(vamos)}}},
+        project_root=tmp_path,
+    )
+    timeout_evidence = timeout_record["probe_evidence"]
+    assert timeout_evidence["probe_status"] == "error"
+    assert timeout_evidence["version_text"] is None
+    assert timeout_evidence["executable_stamp"]["sha256"]
+
+    def os_error(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise OSError("not executable")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", os_error)
+    error_record = tool_graph.runtime_tool_record(
+        "vamos",
+        registry={"version": 2, "runtime_tools": {"vamos": {"path": str(vamos)}}},
+        project_root=tmp_path,
+    )
+    error_evidence = error_record["probe_evidence"]
+    assert error_evidence["probe_status"] == "error"
+    assert error_evidence["version_text"] is None
+    assert error_evidence["probe_error"] == "not executable"
+    assert error_evidence["executable_stamp"]["sha256"]
+
+
+def test_hash_only_tool_does_not_run_native_probe(monkeypatch, tmp_path: Path) -> None:
+    genam = tmp_path / "GenAm"
+    genam.write_bytes(b"genam")
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise AssertionError("hash-only tools must not run native version probes")
+
+    monkeypatch.setattr(tool_graph.subprocess, "run", run)
+
+    record = tool_graph.functional_tool_record(
+        "genam",
+        registry={"version": 2, "functional_tools": {"genam": {"path": str(genam)}}},
+        runtime_records={"vamos": {"runtime_tool_id": "vamos", "status": "available", "resolved_path": "vamos"}},
+        project_root=tmp_path,
+    )
+
+    evidence = record["probe_evidence"]
+    assert evidence["probe_method"] == "hash_only"
+    assert evidence["probe_status"] == "available"
+    assert evidence["version_text"] is None
