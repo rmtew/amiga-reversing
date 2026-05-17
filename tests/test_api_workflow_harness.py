@@ -116,6 +116,7 @@ def test_api_harness_proves_manual_workflow_reload_projection_and_stale_locator(
     assert_manual_workflow_snapshot(
         {
             "mutation": mutation,
+            "workflow_profile": comment_result["workflow_profile"],
             "project": reloaded_project,
             "listing": projected_listing,
             "server_debug_state": disasm_server._LISTING_PROJECTION_SERVICE.debug_state(),
@@ -141,6 +142,7 @@ def test_api_harness_proves_manual_workflow_reload_projection_and_stale_locator(
             review_state="needs_review",
             presentation_dirty=True,
             locator_recovered=True,
+            workflow_spans=("locator_resolution", "manual_action_append", "response_build"),
         ),
     )
 
@@ -248,6 +250,7 @@ def test_api_harness_runs_manual_mutation_durability_matrix(
         review_title="Matrix RTS",
         review_state="needs_review",
         presentation_dirty=True,
+        workflow_spans=("locator_resolution", "manual_action_append", "response_build"),
     )
 
     def reseed_listing() -> None:
@@ -257,6 +260,7 @@ def test_api_harness_runs_manual_mutation_durability_matrix(
     def snapshot(boundary: DurabilityBoundary) -> dict[str, object]:
         return {
             "mutation": mutation,
+            "workflow_profile": comment_result["workflow_profile"],
             "project": cast(dict[str, object], disasm_server.route_request("GET", f"/api/projects/{project_id}", {})["data"]),
             "listing": cast(dict[str, object], disasm_server.route_request(
                 "GET",

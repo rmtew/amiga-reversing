@@ -979,6 +979,15 @@ Implemented slice evidence:
   reproduction_compare workflow spans.
   Focused tests passed:
     uv run python -m pytest tests\test_workflow_profile.py tests\test_source_export.py tests\test_reproduction.py -q
+
+009-002:
+  Manual command execution responses return workflow_profile.
+  The normal command route records command_context, locator_resolution,
+  command_catalog, manual_action_append, manual_action_application,
+  listing_cache_invalidation, and response_build spans.
+  The API workflow harness can require manual mutation workflow spans.
+  Focused tests passed:
+    uv run python -m pytest tests\test_api_workflow_harness.py tests\test_disasm_server.py -q
 ```
 
 Observed during implementation:
@@ -989,6 +998,10 @@ the C direct rebuild operation. The workflow profile represents this as a
 reproduction_compare span with mode=direct_rebuild_compare and zero extra
 Python elapsed time, so the report still shows the user-visible phase without
 pretending a second backend call happened.
+
+Manual command execution still resolves locators through the existing
+all-listing materialization path. 009-002 intentionally exposes that cost before
+009-003 replaces the common row/element path with indexed projection locality.
 ```
 
 Current code evidence:

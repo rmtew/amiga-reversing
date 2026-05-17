@@ -107,6 +107,7 @@ from amiga_reversing.disasm.ui_preferences import (
     load_ui_preferences,
     save_ui_preferences,
 )
+from amiga_reversing.disasm.workflow_profile import WorkflowProfile
 
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
 LOGGER = logging.getLogger("amiga_reversing.disasm.server")
@@ -1867,6 +1868,7 @@ def _command_context_from_query(
 def _command_context_from_body(
     project_name: str,
     raw_context: Mapping[str, object],
+    workflow_profile: WorkflowProfile | None = None,
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     kind = raw_context.get("kind")
     if kind == "review_item":
@@ -1876,14 +1878,14 @@ def _command_context_from_body(
         return {"kind": "review_item", "item_id": item_id}, []
     if kind == "row":
         locator = raw_context.get("locator")
-        row, projection_hash = _resolve_command_locator(project_name, locator)
+        row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
         return {"kind": "row", "locator": locator, "projection_hash": projection_hash}, [row]
     if kind == "element":
         locator = raw_context.get("locator")
         element_id = raw_context.get("element_id")
         if not isinstance(element_id, str) or not element_id:
             raise _command_contract_error("missing_locator", "context.element_id is required")
-        row, projection_hash = _resolve_command_locator(project_name, locator)
+        row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
         element_context = _selected_command_element_context(row, element_id)
         element_context["locator"] = locator
         element_context["projection_hash"] = projection_hash
@@ -1898,7 +1900,7 @@ def _command_context_from_body(
         projection_hash = ""
         row_keys: set[str] = set()
         for locator in raw_locators:
-            row, projection_hash = _resolve_command_locator(project_name, locator)
+            row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
             row_key = str(row.get("row_key") or "")
             if row_key in row_keys:
                 raise _command_contract_error("ambiguous_locator", "range locators must be unique")
@@ -1943,18 +1945,33 @@ def _selected_command_element_context(row: Mapping[str, object], element_id: str
         raise
 
 
-def _resolve_command_locator(project_name: str, locator: object) -> tuple[dict[str, object], str]:
+def _resolve_command_locator(
+    project_name: str,
+    locator: object,
+    *,
+    workflow_profile: WorkflowProfile | None = None,
+) -> tuple[dict[str, object], str]:
     try:
-        projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
-            project_id=project_name,
-            current_cache_key=_project_listing_cache_key(project_name),
-        )
-        row = _LISTING_PROJECTION_SERVICE.resolve_locator(
-            target_id=project_name,
-            projection_hash=projection_hash,
-            rows=_all_listing_rows(project_name),
-            locator_payload=locator,
-        )
+        started_at = time.perf_counter()
+        try:
+            projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
+                project_id=project_name,
+                current_cache_key=_project_listing_cache_key(project_name),
+            )
+            row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+                target_id=project_name,
+                projection_hash=projection_hash,
+                rows=_all_listing_rows(project_name),
+                locator_payload=locator,
+            )
+        finally:
+            if workflow_profile is not None:
+                workflow_profile.add_span(
+                    "locator_resolution",
+                    time.perf_counter() - started_at,
+                    module="listing_projection",
+                    detail={"target_id": project_name},
+                )
     except ListingLocatorError as exc:
         code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
         raise _command_contract_error(code, str(exc)) from exc
@@ -1998,6 +2015,7 @@ def _all_listing_rows(project_name: str) -> list[dict[str, object]]:
 
 
 def _execute_command(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
+    workflow_profile = WorkflowProfile("manual_command_execution", target_id=project_name)
     payload_body = dict(body or {})
     command_id = payload_body.get("command_id")
     if not isinstance(command_id, str) or not command_id:
@@ -2008,8 +2026,10 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
     parameters = payload_body.get("parameters")
     if parameters is not None and not isinstance(parameters, dict):
         raise _command_contract_error("invalid_command_context", "parameters must be an object")
-    command_context, rows = _command_context_from_body(project_name, context)
-    catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
+    with workflow_profile.span("command_context", module="server"):
+        command_context, rows = _command_context_from_body(project_name, context, workflow_profile=workflow_profile)
+    with workflow_profile.span("command_catalog", module="server"):
+        catalog = _command_catalog_payload(project_name, _query_from_command_context(command_context))
     commands = cast(list[dict[str, object]], catalog["commands"])
     command = next((candidate for candidate in commands if candidate.get("command_id") == command_id), None)
     if command is None:
@@ -2022,14 +2042,19 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
         command_context,
         rows,
         cast(dict[str, object] | None, parameters),
+        workflow_profile=workflow_profile,
     )
-    return {
+    response_started_at = time.perf_counter()
+    response = {
         **result,
         "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
         "command_id": command_id,
         "effect": command["effect"],
         "context": _public_command_context(command_context),
     }
+    workflow_profile.add_span("response_build", time.perf_counter() - response_started_at, module="server")
+    response["workflow_profile"] = workflow_profile.to_payload()
+    return response
 
 
 def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list[str]]:
@@ -2055,6 +2080,8 @@ def _execute_manual_action_command(
     context: Mapping[str, object],
     rows: list[dict[str, object]],
     parameters: dict[str, object] | None,
+    *,
+    workflow_profile: WorkflowProfile | None = None,
 ) -> dict[str, object]:
     project = get_project(project_name)
     if project.kind is not ProjectKind.BINARY or not project.ready:
@@ -2085,21 +2112,53 @@ def _execute_manual_action_command(
     application_parts: list[dict[str, object]] = []
     for kind, action_payload in action_payloads:
         validate_manual_action_payload(action_payload)
-        appended_actions.append(
-            append_manual_action(
-                paths.target_dir,
-                kind=manual_action_kind(kind),
-                payload=action_payload,
-                binary_source=binary_source,
+        append_started_at = time.perf_counter()
+        try:
+            appended_actions.append(
+                append_manual_action(
+                    paths.target_dir,
+                    kind=manual_action_kind(kind),
+                    payload=action_payload,
+                    binary_source=binary_source,
+                )
             )
-        )
-        application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
-    if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
-        _cancel_listing_jobs(project_name)
-        _cancel_reproduction_jobs(project_name)
-        _clear_project_listing_cache(project_name)
-    else:
-        _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
+        finally:
+            if workflow_profile is not None:
+                workflow_profile.add_span(
+                    "manual_action_append",
+                    time.perf_counter() - append_started_at,
+                    module="manual_action_log",
+                    detail={"kind": kind},
+                )
+        application_started_at = time.perf_counter()
+        try:
+            application_parts.append(_manual_action_application_payload(project_name, kind, action_payload, context))
+        finally:
+            if workflow_profile is not None:
+                workflow_profile.add_span(
+                    "manual_action_application",
+                    time.perf_counter() - application_started_at,
+                    module="server",
+                    detail={"kind": kind},
+                )
+    invalidation_started_at = time.perf_counter()
+    invalidation_mode = "listing_cache"
+    try:
+        if any(_manual_action_affects_listing_artifact(manual_action_kind(kind)) for kind, _ in action_payloads):
+            _cancel_listing_jobs(project_name)
+            _cancel_reproduction_jobs(project_name)
+            _clear_project_listing_cache(project_name)
+        else:
+            invalidation_mode = "presentation_dirty"
+            _LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_name)
+    finally:
+        if workflow_profile is not None:
+            workflow_profile.add_span(
+                "listing_cache_invalidation",
+                time.perf_counter() - invalidation_started_at,
+                module="server",
+                detail={"mode": invalidation_mode},
+            )
     mark_project_updated(paths.target_dir)
     affected_locators = _affected_command_locators(context)
     return {

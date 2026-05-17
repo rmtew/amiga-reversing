@@ -17,6 +17,7 @@ class ManualWorkflowExpectation:
     review_state: str | None = None
     presentation_dirty: bool | None = None
     locator_recovered: bool | None = None
+    workflow_spans: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +45,7 @@ def assert_manual_workflow_snapshot(
     _assert_listing_projection(snapshot, expected)
     _assert_locator_recovery(snapshot, expected)
     _assert_debug_state(snapshot, expected)
+    _assert_workflow_profile(snapshot, expected)
 
 
 def assert_preference_workflow_snapshot(
@@ -181,6 +183,30 @@ def _assert_debug_state(
             raise AssertionError("debug state: browser selected row mismatch")
         if expected.projection_hash is not None and browser.get("listing_projection_hash") != expected.projection_hash:
             raise AssertionError("debug state: browser projection hash mismatch")
+
+
+def _assert_workflow_profile(
+    snapshot: Mapping[str, object],
+    expected: ManualWorkflowExpectation,
+) -> None:
+    if expected.workflow_spans is None:
+        return
+    workflow_profile = _mapping(snapshot.get("workflow_profile"), "workflow profile: missing workflow profile")
+    if workflow_profile.get("workflow_id") != "manual_command_execution":
+        raise AssertionError("workflow profile: workflow_id mismatch")
+    if workflow_profile.get("target_id") != expected.project_id:
+        raise AssertionError("workflow profile: target_id mismatch")
+    spans = workflow_profile.get("spans")
+    if not isinstance(spans, list):
+        raise AssertionError("workflow profile: spans missing")
+    span_names = [
+        span.get("name")
+        for span in spans
+        if isinstance(span, dict)
+    ]
+    for name in expected.workflow_spans:
+        if name not in span_names:
+            raise AssertionError(f"workflow profile: missing span {name}")
 
 
 def _assert_preference_debug_state(

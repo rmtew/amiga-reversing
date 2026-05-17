@@ -1688,6 +1688,8 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
     mutation = cast(dict[str, object], cast(dict[str, object], payload["data"])["mutation"])
+    workflow_profile = cast(dict[str, object], cast(dict[str, object], payload["data"])["workflow_profile"])
+    workflow_spans = cast(list[dict[str, object]], workflow_profile["spans"])
 
     assert action["kind"] == "create_manual_comment"
     assert comment["text"] == "manual return"
@@ -1700,6 +1702,11 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     assert mutation["manual_action_log_count"] == 0
     assert mutation["projection_hash"] == "cache"
     assert cast(list[dict[str, object]], mutation["affected_locators"])[0]["row_key"] == "row-0"
+    assert workflow_profile["workflow_id"] == "manual_command_execution"
+    assert workflow_profile["target_id"] == "bloodwych"
+    assert "locator_resolution" in [span["name"] for span in workflow_spans]
+    assert "manual_action_append" in [span["name"] for span in workflow_spans]
+    assert "listing_cache_invalidation" in [span["name"] for span in workflow_spans]
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
