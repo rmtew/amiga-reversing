@@ -95,6 +95,54 @@ static int test_backend_definitions_expose_platform_ids(void) {
   return 0;
 }
 
+static int test_hunk_runtime_metadata_covers_reproduction_compare_categories(void) {
+  const AmigaHunkFileRecordInfo *record;
+  const AmigaHunkFileRelocationKind *reloc;
+  const AmigaHunkFileExtVariantInfo *ext;
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_HEADER);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_HEADER, record->record_kind);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_ROLE_CONTAINER_HEADER, record->role);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_CODE);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_ROLE_SECTION_START, record->role);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_SECTION_KIND_CODE, record->section_kind);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_DATA);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_SECTION_KIND_DATA, record->section_kind);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_BSS);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_SECTION_KIND_BSS, record->section_kind);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_END);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_ROLE_SECTION_TERMINATOR, record->role);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_SYMBOL);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_SYMBOL, record->record_kind);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_DEBUG);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_DEBUG, record->record_kind);
+  record = amiga_hunk_file_record_info_by_wire_id(AMIGA_HUNK_FILE_HUNK_TYPE_HUNK_EXT);
+  M68K_C_ASSERT(record != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_EXT, record->record_kind);
+  reloc = amiga_hunk_file_relocation_kind_lookup(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32);
+  M68K_C_ASSERT(reloc != NULL);
+  M68K_C_ASSERT_U32(4U, reloc->width_bytes);
+  reloc = amiga_hunk_file_relocation_kind_lookup(AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32SHORT);
+  M68K_C_ASSERT(reloc != NULL);
+  M68K_C_ASSERT_U32(4U, reloc->width_bytes);
+  ext = amiga_hunk_file_ext_variant_lookup(AMIGA_HUNK_FILE_EXT_TYPE_EXT_DEF);
+  M68K_C_ASSERT(ext != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_EXT_VARIANT_DEFINITION, ext->variant);
+  ext = amiga_hunk_file_ext_variant_lookup(AMIGA_HUNK_FILE_EXT_TYPE_EXT_REF32);
+  M68K_C_ASSERT(ext != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_EXT_VARIANT_REFERENCE, ext->variant);
+  ext = amiga_hunk_file_ext_variant_lookup(AMIGA_HUNK_FILE_EXT_TYPE_EXT_COMMON);
+  M68K_C_ASSERT(ext != NULL);
+  M68K_C_ASSERT_U32(AMIGA_HUNK_FILE_META_EXT_VARIANT_COMMON_REFERENCE, ext->variant);
+  return 0;
+}
+
 static int test_hunk_loader_records_payload_and_relocation_metadata(void) {
   static const unsigned char hunk[] = {
     0x00, 0x00, 0x03, 0xF3,
@@ -646,6 +694,8 @@ int m68k_c_container_metadata_tests(void) {
     {"container_metadata_tracks_overflow_separately", test_container_metadata_tracks_overflow_separately},
     {"no_container_metadata_uses_numeric_ids", test_no_container_metadata_uses_numeric_ids},
     {"backend_definitions_expose_platform_ids", test_backend_definitions_expose_platform_ids},
+    {"hunk_runtime_metadata_covers_reproduction_compare_categories",
+      test_hunk_runtime_metadata_covers_reproduction_compare_categories},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
     {"hunk_loader_rejects_overlay_as_explicit_unsupported",

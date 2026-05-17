@@ -1,6 +1,8 @@
 #include "m68k_reproduction_compare.h"
+#include "generated/amiga_hunk_file_runtime.h"
 #include "util_arena.h"
 
+#include <limits.h>
 #include <string.h>
 
 enum {
@@ -33,17 +35,6 @@ enum {
 
 #define ATARI_PRG_HEADER_SIZE 28U
 #define ATARI_PRG_MAGIC 0x601AU
-#define HUNK_TYPE_ID_MASK 0x1FFFFFFFU
-#define HUNK_MEM_SHIFT 30U
-#define HUNK_HEADER 1011U
-#define HUNK_CODE 1001U
-#define HUNK_DATA 1002U
-#define HUNK_BSS 1003U
-#define HUNK_SYMBOL 1008U
-#define HUNK_DEBUG 1009U
-#define HUNK_END 1010U
-#define HUNK_EXT 1007U
-#define HUNK_RELOC32SHORT 1020U
 
 void m68k_reproduction_compare_init_result(M68kReproductionCompareResult *result) {
   if (result == NULL) return;
@@ -113,22 +104,50 @@ static void compare_add_diagnostic(M68kReproductionCompareResult *result, uint32
   diagnostic->rebuilt_value = rebuilt_value;
 }
 
-static int hunk_relocation_long_type(uint32_t hunk_id) {
-  return hunk_id == 1004U || hunk_id == 1005U || hunk_id == 1006U || hunk_id == 1015U ||
-    hunk_id == 1016U || hunk_id == 1017U || hunk_id == 1021U || hunk_id == 1022U;
+static const AmigaHunkFileRecordInfo *hunk_record_info_for_wire_id(uint32_t hunk_id) {
+  return hunk_id > UINT_MAX ? NULL : amiga_hunk_file_record_info_by_wire_id((unsigned)hunk_id);
+}
+
+static int hunk_record_kind_is(uint32_t hunk_id, AmigaHunkFileRecordKind record_kind) {
+  const AmigaHunkFileRecordInfo *info = hunk_record_info_for_wire_id(hunk_id);
+  return info != NULL && info->record_kind == record_kind;
+}
+
+static int hunk_record_role_is(uint32_t hunk_id, AmigaHunkFileRecordRole role) {
+  const AmigaHunkFileRecordInfo *info = hunk_record_info_for_wire_id(hunk_id);
+  return info != NULL && info->role == role;
 }
 
 static int hunk_section_type(uint32_t hunk_id) {
-  return hunk_id == HUNK_CODE || hunk_id == HUNK_DATA || hunk_id == HUNK_BSS;
+  return hunk_record_role_is(hunk_id, AMIGA_HUNK_FILE_META_RECORD_ROLE_SECTION_START);
+}
+
+static int hunk_relocation_type(uint32_t hunk_id, int *out_short_counts) {
+  const AmigaHunkFileRecordInfo *info = hunk_record_info_for_wire_id(hunk_id);
+  if (out_short_counts != NULL) *out_short_counts = 0;
+  if (info == NULL || amiga_hunk_file_relocation_kind_lookup(info->record_kind) == NULL) return 0;
+  if (out_short_counts != NULL)
+    *out_short_counts = info->record_kind == AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_RELOC32SHORT;
+  return 1;
 }
 
 static int hunk_ext_definition_type(uint32_t type) {
-  return type == 0U || type == 1U || type == 2U || type == 3U;
+  const AmigaHunkFileExtVariantInfo *info =
+    type > UINT_MAX ? NULL : amiga_hunk_file_ext_variant_lookup((unsigned)type);
+  return info != NULL && info->variant == AMIGA_HUNK_FILE_META_EXT_VARIANT_DEFINITION;
 }
 
 static int hunk_ext_reference_type(uint32_t type) {
-  return type == 129U || type == 130U || type == 131U || type == 132U || type == 133U ||
-    type == 134U || type == 135U || type == 136U || type == 137U || type == 138U || type == 139U;
+  const AmigaHunkFileExtVariantInfo *info =
+    type > UINT_MAX ? NULL : amiga_hunk_file_ext_variant_lookup((unsigned)type);
+  return info != NULL && (info->variant == AMIGA_HUNK_FILE_META_EXT_VARIANT_REFERENCE ||
+    info->variant == AMIGA_HUNK_FILE_META_EXT_VARIANT_COMMON_REFERENCE);
+}
+
+static int hunk_ext_common_reference_type(uint32_t type) {
+  const AmigaHunkFileExtVariantInfo *info =
+    type > UINT_MAX ? NULL : amiga_hunk_file_ext_variant_lookup((unsigned)type);
+  return info != NULL && info->variant == AMIGA_HUNK_FILE_META_EXT_VARIANT_COMMON_REFERENCE;
 }
 
 static void compare_set_first_diff(M68kReproductionCompareResult *result,
@@ -247,7 +266,7 @@ static int compare_skip_hunk_ext_block(const unsigned char *data, size_t size, s
       if (compare_skip(size, pos, 4U) != 0) return -1;
     } else if (hunk_ext_reference_type(ext_type)) {
       uint32_t count;
-      if (ext_type == 130U || ext_type == 137U) {
+      if (hunk_ext_common_reference_type(ext_type)) {
         if (compare_skip(size, pos, 4U) != 0) return -1;
       }
       if (compare_read_u32be(data, size, pos, &count) != 0) return -1;
@@ -261,7 +280,8 @@ static void compare_collect_amiga_hunk_layout(M68kReproductionCompareResult *res
   size_t pos = 4U, header_end, section_index;
   uint32_t table_size, first_hunk, last_hunk, count;
   uint32_t header_mem_attrs[M68K_REPRO_COMPARE_LAYOUT_CAPACITY];
-  if (size < 4U || compare_u32be(data, 0U) != HUNK_HEADER) {
+  if (size < 4U || !hunk_record_kind_is(compare_u32be(data, 0U),
+        AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_HEADER)) {
     compare_add_layout(result, M68K_REPRO_LAYOUT_UNKNOWN, 0U, size, 0, 0U, 0U);
     return;
   }
@@ -280,7 +300,7 @@ static void compare_collect_amiga_hunk_layout(M68kReproductionCompareResult *res
     uint32_t size_word;
     header_mem_attrs[section_index] = 0U;
     if (compare_read_u32be(data, size, &pos, &size_word) != 0) goto malformed;
-    if ((size_word >> HUNK_MEM_SHIFT) == 3U &&
+    if ((size_word >> AMIGA_HUNK_FILE_SIZE_LONGS_WORD_CHIP_BIT) == 3U &&
         compare_read_u32be(data, size, &pos, &header_mem_attrs[section_index]) != 0) goto malformed;
   }
   header_end = pos;
@@ -289,16 +309,16 @@ static void compare_collect_amiga_hunk_layout(M68kReproductionCompareResult *res
     size_t section_start = pos, payload_start, payload_end;
     uint32_t raw_type, hunk_id, mem_type, size_longs;
     if (compare_read_u32be(data, size, &pos, &raw_type) != 0) goto malformed;
-    hunk_id = raw_type & HUNK_TYPE_ID_MASK;
+    hunk_id = raw_type & AMIGA_HUNK_FILE_HUNK_TYPE_WORD_VALUE_MASK;
     if (!hunk_section_type(hunk_id)) {
       compare_add_layout(result, M68K_REPRO_LAYOUT_UNKNOWN, section_start, size, 0, 0U, 0U);
       return;
     }
-    mem_type = raw_type >> HUNK_MEM_SHIFT;
+    mem_type = raw_type >> AMIGA_HUNK_FILE_HUNK_TYPE_WORD_CHIP_BIT;
     if (mem_type == 3U && header_mem_attrs[section_index] == 0U && compare_skip(size, &pos, 4U) != 0) goto malformed;
     if (compare_read_u32be(data, size, &pos, &size_longs) != 0) goto malformed;
     payload_start = pos;
-    if (hunk_id == HUNK_CODE || hunk_id == HUNK_DATA) {
+    if (!hunk_record_kind_is(hunk_id, AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_BSS)) {
       if (compare_skip(size, &pos, (size_t)size_longs * 4U) != 0) goto malformed;
     }
     payload_end = pos;
@@ -312,29 +332,32 @@ static void compare_collect_amiga_hunk_layout(M68kReproductionCompareResult *res
       size_t record_start = pos;
       uint32_t raw, record_id, kind = M68K_REPRO_LAYOUT_UNKNOWN;
       if (compare_read_u32be(data, size, &pos, &raw) != 0) goto malformed;
-      record_id = raw & HUNK_TYPE_ID_MASK;
-      if (record_id == HUNK_END) {
+      record_id = raw & AMIGA_HUNK_FILE_HUNK_TYPE_WORD_VALUE_MASK;
+      if (hunk_record_role_is(record_id, AMIGA_HUNK_FILE_META_RECORD_ROLE_SECTION_TERMINATOR)) {
         compare_add_layout(result, M68K_REPRO_LAYOUT_SECTION_END, record_start, pos, 1, (uint32_t)section_index, 0U);
         break;
       }
-      if (record_id == HUNK_SYMBOL) {
+      if (hunk_record_kind_is(record_id, AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_SYMBOL)) {
         if (compare_skip_hunk_symbol_block(data, size, &pos) != 0) goto malformed;
         kind = M68K_REPRO_LAYOUT_SYMBOL;
-      } else if (record_id == HUNK_DEBUG) {
+      } else if (hunk_record_kind_is(record_id, AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_DEBUG)) {
         uint32_t longs;
         if (compare_read_u32be(data, size, &pos, &longs) != 0 ||
             compare_skip(size, &pos, (size_t)longs * 4U) != 0) goto malformed;
         kind = M68K_REPRO_LAYOUT_DEBUG;
-      } else if (hunk_relocation_long_type(record_id) || record_id == HUNK_RELOC32SHORT) {
-        if (compare_skip_hunk_relocation_block(data, size, &pos, record_id == HUNK_RELOC32SHORT) != 0) goto malformed;
-        kind = M68K_REPRO_LAYOUT_RELOCATION;
-      } else if (record_id == HUNK_EXT) {
-        if (compare_skip_hunk_ext_block(data, size, &pos) != 0) goto malformed;
-        kind = M68K_REPRO_LAYOUT_EXTERNAL;
       } else {
-        uint32_t longs;
-        if (compare_read_u32be(data, size, &pos, &longs) != 0 ||
-            compare_skip(size, &pos, (size_t)longs * 4U) != 0) goto malformed;
+        int short_counts = 0;
+        if (hunk_relocation_type(record_id, &short_counts)) {
+          if (compare_skip_hunk_relocation_block(data, size, &pos, short_counts) != 0) goto malformed;
+          kind = M68K_REPRO_LAYOUT_RELOCATION;
+        } else if (hunk_record_kind_is(record_id, AMIGA_HUNK_FILE_META_RECORD_KIND_HUNK_EXT)) {
+          if (compare_skip_hunk_ext_block(data, size, &pos) != 0) goto malformed;
+          kind = M68K_REPRO_LAYOUT_EXTERNAL;
+        } else {
+          uint32_t longs;
+          if (compare_read_u32be(data, size, &pos, &longs) != 0 ||
+              compare_skip(size, &pos, (size_t)longs * 4U) != 0) goto malformed;
+        }
       }
       compare_add_layout(result, kind, record_start, pos, 1, (uint32_t)section_index, 0U);
     }

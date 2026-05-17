@@ -23,7 +23,7 @@ durable spec.
   - [ ] 2. Hardware Knowledge Has Two Different Sources
   - [x] 3. Corrections Have Provenance And A Review Workflow
   - [x] 4. OS Compatibility Data Exists As A Target Summary
-  - [ ] 5. HUNK Runtime Metadata Is Not Used Everywhere
+  - [x] 5. HUNK Runtime Metadata Owns Container Decisions
   - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
   - [ ] 7. Target Gaps Do Not Drive Parser Expansion Yet
 - [ ] Tutorial: Platform KB Coverage Report
@@ -36,7 +36,7 @@ durable spec.
   - [ ] Slice 1: Platform KB Coverage Report
   - [x] Slice 2: Target OS Compatibility Summary
   - [x] Slice 3: Corrections Review Flow
-  - [ ] Slice 4: Generated HUNK Comparison Helpers
+  - [x] Slice 4: Generated HUNK Comparison Helpers
   - [x] Slice 5: Resolve `HUNK_OVERLAY`
   - [ ] Slice 6: Target-Driven Platform Gap Report
 - [ ] Acceptance Criteria
@@ -166,9 +166,10 @@ HUNK metadata is split:
 - `knowledge/amiga_hunk_format.md` documents an overlay payload shape.
 - No primary-source fixture or parser test currently proves overlay support.
 
-Runtime consumers are not equally clean. `src/platform_amiga_hunk.c` consumes
-generated HUNK runtime metadata, but `src/m68k_reproduction_compare.c` still
-hardcodes HUNK ids and skip logic.
+Runtime consumers now share generated HUNK runtime metadata. The loader and
+writer already consumed it, and reproduction comparison now uses generated HUNK
+record lookup, section, terminator, relocation, EXT, and BSS/data
+classification helpers instead of local HUNK id constants.
 
 ## Integration Findings
 
@@ -239,15 +240,12 @@ The runtime model should preserve raw `available_since` text in addition to any
 normalized enum/rank. Losing `1.2` into `1.3`, or `3.0` into `3.1`, makes the
 summary less useful for fingerprinting and target review.
 
-### 5. HUNK Runtime Metadata Is Not Used Everywhere
+### 5. HUNK Runtime Metadata Owns Container Decisions
 
-The platform HUNK loader uses generated runtime metadata. Reproduction
-comparison does not. It still carries local constants for HUNK ids, relocation
-classification, section detection, and skippable records.
-
-That duplicates platform format knowledge downstream from the KB. The rewrite
-should move comparison onto generated helpers and delete the hardcoded HUNK
-tables from `src/m68k_reproduction_compare.c`.
+The platform HUNK loader, writer, and reproduction comparison now use generated
+runtime metadata for record ids and record-category decisions. Comparison keeps
+binary comparison policy locally, but HUNK format facts come from
+`src/generated/amiga_hunk_file_runtime.*`.
 
 ### 6. `HUNK_OVERLAY` Is Explicitly Unsupported
 
@@ -662,9 +660,10 @@ fields plus reviewer/date provenance.
 
 Tracked by `docs/issues/004-004-generate-hunk-comparison-from-platform-runtime-metadata.md`.
 
-Generate or expose HUNK helper functions from platform format metadata and move
-`src/m68k_reproduction_compare.c` onto those helpers. Delete duplicated HUNK
-constants and local skip classification.
+Resolved in this slice: `src/m68k_reproduction_compare.c` now consumes
+generated HUNK runtime helpers for record lookup, section/terminator
+classification, relocation metadata, EXT variants, and BSS-vs-payload
+classification. Local HUNK record id constants were removed.
 
 ### Slice 5: Resolve `HUNK_OVERLAY`
 
@@ -773,6 +772,11 @@ ids are stable derived ids unless an entry already has `id`; checks now fail for
 unknown statuses, missing citations, duplicate ids, or validated entries without
 review provenance. Promotion updates exactly one seeded correction to
 `validated` and records `reviewed_by`/`reviewed_at`.
+
+Slice 4 moved reproduction comparison onto generated HUNK runtime metadata.
+`src/m68k_reproduction_compare.c` no longer carries local HUNK record id
+constants or local relocation/EXT/section record-category tables. A focused C
+metadata test covers the generated categories used by comparison.
 
 Slice 5 resolved `HUNK_OVERLAY` by making it explicitly unsupported. The enum id
 remains for diagnostics, but it is no longer a valid load-file record and the

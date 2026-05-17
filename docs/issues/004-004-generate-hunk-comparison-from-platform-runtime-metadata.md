@@ -1,6 +1,6 @@
 # 004-004 Generate HUNK Comparison From Platform Runtime Metadata
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -52,3 +52,13 @@ focused HUNK metadata/helper tests
 focused reproduction comparison tests
 cmd /c src\precommit.bat
 ```
+
+## Implementation Notes
+
+- `src/m68k_reproduction_compare.c` now uses generated
+  `amiga_hunk_file_runtime` lookup helpers for HUNK ids, section starts,
+  terminators, relocations, EXT variants, and payload-vs-BSS classification.
+- Local HUNK record id constants were removed from reproduction comparison.
+- Added a C metadata test covering the generated categories used by
+  reproduction comparison.
+- Existing precommit suite passes.
