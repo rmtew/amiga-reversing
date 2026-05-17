@@ -61,6 +61,7 @@ from amiga_reversing.disasm.target_metadata import (
     TARGET_SEEDED_METADATA_FILE_NAME,
 )
 from amiga_reversing.disasm.tool_graph import capability_availability_for_modes
+from amiga_reversing.disasm.workflow_profile import WorkflowProfile, workflow_profile_payload
 
 REPRODUCTION_FILE_NAME = "reproduction.json"
 FACTS_V2_DIRECT_SOURCE_COMPARE_ENV = "AMIGA_REVERSING_FACTS_V2_DIRECT_SOURCE_COMPARE"
@@ -279,6 +280,7 @@ def run_reproduction(
     started_at = time.time()
     profile_started_at = time.perf_counter()
     profile_timings: dict[str, object] = {}
+    workflow_profile = WorkflowProfile("round_trip_verification", target_id=target_name)
     out_dir = rebuilt_target_dir(target_name, project_root=project_root)
     source_path = out_dir / "source.s"
     rebuilt_path = out_dir / "rebuilt.bin"
@@ -326,6 +328,7 @@ def run_reproduction(
         paths = resolve_project_paths(target_name, project_root=project_root)
         target_dir = paths.target_dir
         input_stamp = reproduction_input_stamp(target_name, project_root=project_root, assembler=assembler)
+        workflow_profile.input_stamp = dict(input_stamp)
         backend = cast(str, input_stamp["backend"])
         assembler = cast(str, input_stamp["assembler"])
         assembler_cpu = cast(str, input_stamp["assembler_cpu"])
@@ -384,6 +387,12 @@ def run_reproduction(
                     direct_rebuild_for_reproduction = True
                     _merge_direct_rebuild_profile(profile_timings, direct_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
+                    workflow_profile.add_span(
+                        "direct_rebuild",
+                        _profile_timing_value(profile_timings, "direct_rebuild_seconds"),
+                        module="c_backend",
+                        detail={"profile": direct_profile},
+                    )
                     profile_timings["render_seconds"] = _profile_timing_total(listing_profile)
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
@@ -454,6 +463,12 @@ def run_reproduction(
                         if not direct_full_exact:
                             profile_timings["facts_v2_direct_semantic_fast_path"] = 1.0
                         profile_timings["diff_phase_seconds"] = 0.0
+                        workflow_profile.add_span(
+                            "reproduction_compare",
+                            0.0,
+                            module="c_backend",
+                            detail={"profile": direct_profile, "mode": "direct_rebuild_compare"},
+                        )
                         original_size = _optional_int(input_stamp.get("original_size"), len(direct_bytes))
                         direct_shape_diagnostics = _direct_compare_shape_diagnostics(
                             direct_profile, row_for_section_offset
@@ -493,12 +508,19 @@ def run_reproduction(
                                 direct_source_report=direct_source_report,
                                 listing_profile=listing_profile,
                                 profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                                workflow_profile=workflow_profile_payload(workflow_profile),
                             )
                         )
                         return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2SourceRefused as exc:
                     message = str(exc)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
+                    workflow_profile.add_span(
+                        "direct_rebuild",
+                        _profile_timing_value(profile_timings, "direct_rebuild_seconds"),
+                        module="c_backend",
+                        detail={"listing_profile": exc.listing_profile, "status": "source_refused"},
+                    )
                     profile_timings["render_seconds"] = _profile_timing_total(exc.listing_profile)
                     profile_timings["assemble_seconds"] = 0.0
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
@@ -508,12 +530,19 @@ def run_reproduction(
                         issues=[make_issue("renderer", message, None)],
                         listing_profile=exc.listing_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                        workflow_profile=workflow_profile_payload(workflow_profile),
                     )
                     return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2DirectRebuildRefused as exc:
                     listing_profile = exc.source_profile
                     _merge_direct_rebuild_profile(profile_timings, exc.direct_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
+                    workflow_profile.add_span(
+                        "direct_rebuild",
+                        _profile_timing_value(profile_timings, "direct_rebuild_seconds"),
+                        module="c_backend",
+                        detail={"profile": exc.direct_profile, "status": "direct_rebuild_refused"},
+                    )
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
                     message = f"facts_v2 direct rebuild refused: {exc}"
                     accepted_kind = _accepted_direct_rebuild_refusal_kind(
@@ -528,6 +557,7 @@ def run_reproduction(
                             listing_profile=listing_profile,
                             direct_rebuild_profile=exc.direct_profile,
                             profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                            workflow_profile=workflow_profile_payload(workflow_profile),
                             extra={
                                 "accepted_mismatch_kind": accepted_kind,
                                 "accepted_mismatch_reason": message,
@@ -541,12 +571,19 @@ def run_reproduction(
                         listing_profile=listing_profile,
                         direct_rebuild_profile=exc.direct_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                        workflow_profile=workflow_profile_payload(workflow_profile),
                     )
                     return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
                 except FactsV2ProfiledOperationFailed as exc:
                     listing_profile = exc.source_profile
                     _merge_direct_rebuild_profile(profile_timings, exc.operation_profile)
                     _record_profile_timing(profile_timings, "direct_rebuild_seconds", phase_started_at)
+                    workflow_profile.add_span(
+                        "direct_rebuild",
+                        _profile_timing_value(profile_timings, "direct_rebuild_seconds"),
+                        module="c_backend",
+                        detail={"profile": exc.operation_profile, "status": "operation_failed"},
+                    )
                     profile_timings["facts_v2_direct_rebuild_c_api"] = 1.0
                     message = str(exc)
                     report = report_builder.error(
@@ -556,6 +593,7 @@ def run_reproduction(
                         listing_profile=listing_profile,
                         direct_rebuild_profile=exc.operation_profile,
                         profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                        workflow_profile=workflow_profile_payload(workflow_profile),
                     )
                     return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
         if use_listing_source_assembly and rebuilt_bytes is None:
@@ -738,6 +776,7 @@ def run_reproduction(
             canonical_file_shape_diagnostics: list[dict[str, object]] = []
             profile_timings["file_layout_seconds"] = 0.0
             profile_timings["row_mapping_seconds"] = 0.0
+            compare_started_at = time.perf_counter()
             comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
                 paths.binary_source,
                 rebuilt,
@@ -751,9 +790,16 @@ def run_reproduction(
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
+            workflow_profile.add_span(
+                "reproduction_compare",
+                time.perf_counter() - compare_started_at,
+                module="c_backend" if c_compare_profile is not None else "python",
+                detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
+            )
             if c_compare_profile is not None:
                 _merge_source_compare_profile(profile_timings, c_compare_profile)
         else:
+            compare_started_at = time.perf_counter()
             comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
                 paths.binary_source,
                 rebuilt,
@@ -766,6 +812,12 @@ def run_reproduction(
                 diff_ranges=diff_ranges,
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=[],
+            )
+            workflow_profile.add_span(
+                "reproduction_compare",
+                time.perf_counter() - compare_started_at,
+                module="c_backend" if c_compare_profile is not None else "python",
+                detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
             )
             layout_started_at = time.perf_counter()
             file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
@@ -862,6 +914,7 @@ def run_reproduction(
                 direct_source_report=direct_source_report,
                 listing_profile=listing_profile,
                 profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+                workflow_profile=workflow_profile_payload(workflow_profile),
             )
         )
         _emit_progress(
@@ -909,6 +962,7 @@ def run_reproduction(
             tool_error=str(exc),
             issues=[make_issue(issue_kind, str(exc), None)],
             profile=profile_payload(profile_timings, profile_started_at) if profile else None,
+            workflow_profile=workflow_profile_payload(workflow_profile),
         )
         if target_dir is None:
             return report
@@ -1845,6 +1899,11 @@ def _record_profile_timing(
     started_at: float,
 ) -> None:
     timings[key] = round(time.perf_counter() - started_at, 4)
+
+
+def _profile_timing_value(timings: dict[str, object], key: str) -> float:
+    value = timings.get(key)
+    return float(value) if isinstance(value, (int, float)) else 0.0
 
 
 def _merge_assembler_profile(timings: dict[str, object], profile: dict[str, object]) -> None:

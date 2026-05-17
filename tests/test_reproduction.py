@@ -772,6 +772,13 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     profile = cast(dict[str, object], report["profile"])
     assert profile["facts_v2_direct_rebuild_c_api"] == 1.0
     assert "listing_artifact_source_assembly" not in profile
+    workflow_profile = cast(dict[str, object], report["workflow_profile"])
+    assert workflow_profile["workflow_id"] == "round_trip_verification"
+    assert workflow_profile["target_id"] == "demo"
+    spans = cast(list[dict[str, object]], workflow_profile["spans"])
+    span_names = [span["name"] for span in spans]
+    assert span_names == ["direct_rebuild", "reproduction_compare"]
+    assert spans[0]["module"] == "c_backend"
     assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 

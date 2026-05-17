@@ -57,6 +57,7 @@ class ReproductionOutcome:
     direct_source_report: dict[str, object] | None = None
     listing_profile: dict[str, object] | None = None
     profile: dict[str, object] | None = None
+    workflow_profile: dict[str, object] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.status, ReproductionReportStatus):
@@ -114,6 +115,7 @@ class RoundTripReportBuilder:
         listing_profile: dict[str, object] | None = None,
         direct_rebuild_profile: dict[str, object] | None = None,
         profile: dict[str, object] | None = None,
+        workflow_profile: dict[str, object] | None = None,
         extra: Mapping[str, object] | None = None,
     ) -> dict[str, object]:
         report = {
@@ -134,6 +136,8 @@ class RoundTripReportBuilder:
             report["direct_rebuild_profile"] = direct_rebuild_profile
         if profile is not None:
             report["profile"] = profile
+        if workflow_profile is not None:
+            report["workflow_profile"] = workflow_profile
         if extra is not None:
             report.update(extra)
         return report
@@ -170,6 +174,8 @@ class RoundTripReportBuilder:
             report["listing_profile"] = outcome.listing_profile
         if outcome.profile is not None:
             report["profile"] = outcome.profile
+        if outcome.workflow_profile is not None:
+            report["workflow_profile"] = outcome.workflow_profile
         return report
 
 

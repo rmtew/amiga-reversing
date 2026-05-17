@@ -36,6 +36,11 @@ def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path:
     assert "Export is not verification" in payload["source_text"]
     assert "    rts" in payload["source_text"]
     assert payload["target_identity_sha256"]
+    workflow_profile = payload["workflow_profile"]
+    assert workflow_profile["workflow_id"] == "source_export"
+    assert workflow_profile["target_id"] == "demo target"
+    assert workflow_profile["spans"][0]["name"] == "source_rendering"
+    assert workflow_profile["spans"][0]["module"] == "c_backend"
 
 
 def test_source_export_rejects_invalid_profile() -> None:
@@ -72,6 +77,7 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
     assert payload["status"] == "refused"
     assert "facts_v2 asm source refused" in payload["message"]
     assert payload["listing_profile"] == profile
+    assert payload["workflow_profile"]["spans"][0]["name"] == "source_rendering"
     assert "source_text" not in payload
 
 

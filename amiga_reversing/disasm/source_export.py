@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
     facts_v2_source_refused,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.workflow_profile import WorkflowProfile
 
 SOURCE_EXPORT_ASSEMBLER_PROFILES = ("vasm", "devpac")
 
@@ -53,11 +55,19 @@ def render_source_export(
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir) as metadata_path:
+        render_started_at = time.perf_counter()
         source_text, listing_profile = listing_artifact_source_text_with_c_backend_profile(
             binary_source,
             metadata_path=metadata_path,
             project_root=project_root,
         )
+    workflow_profile = WorkflowProfile("source_export", target_id=target_name)
+    workflow_profile.add_span(
+        "source_rendering",
+        time.perf_counter() - render_started_at,
+        module="c_backend",
+        detail={"listing_profile": listing_profile},
+    )
     metadata_hash = effective_metadata_hash(paths.target_dir)
     identity_hash = _sha256_bytes(binary_source.read_bytes())
     filename = f"{_safe_filename(target_name)}-{profile}.s"
@@ -71,6 +81,7 @@ def render_source_export(
                 "filename": filename,
                 "message": facts_v2_source_refusal_message(listing_profile),
                 "listing_profile": listing_profile,
+                "workflow_profile": workflow_profile.to_payload(),
                 "metadata_hash": metadata_hash,
                 "target_identity_sha256": identity_hash,
                 "generated_at": generated_at,
@@ -94,6 +105,7 @@ def render_source_export(
         "target_identity_sha256": identity_hash,
         "generated_at": generated_at,
         "listing_profile": listing_profile,
+        "workflow_profile": workflow_profile.to_payload(),
         "non_verification": True,
     }
 
