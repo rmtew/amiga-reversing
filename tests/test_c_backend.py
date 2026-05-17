@@ -3136,6 +3136,79 @@ def test_project_source_facts_v2_direct_rebuild_uses_direct_c_api(monkeypatch, t
     ]
 
 
+def test_c_profiled_operation_frees_bytes_profiles_and_error_buffers() -> None:
+    buffers: list[ctypes.Array[ctypes.c_char]] = []
+
+    class FakeDll:
+        def __init__(self) -> None:
+            self.freed_text: list[int] = []
+            self.freed_bytes: list[int] = []
+
+        def platform_file_free_text(self, value: ctypes.c_void_p) -> None:
+            self.freed_text.append(int(value.value or 0))
+
+        def platform_file_free_bytes(self, value: ctypes.c_void_p) -> None:
+            self.freed_bytes.append(int(value.value or 0))
+
+    dll = FakeDll()
+
+    def keep(data: bytes) -> int:
+        buffer = ctypes.create_string_buffer(data)
+        buffers.append(buffer)
+        return ctypes.addressof(buffer)
+
+    def fake_function(*args: object) -> int:
+        out_data, out_size, out_profile_a, out_profile_b, out_error = args[-5:]
+        out_data._obj.value = keep(b"rebuilt")  # type: ignore[attr-defined]
+        out_size._obj.value = 7  # type: ignore[attr-defined]
+        out_profile_a._obj.value = keep(b'{"source": true}')  # type: ignore[attr-defined]
+        out_profile_b._obj.value = keep(b'{"direct": true}')  # type: ignore[attr-defined]
+        out_error._obj.value = keep(b"boom")  # type: ignore[attr-defined]
+        return 0
+
+    result = c_backend.CProfiledOperation(dll).call_bytes_with_profiles(  # type: ignore[arg-type]
+        fake_function,
+        profile_count=2,
+    )
+
+    assert result.data == b"rebuilt"
+    assert result.profiles == ({"source": True}, {"direct": True})
+    assert result.error_text == "boom"
+    assert len(dll.freed_text) == 3
+    assert len(dll.freed_bytes) == 1
+
+
+def test_c_profiled_operation_frees_profile_and_error_on_failure_status() -> None:
+    buffers: list[ctypes.Array[ctypes.c_char]] = []
+
+    class FakeDll:
+        def __init__(self) -> None:
+            self.freed_text: list[int] = []
+
+        def platform_file_free_text(self, value: ctypes.c_void_p) -> None:
+            self.freed_text.append(int(value.value or 0))
+
+    dll = FakeDll()
+
+    def keep(data: bytes) -> int:
+        buffer = ctypes.create_string_buffer(data)
+        buffers.append(buffer)
+        return ctypes.addressof(buffer)
+
+    def fake_function(*args: object) -> int:
+        out_profile, out_error = args[-2:]
+        out_profile._obj.value = keep(b'{"compare": true}')  # type: ignore[attr-defined]
+        out_error._obj.value = keep(b"failed")  # type: ignore[attr-defined]
+        return 23
+
+    result = c_backend.CProfiledOperation(dll).call_profile(fake_function)  # type: ignore[arg-type]
+
+    assert result.status == 23
+    assert result.profile == {"compare": True}
+    assert result.error_text == "failed"
+    assert len(dll.freed_text) == 2
+
+
 def test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "sample"
     output_path = tmp_path / "rebuilt.bin"

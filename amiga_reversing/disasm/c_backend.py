@@ -17,6 +17,7 @@ from ctypes import (
     create_string_buffer,
     string_at,
 )
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 from typing import cast
@@ -65,6 +66,81 @@ class FactsV2DirectRebuildRefused(RuntimeError):
         self.source_profile = source_profile
         self.direct_profile = direct_profile
         super().__init__(str(direct_profile.get("direct_rebuild_refusal_reason") or "direct rebuild refused"))
+
+
+@dataclass(frozen=True, slots=True)
+class CProfiledBytesResult:
+    status: int
+    data: bytes
+    profiles: tuple[dict[str, object], ...]
+    error_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class CProfiledJsonResult:
+    status: int
+    profile: dict[str, object]
+    error_text: str
+
+
+class CProfiledOperation:
+    def __init__(self, dll: CDLL) -> None:
+        self._dll = dll
+
+    def call_bytes_with_profiles(
+        self,
+        function: Callable[..., int],
+        *args: object,
+        profile_count: int,
+    ) -> CProfiledBytesResult:
+        out_data = c_void_p()
+        out_size = c_size_t()
+        out_profiles = [c_void_p() for _ in range(profile_count)]
+        out_error = c_void_p()
+        status = function(
+            *args,
+            byref(out_data),
+            byref(out_size),
+            *(byref(profile) for profile in out_profiles),
+            byref(out_error),
+        )
+        try:
+            profiles = tuple(_json_from_c_text(profile) for profile in out_profiles)
+            error_text = _text_from_c_pointer(out_error)
+            data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
+            return CProfiledBytesResult(status, data, profiles, error_text)
+        finally:
+            self._free_text(out_error)
+            for profile in out_profiles:
+                self._free_text(profile)
+            if out_data.value:
+                self._dll.platform_file_free_bytes(out_data)
+
+    def call_profile(
+        self,
+        function: Callable[..., int],
+        *args: object,
+    ) -> CProfiledJsonResult:
+        out_profile = c_void_p()
+        out_error = c_void_p()
+        status = function(*args, byref(out_profile), byref(out_error))
+        try:
+            return CProfiledJsonResult(status, _json_from_c_text(out_profile), _text_from_c_pointer(out_error))
+        finally:
+            self._free_text(out_error)
+            self._free_text(out_profile)
+
+    def _free_text(self, value: c_void_p) -> None:
+        if value.value:
+            self._dll.platform_file_free_text(value)
+
+
+def _text_from_c_pointer(value: c_void_p) -> str:
+    return string_at(value.value).decode("utf-8", errors="replace") if value.value else ""
+
+
+def _json_from_c_text(value: c_void_p) -> dict[str, object]:
+    return cast(dict[str, object], json.loads(_text_from_c_pointer(value) or "{}"))
 
 
 def render_binary_source_with_c_backend(
@@ -760,55 +836,11 @@ def _platform_file_facts_v2_direct_rebuild_profile(
 ) -> tuple[bytes, dict[str, object], dict[str, object]]:
     dll = _platform_file_dll(project_root)
     function = getattr(dll, function_name)
-    out_data = c_void_p()
-    out_size = c_size_t()
-    out_source_profile_json = c_void_p()
-    out_direct_profile_json = c_void_p()
-    out_error = c_void_p()
     c_args = [_c_arg(arg) for arg in args]
-    result = function(
-        *c_args,
-        byref(out_data),
-        byref(out_size),
-        byref(out_source_profile_json),
-        byref(out_direct_profile_json),
-        byref(out_error),
-    )
-    try:
-        source_profile_text = (
-            string_at(out_source_profile_json.value).decode("utf-8", errors="replace")
-            if out_source_profile_json.value
-            else "{}"
-        )
-        direct_profile_text = (
-            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
-            if out_direct_profile_json.value
-            else "{}"
-        )
-        source_profile = cast(dict[str, object], json.loads(source_profile_text))
-        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
-        if facts_v2_source_refused(source_profile):
-            raise FactsV2SourceRefused(source_profile)
-        if direct_profile.get("direct_rebuild_refused") is True:
-            raise FactsV2DirectRebuildRefused(source_profile, direct_profile)
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2ProfiledOperationFailed(
-                f"C facts_v2 direct rebuild failed: {detail}",
-                source_profile=source_profile,
-                operation_profile=direct_profile,
-            )
-        data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
-        return data, source_profile, direct_profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_source_profile_json.value:
-            dll.platform_file_free_text(out_source_profile_json)
-        if out_direct_profile_json.value:
-            dll.platform_file_free_text(out_direct_profile_json)
-        if out_data.value:
-            dll.platform_file_free_bytes(out_data)
+    result = CProfiledOperation(dll).call_bytes_with_profiles(function, *c_args, profile_count=2)
+    source_profile, direct_profile = result.profiles
+    _raise_direct_rebuild_profile_refusal_or_error(source_profile, direct_profile, result.status, result.error_text)
+    return result.data, source_profile, direct_profile
 
 
 def _platform_file_facts_v2_direct_rebuild_buffer_profile(
@@ -824,59 +856,37 @@ def _platform_file_facts_v2_direct_rebuild_buffer_profile(
     dll = _platform_file_dll(project_root)
     function = getattr(dll, function_name)
     data_buffer = create_string_buffer(data)
-    out_data = c_void_p()
-    out_size = c_size_t()
-    out_source_profile_json = c_void_p()
-    out_direct_profile_json = c_void_p()
-    out_error = c_void_p()
-    result = function(
+    result = CProfiledOperation(dll).call_bytes_with_profiles(
+        function,
         _c_arg(platform_name),
         data_buffer,
         len(data),
         _c_arg(metadata_text),
         _c_arg(display_path),
         _c_arg(output_text),
-        byref(out_data),
-        byref(out_size),
-        byref(out_source_profile_json),
-        byref(out_direct_profile_json),
-        byref(out_error),
+        profile_count=2,
     )
-    try:
-        source_profile_text = (
-            string_at(out_source_profile_json.value).decode("utf-8", errors="replace")
-            if out_source_profile_json.value
-            else "{}"
+    source_profile, direct_profile = result.profiles
+    _raise_direct_rebuild_profile_refusal_or_error(source_profile, direct_profile, result.status, result.error_text)
+    return result.data, source_profile, direct_profile
+
+
+def _raise_direct_rebuild_profile_refusal_or_error(
+    source_profile: dict[str, object],
+    direct_profile: dict[str, object],
+    status: int,
+    error_text: str,
+) -> None:
+    if facts_v2_source_refused(source_profile):
+        raise FactsV2SourceRefused(source_profile)
+    if direct_profile.get("direct_rebuild_refused") is True:
+        raise FactsV2DirectRebuildRefused(source_profile, direct_profile)
+    if status != 0:
+        raise FactsV2ProfiledOperationFailed(
+            f"C facts_v2 direct rebuild failed: {error_text}",
+            source_profile=source_profile,
+            operation_profile=direct_profile,
         )
-        direct_profile_text = (
-            string_at(out_direct_profile_json.value).decode("utf-8", errors="replace")
-            if out_direct_profile_json.value
-            else "{}"
-        )
-        source_profile = cast(dict[str, object], json.loads(source_profile_text))
-        direct_profile = cast(dict[str, object], json.loads(direct_profile_text))
-        if facts_v2_source_refused(source_profile):
-            raise FactsV2SourceRefused(source_profile)
-        if direct_profile.get("direct_rebuild_refused") is True:
-            raise FactsV2DirectRebuildRefused(source_profile, direct_profile)
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2ProfiledOperationFailed(
-                f"C facts_v2 direct rebuild failed: {detail}",
-                source_profile=source_profile,
-                operation_profile=direct_profile,
-            )
-        rebuilt = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
-        return rebuilt, source_profile, direct_profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_source_profile_json.value:
-            dll.platform_file_free_text(out_source_profile_json)
-        if out_direct_profile_json.value:
-            dll.platform_file_free_text(out_direct_profile_json)
-        if out_data.value:
-            dll.platform_file_free_bytes(out_data)
 
 
 def _platform_file_reproduction_compare_path_profile(
@@ -891,37 +901,21 @@ def _platform_file_reproduction_compare_path_profile(
     dll = _platform_file_dll(project_root)
     function = getattr(dll, function_name)
     rebuilt_buffer = create_string_buffer(rebuilt_bytes)
-    out_compare_profile_json = c_void_p()
-    out_error = c_void_p()
-    result = function(
+    result = CProfiledOperation(dll).call_profile(
+        function,
         _c_arg(platform_name),
         _c_arg(path),
         _c_arg(metadata_text),
         rebuilt_buffer,
         len(rebuilt_bytes),
-        byref(out_compare_profile_json),
-        byref(out_error),
     )
-    try:
-        compare_profile_text = (
-            string_at(out_compare_profile_json.value).decode("utf-8", errors="replace")
-            if out_compare_profile_json.value
-            else "{}"
+    if result.status != 0:
+        raise FactsV2ProfiledOperationFailed(
+            f"C reproduction compare failed: {result.error_text}",
+            source_profile={},
+            operation_profile=result.profile,
         )
-        compare_profile = cast(dict[str, object], json.loads(compare_profile_text))
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2ProfiledOperationFailed(
-                f"C reproduction compare failed: {detail}",
-                source_profile={},
-                operation_profile=compare_profile,
-            )
-        return compare_profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_compare_profile_json.value:
-            dll.platform_file_free_text(out_compare_profile_json)
+    return result.profile
 
 
 def _platform_file_reproduction_compare_buffer_profile(
@@ -938,9 +932,8 @@ def _platform_file_reproduction_compare_buffer_profile(
     function = getattr(dll, function_name)
     data_buffer = create_string_buffer(data)
     rebuilt_buffer = create_string_buffer(rebuilt_bytes)
-    out_compare_profile_json = c_void_p()
-    out_error = c_void_p()
-    result = function(
+    result = CProfiledOperation(dll).call_profile(
+        function,
         _c_arg(platform_name),
         data_buffer,
         len(data),
@@ -948,29 +941,14 @@ def _platform_file_reproduction_compare_buffer_profile(
         _c_arg(display_path),
         rebuilt_buffer,
         len(rebuilt_bytes),
-        byref(out_compare_profile_json),
-        byref(out_error),
     )
-    try:
-        compare_profile_text = (
-            string_at(out_compare_profile_json.value).decode("utf-8", errors="replace")
-            if out_compare_profile_json.value
-            else "{}"
+    if result.status != 0:
+        raise FactsV2ProfiledOperationFailed(
+            f"C reproduction compare failed: {result.error_text}",
+            source_profile={},
+            operation_profile=result.profile,
         )
-        compare_profile = cast(dict[str, object], json.loads(compare_profile_text))
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise FactsV2ProfiledOperationFailed(
-                f"C reproduction compare failed: {detail}",
-                source_profile={},
-                operation_profile=compare_profile,
-            )
-        return compare_profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_compare_profile_json.value:
-            dll.platform_file_free_text(out_compare_profile_json)
+    return result.profile
 
 
 def _platform_disk_text(function_name: str, *args: object, project_root: Path) -> str:

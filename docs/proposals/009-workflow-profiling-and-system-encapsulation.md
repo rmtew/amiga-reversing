@@ -1020,6 +1020,17 @@ Implemented slice evidence:
     uv run python -m pytest tests\test_reproduction.py tests\test_disasm_server.py -q
   Lint passed:
     uv run ruff check amiga_reversing\disasm\reproduction.py tests\test_reproduction.py
+
+009-006:
+  CProfiledOperation now owns output buffer, profile JSON, error text, and free
+  calls for the touched profiled C operations.
+  Direct rebuild and Reproduction Comparison profiled helpers use the adapter
+  while preserving source refusal, direct rebuild refusal, and operation failure
+  behavior at the public helper boundary.
+  Focused tests passed:
+    uv run python -m pytest tests\test_c_backend.py::test_c_profiled_operation_frees_bytes_profiles_and_error_buffers tests\test_c_backend.py::test_c_profiled_operation_frees_profile_and_error_on_failure_status tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_uses_direct_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_surfaces_refusal tests\test_c_backend.py::test_project_source_reproduction_compare_atari_uses_object_semantics tests\test_reproduction.py tests\test_source_export.py -q
+  Lint passed:
+    uv run ruff check amiga_reversing\disasm\c_backend.py tests\test_c_backend.py
 ```
 
 Observed during implementation:
@@ -1051,6 +1062,13 @@ The first Round-Trip Verification extraction deliberately stopped at phase
 functions rather than a full workflow object. That made direct rebuild, source
 rendering, source assembly, and Reproduction Comparison directly testable
 without rewriting report construction in the same slice.
+
+The full C adapter verification command currently exposes a real-DLL listing
+row classification issue outside the touched adapter path:
+test_real_dll_render_plan_data_classes_reach_listing_rows sees a generated
+comment row ending in ":" classified outside label/directive. The adapter slice
+keeps this as a follow-up observation rather than broadening into listing-row
+classification work.
 ```
 
 Current code evidence:
