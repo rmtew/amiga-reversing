@@ -338,6 +338,11 @@ def test_workflow_assertions_accept_debug_state_shape() -> None:
             "listing_projection_hash": "cache",
         },
         "locator_recovery": {"ok": True, "row_key": "row-0", "projection_hash": "cache"},
+        "workflow_profile": {
+            "workflow_id": "manual_command_execution",
+            "target_id": "debug_demo",
+            "spans": [{"name": "locator_resolution"}],
+        },
     }
 
     assert_manual_workflow_snapshot(
@@ -353,8 +358,22 @@ def test_workflow_assertions_accept_debug_state_shape() -> None:
             review_state="needs_review",
             presentation_dirty=True,
             locator_recovered=True,
+            workflow_spans=("locator_resolution",),
         ),
     )
+    missing_profile_snapshot = dict(snapshot)
+    missing_profile_snapshot.pop("workflow_profile")
+    with pytest.raises(AssertionError, match="workflow profile: missing workflow profile"):
+        assert_manual_workflow_snapshot(
+            missing_profile_snapshot,
+            ManualWorkflowExpectation(
+                project_id="debug_demo",
+                manual_action_log_count=1,
+                row_key="row-0",
+                projection_hash="cache",
+                workflow_spans=("locator_resolution",),
+            ),
+        )
     cast(dict[str, object], cast(list[object], cast(dict[str, object], snapshot["listing"])["rows"])[0])["comment_text"] = "wrong"
     with pytest.raises(AssertionError, match="projection:"):
         assert_manual_workflow_snapshot(

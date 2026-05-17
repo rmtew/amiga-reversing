@@ -1043,6 +1043,18 @@ Implemented slice evidence:
     $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
   Lint passed:
     uv run ruff check tests\test_web_app_source.py tests\test_web_e2e_cdp.py
+
+009-008:
+  The shared workflow harness now requires workflow_profile when expected spans
+  are declared, and can assert browser profile debug state for profiled API
+  request id, workflow profile identity, and listing fetch timing shape.
+  The representative CDP manual command smoke routes its workflow profile and
+  browser profile debug state through assert_manual_workflow_snapshot().
+  Focused tests passed:
+    uv run python -m pytest tests\test_api_workflow_harness.py -q
+    $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
+  Lint passed:
+    uv run ruff check tests\workflow_harness.py tests\test_api_workflow_harness.py tests\test_web_e2e_cdp.py
 ```
 
 Observed during implementation:
@@ -1085,6 +1097,12 @@ classification work.
 Browser/profile correlation is intentionally debug-state only. The existing
 stats overlay still renders queue/fetch/render totals, while LLM/CDP consumers
 read the correlated request/profile payload from window.__amigaDebugState().
+
+The full CDP file currently has five isolated UI timeouts in manual-review and
+command-palette tests outside the representative profiling harness workflow.
+The 009-008 harness checks pass for API and the focused CDP manual command
+workflow; the broader UI timeout cluster should be handled as separate browser
+stability work.
 ```
 
 Current code evidence:

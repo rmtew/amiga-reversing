@@ -207,6 +207,30 @@ def _assert_workflow_profile(
     for name in expected.workflow_spans:
         if name not in span_names:
             raise AssertionError(f"workflow profile: missing span {name}")
+    profile_debug = snapshot.get("profile_debug_state")
+    if profile_debug is not None:
+        _assert_profile_debug_state(profile_debug, workflow_profile)
+
+
+def _assert_profile_debug_state(
+    profile_debug_state: object,
+    workflow_profile: Mapping[str, object],
+) -> None:
+    profile_debug = _mapping(profile_debug_state, "debug state: malformed profile debug state")
+    profiled_request_id = profile_debug.get("last_profiled_api_request_id")
+    if not isinstance(profiled_request_id, str) or not profiled_request_id:
+        raise AssertionError("debug state: missing profiled API request id")
+    browser_profile = _mapping(profile_debug.get("last_workflow_profile"), "debug state: missing browser workflow profile")
+    if browser_profile.get("workflow_id") != workflow_profile.get("workflow_id"):
+        raise AssertionError("debug state: browser workflow_id mismatch")
+    if browser_profile.get("target_id") != workflow_profile.get("target_id"):
+        raise AssertionError("debug state: browser workflow target mismatch")
+    fetch_sample = profile_debug.get("last_listing_fetch_sample")
+    if fetch_sample is not None:
+        sample = _mapping(fetch_sample, "debug state: malformed listing fetch sample")
+        for field in ("queueMs", "fetchMs", "renderMs", "totalMs"):
+            if field not in sample:
+                raise AssertionError(f"debug state: listing fetch sample missing {field}")
 
 
 def _assert_preference_debug_state(

@@ -1915,6 +1915,8 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         page.wait_for_expression("document.querySelector('.listing-comment')?.textContent.includes('LLM smoke comment')")
         snapshot = {
             "mutation": mutation,
+            "workflow_profile": cast(dict[str, object], cast(dict[str, object], command_result["execute"])["workflow_profile"]),
+            "profile_debug_state": browser_debug_after_execute,
             "project": cast(dict[str, object], disasm_server.route_request("GET", f"/api/projects/{project.id}", {})["data"]),
             "listing": cast(dict[str, object], disasm_server.route_request(
                 "GET",
@@ -1933,6 +1935,7 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
                 row_key="row-0",
                 projection_hash="test-cache",
                 comment_text="LLM smoke comment",
+                workflow_spans=("locator_resolution", "manual_action_append", "response_build"),
             ),
         )
         assert command_result["server_debug_route"] == f"/api/projects/{project.id}/commands"
