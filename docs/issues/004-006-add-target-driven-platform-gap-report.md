@@ -1,6 +1,6 @@
 # 004-006 Add Target-Driven Platform Gap Report
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -55,3 +55,14 @@ target platform gap report command on a fixture target
 focused platform gap report tests
 cmd /c src\precommit.bat
 ```
+
+## Implementation Notes
+
+- Added `amiga-platform-kb target-gaps <target>`.
+- The report groups conservative candidate gaps by owner/source family:
+  custom chip registers, CIA registers, OS LVO-shaped offsets, known include
+  constants, unknown absolute values, and unexpected-new API usage.
+- Unexpected-new API output uses target OS compatibility summary data and
+  labels expectations as explicit target metadata or inferred year hints.
+- Fixture tests cover each candidate class and the command path.
+- The report is read-only and does not promote candidates into KB facts.

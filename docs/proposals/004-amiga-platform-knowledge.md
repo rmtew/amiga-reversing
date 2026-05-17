@@ -25,7 +25,7 @@ durable spec.
   - [x] 4. OS Compatibility Data Exists As A Target Summary
   - [x] 5. HUNK Runtime Metadata Owns Container Decisions
   - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
-  - [ ] 7. Target Gaps Do Not Drive Parser Expansion Yet
+  - [x] 7. Target Gaps Can Drive Parser Expansion
 - [ ] Tutorial: Platform KB Coverage Report
 - [ ] Tutorial: Target OS Compatibility Summary
 - [x] Tutorial: Corrections Review Flow
@@ -38,7 +38,7 @@ durable spec.
   - [x] Slice 3: Corrections Review Flow
   - [x] Slice 4: Generated HUNK Comparison Helpers
   - [x] Slice 5: Resolve `HUNK_OVERLAY`
-  - [ ] Slice 6: Target-Driven Platform Gap Report
+  - [x] Slice 6: Target-Driven Platform Gap Report
 - [ ] Acceptance Criteria
 - [ ] Deletion Checklist
 - [ ] Rewrite Acceptance Tests
@@ -267,10 +267,11 @@ Or:
 
 The previous halfway state should not return.
 
-### 7. Target Gaps Do Not Drive Parser Expansion Yet
+### 7. Target Gaps Can Drive Parser Expansion
 
 The project already has enough platform KB data to render many names and
-constants. What is missing is a report that says:
+constants. `amiga-platform-kb target-gaps <target>` now gives a conservative
+target-level report that says:
 
 ```text
 This target produced unresolved platform-looking values.
@@ -278,7 +279,8 @@ They resemble this include family or hardware range.
 Parse or correct this source next.
 ```
 
-That report should drive future include parsing and correction work.
+That report should drive future include parsing and correction work. Candidate
+matches remain review inputs, not KB facts.
 
 ## Tutorial: Platform KB Coverage Report
 
@@ -677,8 +679,12 @@ checks no longer report overlay as half-represented.
 
 Tracked by `docs/issues/004-006-add-target-driven-platform-gap-report.md`.
 
-Report unresolved platform-looking symbols and addresses by likely owner so
-future KB parsing follows observed target needs.
+Resolved in this slice: `amiga-platform-kb target-gaps <target>` reports
+platform-looking target gaps grouped by likely owner/source family, including
+custom chip ranges, CIA ranges, LVO-shaped offsets, known include constants,
+unknown absolute values, and unexpected-new API usage from target platform
+summary data. Explicit target OS expectations and inferred year hints are
+distinguished in output.
 
 ## Acceptance Criteria
 
@@ -781,3 +787,8 @@ metadata test covers the generated categories used by comparison.
 Slice 5 resolved `HUNK_OVERLAY` by making it explicitly unsupported. The enum id
 remains for diagnostics, but it is no longer a valid load-file record and the
 loader now rejects it with a named unsupported-record diagnostic.
+
+Slice 6 added `amiga-platform-kb target-gaps <target>`. The report is
+read-only, groups platform-looking candidates by likely owner/source family,
+references source/parser areas that would close the gap, and marks
+unexpected-new API warnings as explicit target metadata or inferred year hints.

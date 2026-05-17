@@ -148,6 +148,93 @@ def test_platform_kb_corrections_promote_rejects_invalid_requests(tmp_path: Path
         )
 
 
+def test_platform_kb_target_gap_report_groups_fixture_candidates(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    target = tmp_path / "targets" / "fixture-1989"
+    target.mkdir()
+    _write_json(
+        target / "platform_gap_inputs.json",
+        {
+            "absolute_values": [
+                {"value": "0xDFF09A", "source": "listing:10", "reason": "generic absolute"},
+                {"value": "0xBFE001", "source": "listing:20", "reason": "generic absolute"},
+                {"value": "0x123456", "source": "listing:30", "reason": "generic absolute"},
+            ],
+            "constants": [{"value": 2, "source": "listing:40", "reason": "generic immediate"}],
+            "lvo_offsets": [{"value": -30, "source": "listing:50"}],
+        },
+    )
+    _write_json(
+        target / "platform_summary.json",
+        {
+            "os_compatibility": {
+                "status": "observed",
+                "minimum_required": "3.1",
+                "max_requirement_drivers": [
+                    {
+                        "available_since": "3.1",
+                        "call": "graphics.library/BestModeID",
+                        "offset": 64,
+                        "section_index": 0,
+                    }
+                ],
+            }
+        },
+    )
+    _write_json(target / "target_metadata.json", {"expected_os_version": "1.3"})
+
+    report = platform_kb.build_target_gap_report(tmp_path, "fixture-1989")
+    text = platform_kb.format_target_gap_report(report)
+    owners = {group["owner"] for group in report["groups"]}
+
+    assert report["candidate_count"] == 6
+    assert "custom_chip_registers" in owners
+    assert "cia_registers" in owners
+    assert "amiga_os_lvo" in owners
+    assert "known_include_family:exec/memory.i" in owners
+    assert "unknown_absolute_platform_value" in owners
+    assert "unexpected_new_api" in owners
+    assert "expectation=explicit_target_metadata" in text
+    assert "knowledge/amiga_hw_registers.json" in text
+    assert "graphics.library/BestModeID available_since=3.1 expected=1.3" in text
+
+
+def test_platform_kb_target_gap_report_marks_inferred_year_expectations(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    target = tmp_path / "targets" / "disk-game-1989"
+    target.mkdir()
+    _write_json(
+        target / "platform_summary.json",
+        {
+            "os_compatibility": {
+                "status": "observed",
+                "minimum_required": "3.1",
+                "max_requirement_drivers": [],
+            }
+        },
+    )
+
+    text = platform_kb.format_target_gap_report(platform_kb.build_target_gap_report(tmp_path, "disk-game-1989"))
+
+    assert "unexpected_new_api" in text
+    assert "minimum_required=3.1 expected=1.3" in text
+    assert "expectation=inferred_year" in text
+
+
+def test_platform_kb_target_gap_command_reports_selected_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write_fixture_tree(tmp_path)
+    target = tmp_path / "targets" / "fixture-1989"
+    target.mkdir()
+    _write_json(target / "platform_gap_inputs.json", {"absolute_values": [{"value": "0xDFF09A", "source": "listing"}]})
+    monkeypatch.setattr(platform_kb, "PROJECT_ROOT", tmp_path)
+
+    assert platform_kb.main(["target-gaps", "fixture-1989"]) == 0
+
+    assert "custom_chip_registers" in capsys.readouterr().out
+
+
 def _write_fixture_tree(root: Path) -> None:
     knowledge = root / "knowledge"
     generated = root / "src" / "generated"
@@ -179,7 +266,15 @@ def _write_fixture_tree(root: Path) -> None:
                 }
             },
             "structs": {"Node": {}},
-            "constants": {"MEMF_CHIP": {}},
+            "constants": {
+                "MEMF_CHIP": {
+                    "owner": {
+                        "canonical_include_path": "exec/memory.i",
+                        "source_file": "NDK/exec/memory.i",
+                    },
+                    "value": 2,
+                }
+            },
         },
     )
     _write_json(

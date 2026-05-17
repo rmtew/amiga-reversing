@@ -35,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
     promote_parser = correction_subparsers.add_parser("promote", help="Promote one seeded correction.")
     promote_parser.add_argument("correction_id")
     promote_parser.add_argument("--reviewer", required=True)
+    target_gaps_parser = subparsers.add_parser("target-gaps", help="Report target-driven platform KB gaps.")
+    target_gaps_parser.add_argument("target")
     args = parser.parse_args(argv)
 
     if args.command == "corrections":
@@ -60,6 +62,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Promoted correction: {args.correction_id}")
             return 0
         raise SystemExit(f"Unsupported corrections command: {args.corrections_command}")
+    if args.command == "target-gaps":
+        print(format_target_gap_report(build_target_gap_report(PROJECT_ROOT, args.target)))
+        return 0
 
     report = build_report(PROJECT_ROOT)
     if args.command == "report":
@@ -225,6 +230,307 @@ def promote_correction(corrections_path: Path, correction_id: str, reviewer: str
     record.entry["reviewed_by"] = reviewer.strip()
     record.entry["reviewed_at"] = (today or date.today()).isoformat()
     corrections_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def build_target_gap_report(project_root: Path, target: str) -> dict[str, object]:
+    target_path = _resolve_target_path(project_root, target)
+    gap_inputs = _load_json_if_exists(target_path / "platform_gap_inputs.json")
+    source_analysis = _load_json_if_exists(target_path / "source_analysis.json")
+    platform_summary = _target_platform_summary_payload(target_path, source_analysis)
+    metadata = _load_json_if_exists(target_path / "target_metadata.json")
+    constants_by_value = _constant_rows_by_value(
+        _load_json_if_exists(project_root / "knowledge" / "amiga_ndk_includes_parsed.json")
+    )
+    groups: dict[str, dict[str, object]] = {}
+    for value_row in _target_gap_absolute_values(gap_inputs, source_analysis):
+        value = _parse_int(value_row.get("value"))
+        if value is None:
+            continue
+        _target_gap_add_value_candidate(groups, value_row, value, constants_by_value)
+    _target_gap_add_os_compatibility_candidates(groups, platform_summary, metadata, target_path)
+    return {
+        "target": str(target_path.relative_to(project_root)) if target_path.is_relative_to(project_root) else str(target_path),
+        "candidate_count": sum(len(cast(list[object], group["candidates"])) for group in groups.values()),
+        "groups": list(groups.values()),
+    }
+
+
+def format_target_gap_report(report: Mapping[str, object]) -> str:
+    lines = [f"Target platform gap report: {report['target']}"]
+    groups = cast(list[Mapping[str, object]], report["groups"])
+    if not groups:
+        lines.append("  no platform-looking gaps found")
+        return "\n".join(lines)
+    for group in groups:
+        lines.append(f"{group['owner']}:")
+        lines.append(f"  source family: {group['source_family']}")
+        lines.append(f"  parser area: {group['parser_area']}")
+        for candidate in cast(list[Mapping[str, object]], group["candidates"]):
+            detail = _string(candidate.get("detail")) or "-"
+            source = _string(candidate.get("source")) or "-"
+            reason = _string(candidate.get("reason")) or "-"
+            expectation = _string(candidate.get("expectation_source"))
+            suffix = f" expectation={expectation}" if expectation else ""
+            lines.append(f"  - {detail} source={source} reason={reason}{suffix}")
+    return "\n".join(lines)
+
+
+def _resolve_target_path(project_root: Path, target: str) -> Path:
+    candidate = Path(target)
+    if candidate.exists():
+        return candidate
+    direct = project_root / "targets" / target
+    if direct.exists():
+        return direct
+    matches = [path for path in (project_root / "targets").glob(f"**/{target}") if path.is_dir()]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise SystemExit(f"Ambiguous target: {target}")
+    raise SystemExit(f"Unknown target: {target}")
+
+
+def _target_platform_summary_payload(
+    target_path: Path, source_analysis: Mapping[str, object]
+) -> Mapping[str, object]:
+    summary = _load_json_if_exists(target_path / "platform_summary.json")
+    if summary:
+        return summary
+    return _mapping(source_analysis.get("platform_summary"))
+
+
+def _target_gap_absolute_values(
+    gap_inputs: Mapping[str, object], source_analysis: Mapping[str, object]
+) -> Iterable[Mapping[str, object]]:
+    for row in cast(list[object], gap_inputs.get("absolute_values", [])):
+        if isinstance(row, dict):
+            yield cast(Mapping[str, object], row)
+    for row in cast(list[object], gap_inputs.get("constants", [])):
+        if isinstance(row, dict):
+            yield cast(Mapping[str, object], row)
+    for row in cast(list[object], gap_inputs.get("lvo_offsets", [])):
+        if isinstance(row, dict):
+            yield cast(Mapping[str, object], row)
+    for section in cast(list[object], source_analysis.get("sections", [])):
+        if not isinstance(section, dict):
+            continue
+        for access in cast(list[object], section.get("recovered_platform_unresolved_typed_accesses", [])):
+            if not isinstance(access, dict):
+                continue
+            displacement = _parse_int(access.get("displacement"))
+            if displacement is None:
+                continue
+            yield {
+                "value": displacement,
+                "source": f"section {section.get('section_index', '?')} offset {access.get('offset', '?')}",
+                "reason": _string(access.get("classification")) or "unresolved typed access",
+            }
+
+
+def _target_gap_add_value_candidate(
+    groups: dict[str, dict[str, object]],
+    row: Mapping[str, object],
+    value: int,
+    constants_by_value: Mapping[int, list[Mapping[str, object]]],
+) -> None:
+    source = _string(row.get("source")) or "-"
+    reason = _string(row.get("reason")) or "platform-looking absolute value"
+    signed_value = _signed_platform_value(value)
+    if 0xDFF000 <= value <= 0xDFFFFF:
+        _target_gap_add_candidate(
+            groups,
+            "custom_chip_registers",
+            "hardware/custom",
+            "knowledge/amiga_hw_registers.json; knowledge/amiga_hw_symbols.json",
+            {"detail": _hex_value(value), "source": source, "reason": reason},
+        )
+        return
+    if 0xBFD000 <= value <= 0xBFEFFF:
+        _target_gap_add_candidate(
+            groups,
+            "cia_registers",
+            "hardware/cia",
+            "knowledge/amiga_hw_symbols.json",
+            {"detail": _hex_value(value), "source": source, "reason": reason},
+        )
+        return
+    if signed_value < 0 and signed_value % 6 == 0 and abs(signed_value) <= 4096:
+        _target_gap_add_candidate(
+            groups,
+            "amiga_os_lvo",
+            "ndk/fd-autodoc",
+            "src/scripts/kb/ndk_parser.py; knowledge/amiga_ndk_includes_parsed.json",
+            {"detail": str(signed_value), "source": source, "reason": "LVO-shaped negative offset"},
+        )
+        return
+    constant_matches = constants_by_value.get(value, [])
+    if constant_matches:
+        first = constant_matches[0]
+        include_path = _string(first.get("include_path")) or "unknown include"
+        names = ", ".join(_string(match.get("name")) or "?" for match in constant_matches[:3])
+        _target_gap_add_candidate(
+            groups,
+            f"known_include_family:{include_path}",
+            include_path,
+            "knowledge/amiga_ndk_includes_parsed.json",
+            {"detail": f"{_hex_value(value)} matches {names}", "source": source, "reason": reason},
+        )
+        return
+    if value >= 0x1000:
+        _target_gap_add_candidate(
+            groups,
+            "unknown_absolute_platform_value",
+            "unknown",
+            "target gap triage; source inventory",
+            {"detail": _hex_value(value), "source": source, "reason": reason},
+        )
+
+
+def _target_gap_add_os_compatibility_candidates(
+    groups: dict[str, dict[str, object]],
+    platform_summary: Mapping[str, object],
+    metadata: Mapping[str, object],
+    target_path: Path,
+) -> None:
+    os_summary = _mapping(platform_summary.get("os_compatibility"))
+    minimum = _string(os_summary.get("minimum_required"))
+    if not minimum:
+        return
+    expected, expectation_source = _target_expected_os(metadata, target_path)
+    if expected is None or _version_sort_key(minimum) <= _version_sort_key(expected):
+        return
+    drivers = cast(list[object], os_summary.get("max_requirement_drivers", []))
+    if drivers:
+        for driver in drivers:
+            if not isinstance(driver, dict):
+                continue
+            call = _string(driver.get("call")) or _string(driver.get("function")) or "unknown call"
+            available = _string(driver.get("available_since")) or minimum
+            _target_gap_add_candidate(
+                groups,
+                "unexpected_new_api",
+                "ndk/os-compatibility",
+                "target platform summary; knowledge/amiga_ndk_other_parsed.json",
+                {
+                    "detail": f"{call} available_since={available} expected={expected}",
+                    "source": _target_gap_driver_source(driver),
+                    "reason": "observed API is newer than target expectation",
+                    "expectation_source": expectation_source,
+                },
+            )
+    else:
+        _target_gap_add_candidate(
+            groups,
+            "unexpected_new_api",
+            "ndk/os-compatibility",
+            "target platform summary; knowledge/amiga_ndk_other_parsed.json",
+            {
+                "detail": f"minimum_required={minimum} expected={expected}",
+                "source": "platform_summary",
+                "reason": "observed API is newer than target expectation",
+                "expectation_source": expectation_source,
+            },
+        )
+
+
+def _target_gap_add_candidate(
+    groups: dict[str, dict[str, object]],
+    owner: str,
+    source_family: str,
+    parser_area: str,
+    candidate: Mapping[str, object],
+) -> None:
+    group = groups.setdefault(
+        owner,
+        {"owner": owner, "source_family": source_family, "parser_area": parser_area, "candidates": []},
+    )
+    cast(list[object], group["candidates"]).append(dict(candidate))
+
+
+def _target_expected_os(metadata: Mapping[str, object], target_path: Path) -> tuple[str | None, str | None]:
+    for key in ("expected_os_version", "expected_min_os_version", "target_os_version"):
+        version = _string(metadata.get(key))
+        if version:
+            return version, "explicit_target_metadata"
+    platform = _mapping(metadata.get("platform"))
+    for key in ("expected_os_version", "expected_min_os_version", "target_os_version"):
+        version = _string(platform.get(key))
+        if version:
+            return version, "explicit_target_metadata"
+    year = _target_year_hint(target_path)
+    if year is None:
+        return None, None
+    if year <= 1990:
+        return "1.3", "inferred_year"
+    if year <= 1992:
+        return "2.0", "inferred_year"
+    return "3.1", "inferred_year"
+
+
+def _target_year_hint(target_path: Path) -> int | None:
+    for part in reversed(target_path.parts):
+        match = re.search(r"\b(19[8-9][0-9]|20[0-2][0-9])\b", part)
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def _target_gap_driver_source(driver: Mapping[str, object]) -> str:
+    section = driver.get("section_index")
+    offset = driver.get("offset")
+    if section is not None and offset is not None:
+        return f"section {section} offset {offset}"
+    return _string(driver.get("source")) or "platform_summary"
+
+
+def _constant_rows_by_value(includes: Mapping[str, object]) -> dict[int, list[Mapping[str, object]]]:
+    rows: dict[int, list[Mapping[str, object]]] = {}
+    for name, payload in _mapping(includes.get("constants")).items():
+        constant = _mapping(payload)
+        value = _parse_int(constant.get("value"))
+        if value is None:
+            continue
+        owner = _mapping(constant.get("owner"))
+        rows.setdefault(value, []).append(
+            {
+                "name": name,
+                "include_path": _string(owner.get("canonical_include_path"))
+                or _string(owner.get("assembler_include_path"))
+                or _string(owner.get("source_file"))
+                or "unknown include",
+            }
+        )
+    return rows
+
+
+def _parse_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            if text.startswith("$"):
+                return int(text[1:], 16)
+            return int(text, 0)
+        except ValueError:
+            return None
+    return None
+
+
+def _signed_platform_value(value: int) -> int:
+    if value >= 0x80000000:
+        return value - 0x100000000
+    if value >= 0x8000:
+        return value - 0x10000
+    return value
+
+
+def _hex_value(value: int) -> str:
+    return f"0x{value:X}"
 
 
 def _ndk_report(includes: Mapping[str, object], other: Mapping[str, object], runtime_header: Path) -> dict[str, object]:
@@ -519,6 +825,12 @@ def _version_sort_key(version: str) -> int:
 
 def _load_json(path: Path) -> dict[str, object]:
     return cast(dict[str, object], json.loads(path.read_text(encoding="utf-8")))
+
+
+def _load_json_if_exists(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    return _load_json(path)
 
 
 def _mapping(value: object) -> Mapping[str, object]:
