@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import cast
 
@@ -24,6 +24,14 @@ class PreferenceWorkflowExpectation:
     project_id: str
     source_export_assembler: str | None = None
     listing_stable_key: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DurabilityBoundary:
+    name: str
+    required: bool = True
+    transient_reason: str | None = None
+    prepare: Callable[[], None] | None = None
 
 
 def assert_manual_workflow_snapshot(
@@ -53,6 +61,28 @@ def assert_preference_workflow_snapshot(
         if location.get("stable_key") != expected.listing_stable_key:
             raise AssertionError("durable state: listing location stable_key mismatch")
     _assert_preference_debug_state(snapshot, expected)
+
+
+def run_durability_matrix(
+    boundaries: Iterable[DurabilityBoundary],
+    snapshot_factory: Callable[[DurabilityBoundary], Mapping[str, object]],
+    assertion: Callable[[Mapping[str, object]], None],
+) -> list[dict[str, object]]:
+    results: list[dict[str, object]] = []
+    for boundary in boundaries:
+        if not boundary.required:
+            if not boundary.transient_reason:
+                raise AssertionError(f"durability boundary {boundary.name}: transient boundary needs a reason")
+            results.append({"boundary": boundary.name, "status": "transient", "reason": boundary.transient_reason})
+            continue
+        if boundary.prepare is not None:
+            boundary.prepare()
+        try:
+            assertion(snapshot_factory(boundary))
+        except AssertionError as exc:
+            raise AssertionError(f"durability boundary {boundary.name}: {exc}") from exc
+        results.append({"boundary": boundary.name, "status": "passed"})
+    return results
 
 
 def _assert_manual_log_state(

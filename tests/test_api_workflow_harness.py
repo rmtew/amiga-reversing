@@ -13,10 +13,12 @@ from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
 from tests.workflow_harness import (
+    DurabilityBoundary,
     ManualWorkflowExpectation,
     PreferenceWorkflowExpectation,
     assert_manual_workflow_snapshot,
     assert_preference_workflow_snapshot,
+    run_durability_matrix,
 )
 
 
@@ -181,6 +183,111 @@ def test_api_harness_proves_preference_workflow_reload(
     )
 
 
+def test_api_harness_runs_manual_mutation_durability_matrix(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_id = "workflow_matrix"
+    _install_durable_project(monkeypatch, tmp_path, project_id)
+    rows = [
+        ListingRow(
+            row_id="r0",
+            stable_key="row-0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            opcode_or_directive="rts",
+        )
+    ]
+    _seed_listing(project_id, rows)
+    locator = _first_listing_locator(project_id)
+    review_result = cast(dict[str, object], disasm_server.route_request(
+        "POST",
+        f"/api/projects/{project_id}/commands/execute",
+        {},
+        {
+            "command_id": "review_note.add",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {"title": "Matrix RTS", "body": "Verify matrix boundary", "tracking": "needs_review"},
+        },
+    )["data"])
+    comment_result = cast(dict[str, object], disasm_server.route_request(
+        "POST",
+        f"/api/projects/{project_id}/commands/execute",
+        {},
+        {
+            "command_id": "comment.edit",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {"text": "matrix comment"},
+        },
+    )["data"])
+    mutation = cast(dict[str, object], comment_result["mutation"])
+    expected = ManualWorkflowExpectation(
+        project_id=project_id,
+        manual_action_log_count=2,
+        durable_action_id=cast(str, mutation["durable_action_id"]),
+        row_key="row-0",
+        projection_hash="cache",
+        comment_text="matrix comment",
+        review_title="Matrix RTS",
+        review_state="needs_review",
+        presentation_dirty=True,
+    )
+
+    def reseed_listing() -> None:
+        _seed_listing(project_id, rows)
+        disasm_server._LISTING_PROJECTION_SERVICE.mark_presentation_dirty(project_id)
+
+    def snapshot(boundary: DurabilityBoundary) -> dict[str, object]:
+        return {
+            "mutation": mutation,
+            "project": cast(dict[str, object], disasm_server.route_request("GET", f"/api/projects/{project_id}", {})["data"]),
+            "listing": cast(dict[str, object], disasm_server.route_request(
+                "GET",
+                f"/api/projects/{project_id}/listing",
+                {"start": ["0"], "count": ["20"]},
+            )["data"]),
+            "server_debug_state": disasm_server._LISTING_PROJECTION_SERVICE.debug_state(),
+            "browser_debug_state": {
+                "project_id": project_id,
+                "selected_row_key": "row-0",
+                "listing_projection_hash": "cache",
+                "boundary": boundary.name,
+            },
+            "locator_recovery": {
+                "ok": True,
+                "row_key": "row-0",
+                "projection_hash": cast(dict[str, object], review_result["mutation"])["projection_hash"],
+            },
+        }
+
+    results = run_durability_matrix(
+        [
+            DurabilityBoundary("immediate"),
+            DurabilityBoundary("browser_refresh_equivalent"),
+            DurabilityBoundary("target_reopen"),
+            DurabilityBoundary("server_restart", prepare=reseed_listing),
+            DurabilityBoundary("new_context_storage_clear"),
+            DurabilityBoundary("project_cache_clear", prepare=reseed_listing),
+        ],
+        snapshot,
+        lambda current: assert_manual_workflow_snapshot(current, expected),
+    )
+
+    assert [result["boundary"] for result in results] == [
+        "immediate",
+        "browser_refresh_equivalent",
+        "target_reopen",
+        "server_restart",
+        "new_context_storage_clear",
+        "project_cache_clear",
+    ]
+    assert all(result["status"] == "passed" for result in results)
+
+
 def test_workflow_assertions_accept_debug_state_shape() -> None:
     snapshot: dict[str, object] = {
         "mutation": {
@@ -242,6 +349,18 @@ def test_workflow_assertions_accept_debug_state_shape() -> None:
                 projection_hash="cache",
                 comment_text="manual return",
             ),
+    )
+
+
+def test_durability_matrix_failure_names_boundary_and_layer() -> None:
+    def fail_projection(snapshot: dict[str, object]) -> None:
+        raise AssertionError(f"projection: row missing after {snapshot['boundary']}")
+
+    with pytest.raises(AssertionError, match="durability boundary browser_refresh_equivalent: projection:"):
+        run_durability_matrix(
+            [DurabilityBoundary("browser_refresh_equivalent")],
+            lambda boundary: {"boundary": boundary.name},
+            fail_projection,
         )
 
 
@@ -294,3 +413,13 @@ def _seed_listing(project_id: str, rows: list[ListingRow]) -> None:
         _RowsArtifact(rows),
         cache_key="cache",
     )
+
+
+def _first_listing_locator(project_id: str) -> dict[str, object]:
+    listing = cast(dict[str, object], disasm_server.route_request(
+        "GET",
+        f"/api/projects/{project_id}/listing",
+        {"start": ["0"], "count": ["20"]},
+    )["data"])
+    row = cast(dict[str, object], cast(list[object], listing["rows"])[0])
+    return cast(dict[str, object], row["locator"])

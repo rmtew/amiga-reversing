@@ -1947,6 +1947,12 @@ manual-action workflow passes immediate, refresh, target reopen, and server
 restart assertions
 ```
 
+Implementation note from `028-008`: the shared workflow harness now includes a
+small durability matrix runner. Manual mutation API coverage declares and
+passes immediate, browser refresh equivalent, target reopen, server restart,
+new context/storage clear, and project cache clear boundaries, with failures
+reported as `durability boundary <name>: <semantic layer>: ...`.
+
 The matrix should expose state-model problems, not mask them. Do not add broad
 retry loops, sleep-based stabilization, or client cache resets as a substitute
 for deterministic state reconstruction.
