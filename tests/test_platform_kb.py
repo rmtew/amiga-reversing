@@ -61,6 +61,28 @@ def test_platform_kb_check_reports_enforced_debt(tmp_path: Path) -> None:
     assert any("raw OS availability precision" in violation for violation in violations)
 
 
+def test_platform_kb_check_reports_source_inventory_debt(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    _write_json(
+        tmp_path / "knowledge" / "platform_source_inventory.json",
+        {
+            "version": 1,
+            "source": "knowledge/adcd21_inventory.md",
+            "entries": [
+                {"id": "dup", "path": "NDK/NDK_3.1/", "status": "parsed"},
+                {"id": "dup", "path": "EXTRA/ONLY_JSON/", "status": "mystery"},
+            ],
+        },
+    )
+
+    violations = platform_kb.check_report(platform_kb.build_report(tmp_path))
+
+    assert any("source inventory has duplicate ids" in violation for violation in violations)
+    assert any("source inventory has unknown statuses" in violation for violation in violations)
+    assert any("source inventory missing markdown paths" in violation for violation in violations)
+    assert any("source inventory has paths absent from markdown" in violation for violation in violations)
+
+
 def test_platform_kb_check_allows_explicit_unsupported_hunk_records(tmp_path: Path) -> None:
     _write_fixture_tree(tmp_path)
     hunk = tmp_path / "knowledge" / "amiga_hunk_file.json"
@@ -120,6 +142,7 @@ def test_platform_kb_report_text_is_stable(tmp_path: Path) -> None:
     text = platform_kb.format_report(platform_kb.build_report(tmp_path))
 
     assert "Platform KB coverage report" in text
+    assert "status counts: candidate=1, parsed=1" in text
     assert "raw available_since counts: 1.2=1, 3.0=1" in text
     assert "artifact source counts: standalone_platform_summary=3" in text
     assert "half-represented record types: HUNK_OVERLAY" in text
@@ -295,6 +318,17 @@ def _write_fixture_tree(root: Path) -> None:
         "| `NDK/NDK_3.1/` | includes | **Parsed** |\n"
         "| `EXTRAS/TOOLS/` | tools | Not explored |\n",
         encoding="utf-8",
+    )
+    _write_json(
+        knowledge / "platform_source_inventory.json",
+        {
+            "version": 1,
+            "source": "knowledge/adcd21_inventory.md",
+            "entries": [
+                {"id": "ndk-ndk-3-1", "path": "NDK/NDK_3.1/", "status": "parsed"},
+                {"id": "extras-tools", "path": "EXTRAS/TOOLS/", "status": "candidate"},
+            ],
+        },
     )
     _write_json(
         knowledge / "amiga_ndk_includes_parsed.json",

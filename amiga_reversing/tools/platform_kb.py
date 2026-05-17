@@ -13,6 +13,15 @@ from typing import cast
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RAW_OS_VERSION_ORDER = ("1.0", "1.1", "1.2", "1.3", "2.0", "2.04", "2.1", "3.0", "3.1", "3.5")
 KNOWN_CORRECTION_REVIEW_STATUSES = {"seeded", "validated"}
+KNOWN_SOURCE_INVENTORY_STATUSES = {
+    "parsed",
+    "parser_asserted",
+    "seeded_correction",
+    "validated_correction",
+    "candidate",
+    "deferred",
+    "unsupported",
+}
 
 
 @dataclass(frozen=True)
@@ -92,7 +101,9 @@ def build_report(project_root: Path) -> dict[str, object]:
     corrections = _load_json(knowledge / "amiga_ndk_corrections.json")
     hunk = _load_json(knowledge / "amiga_hunk_file.json")
     return {
-        "source_inventory": _source_inventory_report(knowledge / "adcd21_inventory.md"),
+        "source_inventory": _source_inventory_report(
+            knowledge / "platform_source_inventory.json", knowledge / "adcd21_inventory.md"
+        ),
         "ndk": _ndk_report(includes, other, generated / "amiga_os_runtime.c"),
         "hardware": _hardware_report(hw_registers, hw_symbols),
         "corrections": _corrections_report(corrections),
@@ -103,6 +114,8 @@ def build_report(project_root: Path) -> dict[str, object]:
 
 def check_report(report: Mapping[str, object]) -> list[str]:
     violations: list[str] = []
+    source = cast(Mapping[str, object], report["source_inventory"])
+    violations.extend(cast(list[str], source["violations"]))
     corrections = cast(Mapping[str, object], report["corrections"])
     violations.extend(check_corrections_report(corrections))
     hunk = cast(Mapping[str, object], report["hunk"])
@@ -132,6 +145,7 @@ def format_report(report: Mapping[str, object]) -> str:
         "",
         "Source inventory:",
         f"  inventory rows: {source['inventory_rows']}",
+        f"  status counts: {_format_counts(cast(Mapping[str, int], source['status_counts']))}",
         f"  parsed: {source['parsed']}",
         f"  candidate/deferred: {source['candidate_or_deferred']}",
         "",
@@ -722,20 +736,63 @@ def _target_platform_summary_artifact_errors(payload: Mapping[str, object]) -> l
     return errors
 
 
-def _source_inventory_report(path: Path) -> dict[str, object]:
-    rows = []
-    if path.exists():
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            if not line.startswith("| `"):
-                continue
-            cells = [cell.strip() for cell in line.strip("|").split("|")]
-            if len(cells) >= 3:
-                rows.append(cells[2].lower())
+def _source_inventory_report(inventory_path: Path, markdown_path: Path) -> dict[str, object]:
+    payload = _load_json(inventory_path)
+    entries = [entry for entry in cast(list[object], payload.get("entries", [])) if isinstance(entry, dict)]
+    statuses = Counter(_string(entry.get("status")) or "missing" for entry in entries)
+    paths = [_string(entry.get("path")) or "" for entry in entries]
+    duplicate_ids = sorted(
+        id_ for id_, count in Counter(_string(entry.get("id")) or "missing" for entry in entries).items() if count > 1
+    )
+    duplicate_paths = sorted(path for path, count in Counter(paths).items() if path and count > 1)
+    unknown_status = sorted(
+        f"{_string(entry.get('id')) or _string(entry.get('path')) or 'missing'}={_string(entry.get('status')) or 'missing'}"
+        for entry in entries
+        if (_string(entry.get("status")) or "missing") not in KNOWN_SOURCE_INVENTORY_STATUSES
+    )
+    markdown_paths = _source_inventory_markdown_paths(markdown_path)
+    inventory_paths = {path for path in paths if path}
+    missing_from_inventory = sorted(markdown_paths - inventory_paths)
+    missing_from_markdown = sorted(inventory_paths - markdown_paths)
+    violations = []
+    if duplicate_ids:
+        violations.append(f"source inventory has duplicate ids: {', '.join(duplicate_ids)}")
+    if duplicate_paths:
+        violations.append(f"source inventory has duplicate paths: {', '.join(duplicate_paths)}")
+    if unknown_status:
+        violations.append(f"source inventory has unknown statuses: {', '.join(unknown_status)}")
+    if missing_from_inventory:
+        violations.append(f"source inventory missing markdown paths: {', '.join(missing_from_inventory)}")
+    if missing_from_markdown:
+        violations.append(f"source inventory has paths absent from markdown: {', '.join(missing_from_markdown)}")
     return {
-        "inventory_rows": len(rows),
-        "parsed": sum("parsed" in row for row in rows),
-        "candidate_or_deferred": sum(any(marker in row for marker in ("not explored", "low priority", "deferred")) for row in rows),
+        "inventory_rows": len(entries),
+        "status_counts": dict(sorted(statuses.items())),
+        "parsed": statuses["parsed"] + statuses["parser_asserted"],
+        "candidate_or_deferred": statuses["candidate"] + statuses["deferred"],
+        "candidate": statuses["candidate"],
+        "deferred": statuses["deferred"],
+        "unsupported": statuses["unsupported"],
+        "unknown_status": unknown_status,
+        "duplicate_ids": duplicate_ids,
+        "duplicate_paths": duplicate_paths,
+        "markdown_missing_from_inventory": missing_from_inventory,
+        "inventory_missing_from_markdown": missing_from_markdown,
+        "violations": violations,
     }
+
+
+def _source_inventory_markdown_paths(path: Path) -> set[str]:
+    rows: set[str] = set()
+    if not path.exists():
+        return rows
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.startswith("| `"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if cells:
+            rows.add(cells[0].strip("`"))
+    return rows
 
 
 def _correction_records(
