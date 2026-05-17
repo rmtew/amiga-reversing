@@ -113,6 +113,10 @@ def check_report(report: Mapping[str, object]) -> list[str]:
     lost = cast(list[str], ndk["raw_availability_versions_not_represented_in_runtime"])
     if lost:
         violations.append(f"raw OS availability precision is not represented in runtime metadata: {', '.join(lost)}")
+    target_summary = cast(Mapping[str, object], report["target_platform_summary"])
+    malformed = cast(list[str], target_summary["malformed_summary_artifacts"])
+    if malformed:
+        violations.append(f"target platform summary artifacts are malformed: {', '.join(malformed)}")
     return violations
 
 
@@ -164,6 +168,7 @@ def format_report(report: Mapping[str, object]) -> str:
         "",
         "Target platform summary:",
         f"  schema present: {target_summary['schema_present']}",
+        f"  artifact source counts: {_format_counts(cast(Mapping[str, int], target_summary['artifact_source_counts']))}",
         f"  os compatibility state coverage: {_format_counts(cast(Mapping[str, int], target_summary['os_compatibility_state_counts']))}",
     ]
     return "\n".join(lines)
@@ -293,10 +298,8 @@ def _resolve_target_path(project_root: Path, target: str) -> Path:
 def _target_platform_summary_payload(
     target_path: Path, source_analysis: Mapping[str, object]
 ) -> Mapping[str, object]:
-    summary = _load_json_if_exists(target_path / "platform_summary.json")
-    if summary:
-        return summary
-    return _mapping(source_analysis.get("platform_summary"))
+    summary = _target_platform_summary_artifact(target_path, source_analysis)
+    return cast(Mapping[str, object], summary["payload"])
 
 
 def _target_gap_absolute_values(
@@ -635,18 +638,88 @@ def _hunk_report(hunk: Mapping[str, object]) -> dict[str, object]:
 
 def _target_platform_summary_report(project_root: Path) -> dict[str, object]:
     state_counts = {"observed": 0, "no_os_calls": 0, "unknown": 0}
-    summary_files = list((project_root / "targets").glob("*/platform_summary.json"))
-    for path in summary_files:
-        payload = _load_json(path)
+    source_counts = Counter[str]()
+    malformed: list[str] = []
+    summary_count = 0
+    standalone_count = 0
+    embedded_count = 0
+    targets = project_root / "targets"
+    target_dirs = sorted(path for path in targets.glob("*") if path.is_dir()) if targets.exists() else []
+    for target_path in target_dirs:
+        artifact = _target_platform_summary_artifact(target_path)
+        payload = cast(Mapping[str, object], artifact["payload"])
+        source = _string(artifact.get("source")) or "missing"
+        errors = cast(list[str], artifact["errors"])
+        if errors:
+            malformed.extend(f"{target_path.name}:{error}" for error in errors)
+            continue
+        if not payload:
+            continue
+        summary_count += 1
+        source_counts[source] += 1
+        if source == "standalone_platform_summary":
+            standalone_count += 1
+        if source == "embedded_source_analysis":
+            embedded_count += 1
         os_summary = _mapping(payload.get("os_compatibility"))
         status = _string(os_summary.get("status"))
         if status in state_counts:
             state_counts[status] += 1
     return {
-        "schema_present": bool(summary_files),
-        "summary_files": len(summary_files),
+        "schema_present": summary_count > 0,
+        "summary_files": summary_count,
+        "standalone_summary_files": standalone_count,
+        "embedded_summary_files": embedded_count,
+        "artifact_source_counts": dict(sorted(source_counts.items())),
         "os_compatibility_state_counts": state_counts,
+        "malformed_summary_artifacts": malformed,
     }
+
+
+def _target_platform_summary_artifact(
+    target_path: Path, source_analysis: Mapping[str, object] | None = None
+) -> dict[str, object]:
+    standalone_path = target_path / "platform_summary.json"
+    if standalone_path.exists():
+        payload = _load_json(standalone_path)
+        return {
+            "source": "standalone_platform_summary",
+            "path": str(standalone_path),
+            "payload": payload,
+            "errors": _target_platform_summary_artifact_errors(payload),
+        }
+    analysis = source_analysis if source_analysis is not None else _load_json_if_exists(target_path / "source_analysis.json")
+    if "platform_summary" not in analysis:
+        return {"source": "missing", "path": "", "payload": {}, "errors": []}
+    payload = analysis.get("platform_summary")
+    if not isinstance(payload, dict):
+        return {
+            "source": "embedded_source_analysis",
+            "path": str(target_path / "source_analysis.json"),
+            "payload": {},
+            "errors": ["platform_summary is not an object"],
+        }
+    return {
+        "source": "embedded_source_analysis",
+        "path": str(target_path / "source_analysis.json"),
+        "payload": cast(dict[str, object], payload),
+        "errors": _target_platform_summary_artifact_errors(cast(Mapping[str, object], payload)),
+    }
+
+
+def _target_platform_summary_artifact_errors(payload: Mapping[str, object]) -> list[str]:
+    errors: list[str] = []
+    if not payload:
+        errors.append("summary is empty")
+        return errors
+    os_summary = payload.get("os_compatibility")
+    if not isinstance(os_summary, dict):
+        errors.append("os_compatibility is missing or not an object")
+        return errors
+    status = _string(os_summary.get("status"))
+    if status not in {"observed", "no_os_calls", "unknown"}:
+        errors.append(f"os_compatibility.status is invalid: {status or 'missing'}")
+    return errors
 
 
 def _source_inventory_report(path: Path) -> dict[str, object]:

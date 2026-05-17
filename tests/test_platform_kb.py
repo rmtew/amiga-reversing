@@ -27,6 +27,7 @@ def test_platform_kb_report_aggregates_fixture_artifacts(tmp_path: Path) -> None
     assert report["corrections"]["duplicate_ids"] == []
     assert report["corrections"]["validated_without_review_provenance"] == []
     assert report["hunk"]["half_represented_record_types"] == ["HUNK_OVERLAY"]
+    assert report["target_platform_summary"]["artifact_source_counts"] == {"standalone_platform_summary": 3}
     assert report["target_platform_summary"]["os_compatibility_state_counts"] == {
         "observed": 1,
         "no_os_calls": 1,
@@ -74,6 +75,45 @@ def test_platform_kb_check_allows_explicit_unsupported_hunk_records(tmp_path: Pa
     assert not any("HUNK records are half-represented" in violation for violation in platform_kb.check_report(report))
 
 
+def test_platform_kb_report_reads_embedded_source_analysis_platform_summary(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    target = tmp_path / "targets" / "b"
+    (target / "platform_summary.json").unlink()
+    _write_json(
+        target / "source_analysis.json",
+        {
+            "platform_summary": {
+                "os_compatibility": {
+                    "status": "no_os_calls",
+                }
+            }
+        },
+    )
+
+    report = platform_kb.build_report(tmp_path)
+
+    assert report["target_platform_summary"]["artifact_source_counts"] == {
+        "embedded_source_analysis": 1,
+        "standalone_platform_summary": 2,
+    }
+    assert report["target_platform_summary"]["os_compatibility_state_counts"] == {
+        "observed": 1,
+        "no_os_calls": 1,
+        "unknown": 1,
+    }
+
+
+def test_platform_kb_check_reports_malformed_embedded_platform_summary(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path)
+    target = tmp_path / "targets" / "a"
+    (target / "platform_summary.json").unlink()
+    _write_json(target / "source_analysis.json", {"platform_summary": "bad"})
+
+    violations = platform_kb.check_report(platform_kb.build_report(tmp_path))
+
+    assert any("target platform summary artifacts are malformed" in violation for violation in violations)
+
+
 def test_platform_kb_report_text_is_stable(tmp_path: Path) -> None:
     _write_fixture_tree(tmp_path)
 
@@ -81,6 +121,7 @@ def test_platform_kb_report_text_is_stable(tmp_path: Path) -> None:
 
     assert "Platform KB coverage report" in text
     assert "raw available_since counts: 1.2=1, 3.0=1" in text
+    assert "artifact source counts: standalone_platform_summary=3" in text
     assert "half-represented record types: HUNK_OVERLAY" in text
 
 
