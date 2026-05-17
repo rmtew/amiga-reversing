@@ -21,21 +21,21 @@ durable spec.
 - [ ] Integration Findings
   - [ ] 1. The NDK Parser Is Already The Strongest Part
   - [ ] 2. Hardware Knowledge Has Two Different Sources
-  - [ ] 3. Corrections Have Provenance But No Workflow
+  - [x] 3. Corrections Have Provenance And A Review Workflow
   - [x] 4. OS Compatibility Data Exists As A Target Summary
   - [ ] 5. HUNK Runtime Metadata Is Not Used Everywhere
   - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
   - [ ] 7. Target Gaps Do Not Drive Parser Expansion Yet
 - [ ] Tutorial: Platform KB Coverage Report
 - [ ] Tutorial: Target OS Compatibility Summary
-- [ ] Tutorial: Corrections Review Flow
+- [x] Tutorial: Corrections Review Flow
 - [ ] Larger Architecture Observations
 - [ ] Forward Implementation Model
 - [ ] Non-Goals
 - [ ] Proposed Rewrite
   - [ ] Slice 1: Platform KB Coverage Report
   - [x] Slice 2: Target OS Compatibility Summary
-  - [ ] Slice 3: Corrections Review Flow
+  - [x] Slice 3: Corrections Review Flow
   - [ ] Slice 4: Generated HUNK Comparison Helpers
   - [x] Slice 5: Resolve `HUNK_OVERLAY`
   - [ ] Slice 6: Target-Driven Platform Gap Report
@@ -149,11 +149,12 @@ registers with bit data:   104
 NDK hardware symbols:      133
 ```
 
-Corrections have provenance but weak process:
+Corrections have provenance and an operational review flow:
 
 ```text
 corrections with review_status=seeded:     19
 corrections with review_status=validated:  1
+commands: corrections list/check/promote
 ```
 
 HUNK metadata is split:
@@ -197,14 +198,12 @@ The clean model is a coverage report that shows both sources and the join
 between them. Broadly adding more include families before a target needs them is
 low value.
 
-### 3. Corrections Have Provenance But No Workflow
+### 3. Corrections Have Provenance And A Review Workflow
 
-`knowledge/amiga_ndk_corrections.json` records seeded and validated facts, but
-generation consumes them the same way. That is acceptable only while the review
-debt is visible.
-
-The missing piece is a command that lists seeded corrections, exposes citations,
-and promotes entries only through an explicit review action.
+`knowledge/amiga_ndk_corrections.json` records seeded and validated facts.
+`amiga-platform-kb corrections list/check/promote` now makes that review state
+operational: seeded review debt is visible, validated entries require review
+provenance, and promotion records reviewer/date without changing source facts.
 
 ### 4. OS Compatibility Data Exists But Is Not A Target Summary
 
@@ -654,8 +653,10 @@ and the C-rendered source header emits OS compatibility beside the memory map.
 
 Tracked by `docs/issues/004-003-add-amiga-ndk-corrections-review-flow.md`.
 
-Add commands/tests for listing seeded corrections and promoting them to
-validated with preserved citation and review provenance.
+Resolved in this slice: `amiga-platform-kb corrections list/check/promote`
+lists corrections with stable ids and citations, enforces review-state debt,
+and promotes one seeded correction at a time with preserved citation/source
+fields plus reviewer/date provenance.
 
 ### Slice 4: Generated HUNK Comparison Helpers
 
@@ -766,6 +767,12 @@ source rendering emits an OS compatibility header from recovered-call summary
 data when analysis-backed source export is used. Explicit expected OS profile
 metadata is still absent from target manifests, so inferred project-year warning
 heuristics remain future work.
+
+Slice 3 added `amiga-platform-kb corrections list/check/promote`. Correction
+ids are stable derived ids unless an entry already has `id`; checks now fail for
+unknown statuses, missing citations, duplicate ids, or validated entries without
+review provenance. Promotion updates exactly one seeded correction to
+`validated` and records `reviewed_by`/`reviewed_at`.
 
 Slice 5 resolved `HUNK_OVERLAY` by making it explicitly unsupported. The enum id
 remains for diagnostics, but it is no longer a valid load-file record and the

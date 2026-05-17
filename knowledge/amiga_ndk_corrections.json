@@ -79,6 +79,8 @@
         "i_struct": "SimpleSprite",
         "input": "pointer",
         "library": "intuition.library",
+        "reviewed_at": "2026-05-17",
+        "reviewed_by": "disasm-ui",
         "review_status": "validated",
         "seed_origin": "manual",
         "type": "struct SimpleSprite *"

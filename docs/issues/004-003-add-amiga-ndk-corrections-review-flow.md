@@ -1,6 +1,6 @@
 # 004-003 Add Amiga NDK Corrections Review Flow
 
-Status: Ready
+Status: Implemented
 Source proposal: `docs/proposals/004-amiga-platform-knowledge.md`
 Created: 2026-05-17
 
@@ -49,3 +49,13 @@ uv run amiga-platform-kb corrections check
 focused corrections review tests
 cmd /c src\precommit.bat
 ```
+
+## Implementation Notes
+
+- Added `amiga-platform-kb corrections list/check/promote`.
+- Correction ids are stable derived ids unless an entry already has `id`.
+- `check` reports unknown statuses, missing citations, duplicate ids, and
+  validated entries without review provenance.
+- `promote` updates only one seeded entry to `validated` and records
+  `reviewed_by`/`reviewed_at`.
+- Existing validated correction metadata now records review provenance.
