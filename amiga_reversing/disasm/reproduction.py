@@ -6,6 +6,7 @@ import os
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import cast
@@ -191,6 +192,31 @@ _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS = {
 _C_COMPARE_FILE_STRUCTURE_ISSUE_BITS = {label: bit for bit, label in _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS.items()}
 
 
+@dataclass(frozen=True, slots=True)
+class DirectRebuildPhaseResult:
+    rebuilt_bytes: bytes
+    listing_profile: dict[str, object]
+    direct_profile: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class SourceRenderingPhaseResult:
+    source_text: str
+    listing_profile: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class SourceAssemblyPhaseResult:
+    rebuilt_bytes: bytes
+    assembler_profile: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class ReproductionComparisonPhaseResult:
+    comparison: dict[str, object]
+    c_profile: dict[str, object] | None
+
+
 def reproduction_report_path(target_dir: Path) -> Path:
     return target_dir / REPRODUCTION_FILE_NAME
 
@@ -268,6 +294,62 @@ def _empty_target_metadata_payload() -> dict[str, object]:
 
 def rebuilt_target_dir(target_name: str, *, project_root: Path = PROJECT_ROOT) -> Path:
     return project_root / "bin" / "rebuilt" / target_name
+
+
+def run_direct_rebuild_phase(
+    binary_source: BinarySource,
+    *,
+    metadata_path: Path,
+    output_path: Path,
+    compare_original: bool,
+    project_root: Path,
+) -> DirectRebuildPhaseResult:
+    rebuilt_bytes, listing_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+        binary_source,
+        metadata_path=metadata_path,
+        output_path=output_path,
+        compare_original=compare_original,
+        project_root=project_root,
+    )
+    return DirectRebuildPhaseResult(rebuilt_bytes, listing_profile, direct_profile)
+
+
+def run_source_rendering_phase(
+    *,
+    target_name: str,
+    binary_source: BinarySource,
+    target_dir: Path,
+    metadata_path: Path,
+    project_root: Path,
+) -> SourceRenderingPhaseResult:
+    rendering = render_source_from_binary_source_or_raise(
+        target_id=target_name,
+        binary_source=binary_source,
+        target_dir=target_dir,
+        metadata_path=metadata_path,
+        project_root=project_root,
+    )
+    return SourceRenderingPhaseResult(rendering.source_text, rendering.listing_profile)
+
+
+def run_source_assembly_phase(
+    *,
+    backend: str,
+    source_text: str,
+    include_dir: Path | None,
+    output_path: Path | None = None,
+    target_cpu: str,
+    project_root: Path,
+) -> SourceAssemblyPhaseResult:
+    rebuilt_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
+        backend,
+        source_text,
+        include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
+        output_path=output_path,
+        target_cpu=target_cpu,
+        project_root=project_root,
+    )
+    return SourceAssemblyPhaseResult(rebuilt_bytes, assembler_profile)
 
 
 def run_reproduction(
@@ -379,15 +461,16 @@ def run_reproduction(
             )
             with effective_metadata_file(paths.target_dir) as metadata_path:
                 try:
-                    direct_bytes, listing_profile, direct_profile = (
-                        facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-                            paths.binary_source,
-                            metadata_path=metadata_path,
-                            output_path=rebuilt_path,
-                            compare_original=use_facts_v2_direct_compare,
-                            project_root=project_root,
-                        )
+                    direct_result = run_direct_rebuild_phase(
+                        paths.binary_source,
+                        metadata_path=metadata_path,
+                        output_path=rebuilt_path,
+                        compare_original=use_facts_v2_direct_compare,
+                        project_root=project_root,
                     )
+                    direct_bytes = direct_result.rebuilt_bytes
+                    listing_profile = direct_result.listing_profile
+                    direct_profile = direct_result.direct_profile
                     rebuilt_bytes = direct_bytes
                     direct_rebuild_for_reproduction = True
                     _merge_direct_rebuild_profile(profile_timings, direct_profile)
@@ -407,8 +490,8 @@ def run_reproduction(
                     if facts_v2_direct_source_compare_enabled():
                         include_dir = _include_dir_for_backend(backend, project_root)
                         compare_started_at = time.perf_counter()
-                        source_compare_rendering = render_source_from_binary_source_or_raise(
-                            target_id=target_name,
+                        source_compare_rendering = run_source_rendering_phase(
+                            target_name=target_name,
                             binary_source=paths.binary_source,
                             target_dir=paths.target_dir,
                             metadata_path=metadata_path,
@@ -416,13 +499,15 @@ def run_reproduction(
                         )
                         rendered_source_text = source_compare_rendering.source_text
                         source_compare_profile = source_compare_rendering.listing_profile
-                        source_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
-                            backend,
-                            rendered_source_text,
-                            include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
+                        source_assembly = run_source_assembly_phase(
+                            backend=backend,
+                            source_text=rendered_source_text,
+                            include_dir=include_dir,
                             target_cpu=assembler_cpu,
                             project_root=project_root,
                         )
+                        source_bytes = source_assembly.rebuilt_bytes
+                        assembler_profile = source_assembly.assembler_profile
                         if listing_profile is None:
                             listing_profile = source_compare_profile
                         _merge_assembler_profile(profile_timings, assembler_profile)
@@ -617,8 +702,8 @@ def run_reproduction(
             )
             with effective_metadata_file(paths.target_dir) as metadata_path:
                 try:
-                    rendering = render_source_from_binary_source_or_raise(
-                        target_id=target_name,
+                    rendering = run_source_rendering_phase(
+                        target_name=target_name,
                         binary_source=paths.binary_source,
                         target_dir=paths.target_dir,
                         metadata_path=metadata_path,
@@ -646,14 +731,16 @@ def run_reproduction(
                 phase = "assemble"
                 phase_started_at = time.perf_counter()
                 try:
-                    rebuilt_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
-                        backend,
-                        rendered_source_text,
-                        include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
+                    assembly = run_source_assembly_phase(
+                        backend=backend,
+                        source_text=rendered_source_text,
+                        include_dir=include_dir,
                         output_path=rebuilt_path,
                         target_cpu=assembler_cpu,
                         project_root=project_root,
                     )
+                    rebuilt_bytes = assembly.rebuilt_bytes
+                    assembler_profile = assembly.assembler_profile
                     _merge_assembler_profile(profile_timings, assembler_profile)
                     assembled_source_for_reproduction = True
                 except RuntimeError as exc:
@@ -714,14 +801,16 @@ def run_reproduction(
             if source_text is None:
                 raise RuntimeError("source text missing before assembly")
             try:
-                rebuilt_bytes, assembler_profile = assemble_platform_source_text_with_c_backend(
-                    backend,
-                    source_text,
-                    include_dir=include_dir if include_dir is not None and include_dir.exists() else None,
+                assembly = run_source_assembly_phase(
+                    backend=backend,
+                    source_text=source_text,
+                    include_dir=include_dir,
                     output_path=rebuilt_path,
                     target_cpu=assembler_cpu,
                     project_root=project_root,
                 )
+                rebuilt_bytes = assembly.rebuilt_bytes
+                assembler_profile = assembly.assembler_profile
                 _merge_assembler_profile(profile_timings, assembler_profile)
                 assembled_source_for_reproduction = True
             except RuntimeError as exc:
@@ -788,7 +877,7 @@ def run_reproduction(
             profile_timings["file_layout_seconds"] = 0.0
             profile_timings["row_mapping_seconds"] = 0.0
             compare_started_at = time.perf_counter()
-            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
+            comparison_phase = run_reproduction_comparison_phase(
                 paths.binary_source,
                 rebuilt,
                 backend=backend,
@@ -801,6 +890,8 @@ def run_reproduction(
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=file_layout,
             )
+            comparison = comparison_phase.comparison
+            c_compare_profile = comparison_phase.c_profile
             workflow_profile.add_span(
                 "reproduction_compare",
                 time.perf_counter() - compare_started_at,
@@ -811,7 +902,7 @@ def run_reproduction(
                 _merge_source_compare_profile(profile_timings, c_compare_profile)
         else:
             compare_started_at = time.perf_counter()
-            comparison, c_compare_profile = _comparison_for_rebuilt_bytes(
+            comparison_phase = run_reproduction_comparison_phase(
                 paths.binary_source,
                 rebuilt,
                 backend=backend,
@@ -824,6 +915,8 @@ def run_reproduction(
                 canonical_diff_ranges=canonical_diff_ranges,
                 file_layout=[],
             )
+            comparison = comparison_phase.comparison
+            c_compare_profile = comparison_phase.c_profile
             workflow_profile.add_span(
                 "reproduction_compare",
                 time.perf_counter() - compare_started_at,
@@ -1502,6 +1595,36 @@ def _comparison_for_rebuilt_bytes(
         ),
         None,
     )
+
+
+def run_reproduction_comparison_phase(
+    binary_source: BinarySource,
+    rebuilt: bytes,
+    *,
+    backend: str,
+    policy: dict[str, object],
+    metadata_path: Path | None,
+    project_root: Path,
+    original: bytes,
+    canonical_rebuilt: bytes,
+    diff_ranges: list[dict[str, object]],
+    canonical_diff_ranges: list[dict[str, object]],
+    file_layout: list[dict[str, object]],
+) -> ReproductionComparisonPhaseResult:
+    comparison, c_profile = _comparison_for_rebuilt_bytes(
+        binary_source,
+        rebuilt,
+        backend=backend,
+        policy=policy,
+        metadata_path=metadata_path,
+        project_root=project_root,
+        original=original,
+        canonical_rebuilt=canonical_rebuilt,
+        diff_ranges=diff_ranges,
+        canonical_diff_ranges=canonical_diff_ranges,
+        file_layout=file_layout,
+    )
+    return ReproductionComparisonPhaseResult(comparison, c_profile)
 
 
 def _comparison_profile_file_layout(

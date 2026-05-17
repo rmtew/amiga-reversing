@@ -257,6 +257,92 @@ def test_reproduction_diff_finds_first_byte_and_grouped_ranges() -> None:
         "rebuilt": 255,
     }
 
+
+def test_reproduction_named_phases_delegate_to_owned_operations(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    source = SimpleNamespace(read_bytes=lambda: b"\x4e\x75")
+    direct_calls: list[dict[str, object]] = []
+
+    def direct(binary_source: object, **kwargs: object) -> tuple[bytes, dict[str, object], dict[str, object]]:
+        direct_calls.append({"binary_source": binary_source, "kwargs": kwargs})
+        return b"\x4e\x75", {"facts_v2": {"asm_source_refused": False}}, {"direct_rebuild_exact": True}
+
+    monkeypatch.setattr(reproduction, "facts_v2_direct_rebuild_project_source_with_c_backend_profile", direct)
+
+    direct_result = reproduction.run_direct_rebuild_phase(
+        cast("reproduction.BinarySource", source),
+        metadata_path=tmp_path / "metadata.json",
+        output_path=tmp_path / "rebuilt.bin",
+        compare_original=True,
+        project_root=tmp_path,
+    )
+
+    assert direct_result.rebuilt_bytes == b"\x4e\x75"
+    assert direct_result.direct_profile["direct_rebuild_exact"] is True
+    assert direct_calls[0]["kwargs"]["compare_original"] is True
+
+    monkeypatch.setattr(
+        reproduction,
+        "render_source_from_binary_source_or_raise",
+        lambda **kwargs: _source_rendering_result("rts\n", {"generation": "facts_v2_asm_source"}),
+    )
+
+    render_result = reproduction.run_source_rendering_phase(
+        target_name="demo",
+        binary_source=cast("reproduction.BinarySource", source),
+        target_dir=tmp_path,
+        metadata_path=tmp_path / "metadata.json",
+        project_root=tmp_path,
+    )
+
+    assert render_result.source_text == "rts\n"
+
+    monkeypatch.setattr(
+        reproduction,
+        "assemble_platform_source_text_with_c_backend",
+        lambda *args, **kwargs: (b"\x4e\x75", {"assemble_c_api": True}),
+    )
+
+    assembly_result = reproduction.run_source_assembly_phase(
+        backend="amiga-hunk",
+        source_text="rts\n",
+        include_dir=None,
+        output_path=tmp_path / "rebuilt.bin",
+        target_cpu="any",
+        project_root=tmp_path,
+    )
+
+    assert assembly_result.assembler_profile["assemble_c_api"] is True
+
+
+def test_reproduction_comparison_phase_returns_comparison_profile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    source = SimpleNamespace(read_bytes=lambda: b"\x4e\x75")
+    compare_profile = _mock_c_compare_profile(b"\x4e\x75", b"\x4e\x75")
+    monkeypatch.setattr(
+        reproduction,
+        "reproduction_compare_rebuilt_bytes_with_c_backend_profile",
+        lambda _source, rebuilt, **kwargs: compare_profile,
+    )
+
+    result = reproduction.run_reproduction_comparison_phase(
+        cast("reproduction.BinarySource", source),
+        b"\x4e\x75",
+        backend="amiga-hunk",
+        policy=reproduction.reproduction_policy_for_options(
+            reproduction.expand_reproduction_profile("exact-framework")
+        ),
+        metadata_path=None,
+        project_root=tmp_path,
+        original=b"\x4e\x75",
+        canonical_rebuilt=b"\x4e\x75",
+        diff_ranges=[],
+        canonical_diff_ranges=[],
+        file_layout=[],
+    )
+
+    assert result.comparison["full_file_exact"] is True
+    assert result.c_profile == compare_profile
+
+
 def test_comparison_profile_shape_diagnostics_expands_c_transport() -> None:
     diagnostics = reproduction._comparison_profile_shape_diagnostics(
         {

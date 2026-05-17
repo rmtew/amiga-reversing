@@ -1010,6 +1010,16 @@ Implemented slice evidence:
     uv run python -m pytest tests\test_source_rendering.py tests\test_source_export.py tests\test_reproduction.py -q
   Lint passed:
     uv run ruff check amiga_reversing\disasm\source_rendering.py amiga_reversing\disasm\source_export.py amiga_reversing\disasm\reproduction.py tests\test_source_rendering.py tests\test_source_export.py tests\test_reproduction.py
+
+009-005:
+  Round-Trip Verification now has named phase seams for direct rebuild, source
+  rendering, source assembly, and Reproduction Comparison.
+  run_reproduction() calls those seams while preserving the direct rebuild plus
+  Reproduction Comparison normal path.
+  Focused tests passed:
+    uv run python -m pytest tests\test_reproduction.py tests\test_disasm_server.py -q
+  Lint passed:
+    uv run ruff check amiga_reversing\disasm\reproduction.py tests\test_reproduction.py
 ```
 
 Observed during implementation:
@@ -1036,6 +1046,11 @@ payload, while Round-Trip Verification wants the existing
 FactsV2SourceRefused exception path. The module owns refusal detection and
 offers both result and raise-on-refusal helpers so callers do not decode the C
 profile themselves.
+
+The first Round-Trip Verification extraction deliberately stopped at phase
+functions rather than a full workflow object. That made direct rebuild, source
+rendering, source assembly, and Reproduction Comparison directly testable
+without rewriting report construction in the same slice.
 ```
 
 Current code evidence:
