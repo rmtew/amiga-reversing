@@ -1199,8 +1199,13 @@ ADR-0004:
 - 2026-05-17: `PhaseTimer` had no live imports after `workflow_profile.py`
   landed, so the helper file was deleted rather than retained as a dormant
   compatibility surface.
-- 2026-05-17: Round-trip verification still needs its full workflow module
-  extraction, but profile ownership is now cleaner: `run_reproduction()` no
-  longer owns a raw `profile_timings` dict, and scalar profile values are
-  mirrored into `workflow_profile.counters` while the legacy report payload is
-  preserved for existing UI/API consumers.
+- 2026-05-17: Before workflow-object extraction, round-trip profile ownership
+  was separated first: `run_reproduction()` no longer owns a raw
+  `profile_timings` dict, and scalar profile values are mirrored into
+  `workflow_profile.counters` while the legacy report payload is preserved for
+  existing UI/API consumers.
+- 2026-05-17: The round-trip public entrypoint now delegates to
+  `RoundTripVerificationWorkflow`, which owns the existing phase-ordering body.
+  A later module split could move this object into a separate file, but doing so
+  now would mostly be file churn because the workflow still relies on many
+  reproduction-local report helpers.

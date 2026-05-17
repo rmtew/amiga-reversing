@@ -372,73 +372,47 @@ def run_source_assembly_phase(
     return SourceAssemblyPhaseResult(rebuilt_bytes, assembler_profile)
 
 
-def run_reproduction(
-    target_name: str,
-    *,
-    project_root: Path = PROJECT_ROOT,
-    assembler: str = "our",
-    progress_callback: Callable[[dict[str, object]], None] | None = None,
-    profile: bool = False,
-    pre_rendered_source_text: str | None = None,
-    pre_rendered_source_profile: Mapping[str, object] | None = None,
-    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
-    source_assembly_debug: bool = False,
-) -> dict[str, object]:
-    started_at = time.time()
-    workflow_profile = WorkflowProfile("round_trip_verification", target_id=target_name)
-    profile_started_at = time.perf_counter()
-    round_trip_profile = RoundTripProfileTimings(workflow_profile)
-    out_dir = rebuilt_target_dir(target_name, project_root=project_root)
-    source_path = out_dir / "source.s"
-    rebuilt_path = out_dir / "rebuilt.bin"
-    canonical_rebuilt_path = out_dir / "rebuilt.canonical.bin"
-    target_dir: Path | None = None
-    source_text: str | None = pre_rendered_source_text
-    source_size = len(source_text.encode("utf-8")) if source_text is not None else 0
-    rebuilt_bytes: bytes | None = None
-    assembled_source_for_reproduction = False
-    direct_rebuild_for_reproduction = False
-    direct_source_report: dict[str, object] | None = None
-    assembler_stdout = ""
-    assembler_stderr = ""
-    listing_profile: dict[str, object] | None = (
-        dict(pre_rendered_source_profile) if pre_rendered_source_profile is not None else None
-    )
-    input_stamp = unresolved_reproduction_input_stamp(
-        target_name,
-        project_root=project_root,
-        assembler=assembler,
-        error="not prepared",
-    )
-    backend = "unknown"
-    report_builder = RoundTripReportBuilder(
-        ReportContext(
-            target_name=target_name,
-            started_at=started_at,
-            input_stamp=input_stamp,
+class RoundTripVerificationWorkflow:
+    def run(
+        self,
+        target_name: str,
+        *,
+        project_root: Path = PROJECT_ROOT,
+        assembler: str = "our",
+        progress_callback: Callable[[dict[str, object]], None] | None = None,
+        profile: bool = False,
+        pre_rendered_source_text: str | None = None,
+        pre_rendered_source_profile: Mapping[str, object] | None = None,
+        row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+        source_assembly_debug: bool = False,
+    ) -> dict[str, object]:
+        started_at = time.time()
+        workflow_profile = WorkflowProfile("round_trip_verification", target_id=target_name)
+        profile_started_at = time.perf_counter()
+        round_trip_profile = RoundTripProfileTimings(workflow_profile)
+        out_dir = rebuilt_target_dir(target_name, project_root=project_root)
+        source_path = out_dir / "source.s"
+        rebuilt_path = out_dir / "rebuilt.bin"
+        canonical_rebuilt_path = out_dir / "rebuilt.canonical.bin"
+        target_dir: Path | None = None
+        source_text: str | None = pre_rendered_source_text
+        source_size = len(source_text.encode("utf-8")) if source_text is not None else 0
+        rebuilt_bytes: bytes | None = None
+        assembled_source_for_reproduction = False
+        direct_rebuild_for_reproduction = False
+        direct_source_report: dict[str, object] | None = None
+        assembler_stdout = ""
+        assembler_stderr = ""
+        listing_profile: dict[str, object] | None = (
+            dict(pre_rendered_source_profile) if pre_rendered_source_profile is not None else None
+        )
+        input_stamp = unresolved_reproduction_input_stamp(
+            target_name,
+            project_root=project_root,
             assembler=assembler,
-            backend=backend,
-            source_path=source_path,
-            rebuilt_path=rebuilt_path,
+            error="not prepared",
         )
-    )
-
-    phase = "prepare"
-    try:
-        _emit_progress(
-            progress_callback,
-            target_name=target_name,
-            phase=phase,
-            started_at=profile_started_at,
-        )
-        phase_started_at = time.perf_counter()
-        paths = resolve_project_paths(target_name, project_root=project_root)
-        target_dir = paths.target_dir
-        input_stamp = reproduction_input_stamp(target_name, project_root=project_root, assembler=assembler)
-        workflow_profile.input_stamp = dict(input_stamp)
-        backend = cast(str, input_stamp["backend"])
-        assembler = cast(str, input_stamp["assembler"])
-        assembler_cpu = cast(str, input_stamp["assembler_cpu"])
+        backend = "unknown"
         report_builder = RoundTripReportBuilder(
             ReportContext(
                 target_name=target_name,
@@ -450,310 +424,408 @@ def run_reproduction(
                 rebuilt_path=rebuilt_path,
             )
         )
-        _record_profile_timing(round_trip_profile, "prepare_seconds", phase_started_at)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        if assembler not in REPRODUCTION_ASSEMBLERS:
-            message = f"unsupported exactness assembler: {assembler}"
-            report = report_builder.error(
-                status=ReproductionReportStatus.TOOL_ERROR,
-                tool_error=message,
-                issues=[make_issue("tool", message, None)],
-            )
-            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-        use_facts_v2_native_reproduction = source_text is None
-        use_facts_v2_direct_rebuild = (
-            use_facts_v2_native_reproduction
-            and backend != "amiga-raw"
-            and not source_assembly_debug
-        )
-        use_facts_v2_direct_compare = use_facts_v2_direct_rebuild
-        use_listing_source_assembly = use_facts_v2_native_reproduction and not use_facts_v2_direct_rebuild
-        if use_facts_v2_direct_rebuild:
-            phase = "direct_rebuild"
-            phase_started_at = time.perf_counter()
+
+        phase = "prepare"
+        try:
             _emit_progress(
                 progress_callback,
                 target_name=target_name,
                 phase=phase,
                 started_at=profile_started_at,
-                backend=backend,
-                assembler_tool_path=str(_platform_file_lib_path(project_root)),
             )
-            with effective_metadata_file(paths.target_dir) as metadata_path:
-                try:
-                    direct_result = run_direct_rebuild_phase(
-                        paths.binary_source,
-                        metadata_path=metadata_path,
-                        output_path=rebuilt_path,
-                        compare_original=use_facts_v2_direct_compare,
-                        project_root=project_root,
-                    )
-                    direct_bytes = direct_result.rebuilt_bytes
-                    listing_profile = direct_result.listing_profile
-                    direct_profile = direct_result.direct_profile
-                    rebuilt_bytes = direct_bytes
-                    direct_rebuild_for_reproduction = True
-                    _merge_direct_rebuild_profile(round_trip_profile, direct_profile)
-                    _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
-                    workflow_profile.add_span(
-                        "direct_rebuild",
-                        _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
-                        module="c_backend",
-                        detail={"profile": direct_profile},
-                    )
-                    round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
-                    round_trip_profile["assemble_seconds"] = 0.0
-                    round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
-                    source_size = _facts_v2_profile_source_bytes(listing_profile)
-                    round_trip_profile["source_file_rewritten"] = 0.0
-                    round_trip_profile["write_source_seconds"] = 0.0
-                    if facts_v2_direct_source_compare_enabled():
-                        include_dir = _include_dir_for_backend(backend, project_root)
-                        compare_started_at = time.perf_counter()
-                        source_compare_rendering = run_source_rendering_phase(
+            phase_started_at = time.perf_counter()
+            paths = resolve_project_paths(target_name, project_root=project_root)
+            target_dir = paths.target_dir
+            input_stamp = reproduction_input_stamp(target_name, project_root=project_root, assembler=assembler)
+            workflow_profile.input_stamp = dict(input_stamp)
+            backend = cast(str, input_stamp["backend"])
+            assembler = cast(str, input_stamp["assembler"])
+            assembler_cpu = cast(str, input_stamp["assembler_cpu"])
+            report_builder = RoundTripReportBuilder(
+                ReportContext(
+                    target_name=target_name,
+                    started_at=started_at,
+                    input_stamp=input_stamp,
+                    assembler=assembler,
+                    backend=backend,
+                    source_path=source_path,
+                    rebuilt_path=rebuilt_path,
+                )
+            )
+            _record_profile_timing(round_trip_profile, "prepare_seconds", phase_started_at)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            if assembler not in REPRODUCTION_ASSEMBLERS:
+                message = f"unsupported exactness assembler: {assembler}"
+                report = report_builder.error(
+                    status=ReproductionReportStatus.TOOL_ERROR,
+                    tool_error=message,
+                    issues=[make_issue("tool", message, None)],
+                )
+                return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+            use_facts_v2_native_reproduction = source_text is None
+            use_facts_v2_direct_rebuild = (
+                use_facts_v2_native_reproduction
+                and backend != "amiga-raw"
+                and not source_assembly_debug
+            )
+            use_facts_v2_direct_compare = use_facts_v2_direct_rebuild
+            use_listing_source_assembly = use_facts_v2_native_reproduction and not use_facts_v2_direct_rebuild
+            if use_facts_v2_direct_rebuild:
+                phase = "direct_rebuild"
+                phase_started_at = time.perf_counter()
+                _emit_progress(
+                    progress_callback,
+                    target_name=target_name,
+                    phase=phase,
+                    started_at=profile_started_at,
+                    backend=backend,
+                    assembler_tool_path=str(_platform_file_lib_path(project_root)),
+                )
+                with effective_metadata_file(paths.target_dir) as metadata_path:
+                    try:
+                        direct_result = run_direct_rebuild_phase(
+                            paths.binary_source,
+                            metadata_path=metadata_path,
+                            output_path=rebuilt_path,
+                            compare_original=use_facts_v2_direct_compare,
+                            project_root=project_root,
+                        )
+                        direct_bytes = direct_result.rebuilt_bytes
+                        listing_profile = direct_result.listing_profile
+                        direct_profile = direct_result.direct_profile
+                        rebuilt_bytes = direct_bytes
+                        direct_rebuild_for_reproduction = True
+                        _merge_direct_rebuild_profile(round_trip_profile, direct_profile)
+                        _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
+                        workflow_profile.add_span(
+                            "direct_rebuild",
+                            _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
+                            module="c_backend",
+                            detail={"profile": direct_profile},
+                        )
+                        round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
+                        round_trip_profile["assemble_seconds"] = 0.0
+                        round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
+                        source_size = _facts_v2_profile_source_bytes(listing_profile)
+                        round_trip_profile["source_file_rewritten"] = 0.0
+                        round_trip_profile["write_source_seconds"] = 0.0
+                        if facts_v2_direct_source_compare_enabled():
+                            include_dir = _include_dir_for_backend(backend, project_root)
+                            compare_started_at = time.perf_counter()
+                            source_compare_rendering = run_source_rendering_phase(
+                                target_name=target_name,
+                                binary_source=paths.binary_source,
+                                target_dir=paths.target_dir,
+                                metadata_path=metadata_path,
+                                project_root=project_root,
+                            )
+                            rendered_source_text = source_compare_rendering.source_text
+                            source_compare_profile = source_compare_rendering.listing_profile
+                            source_assembly = run_source_assembly_phase(
+                                backend=backend,
+                                source_text=rendered_source_text,
+                                include_dir=include_dir,
+                                target_cpu=assembler_cpu,
+                                project_root=project_root,
+                            )
+                            source_bytes = source_assembly.rebuilt_bytes
+                            assembler_profile = source_assembly.assembler_profile
+                            if listing_profile is None:
+                                listing_profile = source_compare_profile
+                            _merge_assembler_profile(round_trip_profile, assembler_profile)
+                            _record_profile_timing(
+                                round_trip_profile,
+                                "facts_v2_direct_source_compare_seconds",
+                                compare_started_at,
+                            )
+                            original_for_source_compare = paths.binary_source.read_bytes()
+                            source_compare_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
+                                paths.binary_source,
+                                source_bytes,
+                                metadata_path=metadata_path,
+                                project_root=project_root,
+                            )
+                            _record_direct_source_comparison(
+                                round_trip_profile,
+                                direct_bytes,
+                                source_bytes,
+                                compare_profile=source_compare_profile,
+                            )
+                            direct_source_report = direct_source_report_fields(
+                                original_for_source_compare,
+                                source_bytes,
+                                assembler=assembler,
+                            )
+                            if direct_bytes != source_bytes:
+                                round_trip_profile["facts_v2_direct_source_mismatch"] = 1.0
+                        if (
+                            use_facts_v2_direct_compare
+                            and not facts_v2_direct_source_compare_enabled()
+                            and (
+                                direct_profile.get("direct_rebuild_exact") is True
+                                or direct_profile.get("direct_compare_semantic_exact") is True
+                            )
+                        ):
+                            reproduction_policy = _input_reproduction_policy(input_stamp)
+                            comparison = _direct_compare_reproduction_comparison(
+                                backend, reproduction_policy, direct_profile
+                            )
+                            selected_exact = comparison["selected_exact"] is True
+                            digest = _sha256_bytes(direct_bytes)
+                            direct_full_exact = direct_profile.get("direct_rebuild_exact") is True
+                            round_trip_profile["facts_v2_direct_exact_fast_path"] = 1.0 if direct_full_exact else 0.0
+                            if not direct_full_exact:
+                                round_trip_profile["facts_v2_direct_semantic_fast_path"] = 1.0
+                            round_trip_profile["diff_phase_seconds"] = 0.0
+                            workflow_profile.add_span(
+                                "reproduction_compare",
+                                0.0,
+                                module="c_backend",
+                                detail={"profile": direct_profile, "mode": "direct_rebuild_compare"},
+                            )
+                            original_size = _optional_int(input_stamp.get("original_size"), len(direct_bytes))
+                            direct_shape_diagnostics = _direct_compare_shape_diagnostics(
+                                direct_profile, row_for_section_offset
+                            )
+                            direct_shape_row_issues = _direct_compare_shape_row_issues(
+                                direct_profile, row_for_section_offset
+                            )
+                            report = report_builder.completed(
+                                ReproductionOutcome(
+                                    status=(
+                                        ReproductionReportStatus.EXACT
+                                        if selected_exact
+                                        else ReproductionReportStatus.BINARY_MISMATCH
+                                    ),
+                                    exact=selected_exact,
+                                    original_size=original_size,
+                                    rebuilt_size=len(direct_bytes),
+                                    rebuilt_sha256=digest,
+                                    canonical_rebuilt_size=len(direct_bytes),
+                                    canonical_rebuilt_sha256=digest,
+                                    canonical_rebuilt_path=rebuilt_path,
+                                    first_diff=None,
+                                    diff_ranges=[],
+                                    canonical_diff_ranges=[],
+                                    file_layout=[],
+                                    row_mappings=direct_shape_row_issues,
+                                    issues=direct_shape_row_issues,
+                                    assembler_diagnostics=[],
+                                    assembler_stdout=assembler_stdout,
+                                    assembler_stderr=assembler_stderr,
+                                    file_shape_adjustments=[],
+                                    file_shape_diagnostics=direct_shape_diagnostics,
+                                    canonical_file_shape_diagnostics=[
+                                        dict(item) for item in direct_shape_diagnostics
+                                    ],
+                                    comparison=comparison,
+                                    direct_source_report=direct_source_report,
+                                    listing_profile=listing_profile,
+                                    profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                                    workflow_profile=workflow_profile_payload(workflow_profile),
+                                )
+                            )
+                            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                    except FactsV2SourceRefused as exc:
+                        message = str(exc)
+                        _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
+                        workflow_profile.add_span(
+                            "direct_rebuild",
+                            _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
+                            module="c_backend",
+                            detail={"listing_profile": exc.listing_profile, "status": "source_refused"},
+                        )
+                        round_trip_profile["render_seconds"] = _profile_timing_total(exc.listing_profile)
+                        round_trip_profile["assemble_seconds"] = 0.0
+                        round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
+                        report = report_builder.error(
+                            status=ReproductionReportStatus.RENDER_ERROR,
+                            tool_error=message,
+                            issues=[make_issue("renderer", message, None)],
+                            listing_profile=exc.listing_profile,
+                            profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                            workflow_profile=workflow_profile_payload(workflow_profile),
+                        )
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                    except FactsV2DirectRebuildRefused as exc:
+                        listing_profile = exc.source_profile
+                        _merge_direct_rebuild_profile(round_trip_profile, exc.direct_profile)
+                        _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
+                        workflow_profile.add_span(
+                            "direct_rebuild",
+                            _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
+                            module="c_backend",
+                            detail={"profile": exc.direct_profile, "status": "direct_rebuild_refused"},
+                        )
+                        round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
+                        message = f"facts_v2 direct rebuild refused: {exc}"
+                        accepted_kind = _accepted_direct_rebuild_refusal_kind(
+                            backend,
+                            source_profile=listing_profile,
+                            direct_profile=exc.direct_profile,
+                        )
+                        if accepted_kind is not None:
+                            report = report_builder.error(
+                                status=ReproductionReportStatus.ACCEPTED_MISMATCH,
+                                issues=[],
+                                listing_profile=listing_profile,
+                                direct_rebuild_profile=exc.direct_profile,
+                                profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                                workflow_profile=workflow_profile_payload(workflow_profile),
+                                extra={
+                                    "accepted_mismatch_kind": accepted_kind,
+                                    "accepted_mismatch_reason": message,
+                                },
+                            )
+                            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        report = report_builder.error(
+                            status=ReproductionReportStatus.TOOL_ERROR,
+                            tool_error=message,
+                            issues=[make_issue("direct_rebuild", message, None)],
+                            listing_profile=listing_profile,
+                            direct_rebuild_profile=exc.direct_profile,
+                            profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                            workflow_profile=workflow_profile_payload(workflow_profile),
+                        )
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                    except FactsV2ProfiledOperationFailed as exc:
+                        listing_profile = exc.source_profile
+                        _merge_direct_rebuild_profile(round_trip_profile, exc.operation_profile)
+                        _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
+                        workflow_profile.add_span(
+                            "direct_rebuild",
+                            _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
+                            module="c_backend",
+                            detail={"profile": exc.operation_profile, "status": "operation_failed"},
+                        )
+                        round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
+                        message = str(exc)
+                        report = report_builder.error(
+                            status=ReproductionReportStatus.TOOL_ERROR,
+                            tool_error=message,
+                            issues=[make_issue("direct_rebuild", message, None)],
+                            listing_profile=listing_profile,
+                            direct_rebuild_profile=exc.operation_profile,
+                            profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                            workflow_profile=workflow_profile_payload(workflow_profile),
+                        )
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+            if use_listing_source_assembly and rebuilt_bytes is None:
+                phase = "render_source"
+                phase_started_at = time.perf_counter()
+                include_dir = _include_dir_for_backend(backend, project_root)
+                _emit_progress(
+                    progress_callback,
+                    target_name=target_name,
+                    phase=phase,
+                    started_at=profile_started_at,
+                    backend=backend,
+                    assembler_tool_path=str(_platform_file_lib_path(project_root)),
+                )
+                with effective_metadata_file(paths.target_dir) as metadata_path:
+                    try:
+                        rendering = run_source_rendering_phase(
                             target_name=target_name,
                             binary_source=paths.binary_source,
                             target_dir=paths.target_dir,
                             metadata_path=metadata_path,
                             project_root=project_root,
                         )
-                        rendered_source_text = source_compare_rendering.source_text
-                        source_compare_profile = source_compare_rendering.listing_profile
-                        source_assembly = run_source_assembly_phase(
+                        rendered_source_text = rendering.source_text
+                        listing_profile = rendering.listing_profile
+                    except FactsV2SourceRefused as exc:
+                        message = str(exc)
+                        _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
+                        round_trip_profile["render_seconds"] = _profile_timing_total(exc.listing_profile)
+                        round_trip_profile["assemble_seconds"] = 0.0
+                        round_trip_profile["listing_artifact_source_assembly"] = 1.0
+                        report = report_builder.error(
+                            status=ReproductionReportStatus.RENDER_ERROR,
+                            tool_error=message,
+                            issues=[make_issue("renderer", message, None)],
+                            listing_profile=exc.listing_profile,
+                            profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                        )
+                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                    _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
+                    round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
+                    source_size = _facts_v2_profile_source_bytes(listing_profile)
+                    phase = "assemble"
+                    phase_started_at = time.perf_counter()
+                    try:
+                        assembly = run_source_assembly_phase(
                             backend=backend,
                             source_text=rendered_source_text,
                             include_dir=include_dir,
+                            output_path=rebuilt_path,
                             target_cpu=assembler_cpu,
                             project_root=project_root,
                         )
-                        source_bytes = source_assembly.rebuilt_bytes
-                        assembler_profile = source_assembly.assembler_profile
-                        if listing_profile is None:
-                            listing_profile = source_compare_profile
+                        rebuilt_bytes = assembly.rebuilt_bytes
+                        assembler_profile = assembly.assembler_profile
                         _merge_assembler_profile(round_trip_profile, assembler_profile)
-                        _record_profile_timing(
-                            round_trip_profile,
-                            "facts_v2_direct_source_compare_seconds",
-                            compare_started_at,
-                        )
-                        original_for_source_compare = paths.binary_source.read_bytes()
-                        source_compare_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
-                            paths.binary_source,
-                            source_bytes,
-                            metadata_path=metadata_path,
-                            project_root=project_root,
-                        )
-                        _record_direct_source_comparison(
-                            round_trip_profile,
-                            direct_bytes,
-                            source_bytes,
-                            compare_profile=source_compare_profile,
-                        )
-                        direct_source_report = direct_source_report_fields(
-                            original_for_source_compare,
-                            source_bytes,
-                            assembler=assembler,
-                        )
-                        if direct_bytes != source_bytes:
-                            round_trip_profile["facts_v2_direct_source_mismatch"] = 1.0
-                    if (
-                        use_facts_v2_direct_compare
-                        and not facts_v2_direct_source_compare_enabled()
-                        and (
-                            direct_profile.get("direct_rebuild_exact") is True
-                            or direct_profile.get("direct_compare_semantic_exact") is True
-                        )
-                    ):
-                        reproduction_policy = _input_reproduction_policy(input_stamp)
-                        comparison = _direct_compare_reproduction_comparison(
-                            backend, reproduction_policy, direct_profile
-                        )
-                        selected_exact = comparison["selected_exact"] is True
-                        digest = _sha256_bytes(direct_bytes)
-                        direct_full_exact = direct_profile.get("direct_rebuild_exact") is True
-                        round_trip_profile["facts_v2_direct_exact_fast_path"] = 1.0 if direct_full_exact else 0.0
-                        if not direct_full_exact:
-                            round_trip_profile["facts_v2_direct_semantic_fast_path"] = 1.0
-                        round_trip_profile["diff_phase_seconds"] = 0.0
-                        workflow_profile.add_span(
-                            "reproduction_compare",
-                            0.0,
-                            module="c_backend",
-                            detail={"profile": direct_profile, "mode": "direct_rebuild_compare"},
-                        )
-                        original_size = _optional_int(input_stamp.get("original_size"), len(direct_bytes))
-                        direct_shape_diagnostics = _direct_compare_shape_diagnostics(
-                            direct_profile, row_for_section_offset
-                        )
-                        direct_shape_row_issues = _direct_compare_shape_row_issues(
-                            direct_profile, row_for_section_offset
-                        )
-                        report = report_builder.completed(
-                            ReproductionOutcome(
-                                status=(
-                                    ReproductionReportStatus.EXACT
-                                    if selected_exact
-                                    else ReproductionReportStatus.BINARY_MISMATCH
-                                ),
-                                exact=selected_exact,
-                                original_size=original_size,
-                                rebuilt_size=len(direct_bytes),
-                                rebuilt_sha256=digest,
-                                canonical_rebuilt_size=len(direct_bytes),
-                                canonical_rebuilt_sha256=digest,
-                                canonical_rebuilt_path=rebuilt_path,
-                                first_diff=None,
-                                diff_ranges=[],
-                                canonical_diff_ranges=[],
-                                file_layout=[],
-                                row_mappings=direct_shape_row_issues,
-                                issues=direct_shape_row_issues,
-                                assembler_diagnostics=[],
-                                assembler_stdout=assembler_stdout,
-                                assembler_stderr=assembler_stderr,
-                                file_shape_adjustments=[],
-                                file_shape_diagnostics=direct_shape_diagnostics,
-                                canonical_file_shape_diagnostics=[
-                                    dict(item) for item in direct_shape_diagnostics
-                                ],
-                                comparison=comparison,
-                                direct_source_report=direct_source_report,
-                                listing_profile=listing_profile,
-                                profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                                workflow_profile=workflow_profile_payload(workflow_profile),
-                            )
-                        )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-                except FactsV2SourceRefused as exc:
-                    message = str(exc)
-                    _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
-                    workflow_profile.add_span(
-                        "direct_rebuild",
-                        _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
-                        module="c_backend",
-                        detail={"listing_profile": exc.listing_profile, "status": "source_refused"},
-                    )
-                    round_trip_profile["render_seconds"] = _profile_timing_total(exc.listing_profile)
-                    round_trip_profile["assemble_seconds"] = 0.0
-                    round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
-                    report = report_builder.error(
-                        status=ReproductionReportStatus.RENDER_ERROR,
-                        tool_error=message,
-                        issues=[make_issue("renderer", message, None)],
-                        listing_profile=exc.listing_profile,
-                        profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                        workflow_profile=workflow_profile_payload(workflow_profile),
-                    )
-                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-                except FactsV2DirectRebuildRefused as exc:
-                    listing_profile = exc.source_profile
-                    _merge_direct_rebuild_profile(round_trip_profile, exc.direct_profile)
-                    _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
-                    workflow_profile.add_span(
-                        "direct_rebuild",
-                        _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
-                        module="c_backend",
-                        detail={"profile": exc.direct_profile, "status": "direct_rebuild_refused"},
-                    )
-                    round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
-                    message = f"facts_v2 direct rebuild refused: {exc}"
-                    accepted_kind = _accepted_direct_rebuild_refusal_kind(
-                        backend,
-                        source_profile=listing_profile,
-                        direct_profile=exc.direct_profile,
-                    )
-                    if accepted_kind is not None:
+                        assembled_source_for_reproduction = True
+                    except RuntimeError as exc:
+                        assembler_stderr = str(exc)
+                        _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
+                        round_trip_profile["listing_artifact_source_assembly"] = 1.0
+                        diagnostics = parse_assembler_diagnostics(assembler_stderr)
                         report = report_builder.error(
-                            status=ReproductionReportStatus.ACCEPTED_MISMATCH,
-                            issues=[],
+                            status=ReproductionReportStatus.ASSEMBLER_ERROR,
+                            issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
+                            assembler_diagnostics=diagnostics,
+                            assembler_stdout=assembler_stdout,
+                            assembler_stderr=assembler_stderr,
                             listing_profile=listing_profile,
-                            direct_rebuild_profile=exc.direct_profile,
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                            workflow_profile=workflow_profile_payload(workflow_profile),
-                            extra={
-                                "accepted_mismatch_kind": accepted_kind,
-                                "accepted_mismatch_reason": message,
-                            },
                         )
                         return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-                    report = report_builder.error(
-                        status=ReproductionReportStatus.TOOL_ERROR,
-                        tool_error=message,
-                        issues=[make_issue("direct_rebuild", message, None)],
-                        listing_profile=listing_profile,
-                        direct_rebuild_profile=exc.direct_profile,
-                        profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                        workflow_profile=workflow_profile_payload(workflow_profile),
-                    )
-                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-                except FactsV2ProfiledOperationFailed as exc:
-                    listing_profile = exc.source_profile
-                    _merge_direct_rebuild_profile(round_trip_profile, exc.operation_profile)
-                    _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
-                    workflow_profile.add_span(
-                        "direct_rebuild",
-                        _profile_timing_value(round_trip_profile, "direct_rebuild_seconds"),
-                        module="c_backend",
-                        detail={"profile": exc.operation_profile, "status": "operation_failed"},
-                    )
-                    round_trip_profile["facts_v2_direct_rebuild_c_api"] = 1.0
-                    message = str(exc)
-                    report = report_builder.error(
-                        status=ReproductionReportStatus.TOOL_ERROR,
-                        tool_error=message,
-                        issues=[make_issue("direct_rebuild", message, None)],
-                        listing_profile=listing_profile,
-                        direct_rebuild_profile=exc.operation_profile,
-                        profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                        workflow_profile=workflow_profile_payload(workflow_profile),
-                    )
-                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-        if use_listing_source_assembly and rebuilt_bytes is None:
-            phase = "render_source"
-            phase_started_at = time.perf_counter()
-            include_dir = _include_dir_for_backend(backend, project_root)
-            _emit_progress(
-                progress_callback,
-                target_name=target_name,
-                phase=phase,
-                started_at=profile_started_at,
-                backend=backend,
-                assembler_tool_path=str(_platform_file_lib_path(project_root)),
-            )
-            with effective_metadata_file(paths.target_dir) as metadata_path:
-                try:
-                    rendering = run_source_rendering_phase(
-                        target_name=target_name,
-                        binary_source=paths.binary_source,
-                        target_dir=paths.target_dir,
-                        metadata_path=metadata_path,
-                        project_root=project_root,
-                    )
-                    rendered_source_text = rendering.source_text
-                    listing_profile = rendering.listing_profile
-                except FactsV2SourceRefused as exc:
-                    message = str(exc)
-                    _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
-                    round_trip_profile["render_seconds"] = _profile_timing_total(exc.listing_profile)
-                    round_trip_profile["assemble_seconds"] = 0.0
-                    round_trip_profile["listing_artifact_source_assembly"] = 1.0
-                    report = report_builder.error(
-                        status=ReproductionReportStatus.RENDER_ERROR,
-                        tool_error=message,
-                        issues=[make_issue("renderer", message, None)],
-                        listing_profile=exc.listing_profile,
-                        profile=round_trip_profile.payload(profile_started_at) if profile else None,
-                    )
-                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-                _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
-                round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
-                source_size = _facts_v2_profile_source_bytes(listing_profile)
+                _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
+                round_trip_profile["assemble_seconds"] = _flat_profile_total(assembler_profile)
+                round_trip_profile["listing_artifact_source_assembly"] = 1.0
+                round_trip_profile["source_file_rewritten"] = 0.0
+                round_trip_profile["write_source_seconds"] = 0.0
+            elif source_text is not None:
+                round_trip_profile["render_seconds"] = (
+                    _profile_timing_total(listing_profile) if listing_profile is not None else 0.0
+                )
+                round_trip_profile["reused_source_text"] = 1.0
+            if source_text is not None:
+                source_size = len(source_text.encode("utf-8"))
+            if source_text is not None:
+                phase = "write_source"
+                _emit_progress(
+                    progress_callback,
+                    target_name=target_name,
+                    phase=phase,
+                    started_at=profile_started_at,
+                    backend=backend,
+                    source_size=source_size,
+                )
+                source_size = _write_source_artifact(source_path, source_text, round_trip_profile)
+            else:
+                round_trip_profile["source_file_rewritten"] = 0.0
+                round_trip_profile["write_source_seconds"] = 0.0
+
+            if rebuilt_bytes is None:
                 phase = "assemble"
                 phase_started_at = time.perf_counter()
+                include_dir = _include_dir_for_backend(backend, project_root)
+                _emit_progress(
+                    progress_callback,
+                    target_name=target_name,
+                    phase=phase,
+                    started_at=profile_started_at,
+                    backend=backend,
+                    source_size=source_size,
+                    assembler_tool_path=str(_platform_file_lib_path(project_root)),
+                )
+                if source_text is None:
+                    raise RuntimeError("source text missing before assembly")
                 try:
                     assembly = run_source_assembly_phase(
                         backend=backend,
-                        source_text=rendered_source_text,
+                        source_text=source_text,
                         include_dir=include_dir,
                         output_path=rebuilt_path,
                         target_cpu=assembler_cpu,
@@ -766,7 +838,6 @@ def run_reproduction(
                 except RuntimeError as exc:
                     assembler_stderr = str(exc)
                     _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
-                    round_trip_profile["listing_artifact_source_assembly"] = 1.0
                     diagnostics = parse_assembler_diagnostics(assembler_stderr)
                     report = report_builder.error(
                         status=ReproductionReportStatus.ASSEMBLER_ERROR,
@@ -774,323 +845,279 @@ def run_reproduction(
                         assembler_diagnostics=diagnostics,
                         assembler_stdout=assembler_stdout,
                         assembler_stderr=assembler_stderr,
-                        listing_profile=listing_profile,
                         profile=round_trip_profile.payload(profile_started_at) if profile else None,
                     )
                     return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-            _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
-            round_trip_profile["assemble_seconds"] = _flat_profile_total(assembler_profile)
-            round_trip_profile["listing_artifact_source_assembly"] = 1.0
-            round_trip_profile["source_file_rewritten"] = 0.0
-            round_trip_profile["write_source_seconds"] = 0.0
-        elif source_text is not None:
-            round_trip_profile["render_seconds"] = (
-                _profile_timing_total(listing_profile) if listing_profile is not None else 0.0
-            )
-            round_trip_profile["reused_source_text"] = 1.0
-        if source_text is not None:
-            source_size = len(source_text.encode("utf-8"))
-        if source_text is not None:
-            phase = "write_source"
-            _emit_progress(
-                progress_callback,
-                target_name=target_name,
-                phase=phase,
-                started_at=profile_started_at,
-                backend=backend,
-                source_size=source_size,
-            )
-            source_size = _write_source_artifact(source_path, source_text, round_trip_profile)
-        else:
-            round_trip_profile["source_file_rewritten"] = 0.0
-            round_trip_profile["write_source_seconds"] = 0.0
-
-        if rebuilt_bytes is None:
-            phase = "assemble"
-            phase_started_at = time.perf_counter()
-            include_dir = _include_dir_for_backend(backend, project_root)
-            _emit_progress(
-                progress_callback,
-                target_name=target_name,
-                phase=phase,
-                started_at=profile_started_at,
-                backend=backend,
-                source_size=source_size,
-                assembler_tool_path=str(_platform_file_lib_path(project_root)),
-            )
-            if source_text is None:
-                raise RuntimeError("source text missing before assembly")
-            try:
-                assembly = run_source_assembly_phase(
-                    backend=backend,
-                    source_text=source_text,
-                    include_dir=include_dir,
-                    output_path=rebuilt_path,
-                    target_cpu=assembler_cpu,
-                    project_root=project_root,
-                )
-                rebuilt_bytes = assembly.rebuilt_bytes
-                assembler_profile = assembly.assembler_profile
-                _merge_assembler_profile(round_trip_profile, assembler_profile)
-                assembled_source_for_reproduction = True
-            except RuntimeError as exc:
-                assembler_stderr = str(exc)
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
-                diagnostics = parse_assembler_diagnostics(assembler_stderr)
-                report = report_builder.error(
-                    status=ReproductionReportStatus.ASSEMBLER_ERROR,
-                    issues=diagnostics or [make_issue("assembler", "Assembler failed", None)],
+            diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
+
+            phase = "diff"
+            phase_started_at = time.perf_counter()
+            rebuilt_size = len(rebuilt_bytes)
+            _emit_progress(
+                progress_callback,
+                target_name=target_name,
+                phase=phase,
+                started_at=profile_started_at,
+                backend=backend,
+                source_size=source_size,
+                rebuilt_size=rebuilt_size,
+            )
+            read_original_started_at = time.perf_counter()
+            original = paths.binary_source.read_bytes()
+            _record_profile_timing(round_trip_profile, "read_original_seconds", read_original_started_at)
+            canonical_rebuilt = rebuilt_bytes
+            round_trip_profile["read_rebuilt_seconds"] = 0.0
+            round_trip_profile["reused_assembler_rebuilt_bytes"] = 1.0
+            policy_started_at = time.perf_counter()
+            reproduction_policy = _input_reproduction_policy(input_stamp)
+            if direct_rebuild_for_reproduction:
+                rebuilt = canonical_rebuilt
+                file_shape_adjustments: list[dict[str, object]] = []
+            else:
+                rebuilt, file_shape_adjustments = apply_reproduction_output_policy(
+                    original,
+                    canonical_rebuilt,
+                    backend=backend,
+                    policy=reproduction_policy,
+                )
+            _record_profile_timing(round_trip_profile, "file_shape_policy_seconds", policy_started_at)
+            diff_started_at = time.perf_counter()
+            diff_ranges = grouped_diff_ranges(original, rebuilt)
+            canonical_diff_ranges = (
+                diff_ranges
+                if not file_shape_adjustments or rebuilt is canonical_rebuilt
+                else grouped_diff_ranges(original, canonical_rebuilt)
+            )
+            first_diff_payload = _first_diff_from_ranges(original, rebuilt, diff_ranges)
+            _record_profile_timing(round_trip_profile, "diff_seconds", diff_started_at)
+            if not diff_ranges and not canonical_diff_ranges:
+                file_layout: list[dict[str, object]] = []
+                row_issues: list[dict[str, object]] = []
+                file_shape_diagnostics: list[dict[str, object]] = []
+                canonical_file_shape_diagnostics: list[dict[str, object]] = []
+                round_trip_profile["file_layout_seconds"] = 0.0
+                round_trip_profile["row_mapping_seconds"] = 0.0
+                compare_started_at = time.perf_counter()
+                comparison_phase = run_reproduction_comparison_phase(
+                    paths.binary_source,
+                    rebuilt,
+                    backend=backend,
+                    policy=reproduction_policy,
+                    metadata_path=None,
+                    project_root=project_root,
+                    original=original,
+                    canonical_rebuilt=canonical_rebuilt,
+                    diff_ranges=diff_ranges,
+                    canonical_diff_ranges=canonical_diff_ranges,
+                    file_layout=file_layout,
+                )
+                comparison = comparison_phase.comparison
+                c_compare_profile = comparison_phase.c_profile
+                workflow_profile.add_span(
+                    "reproduction_compare",
+                    time.perf_counter() - compare_started_at,
+                    module="c_backend" if c_compare_profile is not None else "python",
+                    detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
+                )
+                if c_compare_profile is not None:
+                    _merge_source_compare_profile(round_trip_profile, c_compare_profile)
+            else:
+                compare_started_at = time.perf_counter()
+                comparison_phase = run_reproduction_comparison_phase(
+                    paths.binary_source,
+                    rebuilt,
+                    backend=backend,
+                    policy=reproduction_policy,
+                    metadata_path=None,
+                    project_root=project_root,
+                    original=original,
+                    canonical_rebuilt=canonical_rebuilt,
+                    diff_ranges=diff_ranges,
+                    canonical_diff_ranges=canonical_diff_ranges,
+                    file_layout=[],
+                )
+                comparison = comparison_phase.comparison
+                c_compare_profile = comparison_phase.c_profile
+                workflow_profile.add_span(
+                    "reproduction_compare",
+                    time.perf_counter() - compare_started_at,
+                    module="c_backend" if c_compare_profile is not None else "python",
+                    detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
+                )
+                layout_started_at = time.perf_counter()
+                file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
+                if not file_layout and backend == "amiga-raw":
+                    file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
+                _record_profile_timing(round_trip_profile, "file_layout_seconds", layout_started_at)
+                if c_compare_profile is not None:
+                    _merge_source_compare_profile(round_trip_profile, c_compare_profile)
+                row_mapping_started_at = time.perf_counter()
+                row_issues = diff_issues_for_lookup(
+                    diff_ranges,
+                    row_for_section_offset,
+                    file_layout=file_layout,
+                )
+                _record_profile_timing(round_trip_profile, "row_mapping_seconds", row_mapping_started_at)
+                file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
+                    original,
+                    rebuilt,
+                    backend=backend,
+                    diff_ranges=diff_ranges,
+                    file_layout=file_layout,
+                )
+                canonical_file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
+                    original,
+                    canonical_rebuilt,
+                    backend=backend,
+                    diff_ranges=canonical_diff_ranges,
+                    file_layout=file_layout,
+                )
+                if c_compare_profile is not None:
+                    c_shape_diagnostics = _comparison_profile_shape_diagnostics(
+                        c_compare_profile, "reproduction_compare"
+                    )
+                    if c_shape_diagnostics:
+                        file_shape_diagnostics = c_shape_diagnostics
+                        canonical_file_shape_diagnostics = [dict(item) for item in c_shape_diagnostics]
+                    direct_shape_diagnostics = _reproduction_compare_shape_diagnostics(
+                        c_compare_profile, row_for_section_offset
+                    )
+                    if direct_shape_diagnostics:
+                        file_shape_diagnostics = direct_shape_diagnostics
+                        canonical_file_shape_diagnostics = [dict(item) for item in direct_shape_diagnostics]
+            if direct_source_report is None and assembled_source_for_reproduction:
+                direct_source_report = direct_source_report_fields_from_ranges(
+                    original,
+                    canonical_rebuilt,
+                    assembler=assembler,
+                    diff_ranges=canonical_diff_ranges,
+                )
+            _record_profile_timing(round_trip_profile, "diff_phase_seconds", phase_started_at)
+            exact = bool(comparison.get("full_file_exact"))
+            report_status = ReproductionReportStatus.EXACT if exact else ReproductionReportStatus.BINARY_MISMATCH
+            comparison_status = comparison.get("status")
+            selected_comparison = _require_reproduction_enum_option(
+                reproduction_policy, "comparison", ReproductionComparison
+            )
+            if (
+                comparison_status == ReproductionReportStatus.CONTENT_MATCH
+                and selected_comparison is ReproductionComparison.CONTENT
+            ):
+                report_status = ReproductionReportStatus.CONTENT_MATCH
+            elif (
+                comparison_status == ReproductionReportStatus.SEMANTIC_MATCH
+                and selected_comparison is ReproductionComparison.SEMANTIC
+            ):
+                report_status = ReproductionReportStatus.SEMANTIC_MATCH
+            if rebuilt != canonical_rebuilt:
+                canonical_rebuilt_path.write_bytes(canonical_rebuilt)
+                rebuilt_path.write_bytes(rebuilt)
+            canonical_path_for_report = canonical_rebuilt_path if rebuilt != canonical_rebuilt else rebuilt_path
+            report = report_builder.completed(
+                ReproductionOutcome(
+                    status=report_status,
+                    exact=exact,
+                    original_size=len(original),
+                    rebuilt_size=len(rebuilt),
+                    rebuilt_sha256=_sha256_bytes(rebuilt),
+                    canonical_rebuilt_size=len(canonical_rebuilt),
+                    canonical_rebuilt_sha256=_sha256_bytes(canonical_rebuilt),
+                    canonical_rebuilt_path=canonical_path_for_report,
+                    first_diff=first_diff_payload,
+                    diff_ranges=diff_ranges,
+                    canonical_diff_ranges=canonical_diff_ranges,
+                    file_layout=file_layout,
+                    row_mappings=row_issues,
+                    issues=row_issues,
                     assembler_diagnostics=diagnostics,
                     assembler_stdout=assembler_stdout,
                     assembler_stderr=assembler_stderr,
+                    file_shape_adjustments=file_shape_adjustments,
+                    file_shape_diagnostics=file_shape_diagnostics,
+                    canonical_file_shape_diagnostics=canonical_file_shape_diagnostics,
+                    comparison=comparison,
+                    direct_source_report=direct_source_report,
+                    listing_profile=listing_profile,
                     profile=round_trip_profile.payload(profile_started_at) if profile else None,
+                    workflow_profile=workflow_profile_payload(workflow_profile),
                 )
-                return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-            _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
-        diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
-
-        phase = "diff"
-        phase_started_at = time.perf_counter()
-        rebuilt_size = len(rebuilt_bytes)
-        _emit_progress(
-            progress_callback,
-            target_name=target_name,
-            phase=phase,
-            started_at=profile_started_at,
-            backend=backend,
-            source_size=source_size,
-            rebuilt_size=rebuilt_size,
-        )
-        read_original_started_at = time.perf_counter()
-        original = paths.binary_source.read_bytes()
-        _record_profile_timing(round_trip_profile, "read_original_seconds", read_original_started_at)
-        canonical_rebuilt = rebuilt_bytes
-        round_trip_profile["read_rebuilt_seconds"] = 0.0
-        round_trip_profile["reused_assembler_rebuilt_bytes"] = 1.0
-        policy_started_at = time.perf_counter()
-        reproduction_policy = _input_reproduction_policy(input_stamp)
-        if direct_rebuild_for_reproduction:
-            rebuilt = canonical_rebuilt
-            file_shape_adjustments: list[dict[str, object]] = []
-        else:
-            rebuilt, file_shape_adjustments = apply_reproduction_output_policy(
-                original,
-                canonical_rebuilt,
+            )
+            _emit_progress(
+                progress_callback,
+                target_name=target_name,
+                phase="done",
+                started_at=profile_started_at,
                 backend=backend,
-                policy=reproduction_policy,
-            )
-        _record_profile_timing(round_trip_profile, "file_shape_policy_seconds", policy_started_at)
-        diff_started_at = time.perf_counter()
-        diff_ranges = grouped_diff_ranges(original, rebuilt)
-        canonical_diff_ranges = (
-            diff_ranges
-            if not file_shape_adjustments or rebuilt is canonical_rebuilt
-            else grouped_diff_ranges(original, canonical_rebuilt)
-        )
-        first_diff_payload = _first_diff_from_ranges(original, rebuilt, diff_ranges)
-        _record_profile_timing(round_trip_profile, "diff_seconds", diff_started_at)
-        if not diff_ranges and not canonical_diff_ranges:
-            file_layout: list[dict[str, object]] = []
-            row_issues: list[dict[str, object]] = []
-            file_shape_diagnostics: list[dict[str, object]] = []
-            canonical_file_shape_diagnostics: list[dict[str, object]] = []
-            round_trip_profile["file_layout_seconds"] = 0.0
-            round_trip_profile["row_mapping_seconds"] = 0.0
-            compare_started_at = time.perf_counter()
-            comparison_phase = run_reproduction_comparison_phase(
-                paths.binary_source,
-                rebuilt,
-                backend=backend,
-                policy=reproduction_policy,
-                metadata_path=None,
-                project_root=project_root,
-                original=original,
-                canonical_rebuilt=canonical_rebuilt,
-                diff_ranges=diff_ranges,
-                canonical_diff_ranges=canonical_diff_ranges,
-                file_layout=file_layout,
-            )
-            comparison = comparison_phase.comparison
-            c_compare_profile = comparison_phase.c_profile
-            workflow_profile.add_span(
-                "reproduction_compare",
-                time.perf_counter() - compare_started_at,
-                module="c_backend" if c_compare_profile is not None else "python",
-                detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
-            )
-            if c_compare_profile is not None:
-                _merge_source_compare_profile(round_trip_profile, c_compare_profile)
-        else:
-            compare_started_at = time.perf_counter()
-            comparison_phase = run_reproduction_comparison_phase(
-                paths.binary_source,
-                rebuilt,
-                backend=backend,
-                policy=reproduction_policy,
-                metadata_path=None,
-                project_root=project_root,
-                original=original,
-                canonical_rebuilt=canonical_rebuilt,
-                diff_ranges=diff_ranges,
-                canonical_diff_ranges=canonical_diff_ranges,
-                file_layout=[],
-            )
-            comparison = comparison_phase.comparison
-            c_compare_profile = comparison_phase.c_profile
-            workflow_profile.add_span(
-                "reproduction_compare",
-                time.perf_counter() - compare_started_at,
-                module="c_backend" if c_compare_profile is not None else "python",
-                detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
-            )
-            layout_started_at = time.perf_counter()
-            file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
-            if not file_layout and backend == "amiga-raw":
-                file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
-            _record_profile_timing(round_trip_profile, "file_layout_seconds", layout_started_at)
-            if c_compare_profile is not None:
-                _merge_source_compare_profile(round_trip_profile, c_compare_profile)
-            row_mapping_started_at = time.perf_counter()
-            row_issues = diff_issues_for_lookup(
-                diff_ranges,
-                row_for_section_offset,
-                file_layout=file_layout,
-            )
-            _record_profile_timing(round_trip_profile, "row_mapping_seconds", row_mapping_started_at)
-            file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
-                original,
-                rebuilt,
-                backend=backend,
-                diff_ranges=diff_ranges,
-                file_layout=file_layout,
-            )
-            canonical_file_shape_diagnostics = file_shape_diagnostics_for_mismatch(
-                original,
-                canonical_rebuilt,
-                backend=backend,
-                diff_ranges=canonical_diff_ranges,
-                file_layout=file_layout,
-            )
-            if c_compare_profile is not None:
-                c_shape_diagnostics = _comparison_profile_shape_diagnostics(
-                    c_compare_profile, "reproduction_compare"
-                )
-                if c_shape_diagnostics:
-                    file_shape_diagnostics = c_shape_diagnostics
-                    canonical_file_shape_diagnostics = [dict(item) for item in c_shape_diagnostics]
-                direct_shape_diagnostics = _reproduction_compare_shape_diagnostics(
-                    c_compare_profile, row_for_section_offset
-                )
-                if direct_shape_diagnostics:
-                    file_shape_diagnostics = direct_shape_diagnostics
-                    canonical_file_shape_diagnostics = [dict(item) for item in direct_shape_diagnostics]
-        if direct_source_report is None and assembled_source_for_reproduction:
-            direct_source_report = direct_source_report_fields_from_ranges(
-                original,
-                canonical_rebuilt,
-                assembler=assembler,
-                diff_ranges=canonical_diff_ranges,
-            )
-        _record_profile_timing(round_trip_profile, "diff_phase_seconds", phase_started_at)
-        exact = bool(comparison.get("full_file_exact"))
-        report_status = ReproductionReportStatus.EXACT if exact else ReproductionReportStatus.BINARY_MISMATCH
-        comparison_status = comparison.get("status")
-        selected_comparison = _require_reproduction_enum_option(
-            reproduction_policy, "comparison", ReproductionComparison
-        )
-        if (
-            comparison_status == ReproductionReportStatus.CONTENT_MATCH
-            and selected_comparison is ReproductionComparison.CONTENT
-        ):
-            report_status = ReproductionReportStatus.CONTENT_MATCH
-        elif (
-            comparison_status == ReproductionReportStatus.SEMANTIC_MATCH
-            and selected_comparison is ReproductionComparison.SEMANTIC
-        ):
-            report_status = ReproductionReportStatus.SEMANTIC_MATCH
-        if rebuilt != canonical_rebuilt:
-            canonical_rebuilt_path.write_bytes(canonical_rebuilt)
-            rebuilt_path.write_bytes(rebuilt)
-        canonical_path_for_report = canonical_rebuilt_path if rebuilt != canonical_rebuilt else rebuilt_path
-        report = report_builder.completed(
-            ReproductionOutcome(
-                status=report_status,
-                exact=exact,
-                original_size=len(original),
+                source_size=source_size,
                 rebuilt_size=len(rebuilt),
-                rebuilt_sha256=_sha256_bytes(rebuilt),
-                canonical_rebuilt_size=len(canonical_rebuilt),
-                canonical_rebuilt_sha256=_sha256_bytes(canonical_rebuilt),
-                canonical_rebuilt_path=canonical_path_for_report,
-                first_diff=first_diff_payload,
-                diff_ranges=diff_ranges,
-                canonical_diff_ranges=canonical_diff_ranges,
-                file_layout=file_layout,
-                row_mappings=row_issues,
-                issues=row_issues,
-                assembler_diagnostics=diagnostics,
-                assembler_stdout=assembler_stdout,
-                assembler_stderr=assembler_stderr,
-                file_shape_adjustments=file_shape_adjustments,
-                file_shape_diagnostics=file_shape_diagnostics,
-                canonical_file_shape_diagnostics=canonical_file_shape_diagnostics,
-                comparison=comparison,
-                direct_source_report=direct_source_report,
-                listing_profile=listing_profile,
+                original_size=len(original),
+                status=report["status"],
+            )
+            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+        except Exception as exc:
+            if target_dir is None:
+                target_dir = _best_effort_target_dir(target_name, project_root=project_root)
+            if "stamp_error" not in input_stamp or input_stamp.get("stamp_error") == "not prepared":
+                input_stamp = unresolved_reproduction_input_stamp(
+                    target_name,
+                    project_root=project_root,
+                    assembler=assembler,
+                    error=str(exc),
+                    target_dir=target_dir,
+                )
+                report_builder = RoundTripReportBuilder(
+                    ReportContext(
+                        target_name=target_name,
+                        started_at=started_at,
+                        input_stamp=input_stamp,
+                        assembler=assembler,
+                        backend=str(input_stamp.get("backend") or backend),
+                        source_path=source_path,
+                        rebuilt_path=rebuilt_path,
+                    )
+                )
+            status = (
+                ReproductionReportStatus.RENDER_ERROR
+                if phase == "render"
+                else ReproductionReportStatus.TOOL_ERROR
+            )
+            issue_kind = "renderer" if phase == "render" else "tool"
+            report = report_builder.error(
+                status=status,
+                tool_error=str(exc),
+                issues=[make_issue(issue_kind, str(exc), None)],
                 profile=round_trip_profile.payload(profile_started_at) if profile else None,
                 workflow_profile=workflow_profile_payload(workflow_profile),
             )
-        )
-        _emit_progress(
-            progress_callback,
-            target_name=target_name,
-            phase="done",
-            started_at=profile_started_at,
-            backend=backend,
-            source_size=source_size,
-            rebuilt_size=len(rebuilt),
-            original_size=len(original),
-            status=report["status"],
-        )
-        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
-    except Exception as exc:
-        if target_dir is None:
-            target_dir = _best_effort_target_dir(target_name, project_root=project_root)
-        if "stamp_error" not in input_stamp or input_stamp.get("stamp_error") == "not prepared":
-            input_stamp = unresolved_reproduction_input_stamp(
-                target_name,
-                project_root=project_root,
-                assembler=assembler,
-                error=str(exc),
-                target_dir=target_dir,
-            )
-            report_builder = RoundTripReportBuilder(
-                ReportContext(
-                    target_name=target_name,
-                    started_at=started_at,
-                    input_stamp=input_stamp,
-                    assembler=assembler,
-                    backend=str(input_stamp.get("backend") or backend),
-                    source_path=source_path,
-                    rebuilt_path=rebuilt_path,
-                )
-            )
-        status = (
-            ReproductionReportStatus.RENDER_ERROR
-            if phase == "render"
-            else ReproductionReportStatus.TOOL_ERROR
-        )
-        issue_kind = "renderer" if phase == "render" else "tool"
-        report = report_builder.error(
-            status=status,
-            tool_error=str(exc),
-            issues=[make_issue(issue_kind, str(exc), None)],
-            profile=round_trip_profile.payload(profile_started_at) if profile else None,
-            workflow_profile=workflow_profile_payload(workflow_profile),
-        )
-        if target_dir is None:
-            return report
-        return _write_reproduction_report(target_dir, report, project_root=project_root)
+            if target_dir is None:
+                return report
+            return _write_reproduction_report(target_dir, report, project_root=project_root)
+
+
+def run_reproduction(
+    target_name: str,
+    *,
+    project_root: Path = PROJECT_ROOT,
+    assembler: str = "our",
+    progress_callback: Callable[[dict[str, object]], None] | None = None,
+    profile: bool = False,
+    pre_rendered_source_text: str | None = None,
+    pre_rendered_source_profile: Mapping[str, object] | None = None,
+    row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
+    source_assembly_debug: bool = False,
+) -> dict[str, object]:
+    return RoundTripVerificationWorkflow().run(
+        target_name,
+        project_root=project_root,
+        assembler=assembler,
+        progress_callback=progress_callback,
+        profile=profile,
+        pre_rendered_source_text=pre_rendered_source_text,
+        pre_rendered_source_profile=pre_rendered_source_profile,
+        row_for_section_offset=row_for_section_offset,
+        source_assembly_debug=source_assembly_debug,
+    )
 
 
 def load_reproduction_report(

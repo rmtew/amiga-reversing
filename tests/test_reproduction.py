@@ -897,6 +897,24 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
 
+def test_run_reproduction_delegates_to_round_trip_workflow(monkeypatch, tmp_path: Path) -> None:
+    calls: list[dict[str, object]] = []
+
+    def run_workflow(self: object, target_name: str, **kwargs: object) -> dict[str, object]:
+        calls.append({"self": self, "target_name": target_name, "kwargs": kwargs})
+        return {"status": "delegated"}
+
+    monkeypatch.setattr(reproduction.RoundTripVerificationWorkflow, "run", run_workflow)
+
+    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+
+    assert report == {"status": "delegated"}
+    assert isinstance(calls[0]["self"], reproduction.RoundTripVerificationWorkflow)
+    assert calls[0]["target_name"] == "demo"
+    assert cast(dict[str, object], calls[0]["kwargs"])["project_root"] == tmp_path
+    assert cast(dict[str, object], calls[0]["kwargs"])["profile"] is True
+
+
 def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
