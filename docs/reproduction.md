@@ -149,8 +149,8 @@ target-specific include sets or fixture isolation; backend auto-includes remain
 the only directories passed to the current exactness command.
 
 `oracle_modes` records requested extra non-gating checks such as `vasm` or
-`devpac`. Oracle execution is still future work and must be reported separately
-from exact byte reproduction when added.
+`devpac`. Oracle execution reports scoped `oracle.*` compatibility levels and
+must stay separate from exact byte reproduction.
 
 `mode` is a convenience layer over the lower-level policies:
 

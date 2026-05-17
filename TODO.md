@@ -31,11 +31,8 @@
   we would persist key-bindings, last position and preferences to use for render profiles or assemble/reproduction
   profiles like what disassemblers to try it against.
   Proposal: `docs/proposals/001-manual-review-ui-workflows.md`.
-- What assemblers we reproduce against are useful. Currently an EXACT reproduction likely implies that we are using
-  our framework assembler, which factors in extra legwork to full file reproduction rather than just content
-  reproduction. It will be useful for the user to specify the assembler to use, whether vasm, genam or the framework
-  one. Also whether we can find the assembler they want to use (is machine68k installed? is vamos installed? what
-  files do we need to run Genam for Amiga just the binary?).
+- Reproduction profiles, oracle modes, source export, and external tool availability are implemented.
+  Remaining cleanup for profile persistence through `target_ui_edits.json` belongs to Proposal 007 issue `028-006`.
   Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 - The manual review list currently contains things that the analysis identified. However there is value in the user
   being able to mark rows/ranges and add notes about things they want to come back to, and have them appear in their
@@ -107,7 +104,7 @@ Proposal: `docs/proposals/003-runtime-tracing.md`.
 
 Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 
-- [ ] Re-run round-trip validation for fresh GenAm / Bloodwych output after the shared-analysis and renderer refactors, then classify any remaining binary diffs as formatting churn vs real semantic regressions
+- 2026-05-16 GenAm / Bloodwych sweep recorded in `docs/validation/reproduction-sweep-2026-05-16.md`.
 
 ## Knowledge Base: Amiga Platform
 
