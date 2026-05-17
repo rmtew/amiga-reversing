@@ -1601,8 +1601,7 @@ the workflow more provable.
 
 ## Proposed Rewrite
 
-The executable issues under `docs/issues/028-*.md` are the implementation
-breakdown for this proposal. Their dependency order is part of the design:
+The completed `028-*` implementation breakdown for this proposal was:
 
 ```text
 028-001 service skeleton + locator tracer
@@ -1621,11 +1620,9 @@ breakdown for this proposal. Their dependency order is part of the design:
 028-014 remove browser stable-key compatibility aliases
 ```
 
-Only `028-001` and `028-005` should be independently ready at the start.
-Everything that depends on real locator resolution, command context validation,
-or shared semantic assertions must stay blocked until its prerequisite module
-exists. This keeps the implementation straightforward: each issue deepens the
-state pipeline rather than adding a parallel test harness or legacy adapter.
+The dependency order kept the implementation straightforward: each issue
+deepened the state pipeline rather than adding a parallel test harness or legacy
+adapter.
 
 ### Slice 1: Extract Listing Projection Service
 
@@ -1765,14 +1762,12 @@ If the inventory shows that a workflow has no clean durable source of truth,
 stop and refactor that workflow's state ownership before adding more browser
 coverage.
 
-Implementation note from `028-003`: the workflow inventory now lives in
-`docs/issues/028-003-inventory-workflow-contracts-against-real-locators.md`.
-It defines the shared `ListingRowLocator` contract for rename-label, row
-comment, representation/type, review, range command, navigation, last-open
-location, and profile workflows. It explicitly blocks durability coverage for
-workflows still backed by `target_ui_edits.json` or legacy row-index/stable-key
-browser state until 028-004, 028-006, 028-009, and 028-010 replace those
-contracts.
+Implementation note from `028-003`: the workflow inventory defined the shared
+`ListingRowLocator` contract for rename-label, row comment, representation/type,
+review, range command, navigation, last-open location, and profile workflows.
+It explicitly blocked durability coverage for workflows still backed by
+`target_ui_edits.json` or legacy row-index/stable-key browser state until
+028-004, 028-006, 028-009, and 028-010 replaced those contracts.
 
 Implementation note from `028-004`: the web command surface is now
 `GET /api/projects/{project_id}/commands` and
@@ -2242,12 +2237,11 @@ virtualization, rendering, corpus snippets, and diagnostics. It must not be the
 subject identity for mutation commands, preferences, URL/deep-link state, or
 Manual Action Log payload construction.
 
-Implementation note from `028-013`: the final audit is recorded in
-`docs/issues/028-013-historical-fixtures-and-stale-name-cleanup-audit.md`.
-Production callers now use command routes and locator context; remaining retired
-names are either historical docs/tests, obsolete-state cleanup, private
-projection/cache invalidation, diagnostics, or compatibility inputs normalized
-before web-facing listing payloads.
+Implementation note from `028-013`: the final audit found that production
+callers now use command routes and locator context; remaining retired names are
+either historical docs/tests, obsolete-state cleanup, private projection/cache
+invalidation, diagnostics, or compatibility inputs normalized before
+web-facing listing payloads.
 
 Implementation note from `028-014`: browser `stableKey` / `stable_key`
 compatibility aliases were removed from `app.js`. Rendered rows now expose
