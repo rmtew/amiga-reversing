@@ -2182,53 +2182,6 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   return count;
 }
 
-static size_t source_analysis_runtime_view_count(const M68kSourceAnalysisIR *source_analysis) {
-  size_t count = 0U;
-  size_t section_index;
-  if (source_analysis == NULL) return 0U;
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index)
-    count += source_analysis->sections[section_index].runtime_view_count;
-  return count;
-}
-
-static int platform_summary_version_seen(const char versions[][16], size_t count, const char *version) {
-  size_t index;
-  if (version == NULL || version[0] == '\0') return 1;
-  for (index = 0U; index < count; ++index) {
-    if (strcmp(versions[index], version) == 0) return 1;
-  }
-  return 0;
-}
-
-static void platform_summary_append_version(char versions[][16], uint16_t ranks[], size_t *io_count,
-    const char *version) {
-  uint16_t rank;
-  size_t index;
-  if (versions == NULL || ranks == NULL || io_count == NULL || *io_count >= 16U ||
-      version == NULL || version[0] == '\0' || platform_summary_version_seen(versions, *io_count, version) ||
-      !amiga_os_compatibility_version_rank(version, &rank)) {
-    return;
-  }
-  index = *io_count;
-  while (index > 0U && ranks[index - 1U] > rank) {
-    ranks[index] = ranks[index - 1U];
-    snprintf(versions[index], sizeof(versions[index]), "%s", versions[index - 1U]);
-    --index;
-  }
-  ranks[index] = rank;
-  snprintf(versions[index], sizeof(versions[index]), "%s", version);
-  ++*io_count;
-}
-
-static const char *platform_summary_call_display_name(const M68kRecoveredPlatformCallIR *call) {
-  const char *name;
-  if (call == NULL) return "unknown";
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
-  if (name != NULL && name[0] != '\0') return name;
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
-  return name != NULL && name[0] != '\0' ? name : "unknown";
-}
-
 static int append_platform_summary_versions_json(JsonBuilder *builder, const char versions[][16], size_t count) {
   size_t index;
   if (builder == NULL || json_builder_append(builder, "[") != 0) return -1;
@@ -2240,82 +2193,53 @@ static int append_platform_summary_versions_json(JsonBuilder *builder, const cha
 }
 
 static int append_platform_summary_json(JsonBuilder *builder, const M68kSourceAnalysisIR *source_analysis) {
-  char versions[16][16];
-  uint16_t version_ranks[16];
-  char fd_versions[16][16];
-  uint16_t fd_ranks[16];
-  uint16_t max_rank = 0U;
-  size_t version_count = 0U;
-  size_t fd_version_count = 0U;
-  size_t call_count = 0U;
-  size_t section_index;
+  M68kTargetPlatformSummary summary;
+  const M68kTargetOsCompatibilitySummary *os_summary;
   if (builder == NULL || source_analysis == NULL) return -1;
-  memset(versions, 0, sizeof(versions));
-  memset(version_ranks, 0, sizeof(version_ranks));
-  memset(fd_versions, 0, sizeof(fd_versions));
-  memset(fd_ranks, 0, sizeof(fd_ranks));
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-    size_t call_index;
-    for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
-      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
-      uint16_t rank = 0U;
-      if (call->symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
-          call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
-        continue;
-      }
-      ++call_count;
-      platform_summary_append_version(versions, version_ranks, &version_count, call->available_since);
-      platform_summary_append_version(fd_versions, fd_ranks, &fd_version_count, call->fd_version);
-      if (amiga_os_compatibility_version_rank(call->available_since, &rank) && rank > max_rank) max_rank = rank;
-    }
-  }
+  if (m68k_target_platform_summary_build(source_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, &summary) != 0)
+    return -1;
+  os_summary = &summary.os_compatibility;
   if (json_builder_appendf(builder,
       "{\"memory_map\":{\"runtime_view_count\":%u},\"os_compatibility\":{",
-      (unsigned)source_analysis_runtime_view_count(source_analysis)) != 0) {
+      (unsigned)summary.runtime_view_count) != 0) {
     return -1;
   }
-  if (call_count == 0U) {
+  if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS) {
     if (json_builder_append(builder, "\"status\":\"no_os_calls\",\"minimum_required\":null,"
         "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
       return -1;
-  } else if (version_count == 0U) {
+  } else if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_UNKNOWN) {
     if (json_builder_append(builder, "\"status\":\"unknown\",\"minimum_required\":null,"
         "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
       return -1;
   } else {
-    int first_driver = 1;
+    size_t index;
     if (json_builder_append(builder, "\"status\":\"observed\",\"minimum_required\":") != 0) return -1;
-    if (json_builder_append_json_string(builder, versions[version_count - 1U]) != 0) return -1;
+    if (json_builder_append_json_string(builder, os_summary->minimum_required) != 0) return -1;
     if (json_builder_append(builder, ",\"observed_available_since\":") != 0) return -1;
-    if (append_platform_summary_versions_json(builder, versions, version_count) != 0) return -1;
+    if (append_platform_summary_versions_json(builder, os_summary->observed_available_since,
+        os_summary->observed_available_since_count) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"observed_fd_versions\":") != 0) return -1;
-    if (append_platform_summary_versions_json(builder, fd_versions, fd_version_count) != 0) return -1;
+    if (append_platform_summary_versions_json(builder, os_summary->observed_fd_versions,
+        os_summary->observed_fd_version_count) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"max_requirement_drivers\":[") != 0) return -1;
-    for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-      const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-      size_t call_index;
-      for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
-        const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
-        uint16_t rank = 0U;
-        const char *owner;
-        if (!amiga_os_compatibility_version_rank(call->available_since, &rank) || rank != max_rank) continue;
-        if (!first_driver && json_builder_append(builder, ",") != 0) return -1;
-        owner = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
-        if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"call\":",
-            (unsigned)section->section_index, (unsigned)call->offset) != 0)
-          return -1;
-        if (json_builder_append_json_string(builder, platform_summary_call_display_name(call)) != 0) return -1;
-        if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
-        if (json_builder_append_nullable_string(builder, owner != NULL && owner[0] != '\0' ? owner : NULL) != 0)
-          return -1;
-        if (json_builder_append(builder, ",\"available_since\":") != 0) return -1;
-        if (json_builder_append_json_string(builder, call->available_since) != 0) return -1;
-        if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
-        if (json_builder_append_nullable_string(builder, call->fd_version) != 0) return -1;
-        if (json_builder_append(builder, "}") != 0) return -1;
-        first_driver = 0;
-      }
+    for (index = 0U; index < os_summary->max_requirement_driver_count; ++index) {
+      const M68kTargetOsRequirementDriver *driver = &os_summary->max_requirement_drivers[index];
+      if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"call\":",
+          (unsigned)driver->section_index, (unsigned)driver->offset) != 0)
+        return -1;
+      if (json_builder_append_json_string(builder, driver->call) != 0) return -1;
+      if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, driver->has_owner ? driver->owner : NULL) != 0) return -1;
+      if (json_builder_append(builder, ",\"available_since\":") != 0) return -1;
+      if (json_builder_append_json_string(builder, driver->available_since) != 0) return -1;
+      if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
+      if (json_builder_append_nullable_string(builder, driver->has_fd_version ? driver->fd_version : NULL) != 0)
+        return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
     }
     if (json_builder_append(builder, "]") != 0) return -1;
   }

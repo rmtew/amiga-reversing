@@ -584,6 +584,43 @@ static int test_source_analysis_append_section_rehydrates_platform_name_refs(voi
   return 0;
 }
 
+static int test_target_platform_summary_builds_os_compatibility_once(void) {
+  M68kSectionAnalysisIR section;
+  M68kSourceAnalysisIR source;
+  M68kTargetPlatformSummary summary;
+  const M68kTargetOsCompatibilitySummary *os_summary;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section, test_ir_result_arena()));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source));
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x20u, 1U, "_LVOOld", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "2.04", "37"));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x40u, 1U, "_LVONew", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "2.1", "38"));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
+
+  M68K_C_ASSERT_INT(0, m68k_target_platform_summary_build(&source, M68K_PLATFORM_BACKEND_AMIGA_HUNK, &summary));
+  os_summary = &summary.os_compatibility;
+  M68K_C_ASSERT_U32(M68K_TARGET_OS_COMPATIBILITY_OBSERVED, os_summary->status);
+  M68K_C_ASSERT_STR("2.1", os_summary->minimum_required);
+  M68K_C_ASSERT_U32(2U, (uint32_t)os_summary->observed_available_since_count);
+  M68K_C_ASSERT_STR("2.04", os_summary->observed_available_since[0]);
+  M68K_C_ASSERT_STR("2.1", os_summary->observed_available_since[1]);
+  M68K_C_ASSERT_U32(2U, (uint32_t)os_summary->observed_fd_version_count);
+  M68K_C_ASSERT_STR("37", os_summary->observed_fd_versions[0]);
+  M68K_C_ASSERT_STR("38", os_summary->observed_fd_versions[1]);
+  M68K_C_ASSERT_U32(1U, (uint32_t)os_summary->max_requirement_driver_count);
+  M68K_C_ASSERT_STR("_LVONew", os_summary->max_requirement_drivers[0].call);
+  M68K_C_ASSERT_STR("DOSBase", os_summary->max_requirement_drivers[0].owner);
+  M68K_C_ASSERT_STR("2.1", os_summary->max_requirement_drivers[0].available_since);
+  M68K_C_ASSERT_STR("38", os_summary->max_requirement_drivers[0].fd_version);
+
+  m68k_ir_source_analysis_destroy(&source);
+  m68k_ir_section_analysis_destroy(&section);
+  return 0;
+}
+
 static int test_source_analysis_append_section_copies_ref_only_platform_names(void) {
   M68kSectionAnalysisIR section;
   M68kSourceAnalysisIR source;
@@ -19373,6 +19410,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_append_section_copies_recovered_dispatches},
     {"source_analysis_append_section_rehydrates_platform_name_refs",
       test_source_analysis_append_section_rehydrates_platform_name_refs},
+    {"target_platform_summary_builds_os_compatibility_once",
+      test_target_platform_summary_builds_os_compatibility_once},
     {"source_analysis_append_section_copies_ref_only_platform_names",
       test_source_analysis_append_section_copies_ref_only_platform_names},
     {"section_analysis_records_typed_global_slot_effects",

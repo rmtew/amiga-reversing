@@ -1413,145 +1413,63 @@ static int append_summary_text(char *buf, size_t buf_size, size_t *io_size, cons
   return 0;
 }
 
-static int version_seen(const char versions[][16], size_t count, const char *version) {
-  size_t index;
-  if (version == NULL || version[0] == '\0') return 1;
-  for (index = 0U; index < count; ++index) {
-    if (strcmp(versions[index], version) == 0) return 1;
-  }
-  return 0;
-}
-
-static int append_version(char versions[][16], uint16_t ranks[], size_t *io_count, const char *version) {
-  uint16_t rank;
-  size_t index;
-  if (versions == NULL || ranks == NULL || io_count == NULL || *io_count >= 16U ||
-      version == NULL || version[0] == '\0' || version_seen(versions, *io_count, version) ||
-      !amiga_os_compatibility_version_rank(version, &rank)) {
-    return 0;
-  }
-  index = *io_count;
-  while (index > 0U && ranks[index - 1U] > rank) {
-    ranks[index] = ranks[index - 1U];
-    snprintf(versions[index], sizeof(versions[index]), "%s", versions[index - 1U]);
-    --index;
-  }
-  ranks[index] = rank;
-  snprintf(versions[index], sizeof(versions[index]), "%s", version);
-  ++*io_count;
-  return 0;
-}
-
-static const char *platform_call_display_name(const M68kRecoveredPlatformCallIR *call) {
-  const char *name;
-  if (call == NULL) return "unknown";
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
-  if (name != NULL && name[0] != '\0') return name;
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
-  if (name != NULL && name[0] != '\0') return name;
-  return "unknown";
-}
-
-static const char *platform_call_owner_name(const M68kRecoveredPlatformCallIR *call) {
-  const char *name;
-  if (call == NULL) return NULL;
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
-  return name != NULL && name[0] != '\0' ? name : NULL;
-}
-
 static int render_asm_os_compatibility_summary_row(M68kRenderIRPreview *preview,
     const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind) {
+  M68kTargetPlatformSummary summary;
+  const M68kTargetOsCompatibilitySummary *os_summary;
   char text[4096];
-  char versions[16][16];
-  uint16_t version_ranks[16];
-  char fd_versions[16][16];
-  uint16_t fd_ranks[16];
-  char drivers[8][192];
   size_t text_size = 0U;
-  size_t version_count = 0U;
-  size_t fd_version_count = 0U;
-  size_t driver_count = 0U;
-  uint16_t max_rank = 0U;
-  size_t section_index;
-  size_t call_count = 0U;
   if (preview == NULL || source_analysis == NULL ||
       platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
-  memset(versions, 0, sizeof(versions));
-  memset(version_ranks, 0, sizeof(version_ranks));
-  memset(fd_versions, 0, sizeof(fd_versions));
-  memset(fd_ranks, 0, sizeof(fd_ranks));
-  memset(drivers, 0, sizeof(drivers));
-  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
-    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-    size_t call_index;
-    for (call_index = 0U; call_index < section->recovered_platform_call_count; ++call_index) {
-      const M68kRecoveredPlatformCallIR *call = &section->recovered_platform_calls[call_index];
-      uint16_t rank = 0U;
-      if (call->symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
-          call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
-        continue;
-      }
-      ++call_count;
-      append_version(versions, version_ranks, &version_count, call->available_since);
-      append_version(fd_versions, fd_ranks, &fd_version_count, call->fd_version);
-      if (amiga_os_compatibility_version_rank(call->available_since, &rank) && rank >= max_rank) {
-        const char *owner = platform_call_owner_name(call);
-        char section_name[32];
-        snprintf(section_name, sizeof(section_name), "section_%u", (unsigned)section->section_index);
-        if (rank > max_rank) {
-          max_rank = rank;
-          driver_count = 0U;
-        }
-        if (driver_count < 8U) {
-          if (owner != NULL) {
-            snprintf(drivers[driver_count], sizeof(drivers[driver_count]),
-              "%s/%s at %s+$%08X requires %s%s%s",
-              owner, platform_call_display_name(call), section_name, (unsigned)call->offset,
-              call->available_since,
-              call->fd_version != NULL && call->fd_version[0] != '\0' ? ", fd v" : "",
-              call->fd_version != NULL && call->fd_version[0] != '\0' ? call->fd_version : "");
-          } else {
-            snprintf(drivers[driver_count], sizeof(drivers[driver_count]),
-              "%s at %s+$%08X requires %s%s%s",
-              platform_call_display_name(call), section_name, (unsigned)call->offset,
-              call->available_since,
-              call->fd_version != NULL && call->fd_version[0] != '\0' ? ", fd v" : "",
-              call->fd_version != NULL && call->fd_version[0] != '\0' ? call->fd_version : "");
-          }
-          ++driver_count;
-        }
-      }
-    }
-  }
+  if (m68k_target_platform_summary_build(source_analysis, platform_backend_kind, &summary) != 0) return -1;
+  os_summary = &summary.os_compatibility;
   if (append_summary_text(text, sizeof(text), &text_size, "; OS compatibility\n") != 0) return -1;
-  if (call_count == 0U) {
-    if (append_summary_text(text, sizeof(text), &text_size, ";   status: no_os_calls\n\n") != 0) return -1;
-  } else if (version_count == 0U) {
-    if (append_summary_text(text, sizeof(text), &text_size, ";   status: unknown\n\n") != 0) return -1;
+  if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS ||
+      os_summary->status == M68K_TARGET_OS_COMPATIBILITY_UNKNOWN) {
+    if (append_summary_text(text, sizeof(text), &text_size, ";   status: %s\n\n",
+        m68k_target_os_compatibility_status_name(os_summary->status)) != 0)
+      return -1;
   } else {
     size_t index;
     if (append_summary_text(text, sizeof(text), &text_size, ";   minimum required: %s\n",
-        versions[version_count - 1U]) != 0) return -1;
+        os_summary->minimum_required) != 0)
+      return -1;
     if (append_summary_text(text, sizeof(text), &text_size, ";   observed API availability: ") != 0) return -1;
-    for (index = 0U; index < version_count; ++index) {
+    for (index = 0U; index < os_summary->observed_available_since_count; ++index) {
       if (append_summary_text(text, sizeof(text), &text_size, "%s%s", index == 0U ? "" : ", ",
-          versions[index]) != 0) return -1;
+          os_summary->observed_available_since[index]) != 0)
+        return -1;
     }
     if (append_summary_text(text, sizeof(text), &text_size, "\n;   observed FD/interface versions: ") != 0)
       return -1;
-    if (fd_version_count == 0U) {
+    if (os_summary->observed_fd_version_count == 0U) {
       if (append_summary_text(text, sizeof(text), &text_size, "none") != 0) return -1;
     } else {
-      for (index = 0U; index < fd_version_count; ++index) {
+      for (index = 0U; index < os_summary->observed_fd_version_count; ++index) {
         if (append_summary_text(text, sizeof(text), &text_size, "%sv%s", index == 0U ? "" : ", ",
-            fd_versions[index]) != 0) return -1;
+            os_summary->observed_fd_versions[index]) != 0)
+          return -1;
       }
     }
     if (append_summary_text(text, sizeof(text), &text_size, "\n;   max requirement drivers:\n") != 0) return -1;
-    for (index = 0U; index < driver_count; ++index) {
-      if (append_summary_text(text, sizeof(text), &text_size, ";     %s\n", drivers[index]) != 0) return -1;
+    for (index = 0U; index < os_summary->max_requirement_driver_count; ++index) {
+      const M68kTargetOsRequirementDriver *driver = &os_summary->max_requirement_drivers[index];
+      if (driver->has_owner) {
+        if (append_summary_text(text, sizeof(text), &text_size,
+            ";     %s/%s at section_%u+$%08X requires %s%s%s\n",
+            driver->owner, driver->call, (unsigned)driver->section_index, (unsigned)driver->offset,
+            driver->available_since, driver->has_fd_version ? ", fd v" : "",
+            driver->has_fd_version ? driver->fd_version : "") != 0)
+          return -1;
+      } else if (append_summary_text(text, sizeof(text), &text_size,
+          ";     %s at section_%u+$%08X requires %s%s%s\n",
+          driver->call, (unsigned)driver->section_index, (unsigned)driver->offset,
+          driver->available_since, driver->has_fd_version ? ", fd v" : "",
+          driver->has_fd_version ? driver->fd_version : "") != 0) {
+        return -1;
+      }
     }
     if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
   }

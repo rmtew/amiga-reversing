@@ -869,6 +869,45 @@ typedef struct M68kRecoveredPlatformCallIR {
   char *device_name;
 } M68kRecoveredPlatformCallIR;
 
+#define M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY 16U
+#define M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY 8U
+
+typedef enum M68kTargetOsCompatibilityStatus {
+  M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS = 0,
+  M68K_TARGET_OS_COMPATIBILITY_UNKNOWN = 1,
+  M68K_TARGET_OS_COMPATIBILITY_OBSERVED = 2
+} M68kTargetOsCompatibilityStatus;
+
+typedef struct M68kTargetOsRequirementDriver {
+  uint32_t section_index;
+  uint32_t offset;
+  char call[128];
+  char owner[128];
+  char available_since[16];
+  char fd_version[16];
+  uint8_t has_owner;
+  uint8_t has_fd_version;
+} M68kTargetOsRequirementDriver;
+
+typedef struct M68kTargetOsCompatibilitySummary {
+  uint8_t status;
+  uint32_t call_count;
+  char observed_available_since[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY][16];
+  uint16_t observed_available_since_ranks[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY];
+  size_t observed_available_since_count;
+  char observed_fd_versions[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY][16];
+  uint16_t observed_fd_version_ranks[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY];
+  size_t observed_fd_version_count;
+  char minimum_required[16];
+  M68kTargetOsRequirementDriver max_requirement_drivers[M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY];
+  size_t max_requirement_driver_count;
+} M68kTargetOsCompatibilitySummary;
+
+typedef struct M68kTargetPlatformSummary {
+  uint32_t runtime_view_count;
+  M68kTargetOsCompatibilitySummary os_compatibility;
+} M68kTargetPlatformSummary;
+
 typedef enum M68kRecoveredPlatformTransferSourceKind {
   M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE = 0,
   M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET = 1,
@@ -1219,6 +1258,9 @@ void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);
 const char *m68k_platform_name_ref_resolve_text(const M68kPlatformNameRef *ref);
 const char *m68k_platform_name_ref_resolve_text_or_fallback(const M68kPlatformNameRef *ref, const char *text);
+const char *m68k_target_os_compatibility_status_name(uint8_t status);
+int m68k_target_platform_summary_build(const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind,
+  M68kTargetPlatformSummary *out_summary);
 void m68k_ir_instruction_init(M68kInstructionIR *instruction);
 const char *m68k_ir_instruction_mnemonic_name(const M68kInstructionIR *instruction);
 void m68k_ir_data_item_init(M68kDataItemIR *item);
