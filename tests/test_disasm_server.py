@@ -1711,6 +1711,97 @@ def test_route_manual_action_catalog_execute_appends_comment_action(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_command_resolves_row_without_all_rows_materialization(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+        )
+    ]
+
+    class NoAllRowsArtifact(_RowsCListingArtifact):
+        def window_payload(self, *, start: int, count: int):
+            if start == 0 and count == len(self.rows):
+                raise AssertionError("normal row command should not materialize all rows")
+            return super().window_payload(start=start, count=count)
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", NoAllRowsArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(
+        disasm_server,
+        "append_manual_action",
+        lambda target_dir, *, kind, payload, binary_source: {"action_id": "a1", "kind": kind, "payload": payload},
+    )
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "comment.edit",
+            "context": _row_command_context(rows[0]),
+            "parameters": {"text": "manual return"},
+        },
+    )
+
+    assert payload["ok"] is True
+    assert cast(dict[str, object], cast(dict[str, object], payload["data"])["mutation"])["projection_hash"] == "cache"
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
+def test_route_manual_command_resolves_element_without_all_rows_materialization(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="entry",
+            kind="label",
+            text="ENTRYPOINT:\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=0,
+            label="ENTRYPOINT",
+            stable_key="entry-key",
+        )
+    ]
+
+    class NoAllRowsArtifact(_RowsCListingArtifact):
+        def window_payload(self, *, start: int, count: int):
+            if start == 0 and count == len(self.rows):
+                raise AssertionError("normal element command should not materialize all rows")
+            return super().window_payload(start=start, count=count)
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", NoAllRowsArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "entry-key:label:ENTRYPOINT"),
+    )
+
+    assert payload["ok"] is True
+    assert cast(dict[str, object], payload["data"])["context"]["kind"] == "element"
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_route_manual_action_catalog_comment_id_distinguishes_same_address_rows(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

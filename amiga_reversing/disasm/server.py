@@ -1850,7 +1850,7 @@ def _command_context_from_query(
         projection_hash = ""
         row_keys: set[str] = set()
         for locator in locators:
-            row, projection_hash = _resolve_command_locator(project_name, locator)
+            row, projection_hash = _resolve_command_range_locator(project_name, locator)
             row_key = str(row.get("row_key") or "")
             if row_key in row_keys:
                 raise _command_contract_error("ambiguous_locator", "range locators must be unique")
@@ -1900,7 +1900,7 @@ def _command_context_from_body(
         projection_hash = ""
         row_keys: set[str] = set()
         for locator in raw_locators:
-            row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
+            row, projection_hash = _resolve_command_range_locator(project_name, locator)
             row_key = str(row.get("row_key") or "")
             if row_key in row_keys:
                 raise _command_contract_error("ambiguous_locator", "range locators must be unique")
@@ -1958,10 +1958,13 @@ def _resolve_command_locator(
                 project_id=project_name,
                 current_cache_key=_project_listing_cache_key(project_name),
             )
-            row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+            artifact = _valid_c_listing_artifact(project_name)
+            if artifact is None:
+                raise _command_contract_error("missing_locator", f"C listing artifact not loaded for project: {project_name}")
+            row = _LISTING_PROJECTION_SERVICE.resolve_locator_from_artifact(
                 target_id=project_name,
                 projection_hash=projection_hash,
-                rows=_all_listing_rows(project_name),
+                artifact=artifact,
                 locator_payload=locator,
             )
         finally:
@@ -1972,6 +1975,28 @@ def _resolve_command_locator(
                     module="listing_projection",
                     detail={"target_id": project_name},
                 )
+    except ListingLocatorError as exc:
+        code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
+        raise _command_contract_error(code, str(exc)) from exc
+    row = dict(row)
+    row["stable_key"] = row.get("row_key")
+    row["stableKey"] = row.get("row_key")
+    row["row_id"] = row.get("row_key")
+    return row, projection_hash
+
+
+def _resolve_command_range_locator(project_name: str, locator: object) -> tuple[dict[str, object], str]:
+    try:
+        projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
+            project_id=project_name,
+            current_cache_key=_project_listing_cache_key(project_name),
+        )
+        row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+            target_id=project_name,
+            projection_hash=projection_hash,
+            rows=_all_listing_rows(project_name),
+            locator_payload=locator,
+        )
     except ListingLocatorError as exc:
         code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
         raise _command_contract_error(code, str(exc)) from exc

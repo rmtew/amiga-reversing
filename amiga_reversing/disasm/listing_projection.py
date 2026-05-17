@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any, Protocol, cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
@@ -66,6 +66,14 @@ class ListingProjectionService:
         self._cache_keys: dict[str, str] = {}
         self._presentation_dirty: set[str] = set()
         self._review_items_cache: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
+        self._row_indexes: dict[
+            str,
+            tuple[
+                str,
+                dict[str, dict[str, object]],
+                dict[tuple[int | None, int | None, int | None, str], list[dict[str, object]]],
+            ],
+        ] = {}
 
     def debug_state(self) -> dict[str, object]:
         return {
@@ -73,6 +81,7 @@ class ListingProjectionService:
             "cache_keys": dict(sorted(self._cache_keys.items())),
             "presentation_dirty_projects": sorted(self._presentation_dirty),
             "review_item_cache_projects": sorted(self._review_items_cache),
+            "row_index_projects": sorted(self._row_indexes),
         }
 
     def reset(self) -> None:
@@ -82,6 +91,7 @@ class ListingProjectionService:
         self._cache_keys.clear()
         self._presentation_dirty.clear()
         self._review_items_cache.clear()
+        self._row_indexes.clear()
 
     def clear_project(self, project_id: str) -> None:
         artifact = self._artifacts.pop(project_id, None)
@@ -90,6 +100,7 @@ class ListingProjectionService:
         self._cache_keys.pop(project_id, None)
         self._presentation_dirty.discard(project_id)
         self._review_items_cache.pop(project_id, None)
+        self._row_indexes.pop(project_id, None)
 
     def mark_presentation_dirty(self, project_id: str) -> None:
         self._presentation_dirty.add(project_id)
@@ -109,6 +120,7 @@ class ListingProjectionService:
         self._artifacts[project_id] = artifact
         self._presentation_dirty.discard(project_id)
         self._review_items_cache.pop(project_id, None)
+        self._row_indexes.pop(project_id, None)
         if old_artifact is not None and old_artifact is not artifact:
             _close_artifact(old_artifact)
 
@@ -305,6 +317,7 @@ class ListingProjectionService:
             self.normalize_row(target_id=target_id, projection_hash=projection_hash, row=row)
             for row in payload["rows"]
         ]
+        self._index_rows(target_id=target_id, projection_hash=projection_hash, rows=rows)
         return cast(ListingWindowPayload, {**payload, "target_id": target_id, "projection_hash": projection_hash, "rows": rows})
 
     def normalize_row(self, *, target_id: str, projection_hash: str, row: dict[str, object]) -> dict[str, object]:
@@ -366,6 +379,176 @@ class ListingProjectionService:
         if len(candidates) > 1:
             raise ListingLocatorError("ambiguous_locator", "stale locator recovery matched multiple rows")
         return candidates[0]
+
+    def resolve_locator_from_artifact(
+        self,
+        *,
+        target_id: str,
+        projection_hash: str,
+        artifact: object,
+        locator_payload: object,
+    ) -> dict[str, object]:
+        locator = ListingRowLocator.from_mapping(locator_payload)
+        if locator.target_id != target_id:
+            raise ListingLocatorError("target_mismatch", "locator target_id does not match route target")
+        indexed = self._indexed_locator_row(
+            target_id=target_id,
+            projection_hash=projection_hash,
+            locator=locator,
+        )
+        if indexed is not None:
+            return indexed
+        row = self._artifact_locator_row(
+            target_id=target_id,
+            projection_hash=projection_hash,
+            artifact=artifact,
+            locator=locator,
+        )
+        if row is None:
+            if locator.projection_hash == projection_hash:
+                raise ListingLocatorError("missing_locator", "locator row_key is not in current projection")
+            raise ListingLocatorError("missing_locator", "stale locator recovery found no row")
+        return row
+
+    def _index_rows(
+        self,
+        *,
+        target_id: str,
+        projection_hash: str,
+        rows: list[dict[str, object]],
+    ) -> None:
+        by_key: dict[str, dict[str, object]] = {}
+        by_identity: dict[tuple[int | None, int | None, int | None, str], list[dict[str, object]]] = {}
+        for row in rows:
+            key = row.get("row_key")
+            if isinstance(key, str) and key:
+                by_key[key] = dict(row)
+            by_identity.setdefault(_recovery_identity(row), []).append(dict(row))
+        self._row_indexes[target_id] = (projection_hash, by_key, by_identity)
+
+    def _indexed_locator_row(
+        self,
+        *,
+        target_id: str,
+        projection_hash: str,
+        locator: ListingRowLocator,
+    ) -> dict[str, object] | None:
+        indexed = self._row_indexes.get(target_id)
+        if indexed is None or indexed[0] != projection_hash:
+            return None
+        by_key = indexed[1]
+        if locator.projection_hash == projection_hash:
+            row = by_key.get(locator.row_key)
+            return dict(row) if row is not None else None
+        candidates = indexed[2].get(_locator_recovery_identity(locator), [])
+        if len(candidates) > 1:
+            raise ListingLocatorError("ambiguous_locator", "stale locator recovery matched multiple rows")
+        return dict(candidates[0]) if candidates else None
+
+    def _artifact_locator_row(
+        self,
+        *,
+        target_id: str,
+        projection_hash: str,
+        artifact: object,
+        locator: ListingRowLocator,
+    ) -> dict[str, object] | None:
+        rows = getattr(artifact, "rows", None)
+        if isinstance(rows, list):
+            materialized_rows = [
+                _artifact_row_dict(row, row_index=index)
+                for index, row in enumerate(rows)
+            ]
+            return self.resolve_locator(
+                target_id=target_id,
+                projection_hash=projection_hash,
+                rows=materialized_rows,
+                locator_payload=locator.to_dict(),
+            )
+        row_for_source_offset = getattr(artifact, "row_for_source_offset", None)
+        if not callable(row_for_source_offset) or locator.start_offset is None:
+            return self._single_row_artifact_locator_row(
+                target_id=target_id,
+                projection_hash=projection_hash,
+                artifact=artifact,
+                locator=locator,
+            )
+        row = row_for_source_offset(section_index=locator.section_index, offset=locator.start_offset)
+        if not isinstance(row, dict):
+            return self._single_row_artifact_locator_row(
+                target_id=target_id,
+                projection_hash=projection_hash,
+                artifact=artifact,
+                locator=locator,
+            )
+        normalized = self.normalize_row(target_id=target_id, projection_hash=projection_hash, row=dict(row))
+        if locator.projection_hash == projection_hash:
+            return normalized if normalized.get("row_key") == locator.row_key else None
+        return normalized if _recovery_identity(normalized) == _locator_recovery_identity(locator) else None
+
+    def _single_row_artifact_locator_row(
+        self,
+        *,
+        target_id: str,
+        projection_hash: str,
+        artifact: object,
+        locator: ListingRowLocator,
+    ) -> dict[str, object] | None:
+        summary_payload = getattr(artifact, "summary_payload", None)
+        window_payload = getattr(artifact, "window_payload", None)
+        if not callable(summary_payload) or not callable(window_payload):
+            return None
+        summary, _ = summary_payload()
+        if summary.get("total_rows") != 1:
+            return None
+        payload, _ = window_payload(start=0, count=1)
+        rows = payload.get("rows") if isinstance(payload, dict) else None
+        if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+            return None
+        return self.resolve_locator(
+            target_id=target_id,
+            projection_hash=projection_hash,
+            rows=[dict(cast(dict[str, object], rows[0]))],
+            locator_payload=locator.to_dict(),
+        )
+
+
+def _artifact_row_dict(row: object, *, row_index: int) -> dict[str, object]:
+    if isinstance(row, dict):
+        payload = dict(cast(dict[str, object], row))
+    elif is_dataclass(row):
+        payload = cast(dict[str, object], asdict(row))
+    else:
+        payload = {
+            "row_key": getattr(row, "stable_key", None) or getattr(row, "row_id", None),
+            "kind": getattr(row, "kind", None),
+            "section_index": getattr(row, "section_index", None),
+            "start_offset": getattr(row, "start_offset", None),
+            "end_offset": getattr(row, "end_offset", None),
+            "addr": getattr(row, "addr", None),
+            "runtime_address": getattr(row, "runtime_address", None),
+            "text": getattr(row, "text", None),
+        }
+    payload.setdefault("row_index", row_index)
+    if not payload.get("row_key"):
+        payload["row_key"] = payload.get("stable_key") or payload.get("row_id")
+    row_bytes = payload.get("bytes")
+    if isinstance(row_bytes, bytes):
+        payload["bytes"] = row_bytes.hex()
+    return payload
+
+
+def _recovery_identity(row: dict[str, object]) -> tuple[int | None, int | None, int | None, str]:
+    return (
+        _optional_int(row.get("section_index")),
+        _optional_int(row.get("start_offset")),
+        _optional_int(row.get("end_offset")),
+        _required_str(row, "kind"),
+    )
+
+
+def _locator_recovery_identity(locator: ListingRowLocator) -> tuple[int | None, int | None, int | None, str]:
+    return (locator.section_index, locator.start_offset, locator.end_offset, locator.kind)
 
 
 def _row_key(row: dict[str, object]) -> str:

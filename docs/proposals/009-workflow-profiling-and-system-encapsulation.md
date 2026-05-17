@@ -988,6 +988,17 @@ Implemented slice evidence:
   The API workflow harness can require manual mutation workflow spans.
   Focused tests passed:
     uv run python -m pytest tests\test_api_workflow_harness.py tests\test_disasm_server.py -q
+
+009-003:
+  ListingProjectionService owns row-key and recovery-identity indexes populated
+  from normalized windows.
+  Normal row/element command locator resolution uses the indexed/artifact-local
+  resolver instead of materializing all listing rows.
+  Range command resolution remains explicitly on the all-row path.
+  Focused tests passed:
+    uv run python -m pytest tests\test_listing_projection.py tests\test_disasm_server.py -q
+  Lint passed:
+    uv run ruff check amiga_reversing\disasm\listing_projection.py amiga_reversing\disasm\server.py tests\test_listing_projection.py tests\test_disasm_server.py
 ```
 
 Observed during implementation:
@@ -1002,6 +1013,12 @@ pretending a second backend call happened.
 Manual command execution still resolves locators through the existing
 all-listing materialization path. 009-002 intentionally exposes that cost before
 009-003 replaces the common row/element path with indexed projection locality.
+
+The test suite includes simple one-row artifacts that do not expose the C
+artifact's source-offset row lookup. The indexed resolver keeps a bounded
+single-row fallback for that shape; production C artifacts use
+row_for_source_offset and normal browser-origin commands use the row index built
+when the listing window is normalized.
 ```
 
 Current code evidence:

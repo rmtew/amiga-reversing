@@ -171,6 +171,69 @@ def test_listing_projection_resolves_exact_locator() -> None:
     assert resolved["row_key"] == "row-a"
 
 
+def test_listing_projection_resolves_indexed_locator_from_normalized_window() -> None:
+    service = ListingProjectionService()
+    payload = {
+        "anchor_addr": 0,
+        "start": 0,
+        "end": 1,
+        "has_more_before": False,
+        "has_more_after": False,
+        "total_rows": 1,
+        "analysis_generation": "full",
+        "rows": [
+            {"row_key": "row-a", "kind": "instruction", "section_index": 0, "start_offset": 4, "end_offset": 6}
+        ],
+    }
+    normalized = service.normalize_window(target_id="demo", projection_hash="hash-a", payload=payload)
+    locator = normalized["rows"][0]["locator"]
+
+    resolved = service.resolve_locator_from_artifact(
+        target_id="demo",
+        projection_hash="hash-a",
+        artifact=object(),
+        locator_payload=locator,
+    )
+
+    assert resolved["row_key"] == "row-a"
+
+
+def test_listing_projection_index_rejects_ambiguous_stale_locator() -> None:
+    service = ListingProjectionService()
+    payload = {
+        "anchor_addr": 0,
+        "start": 0,
+        "end": 2,
+        "has_more_before": False,
+        "has_more_after": False,
+        "total_rows": 2,
+        "analysis_generation": "full",
+        "rows": [
+            {"row_key": "row-a", "kind": "instruction", "section_index": 0, "start_offset": 4, "end_offset": 6},
+            {"row_key": "row-b", "kind": "instruction", "section_index": 0, "start_offset": 4, "end_offset": 6},
+        ],
+    }
+    service.normalize_window(target_id="demo", projection_hash="hash-b", payload=payload)
+
+    with pytest.raises(ListingLocatorError) as exc:
+        service.resolve_locator_from_artifact(
+            target_id="demo",
+            projection_hash="hash-b",
+            artifact=object(),
+            locator_payload={
+                "target_id": "demo",
+                "projection_hash": "hash-a",
+                "row_key": "row-old",
+                "section_index": 0,
+                "start_offset": 4,
+                "end_offset": 6,
+                "kind": "instruction",
+            },
+        )
+
+    assert exc.value.code == "ambiguous_locator"
+
+
 def test_listing_projection_recovers_stale_locator_by_unique_recovery_identity() -> None:
     service = ListingProjectionService()
     rows = [
