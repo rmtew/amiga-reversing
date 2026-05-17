@@ -37,7 +37,13 @@ action payload matching, reproduction diagnostics, and test fixtures. Owner:
 listing projection and manual action payload builders. Reason: these are input
 compatibility and diagnostics fields; `ListingProjectionService` normalizes web
 listing payloads to `row_key`/`ListingRowLocator` and strips `stable_key` and
-`row_id` before browser consumption. No web-state contract depends on them.
+`row_id` from the `/listing` wire payload.
+
+Follow-up `028-014` removed the browser-side `stableKey`/`stable_key` aliases
+that were originally retained in `app.js`. Browser selection, navigation,
+viewport anchoring, command catalog requests, command execution, URL restore,
+and persisted `ui_preferences.json` now use `ListingRowLocator` / `row_key`
+instead of stable-key browser compatibility fields.
 
 `row_code` remains only in test fixture helpers and historical audit wording.
 It is not used as durable web identity.

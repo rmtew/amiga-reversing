@@ -726,7 +726,7 @@ def test_brave_cdp_listing_selection_keyboard_navigation(monkeypatch: pytest.Mon
 
 
 @pytest.mark.web_e2e
-def test_brave_cdp_listing_selection_survives_refresh_by_stable_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_brave_cdp_listing_selection_survives_refresh_by_row_key(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _binary_project("amiga_hunk_selection_refresh")
     rows = [
         ListingRow(
@@ -746,9 +746,9 @@ def test_brave_cdp_listing_selection_survives_refresh_by_stable_key(monkeypatch:
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
-        page.wait_for_selector("[data-row-stable-key='row-6']")
-        page.evaluate("document.querySelector('[data-row-stable-key=\"row-6\"]').click()")
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'row-6'")
+        page.wait_for_selector("[data-row-key='row-6']")
+        page.evaluate("document.querySelector('[data-row-key=\"row-6\"]').click()")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'row-6'")
 
         page.evaluate(
             """
@@ -767,19 +767,22 @@ def test_brave_cdp_listing_selection_survives_refresh_by_stable_key(monkeypatch:
             })()
             """
         )
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'row-6'")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'row-6'")
         assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowIndex") == "2"
 
         page.evaluate(
             """
             (() => {
               const refreshed = state.listingRows
-                .filter((row) => row.stable_key !== "row-6")
+                .filter((row) => row.row_key !== "row-6")
                 .map((row) => ({...row}));
               refreshed.splice(6, 0, {
-                ...state.listingRows.find((row) => row.stable_key === "row-6"),
-                stable_key: "replacement-row-6",
-                row_id: "replacement-r6",
+                ...state.listingRows.find((row) => row.row_key === "row-6"),
+                row_key: "replacement-row-6",
+                locator: {
+                  ...state.listingRows.find((row) => row.row_key === "row-6").locator,
+                  row_key: "replacement-row-6",
+                },
                 row_index: 6,
               });
               refreshed.forEach((row, index) => { row.row_index = index; });
@@ -793,9 +796,9 @@ def test_brave_cdp_listing_selection_survives_refresh_by_stable_key(monkeypatch:
             })()
             """
         )
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'replacement-row-6'")
-        assert page.evaluate("state.listingSelection.precisionLost === true")
-        page.wait_for_expression("document.querySelector('#analysis-status')?.textContent.includes('Selection precision lost')")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'replacement-row-6'")
+        assert page.evaluate("state.listingSelection.locator.row_key === 'replacement-row-6'")
+        assert page.evaluate("state.listingSelection.precisionLost === false")
         page.assert_no_errors()
 
 
@@ -1456,13 +1459,26 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
             operand_text="$41",
         ),
     ]
+    labels: list[dict[str, object]] = []
+    comments: list[dict[str, object]] = []
     representations: list[dict[str, object]] = []
 
     def project_record(project_name: str) -> ProjectRecord:
-        return replace(project, manual_state={"representations": representations})
+        return replace(
+            project,
+            manual_state={
+                "labels": labels,
+                "comments": comments,
+                "representations": representations,
+            },
+        )
 
     def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
-        action = {"kind": kind, "payload": payload}
+        action = {"kind": kind, "payload": payload, "action_id": f"test-action-{len(labels) + len(comments) + len(representations) + 1}"}
+        if kind == "create_manual_label":
+            labels.append(cast(dict[str, object], payload["label"]))
+        if kind == "create_manual_comment":
+            comments.append(cast(dict[str, object], payload["comment"]))
         if kind == "create_manual_representation":
             representations.append(cast(dict[str, object], payload["representation"]))
         return action
@@ -1557,6 +1573,7 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
         page.wait_for_expression("document.querySelector('[data-row-index=\"0\"] .listing-comment')?.textContent.includes('entry label')")
         page.wait_for_expression("document.querySelector('[data-row-index=\"0\"]')?.classList.contains('listing-row-manual-saved')")
+        page.wait_for_expression("state.manualEdit.inFlight === false && state.parameterSession === null")
         assert "Manual action saved" not in page.text_content("#analysis-status")
 
         page.evaluate("document.querySelector('[data-row-index=\"1\"]').click()")
@@ -1568,6 +1585,7 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         page.wait_for_expression("state.parameterSession === null || Boolean(state.parameterSession.submitError)")
         page.wait_for_expression("document.querySelector('[data-row-index=\"1\"] .listing-comment')?.textContent.includes('manual return')")
         page.wait_for_expression("document.querySelector('[data-row-index=\"1\"]')?.classList.contains('listing-row-manual-saved')")
+        page.wait_for_expression("state.manualEdit.inFlight === false && state.parameterSession === null")
 
         page.evaluate("document.querySelector('[data-row-index=\"2\"]').click()")
         assert page.evaluate("invokeSelectedCatalogBinding('r')") is True
@@ -1580,7 +1598,7 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
 
 
 @pytest.mark.web_e2e
-def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_stable_key(
+def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_locator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     project = _binary_project("amiga_hunk_comment_row_rendering")
@@ -1615,8 +1633,8 @@ def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_stable_
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_expression("document.querySelectorAll('.listing-row').length === 2")
 
-        assert page.evaluate("document.querySelector('[data-row-stable-key=\"comment-row\"] .listing-code')?.textContent.trim()") == "; Test"
-        assert page.evaluate("document.querySelector('[data-row-stable-key=\"comment-row\"] .listing-comment')?.textContent.trim()") == ""
+        assert page.evaluate("document.querySelector('[data-row-key=\"comment-row\"] .listing-code')?.textContent.trim()") == "; Test"
+        assert page.evaluate("document.querySelector('[data-row-key=\"comment-row\"] .listing-comment')?.textContent.trim()") == ""
         page.evaluate(
             """
             state.listingSelection = {
@@ -1625,18 +1643,17 @@ def test_brave_cdp_comment_rows_render_once_and_single_selection_prefers_stable_
               anchorRowIndex: 0,
               rangeStartRowIndex: 0,
               rangeEndRowIndex: 0,
-              stableKey: "entry-row",
-              focusStableKey: "entry-row",
-              anchorStableKey: "entry-row",
-              rangeStartStableKey: "entry-row",
-              rangeEndStableKey: "entry-row",
-              rowCode: "ENTRYPOINT0000:",
+              locator: state.listingRows[1].locator,
+              focusLocator: state.listingRows[1].locator,
+              anchorLocator: state.listingRows[1].locator,
+              rangeStartLocator: state.listingRows[1].locator,
+              rangeEndLocator: state.listingRows[1].locator,
               precisionLost: false,
             };
             applyRenderedListingSelection();
             """
         )
-        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowStableKey") == "entry-row"
+        assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowKey") == "entry-row"
         page.assert_no_errors()
 
 
@@ -2061,13 +2078,13 @@ def test_brave_cdp_relative_label_and_hunk_navigation(monkeypatch: pytest.Monkey
     with _live_server() as base_url, brave_page() as page:
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
-        page.wait_for_selector("[data-row-stable-key='h0-start']")
-        page.evaluate("document.querySelector('[data-row-stable-key=\"h0-start\"]').click()")
+        page.wait_for_selector("[data-row-key='h0-start']")
+        page.evaluate("document.querySelector('[data-row-key=\"h0-start\"]').click()")
 
         page.press_key("ArrowDown", modifiers=2)
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h0-next'")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'h0-next'")
         page.press_key("ArrowUp", modifiers=2)
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h0-start'")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'h0-start'")
 
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
@@ -2077,7 +2094,7 @@ def test_brave_cdp_relative_label_and_hunk_navigation(monkeypatch: pytest.Monkey
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Next Hunk')")
         page.press_key("Enter")
-        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowStableKey === 'h1-start'")
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowKey === 'h1-start'")
         page.assert_no_errors()
 
 
@@ -2793,7 +2810,7 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
             """
         )
         page.wait_for_expression(
-            "document.querySelector('.listing-row-focus')?.dataset.rowStableKey === 'app-write'",
+            "document.querySelector('.listing-row-focus')?.dataset.rowKey === 'app-write'",
             timeout=10.0,
         )
         page.evaluate(
@@ -2808,7 +2825,7 @@ def test_brave_cdp_app_slot_navigation_drills_to_refs(monkeypatch: pytest.Monkey
         page.evaluate(
             """
             Array.from(document.querySelectorAll('.listing-app-slot-reference'))
-              .find((item) => item.textContent === 'app_0234' && item.closest('.listing-row')?.dataset.rowStableKey === 'app-address')
+              .find((item) => item.textContent === 'app_0234' && item.closest('.listing-row')?.dataset.rowKey === 'app-address')
               .click()
             """
         )
@@ -3654,7 +3671,7 @@ def test_brave_cdp_api_navigation_uses_row_index_for_duplicate_offsets(
         ) == "SetPointer (intuition.library)"
         page.evaluate("document.querySelector('.navigation-item')?.click()")
         page.wait_for_expression(
-            "document.querySelector('.listing-row-focus')?.dataset.rowStableKey === 'h1-call'"
+            "document.querySelector('.listing-row-focus')?.dataset.rowKey === 'h1-call'"
         )
         page.assert_no_errors()
 
@@ -4187,16 +4204,16 @@ def test_brave_cdp_navigation_jumps_to_runtime_address(monkeypatch: pytest.Monke
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
         page.wait_for_selector(".listing-row-instruction")
-        assert not page.evaluate("document.querySelector('[data-row-stable-key=\"runtime-target\"]')")
+        assert not page.evaluate("document.querySelector('[data-row-key=\"runtime-target\"]')")
         page.click("#open-navigation")
         page.wait_for_selector("[data-navigation-address-input='1']")
         page.fill("[data-navigation-address-input='1']", "$6102")
         page.click(".navigation-address-submit")
         page.wait_for_expression(
-            "document.querySelector('[data-row-stable-key=\"runtime-target\"]')?.classList.contains('listing-row-focus')"
+            "document.querySelector('[data-row-key=\"runtime-target\"]')?.classList.contains('listing-row-focus')"
         )
         assert page.evaluate(
-            "document.querySelector('[data-row-stable-key=\"runtime-target\"] .listing-runtime')?.textContent"
+            "document.querySelector('[data-row-key=\"runtime-target\"] .listing-runtime')?.textContent"
         ) == "6102"
         page.assert_no_errors()
 

@@ -1611,6 +1611,7 @@ breakdown for this proposal. Their dependency order is part of the design:
 028-011 browser debug state hook
 028-012 CDP semantic durability assertions
 028-013 historical fixtures and stale-name cleanup audit
+028-014 remove browser stable-key compatibility aliases
 ```
 
 Only `028-001` and `028-005` should be independently ready at the start.
@@ -2240,6 +2241,16 @@ Production callers now use command routes and locator context; remaining retired
 names are either historical docs/tests, obsolete-state cleanup, private
 projection/cache invalidation, diagnostics, or compatibility inputs normalized
 before web-facing listing payloads.
+
+Implementation note from `028-014`: browser `stableKey` / `stable_key`
+compatibility aliases were removed from `app.js`. Rendered rows now expose
+`data-row-key` for test/dev inspection, while selection, navigation entries,
+viewport anchoring, command catalog requests, command execution, URL restore,
+and persisted preferences use `ListingRowLocator` / `row_key`. During review,
+the selected-row refresh regression was tightened: if a row key changes but
+section/offset recovery still resolves exactly, the browser repairs
+`selection.locator` to the rendered row instead of preserving an obsolete
+locator or marking precision lost.
 
 Useful report artifacts:
 

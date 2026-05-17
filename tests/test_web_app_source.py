@@ -115,6 +115,8 @@ def test_web_app_command_palette_uses_schema_parameter_editor() -> None:
     assert "commandPaletteRangeAvailabilityRank" in app_js
     assert "action.availability_reason" in app_js
     assert "function applyManualActionApplication" in app_js
+    assert "appliedLocalEffect: appliedPresentationEffect" in app_js
+    assert "applyInlineSubmittedFallback" not in app_js
     assert "function applyManualLocalEffect" not in app_js
     assert "function applyManualLabelRenameEffect" not in app_js
     assert "function closeSubmittedParameterSurface" in app_js
@@ -178,7 +180,9 @@ def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> Non
     assert "viewport_anchor" in app_js
     assert 'numericValue("row_index")' not in app_js
     assert 'location.row_index = Math.floor(rowIndex);' not in app_js
-    assert '["stableKey", "stable_key"]' not in app_js
+    assert "stableKey" not in app_js
+    assert "stable_key" not in app_js
+    assert "data-row-stable-key" not in app_js
     assert '["rowCode", "row_code"]' not in app_js
     assert "function entrypointListingLocations(payload)" in app_js
     assert "function loadInitialListingLocation(projectId, uiPreferences)" in app_js
@@ -281,11 +285,9 @@ def test_web_app_generation_refresh_anchors_non_address_rows() -> None:
     ).read_text(encoding="utf-8")
 
     assert 'viewport.querySelectorAll(".listing-row")' in app_js
-    assert "stableKey: best.dataset.rowStableKey || null" in app_js
-    assert "rowCode: best.dataset.rowCode || \"\"" in app_js
-    assert "const shouldUseCodeAnchor = anchor?.rowCode && (isAtListingTop || !Number.isFinite(anchor.addr));" in app_js
-    assert "anchorCode: anchor.rowCode" in app_js
-    assert 'params.set("anchor_code", String(options.anchorCode).trim());' in app_js
+    assert "locator: listingRowLocatorFromElement(best)" in app_js
+    assert "if (!anchor?.locator || Number.isFinite(anchor.addr)) {" in app_js
+    assert "anchorCode" not in app_js
     assert "function selectListingAnchorRow(viewport, anchor)" in app_js
     assert "function listingAnchorRowIndex(anchor)" in app_js
     assert "function listingAnchorScrollTop(listing, anchor)" in app_js

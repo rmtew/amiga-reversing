@@ -2093,7 +2093,7 @@ function commandPaletteElementId(row, selector, rowIndex) {
   if (!row || !selector) {
     return null;
   }
-  const base = row.stable_key || row.stableKey || row.row_key || row.row_id || rowIndex;
+  const base = row.row_key || row.locator?.row_key || rowIndex;
   const kind = selector.element_kind || "data_literal";
   if (kind === "label" && selector.symbol) {
     return `${base}:label:${selector.symbol}`;
@@ -2327,7 +2327,7 @@ function applyManualActionApplication(application) {
     renderCurrentListingWindow();
   }
   return {
-    appliedLocalEffect,
+    appliedLocalEffect: appliedPresentationEffect,
     localEffects,
     pendingRanges,
     reconciliationRequired: Boolean(application?.reconciliation?.required || pendingRanges.length),
@@ -2399,16 +2399,14 @@ function normalizeManualActionLocation(subject) {
   if (Number.isFinite(rowIndex) && !rowIndexes.includes(rowIndex)) {
     rowIndexes.push(rowIndex);
   }
-  const stableKey = String(subject.stable_key || "");
   const addr = Number(subject.addr);
   const end = Number(subject.end);
   const hunk = Number(subject.hunk ?? subject.section_index);
-  if (!rowIndexes.length && !stableKey && !Number.isFinite(addr)) {
+  if (!rowIndexes.length && !Number.isFinite(addr)) {
     return null;
   }
   return {
     row_indexes: rowIndexes,
-    stable_key: stableKey || null,
     addr: Number.isFinite(addr) ? addr : null,
     end: Number.isFinite(end) ? end : null,
     hunk: Number.isFinite(hunk) ? hunk : null,
@@ -2475,12 +2473,9 @@ function applyManualCommentPresentationEffect(effect) {
 
 function updatePresentationRow(subject, update) {
   const rowIndex = Number(subject.row_index);
-  const stableKey = String(subject.stable_key || "");
   const localIndex = Number.isFinite(rowIndex) ? rowIndex - Number(state.virtualListing.start || 0) : -1;
   const rows = Array.isArray(state.listingRows) ? state.listingRows.slice() : [];
-  const existingIndex = localIndex >= 0 && localIndex < rows.length
-    ? localIndex
-    : rows.findIndex((row) => stableKey && row.stable_key === stableKey);
+  const existingIndex = localIndex >= 0 && localIndex < rows.length ? localIndex : -1;
   if (existingIndex < 0) {
     return false;
   }
@@ -2817,15 +2812,9 @@ function reproIssueMatchesEntry(issue, entry) {
     sameIssueField(issue.issue_index, entry.issue_index)
     || sameIssueField(issue.issue_index, entry.issueIndex)
   ) {
-    if (sameIssueField(issue.stable_key, entry.stable_key ?? entry.stableKey)) {
-      return true;
-    }
     return sameIssueField(issue.row_index, entryRowIndex) && sameIssueField(issue.addr, entry.addr);
   }
   if (sameIssueField(issue.row_index, entryRowIndex)) {
-    if (sameIssueField(issue.stable_key, entry.stable_key ?? entry.stableKey)) {
-      return true;
-    }
     return sameIssueField(issue.addr, entry.addr);
   }
   return false;
@@ -4939,7 +4928,6 @@ function corpusSelectedFocus() {
     rowIndex: xref.row_index,
     addr: Number.isFinite(xref.offset) ? xref.offset : null,
     matchText: xref.text || null,
-    stableKey: xref.stable_key || null,
   };
 }
 
@@ -5176,8 +5164,7 @@ function rowManualRepresentation(row) {
     return null;
   }
   return representations.find((representation) => (
-    (representation.stable_key && row.stable_key && representation.stable_key === row.stable_key)
-    || (
+    (
       Number.isInteger(representation.hunk)
       && Number.isFinite(representation.addr)
       && representation.hunk === row.section_index
@@ -5694,9 +5681,9 @@ function renderListingRows(rows, globalStart = 0) {
       data-row-addr="${row.addr === null || row.addr === undefined ? "" : escapeHtml(String(row.addr))}"
       data-row-index="${escapeHtml(String(globalStart + rowIndex))}"
       data-row-kind="${escapeHtml(row.kind)}"
+      ${row.row_key ? `data-row-key="${escapeHtml(row.row_key)}"` : ""}
       data-row-code="${escapeHtml(renderListingCode(row))}"
       ${listingRowLocatorAttribute(row)}
-      ${row.stable_key ? `data-row-stable-key="${escapeHtml(row.stable_key)}"` : ""}
       ${row.analysis_generation ? `data-analysis-generation="${escapeHtml(row.analysis_generation)}"` : ""}
       ${row.analysis_phase ? `data-analysis-phase="${escapeHtml(row.analysis_phase)}"` : ""}
       ${row.section_index !== null && row.section_index !== undefined ? `data-section-index="${escapeHtml(String(row.section_index))}"` : ""}
@@ -5729,9 +5716,6 @@ function listingRowIsSelected(row, globalIndex) {
   if (bounds && listingSelectionIsRange(selection) && globalIndex >= bounds.start && globalIndex <= bounds.end) {
     return true;
   }
-  if (selection.stableKey && row.stable_key && selection.stableKey === row.stable_key) {
-    return true;
-  }
   if (listingLocatorsSameRow(selection.locator, listingRowLocator(row))) {
     return true;
   }
@@ -5746,9 +5730,7 @@ function listingRowIsSelected(row, globalIndex) {
   ) {
     return true;
   }
-  return Number.isFinite(selection.addr)
-    && selection.addr === row.addr
-    && (!selection.rowCode || selection.rowCode === renderListingCode(row));
+  return Number.isFinite(selection.addr) && selection.addr === row.addr;
 }
 
 function listingRowHasPendingManualEdit(row, globalIndex) {
@@ -5764,9 +5746,6 @@ function listingRowHasSavedManualFlash(row, globalIndex) {
 function manualActionLocationMatchesRow(location, row, globalIndex) {
   if (!location || !row) {
     return false;
-  }
-  if (location.stable_key) {
-    return Boolean(row.stable_key && location.stable_key === row.stable_key);
   }
   const rowIndexes = Array.isArray(location.row_indexes) ? location.row_indexes : [];
   if (rowIndexes.includes(globalIndex)) {
@@ -5819,7 +5798,7 @@ function listingWindowWithGenerationTransitionAnchor(viewport, listing) {
     return listing;
   }
   const anchor = captureListingAddressAnchor(viewport);
-  if (!anchor?.rowCode || Number.isFinite(anchor.addr)) {
+  if (!anchor?.locator || Number.isFinite(anchor.addr)) {
     return listing;
   }
   const anchorIndex = listingAnchorRowIndexInRows(listing.rows || [], anchor);
@@ -5993,8 +5972,6 @@ function captureListingAddressAnchor(viewport) {
     addr: best.dataset.rowAddr !== "" && best.dataset.rowAddr !== undefined
       ? Number(best.dataset.rowAddr)
       : null,
-    stableKey: best.dataset.rowStableKey || null,
-    rowCode: best.dataset.rowCode || "",
     topDelta: best.getBoundingClientRect().top - viewportTop,
   };
 }
@@ -6010,22 +5987,7 @@ function selectListingAnchorRow(viewport, anchor) {
     }
   }
   if (Number.isFinite(anchor.addr)) {
-    const row = selectBestListingRow(viewport, anchor.addr, anchor.rowCode || null);
-    if (row instanceof HTMLElement) {
-      return row;
-    }
-  }
-  if (anchor.stableKey) {
-    const row = viewport.querySelector(`[data-row-stable-key="${CSS.escape(anchor.stableKey)}"]`);
-    if (row instanceof HTMLElement) {
-      return row;
-    }
-  }
-  if (anchor.rowCode) {
-    const rows = Array.from(viewport.querySelectorAll(".listing-row"));
-    const row = rows.find((candidate) => (
-      candidate instanceof HTMLElement && candidate.dataset.rowCode === anchor.rowCode
-    ));
+    const row = selectBestListingRow(viewport, anchor.addr);
     if (row instanceof HTMLElement) {
       return row;
     }
@@ -6037,28 +5999,17 @@ function listingAnchorRowIndexInRows(rows, anchor) {
   if (!anchor) {
     return -1;
   }
-  if (Number.isFinite(anchor.addr)) {
-    const wantedCode = String(anchor.rowCode || "");
-    const exactIndex = rows.findIndex((row) => (
-      row.addr === anchor.addr && (!wantedCode || renderListingCode(row) === wantedCode)
-    ));
-    if (exactIndex >= 0) {
-      return exactIndex;
+  if (anchor.locator) {
+    const locatorIndex = rows.findIndex((row) => listingLocatorsSameRow(listingRowLocator(row), anchor.locator));
+    if (locatorIndex >= 0) {
+      return locatorIndex;
     }
+  }
+  if (Number.isFinite(anchor.addr)) {
     const addrIndex = rows.findIndex((row) => row.addr === anchor.addr);
     if (addrIndex >= 0) {
       return addrIndex;
     }
-  }
-  if (anchor.stableKey) {
-    const stableIndex = rows.findIndex((row) => row.stable_key === anchor.stableKey);
-    if (stableIndex >= 0) {
-      return stableIndex;
-    }
-  }
-  if (anchor.rowCode) {
-    const wanted = String(anchor.rowCode).trim();
-    return rows.findIndex((row) => renderListingCode(row).trim() === wanted);
   }
   return -1;
 }
@@ -6106,15 +6057,7 @@ async function refreshListingAtCurrentAddressAnchor(projectId, token = null) {
   const rowHeight = Math.max(1, state.virtualListing.rowHeight || 22);
   const isAtListingTop = state.virtualListing.start === 0 && viewport.scrollTop <= rowHeight * 2;
   const requestSeqBeforeRefresh = state.virtualListing.requestSeq;
-  const shouldUseCodeAnchor = anchor?.rowCode && (isAtListingTop || !Number.isFinite(anchor.addr));
-  const listing = shouldUseCodeAnchor
-    ? await loadListingWindow(projectId, null, 0, count, {
-        anchorCode: anchor.rowCode,
-        count,
-        preserveScroll: false,
-        restoreAnchor: anchor,
-      })
-    : !isAtListingTop && anchor && Number.isFinite(anchor.addr)
+  const listing = !isAtListingTop && anchor && Number.isFinite(anchor.addr)
     ? await loadListingWindow(projectId, anchor.addr, visibleRows, count - visibleRows, {
         preserveScroll: false,
         restoreAnchor: anchor,
@@ -6426,16 +6369,14 @@ function addAppSlotNavigationRef(appSlots, row, rowIndex, rawRef) {
     appSlots.set(ref.symbol, slot);
   }
   const hunkIndex = rowHunkIndex(row);
-  const stableKey = row.stable_key ?? row.stableKey ?? null;
   const matchText = renderListingCode(row);
   slot.refs.push({
+    locator: listingRowLocator(row),
     addr: row.addr,
     rowIndex,
     row_index: rowIndex,
     hunkIndex,
     hunk_index: hunkIndex,
-    stableKey,
-    stable_key: stableKey,
     summary: matchText.trim() || ref.symbol,
     matchText,
     match_text: matchText,
@@ -6462,9 +6403,9 @@ function addLabelNavigationEntry(labels, row, rowIndex) {
     return;
   }
   const hunkIndex = rowHunkIndex(row);
-  const stableKey = row.stable_key ?? row.stableKey ?? null;
   const matchText = renderListingCode(row);
   labels.set(symbol, {
+    locator: listingRowLocator(row),
     symbol,
     summary: `${symbol}:`,
     matchText,
@@ -6474,19 +6415,16 @@ function addLabelNavigationEntry(labels, row, rowIndex) {
     row_index: rowIndex,
     hunkIndex,
     hunk_index: hunkIndex,
-    stableKey,
-    stable_key: stableKey,
     ref_count: 1,
     access_counts: {definition: 1},
     refs: [{
+      locator: listingRowLocator(row),
       symbol,
       addr: row.addr,
       rowIndex,
       row_index: rowIndex,
       hunkIndex,
       hunk_index: hunkIndex,
-      stableKey,
-      stable_key: stableKey,
       summary: matchText.trim() || `${symbol}:`,
       matchText,
       match_text: matchText,
@@ -6501,17 +6439,15 @@ function addLabelNavigationRef(labels, row, rowIndex, symbol) {
     return;
   }
   const hunkIndex = rowHunkIndex(row);
-  const stableKey = row.stable_key ?? row.stableKey ?? null;
   const matchText = renderListingCode(row);
   label.refs.push({
+    locator: listingRowLocator(row),
     symbol,
     addr: row.addr,
     rowIndex,
     row_index: rowIndex,
     hunkIndex,
     hunk_index: hunkIndex,
-    stableKey,
-    stable_key: stableKey,
     summary: matchText.trim() || symbol,
     matchText,
     match_text: matchText,
@@ -6527,9 +6463,9 @@ function addEquateNavigationEntry(equates, row, rowIndex) {
     return;
   }
   const hunkIndex = rowHunkIndex(row);
-  const stableKey = row.stable_key ?? row.stableKey ?? null;
   const matchText = renderListingCode(row);
   equates.set(equate.symbol, {
+    locator: listingRowLocator(row),
     symbol: equate.symbol,
     operand: equate.operand,
     summary: `${equate.symbol} EQU${equate.operand ? ` ${equate.operand}` : ""}`,
@@ -6540,19 +6476,16 @@ function addEquateNavigationEntry(equates, row, rowIndex) {
     row_index: rowIndex,
     hunkIndex,
     hunk_index: hunkIndex,
-    stableKey,
-    stable_key: stableKey,
     ref_count: 1,
     access_counts: {definition: 1},
     refs: [{
+      locator: listingRowLocator(row),
       symbol: equate.symbol,
       addr: row.addr ?? null,
       rowIndex,
       row_index: rowIndex,
       hunkIndex,
       hunk_index: hunkIndex,
-      stableKey,
-      stable_key: stableKey,
       summary: matchText.trim() || equate.symbol,
       matchText,
       match_text: matchText,
@@ -6571,17 +6504,15 @@ function addEquateNavigationRef(equates, row, rowIndex, symbol) {
     return;
   }
   const hunkIndex = rowHunkIndex(row);
-  const stableKey = row.stable_key ?? row.stableKey ?? null;
   const matchText = renderListingCode(row);
   equate.refs.push({
+    locator: listingRowLocator(row),
     symbol,
     addr: row.addr ?? null,
     rowIndex,
     row_index: rowIndex,
     hunkIndex,
     hunk_index: hunkIndex,
-    stableKey,
-    stable_key: stableKey,
     summary: matchText.trim() || symbol,
     matchText,
     match_text: matchText,
@@ -6652,6 +6583,7 @@ function buildNavigationEntries(rows) {
     if (Array.isArray(row.repro_issues) && row.repro_issues.length) {
       const issue = row.repro_issues[0];
       groups["repro-issues"].push({
+        locator: listingRowLocator(row),
         addr: row.addr,
         issueIndex: issue.issue_index ?? issue.issueIndex ?? null,
         issue_index: issue.issue_index ?? issue.issueIndex ?? null,
@@ -6659,8 +6591,6 @@ function buildNavigationEntries(rows) {
         row_index: issue.row_index ?? rowIndex,
         section_index: issue.section_index ?? null,
         hunk: issue.hunk ?? null,
-        stableKey: issue.stable_key ?? row.stable_key ?? null,
-        stable_key: issue.stable_key ?? row.stable_key ?? null,
         summary: row.repro_issues[0].summary || row.repro_issues[0].message || "Repro issue",
         matchText: renderListingCode(row),
         match_text: issue.match_text || renderListingCode(row),
@@ -6673,11 +6603,10 @@ function buildNavigationEntries(rows) {
       if (!typedDataSeen.has(key)) {
         typedDataSeen.add(key);
         groups["typed-data"].push({
+          locator: listingRowLocator(row),
           addr: row.addr,
           rowIndex,
           row_index: rowIndex,
-          stableKey: row.stable_key ?? row.stableKey ?? null,
-          stable_key: row.stable_key ?? row.stableKey ?? null,
           summary,
           matchText: renderListingCode(row),
           match_text: renderListingCode(row),
@@ -6686,17 +6615,15 @@ function buildNavigationEntries(rows) {
     }
     if (rowHasUnresolvedTypedAccess(row)) {
       const hunkIndex = rowHunkIndex(row);
-      const stableKey = row.stable_key ?? row.stableKey ?? null;
       const matchText = renderListingCode(row);
       row.unresolved_typed_accesses.forEach((access) => {
         groups["typed-gaps"].push({
+          locator: listingRowLocator(row),
           addr: row.addr,
           rowIndex,
           row_index: rowIndex,
           hunkIndex,
           hunk_index: hunkIndex,
-          stableKey,
-          stable_key: stableKey,
           summary: typedGapSummary(access),
           matchText,
           match_text: matchText,
@@ -6727,16 +6654,14 @@ function buildNavigationEntries(rows) {
     }
     if (row.kind === "instruction" && rowApiCallIsNavigationTarget(rows, row, rowIndex)) {
       const hunkIndex = rowHunkIndex(row);
-      const stableKey = row.stable_key ?? row.stableKey ?? null;
       const matchText = renderListingCode(row);
       groups["api-calls"].push({
+        locator: listingRowLocator(row),
         addr: row.addr,
         rowIndex,
         row_index: rowIndex,
         hunkIndex,
         hunk_index: hunkIndex,
-        stableKey,
-        stable_key: stableKey,
         summary: summarizeNavigationRow(row, "api-calls"),
         matchText,
         match_text: matchText,
@@ -6757,11 +6682,10 @@ function buildNavigationEntries(rows) {
     if (Array.isArray(row.review_notes)) {
       row.review_notes.forEach((note) => {
         groups["review-notes"].push({
+          locator: listingRowLocator(row),
           addr: note.addr ?? row.addr,
           rowIndex: note.row_index ?? rowIndex,
           row_index: note.row_index ?? rowIndex,
-          stableKey: note.stable_key ?? row.stable_key ?? null,
-          stable_key: note.stable_key ?? row.stable_key ?? null,
           summary: reviewNoteLabel(note),
           matchText: note.body || note.title || renderListingCode(row),
           match_text: note.body || note.title || renderListingCode(row),
@@ -6867,11 +6791,6 @@ function navigationEntriesSameLocation(left, right) {
   if (leftLocator && rightLocator) {
     return listingLocatorsSameRow(leftLocator, rightLocator);
   }
-  const leftStable = left.stableKey || left.stable_key || null;
-  const rightStable = right.stableKey || right.stable_key || null;
-  if (leftStable && rightStable) {
-    return leftStable === rightStable;
-  }
   const leftRowIndex = navigationEntryRowIndex(left);
   const rightRowIndex = navigationEntryRowIndex(right);
   if (leftRowIndex !== null && rightRowIndex !== null) {
@@ -6902,7 +6821,6 @@ function navigationEntryWithRenderedLocator(entry) {
       viewport,
       Number(entry.addr),
       entry.matchText || entry.match_text || null,
-      entry.stableKey || entry.stable_key || null,
       rowIndex,
     );
   }
@@ -6953,8 +6871,6 @@ function captureViewportAnchor() {
     matchText: candidate.dataset.rowCode || null,
     rowIndex: candidate.dataset.rowIndex === undefined ? null : Number(candidate.dataset.rowIndex),
     row_index: candidate.dataset.rowIndex === undefined ? null : Number(candidate.dataset.rowIndex),
-    stableKey: candidate.dataset.rowStableKey || null,
-    stable_key: candidate.dataset.rowStableKey || null,
     scrollTop: viewport.scrollTop,
   };
 }
@@ -7278,7 +7194,6 @@ async function jumpToListingEquate(projectId, symbolName) {
     target.rowIndex ?? target.row_index,
     target.addr,
     target.matchText || target.match_text || `${symbol} EQU`,
-    target.stableKey || target.stable_key || null,
   );
 }
 
@@ -7898,7 +7813,6 @@ async function submitInlineParameterSession() {
   renderCurrentListingWindow();
   try {
     await submitCommandPaletteCatalogAction(editor.action, parameters);
-    applyInlineSubmittedFallback(editor, parameters);
     state.parameterSession = null;
     renderCurrentListingWindow();
   } catch (error) {
@@ -7911,39 +7825,8 @@ async function submitInlineParameterSession() {
   }
 }
 
-function applyInlineSubmittedFallback(editor, parameters) {
-  if (!editor || editor.action?.action !== "create_manual_comment") {
-    return;
-  }
-  const text = String(parameters.text || "").trim();
-  const rowIndex = Number(editor.rowIndex);
-  const localIndex = rowIndex - Number(state.virtualListing.start || 0);
-  if (!text || localIndex < 0 || localIndex >= state.listingRows.length) {
-    return;
-  }
-  const rows = state.listingRows.slice();
-  rows[localIndex] = {...rows[localIndex], comment_text: text};
-  state.listingRows = rows;
-}
-
 function normalizeListingProjectionPayload(listing) {
-  if (!listing || !Array.isArray(listing.rows)) {
-    return listing;
-  }
-  return {
-    ...listing,
-    rows: listing.rows.map((row) => {
-      const rowKey = row.row_key || row.stable_key || row.stableKey || null;
-      if (!rowKey) {
-        return row;
-      }
-      return {
-        ...row,
-        stable_key: row.stable_key || rowKey,
-        stableKey: row.stableKey || rowKey,
-      };
-    }),
-  };
+  return listing;
 }
 
 async function loadListingWindow(projectId, addr = null, before = 24, after = 80, options = {}) {
@@ -7960,10 +7843,7 @@ async function loadListingWindow(projectId, addr = null, before = 24, after = 80
   const abortController = new AbortController();
   ListingSession.setFetchAbortController(abortController);
   const params = new URLSearchParams();
-  if (options.anchorCode) {
-    params.set("anchor_code", String(options.anchorCode).trim());
-    params.set("count", String(options.count || after || LISTING_INITIAL_ROW_WINDOW));
-  } else if (Number.isInteger(options.sectionIndex) && Number.isFinite(options.sourceOffset)) {
+  if (Number.isInteger(options.sectionIndex) && Number.isFinite(options.sourceOffset)) {
     params.set("section_index", String(options.sectionIndex));
     params.set("source_offset", String(options.sourceOffset));
     params.set("before", String(before));
@@ -8311,8 +8191,7 @@ async function jumpToListingLocation(projectId, location) {
           projectId,
           location.rowIndex,
           location.addr,
-          location.rowCode,
-          location.stableKey,
+          location.matchText || null,
         );
         if (ok) {
           restorePreferenceViewportAnchor(location);
@@ -8325,7 +8204,7 @@ async function jumpToListingLocation(projectId, location) {
         return ok;
       }
       if (Number.isFinite(location.addr)) {
-        const ok = await jumpToListingAddr(projectId, location.addr, location.rowCode || null);
+        const ok = await jumpToListingAddr(projectId, location.addr, location.matchText || null);
         restorePreferenceViewportAnchor(location);
         return ok;
       }
@@ -8424,7 +8303,7 @@ function normalizeJumpText(text) {
     .replaceAll(/[^a-z0-9]+/g, "");
 }
 
-function selectBestListingRow(viewport, addr, matchText = null, stableKey = null, rowIndex = null) {
+function selectBestListingRow(viewport, addr, matchText = null, rowIndex = null) {
   if (!viewport) {
     return null;
   }
@@ -8432,12 +8311,6 @@ function selectBestListingRow(viewport, addr, matchText = null, stableKey = null
     const indexed = viewport.querySelector(`[data-row-index="${String(Math.floor(rowIndex))}"]`);
     if (indexed) {
       return indexed;
-    }
-  }
-  if (stableKey) {
-    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(stableKey)}"]`);
-    if (stable) {
-      return stable;
     }
   }
   const rows = Array.from(viewport.querySelectorAll(`[data-row-addr="${String(addr)}"]`));
@@ -8494,8 +8367,8 @@ function selectListingRowByRuntimeAddress(viewport, address) {
   return null;
 }
 
-function scrollRowIntoView(viewport, addr, block = "center", matchText = null, stableKey = null, rowIndex = null) {
-  const row = selectBestListingRow(viewport, addr, matchText, stableKey, rowIndex);
+function scrollRowIntoView(viewport, addr, block = "center", matchText = null, rowIndex = null) {
+  const row = selectBestListingRow(viewport, addr, matchText, rowIndex);
   if (!row) {
     return false;
   }
@@ -8529,15 +8402,9 @@ function listingSelectionFromRow(row) {
     anchorRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
     rangeStartRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
     rangeEndRowIndex: Number.isFinite(rowIndex) ? rowIndex : null,
-    focusStableKey: row.dataset.rowStableKey || null,
-    anchorStableKey: row.dataset.rowStableKey || null,
-    rangeStartStableKey: row.dataset.rowStableKey || null,
-    rangeEndStableKey: row.dataset.rowStableKey || null,
-    stableKey: row.dataset.rowStableKey || null,
     addr: Number.isFinite(addr) ? addr : null,
     sectionIndex: Number.isInteger(sectionIndex) ? sectionIndex : null,
     startOffset: Number.isFinite(startOffset) ? startOffset : null,
-    rowCode: row.dataset.rowCode || "",
     elementKind: null,
     elementText: "",
     elementSelector: null,
@@ -8614,7 +8481,7 @@ function rowMatchesSelectionAddress(row, selection) {
   const addr = row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined
     ? Number(row.dataset.rowAddr)
     : null;
-  return Number.isFinite(selection.addr) && addr === selection.addr && (!selection.rowCode || row.dataset.rowCode === selection.rowCode);
+  return Number.isFinite(selection.addr) && addr === selection.addr;
 }
 
 function rowContainsSelectedElement(row, selection) {
@@ -8649,36 +8516,18 @@ function renderedRowForListingSelection(viewport, selection) {
       return {row: located, precise: rowContainsSelectedElement(located, selection)};
     }
   }
-  if (selection.stableKey) {
-    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
-    if (stable instanceof HTMLElement) {
-      return {row: stable, precise: rowContainsSelectedElement(stable, selection)};
-    }
-  }
   const rows = Array.from(viewport.querySelectorAll(".listing-row"));
   const addressMatch = rows.find((row) => rowMatchesSelectionAddress(row, selection));
   if (addressMatch instanceof HTMLElement) {
-    return {row: addressMatch, precise: !selection.stableKey && rowContainsSelectedElement(addressMatch, selection)};
+    return {row: addressMatch, precise: rowContainsSelectedElement(addressMatch, selection)};
   }
   if (Number.isFinite(selection.rowIndex)) {
     const indexed = viewport.querySelector(`[data-row-index="${String(selection.rowIndex)}"]`);
     if (indexed instanceof HTMLElement) {
-      return {row: indexed, precise: !selection.stableKey && rowContainsSelectedElement(indexed, selection)};
+      return {row: indexed, precise: rowContainsSelectedElement(indexed, selection)};
     }
   }
   return {row: null, precise: false};
-}
-
-function renderedRowIndexForStableKey(viewport, stableKey) {
-  if (!(viewport instanceof HTMLElement) || !stableKey) {
-    return null;
-  }
-  const row = viewport.querySelector(`[data-row-stable-key="${CSS.escape(stableKey)}"]`);
-  if (!(row instanceof HTMLElement)) {
-    return null;
-  }
-  const rowIndex = Number(row.dataset.rowIndex);
-  return Number.isFinite(rowIndex) ? rowIndex : null;
 }
 
 function renderedRowIndexForLocator(viewport, locator) {
@@ -8703,13 +8552,12 @@ function resolveRenderedListingRangeSelection(viewport, selection) {
   }
   const replacements = {};
   [
-    ["focusRowIndex", "focusLocator", "focusStableKey"],
-    ["anchorRowIndex", "anchorLocator", "anchorStableKey"],
-    ["rangeStartRowIndex", "rangeStartLocator", "rangeStartStableKey"],
-    ["rangeEndRowIndex", "rangeEndLocator", "rangeEndStableKey"],
-  ].forEach(([indexKey, locatorKey, stableKey]) => {
-    const resolved = renderedRowIndexForLocator(viewport, selection[locatorKey])
-      ?? renderedRowIndexForStableKey(viewport, selection[stableKey]);
+    ["focusRowIndex", "focusLocator"],
+    ["anchorRowIndex", "anchorLocator"],
+    ["rangeStartRowIndex", "rangeStartLocator"],
+    ["rangeEndRowIndex", "rangeEndLocator"],
+  ].forEach(([indexKey, locatorKey]) => {
+    const resolved = renderedRowIndexForLocator(viewport, selection[locatorKey]);
     if (Number.isFinite(resolved) && resolved !== selection[indexKey]) {
       replacements[indexKey] = resolved;
     }
@@ -8759,6 +8607,19 @@ function applyRenderedListingSelection() {
   const {row, precise} = renderedRowForListingSelection(viewport, resolvedSelection);
   if (row instanceof HTMLElement) {
     row.classList.add("listing-row-selected");
+    const repairedSelection = listingSelectionFromRow(row);
+    if (
+      precise &&
+      repairedSelection?.locator &&
+      !listingLocatorsSameRow(repairedSelection.locator, resolvedSelection.locator)
+    ) {
+      SelectionModel.set({
+        ...repairedSelection,
+        elementKind: resolvedSelection.elementKind || null,
+        elementText: resolvedSelection.elementText || "",
+        elementSelector: resolvedSelection.elementSelector || null,
+      });
+    }
     if (!precise && !resolvedSelection.precisionLost) {
       SelectionModel.set({
         ...listingSelectionFromRow(row),
@@ -8837,22 +8698,16 @@ function setListingSelectionIndex(rowIndex) {
     anchorRowIndex: rowIndex,
     rangeStartRowIndex: rowIndex,
     rangeEndRowIndex: rowIndex,
-    stableKey: null,
-    focusStableKey: null,
-    anchorStableKey: null,
-    rangeStartStableKey: null,
-    rangeEndStableKey: null,
     addr: null,
     sectionIndex: null,
     startOffset: null,
-    rowCode: "",
     precisionLost: true,
   });
   applyRenderedListingSelection();
 }
 
 function extendListingSelectionToRow(row, targetIndex) {
-  const target = listingSelectionFromRow(row) || {rowIndex: targetIndex, stableKey: null};
+  const target = listingSelectionFromRow(row) || {rowIndex: targetIndex};
   const current = SelectionModel.current() || {};
   const anchor = Number.isFinite(Number(current.anchorRowIndex))
     ? Number(current.anchorRowIndex)
@@ -8871,10 +8726,6 @@ function extendListingSelectionToRow(row, targetIndex) {
     anchorLocator: current.anchorLocator || current.locator || null,
     rangeStartLocator: start === targetIndex ? target.locator || null : current.anchorLocator || current.locator || null,
     rangeEndLocator: end === targetIndex ? target.locator || null : current.anchorLocator || current.locator || null,
-    focusStableKey: target.stableKey || null,
-    anchorStableKey: current.anchorStableKey || current.stableKey || null,
-    rangeStartStableKey: start === targetIndex ? target.stableKey || null : current.anchorStableKey || current.stableKey || null,
-    rangeEndStableKey: end === targetIndex ? target.stableKey || null : current.anchorStableKey || current.stableKey || null,
     elementKind: null,
     elementText: "",
     elementSelector: null,
@@ -8952,8 +8803,7 @@ function focusListingRow(row) {
   dispatchAppEvent("amiga:listing-row-focused", {
     addr: row.dataset.rowAddr !== "" && row.dataset.rowAddr !== undefined ? Number(row.dataset.rowAddr) : null,
     rowIndex: row.dataset.rowIndex !== "" && row.dataset.rowIndex !== undefined ? Number(row.dataset.rowIndex) : null,
-    stableKey: row.dataset.rowStableKey || null,
-    rowCode: row.dataset.rowCode || "",
+    locator: listingRowLocatorFromElement(row),
   });
   window.setTimeout(() => row.classList.remove("listing-row-focus"), 1200);
 }
@@ -9946,7 +9796,7 @@ async function jumpToListingRuntimeAddress(projectId, address) {
   }
 }
 
-async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, stableKey = null) {
+async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null) {
   const viewport = document.getElementById("listing-viewport");
   if (!(viewport instanceof HTMLElement) || !Number.isFinite(rowIndex)) {
     return jumpToListingAddr(projectId, addr, matchText);
@@ -9960,8 +9810,8 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
   try {
     viewport.scrollTop = Math.max(0, (targetIndex * rowHeight) - Math.floor(viewport.clientHeight / 2));
     await loadListingWindow(projectId, null, 0, count, {start, count, preserveScroll: true, renderEmpty: false});
-    scrollRowIntoView(viewport, addr, "center", matchText, stableKey, targetIndex);
-    const row = selectBestListingRow(viewport, addr, matchText, stableKey, targetIndex);
+    scrollRowIntoView(viewport, addr, "center", matchText, targetIndex);
+    const row = selectBestListingRow(viewport, addr, matchText, targetIndex);
     if (!row) {
       return false;
     }
@@ -9981,10 +9831,9 @@ async function jumpToNavigationEntry(projectId, entry) {
     return jumpToListingLocator(projectId, locator, entry.viewport_anchor || null);
   }
   const matchText = entry.matchText || entry.match_text || null;
-  const stableKey = entry.stableKey || entry.stable_key || null;
   const rowIndex = navigationEntryRowIndex(entry);
   if (rowIndex !== null) {
-    return jumpToListingIndex(projectId, rowIndex, entry.addr, matchText, stableKey);
+    return jumpToListingIndex(projectId, rowIndex, entry.addr, matchText);
   }
   return jumpToListingAddr(projectId, entry.addr, matchText);
 }
@@ -10005,7 +9854,6 @@ async function jumpToListingSymbol(projectId, symbolName) {
     target.rowIndex ?? target.row_index,
     target.addr,
     target.matchText || target.match_text || `${wanted}:`,
-    target.stableKey || target.stable_key || null,
   );
 }
 
@@ -10023,12 +9871,6 @@ function selectedListingRowElement() {
     ));
     if (located instanceof HTMLElement) {
       return located;
-    }
-  }
-  if (selection?.stableKey) {
-    const stable = viewport.querySelector(`[data-row-stable-key="${CSS.escape(selection.stableKey)}"]`);
-    if (stable instanceof HTMLElement) {
-      return stable;
     }
   }
   if (Number.isFinite(selection?.rowIndex)) {
@@ -10102,7 +9944,6 @@ async function moveToRelativeLabel(delta) {
     target.rowIndex,
     target.addr,
     target.matchText || target.match_text || target.summary,
-    target.stableKey || target.stable_key || null,
   );
 }
 
@@ -10363,7 +10204,7 @@ async function focusPendingCorpusExample(projectId) {
   }
   state.pendingCorpusFocus = null;
   if (Number.isFinite(focus.rowIndex)) {
-    await jumpToListingIndex(projectId, focus.rowIndex, focus.addr, focus.matchText, focus.stableKey);
+    await jumpToListingIndex(projectId, focus.rowIndex, focus.addr, focus.matchText);
   } else if (Number.isFinite(focus.addr)) {
     await jumpToListingAddr(projectId, focus.addr, focus.matchText);
   }
