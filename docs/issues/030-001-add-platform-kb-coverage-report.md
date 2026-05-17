@@ -26,17 +26,28 @@ Report sections:
 
 - source inventory status
 - NDK include/library/function/struct/constant/value-domain counts
-- function `available_since` counts
+- raw function `available_since` counts
+- normalized compatibility enum counts
+- FD/interface version counts
+- raw OS version rank coverage for `1.0`, `1.1`, `1.2`, `1.3`, `2.0`,
+  `2.04`, `2.1`, `3.0`, `3.1`, and `3.5`
 - hardware register and bitfield coverage
 - NDK hardware symbol coverage
 - correction review-status counts
 - HUNK enum, record-type, valid-load-record, and unsupported/half-represented state
+- target OS compatibility summary schema/report availability
 
 ## Acceptance Criteria
 
 - `report` prints stable human-readable counts for the current repository.
 - `check` fails on malformed correction review statuses, missing correction
   citations, and half-represented HUNK records.
+- `check` fails if raw OS availability is silently lost when generating runtime
+  metadata.
+- `report` distinguishes raw availability precision from normalized
+  compatibility buckets.
+- `report` includes target summary state coverage, including `observed`,
+  `no_os_calls`, and `unknown` OS compatibility states.
 - Initial HUNK check identifies `HUNK_OVERLAY` state cleanly instead of relying
   on hidden consumer behavior.
 - Tests cover report aggregation from fixture artifacts.

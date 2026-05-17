@@ -110,6 +110,7 @@ Proposal: `docs/proposals/002-reproduction-profiles-and-oracles.md`.
 Proposal: `docs/proposals/004-amiga-platform-knowledge.md`.
 
 - [ ] Add the platform KB coverage report/check from `docs/issues/030-001-add-platform-kb-coverage-report.md`.
+- [ ] Add the target OS compatibility summary/source header from `docs/issues/030-006-add-target-os-compatibility-summary.md`.
 - [ ] Add the NDK corrections review flow from `docs/issues/030-002-add-amiga-ndk-corrections-review-flow.md`.
 - [ ] Move HUNK reproduction comparison onto generated platform runtime metadata via `docs/issues/030-003-generate-hunk-comparison-from-platform-runtime-metadata.md`.
 - [ ] Resolve `HUNK_OVERLAY` as supported-with-fixture or explicit unsupported inventory via `docs/issues/030-004-resolve-hunk-overlay-support-state.md`.

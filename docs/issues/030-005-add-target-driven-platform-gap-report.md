@@ -20,6 +20,8 @@ values such as:
 - custom chip address-range references
 - CIA address-range references
 - OS library LVO-shaped references
+- OS calls whose availability is newer than the target's expected profile or
+  observed baseline
 - constants that resemble known include families
 - absolute values currently rendered generically but likely owned by platform KB
 
@@ -30,6 +32,11 @@ positives should be explainable and grouped as candidates, not facts.
 
 - A command can report platform-looking gaps for a selected target.
 - Output groups candidates by likely owner/source family.
+- Output can flag unexpected-new OS/API usage using the target OS compatibility
+  summary from `docs/issues/030-006-add-target-os-compatibility-summary.md`.
+- Unexpected-new API findings distinguish explicit target-metadata expectations
+  from inferred project/disk-year hints. Inferred hints are review candidates,
+  not check failures.
 - The report references the source artifact or parser area that would close the
   gap when known.
 - Fixture coverage proves each reported candidate class.
