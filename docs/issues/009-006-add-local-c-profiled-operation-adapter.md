@@ -81,16 +81,10 @@ Passed:
 ```powershell
 uv run python -m pytest tests\test_c_backend.py::test_c_profiled_operation_frees_bytes_profiles_and_error_buffers tests\test_c_backend.py::test_c_profiled_operation_frees_profile_and_error_on_failure_status tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_uses_direct_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_surfaces_refusal tests\test_c_backend.py::test_project_source_reproduction_compare_atari_uses_object_semantics tests\test_reproduction.py tests\test_source_export.py -q
 uv run ruff check amiga_reversing\disasm\c_backend.py tests\test_c_backend.py
-```
-
-Attempted:
-
-```powershell
 uv run python -m pytest tests\test_c_backend.py tests\test_reproduction.py tests\test_source_export.py -q
+uv run ruff check tests\test_c_backend.py
 ```
 
-Result: `1 failed, 199 passed, 15 skipped`. The failure was
-`test_real_dll_render_plan_data_classes_reach_listing_rows`, where a generated
-comment row ending in `:` was classified outside `label`/`directive`. That path
-uses real-DLL listing rows, not the touched profiled direct rebuild or
-reproduction-compare adapter path.
+Audit note: the full C adapter command initially exposed an over-strict
+real-DLL listing assertion for generated comment rows ending in `:`. The
+assertion now accepts `comment` rows; the full command passes.

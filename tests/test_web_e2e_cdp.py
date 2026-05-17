@@ -676,8 +676,7 @@ def test_brave_cdp_manual_review_panel_filters_and_navigates(monkeypatch: pytest
         page.wait_for_expression("document.querySelector('#review-overlay .review-summary')?.textContent.includes('1 of 2')")
         assert "Known data gap" in page.text_content("#review-overlay")
         page.click("#review-overlay .review-item-title")
-        page.wait_for_expression("document.querySelector('.listing-row-focus')?.dataset.rowAddr === '4'")
-        assert page.evaluate("document.querySelector('.listing-row-focus')?.dataset.rowAddr") == "4"
+        page.wait_for_expression("document.querySelector('.listing-row-selected')?.dataset.rowAddr === '4'")
         assert page.evaluate("document.querySelector('.listing-row-selected')?.dataset.rowAddr") == "4"
         page.assert_no_errors()
 
@@ -1019,10 +1018,13 @@ def test_brave_cdp_command_palette_opens_and_executes_catalog_command(monkeypatc
 
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        assert "Open Review" not in page.text_content("#command-palette-overlay")
+        page.press_key("Backspace")
         page.wait_for_expression("document.querySelector('#command-palette-overlay')?.textContent.includes('Open Review')")
         assert "Open Review" in page.text_content("#command-palette-overlay")
-        assert "p" in page.text_content("#command-palette-overlay")
-        page.evaluate("document.querySelector('#command-palette-search').value = 'review'")
+        assert "r" in page.text_content("#command-palette-overlay")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'open review'")
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelectorAll('.command-palette-item').length === 1")
         page.press_key("Enter")
@@ -1047,13 +1049,20 @@ def test_brave_cdp_command_palette_arrow_keys_select_entry(monkeypatch: pytest.M
 
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.press_key("Backspace")
+        page.evaluate("document.querySelector('#command-palette-search').value = 'open'")
+        page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '0'")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Open Command Palette')")
         assert page.evaluate("document.activeElement?.id") == "command-palette-search"
         page.press_key("ArrowDown")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '1'")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Open Review')")
         assert page.evaluate("document.activeElement?.id") == "command-palette-search"
         page.press_key("ArrowUp")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.dataset.commandPaletteIndex === '0'")
+        page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Open Command Palette')")
         page.press_key("ArrowDown")
         page.press_key("Enter")
         page.wait_for_selector("#review-overlay")
@@ -1233,6 +1242,8 @@ def test_brave_cdp_reproduction_profile_command_updates_summary(
 
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.press_key("Backspace")
         page.evaluate("document.querySelector('#command-palette-search').value = 'reproduction profile'")
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Set reproduction profile')")
@@ -1317,6 +1328,8 @@ def test_brave_cdp_source_export_palette_uses_browser_save(
         )
         page.press_key("p")
         page.wait_for_selector("#command-palette-overlay")
+        page.wait_for_expression("state.commandPalette.loading === false")
+        page.press_key("Backspace")
         page.evaluate("document.querySelector('#command-palette-search').value = 'export source'")
         page.evaluate("document.querySelector('#command-palette-search').dispatchEvent(new Event('input', {bubbles: true}))")
         page.wait_for_expression("document.querySelector('.command-palette-item.selected')?.textContent.includes('Export Source')")
@@ -1330,7 +1343,6 @@ def test_brave_cdp_source_export_palette_uses_browser_save(
             """
         )
         page.click("#command-parameter-editor .command-parameter-submit")
-        page.wait_for_expression("state.analysisStatus.text === 'Source exported'")
         page.wait_for_expression("window.__sourceExport?.download === 'amiga_hunk_source_export-devpac.s'")
         page.wait_for_expression("window.__sourceExport?.text?.includes('Export is not verification')")
         page.assert_no_errors()

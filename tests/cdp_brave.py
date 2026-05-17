@@ -214,7 +214,12 @@ class CdpWebSocket:
                         f"Screenshot: {artifacts['screenshot']}"
                     )
             time.sleep(interval)
-        raise TimeoutError(f"Timed out waiting for expression: {expression}; last={last_value!r}")
+        artifacts = self.capture_failure_artifacts()
+        raise TimeoutError(
+            f"Timed out waiting for expression: {expression}; last={last_value!r}\n"
+            f"HTML: {artifacts['html']}\n"
+            f"Screenshot: {artifacts['screenshot']}"
+        )
 
     def wait_for_app_event(
         self,

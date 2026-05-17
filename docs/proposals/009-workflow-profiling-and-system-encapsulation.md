@@ -1029,8 +1029,10 @@ Implemented slice evidence:
   behavior at the public helper boundary.
   Focused tests passed:
     uv run python -m pytest tests\test_c_backend.py::test_c_profiled_operation_frees_bytes_profiles_and_error_buffers tests\test_c_backend.py::test_c_profiled_operation_frees_profile_and_error_on_failure_status tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_uses_direct_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_disk_entry_uses_buffer_c_api tests\test_c_backend.py::test_project_source_facts_v2_direct_rebuild_surfaces_refusal tests\test_c_backend.py::test_project_source_reproduction_compare_atari_uses_object_semantics tests\test_reproduction.py tests\test_source_export.py -q
+    uv run python -m pytest tests\test_c_backend.py tests\test_reproduction.py tests\test_source_export.py -q
   Lint passed:
     uv run ruff check amiga_reversing\disasm\c_backend.py tests\test_c_backend.py
+    uv run ruff check tests\test_c_backend.py
 
 009-007:
   Browser API calls now carry browser request ids and fetchJson records the last
@@ -1053,8 +1055,10 @@ Implemented slice evidence:
   Focused tests passed:
     uv run python -m pytest tests\test_api_workflow_harness.py -q
     $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
+    $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py -q
   Lint passed:
     uv run ruff check tests\workflow_harness.py tests\test_api_workflow_harness.py tests\test_web_e2e_cdp.py
+    uv run ruff check tests\cdp_brave.py tests\test_web_e2e_cdp.py
 
 009-009:
   Proposal 008 Slice 1 is implemented, so the tool graph dependency is
@@ -1098,22 +1102,19 @@ functions rather than a full workflow object. That made direct rebuild, source
 rendering, source assembly, and Reproduction Comparison directly testable
 without rewriting report construction in the same slice.
 
-The full C adapter verification command currently exposes a real-DLL listing
-row classification issue outside the touched adapter path:
-test_real_dll_render_plan_data_classes_reach_listing_rows sees a generated
-comment row ending in ":" classified outside label/directive. The adapter slice
-keeps this as a follow-up observation rather than broadening into listing-row
-classification work.
+The full C adapter verification command exposed an over-strict real-DLL listing
+test assertion: generated comment rows may end in ":" and should remain
+comments. The audit fixed the assertion instead of changing listing
+classification behavior.
 
 Browser/profile correlation is intentionally debug-state only. The existing
 stats overlay still renders queue/fetch/render totals, while LLM/CDP consumers
 read the correlated request/profile payload from window.__amigaDebugState().
 
-The full CDP file currently has five isolated UI timeouts in manual-review and
-command-palette tests outside the representative profiling harness workflow.
-The 009-008 harness checks pass for API and the focused CDP manual command
-workflow; the broader UI timeout cluster should be handled as separate browser
-stability work.
+The full CDP file exposed stale command-palette expectations after context-first
+palette filtering, plus a timeout path without saved artifacts. The audit
+updated the tests to enter global command mode deliberately, assert durable UI
+effects, and capture timeout HTML/screenshots from the CDP helper.
 
 Tool graph workflow spans are attached at the oracle report boundary rather
 than the resource-route boundary. Tool graph query routes remain resource

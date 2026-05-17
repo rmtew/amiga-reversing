@@ -83,20 +83,11 @@ Passed:
 uv run python -m pytest tests\test_api_workflow_harness.py -q
 $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators -q
 uv run ruff check tests\workflow_harness.py tests\test_api_workflow_harness.py tests\test_web_e2e_cdp.py
-```
-
-Attempted:
-
-```powershell
 $env:M68K_RUN_BRAVE_CDP='1'; uv run python -m pytest tests\test_web_e2e_cdp.py -q
+uv run ruff check tests\cdp_brave.py tests\test_web_e2e_cdp.py
 ```
 
-Result: `5 failed, 47 passed`. The failures are isolated UI timeouts in
-manual-review navigation and command-palette tests, not in the representative
-profiling harness workflow:
-
-- `test_brave_cdp_manual_review_panel_filters_and_navigates`
-- `test_brave_cdp_command_palette_opens_and_executes_catalog_command`
-- `test_brave_cdp_command_palette_arrow_keys_select_entry`
-- `test_brave_cdp_reproduction_profile_command_updates_summary`
-- `test_brave_cdp_source_export_palette_uses_browser_save`
+Audit note: the full CDP command initially exposed stale command-palette test
+paths and one timeout without artifacts. The tests now wait for palette loading
+before switching to global command mode, assert durable review/source-export
+state, and the CDP helper captures timeout artifacts.

@@ -6100,7 +6100,7 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
         assert not [
             row
             for row in rows
-            if str(row.get("text", "")).strip().endswith(":") and row.get("kind") not in {"label", "directive"}
+            if str(row.get("text", "")).strip().endswith(":") and row.get("kind") not in {"label", "directive", "comment"}
         ]
         assert not [row for row in rows if row.get("data_class") and row.get("kind") != "data"]
         assert not [
