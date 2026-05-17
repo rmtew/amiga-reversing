@@ -1,6 +1,6 @@
 # Proposal 009: Workflow Profiling And System Encapsulation
 
-Status: Ready for implementation after current-state review.
+Status: Implemented.
 
 Status changed: 2026-05-17.
 
@@ -1098,10 +1098,10 @@ FactsV2SourceRefused exception path. The module owns refusal detection and
 offers both result and raise-on-refusal helpers so callers do not decode the C
 profile themselves.
 
-The first Round-Trip Verification extraction deliberately stopped at phase
-functions rather than a full workflow object. That made direct rebuild, source
-rendering, source assembly, and Reproduction Comparison directly testable
-without rewriting report construction in the same slice.
+The initial 009-005 Round-Trip Verification extraction deliberately stopped at
+phase functions before the later workflow-object extraction. That made direct
+rebuild, source rendering, source assembly, and Reproduction Comparison
+directly testable without rewriting report construction in the same slice.
 
 The full C adapter verification command exposed an over-strict real-DLL listing
 test assertion: generated comment rows may end in ":" and should remain
@@ -1123,50 +1123,49 @@ queries, while oracle reports show resolution and invocation timing for the
 chains they consume.
 ```
 
-Current code evidence:
+Current implementation summary:
 
 ```text
 amiga_reversing/disasm/reproduction.py
-  run_reproduction() owns source rendering, direct rebuild, assembly,
-  comparison, report construction, profile merging, and row issue mapping.
+  run_reproduction() is a public facade delegating to
+  RoundTripVerificationWorkflow, which owns the phase-ordering body.
+  RoundTripProfileTimings owns the legacy report profile payload and mirrors
+  scalar timing/counter values into workflow_profile.counters.
+
+amiga_reversing/disasm/source_rendering.py
+  Production source rendering owns refusal detection, listing profiles,
+  workflow spans, metadata hash, and target identity hash.
 
 amiga_reversing/disasm/source_export.py
-  Source Export calls listing_artifact_source_text_with_c_backend_profile()
-  directly.
+  Source Export consumes the source-rendering module and returns its workflow
+  profile payload.
+
+amiga_reversing/disasm/facts_v2_source_gate.py
+  Facts v2 source gate consumes the source-rendering module and treats refusal
+  as gate-report data.
+
+amiga_reversing/disasm/oracle_compatibility.py
+  Oracle compatibility reports include tool graph capability-resolution and
+  oracle-invocation workflow spans.
 
 amiga_reversing/disasm/server.py
-  _resolve_command_locator()
-    -> ListingProjectionService.resolve_locator(rows=_all_listing_rows(...))
-    -> _all_listing_rows()
-    -> artifact.window_payload(start=0, count=total_rows)
-
-amiga_reversing/disasm/listing_projection.py
-  resolve_locator() normalizes and scans caller-provided rows.
+  Normal command locator resolution uses the indexed/artifact-local listing
+  projection path; range commands keep the explicit all-row path.
 
 amiga_reversing/disasm/c_backend.py
-  profiled operations repeat output pointer, error pointer, profile JSON, and
-  free-buffer handling.
+  CProfiledOperation owns touched profiled bytes/text/profile/error cleanup.
 
 amiga_reversing/web/app.js
-  recordListingFetchSample() stores queue/fetch/render timings.
-  window.__amigaDebugState() exposes browser debug state.
-
-tests/workflow_harness.py
-  already asserts semantic state, server debug-shaped state, and browser
-  debug-shaped state for representative workflows.
+  window.__amigaDebugState() exposes correlated browser request/profile state
+  for LLM/CDP consumers.
 ```
 
-Current benchmark reports already show useful backend attribution. Examples:
+Deferred or future work:
 
 ```text
-amiga_hunk_bloodwych:
-  total=2.212s analysis=0.586s render_ir=1.607s
-
-amiga_hunk_genam:
-  total=0.607s analysis=0.138s render_ir=0.461s
-
-amiga_hunk_monam302:
-  total=0.724s analysis=0.132s render_ir=0.572s
+Moving RoundTripVerificationWorkflow to a separate module is possible later,
+but was intentionally left out because it would mostly be file churn while the
+workflow still depends on many reproduction-local report helpers.
 ```
 
 Relevant ADR constraints:
