@@ -693,3 +693,7 @@ native launch/probe result instead of artifact presence. A native tool that
 launches but does not support `--version` can still be runnable with
 `probe_status=unsupported`; a timeout or `OSError` probe keeps the artifact
 stamp but makes the tool chain unavailable.
+
+2026-05-17 follow-up: the persisted registry now rejects missing versions,
+legacy flat `tools` payloads, and unknown top-level keys. Missing registry files
+still synthesize an empty v2 registry; writes persist only the v2 shape.

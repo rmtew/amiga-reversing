@@ -14,6 +14,7 @@ from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 TOOL_REGISTRY_FILE_NAME = "tool_registry.json"
 TOOL_REGISTRY_DIR_NAME = ".amiga_reversing"
 TOOL_REGISTRY_VERSION = 2
+TOOL_REGISTRY_KEYS = frozenset({"version", "runtime_tools", "functional_tools"})
 
 RUNTIME_TOOL_IDS = ("host", "vamos", "winuae")
 PERSISTED_RUNTIME_TOOL_IDS = ("vamos", "winuae")
@@ -401,14 +402,18 @@ def _empty_registry() -> dict[str, object]:
 
 def _normalized_registry(registry: Mapping[str, object]) -> dict[str, object]:
     payload = dict(registry)
-    payload.setdefault("version", TOOL_REGISTRY_VERSION)
     payload.setdefault("runtime_tools", {})
     payload.setdefault("functional_tools", {})
     return payload
 
 
 def _validate_registry_payload(payload: Mapping[str, object]) -> None:
-    if payload.get("version", TOOL_REGISTRY_VERSION) != TOOL_REGISTRY_VERSION:
+    unknown_keys = set(payload) - TOOL_REGISTRY_KEYS
+    if unknown_keys:
+        raise ValueError(f"tool registry has unknown top-level keys: {', '.join(sorted(unknown_keys))}")
+    if "version" not in payload:
+        raise ValueError("tool registry version is required")
+    if payload.get("version") != TOOL_REGISTRY_VERSION:
         raise ValueError(f"unsupported tool registry version: {payload.get('version')!r}")
     for kind, bucket in (("runtime", "runtime_tools"), ("functional", "functional_tools")):
         entries = payload.get(bucket, {})

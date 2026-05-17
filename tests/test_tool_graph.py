@@ -32,7 +32,24 @@ def test_tool_graph_registry_v2_load_save_missing_empty_and_populated(tmp_path: 
 
 def test_tool_graph_rejects_v1_and_invalid_payloads(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="unsupported tool registry version"):
-        tool_graph.save_tool_registry({"version": 1, "tools": {"vasm": {}}}, project_root=tmp_path)
+        tool_graph.save_tool_registry({"version": 1, "runtime_tools": {}, "functional_tools": {}}, project_root=tmp_path)
+
+    registry_path = tool_graph.tool_registry_path(project_root=tmp_path)
+    registry_path.parent.mkdir(parents=True)
+    registry_path.write_text(json.dumps({"tools": {"vasm": {"path": "x"}}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="unknown top-level keys"):
+        tool_graph.load_tool_registry(project_root=tmp_path)
+
+    registry_path.write_text(json.dumps({"runtime_tools": {}, "functional_tools": {}}), encoding="utf-8")
+    with pytest.raises(ValueError, match="version is required"):
+        tool_graph.load_tool_registry(project_root=tmp_path)
+
+    registry_path.write_text(
+        json.dumps({"version": 2, "runtime_tools": {}, "functional_tools": {}, "extra": True}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unknown top-level keys"):
+        tool_graph.load_tool_registry(project_root=tmp_path)
 
     with pytest.raises(ValueError, match="unsupported functional tool id"):
         tool_graph.save_tool_registry({"version": 2, "functional_tools": {"bad": {}}}, project_root=tmp_path)
@@ -42,6 +59,14 @@ def test_tool_graph_rejects_v1_and_invalid_payloads(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="must be a string"):
         tool_graph.save_tool_registry({"version": 2, "functional_tools": {"vasm": {"path": 3}}}, project_root=tmp_path)
+
+
+def test_tool_graph_set_path_writes_only_v2_registry_keys(tmp_path: Path) -> None:
+    payload = tool_graph.set_tool_artifact_path("functional", "vasm", "tools/vasm", project_root=tmp_path)
+    assert set(payload) == {"version", "runtime_tools", "functional_tools"}
+
+    saved = json.loads(tool_graph.tool_registry_path(project_root=tmp_path).read_text(encoding="utf-8"))
+    assert set(saved) == {"version", "runtime_tools", "functional_tools"}
 
 
 def test_genam_artifact_available_missing_vamos_is_not_runnable(tmp_path: Path) -> None:
