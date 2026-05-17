@@ -1,61 +1,61 @@
 # Proposal 008: Tool Runtime Capability Graph
 
-Status: GenAm runtime chain cleanup implemented; compiler fingerprinting deferred.
+Status: Implemented for the tool/runtime capability graph; compiler
+fingerprinting deferred.
 Status changed: 2026-05-17.
 
-Proposal 002 made external assembler checks explicit, but the tool model is
-still flat. GenAm shows the missing abstraction: some useful tools are not
-native host executables. They are functional tools that require a runtime such
-as `vamos` before they can be probed or used.
+Proposal 002 made external assembler checks explicit. Proposal 008 replaces
+the old flat registry with a runtime-aware capability graph: functional tools,
+runtime tools, runnable invocation chains, v2 persisted configuration, and
+structured probe evidence. GenAm now resolves through `vamos` as a capability
+chain instead of being modeled as peer availability checks in callers.
 
-This proposal replaces the flat tool registry with a runtime-aware capability
-graph. The immediate goal is clean GenAm-through-vamos modeling. The larger
-goal is to make future assembler/compiler comparison and fingerprinting fit the
-same architecture.
+Compiler fingerprint fixtures remain future work. They should reuse the same
+capability graph rather than introduce a second tool model.
 
 ## Checkpoint Index
 
-- [ ] Why This Exists
-- [ ] Mental Model
-- [ ] Current State Read
-- [ ] Decisions Already Made
-- [ ] Integration Findings
-  - [ ] 1. Availability Is Currently Path-Centric
-  - [ ] 2. GenAm Is A Functional Tool, Not A Native Tool
-  - [ ] 3. `available` Must Mean Runnable
-  - [ ] 4. Version Probing Needs Evidence, Not One Nullable String
-  - [ ] 5. Proposal 007 Does Not Own Tool Query Routes
-  - [ ] 6. Compiler Fingerprinting Wants The Same Model
-  - [ ] 7. Oracles Should Resolve Invocation Chains
-- [ ] Tutorial: Runtime And Functional Tool Inventory
-  - [ ] Step 1: Split Runtime Tools From Functional Tools
-  - [ ] Step 2: Move The Registry To Version 2
-  - [ ] Step 3: Describe Capabilities In A Python Catalog
-  - [ ] Step 4: Resolve Runnable Invocation Chains
-  - [ ] Step 5: Stamp Probe Evidence
-- [ ] Larger Architecture Observations
-  - [ ] 1. Tool Discovery Should Be A Deep Module
-  - [ ] 2. Tool Identity Is More Than Version Text
-  - [ ] 3. Fingerprinting Is An Oracle Workflow
-- [ ] Forward Implementation Model
-  - [ ] `tool_graph.py`
-  - [ ] Runtime Tool Registry
-  - [ ] Functional Tool Registry
-  - [ ] Capability Model
-  - [ ] Probe Strategies
-  - [ ] Invocation Chains
-  - [ ] Resource Routes And Command Mutations
-  - [ ] Fingerprint Fixtures
-- [ ] Non-Goals
-- [ ] Proposed Rewrite
-  - [ ] Slice 1: Replace Flat Registry With Tool Graph
+- [x] Why This Exists
+- [x] Mental Model
+- [x] Current State Read
+- [x] Decisions Already Made
+- [x] Integration Findings
+  - [x] 1. Availability Is Currently Path-Centric
+  - [x] 2. GenAm Is A Functional Tool, Not A Native Tool
+  - [x] 3. `available` Must Mean Runnable
+  - [x] 4. Version Probing Needs Evidence, Not One Nullable String
+  - [x] 5. Proposal 007 Does Not Own Tool Query Routes
+  - [x] 6. Compiler Fingerprinting Wants The Same Model
+  - [x] 7. Oracles Should Resolve Invocation Chains
+- [x] Tutorial: Runtime And Functional Tool Inventory
+  - [x] Step 1: Split Runtime Tools From Functional Tools
+  - [x] Step 2: Move The Registry To Version 2
+  - [x] Step 3: Describe Capabilities In A Python Catalog
+  - [x] Step 4: Resolve Runnable Invocation Chains
+  - [x] Step 5: Stamp Probe Evidence
+- [x] Larger Architecture Observations
+  - [x] 1. Tool Discovery Should Be A Deep Module
+  - [x] 2. Tool Identity Is More Than Version Text
+  - [x] 3. Fingerprinting Is An Oracle Workflow
+- [x] Forward Implementation Model
+  - [x] `tool_graph.py`
+  - [x] Runtime Tool Registry
+  - [x] Functional Tool Registry
+  - [x] Capability Model
+  - [x] Probe Strategies
+  - [x] Invocation Chains
+  - [x] Resource Routes And Command Mutations
+  - [ ] Fingerprint Fixtures (deferred)
+- [x] Non-Goals
+- [x] Proposed Rewrite
+  - [x] Slice 1: Replace Flat Registry With Tool Graph
   - [x] Slice 2: GenAm Through Vamos As The First Runtime Chain
   - [x] Slice 3: Capability Queries For Oracle Workflows
-  - [ ] Slice 4: Probe Evidence And Identity Stamps
-  - [ ] Slice 5: Compiler Fingerprint Fixtures
-- [ ] Acceptance Criteria
-- [ ] Rewrite Acceptance Tests
-- [ ] Verification
+  - [x] Slice 4: Probe Evidence And Identity Stamps
+  - [ ] Slice 5: Compiler Fingerprint Fixtures (deferred)
+- [x] Acceptance Criteria
+- [x] Rewrite Acceptance Tests
+- [x] Verification
 
 ## Why This Exists
 
@@ -642,13 +642,27 @@ schema before adding many compilers.
 
 ## Verification
 
-Initial implementation should run:
+Current implementation checks:
 
 ```powershell
 uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py -q
+uv run ruff check amiga_reversing\disasm\tool_graph.py amiga_reversing\disasm\oracle_compatibility.py amiga_reversing\disasm\server.py amiga_reversing\tools\tool_registry.py tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py
+```
+
+Focused follow-up checks used during cleanup:
+
+```powershell
+uv run python -m pytest tests\test_disasm_server.py tests\test_tool_registry_cli.py tests\test_web_app_source.py -q
+uv run amiga-tool-registry runtimes
+uv run amiga-tool-registry tools
+uv run amiga-tool-registry capability assemble_devpac_source
+uv run amiga-tool-registry project-capabilities <project>
+uv run amiga-tool-registry configure-path functional genam bin\GenAm
 ```
 
 Slice 1 renamed the focused registry tests to `tests\test_tool_graph.py`.
+Completed issue files remain in `docs/issues/` as an implementation archive;
+they are not active work once their status is `Done` or `Implemented`.
 
 If compiler fingerprint fixtures are added:
 
