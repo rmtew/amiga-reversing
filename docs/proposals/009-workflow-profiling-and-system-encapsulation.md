@@ -1190,3 +1190,8 @@ ADR-0004:
   rendering, and the standalone vasm round-trip tool now route through the
   shared source-rendering module; C backend tests remain the direct low-level
   consumer.
+- 2026-05-17: The C profiled operation adapter needed two extra local result
+  shapes: single-profile bytes for assembler calls, and text-with-profile for
+  listing source rendering. Moving those into `CProfiledOperation` removed the
+  touched duplicate `out_profile_json` ownership blocks without changing the C
+  ABI.

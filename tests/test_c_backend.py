@@ -3209,6 +3209,76 @@ def test_c_profiled_operation_frees_profile_and_error_on_failure_status() -> Non
     assert len(dll.freed_text) == 2
 
 
+def test_c_profiled_operation_frees_single_profile_bytes_shape() -> None:
+    buffers: list[ctypes.Array[ctypes.c_char]] = []
+
+    class FakeDll:
+        def __init__(self) -> None:
+            self.freed_text: list[int] = []
+            self.freed_bytes: list[int] = []
+
+        def platform_file_free_text(self, value: ctypes.c_void_p) -> None:
+            self.freed_text.append(int(value.value or 0))
+
+        def platform_file_free_bytes(self, value: ctypes.c_void_p) -> None:
+            self.freed_bytes.append(int(value.value or 0))
+
+    dll = FakeDll()
+
+    def keep(data: bytes) -> int:
+        buffer = ctypes.create_string_buffer(data)
+        buffers.append(buffer)
+        return ctypes.addressof(buffer)
+
+    def fake_function(*args: object) -> int:
+        out_data, out_size, out_profile, out_error = args[-4:]
+        out_data._obj.value = keep(b"assembled")  # type: ignore[attr-defined]
+        out_size._obj.value = 9  # type: ignore[attr-defined]
+        out_profile._obj.value = keep(b'{"assemble": true}')  # type: ignore[attr-defined]
+        out_error._obj.value = keep(b"note")
+        return 0
+
+    result = c_backend.CProfiledOperation(dll).call_bytes_with_profile(fake_function)  # type: ignore[arg-type]
+
+    assert result.status == 0
+    assert result.data == b"assembled"
+    assert result.profile == {"assemble": True}
+    assert result.error_text == "note"
+    assert len(dll.freed_text) == 2
+    assert len(dll.freed_bytes) == 1
+
+
+def test_c_profiled_operation_frees_text_profile_shape_on_failure_status() -> None:
+    buffers: list[ctypes.Array[ctypes.c_char]] = []
+
+    class FakeDll:
+        def __init__(self) -> None:
+            self.freed_text: list[int] = []
+
+        def platform_file_free_text(self, value: ctypes.c_void_p) -> None:
+            self.freed_text.append(int(value.value or 0))
+
+    dll = FakeDll()
+
+    def keep(data: bytes) -> int:
+        buffer = ctypes.create_string_buffer(data)
+        buffers.append(buffer)
+        return ctypes.addressof(buffer)
+
+    def fake_function(*args: object) -> int:
+        out_text, out_profile = args[-2:]
+        out_text._obj.value = keep(b"render failed")  # type: ignore[attr-defined]
+        out_profile._obj.value = keep(b'{"source": true}')  # type: ignore[attr-defined]
+        return 7
+
+    result = c_backend.CProfiledOperation(dll).call_text_with_profile(fake_function)  # type: ignore[arg-type]
+
+    assert result.status == 7
+    assert result.text == "render failed"
+    assert result.profile == {"source": True}
+    assert len(dll.freed_text) == 2
+
+
 def test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api(monkeypatch, tmp_path: Path) -> None:
     binary_path = tmp_path / "sample"
     output_path = tmp_path / "rebuilt.bin"

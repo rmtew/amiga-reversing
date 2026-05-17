@@ -83,6 +83,21 @@ class CProfiledJsonResult:
     error_text: str
 
 
+@dataclass(frozen=True, slots=True)
+class CProfiledBytesWithProfileResult:
+    status: int
+    data: bytes
+    profile: dict[str, object]
+    error_text: str
+
+
+@dataclass(frozen=True, slots=True)
+class CProfiledTextResult:
+    status: int
+    text: str
+    profile: dict[str, object]
+
+
 class CProfiledOperation:
     def __init__(self, dll: CDLL) -> None:
         self._dll = dll
@@ -116,6 +131,14 @@ class CProfiledOperation:
             if out_data.value:
                 self._dll.platform_file_free_bytes(out_data)
 
+    def call_bytes_with_profile(
+        self,
+        function: Callable[..., int],
+        *args: object,
+    ) -> CProfiledBytesWithProfileResult:
+        result = self.call_bytes_with_profiles(function, *args, profile_count=1)
+        return CProfiledBytesWithProfileResult(result.status, result.data, result.profiles[0], result.error_text)
+
     def call_profile(
         self,
         function: Callable[..., int],
@@ -128,6 +151,20 @@ class CProfiledOperation:
             return CProfiledJsonResult(status, _json_from_c_text(out_profile), _text_from_c_pointer(out_error))
         finally:
             self._free_text(out_error)
+            self._free_text(out_profile)
+
+    def call_text_with_profile(
+        self,
+        function: Callable[..., int],
+        *args: object,
+    ) -> CProfiledTextResult:
+        out_text = c_void_p()
+        out_profile = c_void_p()
+        status = function(*args, byref(out_text), byref(out_profile))
+        try:
+            return CProfiledTextResult(status, _text_from_c_pointer(out_text), _json_from_c_text(out_profile))
+        finally:
+            self._free_text(out_text)
             self._free_text(out_profile)
 
     def _free_text(self, value: c_void_p) -> None:
@@ -374,10 +411,6 @@ def assemble_platform_source_path_with_c_backend(
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[bytes, dict[str, object]]:
     dll = _platform_file_dll(project_root)
-    out_data = c_void_p()
-    out_size = c_size_t()
-    out_profile_json = c_void_p()
-    out_error = c_void_p()
     common_args = [
         _c_arg(backend),
         _c_arg(str(include_dir) if include_dir is not None else ""),
@@ -388,33 +421,14 @@ def assemble_platform_source_path_with_c_backend(
     else:
         function = dll.platform_file_assemble_source_path_to_output_bytes_profile_alloc
         common_args.append(_c_arg(output_path))
-    result = function(
+    result = CProfiledOperation(dll).call_bytes_with_profile(
+        function,
         *common_args,
         _c_arg(target_cpu),
-        byref(out_data),
-        byref(out_size),
-        byref(out_profile_json),
-        byref(out_error),
     )
-    try:
-        profile_text = (
-            string_at(out_profile_json.value).decode("utf-8", errors="replace")
-            if out_profile_json.value
-            else "{}"
-        )
-        profile = cast(dict[str, object], json.loads(profile_text))
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise RuntimeError(f"C platform assembler failed: {detail}")
-        data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
-        return data, profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_profile_json.value:
-            dll.platform_file_free_text(out_profile_json)
-        if out_data.value:
-            dll.platform_file_free_bytes(out_data)
+    if result.status != 0:
+        raise RuntimeError(f"C platform assembler failed: {result.error_text}")
+    return result.data, result.profile
 
 
 def assemble_platform_source_text_with_c_backend(
@@ -427,10 +441,6 @@ def assemble_platform_source_text_with_c_backend(
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[bytes, dict[str, object]]:
     dll = _platform_file_dll(project_root)
-    out_data = c_void_p()
-    out_size = c_size_t()
-    out_profile_json = c_void_p()
-    out_error = c_void_p()
     common_args = [
         _c_arg(backend),
         _c_arg(str(include_dir) if include_dir is not None else ""),
@@ -441,33 +451,14 @@ def assemble_platform_source_text_with_c_backend(
     else:
         function = dll.platform_file_assemble_source_text_to_output_bytes_profile_alloc
         common_args.append(_c_arg(output_path))
-    result = function(
+    result = CProfiledOperation(dll).call_bytes_with_profile(
+        function,
         *common_args,
         _c_arg(target_cpu),
-        byref(out_data),
-        byref(out_size),
-        byref(out_profile_json),
-        byref(out_error),
     )
-    try:
-        profile_text = (
-            string_at(out_profile_json.value).decode("utf-8", errors="replace")
-            if out_profile_json.value
-            else "{}"
-        )
-        profile = cast(dict[str, object], json.loads(profile_text))
-        if result != 0:
-            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
-            raise RuntimeError(f"C platform assembler failed: {detail}")
-        data = bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
-        return data, profile
-    finally:
-        if out_error.value:
-            dll.platform_file_free_text(out_error)
-        if out_profile_json.value:
-            dll.platform_file_free_text(out_profile_json)
-        if out_data.value:
-            dll.platform_file_free_bytes(out_data)
+    if result.status != 0:
+        raise RuntimeError(f"C platform assembler failed: {result.error_text}")
+    return result.data, result.profile
 
 
 def facts_v2_direct_rebuild_project_source_with_c_backend_profile(
@@ -1387,28 +1378,13 @@ class CListingArtifact:
         return analysis, profile
 
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
-        out_text = c_void_p()
-        out_profile_json = c_void_p()
-        result = self._dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc(
+        result = CProfiledOperation(self._dll).call_text_with_profile(
+            self._dll.platform_file_facts_v2_listing_artifact_source_text_profile_alloc,
             self._handle,
-            byref(out_text),
-            byref(out_profile_json),
         )
-        try:
-            text = string_at(out_text.value).decode("utf-8", errors="replace") if out_text.value else ""
-            profile_text = (
-                string_at(out_profile_json.value).decode("utf-8", errors="replace")
-                if out_profile_json.value
-                else "{}"
-            )
-            if result != 0:
-                raise RuntimeError(f"C backend DLL failed: {text}")
-            return text, cast(dict[str, object], json.loads(profile_text))
-        finally:
-            if out_text.value:
-                self._dll.platform_file_free_text(out_text)
-            if out_profile_json.value:
-                self._dll.platform_file_free_text(out_profile_json)
+        if result.status != 0:
+            raise RuntimeError(f"C backend DLL failed: {result.text}")
+        return result.text, result.profile
 
     def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(
