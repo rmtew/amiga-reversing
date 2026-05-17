@@ -1598,7 +1598,15 @@ def _c_listing_row_dicts(raw_rows: object) -> list[dict[str, object]]:
     for raw_row in raw_rows:
         if not isinstance(raw_row, dict):
             continue
-        rows.append(cast(dict[str, object], dict(raw_row)))
+        row = cast(dict[str, object], dict(raw_row))
+        if not isinstance(row.get("row_key"), str):
+            stable_key = row.get("stable_key")
+            row_id = row.get("row_id")
+            if isinstance(stable_key, str) and stable_key:
+                row["row_key"] = stable_key
+            elif isinstance(row_id, str) and row_id:
+                row["row_key"] = row_id
+        rows.append(row)
     return rows
 
 

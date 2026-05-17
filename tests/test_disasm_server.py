@@ -893,9 +893,59 @@ def test_route_listing_section_offset_uses_hunk_local_row(monkeypatch: pytest.Mo
     data = cast(dict[str, object], payload["data"])
     returned_rows = cast(list[dict[str, object]], data["rows"])
 
-    assert "h1" not in [row["row_id"] for row in returned_rows]
-    assert returned_rows[-1]["row_id"] == "h2-target"
+    assert "h1" not in [row["row_key"] for row in returned_rows]
+    assert returned_rows[-1]["row_key"] == "h2-target"
     assert returned_rows[-1]["section_index"] == 2
+
+
+def test_route_listing_rows_use_locator_contract_without_old_identity_names(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            stable_key="s0:00000004:instruction:1",
+            kind="instruction",
+            text="rts\n",
+            addr=4,
+            section_index=0,
+            start_offset=4,
+            end_offset=6,
+        )
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: _binary_project(project_name, ready=True),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["0"], "count": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    row = cast(list[dict[str, object]], data["rows"])[0]
+
+    assert data["target_id"] == "bloodwych"
+    assert isinstance(data["projection_hash"], str)
+    assert row["target_id"] == "bloodwych"
+    assert row["projection_hash"] == data["projection_hash"]
+    assert row["row_key"] == "s0:00000004:instruction:1"
+    assert row["locator"] == {
+        "target_id": "bloodwych",
+        "projection_hash": data["projection_hash"],
+        "row_key": "s0:00000004:instruction:1",
+        "section_index": 0,
+        "start_offset": 4,
+        "end_offset": 6,
+        "kind": "instruction",
+        "storage_address": 4,
+        "runtime_address": None,
+    }
+    assert "row_id" not in row
+    assert "stable_key" not in row
 
 
 def _disk_manifest_payload() -> dict[str, object]:
@@ -4070,7 +4120,7 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
 
     assert payload["ok"] is True
     assert data["anchor_addr"] == 0x10
-    assert rows_data[0]["row_id"] == "r0"
+    assert rows_data[0]["row_key"] == "r0"
     assert "view_annotations" not in rows_data[0]
     assert rows_data[0]["structured_data"] == {
         "struct_name": "RT",
@@ -4107,7 +4157,7 @@ def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> 
     assert data["total_rows"] == 5
     assert data["has_more_before"] is True
     assert data["has_more_after"] is True
-    assert [row["row_id"] for row in rows_data] == ["r2", "r3"]
+    assert [row["row_key"] for row in rows_data] == ["r2", "r3"]
 
 
 def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -4155,7 +4205,7 @@ def test_route_listing_index_window_uses_c_artifact_cache(monkeypatch: pytest.Mo
 
     assert payload["ok"] is True
     assert calls == [(2, 2)]
-    assert rows_data[0]["row_id"] == "from-c"
+    assert rows_data[0]["row_key"] == "from-c"
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
@@ -4204,7 +4254,7 @@ def test_route_listing_anchor_code_uses_c_artifact_cache(monkeypatch: pytest.Mon
 
     assert payload["ok"] is True
     assert calls == [("SECTION section,code", 2)]
-    assert rows_data[0]["row_id"] == "from-c-anchor"
+    assert rows_data[0]["row_key"] == "from-c-anchor"
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
@@ -4253,7 +4303,7 @@ def test_route_listing_addr_window_uses_c_artifact_cache(monkeypatch: pytest.Mon
 
     assert payload["ok"] is True
     assert calls == [(4, 1, 1)]
-    assert rows_data[0]["row_id"] == "from-c-addr"
+    assert rows_data[0]["row_key"] == "from-c-addr"
     disasm_server._PROJECT_C_LISTING_ARTIFACT_CACHE.clear()
 
 
@@ -4281,7 +4331,7 @@ def test_route_listing_window_clamps_past_end(monkeypatch: pytest.MonkeyPatch) -
     assert data["start"] == 3
     assert data["end"] == 5
     assert data["total_rows"] == 5
-    assert [row["row_id"] for row in rows_data] == ["r3", "r4"]
+    assert [row["row_key"] for row in rows_data] == ["r3", "r4"]
 
 
 def test_listing_navigation_payload_uses_all_rows(monkeypatch: pytest.MonkeyPatch) -> None:

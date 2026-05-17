@@ -39,6 +39,7 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
 from amiga_reversing.disasm.listing_context import selected_listing_element_context
+from amiga_reversing.disasm.listing_projection import ListingProjectionService
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
@@ -160,6 +161,7 @@ _PROJECT_C_LISTING_ARTIFACT_CACHE: dict[str, CListingArtifact] = {}
 _PROJECT_LISTING_CACHE_KEY: dict[str, str] = {}
 _PROJECT_LISTING_PRESENTATION_DIRTY: set[str] = set()
 _PROJECT_ANALYSIS_REVIEW_ITEMS_CACHE: dict[str, tuple[str, int, tuple[dict[str, object], ...]]] = {}
+_LISTING_PROJECTION_SERVICE = ListingProjectionService()
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
 _JOB_LOCK = threading.Lock()
@@ -2937,9 +2939,14 @@ def route_request(
                     "analysis_generation": _project_listing_generation(project_name),
                 },
             )
+            annotated_payload = _annotate_listing_payload(project_name, payload)
             return {
                 "ok": True,
-                "data": _annotate_listing_payload(project_name, payload),
+                "data": _LISTING_PROJECTION_SERVICE.normalize_window(
+                    target_id=project_name,
+                    projection_hash=_project_listing_cache_key(project_name),
+                    payload=annotated_payload,
+                ),
             }
         if (
             method == "GET"

@@ -1679,6 +1679,19 @@ tracer through it
 and debug-state ownership out of server.py
 ```
 
+Implementation note from `028-001`: `ListingProjectionService` now owns the
+first web listing-window normalization path. `/api/projects/{id}/listing` rows
+return `row_key`, `locator`, `target_id`, `projection_hash`, recovery fields,
+and address helpers, without top-level `row_id` or `stable_key`. The C backend
+Python boundary attaches `row_key` from C-emitted row identity so projection does
+not derive identity from row text or row index.
+
+Remaining out of scope for `028-001`: command palette/catalog routes, internal
+manual projection matching, navigation payloads, and browser state still contain
+legacy row identity names until `028-004`, `028-009`, and `028-010` move those
+contracts to locators. `028-002` still owns moving cache/job/debug state into
+the service.
+
 Do not implement `028-001` as a locator helper called from the old route globals.
 That would preserve the shallow interface this proposal is trying to delete.
 
