@@ -890,6 +890,9 @@ def test_run_reproduction_uses_facts_v2_direct_rebuild_fast_path(
     span_names = [span["name"] for span in spans]
     assert span_names == ["direct_rebuild", "reproduction_compare"]
     assert spans[0]["module"] == "c_backend"
+    workflow_counters = cast(dict[str, object], workflow_profile["counters"])
+    assert workflow_counters["facts_v2_direct_rebuild_c_api"] == 1.0
+    assert workflow_counters["direct_rebuild_seconds"] == profile["direct_rebuild_seconds"]
     assert calls[0]["kwargs"]["output_path"] == tmp_path / "bin" / "rebuilt" / "demo" / "rebuilt.bin"
     assert not (tmp_path / "bin" / "rebuilt" / "demo" / "source.s").exists()
 
