@@ -349,7 +349,6 @@ def _copy_existing_binary_targets(project_root: Path, *, limit: int | None) -> l
             "target_metadata.json",
             "target_seeded_metadata.json",
             "target_corrections.json",
-            "target_ui_edits.json",
         ):
             metadata_path = source_path.parent / metadata_name
             if metadata_path.exists():

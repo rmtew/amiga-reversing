@@ -22,6 +22,7 @@ from amiga_reversing.disasm.project_ids import (
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import create_project_at_path
+from amiga_reversing.disasm.target_local_state import PROFILE_SET_TARGET_METADATA_FILES
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
 RESOURCE_DIRS = (
@@ -226,12 +227,7 @@ def _copy_existing_binary_targets(project_root: Path, *, repo_root: Path, limit:
         target_dir = project_root / "targets" / target_name
         create_project_at_path(f"targets/{target_name}", project_root=project_root)
         write_source_descriptor(target_dir, source_payload)
-        for metadata_name in (
-            "target_metadata.json",
-            "target_seeded_metadata.json",
-            "target_corrections.json",
-            "target_ui_edits.json",
-        ):
+        for metadata_name in PROFILE_SET_TARGET_METADATA_FILES:
             metadata_path = source_path.parent / metadata_name
             if metadata_path.exists():
                 shutil.copy2(metadata_path, target_dir / metadata_name)

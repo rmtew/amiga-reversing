@@ -24,12 +24,12 @@ from amiga_reversing.amiga_disk.models import (
     BlockUsageInfo,
     BootBlockInfo,
     BootloaderAnalysis,
-    BootloaderDecodeRegion,
     BootloaderDecodeInputSourceKind,
+    BootloaderDecodeRegion,
     BootloaderDecodeRequiredSourceKind,
     BootloaderDerivedRegion,
-    BootloaderDiskRead,
     BootloaderDiskCommand,
+    BootloaderDiskRead,
     BootloaderMemoryCopy,
     BootloaderStage,
     BootloaderTransferSourceKind,
@@ -547,6 +547,51 @@ def test_import_adf_creates_hidden_disk_manifest_and_targets(
     assert bootblock_metadata["bootblock"]["entrypoint"] == 0x7000C
 
     assert [target.entry_path for target in manifest.imported_targets] == ["bootblock"]
+
+
+def test_import_adf_reimport_drops_obsolete_target_local_state_but_keeps_import_facts(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    project_root = tmp_path
+    (project_root / "targets").mkdir()
+    (project_root / "bin").mkdir()
+    adf_path = project_root / "bin" / "demo.adf"
+    adf_path.write_bytes(b"\0" * 2048)
+
+    def extract_disk_entry(adf_file: str | Path, entry_path: str, *, project_root: Path) -> bytes:
+        if entry_path == "s/startup-sequence":
+            return b"s:Run\n"
+        if entry_path == "s/Run":
+            return b"program"
+        pytest.fail(f"unexpected entry_path: {entry_path}")
+
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_adf",
+        lambda adf_file, *, extract_dir=None, include_tracks=False: _single_program_disk_analysis_with_startup(
+            adf_file
+        ),
+    )
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry)
+    monkeypatch.setattr(
+        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
+        lambda source_path, *, project_root: {},
+    )
+
+    first_manifest = import_adf(adf_path, project_root=project_root)
+    target = next(item for item in first_manifest.imported_targets if item.entry_path == "s/Run")
+    target_dir = project_root / target.target_path
+    stale_files = ("target_ui_edits.json", "ui_preferences.json", "manual_actions.jsonl")
+    for file_name in stale_files:
+        (target_dir / file_name).write_text("stale\n", encoding="utf-8")
+    (target_dir / "target_seeded_metadata.json").write_text('{"seeded": true}\n', encoding="utf-8")
+    (target_dir / "target_corrections.json").write_text('{"corrections": true}\n', encoding="utf-8")
+
+    second_manifest = import_adf(adf_path, project_root=project_root)
+    assert any(item.target_name == target.target_name for item in second_manifest.imported_targets)
+    for file_name in stale_files:
+        assert not (target_dir / file_name).exists()
+    assert (target_dir / "target_seeded_metadata.json").read_text(encoding="utf-8") == '{"seeded": true}\n'
+    assert (target_dir / "target_corrections.json").read_text(encoding="utf-8") == '{"corrections": true}\n'
 
 
 def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(

@@ -48,6 +48,7 @@ from amiga_reversing.disasm.project_ids import (
     target_output_stem,
 )
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+from amiga_reversing.disasm.target_local_state import clean_obsolete_target_local_state
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
 
@@ -988,6 +989,7 @@ def _import_disk_file_entry(
             },
         )
         created_target_dirs.append(target_dir)
+    clean_obsolete_target_local_state(target_dir)
     write_source_descriptor(
         target_dir,
         {
@@ -1594,6 +1596,7 @@ def _materialize_decompressed_payload_children(
                     origin=origin,
                 )
                 created_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             output_path = target_dir / "binary.bin"
             temp_output_path = target_dir / ".decompression-output.tmp"
             try:
@@ -1770,6 +1773,7 @@ def _materialize_decompressed_payload_children(
                     origin=origin,
                 )
                 created_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             output_path = target_dir / "binary.bin"
             temp_output_path = target_dir / ".recognized-unpacker-output.tmp"
             try:
@@ -1947,6 +1951,7 @@ def _materialize_decompressed_payload_children(
                     origin=origin,
                 )
                 created_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             output_path = target_dir / "binary.bin"
             temp_output_path = target_dir / ".self-decrunch-output.tmp"
             try:
@@ -2202,6 +2207,7 @@ def create_disk_project(
                 },
             )
             created_target_dirs.append(bootblock_target_dir)
+        clean_obsolete_target_local_state(bootblock_target_dir)
         bootblock_binary_path = bootblock_target_dir / "binary.bin"
         _write_bytes(bootblock_binary_path, disk_bytes[bootblock_byte_offset:bootblock_byte_offset + bootblock_byte_size])
         bootblock_source["path"] = bootblock_binary_path.relative_to(project_root).as_posix()
@@ -2250,6 +2256,7 @@ def create_disk_project(
                     },
                 )
                 created_target_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             binary_path = target_dir / "binary.bin"
             _write_bytes(binary_path, stage_bytes)
             source_descriptor = dict(stage.import_target.source)
@@ -2295,6 +2302,7 @@ def create_disk_project(
                     },
                 )
                 created_target_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             binary_path = target_dir / "binary.bin"
             _write_bytes(binary_path, span_bytes)
             source_descriptor = dict(import_target.source)
@@ -2349,6 +2357,7 @@ def create_disk_project(
                     },
                 )
                 created_target_dirs.append(target_dir)
+            clean_obsolete_target_local_state(target_dir)
             binary_path = target_dir / "binary.bin"
             _write_bytes(binary_path, stage_bytes)
             source_descriptor = dict(import_target.source)

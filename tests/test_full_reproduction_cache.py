@@ -10,6 +10,7 @@ from types import ModuleType
 from amiga_reversing.disasm.profile_set_targets import (
     BUILD_RUNTIME_FILES,
     PROFILE_SET_STAMP_FILE,
+    _copy_existing_binary_targets,
     ensure_profile_set_project,
 )
 
@@ -249,3 +250,35 @@ def test_profile_set_cache_reuse_refreshes_runtime_files(tmp_path: Path) -> None
     assert project.project_root == project_root
     for file_name in BUILD_RUNTIME_FILES:
         assert (copied_build / file_name).read_bytes() == f"new:{file_name}".encode("ascii")
+
+
+def test_profile_set_copy_preserves_import_facts_and_drops_obsolete_ui_state(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    project_root = tmp_path / "profile_project"
+    source_dir = repo_root / "targets" / "source_target"
+    source_dir.mkdir(parents=True)
+    binary_path = repo_root / "bin" / "demo"
+    binary_path.parent.mkdir()
+    binary_path.write_bytes(b"demo")
+    (source_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    copied_files = {
+        "target_metadata.json": "{}\n",
+        "target_seeded_metadata.json": '{"seeded": true}\n',
+        "target_corrections.json": '{"corrections": true}\n',
+    }
+    for file_name, content in copied_files.items():
+        (source_dir / file_name).write_text(content, encoding="utf-8")
+    for file_name in ("target_ui_edits.json", "ui_preferences.json", "manual_actions.jsonl"):
+        (source_dir / file_name).write_text("stale\n", encoding="utf-8")
+
+    target_names = _copy_existing_binary_targets(project_root, repo_root=repo_root, limit=None)
+
+    assert len(target_names) == 1
+    target_dir = project_root / "targets" / target_names[0]
+    for file_name, content in copied_files.items():
+        assert (target_dir / file_name).read_text(encoding="utf-8") == content
+    for file_name in ("target_ui_edits.json", "ui_preferences.json", "manual_actions.jsonl"):
+        assert not (target_dir / file_name).exists()

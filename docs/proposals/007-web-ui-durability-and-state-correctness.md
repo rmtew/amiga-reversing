@@ -1775,6 +1775,20 @@ The existing reimport command-line/import code should be tightened so reimport
 means clean target-local UI state, not partial refresh. In particular,
 profile-set target copying must stop copying `target_ui_edits.json`.
 
+Implementation note from `028-005`: disk import/reimport now deletes
+`target_ui_edits.json`, `ui_preferences.json`, and `manual_actions.jsonl` from
+rewritten target directories. Profile-set target copying keeps only source/import
+facts and no longer copies `target_ui_edits.json`. The tracked target-file
+inventory classified `target_seeded_metadata.json` and `target_corrections.json`
+as source/import facts to preserve. No extra obsolete generated local-state file
+was found in tracked target fixtures.
+
+Remaining out of scope for `028-005`: production readers and writers of
+`target_ui_edits.py` still exist until `028-006` replaces those workflows with
+authoritative Manual Action Log mutation results. `028-005` prevents stale
+target-local UI/manual state from surviving reset/reimport boundaries; it does
+not delete the old mutation path.
+
 Reimport cleanup should delete:
 
 ```text
