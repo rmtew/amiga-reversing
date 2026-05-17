@@ -241,9 +241,13 @@ const NavigationSession = {
     return state.navigation.currentLocation;
   },
   pushHistory(origin, current) {
+    if (!navigationEntryRecoverable(origin) || !navigationEntryRecoverable(current)) {
+      return false;
+    }
     state.navigation.historyBack.push(origin);
     state.navigation.historyForward = [];
     state.navigation.currentLocation = current;
+    return true;
   },
 };
 
@@ -1995,6 +1999,17 @@ function listingRowLocatorFromElement(row) {
   } catch (error) {
     return null;
   }
+}
+
+function storedListingLocator(value, projectId = null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const locator = {...value};
+  if (projectId && !locator.target_id) {
+    locator.target_id = projectId;
+  }
+  return listingRowLocator({locator});
 }
 
 function listingLocatorsSameRow(left, right) {
@@ -5903,6 +5918,7 @@ function captureListingAddressAnchor(viewport) {
     }
   }
   return {
+    locator: listingRowLocatorFromElement(best),
     rowIndex: best.dataset.rowIndex !== "" && best.dataset.rowIndex !== undefined
       ? Number(best.dataset.rowIndex)
       : null,
@@ -5918,6 +5934,12 @@ function captureListingAddressAnchor(viewport) {
 function selectListingAnchorRow(viewport, anchor) {
   if (!(viewport instanceof HTMLElement) || !anchor) {
     return null;
+  }
+  if (anchor.locator) {
+    const row = renderedRowForListingLocator(anchor.locator);
+    if (row instanceof HTMLElement) {
+      return row;
+    }
   }
   if (Number.isFinite(anchor.addr)) {
     const row = selectBestListingRow(viewport, anchor.addr, anchor.rowCode || null);
@@ -6755,15 +6777,27 @@ function navigationEntryHasJumpTarget(entry) {
   if (!entry || entry.navigable === false) {
     return false;
   }
+  if (storedListingLocator(entry.locator, state.project)) {
+    return true;
+  }
   if (navigationEntryRowIndex(entry) !== null) {
     return true;
   }
   return entry.addr !== null && entry.addr !== undefined && Number.isFinite(Number(entry.addr));
 }
 
+function navigationEntryRecoverable(entry) {
+  return Boolean(storedListingLocator(entry?.locator, state.project));
+}
+
 function navigationEntriesSameLocation(left, right) {
   if (!left || !right) {
     return false;
+  }
+  const leftLocator = storedListingLocator(left.locator, state.project);
+  const rightLocator = storedListingLocator(right.locator, state.project);
+  if (leftLocator && rightLocator) {
+    return listingLocatorsSameRow(leftLocator, rightLocator);
   }
   const leftStable = left.stableKey || left.stable_key || null;
   const rightStable = right.stableKey || right.stable_key || null;
@@ -6776,6 +6810,49 @@ function navigationEntriesSameLocation(left, right) {
     return leftRowIndex === rightRowIndex;
   }
   return left.addr === right.addr && navigationEntryHunkIndex(left) === navigationEntryHunkIndex(right);
+}
+
+function navigationEntryWithRenderedLocator(entry) {
+  if (!entry) {
+    return null;
+  }
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement)) {
+    return entry;
+  }
+  let row = null;
+  const locator = storedListingLocator(entry.locator, state.project);
+  if (locator) {
+    row = renderedRowForListingLocator(locator);
+  }
+  const rowIndex = navigationEntryRowIndex(entry);
+  if (!(row instanceof HTMLElement) && rowIndex !== null) {
+    row = viewport.querySelector(`[data-row-index="${String(Math.floor(rowIndex))}"]`);
+  }
+  if (!(row instanceof HTMLElement) && Number.isFinite(Number(entry.addr))) {
+    row = selectBestListingRow(
+      viewport,
+      Number(entry.addr),
+      entry.matchText || entry.match_text || null,
+      entry.stableKey || entry.stable_key || null,
+      rowIndex,
+    );
+  }
+  if (!(row instanceof HTMLElement)) {
+    return entry;
+  }
+  const renderedLocator = listingRowLocatorFromElement(row);
+  if (!renderedLocator) {
+    return entry;
+  }
+  return {
+    ...entry,
+    locator: renderedLocator,
+    viewport_anchor: {
+      scroll_top: Math.floor(viewport.scrollTop),
+      window_start: Math.floor(Number(state.virtualListing.start || 0)),
+    },
+  };
 }
 
 function captureViewportAnchor() {
@@ -6792,10 +6869,17 @@ function captureViewportAnchor() {
   }
   const addrText = candidate.dataset.rowAddr;
   const addr = addrText === "" || addrText === undefined ? null : Number(addrText);
-  if (addr === null || Number.isNaN(addr)) {
+  const locator = listingRowLocatorFromElement(candidate);
+  if ((addr === null || Number.isNaN(addr)) && !locator) {
     return null;
   }
+  const viewportAnchor = {
+    scroll_top: Math.floor(viewport.scrollTop),
+    window_start: Math.floor(Number(state.virtualListing.start || 0)),
+  };
   return {
+    locator,
+    viewport_anchor: viewportAnchor,
     addr,
     hunk: candidate.dataset.sectionIndex === undefined ? null : Number(candidate.dataset.sectionIndex),
     matchText: candidate.dataset.rowCode || null,
@@ -7053,6 +7137,7 @@ async function selectAppSlotNavigationRef(projectId, symbolName, rowIndex = null
   renderNavigationOverlay();
   syncNavigationListFocus();
   focusVisibleListingRowByIndex(rowIndex);
+  state.navigation.currentPreviewEntry = navigationEntryWithRenderedLocator(state.navigation.currentPreviewEntry);
 }
 
 async function selectLabelNavigationRef(projectId, symbolName, rowIndex = null, access = null) {
@@ -7079,6 +7164,7 @@ async function selectLabelNavigationRef(projectId, symbolName, rowIndex = null, 
   renderNavigationOverlay();
   syncNavigationListFocus();
   focusVisibleListingRowByIndex(rowIndex);
+  state.navigation.currentPreviewEntry = navigationEntryWithRenderedLocator(state.navigation.currentPreviewEntry);
 }
 
 async function selectEquateNavigationRef(projectId, symbolName, rowIndex = null, access = null) {
@@ -7105,6 +7191,7 @@ async function selectEquateNavigationRef(projectId, symbolName, rowIndex = null,
   renderNavigationOverlay();
   syncNavigationListFocus();
   focusVisibleListingRowByIndex(rowIndex);
+  state.navigation.currentPreviewEntry = navigationEntryWithRenderedLocator(state.navigation.currentPreviewEntry);
 }
 
 async function jumpToListingEquate(projectId, symbolName) {
@@ -7293,7 +7380,7 @@ async function previewNavigationEntry(entry) {
     renderReproPanel();
   }
   if (await jumpToNavigationEntry(state.project, entry)) {
-    state.navigation.currentPreviewEntry = entry;
+    state.navigation.currentPreviewEntry = navigationEntryWithRenderedLocator(entry);
   } else {
     state.navigation.currentPreviewEntry = null;
   }
@@ -7392,12 +7479,19 @@ async function openNavigationOverlay(selectedClass = null, selectedNoteId = null
 async function navigateHistory(direction) {
   const sourceStack = direction === "back" ? state.navigation.historyBack : state.navigation.historyForward;
   const targetStack = direction === "back" ? state.navigation.historyForward : state.navigation.historyBack;
-  const target = sourceStack.pop();
+  let target = null;
+  while (sourceStack.length) {
+    const candidate = sourceStack.pop();
+    if (navigationEntryRecoverable(candidate)) {
+      target = candidate;
+      break;
+    }
+  }
   if (!target || !state.project) {
     return;
   }
   const current = state.navigation.currentLocation || captureViewportAnchor();
-  if (current) {
+  if (navigationEntryRecoverable(current)) {
     targetStack.push(current);
   }
   await jumpToNavigationEntry(state.project, target);
@@ -7885,7 +7979,41 @@ async function loadUiPreferenceState(projectId) {
   }
 }
 
-function explicitListingLocationFromUrl() {
+function listingLocatorFromUrlParams(projectId, value) {
+  const locatorText = value("locator");
+  if (locatorText) {
+    try {
+      return storedListingLocator(JSON.parse(locatorText), projectId);
+    } catch (error) {
+      return null;
+    }
+  }
+  const numericValue = (name) => {
+    const text = value(name);
+    return text === null ? NaN : Number(text);
+  };
+  const locator = {
+    target_id: value("target_id") || projectId,
+    projection_hash: value("projection_hash"),
+    row_key: value("row_key"),
+    kind: value("kind"),
+  };
+  for (const [field, queryName] of [
+    ["section_index", "section_index"],
+    ["start_offset", "start_offset"],
+    ["end_offset", "end_offset"],
+    ["storage_address", "storage_address"],
+    ["runtime_address", "runtime_address"],
+  ]) {
+    const numeric = numericValue(queryName);
+    if (Number.isFinite(numeric)) {
+      locator[field] = Math.floor(numeric);
+    }
+  }
+  return storedListingLocator(locator, projectId);
+}
+
+function explicitListingLocationFromUrl(projectId) {
   const params = new URLSearchParams(window.location.search || "");
   const hashParams = new URLSearchParams(String(window.location.hash || "").replace(/^#/, ""));
   const value = (name) => params.get(name) ?? hashParams.get(name);
@@ -7893,13 +8021,13 @@ function explicitListingLocationFromUrl() {
     const text = value(name);
     return text === null ? NaN : Number(text);
   };
-  const rowIndex = numericValue("row_index");
+  const locator = listingLocatorFromUrlParams(projectId, value);
   const sectionIndex = numericValue("section_index");
   const sourceOffset = numericValue("source_offset");
   const runtimeAddress = numericValue("runtime_address");
   const addr = numericValue("addr");
-  if (Number.isFinite(rowIndex)) {
-    return {kind: "row", rowIndex};
+  if (locator) {
+    return {kind: "locator", locator};
   }
   if (Number.isInteger(sectionIndex) && Number.isFinite(sourceOffset)) {
     return {kind: "source", sectionIndex, sourceOffset};
@@ -7918,16 +8046,16 @@ function preferenceListingLocation(payload) {
   if (!location || typeof location !== "object" || payload?.preferences?.stale === true) {
     return null;
   }
+  const locator = storedListingLocator(location.locator, payload?.preferences?.target_id || state.project);
+  if (!locator) {
+    return null;
+  }
   return {
     kind: "preference",
-    rowIndex: Number(location.row_index),
-    addr: Number(location.addr),
-    sectionIndex: Number(location.section_index),
-    sourceOffset: Number(location.start_offset),
-    stableKey: location.stable_key || null,
-    rowCode: location.row_code || "",
-    scrollTop: Number(location.scroll_top),
-    windowStart: Number(location.window_start),
+    locator,
+    selectionLocator: storedListingLocator(location.selection_locator, locator.target_id),
+    focusLocator: storedListingLocator(location.focus_locator, locator.target_id),
+    viewportAnchor: location.viewport_anchor || null,
   };
 }
 
@@ -7961,7 +8089,7 @@ async function applyInitialListingLocation(projectId, uiPreferences) {
   if (!ListingSession.rows().length) {
     return false;
   }
-  const explicit = explicitListingLocationFromUrl();
+  const explicit = explicitListingLocationFromUrl(projectId);
   if (explicit && await jumpToListingLocation(projectId, explicit)) {
     state.uiPreferences.initialApplied = true;
     return true;
@@ -7980,10 +8108,10 @@ async function applyInitialListingLocation(projectId, uiPreferences) {
       }
     }
     state.uiPreferences.initialApplied = true;
-    return false;
+    return focusFirstRenderedListingRow();
   }
   state.uiPreferences.initialApplied = true;
-  return false;
+  return focusFirstRenderedListingRow();
 }
 
 async function maybeApplyInitialListingLocation(projectId) {
@@ -8008,9 +8136,107 @@ async function maybeApplyInitialListingLocation(projectId) {
   }
 }
 
+function listingLocatorMatchesElement(locator, row) {
+  if (!(row instanceof HTMLElement)) {
+    return false;
+  }
+  const current = listingRowLocatorFromElement(row);
+  if (listingLocatorsSameRow(locator, current)) {
+    return true;
+  }
+  const sectionIndex = Number(row.dataset.sectionIndex);
+  const startOffset = Number(row.dataset.startOffset);
+  if (
+    Number.isInteger(locator?.section_index)
+    && Number.isFinite(locator?.start_offset)
+    && locator.section_index === sectionIndex
+    && locator.start_offset === startOffset
+  ) {
+    return true;
+  }
+  const runtimeAddress = Number(row.dataset.runtimeAddress);
+  if (Number.isFinite(locator?.runtime_address) && locator.runtime_address === runtimeAddress) {
+    return true;
+  }
+  const storageAddress = Number(row.dataset.rowAddr);
+  return Number.isFinite(locator?.storage_address) && locator.storage_address === storageAddress;
+}
+
+function renderedRowForListingLocator(locator) {
+  const viewport = document.getElementById("listing-viewport");
+  if (!(viewport instanceof HTMLElement) || !locator) {
+    return null;
+  }
+  const rows = Array.from(viewport.querySelectorAll(".listing-row"));
+  return rows.find((row) => listingLocatorMatchesElement(locator, row)) || null;
+}
+
+function focusFirstRenderedListingRow() {
+  const viewport = document.getElementById("listing-viewport");
+  const row = viewport instanceof HTMLElement ? viewport.querySelector(".listing-row") : null;
+  if (!(row instanceof HTMLElement)) {
+    return false;
+  }
+  focusListingRow(row);
+  return true;
+}
+
+async function loadWindowForListingLocator(projectId, locator, viewportAnchor = null) {
+  const viewport = document.getElementById("listing-viewport");
+  const count = viewport instanceof HTMLElement ? listingFetchCount(viewport) : LISTING_INITIAL_ROW_WINDOW;
+  const before = Math.max(12, Math.floor(count / 3));
+  if (Number.isInteger(locator.section_index) && Number.isFinite(locator.start_offset)) {
+    return loadListingWindow(projectId, null, before, count, {
+      sectionIndex: locator.section_index,
+      sourceOffset: locator.start_offset,
+      renderEmpty: false,
+    });
+  }
+  if (Number.isFinite(locator.runtime_address)) {
+    return loadListingWindow(projectId, null, before, count, {
+      runtimeAddress: locator.runtime_address,
+      renderEmpty: false,
+    });
+  }
+  if (Number.isFinite(locator.storage_address)) {
+    return loadListingWindow(projectId, locator.storage_address, before, count, {renderEmpty: false});
+  }
+  const windowStart = Number(viewportAnchor?.window_start);
+  if (Number.isFinite(windowStart)) {
+    return loadListingWindow(projectId, null, 0, count, {
+      start: Math.max(0, Math.floor(windowStart)),
+      count,
+      renderEmpty: false,
+    });
+  }
+  return null;
+}
+
+async function jumpToListingLocator(projectId, locator, viewportAnchor = null) {
+  const target = storedListingLocator(locator, projectId);
+  if (!target) {
+    return false;
+  }
+  await loadWindowForListingLocator(projectId, target, viewportAnchor);
+  const row = renderedRowForListingLocator(target);
+  if (!(row instanceof HTMLElement)) {
+    return false;
+  }
+  focusListingRow(row);
+  restorePreferenceViewportAnchor({viewportAnchor});
+  const repaired = listingRowLocatorFromElement(row);
+  if (repaired && repaired.projection_hash !== target.projection_hash) {
+    scheduleUiPreferenceSave();
+  }
+  return true;
+}
+
 async function jumpToListingLocation(projectId, location) {
   state.uiPreferences.restoring = true;
   try {
+    if (location.kind === "locator" || (location.kind === "preference" && location.locator)) {
+      return jumpToListingLocator(projectId, location.locator, location.viewportAnchor || null);
+    }
     if (location.kind === "row" || location.kind === "preference") {
       if (Number.isFinite(location.rowIndex)) {
         const ok = await jumpToListingIndex(
@@ -8021,18 +8247,18 @@ async function jumpToListingLocation(projectId, location) {
           location.stableKey,
         );
         if (ok) {
-          restorePreferenceScrollTop(location);
+          restorePreferenceViewportAnchor(location);
           return true;
         }
       }
       if (Number.isInteger(location.sectionIndex) && Number.isFinite(location.sourceOffset)) {
         const ok = await jumpToListingSectionOffset(projectId, location.sectionIndex, location.sourceOffset);
-        restorePreferenceScrollTop(location);
+        restorePreferenceViewportAnchor(location);
         return ok;
       }
       if (Number.isFinite(location.addr)) {
         const ok = await jumpToListingAddr(projectId, location.addr, location.rowCode || null);
-        restorePreferenceScrollTop(location);
+        restorePreferenceViewportAnchor(location);
         return ok;
       }
       return false;
@@ -8052,12 +8278,13 @@ async function jumpToListingLocation(projectId, location) {
   }
 }
 
-function restorePreferenceScrollTop(location) {
+function restorePreferenceViewportAnchor(location) {
   const viewport = document.getElementById("listing-viewport");
-  if (location?.kind !== "preference" || !(viewport instanceof HTMLElement) || !Number.isFinite(location.scrollTop)) {
+  const scrollTop = Number(location?.viewportAnchor?.scroll_top ?? location?.scrollTop);
+  if (!(viewport instanceof HTMLElement) || !Number.isFinite(scrollTop)) {
     return;
   }
-  viewport.scrollTop = Math.max(0, location.scrollTop);
+  viewport.scrollTop = Math.max(0, scrollTop);
 }
 
 function currentUiListingLocation() {
@@ -8065,32 +8292,23 @@ function currentUiListingLocation() {
   const selection = SelectionModel.current() || {};
   const anchor = captureListingAddressAnchor(viewport);
   const location = {};
-  const rowIndex = Number(selection.rowIndex ?? anchor?.rowIndex);
-  if (Number.isFinite(rowIndex)) {
-    location.row_index = Math.floor(rowIndex);
+  const locator = storedListingLocator(selection.locator || anchor?.locator, state.project);
+  if (locator) {
+    location.locator = locator;
   }
-  for (const [from, to] of [
-    ["stableKey", "stable_key"],
-    ["rowCode", "row_code"],
-  ]) {
-    const value = selection[from] || anchor?.[from];
-    if (value) {
-      location[to] = String(value);
-    }
+  const selectionLocator = storedListingLocator(selection.locator, state.project);
+  if (selectionLocator) {
+    location.selection_locator = selectionLocator;
   }
-  for (const [from, to] of [
-    ["addr", "addr"],
-    ["sectionIndex", "section_index"],
-    ["startOffset", "start_offset"],
-  ]) {
-    const value = Number(selection[from]);
-    if (Number.isFinite(value)) {
-      location[to] = Math.floor(value);
-    }
+  const focusLocator = storedListingLocator(selection.focusLocator || selection.locator, state.project);
+  if (focusLocator) {
+    location.focus_locator = focusLocator;
   }
   if (viewport instanceof HTMLElement) {
-    location.scroll_top = Math.floor(viewport.scrollTop);
-    location.window_start = Math.floor(Number(state.virtualListing.start || 0));
+    location.viewport_anchor = {
+      scroll_top: Math.floor(viewport.scrollTop),
+      window_start: Math.floor(Number(state.virtualListing.start || 0)),
+    };
   }
   return Object.keys(location).length ? location : null;
 }
@@ -9689,6 +9907,10 @@ async function jumpToListingIndex(projectId, rowIndex, addr, matchText = null, s
 async function jumpToNavigationEntry(projectId, entry) {
   if (!navigationEntryHasJumpTarget(entry)) {
     return false;
+  }
+  const locator = storedListingLocator(entry.locator, projectId);
+  if (locator) {
+    return jumpToListingLocator(projectId, locator, entry.viewport_anchor || null);
   }
   const matchText = entry.matchText || entry.match_text || null;
   const stableKey = entry.stableKey || entry.stable_key || null;

@@ -1946,6 +1946,15 @@ Source tests assert the model contracts, and focused CDP coverage passed for
 selection, first-open entrypoint selection, virtual listing, and navigation
 history behavior.
 
+Implementation note from `028-010`: persisted browser view state now uses the
+`ListingRowLocator` shape rather than row index, row code, or legacy stable-key
+identity. `ui_preferences.json` stores locator, selection locator, focus locator,
+projection hash, and viewport anchor. URL restore reads locator-compatible
+fields, navigation history entries carry locators plus viewport anchors and drop
+unrecoverable entries, and stale projection hashes are repaired through recovery
+identity before the repaired rendered locator is persisted. Failed repair falls
+back deterministically to the source entrypoint or first rendered row.
+
 ### Slice 6: Durability Matrix
 
 Add a matrix runner that can apply refresh/reopen/restart boundaries.

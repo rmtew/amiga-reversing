@@ -169,8 +169,17 @@ def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> Non
     ).read_text(encoding="utf-8")
 
     assert "function loadUiPreferenceState(projectId)" in app_js
-    assert "function explicitListingLocationFromUrl()" in app_js
+    assert "function explicitListingLocationFromUrl(projectId)" in app_js
+    assert "function listingLocatorFromUrlParams(projectId, value)" in app_js
     assert "function preferenceListingLocation(payload)" in app_js
+    assert "function jumpToListingLocator(projectId, locator, viewportAnchor = null)" in app_js
+    assert "selection_locator" in app_js
+    assert "focus_locator" in app_js
+    assert "viewport_anchor" in app_js
+    assert 'numericValue("row_index")' not in app_js
+    assert 'location.row_index = Math.floor(rowIndex);' not in app_js
+    assert '["stableKey", "stable_key"]' not in app_js
+    assert '["rowCode", "row_code"]' not in app_js
     assert "function entrypointListingLocations(payload)" in app_js
     assert "function loadInitialListingLocation(projectId, uiPreferences)" in app_js
     assert "function scheduleUiPreferenceSave()" in app_js
@@ -178,6 +187,8 @@ def test_web_app_uses_project_local_ui_preferences_for_listing_location() -> Non
     assert "`/api/projects/${encodeURIComponent(state.project)}/ui-preferences`" in app_js
     assert 'method: "PUT"' in app_js
     assert "state.uiPreferences.restoring" in app_js
+    assert "return focusFirstRenderedListingRow();" in app_js
+    assert "repaired.projection_hash !== target.projection_hash" in app_js
 
 
 def test_web_app_initial_listing_load_requests_virtual_window() -> None:
@@ -239,6 +250,8 @@ def test_web_app_listing_state_uses_internal_models() -> None:
     assert "const NavigationSession = {" in app_js
     assert "NavigationSession.applyPayload(payload);" in app_js
     assert "NavigationSession.pushHistory(origin, current);" in app_js
+    assert "navigationEntryRecoverable(origin)" in app_js
+    assert "storedListingLocator(entry.locator, state.project)" in app_js
 
 
 def test_web_app_generation_refresh_anchors_non_address_rows() -> None:

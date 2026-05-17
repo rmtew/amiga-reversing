@@ -151,13 +151,39 @@ def test_ui_preferences_route_persists_project_local_state(
         f"/api/projects/{project.id}/ui-preferences",
         {},
         {
-            "listing_location": {"row_index": 3, "stable_key": "entry", "scroll_top": 66},
+            "listing_location": {
+                "locator": {
+                    "target_id": project.id,
+                    "projection_hash": "hash-1",
+                    "row_key": "entry",
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 4,
+                    "storage_address": 4,
+                    "runtime_address": 0x6004,
+                },
+                "viewport_anchor": {"scroll_top": 66, "window_start": 0},
+                "row_index": 3,
+                "stable_key": "legacy-entry",
+            },
             "source_export_assembler": "vasm",
             "manual_action": "must-not-persist",
         },
     )
 
-    assert saved["data"]["preferences"]["listing_location"]["row_index"] == 3
+    assert saved["data"]["preferences"]["listing_location"] == {
+        "locator": {
+            "target_id": project.id,
+            "projection_hash": "hash-1",
+            "row_key": "entry",
+            "kind": "instruction",
+            "section_index": 0,
+            "start_offset": 4,
+            "storage_address": 4,
+            "runtime_address": 0x6004,
+        },
+        "viewport_anchor": {"scroll_top": 66, "window_start": 0},
+    }
     assert saved["data"]["preferences"]["source_export_assembler"] == "vasm"
     assert "manual_action" not in saved["data"]["preferences"]
     assert not (target_dir / "manual_actions.jsonl").exists()

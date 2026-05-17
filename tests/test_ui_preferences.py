@@ -24,14 +24,37 @@ def test_ui_preferences_load_save_and_missing_file(tmp_path: Path) -> None:
         {
             "target_id": "wrong",
             "listing_location": {
+                "locator": {
+                    "target_id": "demo",
+                    "projection_hash": "hash-old",
+                    "row_key": "row-12",
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 4,
+                    "end_offset": 6,
+                    "storage_address": 4,
+                    "runtime_address": 4096,
+                },
+                "selection_locator": {
+                    "target_id": "demo",
+                    "projection_hash": "hash-old",
+                    "row_key": "row-12",
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 4,
+                },
+                "focus_locator": {
+                    "target_id": "demo",
+                    "projection_hash": "hash-old",
+                    "row_key": "row-12",
+                    "kind": "instruction",
+                    "section_index": 0,
+                    "start_offset": 4,
+                },
+                "viewport_anchor": {"scroll_top": 240, "window_start": 8},
                 "row_index": 12,
-                "stable_key": "row-12",
-                "row_code": "start:",
-                "addr": 4,
-                "section_index": 0,
-                "start_offset": 4,
-                "scroll_top": 240,
-                "window_start": 8,
+                "stable_key": "legacy-row-12",
+                "row_code": "legacy:",
                 "ignored": "x",
             },
             "reproduction_profile_view": "summary",
@@ -42,14 +65,34 @@ def test_ui_preferences_load_save_and_missing_file(tmp_path: Path) -> None:
 
     assert saved["target_id"] == "demo"
     assert saved["listing_location"] == {
-        "row_index": 12,
-        "stable_key": "row-12",
-        "row_code": "start:",
-        "addr": 4,
-        "section_index": 0,
-        "start_offset": 4,
-        "scroll_top": 240,
-        "window_start": 8,
+        "locator": {
+            "target_id": "demo",
+            "projection_hash": "hash-old",
+            "row_key": "row-12",
+            "kind": "instruction",
+            "section_index": 0,
+            "start_offset": 4,
+            "end_offset": 6,
+            "storage_address": 4,
+            "runtime_address": 4096,
+        },
+        "selection_locator": {
+            "target_id": "demo",
+            "projection_hash": "hash-old",
+            "row_key": "row-12",
+            "kind": "instruction",
+            "section_index": 0,
+            "start_offset": 4,
+        },
+        "focus_locator": {
+            "target_id": "demo",
+            "projection_hash": "hash-old",
+            "row_key": "row-12",
+            "kind": "instruction",
+            "section_index": 0,
+            "start_offset": 4,
+        },
+        "viewport_anchor": {"scroll_top": 240, "window_start": 8},
     }
     assert "domain_fact" not in saved
     assert load_ui_preferences(tmp_path, "demo") == saved
@@ -65,3 +108,25 @@ def test_ui_preferences_stale_identity_falls_back(tmp_path: Path) -> None:
     assert loaded["listing_location"] is None
     assert loaded["stale"] is True
     assert ui_preferences_path(tmp_path).name == "ui_preferences.json"
+
+
+def test_ui_preferences_rejects_legacy_listing_identity_fields(tmp_path: Path) -> None:
+    saved = save_ui_preferences(
+        tmp_path,
+        "demo",
+        {
+            "listing_location": {
+                "row_index": 12,
+                "stable_key": "row-12",
+                "row_code": "start:",
+                "addr": 4,
+                "section_index": 0,
+                "start_offset": 4,
+                "scroll_top": 240,
+                "window_start": 8,
+            }
+        },
+    )
+
+    assert saved["listing_location"] is None
+    assert load_ui_preferences(tmp_path, "demo")["listing_location"] is None

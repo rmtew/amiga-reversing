@@ -61,7 +61,9 @@ def _sanitize_ui_preferences(payload: dict[str, object]) -> dict[str, object]:
     clean: dict[str, object] = {}
     listing_location = payload.get("listing_location")
     if isinstance(listing_location, dict):
-        clean["listing_location"] = _sanitize_listing_location(cast(dict[str, object], listing_location))
+        sanitized_listing_location = _sanitize_listing_location(cast(dict[str, object], listing_location))
+        if sanitized_listing_location:
+            clean["listing_location"] = sanitized_listing_location
     for key in ("reproduction_profile_view", "source_export_assembler"):
         value = payload.get(key)
         if isinstance(value, str) and value:
@@ -73,14 +75,55 @@ def _sanitize_ui_preferences(payload: dict[str, object]) -> dict[str, object]:
 
 def _sanitize_listing_location(payload: dict[str, object]) -> dict[str, object]:
     clean: dict[str, object] = {}
-    for key in ("row_index", "addr", "section_index", "start_offset", "scroll_top", "window_start"):
+    locator = _sanitize_listing_locator(payload.get("locator"))
+    if locator is not None:
+        clean["locator"] = locator
+    selection_locator = _sanitize_listing_locator(payload.get("selection_locator"))
+    if selection_locator is not None:
+        clean["selection_locator"] = selection_locator
+    focus_locator = _sanitize_listing_locator(payload.get("focus_locator"))
+    if focus_locator is not None:
+        clean["focus_locator"] = focus_locator
+    viewport_anchor = _sanitize_viewport_anchor(payload.get("viewport_anchor"))
+    if viewport_anchor is not None:
+        clean["viewport_anchor"] = viewport_anchor
+    return clean
+
+
+def _sanitize_listing_locator(value: object) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    payload = cast(dict[str, object], value)
+    clean: dict[str, object] = {}
+    for key in ("target_id", "projection_hash", "row_key", "kind"):
+        text = payload.get(key)
+        if not isinstance(text, str) or not text:
+            return None
+        clean[key] = text
+    for key in (
+        "section_index",
+        "start_offset",
+        "end_offset",
+        "storage_address",
+        "runtime_address",
+    ):
         value = payload.get(key)
         if isinstance(value, int) and not isinstance(value, bool):
             clean[key] = value
         elif isinstance(value, float) and value.is_integer():
             clean[key] = int(value)
-    for key in ("stable_key", "row_code"):
-        value = payload.get(key)
-        if isinstance(value, str) and value:
-            clean[key] = value
     return clean
+
+
+def _sanitize_viewport_anchor(value: object) -> dict[str, object] | None:
+    if not isinstance(value, dict):
+        return None
+    payload = cast(dict[str, object], value)
+    clean: dict[str, object] = {}
+    for key in ("scroll_top", "window_start"):
+        raw = payload.get(key)
+        if isinstance(raw, int) and not isinstance(raw, bool):
+            clean[key] = raw
+        elif isinstance(raw, float) and raw.is_integer():
+            clean[key] = int(raw)
+    return clean or None

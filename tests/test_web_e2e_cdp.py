@@ -906,10 +906,14 @@ def test_brave_cdp_first_open_selects_source_entrypoint(
         while time.monotonic() < deadline:
             if preference_path.exists():
                 preference = json.loads(preference_path.read_text(encoding="utf-8"))
-                if preference.get("listing_location", {}).get("row_index") == 4:
+                locator = preference.get("listing_location", {}).get("selection_locator", {})
+                if locator.get("row_key") == "row-4":
                     break
             time.sleep(0.05)
-        assert json.loads(preference_path.read_text(encoding="utf-8"))["listing_location"]["row_index"] == 4
+        saved_location = json.loads(preference_path.read_text(encoding="utf-8"))["listing_location"]
+        assert saved_location["selection_locator"]["row_key"] == "row-4"
+        assert saved_location["locator"]["projection_hash"]
+        assert "row_index" not in saved_location
 
         page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
         page.wait_for_event("Page.loadEventFired")
