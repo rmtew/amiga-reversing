@@ -1,17 +1,19 @@
 # Proposal 008: Tool Runtime Capability Graph
 
-Status: Implemented for the tool/runtime capability graph; compiler
-fingerprinting deferred.
-Status changed: 2026-05-17.
+Status: Closed for Proposal 008 tool/runtime capability graph implementation.
+Status changed: 2026-05-18.
 
-Proposal 002 made external assembler checks explicit. Proposal 008 replaces
-the old flat registry with a runtime-aware capability graph: functional tools,
+Proposal 002 made external assembler checks explicit. Proposal 008's
+tool/runtime capability graph implementation is complete: functional tools,
 runtime tools, runnable invocation chains, v2 persisted configuration, and
-structured probe evidence. GenAm now resolves through `vamos` as a capability
-chain instead of being modeled as peer availability checks in callers.
+structured probe evidence are implemented. GenAm now resolves through `vamos`
+as a capability chain instead of being modeled as peer availability checks in
+callers.
 
-Compiler fingerprint fixtures remain future work. They should reuse the same
-capability graph rather than introduce a second tool model.
+Compiler fingerprint fixtures remain deferred future-work inventory, not open
+`008-*` follow-up work. They should reuse the same capability graph rather than
+introduce a second tool model. Completed `008-*` issue files were deleted after
+their durable reasoning and verification notes were promoted here.
 
 ## Checkpoint Index
 
@@ -572,11 +574,9 @@ Move GenAm's `vamos` dependency out of `oracle_compatibility.py` and into the
 resolver. The DevPac oracle should request `assemble_devpac_source` and receive
 the GenAm-through-vamos chain.
 
-Resolved for the current oracle path in
-`docs/issues/008-002-consume-selected-genam-runtime-chain.md`: the DevPac
-oracle consumes the selected GenAm-through-vamos chain paths from the tool graph
-instead of reading executable paths back out of flattened availability
-diagnostics.
+Resolved for the current oracle path: the DevPac oracle consumes the selected
+GenAm-through-vamos chain paths from the tool graph instead of reading
+executable paths back out of flattened availability diagnostics.
 
 ### Slice 3: Capability Queries For Oracle Workflows
 
@@ -661,8 +661,8 @@ uv run amiga-tool-registry configure-path functional genam bin\GenAm
 ```
 
 Slice 1 renamed the focused registry tests to `tests\test_tool_graph.py`.
-Completed issue files remain in `docs/issues/` as an implementation archive;
-they are not active work once their status is `Done` or `Implemented`.
+Completed issue files were deleted after durable implementation notes were
+promoted into this proposal.
 
 If compiler fingerprint fixtures are added:
 
@@ -716,3 +716,102 @@ still synthesize an empty v2 registry; writes persist only the v2 shape.
 surfaces. Tool configuration now uses `/api/tools/configuration/path`, project
 capability summaries use `/api/projects/<project>/tool-capabilities`, and the
 CLI uses `project-capabilities` plus `configure-path`.
+
+## Review Addendum: 2026-05-18
+
+Review scope: checked completed Proposal 008 issue slices `008-001` through
+`008-007` against current code, tests, CLI output, and production route/oracle
+call sites.
+
+Conclusion: satisfactory for the implemented tool/runtime capability graph.
+Compiler fingerprint fixtures remain explicitly deferred and are not part of
+the completed graph work.
+
+Evidence:
+
+```text
+Implementation artifacts:
+  amiga_reversing/disasm/tool_graph.py owns v2 registry, runtime/functional
+  tool records, probe evidence, and capability resolution.
+  amiga_reversing/disasm/tool_registry.py is deleted.
+  amiga_reversing/disasm/oracle_compatibility.py resolves
+  assemble_vasm_source and assemble_devpac_source capabilities before running
+  oracle commands.
+  amiga_reversing/disasm/server.py exposes /api/tools/runtimes,
+  /api/tools/functional, /api/tools/capabilities/*,
+  /api/tools/configuration/path, and project /tool-capabilities routes.
+  amiga_reversing/tools/tool_registry.py keeps the installed CLI name but uses
+  graph vocabulary: runtimes, tools, capability, project-capabilities,
+  configure-path.
+
+uv run python -m pytest tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py -q
+  152 passed
+
+uv run python -m pytest tests\test_disasm_server.py tests\test_tool_registry_cli.py tests\test_web_app_source.py -q
+  150 passed
+
+uv run ruff check amiga_reversing\disasm\tool_graph.py amiga_reversing\disasm\oracle_compatibility.py amiga_reversing\disasm\server.py amiga_reversing\tools\tool_registry.py tests\test_tool_graph.py tests\test_oracle_compatibility.py tests\test_disasm_server.py tests\test_tool_registry_cli.py tests\test_web_app_source.py
+  All checks passed.
+
+uv run amiga-tool-registry capability assemble_devpac_source
+  selected tool_chain: vamos, genam
+  status: available
+  genam probe_method: hash_only
+
+uv run amiga-tool-registry project-capabilities amiga_hunk_genam --oracle-modes devpac
+  capability_ids: assemble_devpac_source
+  selected tool_chain: vamos, genam
+  status: available
+
+cmd /c src\precommit.bat
+  style/unit/integration/explicit checks passed
+```
+
+Prompt-to-artifact checklist:
+
+```text
+Runtime-aware graph replaces flat registry:
+  verified by tool_graph.py and deleted disasm/tool_registry.py.
+
+available means runnable:
+  covered by test_tool_graph runnable-status tests and live CLI status fields.
+
+GenAm artifact can be present while missing vamos makes it not runnable:
+  covered by test_genam_artifact_available_missing_vamos_is_not_runnable.
+
+GenAm through vamos selected chain:
+  covered by test_assemble_devpac_source_resolves_genam_through_vamos,
+  test_genam_oracle_runs_selected_vamos_genam_chain, and live CLI output.
+
+vasm through host:
+  covered by test_assemble_vasm_source_resolves_vasm_through_host.
+
+Structured probe evidence:
+  covered by native success/failure/timeout/OSError/hash-only tests and live
+  CLI payloads carrying probe_method, probe_status, executable_stamp, and
+  version_text.
+
+Registry v2 only:
+  covered by registry load/save/reject tests for missing version, v1, flat
+  tools payloads, unknown keys, and synthetic host persistence.
+
+No production caller manually models GenAm as genam+vamos:
+  code search found production callers using capability resolution instead.
+
+Resource routes and CLI vocabulary:
+  covered by server and CLI tests for graph-shaped routes/commands.
+
+External tools do not affect reproduction exactness:
+  oracle availability remains report/stamp data; no reproduction exactness gate
+  was found depending on external oracle success.
+```
+
+Notes:
+
+- `configure-path` was not run live because it mutates the local persisted tool
+  registry. The command path is covered by focused CLI and server tests.
+- Production/web code still uses the CSS class name `tool-availability-warning`;
+  this is display wording, not the removed `/tool-availability` route or flat
+  registry surface.
+- Completed `008-*` issue files were deleted after their durable notes were
+  promoted into this proposal.
