@@ -1757,6 +1757,15 @@ If the inventory shows that a workflow has no clean durable source of truth,
 stop and refactor that workflow's state ownership before adding more browser
 coverage.
 
+Implementation note from `028-003`: the workflow inventory now lives in
+`docs/issues/028-003-inventory-workflow-contracts-against-real-locators.md`.
+It defines the shared `ListingRowLocator` contract for rename-label, row
+comment, representation/type, review, range command, navigation, last-open
+location, and profile workflows. It explicitly blocks durability coverage for
+workflows still backed by `target_ui_edits.json` or legacy row-index/stable-key
+browser state until 028-004, 028-006, 028-009, and 028-010 replace those
+contracts.
+
 ### Slice 3: Delete Target UI Edits And Unify Manual Mutation Pipeline
 
 Remove `target_ui_edits.py` and `/target-edits` as durable UI mutation paths.
