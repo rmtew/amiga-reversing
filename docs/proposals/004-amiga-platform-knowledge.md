@@ -1,6 +1,6 @@
 # Proposal 004: Amiga Platform Knowledge
 
-Status: Ready for Proposal 004 follow-up implementation.
+Status: Implemented; follow-up hardening complete.
 Status changed: 2026-05-17.
 
 The Amiga platform KB work is no longer a broad "parse more ADCD" proposal.
@@ -15,34 +15,34 @@ durable spec.
 
 ## Checkpoint Index
 
-- [ ] Why This Exists
-- [ ] Mental Model
-- [ ] Current State Read
-- [ ] Integration Findings
-  - [ ] 1. The NDK Parser Is Already The Strongest Part
-  - [ ] 2. Hardware Knowledge Has Two Different Sources
+- [x] Why This Exists
+- [x] Mental Model
+- [x] Current State Read
+- [x] Integration Findings
+  - [x] 1. The NDK Parser Is Already The Strongest Part
+  - [x] 2. Hardware Knowledge Has Two Different Sources
   - [x] 3. Corrections Have Provenance And A Review Workflow
   - [x] 4. OS Compatibility Data Exists As A Target Summary
   - [x] 5. HUNK Runtime Metadata Owns Container Decisions
   - [x] 6. `HUNK_OVERLAY` Is Explicitly Unsupported
   - [x] 7. Target Gaps Can Drive Parser Expansion
-- [ ] Tutorial: Platform KB Coverage Report
-- [ ] Tutorial: Target OS Compatibility Summary
+- [x] Tutorial: Platform KB Coverage Report
+- [x] Tutorial: Target OS Compatibility Summary
 - [x] Tutorial: Corrections Review Flow
-- [ ] Larger Architecture Observations
-- [ ] Forward Implementation Model
-- [ ] Non-Goals
-- [ ] Proposed Rewrite
-  - [ ] Slice 1: Platform KB Coverage Report
+- [x] Larger Architecture Observations
+- [x] Forward Implementation Model
+- [x] Non-Goals
+- [x] Proposed Rewrite
+  - [x] Slice 1: Platform KB Coverage Report
   - [x] Slice 2: Target OS Compatibility Summary
   - [x] Slice 3: Corrections Review Flow
   - [x] Slice 4: Generated HUNK Comparison Helpers
   - [x] Slice 5: Resolve `HUNK_OVERLAY`
   - [x] Slice 6: Target-Driven Platform Gap Report
-- [ ] Acceptance Criteria
-- [ ] Deletion Checklist
-- [ ] Rewrite Acceptance Tests
-- [ ] Verification
+- [x] Acceptance Criteria
+- [x] Issue Archive Convention
+- [x] Rewrite Acceptance Tests
+- [x] Verification
 
 ## Why This Exists
 
@@ -556,7 +556,10 @@ expansions tied to target reports over broad speculative ingestion.
 
 Promote enough source inventory into machine-readable form for coverage reports.
 Markdown can remain the human narrative, but counts and statuses should come
-from structured data.
+from structured data. This is implemented by
+`knowledge/platform_source_inventory.json`, with
+`knowledge/adcd21_inventory.md` retained as the human source narrative and drift
+check target.
 
 ### Platform KB Coverage Report
 
@@ -686,6 +689,23 @@ unknown absolute values, and unexpected-new API usage from target platform
 summary data. Explicit target OS expectations and inferred year hints are
 distinguished in output.
 
+### Follow-Up Hardening
+
+Tracked by:
+
+```text
+docs/issues/004-007-fix-raw-amiga-os-version-ranking.md
+docs/issues/004-008-centralize-target-platform-summary-rendering.md
+docs/issues/004-009-make-platform-kb-report-use-actual-summary-artifacts.md
+docs/issues/004-010-clean-proposal-004-tracking-docs.md
+docs/issues/004-011-structure-platform-source-inventory.md
+```
+
+Resolved in these slices: raw Amiga OS version ranking is explicit, target
+platform summary rendering is centralized in C, platform KB reports read actual
+analysis summary artifacts, tracking docs reflect completed work, and source
+inventory counts come from structured JSON rather than markdown scraping.
+
 ## Acceptance Criteria
 
 - Current platform KB state is visible through one report command.
@@ -704,14 +724,16 @@ distinguished in output.
 - `HUNK_OVERLAY` is either supported with cited fixture coverage or explicitly
   unsupported.
 - Future include/source expansion is driven by target gap reports.
+- Source inventory counts and statuses are machine-readable and checked against
+  the markdown source narrative for drift.
 
-## Deletion Checklist
+## Issue Archive Convention
 
-When a `030-*` issue is completed:
+When a Proposal 004 issue is completed:
 
 - Promote any durable reasoning back into this proposal.
-- Delete the issue file if it is completed, abandoned, or superseded.
-- Remove stale TODO entries that the report/check now owns.
+- Keep the issue file in `docs/issues/004-*` as the implementation archive.
+- Remove stale TODO entries that completed report/check/tooling now owns.
 - Keep generated artifacts and source inventory consistent.
 
 ## Rewrite Acceptance Tests
@@ -792,3 +814,17 @@ Slice 6 added `amiga-platform-kb target-gaps <target>`. The report is
 read-only, groups platform-looking candidates by likely owner/source family,
 references source/parser areas that would close the gap, and marks
 unexpected-new API warnings as explicit target metadata or inferred year hints.
+
+Follow-up hardening fixed the remaining implementation debt found after the
+initial slices:
+
+- Raw Amiga OS version ranking now preserves `1.1`, `1.2`, `2.04`, `2.1`,
+  `3.0`, and `3.5` ordering instead of relying on coarse enum buckets.
+- Target platform summary source rendering is centralized in C, so memory-map
+  and OS compatibility comments share one owner.
+- Platform KB reports load embedded `source_analysis.json.platform_summary`
+  artifacts and report artifact-source counts.
+- Source inventory is structured in `knowledge/platform_source_inventory.json`;
+  the markdown inventory is used as a drift check, not as the count source.
+- Proposal 004 and `TODO.md` now treat completed issue files as an archive
+  rather than live work.
