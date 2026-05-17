@@ -63,6 +63,21 @@ AMIGA_HARDWARE_RUNTIME_TARGET_KIND_BY_ROLE = {
     name: index for index, name in enumerate(AMIGA_HARDWARE_RUNTIME_TARGET_KIND_NAMES)
 }
 
+RAW_AMIGA_OS_VERSION_ORDER: tuple[str, ...] = (
+    "1.0",
+    "1.1",
+    "1.2",
+    "1.3",
+    "2.0",
+    "2.04",
+    "2.1",
+    "3.0",
+    "3.1",
+    "3.5",
+)
+RAW_AMIGA_OS_VERSION_RANKS = {version: index + 1 for index, version in enumerate(RAW_AMIGA_OS_VERSION_ORDER)}
+RAW_AMIGA_OS_VERSION_ALIASES = {"3": "3.0"}
+
 CUSTOM_HARDWARE_REGISTER_FIELD_GROUPS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("aud",), ("ac_ptr", "ac_len", "ac_per", "ac_vol", "ac_dat")),
     (("spr",), ("sd_pos", "sd_ctl", "sd_dataa", "sd_dataB")),
@@ -1401,17 +1416,8 @@ def include_min_version_rows(includes_payload: dict) -> list[tuple[str, str]]:
 def compatibility_version_rank(version: str | None) -> int | None:
     if not isinstance(version, str) or not version:
         return None
-    parts = version.split(".")
-    rank = 0
-    part_count = 0
-    for part in parts:
-        if not part.isdigit():
-            return None
-        rank = (rank * 100) + int(part)
-        part_count += 1
-    if part_count == 1:
-        rank *= 100
-    return rank
+    canonical = RAW_AMIGA_OS_VERSION_ALIASES.get(version, version)
+    return RAW_AMIGA_OS_VERSION_RANKS.get(canonical)
 
 
 def compatibility_enum_name(version: str) -> str:
@@ -3341,32 +3347,29 @@ def write_source(rows: list[tuple[str, str, int, str, dict]],
             "}",
             "",
             "static int amiga_os_parse_compatibility_version_rank(const char *version, unsigned long *out_rank) {",
-            "  const char *cursor = version;",
-            "  unsigned long rank = 0UL;",
-            "  unsigned long component_count = 0UL;",
             "  if (out_rank != NULL) *out_rank = 0UL;",
             "  if (version == NULL || version[0] == '\\0' || out_rank == NULL) return 0;",
-            "  while (*cursor != '\\0') {",
-            "    unsigned long component = 0UL;",
-            "    int has_digits = 0;",
-            "    while (*cursor >= '0' && *cursor <= '9') {",
-            "      has_digits = 1;",
-            "      component = (component * 10UL) + (unsigned long)(*cursor - '0');",
-            "      ++cursor;",
-            "    }",
-            "    if (!has_digits) return 0;",
-            "    rank = (rank * 100UL) + component;",
-            "    ++component_count;",
-            "    if (*cursor == '\\0') break;",
-            "    if (*cursor != '.') return 0;",
-            "    ++cursor;",
-            "    if (*cursor == '\\0') return 0;",
-            "  }",
-            "  if (component_count == 1UL) rank *= 100UL;",
-            "  *out_rank = rank;",
-            "  return 1;",
+        ]
+    )
+    for version in RAW_AMIGA_OS_VERSION_ORDER:
+        lines.append(
+            f'  if (strcmp(version, "{c_string(version)}") == 0) '
+            f"{{ *out_rank = {RAW_AMIGA_OS_VERSION_RANKS[version]}UL; return 1; }}"
+        )
+    for alias, canonical in sorted(RAW_AMIGA_OS_VERSION_ALIASES.items()):
+        lines.append(
+            f'  if (strcmp(version, "{c_string(alias)}") == 0) '
+            f"{{ *out_rank = {RAW_AMIGA_OS_VERSION_RANKS[canonical]}UL; return 1; }}"
+        )
+    lines.extend(
+        [
+            "  return 0;",
             "}",
             "",
+        ]
+    )
+    lines.extend(
+        [
             "const char *amiga_os_compatibility_version_name(AmigaOsCompatVersion version) {",
             "  size_t index = (size_t)version;",
             "  if (index >= sizeof(g_amiga_os_compatibility_version_names) / sizeof(g_amiga_os_compatibility_version_names[0]))",

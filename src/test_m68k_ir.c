@@ -10429,6 +10429,27 @@ static int test_facts_v2_render_asm_source_renders_seeded_lvo_symbol(void) {
   return 0;
 }
 
+static int test_amiga_os_raw_version_rank_uses_amiga_order(void) {
+  uint16_t rank_12 = 0U;
+  uint16_t rank_204 = 0U;
+  uint16_t rank_21 = 0U;
+  uint16_t rank_30 = 0U;
+  uint16_t rank_31 = 0U;
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("1.2", &rank_12));
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("2.04", &rank_204));
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("2.1", &rank_21));
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("3.0", &rank_30));
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("3.1", &rank_31));
+  M68K_C_ASSERT(rank_12 < rank_204);
+  M68K_C_ASSERT(rank_204 < rank_21);
+  M68K_C_ASSERT(rank_21 < rank_30);
+  M68K_C_ASSERT(rank_30 < rank_31);
+  M68K_C_ASSERT_INT(1, amiga_os_compatibility_version_rank("3", &rank_30));
+  M68K_C_ASSERT_U32(8U, rank_30);
+  M68K_C_ASSERT_INT(0, amiga_os_compatibility_version_rank("2.05", &rank_30));
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_symbols_amiga_hardware_registers(void) {
   M68kObject object;
   M68kSection section;
@@ -19676,6 +19697,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_policy_register_seed_comment},
     {"facts_v2_render_asm_source_renders_seeded_lvo_symbol",
       test_facts_v2_render_asm_source_renders_seeded_lvo_symbol},
+    {"amiga_os_raw_version_rank_uses_amiga_order",
+      test_amiga_os_raw_version_rank_uses_amiga_order},
     {"facts_v2_render_asm_source_symbols_amiga_hardware_registers",
       test_facts_v2_render_asm_source_symbols_amiga_hardware_registers},
     {"facts_v2_render_asm_source_merges_hardware_base_by_id",

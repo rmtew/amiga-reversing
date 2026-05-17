@@ -28903,10 +28903,10 @@ static const char *g_amiga_os_compatibility_version_names[] = {
 
 static const uint16_t g_amiga_os_compatibility_version_ranks[] = {
   0u,
-  103u,
-  200u,
-  301u,
-  305u,
+  4u,
+  5u,
+  9u,
+  10u,
 };
 
 static const AmigaOsIncludeMinVersionInfo g_amiga_os_include_min_versions[] = {
@@ -37061,30 +37061,20 @@ static void amiga_os_normalize_include_path_copy(char *dest, size_t dest_size, c
 }
 
 static int amiga_os_parse_compatibility_version_rank(const char *version, unsigned long *out_rank) {
-  const char *cursor = version;
-  unsigned long rank = 0UL;
-  unsigned long component_count = 0UL;
   if (out_rank != NULL) *out_rank = 0UL;
   if (version == NULL || version[0] == '\0' || out_rank == NULL) return 0;
-  while (*cursor != '\0') {
-    unsigned long component = 0UL;
-    int has_digits = 0;
-    while (*cursor >= '0' && *cursor <= '9') {
-      has_digits = 1;
-      component = (component * 10UL) + (unsigned long)(*cursor - '0');
-      ++cursor;
-    }
-    if (!has_digits) return 0;
-    rank = (rank * 100UL) + component;
-    ++component_count;
-    if (*cursor == '\0') break;
-    if (*cursor != '.') return 0;
-    ++cursor;
-    if (*cursor == '\0') return 0;
-  }
-  if (component_count == 1UL) rank *= 100UL;
-  *out_rank = rank;
-  return 1;
+  if (strcmp(version, "1.0") == 0) { *out_rank = 1UL; return 1; }
+  if (strcmp(version, "1.1") == 0) { *out_rank = 2UL; return 1; }
+  if (strcmp(version, "1.2") == 0) { *out_rank = 3UL; return 1; }
+  if (strcmp(version, "1.3") == 0) { *out_rank = 4UL; return 1; }
+  if (strcmp(version, "2.0") == 0) { *out_rank = 5UL; return 1; }
+  if (strcmp(version, "2.04") == 0) { *out_rank = 6UL; return 1; }
+  if (strcmp(version, "2.1") == 0) { *out_rank = 7UL; return 1; }
+  if (strcmp(version, "3.0") == 0) { *out_rank = 8UL; return 1; }
+  if (strcmp(version, "3.1") == 0) { *out_rank = 9UL; return 1; }
+  if (strcmp(version, "3.5") == 0) { *out_rank = 10UL; return 1; }
+  if (strcmp(version, "3") == 0) { *out_rank = 8UL; return 1; }
+  return 0;
 }
 
 const char *amiga_os_compatibility_version_name(AmigaOsCompatVersion version) {

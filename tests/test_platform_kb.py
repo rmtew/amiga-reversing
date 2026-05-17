@@ -84,6 +84,12 @@ def test_platform_kb_report_text_is_stable(tmp_path: Path) -> None:
     assert "half-represented record types: HUNK_OVERLAY" in text
 
 
+def test_platform_kb_raw_os_version_order_uses_amiga_release_order() -> None:
+    ordered = ["1.2", "2.04", "2.1", "3.0", "3.1"]
+
+    assert sorted(["3.1", "2.1", "1.2", "3.0", "2.04"], key=platform_kb._version_sort_key) == ordered
+
+
 def test_platform_kb_corrections_list_text_is_stable(tmp_path: Path) -> None:
     _write_fixture_tree(tmp_path)
 
