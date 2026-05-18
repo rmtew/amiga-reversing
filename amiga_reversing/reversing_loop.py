@@ -2924,6 +2924,7 @@ def _verify_manual_mutation(
     if command_id in {"row.data_block.layout.create", "range.data_block.layout.create"}:
         return _verify_data_block_layout_mutation(
             target_id,
+            command,
             str(command_id),
             durable_result,
             project_root=project_root,
@@ -2938,6 +2939,7 @@ def _verify_manual_mutation(
     }:
         return _verify_data_block_element_mutation(
             target_id,
+            command,
             str(command_id),
             durable_result,
             project_root=project_root,
@@ -3268,6 +3270,7 @@ def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object
 
 def _verify_data_block_layout_mutation(
     target_id: str,
+    command: dict[str, object],
     command_id: str,
     durable_result: dict[str, object],
     *,
@@ -3277,6 +3280,14 @@ def _verify_data_block_layout_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_data_block_layout(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_data_block_rendered_source(
+            target_id,
+            command,
+            command_id,
+            expected,
+            durable_result,
+            project_root=project_root,
+        ),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -3344,6 +3355,7 @@ def _data_block_layout_matches(actual: dict[str, object], expected: dict[str, ob
 
 def _verify_data_block_element_mutation(
     target_id: str,
+    command: dict[str, object],
     command_id: str,
     durable_result: dict[str, object],
     *,
@@ -3353,6 +3365,14 @@ def _verify_data_block_element_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_data_block_element(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_data_block_rendered_source(
+            target_id,
+            command,
+            command_id,
+            expected,
+            durable_result,
+            project_root=project_root,
+        ),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -3420,6 +3440,147 @@ def _data_block_element_matches(actual: dict[str, object], expected: dict[str, o
         and isinstance(expected.get("offset"), int)
         and all(actual.get(key) == value for key, value in expected.items())
     )
+
+
+def _verify_projected_data_block_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing data block payload"}
+    location = _data_block_render_location(target_id, command, expected, project_root=project_root)
+    if location is None:
+        metadata = _verify_projection_metadata(command, durable_result)
+        metadata["layer"] = "rendered_source"
+        metadata["message"] = metadata.get("message", "verified affected locator without source offset")
+        return metadata
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["8"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+    expected_tokens = _data_block_expected_render_tokens(expected)
+    rendered_text = "\n".join(
+        " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
+        for row in rows
+        if isinstance(row, dict)
+    )
+    if command_id.endswith(".remove"):
+        stale_tokens = [token for token in expected_tokens if token and token in rendered_text]
+        return {
+            "layer": "rendered_source",
+            "status": "failed" if stale_tokens else "passed",
+            "source_offset": source_offset,
+            "stale_tokens": stale_tokens,
+            "rendered_text": rendered_text,
+        }
+    if not expected_tokens:
+        metadata = _verify_projection_metadata(command, durable_result)
+        metadata["layer"] = "rendered_source"
+        metadata["source_offset"] = source_offset
+        metadata["message"] = metadata.get("message", "verified affected locator; no stable rendered token in payload")
+        return metadata
+    matched_tokens = [token for token in expected_tokens if token in rendered_text]
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if len(matched_tokens) == len(expected_tokens) else "failed",
+        "source_offset": source_offset,
+        "expected_tokens": expected_tokens,
+        "matched_tokens": matched_tokens,
+        "rendered_text": rendered_text,
+    }
+
+
+def _data_block_render_location(
+    target_id: str,
+    command: dict[str, object],
+    expected: dict[str, object],
+    *,
+    project_root: Path,
+) -> tuple[int, int] | None:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if not isinstance(locator, dict) and isinstance(context, dict):
+        locators = context.get("locators")
+        locator = locators[0] if isinstance(locators, list) and locators and isinstance(locators[0], dict) else None
+    if isinstance(locator, dict):
+        section = locator.get("section_index")
+        offset = locator.get("start_offset")
+        if isinstance(section, int) and isinstance(offset, int):
+            return section, offset
+    hunk = expected.get("hunk")
+    source_start = expected.get("source_start")
+    if isinstance(hunk, int) and isinstance(source_start, int):
+        return hunk, source_start
+    layout_id = expected.get("layout_id")
+    element_offset = expected.get("offset")
+    if isinstance(layout_id, str) and isinstance(element_offset, int):
+        layout = _project_data_block_layout_by_id(target_id, layout_id, project_root=project_root)
+        if layout is not None:
+            hunk = layout.get("hunk")
+            source_start = layout.get("source_start")
+            if isinstance(hunk, int) and isinstance(source_start, int):
+                return hunk, source_start + element_offset
+    return None
+
+
+def _project_data_block_layout_by_id(
+    target_id: str,
+    layout_id: str,
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    layouts = manual_state.get("data_block_layouts") if isinstance(manual_state, dict) else None
+    if not isinstance(layouts, list | tuple):
+        return None
+    for layout in layouts:
+        if isinstance(layout, dict) and layout.get("layout_id") == layout_id:
+            return cast(dict[str, object], layout)
+    return None
+
+
+def _data_block_expected_render_tokens(expected: dict[str, object]) -> list[str]:
+    tokens: list[str] = []
+    for key in ("name", "role"):
+        value = expected.get(key)
+        if isinstance(value, str) and value:
+            tokens.append(value)
+    kind = expected.get("kind")
+    if kind in {"scalar", "array", "gap"}:
+        tokens.append("dc.")
+    if kind == "padding":
+        tokens.append("dcb.")
+    representation = expected.get("representation")
+    if representation == "character":
+        tokens.append("'")
+    elif representation == "hex":
+        tokens.append("$")
+    elif representation == "binary":
+        tokens.append("%")
+    return list(dict.fromkeys(tokens))
 
 
 def _verify_seeded_item_suppression_mutation(

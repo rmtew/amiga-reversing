@@ -646,6 +646,15 @@ def test_run_one_data_block_layout_executes_with_layout_state_verifier(
             assert body["context"] == {"kind": "range", "locators": locators}
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_layout_payload(tmp_path, layout)}
+        if method == "GET" and path.endswith("/listing"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(row_key="row-1", kind="label", label="ascii_hex_digit_value"),
+                        _listing_row(row_key="row-2", kind="data", text="\tdcb.b $30,$FF\t; lookup_table\n"),
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -654,6 +663,8 @@ def test_run_one_data_block_layout_executes_with_layout_state_verifier(
 
     assert report["verification"]["status"] == "passed"
     assert report["verification"]["layers"][1]["state_key"] == "data_block_layouts"
+    assert report["verification"]["layers"][2]["layer"] == "rendered_source"
+    assert report["verification"]["layers"][2]["matched_tokens"] == ["ascii_hex_digit_value", "lookup_table"]
     assert report["action"]["command_id"] == "range.data_block.layout.create"
 
 
@@ -716,6 +727,8 @@ def test_run_one_data_block_element_executes_with_element_state_verifier(
             assert body["command_id"] == "row.data_block.element.set"
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(kind="data", text="digits:\n\tdc.b '0','1'\n")]}}
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -724,6 +737,8 @@ def test_run_one_data_block_element_executes_with_element_state_verifier(
 
     assert report["verification"]["status"] == "passed"
     assert report["verification"]["layers"][1]["state_key"] == "data_block_elements"
+    assert report["verification"]["layers"][2]["layer"] == "rendered_source"
+    assert report["verification"]["layers"][2]["matched_tokens"] == ["digits", "dc.", "'"]
     assert report["action"]["command_id"] == "row.data_block.element.set"
 
 
@@ -788,6 +803,8 @@ def test_run_one_data_block_element_update_commands_verify_expected_state(
             assert body["command_id"] == command_id
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -796,7 +813,71 @@ def test_run_one_data_block_element_update_commands_verify_expected_state(
 
     assert report["verification"]["status"] == "passed"
     assert report["verification"]["layers"][1]["state_key"] == state_key
+    assert report["verification"]["layers"][2]["layer"] == "rendered_source"
     assert report["action"]["command_id"] == command_id
+
+
+def test_data_block_element_verifier_fails_when_rendered_source_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x22)
+    element = {
+        "data_block_element_id": "ascii-hex:30",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "kind": "array",
+        "name": "digits",
+    }
+    selected = {
+        "work_item": {
+            "id": "data-block-element",
+            "kind": "data_block_element",
+            "locator": locator,
+            "suggested_action_kinds": ["row.data_block.element.set"],
+            "confidence": "high",
+            "actionable": True,
+        },
+        "command": {
+            "kind": "command",
+            "command_id": "row.data_block.element.set",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": dict(element),
+            "output_affecting": True,
+        },
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_elements": [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "POST" and path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    _write_manual_log(tmp_path)
+    report = reversing_loop._verify_data_block_element_mutation(
+        "demo",
+        cast(dict[str, object], selected["command"]),
+        "row.data_block.element.set",
+        _executed_data_block_element_payload(tmp_path, element),
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "failed"
+    assert report["layers"][2]["layer"] == "rendered_source"
+    assert report["layers"][2]["expected_tokens"] == ["digits", "dc."]
+    assert report["layers"][2]["matched_tokens"] == ["dc."]
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(

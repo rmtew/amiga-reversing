@@ -44,8 +44,11 @@ Implemented tests:
   element set/remove/represent commands.
 - Reversing loop execution now selects data-block layout/element state
   verifiers, checks Manual Action Log replay, semantic reload state for element
-  set/represent/remove, exact round-trip, and blocks unsupported type/ref
-  commands without a verifier.
+  set/represent/remove, rendered source tokens, exact round-trip, and blocks
+  unsupported type/ref commands without a verifier.
+- Reversing loop rendered-source coverage now fails data-block element
+  verification when the reloaded listing lacks required visible tokens from the
+  layout/element payload.
 - C backend render matrix covers data-block scalar byte/word/long elements,
   character byte arrays, explicit gap bytes, and compact padding `dcb.b` runs
   with exact rebuild.
@@ -60,8 +63,6 @@ Implemented tests:
 Remaining:
 - Active-layout-aware element selection context, so element commands no longer
   need explicit layout id/offset parameters.
-- Loop rendered-source verifier coverage beyond semantic state and exact
-  round-trip.
 
 Acceptance criteria:
 - The command catalog exposes supported layout commands without private loop
