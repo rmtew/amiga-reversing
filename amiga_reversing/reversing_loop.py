@@ -4790,6 +4790,8 @@ def _command_query_from_context(context: dict[str, object]) -> dict[str, list[st
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
+    if kind == "range":
+        return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
     if kind == "review_item":
         return {"context": ["review-item"], "item_id": [str(context["item_id"])]}
     return {"context": ["target"]}

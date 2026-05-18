@@ -3429,6 +3429,18 @@ def test_range_seed_command_candidate_uses_range_context_and_verifier() -> None:
     assert selected["command"]["command_id"] == "range.seed.data.string"
 
 
+def test_range_command_availability_query_uses_range_context() -> None:
+    locators = [
+        _listing_locator(row_key="row-1", kind="data", start_offset=0x20, end_offset=0x22),
+        _listing_locator(row_key="row-2", kind="data", start_offset=0x22, end_offset=0x24),
+    ]
+
+    assert reversing_loop._command_query_from_context({"kind": "range", "locators": locators}) == {
+        "context": ["range"],
+        "locators": [json.dumps(locators)],
+    }
+
+
 def test_review_data_role_seed_candidate_uses_review_item_context() -> None:
     candidate = {
         "id": "review-data-named",

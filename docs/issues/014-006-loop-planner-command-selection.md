@@ -79,6 +79,10 @@ Progress:
 - Non-dry execution now blocks selected commands with no action-specific
   verifier before catalog availability or command execution, so bypassed or
   stale selections cannot execute unverified source changes.
+- Non-dry execution now queries range command availability with
+  `context=range` and serialized range locators instead of falling through to
+  target context, so explicit `range.seed.*` candidates can reach the range
+  command catalog.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an

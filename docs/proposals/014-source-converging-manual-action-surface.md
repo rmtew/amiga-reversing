@@ -317,6 +317,11 @@ analysis policy does not import `custom_structs` into the typed-reference
 resolver. Keep target/listing custom-field commands blocked until a backend
 render path and rendered-field verifier exist.
 
+Implementation observation from `014-006`: loop command-availability queries
+must preserve the selected command context exactly. Range commands use
+`context=range` plus serialized locators; falling through to target context
+makes valid range seed candidates look unavailable in non-dry execution.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
