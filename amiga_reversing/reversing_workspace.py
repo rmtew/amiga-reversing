@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from amiga_reversing.disasm.manual_actions import MANUAL_ACTION_LOG_FILE_NAME
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_dir
 from amiga_reversing.disasm.target_local_state import (
     OBSOLETE_TARGET_UI_EDITS_FILE_NAME,
     SOURCE_IMPORT_FACT_FILES,
 )
-from amiga_reversing.disasm.manual_actions import MANUAL_ACTION_LOG_FILE_NAME
 from amiga_reversing.disasm.ui_preferences import UI_PREFERENCES_FILE_NAME
 
 
@@ -89,6 +90,32 @@ class TargetHygieneReport:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class TargetCleanupReport:
+    target_id: str
+    mode: str
+    status: str
+    target_dir: str
+    before: TargetHygieneReport
+    after: TargetHygieneReport
+    deleted_files: tuple[str, ...]
+    blocked_reason: str | None
+    report_paths: dict[str, str]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "target_id": self.target_id,
+            "mode": self.mode,
+            "status": self.status,
+            "target_dir": self.target_dir,
+            "before": self.before.to_dict(),
+            "after": self.after.to_dict(),
+            "deleted_files": list(self.deleted_files),
+            "blocked_reason": self.blocked_reason,
+            "report_paths": dict(self.report_paths),
+        }
+
+
 def inspect_target_hygiene(
     target_id: str,
     *,
@@ -121,6 +148,56 @@ def inspect_target_hygiene(
         safe_to_reimport=safe_to_reimport,
         recommended_modes=modes,
     )
+
+
+def clean_run_target_workspace(
+    target_id: str,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> TargetCleanupReport:
+    before = inspect_target_hygiene(target_id, mode="clean-run", project_root=project_root)
+    target_dir = Path(before.target_dir)
+    agent_dir = target_dir / "agent"
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    before_path = agent_dir / "clean-run-before.json"
+    latest_path = agent_dir / "latest-clean-run-cleanup.json"
+    _write_json(before_path, before.to_dict())
+
+    deleted_files: list[str] = []
+    blocked_reason = None
+    status = "completed"
+    if before.unknown_files:
+        status = "blocked"
+        blocked_reason = "unknown target-local files require review before clean-run"
+    else:
+        for entry in before.files:
+            if entry.action not in {
+                TargetFileAction.DELETE_ON_CLEAN_RUN,
+                TargetFileAction.REGENERATE_ON_CLEAN_RUN,
+            }:
+                continue
+            path = _target_child(target_dir, entry.path)
+            if path.exists() and path.is_file():
+                path.unlink()
+                deleted_files.append(entry.path)
+
+    after = inspect_target_hygiene(target_id, mode="clean-run", project_root=project_root)
+    report = TargetCleanupReport(
+        target_id=target_id,
+        mode="clean-run",
+        status=status,
+        target_dir=str(target_dir),
+        before=before,
+        after=after,
+        deleted_files=tuple(deleted_files),
+        blocked_reason=blocked_reason,
+        report_paths={
+            "before": str(before_path),
+            "latest": str(latest_path),
+        },
+    )
+    _write_json(latest_path, report.to_dict())
+    return report
 
 
 def _classify_target_files(target_dir: Path) -> list[TargetFileInventoryEntry]:
@@ -177,3 +254,15 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
         TargetFileAction.REVIEW_REQUIRED,
         "not covered by the target hygiene allowlist",
     )
+
+
+def _target_child(target_dir: Path, rel_path: str) -> Path:
+    root = target_dir.resolve()
+    path = (target_dir / rel_path).resolve()
+    path.relative_to(root)
+    return path
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")

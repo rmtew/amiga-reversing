@@ -8,6 +8,7 @@ from pathlib import Path
 from amiga_reversing.reversing_workspace import (
     TargetFileAction,
     TargetFileClass,
+    clean_run_target_workspace,
     inspect_target_hygiene,
 )
 
@@ -105,3 +106,94 @@ def test_hygiene_cli_reports_json(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["target_id"] == "demo"
     assert payload["files"][0]["class"] == TargetFileClass.SOURCE_IMPORT_FACT
+
+
+def test_clean_run_preserves_source_import_facts(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "source_binary.json")
+
+    report = clean_run_target_workspace("demo", project_root=tmp_path)
+
+    assert report.status == "completed"
+    assert (target_dir / "source_binary.json").exists()
+
+
+def test_clean_run_deletes_obsolete_ui_and_manual_state(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "target_ui_edits.json")
+    _touch(target_dir / "ui_preferences.json")
+    _touch(target_dir / "manual_actions.jsonl")
+
+    report = clean_run_target_workspace("demo", project_root=tmp_path)
+
+    assert sorted(report.deleted_files) == ["manual_actions.jsonl", "target_ui_edits.json", "ui_preferences.json"]
+    assert not (target_dir / "target_ui_edits.json").exists()
+    assert not (target_dir / "ui_preferences.json").exists()
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+def test_clean_run_deletes_generated_state(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "reproduction.json")
+    _touch(target_dir / "demo.s")
+
+    report = clean_run_target_workspace("demo", project_root=tmp_path)
+
+    assert sorted(report.deleted_files) == ["demo.s", "reproduction.json"]
+    assert not (target_dir / "reproduction.json").exists()
+    assert not (target_dir / "demo.s").exists()
+
+
+def test_clean_run_stops_on_unknown_without_deletion(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "notes.json")
+    _touch(target_dir / "reproduction.json")
+
+    report = clean_run_target_workspace("demo", project_root=tmp_path)
+
+    assert report.status == "blocked"
+    assert report.blocked_reason == "unknown target-local files require review before clean-run"
+    assert report.deleted_files == ()
+    assert (target_dir / "notes.json").exists()
+    assert (target_dir / "reproduction.json").exists()
+
+
+def test_clean_run_writes_before_after_report(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "reproduction.json")
+
+    report = clean_run_target_workspace("demo", project_root=tmp_path)
+
+    before_path = Path(report.report_paths["before"])
+    latest_path = Path(report.report_paths["latest"])
+    assert before_path.exists()
+    assert latest_path.exists()
+    payload = json.loads(latest_path.read_text(encoding="utf-8"))
+    assert payload["before"]["files"][0]["path"] == "reproduction.json"
+    assert payload["after"]["target_id"] == "demo"
+    assert payload["deleted_files"] == ["reproduction.json"]
+
+
+def test_clean_run_cli_reports_json(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "reproduction.json")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "amiga_reversing.reversing_loop",
+            "--project-root",
+            str(tmp_path),
+            "clean-run",
+            "--target",
+            "demo",
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "completed"
+    assert payload["deleted_files"] == ["reproduction.json"]

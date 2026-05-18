@@ -1101,3 +1101,8 @@ to repeat the loop safely.
   The initial allowlist is deliberately conservative: source/import facts and
   agent audit state are preserved, generated/obsolete/local manual state is
   resettable later, and unknown files make automated cleanup unsafe.
+- 010-003 added `clean-run` cleanup as a classified file unlink pass. It writes
+  before/latest cleanup reports under `targets/<target>/agent/`, preserves
+  source/import facts and agent audit files, deletes only generated,
+  obsolete-UI, and local manual state, and blocks without deletion when hygiene
+  reports unknown files.
