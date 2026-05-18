@@ -1071,6 +1071,14 @@ def _data_block_layout_overlaps(left: dict[str, object], right: dict[str, object
     return left_hunk == right_hunk and left_start < right_end and right_start < left_end
 
 
+def _data_block_layout_range_matches_if_present(layout: dict[str, object], existing: dict[str, object]) -> bool:
+    for field_name in ("hunk", "source_start", "source_end"):
+        value = _manual_seed_int(layout, field_name)
+        if value is not None and value != _manual_seed_int(existing, field_name):
+            return False
+    return True
+
+
 def _data_block_layout_conflict_item(layout: dict[str, object], existing: dict[str, object]) -> dict[str, object]:
     layout_id = str(layout["layout_id"])
     existing_id = str(existing["layout_id"])
@@ -1562,6 +1570,8 @@ def _project_actions(
                 layout_id = _data_block_layout_key(layout, require_range=False)
                 existing_layout = data_block_layouts.get(layout_id)
                 if existing_layout is not None:
+                    if not _data_block_layout_range_matches_if_present(layout, existing_layout):
+                        raise ValueError(f"data_block_layout {layout_id} range does not match existing layout")
                     layout = {**existing_layout, **layout}
             layout_id = _data_block_layout_key(layout)
             conflicts = [
@@ -1586,6 +1596,9 @@ def _project_actions(
         elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT:
             layout = dict(_action_object(action, "data_block_layout"))
             layout_id = _data_block_layout_key(layout, require_range=False)
+            existing_layout = data_block_layouts.get(layout_id)
+            if existing_layout is not None and not _data_block_layout_range_matches_if_present(layout, existing_layout):
+                raise ValueError(f"data_block_layout {layout_id} range does not match existing layout")
             existing = data_block_layouts.pop(layout_id, None)
             removed = dict(existing or layout)
             removed["cleanup_action_id"] = action.action_id

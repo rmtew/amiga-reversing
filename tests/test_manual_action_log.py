@@ -11,6 +11,7 @@ from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     ManualActionKind,
     ReviewItemKind,
+    ReviewState,
     append_manual_action,
     build_target_identity,
     load_manual_projection,
@@ -1243,6 +1244,64 @@ def test_manual_action_log_replaces_overlapping_data_block_layout_when_explicit(
 
     assert projection.data_block_layouts == (second,)
     assert projection.removed_data_block_layouts == ({**first, "replacement_action_id": "a2"},)
+
+
+def test_manual_action_log_blocks_stale_data_block_layout_edit_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "values", "hunk": 0, "source_start": 0x100, "source_end": 0x120},
+            ),
+            _action(
+                "a2",
+                2,
+                "edit_manual_data_block_layout",
+                data_block_layout={"layout_id": "values", "hunk": 0, "source_start": 0x104, "source_end": 0x120},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state is ReviewState.BLOCKED
+    assert projection.review_items[0]["kind"] is ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED
+    assert "range does not match existing layout" in str(projection.review_items[0]["message"])
+
+
+def test_manual_action_log_blocks_stale_data_block_layout_remove_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "values", "hunk": 0, "source_start": 0x100, "source_end": 0x120},
+            ),
+            _action(
+                "a2",
+                2,
+                "remove_manual_data_block_layout",
+                data_block_layout={"layout_id": "values", "hunk": 0, "source_start": 0x100, "source_end": 0x124},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state is ReviewState.BLOCKED
+    assert projection.review_items[0]["kind"] is ReviewItemKind.MANUAL_ACTION_LOG_MALFORMED
+    assert "range does not match existing layout" in str(projection.review_items[0]["message"])
 
 
 def test_manual_action_log_projects_custom_struct(tmp_path: Path) -> None:

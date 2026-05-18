@@ -36,8 +36,10 @@ Chosen source model:
   scalar layout verifier is proven.
 
 Durable identity rules:
-- Source-backed layout identity is `(target, hunk, source_start, source_end,
-  layout_id)`.
+- Source-backed layout identity is the target-local `layout_id`. The create
+  action must carry `hunk`, `source_start`, and `source_end`; later edit/remove
+  actions may target by `layout_id` alone, but any supplied hunk/source range is
+  stale-edit validation and must match the active layout.
 - Runtime-backed layout identity is `(target, source/origin execution_view_id,
   source_start, source_end, runtime_start, runtime_end, layout_id)`. Runtime
   address alone is not durable enough because copied/relocated stages can share

@@ -8,6 +8,17 @@ projection. This issue owns identity, metadata shape, effective metadata merge,
 overlap handling, and removal behavior. It does not own command catalog
 exposure, rendering, or interpreted references.
 
+Identity contract:
+- `layout_id` is the stable durable identity for a data-block layout within one
+  target. Hunk/source range is required when creating a layout and remains
+  validation/context for edits and removals.
+- `edit_manual_data_block_layout` and `remove_manual_data_block_layout` may
+  target by `layout_id` alone. If they also carry `hunk`, `source_start`, or
+  `source_end`, those fields must match the active layout; mismatches block
+  replay as stale Manual Action Log state instead of silently editing another
+  source range.
+- Element identity remains `(layout_id, offset)`.
+
 Requirements:
 - Add durable `DataBlockLayout` metadata with hunk/source range, layout id,
   optional runtime execution-view identity, role/name/default unit, version, and
@@ -47,6 +58,9 @@ Current evidence:
   effective metadata and records explicit cleanup/raw state in Manual Action
   Log projection. Removing an element also removes that element from existing
   effective layout metadata when the action provides an explicit span.
+- Replay treats `layout_id` as the durable target-local key and validates any
+  supplied hunk/source range on edit/remove against the active layout to catch
+  stale source-range edits.
 - No command catalog, renderer, loop, xref, or type-flow route has been added
   in this issue.
 
@@ -54,8 +68,9 @@ Acceptance criteria:
 - Manual replay produces deterministic effective layout/element state. Covered
   by `tests/test_manual_action_log.py`.
 - Layout and element identities survive reload and unrelated source rendering
-  changes. Covered by `tests/test_manual_seed_effective_metadata.py` effective
-  metadata projection tests.
+  changes; stale edit/remove range context is blocked. Covered by
+  `tests/test_manual_seed_effective_metadata.py` effective metadata projection
+  tests and `tests/test_manual_action_log.py` replay validation tests.
 - Overlap and replacement behavior is tested.
 - Removal returns layout spans to raw/gap metadata state in projection and
   removes active effective layout metadata.
