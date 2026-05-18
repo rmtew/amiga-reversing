@@ -1230,3 +1230,18 @@ The listing-backed selector now handles hunk-file targets such as
 `amiga_hunk_genam` by treating section 0 offset 0 as hunk load-entrypoint
 evidence, scanning enough of the listing prefix to find the corresponding row,
 and carrying the candidate's own suggested comment text into `comment.edit`.
+
+## Follow-Up Implementation 010-012
+
+Real `amiga_hunk_genam` label work exposed a missing normal-path helper: the
+loop could only drive comments, while useful source convergence needed
+locator-backed `label.rename` actions. Use:
+
+```text
+python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-label-rename --label-offset <offset> --label-name <name>
+```
+
+That mode opens the listing in-process, finds the label row by section/source
+offset, checks element-context command availability for `label.rename`, executes
+through `/commands/execute`, and verifies Manual Action Log count/head hash,
+semantic reload, projected label name, and round-trip exact status.

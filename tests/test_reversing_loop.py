@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
@@ -47,6 +48,10 @@ def _project(review_items: tuple[dict[str, object], ...]) -> ProjectRecord:
         review_items=review_items,
         manual_state={"review_state": "needs_review"},
     )
+
+
+def _project_with_manual_labels(labels: list[dict[str, object]]) -> ProjectRecord:
+    return replace(_project(()), manual_state={"labels": labels})
 
 
 def test_inspect_report_generation_does_not_mutate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -659,6 +664,105 @@ def test_listing_backed_comment_blocks_when_comment_edit_unavailable(
     assert not any(path.endswith("/commands/execute") for _, path in calls)
 
 
+def test_listing_backed_label_rename_dry_run_selects_label_command(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(row_key="label-row", kind="label", label="loc_0_00001000", start_offset=0x1000, end_offset=0x1000)]}}
+        if path.endswith("/commands"):
+            assert query["context"] == ["element"]
+            return {"data": {"commands": [{"command_id": "label.rename"}]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_label_rename_iteration(
+        "demo",
+        mode="clean-run",
+        dry_run=True,
+        source_offset=0x1000,
+        new_label="open_output_file",
+        rationale="sets MODE_NEWFILE and stores the returned handle",
+        evidence_lines=("calls DOS Open",),
+        project_root=tmp_path,
+    )
+
+    assert calls == [
+        ("POST", "/api/projects/demo/listing/open"),
+        ("GET", "/api/projects/demo/listing"),
+        ("GET", "/api/projects/demo/commands"),
+    ]
+    assert report["selected_work_item"]["kind"] == "listing_label_rename"
+    assert report["action"]["command_id"] == "label.rename"
+    assert report["action"]["context"]["kind"] == "element"
+    assert report["action"]["parameters"] == {"name": "open_output_file"}
+    assert report["action_result"]["status"] == "dry_run"
+
+
+def test_listing_backed_label_rename_executes_and_verifies(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    calls: list[tuple[str, str]] = []
+    listing_calls = 0
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: _project_with_manual_labels([{"name": "open_output_file", "addr": 0x1000}]),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        nonlocal listing_calls
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            listing_calls += 1
+            label = "open_output_file" if listing_calls > 1 else "loc_0_00001000"
+            return {"data": {"rows": [_listing_row(row_key="label-row", kind="label", label=label, start_offset=0x1000, end_offset=0x1000)]}}
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "label.rename"}]}}
+        if path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "label.rename"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_label_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_label_rename_iteration(
+        "demo",
+        mode="clean-run",
+        source_offset=0x1000,
+        new_label="open_output_file",
+        rationale="sets MODE_NEWFILE and stores the returned handle",
+        evidence_lines=("calls DOS Open",),
+        project_root=tmp_path,
+    )
+
+    assert ("POST", "/api/projects/demo/commands/execute") in calls
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "projection",
+        "round_trip",
+    ]
+    assert report["next"]["recommendation"] == "continue"
+
+
 def test_continue_recommendation_when_verification_passes() -> None:
     recommendation = reversing_loop.recommend_next_step(
         inspect_report={"hygiene": {"unknown_files": []}},
@@ -768,6 +872,7 @@ def _listing_row(
     *,
     row_key: str = "row-1",
     kind: str = "instruction",
+    label: str | None = None,
     start_offset: int | None = 0,
     end_offset: int | None = 2,
 ) -> dict[str, object]:
@@ -777,6 +882,9 @@ def _listing_row(
         "addr": start_offset,
         "locator": _listing_locator(row_key=row_key, kind=kind, start_offset=start_offset, end_offset=end_offset),
     }
+    if label is not None:
+        row["label"] = label
+        row["text"] = f"{label}:\n"
     if comment_text is not None:
         row["comment_text"] = comment_text
     return row
@@ -834,6 +942,13 @@ def _write_hunk_source(tmp_path: Path) -> None:
     )
 
 
+def _write_reproduction_exact(tmp_path: Path) -> None:
+    (tmp_path / "targets" / "demo" / "reproduction.json").write_text(
+        json.dumps({"status": "exact"}),
+        encoding="utf-8",
+    )
+
+
 def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
     return {
@@ -844,6 +959,25 @@ def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:
             "manual_action_log_head_hash": state["head_hash"],
             "effective_metadata_hash": "f" * 64,
             "affected_locators": [_listing_locator()],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {
+            "workflow_id": "manual_command_execution",
+            "spans": [{"name": "locator_resolution", "seconds": 0.01, "module": "listing_projection"}],
+        },
+    }
+
+
+def _executed_listing_label_payload(tmp_path: Path) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1"},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator(row_key="label-row", kind="label", start_offset=0x1000, end_offset=0x1000)],
             "projection_hash": "projection-1",
         },
         "workflow_profile": {
