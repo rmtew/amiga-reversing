@@ -35,6 +35,9 @@ Result:
   `data_role`, `unit`, and `encoding` where required.
 - Rendering coverage loads the Manual Action Log through effective metadata and
   proves each role projects into source text and direct-rebuilds exactly.
+- Loop planner support is intentionally narrow here: `014-006` now mines obvious
+  null-terminated printable ASCII data rows into `row.seed.data.string`
+  candidates, while broader autonomous role inference remains a planner issue.
 
 Verification:
 - `uv run python -m pytest tests\test_disasm_server.py::test_route_project_overlays_cached_analysis_review_state tests\test_disasm_server.py::test_route_manual_action_catalog_returns_review_item_actions tests\test_disasm_server.py::test_route_manual_action_catalog_returns_row_and_element_actions tests\test_disasm_server.py::test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibility tests\test_disasm_server.py::test_route_manual_action_catalog_execute_appends_row_data_type_helper_action tests\test_disasm_server.py::test_route_manual_action_catalog_execute_appends_valid_log_action -q`
