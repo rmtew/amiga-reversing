@@ -169,6 +169,10 @@ missing. Generic `run-one` must retry listing-derived candidate mining in that
 case; otherwise stale review work can hide available source-converging listing
 edits.
 
+Implementation observation from `014-006`: `comment.edit` is still valid as a
+last resort, but it must not be the first accepted generic `run-one` action when
+the listing has not been mined for source-converging candidates.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

@@ -53,6 +53,9 @@ Progress:
 - Generic `run-one` now retries listing-derived candidate mining when inspect
   returns candidates but every candidate is skipped, so stale/projected review
   work no longer prevents available source-converging listing edits.
+- Generic `run-one` also treats an inspect-selected `comment.edit` as
+  provisional until listing-derived candidates have been mined once, keeping
+  comments as fallback-only work.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

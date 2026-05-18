@@ -790,6 +790,32 @@ def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
 
+def test_run_one_tries_listing_candidates_before_accepting_comment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    row = _byte_immediate_row()
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "representation.character"
+    assert report["selected_work_item"]["candidate_id"] == "representation:row-1:0:48:character"
+    ranked_ids = [
+        candidate.get("candidate_id") or candidate.get("id") for candidate in report["planner"]["ranked_candidates"]
+    ]
+    assert ranked_ids[:2] == ["representation:row-1:0:48:character", "candidate-1"]
+
+
 def test_run_one_uses_listing_rsset_suggestion_when_inspect_empty(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

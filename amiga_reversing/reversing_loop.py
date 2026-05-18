@@ -630,9 +630,10 @@ def run_one_iteration(
     iteration_id = _next_iteration_id(run_result.run_state)
     selected = _select_command_action(inspect_report)
     if (
-        selected is None
+        (selected is None or _selected_command_id(selected) == "comment.edit")
         and bool(inspect_report.get("candidate_work"))
         and inspect_report.get("safe_to_mutate") is True
+        and _round_trip_verifier_available(inspect_report)
         and not inspect_report.get("listing_open")
     ):
         inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
@@ -3058,6 +3059,16 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
 
 def _command_id_affects_output(command_id: str) -> bool:
     return command_id != "comment.edit"
+
+
+def _selected_command_id(selected: dict[str, object] | None) -> str | None:
+    if selected is None:
+        return None
+    command = selected.get("command")
+    if not isinstance(command, dict):
+        return None
+    command_id = command.get("command_id")
+    return command_id if isinstance(command_id, str) else None
 
 
 def _select_command_action(inspect_report: dict[str, object]) -> dict[str, object] | None:
