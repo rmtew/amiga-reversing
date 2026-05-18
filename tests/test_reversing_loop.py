@@ -633,6 +633,53 @@ def test_planner_uses_next_candidate_command_when_first_option_is_unverified() -
     assert inspect_report["planner"]["selected_command_id"] == "target.execution_view.add"
 
 
+def test_run_one_uses_available_alternate_command_when_selected_catalog_action_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "multi-command",
+            "candidate_id": "multi-command",
+            "kind": "data_symbol_name",
+            "locator": _listing_locator(kind="data"),
+            "suggested_action_kinds": ["row.seed.code", "data_symbol.rename"],
+            "new_name": "player_table",
+            "default_verifier": "round_trip",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    executed: list[str] = []
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_mutation",
+        lambda target_id, command, result, project_root: {"status": "passed", "layers": []},
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "data_symbol.rename"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            executed.append(str(body["command_id"]))
+            return {"data": _executed_command_payload()}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert executed == ["data_symbol.rename"]
+    assert report["action"]["command_id"] == "data_symbol.rename"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_planner_selects_rsset_region_add_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -59,6 +59,9 @@ Progress:
 - Planner candidate selection now evaluates alternate command options for a
   candidate, so an unverified higher-ranked command does not hide a supported
   lower option from the same evidence.
+- Non-dry execution now checks catalog availability across alternate command
+  options before stopping, so a missing higher-ranked command does not hide an
+  available lower-ranked action from the same candidate.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 

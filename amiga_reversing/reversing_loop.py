@@ -733,18 +733,45 @@ def run_one_iteration(
         return write_iteration_report(target_id, report, project_root=project_root)
 
     availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
-    commands = availability.get("commands")
-    if not isinstance(commands, list) or not any(
-        isinstance(entry, dict) and entry.get("command_id") == command["command_id"] for entry in commands
-    ):
+    if not _command_available_in_catalog(command, availability):
+        alternate = _select_available_command_action(target_id, inspect_report, excluded_command=command)
+        if alternate is not None:
+            selected = alternate
+            command = cast(dict[str, object], selected["command"])
+            availability = cast(dict[str, object], selected["availability"])
+        else:
+            availability_layer = {
+                "layer": "command_availability",
+                "status": "failed",
+                "message": "selected source-converging command is unavailable in the command catalog",
+                "command_id": command.get("command_id"),
+                "context_kind": cast(dict[str, object], command.get("context")).get("kind")
+                if isinstance(command.get("context"), dict)
+                else None,
+            }
+            verification = {"status": "failed", "layers": [availability_layer]}
+            report = _iteration_report(
+                run_state=run_result.run_state,
+                iteration_id=iteration_id,
+                inspect_report=inspect_report,
+                selected_work_item=cast(dict[str, object], selected["work_item"]),
+                command=command,
+                action_result={"status": "blocked", "availability": availability},
+                verification=verification,
+                workflow_profile=None,
+                next_recommendation=recommend_next_step(
+                    inspect_report=inspect_report,
+                    verification=verification,
+                    evidence={"kind": "api_gap", "name": "command_availability"},
+                ),
+            )
+            return write_iteration_report(target_id, report, project_root=project_root)
+
+    if _command_requires_round_trip(command) and not _round_trip_verifier_available(inspect_report):
         availability_layer = {
-            "layer": "command_availability",
+            "layer": "round_trip",
             "status": "failed",
-            "message": "selected source-converging command is unavailable in the command catalog",
-            "command_id": command.get("command_id"),
-            "context_kind": cast(dict[str, object], command.get("context")).get("kind")
-            if isinstance(command.get("context"), dict)
-            else None,
+            "message": "output-affecting action requires an available round-trip verifier",
         }
         verification = {"status": "failed", "layers": [availability_layer]}
         report = _iteration_report(
@@ -753,13 +780,13 @@ def run_one_iteration(
             inspect_report=inspect_report,
             selected_work_item=cast(dict[str, object], selected["work_item"]),
             command=command,
-            action_result={"status": "blocked", "availability": availability},
+            action_result={"status": "blocked"},
             verification=verification,
             workflow_profile=None,
             next_recommendation=recommend_next_step(
                 inspect_report=inspect_report,
                 verification=verification,
-                evidence={"kind": "api_gap", "name": "command_availability"},
+                evidence={"kind": "unavailable_oracle", "name": "round_trip"},
             ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
@@ -3245,6 +3272,52 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
         "output_affecting": command.get("output_affecting") is True,
         "verifier": verifier,
     }
+
+
+def _commands_same_identity(left: dict[str, object], right: dict[str, object]) -> bool:
+    return left.get("command_id") == right.get("command_id") and left.get("context") == right.get("context")
+
+
+def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:
+    commands = availability.get("commands")
+    return isinstance(commands, list) and any(
+        isinstance(entry, dict) and entry.get("command_id") == command.get("command_id") for entry in commands
+    )
+
+
+def _select_available_command_action(
+    target_id: str,
+    inspect_report: dict[str, object],
+    *,
+    excluded_command: dict[str, object] | None = None,
+) -> dict[str, object] | None:
+    candidates = inspect_report.get("candidate_work")
+    if not isinstance(candidates, list):
+        return None
+    eligible: list[dict[str, object]] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        for option in _candidate_command_options(candidate):
+            if excluded_command is not None and _commands_same_identity(option, excluded_command):
+                continue
+            if _candidate_skip_reason(candidate, option) is not None:
+                continue
+            eligible.append(
+                {
+                    "work_item": dict(candidate),
+                    "command": option,
+                    "planner_score": _candidate_score(candidate, option),
+                }
+            )
+    eligible.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
+    for item in eligible:
+        command = cast(dict[str, object], item["command"])
+        availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
+        if _command_available_in_catalog(command, availability):
+            item["availability"] = availability
+            return item
+    return None
 
 
 def _select_candidate_command(

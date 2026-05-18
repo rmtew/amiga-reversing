@@ -188,6 +188,11 @@ than one command option. Selection must evaluate each option's verifier and
 durable context, otherwise one unverified option can hide a valid supported
 action from the same evidence.
 
+Implementation observation from `014-006`: command availability is also
+option-specific. A candidate can have a valid lower-ranked catalog command even
+when the first selected command is unavailable, so non-dry execution must retry
+eligible alternates before reporting a command-coverage blocker.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
