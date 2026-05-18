@@ -147,6 +147,7 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
+    REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -176,6 +177,7 @@ class ManualActionLogProjection:
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
+    removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
@@ -325,6 +327,7 @@ def _empty_projection(
         semantic_hints=(),
         suppressed_seeded_items=(),
         execution_views=(),
+        removed_execution_views=(),
         review_notes=(),
         resolutions=(),
         active_action_ids=(),
@@ -1112,6 +1115,7 @@ def _project_actions(
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
+    removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
@@ -1155,7 +1159,14 @@ def _project_actions(
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
-            execution_views[_execution_view_key(view)] = view
+            key = _execution_view_key(view)
+            removed_execution_views.pop(key, None)
+            execution_views[key] = view
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW:
+            view = _action_object(action, "execution_view")
+            key = _execution_view_key(view)
+            execution_views.pop(key, None)
+            removed_execution_views[key] = view
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -1197,6 +1208,7 @@ def _project_actions(
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
         execution_views=tuple(execution_views.values()),
+        removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),

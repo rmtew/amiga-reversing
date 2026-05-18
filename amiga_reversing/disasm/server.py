@@ -2497,6 +2497,10 @@ def _manual_action_application_payload(
         view = action_payload.get("execution_view")
         if isinstance(view, Mapping):
             local_effects.append({"kind": "execution_view", "execution_view": dict(view)})
+    elif kind == "remove_manual_execution_view":
+        view = action_payload.get("execution_view")
+        if isinstance(view, Mapping):
+            local_effects.append({"kind": "execution_view_remove", "execution_view": dict(view)})
     elif kind == "add_review_note":
         note = action_payload.get("note")
         if isinstance(note, Mapping):

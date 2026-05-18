@@ -10,6 +10,7 @@ from amiga_reversing.disasm.manual_actions import (
     build_target_identity,
 )
 from amiga_reversing.disasm.target_metadata import (
+    ExecutionViewMetadata,
     SeededCodeEntrypointMetadata,
     SeededEntityMetadata,
     TargetMetadata,
@@ -711,6 +712,45 @@ def test_effective_metadata_applies_manual_execution_view(tmp_path: Path) -> Non
             "source_start": 0x20,
         }
     ]
+
+
+def test_effective_metadata_removes_execution_view_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            execution_views=(
+                ExecutionViewMetadata(
+                    source_start=0x20,
+                    source_end=0x80,
+                    base_addr=0x4000,
+                    name="stage_code",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "remove_manual_execution_view",
+                execution_view={"source_start": 0x20, "source_end": 0x80, "base_addr": 0x4000},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["execution_views"] == []
 
 
 def test_effective_metadata_ignores_manual_data_seed_conflicting_with_raw_entrypoint(tmp_path: Path) -> None:

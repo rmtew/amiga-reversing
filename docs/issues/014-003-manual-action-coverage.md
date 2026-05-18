@@ -34,6 +34,8 @@ Current progress:
   item suppressions into effective metadata.
 - `create_manual_execution_view` replay projects append-only target runtime
   views into effective metadata by `(source_start, source_end, base_addr)`.
+- `remove_manual_execution_view` replay removes target runtime views by that
+  same durable identity.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

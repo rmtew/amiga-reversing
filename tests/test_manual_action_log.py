@@ -957,6 +957,42 @@ def test_manual_action_log_projects_execution_view(tmp_path: Path) -> None:
     )
 
 
+def test_manual_action_log_removes_execution_view_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_execution_view",
+                execution_view={
+                    "execution_view_id": "stage",
+                    "source_start": 0x20,
+                    "source_end": 0x80,
+                    "base_addr": 0x4000,
+                    "name": "stage_code",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "remove_manual_execution_view",
+                execution_view={"source_start": 0x20, "source_end": 0x80, "base_addr": 0x4000},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.execution_views == ()
+    assert projection.removed_execution_views == (
+        {"source_start": 0x20, "source_end": 0x80, "base_addr": 0x4000},
+    )
+
+
 def test_required_manual_data_seed_conflicts_with_raw_entrypoint(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

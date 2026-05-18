@@ -381,6 +381,17 @@ def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionView
     )
 
 
+def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] | None:
+    source_start = _manual_seed_int(view, "source_start")
+    source_end = _manual_seed_int(view, "source_end")
+    base_addr = _manual_seed_int(view, "base_addr")
+    if source_start is None or source_end is None or base_addr is None:
+        return None
+    if source_start < 0 or source_end <= source_start or base_addr < 0:
+        return None
+    return source_start, source_end, base_addr
+
+
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
@@ -416,6 +427,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     execution_view_projections = projection.execution_views
+    removed_execution_view_projections = projection.removed_execution_views
     if (
         not required_seeds
         and not labels
@@ -425,6 +437,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not register_seed_projections
         and not suppressed_seeded_item_projections
         and not execution_view_projections
+        and not removed_execution_view_projections
     ):
         return metadata
     if metadata is None:
@@ -438,6 +451,17 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     manual_representations = list(metadata.manual_representations)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
+    removed_execution_view_keys = {
+        key
+        for view in removed_execution_view_projections
+        if (key := _manual_execution_view_key(view)) is not None
+    }
+    if removed_execution_view_keys:
+        execution_views = [
+            view
+            for view in execution_views
+            if (view.source_start, view.source_end, view.base_addr) not in removed_execution_view_keys
+        ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
         if seed_kind is ManualSeedKind.CODE:

@@ -35,6 +35,9 @@ Current progress:
 - Target context exposes `target.execution_view.add`, with required
   `source_start`, `source_end`, `base_addr`, and `name`, and `/commands/execute`
   appends `create_manual_execution_view`.
+- Target context exposes `target.execution_view.remove`, with required
+  `source_start`, `source_end`, and `base_addr`, and `/commands/execute`
+  appends `remove_manual_execution_view`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

@@ -75,3 +75,23 @@ def test_target_execution_view_command_payload() -> None:
             "name": "stage_code",
         }
     }
+
+
+def test_target_execution_view_remove_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.execution_view.remove",
+        {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+        },
+    )
+
+    assert kind == "remove_manual_execution_view"
+    assert payload == {
+        "execution_view": {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+        }
+    }

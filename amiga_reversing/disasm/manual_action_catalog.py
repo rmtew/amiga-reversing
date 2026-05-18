@@ -104,6 +104,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_reproduction_profile_action(),
         _target_source_export_action(),
         _target_execution_view_action(),
+        _target_execution_view_remove_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -130,6 +131,8 @@ def target_catalog_manual_payload(
         params.update(parameters)
     if action.get("action") == "create_manual_execution_view":
         return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
+    if action.get("action") == "remove_manual_execution_view":
+        return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -735,6 +738,21 @@ def _execution_view_payload(params: Mapping[str, object]) -> dict[str, object]:
     return view
 
 
+def _execution_view_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    source_start = _optional_int(params.get("source_start"))
+    source_end = _optional_int(params.get("source_end"))
+    base_addr = _optional_int(params.get("base_addr"))
+    if source_start is None or source_end is None or base_addr is None:
+        raise ValueError("remove_manual_execution_view requires source_start, source_end, and base_addr")
+    if source_start < 0 or source_end <= source_start or base_addr < 0:
+        raise ValueError("remove_manual_execution_view has invalid source/runtime range")
+    return {
+        "source_start": source_start,
+        "source_end": source_end,
+        "base_addr": base_addr,
+    }
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -804,6 +822,18 @@ def _execution_view_parameter_schema() -> dict[str, object]:
             "comment": {"type": "string"},
         },
         "required": ["source_start", "source_end", "base_addr", "name"],
+    }
+
+
+def _execution_view_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "source_start": {"type": "integer", "minimum": 0},
+            "source_end": {"type": "integer", "minimum": 1},
+            "base_addr": {"type": "integer", "minimum": 0},
+        },
+        "required": ["source_start", "source_end", "base_addr"],
     }
 
 
@@ -1658,6 +1688,15 @@ def _target_execution_view_action() -> dict[str, object]:
         "Add execution view",
         "create_manual_execution_view",
         _execution_view_parameter_schema(),
+    )
+
+
+def _target_execution_view_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.execution_view.remove",
+        "Remove execution view",
+        "remove_manual_execution_view",
+        _execution_view_identity_parameter_schema(),
     )
 
 
