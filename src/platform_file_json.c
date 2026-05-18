@@ -4169,7 +4169,10 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
     int is_immediate = access_kind == M68K_SIM_ACCESS_IMMEDIATE;
     unsigned width_bits = 0U;
     int32_t signed_value = (int32_t)operand->value.value;
-    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate) continue;
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
+    if ((symbol_name == NULL || symbol_name[0] == '\0') && !is_immediate && !has_base_register) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (is_immediate) {
       if (instruction->size_suffix == 'b') width_bits = 8U;
@@ -4190,10 +4193,7 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
         if (json_builder_append(builder, "}") != 0) return -1;
       } else if (json_builder_append(builder, ",\"metadata\":{}") != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
-    } else {
-      uint8_t base_reg = 0U;
-      int16_t displacement = 0;
-      int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
+    } else if (symbol_name != NULL && symbol_name[0] != '\0') {
       if (json_builder_appendf(builder, "{\"kind\":\"symbol\",\"operand_index\":%u,\"text\":",
             (unsigned)operand_index) != 0)
         return -1;
@@ -4209,6 +4209,13 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
       if (json_builder_append(builder, "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0) return -1;
       if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
       if (json_builder_append(builder, "}}") != 0) return -1;
+    } else {
+      if (json_builder_appendf(builder,
+            "{\"kind\":\"displacement\",\"operand_index\":%u,\"text\":null,\"value\":null,"
+            "\"register\":null,\"base_register\":\"A%u\",\"displacement\":%d,"
+            "\"segment_addr\":null,\"metadata\":{}}",
+            (unsigned)operand_index, (unsigned)base_reg, (int)displacement) != 0)
+        return -1;
     }
     emitted = 1;
   }
@@ -6050,8 +6057,11 @@ static int listing_stmt_has_operand_parts(const M68kStatementIR *stmt) {
   metadata = instruction_sim_metadata(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0') return 1;
     if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_IMMEDIATE) return 1;
+    if (operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U) return 1;
   }
   return 0;
 }

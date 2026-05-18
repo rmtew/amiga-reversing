@@ -45,6 +45,8 @@ from amiga_reversing.disasm.c_backend import (
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.facts_v2_source_refusal import FactsV2SourceRefused
+from amiga_reversing.disasm.listing_context import listing_element_contexts
+from amiga_reversing.disasm.manual_action_catalog import listing_element_action_catalog
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     build_target_identity,
@@ -7386,6 +7388,54 @@ def test_real_dll_renders_genam() -> None:
             "access": "read-write",
         }
     ]
+
+
+def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
+    _requires_c_backend_dlls()
+    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
+        "amiga_hunk_genam",
+        project_root=PROJECT_ROOT,
+    )
+    row = next(row for row in rows if str(row.get("text", "")).strip() == "sf.b $0102(a6)")
+    assert row.get("app_slot_refs", []) == []
+    assert row["operand_parts"] == [
+        {
+            "kind": "displacement",
+            "operand_index": 0,
+            "text": None,
+            "value": None,
+            "register": None,
+            "base_register": "A6",
+            "displacement": 0x0102,
+            "segment_addr": None,
+            "metadata": {},
+        }
+    ]
+
+    contexts = listing_element_contexts(row)
+    matching_contexts = [
+        context
+        for context in contexts
+        if context.get("base_register") == "A6" and context.get("displacement") == 0x0102
+    ]
+    assert matching_contexts, f"operand_parts={row.get('operand_parts')!r}; contexts={contexts!r}"
+    context = matching_contexts[0]
+    assert context["operand_index"] == 0
+
+    actions = listing_element_action_catalog(row, {"element_id": context["element_id"]})
+    report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
+    bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
+
+    assert report_action["report"]["candidate"] == {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_register": "A6",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "displacement": 0x0102,
+    }
+    assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
+    assert bind_action["parameters"]["displacement"] == 0x0102
+    assert bind_action["parameters"]["operand_index"] == 0
 
 
 @pytest.mark.parametrize("binary_name", ["GenAm", "MonAm302"])
