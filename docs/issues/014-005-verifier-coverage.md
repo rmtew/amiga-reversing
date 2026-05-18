@@ -24,6 +24,16 @@ Acceptance criteria:
 Required tests:
 Positive and negative verifier tests for each implemented action family.
 
+Working goal:
+- Treat proposal and issue updates as part of verifier implementation. Each new
+  verifier or verifier blocker must update Proposal 014 plus this issue before
+  the work is considered complete.
+- Prefer action-specific proof over generic pass/fail plumbing: durable action
+  payload, Manual Action Log replay, reloaded semantic/manual state or rendered
+  projection, and exact round-trip when output-affecting.
+- Keep metadata-only actions blocked until a rendered-source or type-specific
+  verifier exists.
+
 Current evidence:
 - Generic output-affecting manual mutations now run a round-trip verification
   layer after command execution, instead of only checking that a round-trip
@@ -109,6 +119,21 @@ Current evidence:
 - Manual-seed verifiers derive expected seeds or removed seed ids from executed
   durable action payloads, so matching project state alone cannot satisfy a
   missing or mismatched action result.
+- `tests/test_agent_reversing_loop.py::test_agent_reversing_loop_smoke` now
+  returns durable Manual Action Log hash/count metadata and refreshed projected
+  comment rows, so it exercises the projected-comment verifier instead of the
+  old affected-locator-only behavior.
+- `tests/test_agent_reversing_loop.py::test_agent_real_genam_autonomous_rsset_candidate_converges_source`
+  proves an autonomous GenAm RSSET candidate through command execution, reloaded
+  RSSET state, rendered RSSET definition, and exact round-trip availability.
+
+Remaining work:
+- Add or document one real-target smoke for each newly executable action family
+  before treating synthetic verifier coverage as sufficient; record the
+  verifier evidence here and the candidate/feed evidence in `014-006` or the
+  family issue (`014-010`, `014-011`, `014-012`, `014-013`, `014-014`).
+- Keep custom struct and typed-field commands blocked until rendered custom
+  field paths and their verifier are proven in `014-012`.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

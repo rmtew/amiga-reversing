@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import shutil
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from amiga_reversing import reversing_loop
-from amiga_reversing.disasm import project_paths, projects
+from amiga_reversing.disasm import c_backend, project_paths, projects
 from amiga_reversing.disasm import server as disasm_server
 from amiga_reversing.disasm.binary_source import write_source_descriptor
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -18,6 +22,8 @@ from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(autouse=True)
@@ -58,19 +64,27 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         calls.append((method, path))
-        if method == "GET":
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [{**locator, "row_key": "row-1", "comment_text": "xref-backed smoke comment"}]}}
+        if method == "GET" and path.endswith("/commands"):
             assert query["context"] == ["row"]
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         assert isinstance(body, dict)
         assert body["context"]["locator"]["row_key"] == "row-1"
         _write_manual_log(target_dir)
+        log_state = reversing_loop._manual_action_log_state(target_dir)
         return {
             "data": {
                 "action": {"action_id": "manual-1"},
                 "mutation": {
                     "durable_action_id": "manual-1",
-                    "manual_action_log_count": 1,
+                    "manual_action_log_count": log_state["count"],
+                    "manual_action_log_head_hash": log_state["head_hash"],
+                    "effective_metadata_hash": "f" * 64,
                     "affected_locators": [locator],
+                    "projection_hash": "projection-1",
                 },
                 "workflow_profile": {
                     "workflow_id": "manual_command_execution",
@@ -97,6 +111,8 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert calls == [
         ("GET", "/api/projects/demo/commands"),
         ("POST", "/api/projects/demo/commands/execute"),
+        ("GET", "/api/projects/demo"),
+        ("GET", "/api/projects/demo/listing"),
     ]
     latest_path = target_dir / "agent" / "latest-reversing-loop.json"
     assert latest_path.exists()
@@ -152,6 +168,56 @@ def test_agent_listing_backed_comment_smoke_uses_harness_path(
     assert projection["actual_comment_text"] == "LLM smoke comment"
     assert report["next"]["recommendation"] == "continue"
     assert (target_dir / "agent" / "latest-reversing-loop.json").exists()
+
+
+def test_agent_real_genam_autonomous_rsset_candidate_converges_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _skip_without_c_backend()
+    project_id = "amiga_hunk_genam"
+    project_root = tmp_path / "project_root"
+    shutil.copytree(PROJECT_ROOT / "targets" / project_id, project_root / "targets" / project_id)
+    (project_root / "bin").mkdir(parents=True)
+    shutil.copy2(PROJECT_ROOT / "bin" / "GenAm", project_root / "bin" / "GenAm")
+
+    original_get_project = projects.get_project
+
+    def get_temp_project(name: str, project_root: Path | None = None, root: Path = project_root) -> ProjectRecord:
+        project = original_get_project(name, project_root=root)
+        return replace(project, review_items=())
+
+    def resolve_temp_paths(name: str, project_root: Path | None = None, root: Path = project_root) -> project_paths.ProjectPaths:
+        return project_paths.resolve_project_paths(name, project_root=root)
+
+    monkeypatch.setattr(reversing_loop.projects, "get_project", get_temp_project)
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: get_temp_project(name))
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", resolve_temp_paths)
+    monkeypatch.setattr(c_backend, "resolve_project_paths", resolve_temp_paths)
+    monkeypatch.setattr(reversing_loop, "_listing_entrypoint_label_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_data_symbol_candidates", lambda *args, **kwargs: [])
+
+    report = reversing_loop.run_one_iteration(project_id, mode="clean-run", project_root=project_root)
+
+    assert report["selected_work_item"]["kind"] == "rsset_layout_region"
+    assert report["selected_work_item"]["evidence"]["navigation_group"] == "app-slot-suggestions"
+    assert report["action"]["command_id"] == "target.rsset_region.add"
+    assert report["verification"]["status"] == "passed"
+    expected_region = cast(dict[str, object], report["selected_work_item"]["parameters"])
+    semantic_reload = next(layer for layer in report["verification"]["layers"] if layer["layer"] == "semantic_reload")
+    matching_regions = cast(list[dict[str, object]], semantic_reload["matching_rsset_layout_regions"])
+    assert matching_regions[0]["symbol"] == expected_region["symbol"]
+    assert matching_regions[0]["offset"] == expected_region["offset"]
+
+    paths = resolve_temp_paths(project_id)
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        rendered, _profile = c_backend.listing_artifact_source_text_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+    )
+    assert expected_region["symbol"] in rendered
+    assert f"{expected_region['symbol']} RS." in rendered
 
 
 def _project(review_items: tuple[dict[str, object], ...]) -> ProjectRecord:
@@ -249,3 +315,9 @@ def _write_manual_log(target_dir: Path) -> None:
         '{"record": "manual_action_log_header"}\n{"record": "manual_action", "action_id": "manual-1"}\n',
         encoding="utf-8",
     )
+
+
+def _skip_without_c_backend() -> None:
+    build_dir = PROJECT_ROOT / "src" / "build"
+    if not (build_dir / "platform_file_lib.dll").exists() or not (build_dir / "platform_disk_lib.dll").exists():
+        pytest.skip("C backend DLLs are missing; run cmd /c src\\build.bat")

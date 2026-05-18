@@ -274,6 +274,12 @@ the expected region from the executed durable action payload, then check the
 reloaded region/removal projection and round-trip, not only the command's
 local-effect echo.
 
+Implementation observation from `014-006`/`014-011`: the first real GenAm
+autonomous RSSET smoke proves the `app-slot-suggestions` feed through
+`target.rsset_region.add`, Manual Action Log replay, reloaded RSSET metadata,
+rendered `RS.*` source, and exact round-trip status. Use the same evidence shape
+before widening other autonomous feeds.
+
 Implementation observation from `014-005`/`014-014`:
 `data_symbol.remove` produces suppressed seeded item state. Its verifier should
 check that reloaded suppression and round-trip instead of affected locators.
@@ -336,6 +342,14 @@ makes valid range seed candidates look unavailable in non-dry execution.
   were not chosen.
 - Missing command support is a blocker, not permission for scripts or direct
   metadata writes.
+- Proposal and issue state are part of the implementation work. When code
+  changes support, verifier behavior, loop selection, or remaining gaps, update
+  this matrix and the owning issue in the same change.
+- Prefer real target source convergence over surface expansion. Before adding
+  broad autonomous candidate feeds for a family, prove at least one real target
+  path from mined evidence through command execution, Manual Action Log replay,
+  rendered-source improvement, and exact round-trip; track verifier proof in
+  `014-005` and planner/feed proof in `014-006` plus the family issue.
 
 ## Implementation Slices
 
@@ -356,6 +370,14 @@ makes valid range seed candidates look unavailable in non-dry execution.
 - Keep this proposal in Draft while any required 014 issue remains open.
 - When an implementation issue closes, update the matrix row with final Manual
   Action Log, command catalog, loop, and verifier state.
+- While an implementation issue remains open, keep its "Current evidence" and
+  "Remaining work" sections current enough that another agent can resume from
+  the issue without re-auditing recent commits.
+- If work discovers a missing verifier, missing durable identity, stale smoke,
+  or metadata-only path, record it in the owning issue before continuing broad
+  planner expansion: durable identities in `014-002`, Manual Action Log gaps in
+  `014-003`, catalog gaps in `014-004`, verifiers in `014-005`, planner feeds
+  in `014-006`, and family-specific gaps in `014-007` through `014-014`.
 - Do not close the proposal while any supported source-converging command lacks
   a durable identity or verifier.
 

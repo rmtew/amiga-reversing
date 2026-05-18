@@ -46,6 +46,11 @@ Current evidence:
 - Autonomous RSSET candidate skipping now reads effective target metadata as
   well as Manual Action Log projections, so seeded layout regions are not
   repeated.
+- GenAm real-target loop smoke now copies the target to a temp project, mines a
+  real `app-slot-suggestions` RSSET candidate, executes
+  `target.rsset_region.add`, verifies the reloaded RSSET region from the
+  durable action payload, renders the resulting `RS.*` definition, and keeps
+  exact round-trip status.
 - Broader autonomous candidate production remains open.
 
 Acceptance criteria:
@@ -57,3 +62,18 @@ Acceptance criteria:
 Required tests:
 Identity tests, manual replay tests, catalog execution tests, rendered-source
 tests, and GenAm-style loop smoke.
+
+Working goal:
+- Keep Proposal 014 and this issue synchronized with every RSSET/app-slot
+  implementation change. Matrix text should name the exact supported Manual
+  Action Log, command catalog, loop, and verifier state.
+- Prefer real target RSSET convergence before expanding autonomous RSSET feeds:
+  mined app-slot evidence, selected command, durable RSSET action payload,
+  reloaded `rsset_layout_regions` or removal state, rendered source effect, and
+  exact round-trip.
+
+Remaining work:
+- Keep broader autonomous candidate production evidence-first and de-duped by
+  durable RSSET identity before adding more feed types; durable identity gaps
+  belong in `014-002`, command exposure gaps in `014-004`, and RSSET-specific
+  source-model gaps stay here.

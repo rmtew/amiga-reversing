@@ -96,6 +96,10 @@ Progress:
   `semantic.library_base.*` candidates.
 - Autonomous referenced-data rename candidates now also use stable runtime
   addresses when `runtime_address_refs` have no data class.
+- GenAm real-target smoke now proves the autonomous RSSET feed can mine an
+  `app-slot-suggestions` candidate, select `target.rsset_region.add`, execute
+  through the command catalog, append Manual Action Log state, reload RSSET
+  metadata, render an `RS.*` definition, and retain exact round-trip status.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -120,11 +124,29 @@ Required tests:
 Planner ranking, already-satisfied skipping, command-catalog selection, verifier
 failure, and GenAm-style non-comment smoke.
 
+Working goal:
+- Treat Proposal 014 and this issue as live implementation state. Planner work
+  is not complete until the matrix and issue evidence/remaining-work lists match
+  the code behavior.
+- Keep comments as fallback-only. If structured command support or verification
+  is missing, stop with a precise capability blocker instead of selecting a
+  note/comment path.
+- Prefer real target convergence evidence before widening autonomous feeds:
+  candidate mined, command catalog selected, Manual Action Log appended,
+  rendered source improved, exact round-trip passed.
+
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
   representations, internal referenced data names, and obvious ASCII strings.
 - Extend autonomous planner feeds for label and broader data/global symbol
   candidates.
+- Do not broaden custom-struct, typed-field, or API/register semantic feeds
+  past explicit candidates until their rendered-source verifiers are proven in
+  `014-005`, `014-010`, and `014-012`.
+- Add real-target smoke coverage for each new autonomous feed before considering
+  the feed mature; app-slot/RSSET has first GenAm coverage, while API/register,
+  structures, correction/view actions, and broader data/global symbols still
+  need family-specific evidence.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.
