@@ -1058,6 +1058,40 @@ def test_app_slot_command_candidate_uses_selected_element_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_range_seed_command_candidate_uses_range_context_and_verifier() -> None:
+    locators = [
+        _listing_locator(row_key="row-1", kind="data", start_offset=0x20, end_offset=0x22),
+        _listing_locator(row_key="row-2", kind="data", start_offset=0x22, end_offset=0x24),
+    ]
+    candidate = {
+        "id": "range-string",
+        "candidate_id": "range-string",
+        "kind": "range_data_seed",
+        "locators": locators,
+        "suggested_action_kinds": ["range.seed.data.string"],
+        "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+        "confidence": "high",
+        "actionable": True,
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidate]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+    selected = reversing_loop._select_command_action(inspect_report)
+
+    assert command == {
+        "kind": "command",
+        "command_id": "range.seed.data.string",
+        "context": {"kind": "range", "locators": locators},
+        "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert selected is not None
+    assert selected["command"]["command_id"] == "range.seed.data.string"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

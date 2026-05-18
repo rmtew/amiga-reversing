@@ -45,6 +45,7 @@ _COMMAND_RANK = {
     "row.seed.data.string": 85,
     "row.seed.data.scalar_table": 85,
     "row.seed.data.pointer_table": 85,
+    "range.seed.code": 90,
     "data_symbol.rename": 82,
     "target.rsset_region.rename": 82,
     "target.rsset_region.add": 80,
@@ -76,6 +77,7 @@ _COMMAND_RANK = {
     "comment.edit": 10,
 }
 _COMMAND_PREFIX_RANK = {
+    "range.seed.data.": 85,
     "semantic.library_base.": 74,
     "semantic.lvo.": 73,
     "semantic.struct_offset.": 73,
@@ -2204,7 +2206,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
         return "round_trip"
-    if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
+    if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.", "range.seed.")) for action in actions):
         return "round_trip"
     return None
 
@@ -2560,6 +2562,17 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
+    if action.startswith("range.seed."):
+        context = _range_context_from_candidate(candidate)
+        if context is None:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action == "label.rename":
         element_id = candidate.get("element_id")
         name = parameter_payload.get("name") or candidate.get("new_label")
@@ -2687,6 +2700,16 @@ def _app_slot_context_from_candidate(candidate: dict[str, object]) -> dict[str, 
     return context
 
 
+def _range_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
+    locators = candidate.get("locators")
+    if not isinstance(locators, list) or len(locators) < 2:
+        return None
+    return {
+        "kind": "range",
+        "locators": [dict(locator) for locator in locators if isinstance(locator, dict)],
+    }
+
+
 def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
     locator = candidate.get("locator")
     element_id = candidate.get("element_id")
@@ -2793,6 +2816,13 @@ def _command_context_complete(command: dict[str, object]) -> bool:
         return _is_full_listing_locator(context.get("locator"))
     if kind == "element":
         return _is_full_listing_locator(context.get("locator")) and isinstance(context.get("element_id"), str)
+    if kind == "range":
+        locators = context.get("locators")
+        return (
+            isinstance(locators, list)
+            and len(locators) >= 2
+            and all(_is_full_listing_locator(locator) for locator in locators)
+        )
     if kind == "review_item":
         return isinstance(context.get("item_id"), str) and bool(context.get("item_id"))
     return kind == "target"

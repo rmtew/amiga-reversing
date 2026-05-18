@@ -37,6 +37,9 @@ Progress:
 - Planner now mines null-terminated printable ASCII data rows into autonomous
   `row.seed.data.string` candidates, skipping rows already covered by projected
   manual string seeds.
+- Planner now accepts explicit `range.seed.code` and `range.seed.data.*`
+  candidates, routes them through durable range locators, and requires
+  round-trip verification.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -64,8 +67,8 @@ failure, and GenAm-style non-comment smoke.
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
   representations, internal referenced data names, and obvious ASCII strings.
-- Extend planner tests across listing row seed, label, and broader autonomous
-  data/global symbol feeds.
+- Extend planner tests across label and broader autonomous data/global symbol
+  feeds.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.
