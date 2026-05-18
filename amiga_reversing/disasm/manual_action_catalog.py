@@ -283,6 +283,10 @@ def listing_element_action_catalog(
     element_selector: Mapping[str, object],
 ) -> list[dict[str, object]]:
     context = selected_listing_element_context(row, element_selector)
+    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+        value = element_selector.get(key)
+        if isinstance(value, str) and value.strip():
+            context[key] = value.strip()
     element_kind = str(context.get("element_kind") or "")
     actions = [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
@@ -1349,33 +1353,43 @@ def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[
 
 
 def _rsset_binding_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
-    params = _rsset_use_site_binding_parameters(context)
-    if params is None:
+    report_params = _rsset_use_site_binding_parameters(context, require_evidence=False)
+    if report_params is None:
         return []
     report = _context_transient("rsset.binding.report", "RSSET binding report", "rsset_binding_report", context, None)
-    report["parameters"] = dict(params)
-    report["report"] = _rsset_binding_report(context, params)
-    return [
-        report,
-        _context_log_action(
-            "rsset.binding.bind",
-            "Bind RSSET use site",
-            "create_manual_rsset_use_site_binding",
-            context,
-            params,
-            _rsset_use_site_binding_parameter_schema(),
-        ),
-        _context_log_action(
-            "rsset.binding.unbind",
-            "Remove RSSET use-site binding",
-            "remove_manual_rsset_use_site_binding",
-            context,
-            params,
-        ),
-    ]
+    report["parameters"] = dict(report_params)
+    report["report"] = _rsset_binding_report(context, report_params)
+    actions = [report]
+    mutation_params = _rsset_use_site_binding_parameters(context, require_evidence=True)
+    if mutation_params is None:
+        return actions
+    actions.extend(
+        [
+            _context_log_action(
+                "rsset.binding.bind",
+                "Bind RSSET use site",
+                "create_manual_rsset_use_site_binding",
+                context,
+                mutation_params,
+                _rsset_use_site_binding_parameter_schema(),
+            ),
+            _context_log_action(
+                "rsset.binding.unbind",
+                "Remove RSSET use-site binding",
+                "remove_manual_rsset_use_site_binding",
+                context,
+                mutation_params,
+            ),
+        ]
+    )
+    return actions
 
 
-def _rsset_use_site_binding_parameters(context: Mapping[str, object]) -> dict[str, object] | None:
+def _rsset_use_site_binding_parameters(
+    context: Mapping[str, object],
+    *,
+    require_evidence: bool,
+) -> dict[str, object] | None:
     displacement = _optional_int(context.get("displacement"))
     operand_index = _optional_int(context.get("operand_index"))
     base_register = context.get("base_register")
@@ -1388,14 +1402,39 @@ def _rsset_use_site_binding_parameters(context: Mapping[str, object]) -> dict[st
     symbol = context.get("symbol")
     if isinstance(symbol, str) and symbol.startswith("_LVO"):
         return None
+    base_register_text = base_register.strip().upper()
+    evidence = _rsset_binding_evidence_parameters(context, base_register_text)
+    if require_evidence and evidence is None:
+        return None
+    layout_name = evidence.get("layout_name") if evidence is not None else "app"
+    base_symbol = evidence.get("base_symbol") if evidence is not None else "__amiga_app_base__"
     return {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "base_register": base_register.strip().upper(),
-        "base_evidence_id": f"selected-base:{base_register.strip().upper()}:__amiga_app_base__",
+        "layout_name": layout_name,
+        "base_symbol": base_symbol,
+        "base_register": base_register_text,
+        "base_evidence_id": evidence.get("base_evidence_id") if evidence is not None else None,
         "displacement": displacement,
         "operand_index": operand_index,
     }
+
+
+def _rsset_binding_evidence_parameters(context: Mapping[str, object], base_register: str) -> dict[str, str] | None:
+    layout_name = str(context.get("layout_name") or "app").strip() or "app"
+    base_symbol = str(context.get("base_symbol") or "__amiga_app_base__").strip() or "__amiga_app_base__"
+    base_evidence_id = context.get("base_evidence_id")
+    if isinstance(base_evidence_id, str) and base_evidence_id.strip():
+        return {
+            "layout_name": layout_name,
+            "base_symbol": base_symbol,
+            "base_evidence_id": base_evidence_id.strip(),
+        }
+    if context.get("element_kind") == "app_slot":
+        return {
+            "layout_name": layout_name,
+            "base_symbol": base_symbol,
+            "base_evidence_id": f"selected-app-slot:{base_register}:{base_symbol}",
+        }
+    return None
 
 
 def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:
@@ -1406,7 +1445,7 @@ def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:
             "base_symbol": {"type": "string", "default": "__amiga_app_base__"},
             "base_evidence_id": {"type": "string"},
         },
-        "required": [],
+        "required": ["base_evidence_id"],
     }
 
 
@@ -1450,7 +1489,9 @@ def _rsset_use_site_binding_payload(
         raise ValueError("create_manual_rsset_use_site_binding requires base_register, displacement, and operand_index")
     layout_name = str(params.get("layout_name") or "app").strip() or "app"
     base_symbol = str(params.get("base_symbol") or "__amiga_app_base__").strip() or "__amiga_app_base__"
-    base_evidence_id = str(params.get("base_evidence_id") or f"selected-base:{base_register.upper()}:{base_symbol}").strip()
+    base_evidence_id = str(params.get("base_evidence_id") or "").strip()
+    if not base_evidence_id:
+        raise ValueError("create_manual_rsset_use_site_binding requires base_evidence_id")
     binding: dict[str, object] = {
         "rsset_use_site_binding_id": _rsset_use_site_binding_id(
             hunk=hunk,

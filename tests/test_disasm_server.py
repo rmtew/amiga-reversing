@@ -3791,6 +3791,11 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    rsset_binding_evidence = {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+    }
     rows = [
         ListingRow(
             row_id="r0",
@@ -3832,9 +3837,26 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     )
     actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
     report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
+    assert not any(action["action_id"] == "rsset.binding.bind" for action in actions)
+
+    assert report_action["report"]["candidate"]["displacement"] == 0x0102
+    assert report_action["report"]["candidate"]["base_evidence_id"] is None
+    assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
+
+    evidenced_query = _element_command_query(rows[0], "row-0:displacement:0:operand") | {
+        key: [value] for key, value in rsset_binding_evidence.items()
+    }
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        evidenced_query,
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
     bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
 
     assert report_action["report"]["candidate"]["displacement"] == 0x0102
+    assert report_action["report"]["candidate"]["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
     assert bind_action["parameters"] == {
         "layout_name": "app",
@@ -3849,7 +3871,10 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         "POST",
         "/api/projects/bloodwych/commands/execute",
         {},
-        {"command_id": "rsset.binding.bind", "context": _element_command_context(rows[0], "row-0:displacement:0:operand")},
+        {
+            "command_id": "rsset.binding.bind",
+            "context": _element_command_context(rows[0], "row-0:displacement:0:operand") | rsset_binding_evidence,
+        },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
     binding = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_use_site_binding"])
@@ -3866,6 +3891,51 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert local_effect["kind"] == "rsset_use_site_binding"
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
+def test_route_manual_action_catalog_keeps_unrelated_displacements_report_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.w 36(a0),d0\n",
+            addr=0x120,
+            section_index=0,
+            start_offset=0x120,
+            end_offset=0x124,
+            stable_key="row-0",
+            opcode_or_directive="move.w",
+            operand_text="36(a0),d0",
+            operand_parts=(SemanticOperand(kind="displacement", text="36(a0)", base_register="A0", displacement=36),),
+            operand_accesses=("read",),
+            typed_accesses=(
+                PlatformTypedAccess(
+                    operand_index=0,
+                    base_register="A0",
+                    displacement=36,
+                    field_offset=36,
+                    root_struct_name="InputEvent",
+                    owner_struct_name="InputEvent",
+                    field_name="ie_Qualifier",
+                    field_expr="ie_Qualifier",
+                ),
+            ),
+        )
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:displacement:0:operand"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+
+    assert any(action["action_id"] == "rsset.binding.report" for action in actions)
+    assert not any(action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"} for action in actions)
 
 
 def test_route_manual_action_catalog_executes_api_specific_library_base_semantic_action(

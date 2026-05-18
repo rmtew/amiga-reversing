@@ -163,6 +163,9 @@ Remaining work:
   implements the `014-021` report/bind/refine/unbind model and its verifiers.
   First feed should use a real target like GenAm `$0102(a6)` with one selected
   use-site, clear base evidence, linked gap state, and owned cleanup.
+- Explicit RSSET binding candidates must carry the chosen layout/base and
+  `base_evidence_id`; raw displacement element availability alone is only
+  enough for `rsset.binding.report`, not mutation.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

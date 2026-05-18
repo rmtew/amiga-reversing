@@ -7522,18 +7522,16 @@ def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
 
     actions = listing_element_action_catalog(row, {"element_id": context["element_id"]})
     report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
-    bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
+    assert not any(action["action_id"] == "rsset.binding.bind" for action in actions)
 
     assert report_action["report"]["candidate"] == {
         "layout_name": "app",
         "base_symbol": "__amiga_app_base__",
         "base_register": "A6",
-        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "base_evidence_id": None,
         "displacement": 0x0102,
     }
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
-    assert bind_action["parameters"]["displacement"] == 0x0102
-    assert bind_action["parameters"]["operand_index"] == 0
 
 
 @pytest.mark.parametrize("binary_name", ["GenAm", "MonAm302"])

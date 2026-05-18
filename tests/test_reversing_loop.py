@@ -2864,6 +2864,9 @@ def test_rsset_binding_candidate_uses_element_context_and_binding_verifier() -> 
         "kind": "element",
         "locator": _listing_locator(),
         "element_id": "row-1:displacement:0:operand",
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
     }
     assert reversing_loop._candidate_verifier(candidate, command) == "rsset_binding_state"
 

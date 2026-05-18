@@ -64,7 +64,9 @@ Current progress:
 - RSSET numeric use-site binding command exposure is defined by `014-021` and
   implemented in `014-011`: `rsset.binding.report`, `rsset.binding.bind`,
   `rsset.binding.bind_refine`, `rsset.binding.unbind`,
-  `rsset.binding.type_refine`, and `rsset.binding.clear_type`.
+  `rsset.binding.type_refine`, and `rsset.binding.clear_type`. Report may be
+  exposed for raw displacement exploration; bind/unbind require explicit
+  RSSET/app-base evidence such as app-slot context or `base_evidence_id`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

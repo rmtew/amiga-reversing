@@ -4415,10 +4415,15 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         element_id = candidate.get("element_id")
         if not isinstance(element_id, str) or not element_id:
             return None
+        context = {"kind": "element", "locator": locator, "element_id": element_id}
+        for key in ("layout_name", "base_symbol", "base_evidence_id"):
+            value = parameter_payload.get(key)
+            if isinstance(value, str) and value:
+                context[key] = value
         return {
             "kind": "command",
             "command_id": action,
-            "context": {"kind": "element", "locator": locator, "element_id": element_id},
+            "context": context,
             "parameters": parameter_payload,
             "output_affecting": True,
         }
@@ -4920,11 +4925,16 @@ def _command_query_from_context(context: dict[str, object]) -> dict[str, list[st
     if kind == "row":
         return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
     if kind == "element":
-        return {
+        query = {
             "context": ["element"],
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
+        for key in ("layout_name", "base_symbol", "base_evidence_id"):
+            value = context.get(key)
+            if isinstance(value, str) and value:
+                query[key] = [value]
+        return query
     if kind == "range":
         return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
     if kind == "review_item":

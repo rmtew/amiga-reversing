@@ -1927,6 +1927,9 @@ def _command_availability_cache_key(project_name: str, context: Mapping[str, obj
         "locator": context.get("locator"),
         "locators": context.get("locators"),
         "element_id": context.get("element_id"),
+        "layout_name": context.get("layout_name"),
+        "base_symbol": context.get("base_symbol"),
+        "base_evidence_id": context.get("base_evidence_id"),
         "item_id": context.get("item_id"),
     }
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -1956,6 +1959,7 @@ def _command_context_from_query(
             raise _command_contract_error("missing_locator", "element_id is required")
         row, projection_hash = _resolve_command_locator(project_name, locator)
         element_context = _selected_command_element_context(row, element_id)
+        _copy_rsset_binding_context_from_query(element_context, query)
         element_context["locator"] = locator
         element_context["projection_hash"] = projection_hash
         return element_context, [row]
@@ -2006,6 +2010,7 @@ def _command_context_from_body(
             raise _command_contract_error("missing_locator", "context.element_id is required")
         row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
         element_context = _selected_command_element_context(row, element_id)
+        _copy_rsset_binding_context(element_context, raw_context)
         element_context["locator"] = locator
         element_context["projection_hash"] = projection_hash
         return element_context, [row]
@@ -2062,6 +2067,22 @@ def _selected_command_element_context(row: Mapping[str, object], element_id: str
         if row.get("kind") == "label" and element_id.startswith(f"{row_key}:label:"):
             return selected_listing_element_context(row, {"element_kind": "label"})
         raise
+
+
+def _copy_rsset_binding_context_from_query(target: dict[str, object], query: Mapping[str, list[str]]) -> None:
+    values: dict[str, object] = {}
+    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+        value = _first_query_value(query, key)
+        if value:
+            values[key] = value
+    _copy_rsset_binding_context(target, values)
+
+
+def _copy_rsset_binding_context(target: dict[str, object], source: Mapping[str, object]) -> None:
+    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+        value = source.get(key)
+        if isinstance(value, str) and value.strip():
+            target[key] = value.strip()
 
 
 def _resolve_command_locator(
@@ -2208,11 +2229,16 @@ def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list
     if kind == "row":
         return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
     if kind == "element":
-        return {
+        query = {
             "context": ["element"],
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
+        for key in ("layout_name", "base_symbol", "base_evidence_id"):
+            value = context.get(key)
+            if isinstance(value, str) and value:
+                query[key] = [value]
+        return query
     if kind == "range":
         return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
     if kind == "review_item":

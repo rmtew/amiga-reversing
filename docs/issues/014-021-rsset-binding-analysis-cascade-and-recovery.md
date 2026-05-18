@@ -85,13 +85,19 @@ Manual Action Log actions:
 Command catalog surface:
 - `rsset.binding.report`: read-only exploratory report for a selected numeric
   base-relative operand.
-- `rsset.binding.bind`: bind-only mutation.
+- `rsset.binding.bind`: bind-only mutation, exposed only when the selected
+  context carries explicit RSSET/app-base evidence.
 - `rsset.binding.bind_refine`: bind plus linked RSSET field add/edit when
   verifier evidence reconciles.
 - `rsset.binding.unbind`: remove selected binding and owned descendants.
 - `rsset.binding.type_refine`: apply a custom/platform type or enum/equate
   domain to an existing binding.
 - `rsset.binding.clear_type`: remove owned type/domain descendants.
+- Raw `An` displacement visibility is not base evidence. The catalog may expose
+  reports broadly, but bind/unbind must require an app-slot context, proven
+  register/base seed, platform inference, or candidate/user supplied
+  `base_evidence_id` with the chosen layout/base. It must not default arbitrary
+  displacements to `app/__amiga_app_base__`.
 
 Exploratory report fields:
 - Source locator: target, hunk, source address, row text, operand index, and
