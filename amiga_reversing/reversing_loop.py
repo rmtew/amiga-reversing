@@ -2788,6 +2788,21 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "rsset_region_state"
     if any(action.startswith("rsset.binding.") for action in actions):
         return "rsset_binding_state"
+    if any(action in {"row.data_block.layout.create", "range.data_block.layout.create"} for action in actions):
+        return "data_block_layout_state"
+    if any(
+        action
+        in {
+            "row.data_block.element.set",
+            "range.data_block.element.set",
+            "row.data_block.element.remove",
+            "range.data_block.element.remove",
+            "row.data_block.element.represent",
+            "range.data_block.element.represent",
+        }
+        for action in actions
+    ):
+        return "data_block_element_state"
     if any(action.startswith("target.execution_view.") for action in actions):
         return "execution_view_state"
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
@@ -2901,6 +2916,27 @@ def _verify_manual_mutation(
         )
     if isinstance(command_id, str) and command_id.startswith("rsset.binding."):
         return _verify_rsset_binding_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if command_id in {"row.data_block.layout.create", "range.data_block.layout.create"}:
+        return _verify_data_block_layout_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if command_id in {
+        "row.data_block.element.set",
+        "range.data_block.element.set",
+        "row.data_block.element.remove",
+        "range.data_block.element.remove",
+        "row.data_block.element.represent",
+        "range.data_block.element.represent",
+    }:
+        return _verify_data_block_element_mutation(
             target_id,
             str(command_id),
             durable_result,
@@ -3228,6 +3264,162 @@ def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "rsset_use_site_binding_id" in expected
+
+
+def _verify_data_block_layout_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _data_block_layout_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_data_block_layout(target_id, command_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _data_block_layout_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    layout = _data_block_layout_from_action(action)
+    if layout is not None:
+        return layout
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            layout = _data_block_layout_from_action(raw_action)
+            if layout is not None:
+                return layout
+    return None
+
+
+def _data_block_layout_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    layout = action.get("data_block_layout")
+    if isinstance(layout, dict):
+        return cast(dict[str, object], layout)
+    payload = action.get("payload")
+    layout = payload.get("data_block_layout") if isinstance(payload, dict) else None
+    if isinstance(layout, dict):
+        return cast(dict[str, object], layout)
+    return None
+
+
+def _verify_project_data_block_layout(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing data block layout payload"}
+    key = "removed_data_block_layouts" if command_id.endswith(".remove") else "data_block_layouts"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    layouts = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(layouts, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [layout for layout in layouts if isinstance(layout, dict) and _data_block_layout_matches(layout, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_data_block_layout": expected,
+        "matching_data_block_layouts": matches,
+        "state_key": key,
+    }
+
+
+def _data_block_layout_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    return isinstance(expected.get("layout_id"), str) and all(actual.get(key) == value for key, value in expected.items())
+
+
+def _verify_data_block_element_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _data_block_element_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_data_block_element(target_id, command_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _data_block_element_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    element = _data_block_element_from_action(action)
+    if element is not None:
+        return element
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            element = _data_block_element_from_action(raw_action)
+            if element is not None:
+                return element
+    return None
+
+
+def _data_block_element_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    element = action.get("data_block_element")
+    if isinstance(element, dict):
+        return cast(dict[str, object], element)
+    payload = action.get("payload")
+    element = payload.get("data_block_element") if isinstance(payload, dict) else None
+    if isinstance(element, dict):
+        return cast(dict[str, object], element)
+    return None
+
+
+def _verify_project_data_block_element(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing data block element payload"}
+    key = "removed_data_block_elements" if command_id.endswith(".remove") else "data_block_elements"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    elements = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(elements, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [element for element in elements if isinstance(element, dict) and _data_block_element_matches(element, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_data_block_element": expected,
+        "matching_data_block_elements": matches,
+        "state_key": key,
+    }
+
+
+def _data_block_element_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    return (
+        isinstance(expected.get("layout_id"), str)
+        and isinstance(expected.get("offset"), int)
+        and all(actual.get(key) == value for key, value in expected.items())
+    )
 
 
 def _verify_seeded_item_suppression_mutation(

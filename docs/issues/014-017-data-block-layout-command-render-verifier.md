@@ -40,6 +40,9 @@ Implemented tests:
   creation.
 - Command catalog availability and `/commands/execute` cover row/range
   element set/remove/represent commands.
+- Reversing loop execution now selects data-block layout/element state
+  verifiers, checks Manual Action Log replay, semantic reload state, and exact
+  round-trip, and blocks unsupported type/ref commands without a verifier.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 
@@ -47,8 +50,7 @@ Remaining:
 - Active-layout-aware element selection context, so element commands no longer
   need explicit layout id/offset parameters.
 - Removal-to-raw/gap rendered-source verifier.
-- Loop verifier coverage for replay, rendered source, exact round-trip, and
-  unsupported type/reference blockers.
+- Rendered-source verifier coverage beyond semantic state and exact round-trip.
 - Full byte/word/long/run/padding/gap render matrix and GenAm
   `loc_0_00001442` smoke.
 

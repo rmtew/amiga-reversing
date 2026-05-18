@@ -418,6 +418,16 @@ def test_output_affecting_action_runs_round_trip_layer(
             },
             {"name": "LIB_REVISION"},
         ),
+        (
+            "row.data_block.element.bind_type",
+            {"kind": "row"},
+            {"layout_id": "ascii-hex", "offset": 0, "type_id": "InputEvent"},
+        ),
+        (
+            "row.data_block.element.interpret_ref",
+            {"kind": "row"},
+            {"layout_id": "ascii-hex", "offset": 0, "reference_kind": "absolute"},
+        ),
     ],
 )
 def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_verifier(
@@ -573,6 +583,148 @@ def test_run_one_range_seed_checks_range_catalog_before_execution(
     assert report["verification"]["status"] == "passed"
     assert report["action"]["command_id"] == "range.seed.data.string"
     assert report["action"]["context"] == {"kind": "range", "locators": locators}
+
+
+def test_run_one_data_block_layout_executes_with_layout_state_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locators = [
+        _listing_locator(row_key="row-1", kind="data", start_offset=0x20, end_offset=0x22),
+        _listing_locator(row_key="row-2", kind="data", start_offset=0x22, end_offset=0x24),
+    ]
+    layout = {
+        "layout_id": "ascii-hex",
+        "hunk": 0,
+        "source_start": 0x20,
+        "source_end": 0x24,
+        "name": "ascii_hex_digit_value",
+        "role": "lookup_table",
+        "default_unit": "byte",
+    }
+    candidate = {
+        "id": "data-block-layout",
+        "candidate_id": "data-block-layout",
+        "kind": "data_block_layout",
+        "locators": locators,
+        "suggested_action_kinds": ["range.data_block.layout.create"],
+        "parameters": {"name": "ascii_hex_digit_value", "role": "lookup_table", "default_unit": "byte"},
+        "confidence": "high",
+        "actionable": True,
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidate]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": candidate,
+        "command": {
+            "kind": "command",
+            "command_id": "range.data_block.layout.create",
+            "context": {"kind": "range", "locators": locators},
+            "parameters": {"name": "ascii_hex_digit_value", "role": "lookup_table", "default_unit": "byte"},
+            "output_affecting": True,
+        },
+    }
+    assert reversing_loop._candidate_verifier(candidate, selected["command"]) == "data_block_layout_state"
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_layouts": [layout]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            assert query == {"context": ["range"], "locators": [json.dumps(locators)]}
+            return {"data": {"commands": [{"command_id": "range.data_block.layout.create"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "range.data_block.layout.create"
+            assert body["context"] == {"kind": "range", "locators": locators}
+            _write_manual_log(tmp_path)
+            return {"data": _executed_data_block_layout_payload(tmp_path, layout)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "data_block_layouts"
+    assert report["action"]["command_id"] == "range.data_block.layout.create"
+
+
+def test_run_one_data_block_element_executes_with_element_state_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x22)
+    element = {
+        "data_block_element_id": "ascii-hex:30",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "kind": "array",
+        "name": "digits",
+        "representation": "character",
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": {
+            "id": "data-block-element",
+            "kind": "data_block_element",
+            "locator": locator,
+            "suggested_action_kinds": ["row.data_block.element.set"],
+            "confidence": "high",
+            "actionable": True,
+        },
+        "command": {
+            "kind": "command",
+            "command_id": "row.data_block.element.set",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {
+                "layout_id": "ascii-hex",
+                "offset": 0x30,
+                "width": 2,
+                "kind": "array",
+                "name": "digits",
+                "representation": "character",
+            },
+            "output_affecting": True,
+        },
+    }
+    assert reversing_loop._candidate_verifier(selected["work_item"], selected["command"]) == "data_block_element_state"
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_elements": [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "row.data_block.element.set"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "row.data_block.element.set"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "data_block_elements"
+    assert report["action"]["command_id"] == "row.data_block.element.set"
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
@@ -4564,6 +4716,32 @@ def _executed_rsset_region_payload(
                 "rsset_layout_region": dict(rsset_layout_region),
             }
         ],
+    }
+    return payload
+
+
+def _executed_data_block_layout_payload(tmp_path: Path, data_block_layout: dict[str, object]) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"data_block_layout": dict(data_block_layout)}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [{"kind": "data_block_layout", "data_block_layout": dict(data_block_layout)}],
+    }
+    return payload
+
+
+def _executed_data_block_element_payload(tmp_path: Path, data_block_element: dict[str, object]) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"data_block_element": dict(data_block_element)}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [{"kind": "data_block_element", "data_block_element": dict(data_block_element)}],
     }
     return payload
 
