@@ -275,22 +275,7 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
-    if _is_structured_a6_lvo_context(context):
-        actions.append(
-            _context_log_action(
-                "semantic.library_base.exec",
-                "Treat A6 as exec.library base",
-                "create_manual_register_seed",
-                context,
-                {
-                    "register": "A6",
-                    "kind": "library_base",
-                    "library_name": "exec.library",
-                    "struct_name": "LIB",
-                    "context_name": "exec.library",
-                },
-            )
-        )
+    actions.extend(_library_base_actions(context))
     if element_kind in {"immediate", "data_literal"}:
         actions.extend(_semantic_hint_actions(context))
     return actions
@@ -1159,6 +1144,81 @@ def _struct_offset_candidates(payload: Mapping[str, object], value: int) -> list
             if len(candidates) >= 4:
                 return candidates
     return candidates
+
+
+def _library_base_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+    if not _is_structured_a6_lvo_context(context):
+        return []
+    actions: list[dict[str, object]] = []
+    for library_name, struct_name in _library_base_candidates(context):
+        actions.append(
+            _context_log_action(
+                f"semantic.library_base.{_action_id_token(library_name)}",
+                f"Treat A6 as {library_name} base",
+                "create_manual_register_seed",
+                context,
+                {
+                    "register": "A6",
+                    "kind": "library_base",
+                    "library_name": library_name,
+                    "struct_name": struct_name,
+                    "context_name": library_name,
+                },
+            )
+        )
+    return actions
+
+
+def _library_base_candidates(context: Mapping[str, object]) -> tuple[tuple[str, str], ...]:
+    payload = _amiga_ndk_payload()
+    libraries = payload.get("libraries")
+    if not isinstance(libraries, dict):
+        return ()
+    context_library = str(context.get("api_library") or context.get("library_name") or "")
+    candidates: list[tuple[str, str]] = []
+    if context_library:
+        struct_name = _library_base_struct_name(payload, context_library)
+        if struct_name is not None:
+            candidates.append((context_library, struct_name))
+    else:
+        function_name = _lvo_function_name(context)
+        if function_name:
+            for library_name, library in libraries.items():
+                if not isinstance(library_name, str) or not isinstance(library, dict):
+                    continue
+                functions = library.get("functions")
+                if not isinstance(functions, dict) or function_name not in functions:
+                    continue
+                struct_name = _library_base_struct_name(payload, library_name)
+                if struct_name is not None:
+                    candidates.append((library_name, struct_name))
+                if len(candidates) >= 4:
+                    break
+    return tuple(dict.fromkeys(candidates))
+
+
+def _lvo_function_name(context: Mapping[str, object]) -> str:
+    function = context.get("api_function")
+    if isinstance(function, str) and function:
+        return function
+    symbol = str(context.get("symbol") or "")
+    if symbol.startswith("_LVO") and len(symbol) > 4:
+        return symbol[4:]
+    function = context.get("function")
+    return function if isinstance(function, str) else ""
+
+
+def _library_base_struct_name(payload: Mapping[str, object], library_name: str) -> str | None:
+    meta = payload.get("_meta")
+    named_base_structs = meta.get("named_base_structs") if isinstance(meta, dict) else None
+    if isinstance(named_base_structs, dict):
+        struct_name = named_base_structs.get(library_name)
+        if isinstance(struct_name, str) and struct_name:
+            return struct_name
+    libraries = payload.get("libraries")
+    if isinstance(libraries, dict) and isinstance(libraries.get(library_name), dict):
+        return "LIB"
+    return None
 
 
 def _semantic_hint_payload(

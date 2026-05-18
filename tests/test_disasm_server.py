@@ -2992,14 +2992,14 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
         _element_command_query(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
     )
     actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
-    assert any(action["action_id"] == "semantic.library_base.exec" for action in actions)
+    assert any(action["action_id"] == "semantic.library_base.exec.library" for action in actions)
 
     payload = disasm_server.route_request(
         "POST",
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "semantic.library_base.exec",
+            "command_id": "semantic.library_base.exec.library",
             "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
         },
     )
@@ -3011,6 +3011,89 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
     assert register_seed["register"] == "A6"
     assert register_seed["kind"] == "library_base"
     assert register_seed["library_name"] == "exec.library"
+    assert register_seed["struct_name"] == "LIB"
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
+def test_route_manual_action_catalog_executes_api_specific_library_base_semantic_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="jsr _LVOSetPointer(a6)\n",
+            addr=0x140,
+            section_index=0,
+            start_offset=0x140,
+            end_offset=0x144,
+            stable_key="row-0",
+            opcode_or_directive="jsr",
+            operand_text="_LVOSetPointer(a6)",
+            operand_parts=(
+                SemanticOperand(
+                    kind="symbol",
+                    text="_LVOSetPointer",
+                    base_register="A6",
+                    metadata=SymbolOperandMetadata("_LVOSetPointer"),
+                ),
+            ),
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(
+            rows,
+            api_calls_by_row_id={"r0": {"library": "intuition.library", "function": "SetPointer", "inputs": []}},
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:symbol:0:_LVOSetPointer"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    assert any(action["action_id"] == "semantic.library_base.intuition.library" for action in actions)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "semantic.library_base.intuition.library",
+            "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOSetPointer"),
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    register_seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["register_seed"])
+
+    assert action["kind"] == "create_manual_register_seed"
+    assert register_seed["entry_offset"] == 0x140
+    assert register_seed["register"] == "A6"
+    assert register_seed["kind"] == "library_base"
+    assert register_seed["library_name"] == "intuition.library"
+    assert register_seed["struct_name"] == "IntuitionBase"
+    assert register_seed["context_name"] == "intuition.library"
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
@@ -3043,7 +3126,7 @@ def test_route_manual_action_catalog_rejects_library_base_semantic_action_withou
     )
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
-    assert not any(action["action_id"] == "semantic.library_base.exec" for action in actions)
+    assert not any(str(action["action_id"]).startswith("semantic.library_base.") for action in actions)
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 

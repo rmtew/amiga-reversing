@@ -8,8 +8,9 @@ consumed source-converging actions.
 Current evidence:
 - `entry_register_seeds` are consumed by rendering and support `library_base`
   and `struct_ptr`.
-- Command catalog only exposes a narrow `semantic.library_base.exec` helper for
-  A6 LVO contexts.
+- Command catalog exposes `semantic.library_base.<library>` helpers for A6 LVO
+  contexts, using row API metadata when present and NDK library/function lookup
+  otherwise.
 - `semantic.lvo.*` commands append semantic hints; LVO hints for immediate
   operands now project to `_LVO*` symbol representations and render with NDK
   includes.
@@ -23,6 +24,8 @@ Progress:
 - Known struct-offset immediate constants are source-converging: Manual Action
   Log hint -> effective metadata -> rendered field symbol -> exact direct
   rebuild.
+- A6 LVO library-base seeds are no longer exec-only; command execution records
+  the selected library and named base struct when the NDK payload provides it.
 - API call semantics, evidence-scoped register lifetimes, struct pointers, and
   typed field access semantics remain open.
 

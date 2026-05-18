@@ -98,6 +98,7 @@ def _append_operand_contexts(contexts: list[dict[str, object]], row: Mapping[str
         if symbol:
             context["symbol"] = symbol
             context["role"] = _str_or_none(raw_part.get("role")) or "reference"
+            _copy_api_call_context(context, row, symbol)
         _copy_optional_int(context, raw_part, "value")
         _copy_optional_int(context, raw_part, "signed_value", "signedValue")
         _copy_optional_int(context, raw_part, "width_bits", "widthBits")
@@ -113,6 +114,19 @@ def _append_operand_contexts(contexts: list[dict[str, object]], row: Mapping[str
         if operand_index < len(registers) and isinstance(registers[operand_index], str):
             context["register"] = registers[operand_index]
         contexts.append(context)
+
+
+def _copy_api_call_context(context: dict[str, object], row: Mapping[str, object], symbol: str) -> None:
+    api_call = row.get("api_call") or row.get("apiCall")
+    if not isinstance(api_call, Mapping):
+        return
+    library = _str_or_none(api_call.get("library"))
+    function = _str_or_none(api_call.get("function"))
+    if not library or not function or symbol != f"_LVO{function}":
+        return
+    context["api_library"] = library
+    context["api_function"] = function
+    context["domain"] = "lvo"
 
 
 def _append_app_slot_contexts(contexts: list[dict[str, object]], row: Mapping[str, object]) -> None:
