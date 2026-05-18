@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -443,6 +443,17 @@ def _manual_target_equate_rename(equate: dict[str, object]) -> tuple[str, str] |
     return previous_name, name
 
 
+def _renamed_target_equate_symbol(symbol: str, renames: Mapping[str, str]) -> str:
+    current = symbol
+    seen = {current}
+    while current in renames:
+        current = renames[current]
+        if current in seen:
+            break
+        seen.add(current)
+    return current
+
+
 def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomStructFieldMetadata | None:
     name = _manual_seed_text(field, "name")
     field_type = _manual_seed_text(field, "type")
@@ -769,6 +780,19 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_representation = _manual_semantic_hint_to_representation(hint)
         if manual_representation is not None:
             manual_representations.append(manual_representation)
+    if renamed_target_equates:
+        manual_representations = [
+            replace(representation, symbol=_renamed_target_equate_symbol(representation.symbol, renamed_target_equates))
+            if representation.symbol is not None
+            else representation
+            for representation in manual_representations
+        ]
+    if removed_target_equate_names:
+        manual_representations = [
+            representation
+            for representation in manual_representations
+            if representation.symbol not in removed_target_equate_names
+        ]
     for register_seed in register_seed_projections:
         entry_register_seed = _manual_register_seed_to_metadata(register_seed)
         if entry_register_seed is not None:

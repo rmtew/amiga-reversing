@@ -6634,9 +6634,17 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
       }
       context->current_plan_row = NULL;
       context->current_subline = 0U;
-      if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind_id,
-          NULL, NULL, NULL, NULL, row->section_index, NULL, 0, 0U) != 0)
-        goto done;
+      {
+        char stripped[1024];
+        char opcode[128];
+        char operand[1024];
+        char comment[512];
+        split_listing_line(row->line_start, row->line_length, stripped, sizeof(stripped), opcode, sizeof(opcode),
+          operand, sizeof(operand), comment, sizeof(comment));
+        if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind_id,
+            stripped, opcode, operand, comment, row->section_index, NULL, 0, 0U) != 0)
+          goto done;
+      }
       emitted_group = 1;
       emitted_any = 1;
     }
@@ -6804,6 +6812,19 @@ typedef struct ListingNavigationLabelRef {
   int section_index;
 } ListingNavigationLabelRef;
 
+typedef struct ListingNavigationEquateRef {
+  char symbol[128];
+  char operand[128];
+  uint8_t access_kind;
+  char summary[512];
+  char match_text[512];
+  char stable_key[128];
+  size_t row_index;
+  uint32_t addr;
+  uint8_t has_addr;
+  int section_index;
+} ListingNavigationEquateRef;
+
 enum {
   LISTING_LABEL_ACCESS_NONE = 0,
   LISTING_LABEL_ACCESS_DEFINITION = 1,
@@ -6825,6 +6846,13 @@ typedef struct ListingNavigationLabelBuilder {
   size_t ref_capacity;
 } ListingNavigationLabelBuilder;
 
+typedef struct ListingNavigationEquateBuilder {
+  Arena *arena;
+  ListingNavigationEquateRef *refs;
+  size_t ref_count;
+  size_t ref_capacity;
+} ListingNavigationEquateBuilder;
+
 typedef struct ListingNavigationTypedDataKey {
   char summary[512];
   uint32_t addr;
@@ -6844,6 +6872,7 @@ struct ListingNavigationJsonContext {
   JsonBuilder orphan_code;
   JsonBuilder comments;
   ListingNavigationLabelBuilder labels;
+  ListingNavigationEquateBuilder equates;
   ListingAppSlotAnalysisBuilder app_slot_analysis;
   const M68kAnalysisPolicy *analysis_policy;
   const M68kSourceAnalysisIR *source_analysis;
@@ -6886,6 +6915,35 @@ static ListingNavigationLabelRef *listing_navigation_label_append(ListingNavigat
   return &labels->refs[labels->ref_count++];
 }
 
+static int listing_navigation_equate_builder_init(ListingNavigationEquateBuilder *equates) {
+  if (equates == NULL) return -1;
+  memset(equates, 0, sizeof(*equates));
+  equates->arena = arena_create(4096U);
+  return equates->arena != NULL ? 0 : -1;
+}
+
+static void listing_navigation_equate_builder_destroy(ListingNavigationEquateBuilder *equates) {
+  if (equates == NULL) return;
+  arena_destroy(equates->arena);
+  memset(equates, 0, sizeof(*equates));
+}
+
+static ListingNavigationEquateRef *listing_navigation_equate_append(ListingNavigationEquateBuilder *equates) {
+  ListingNavigationEquateRef *grown;
+  size_t next_capacity;
+  if (equates == NULL) return NULL;
+  if (equates->ref_count == equates->ref_capacity) {
+    next_capacity = equates->ref_capacity == 0U ? 64U : equates->ref_capacity * 2U;
+    grown = (ListingNavigationEquateRef *)listing_arena_grow_array(equates->arena, equates->refs,
+      equates->ref_count, next_capacity, sizeof(*grown));
+    if (grown == NULL) return NULL;
+    equates->refs = grown;
+    equates->ref_capacity = next_capacity;
+  }
+  memset(&equates->refs[equates->ref_count], 0, sizeof(equates->refs[equates->ref_count]));
+  return &equates->refs[equates->ref_count++];
+}
+
 static int listing_navigation_group_init(JsonBuilder *builder) {
   return json_builder_create(builder) == 0 && json_builder_append(builder, "[") == 0 ? 0 : -1;
 }
@@ -6901,6 +6959,7 @@ static void listing_navigation_destroy(ListingNavigationJsonContext *navigation)
   json_builder_destroy(&navigation->orphan_code);
   json_builder_destroy(&navigation->comments);
   listing_navigation_label_builder_destroy(&navigation->labels);
+  listing_navigation_equate_builder_destroy(&navigation->equates);
   listing_app_slot_analysis_destroy(&navigation->app_slot_analysis);
   memset(navigation, 0, sizeof(*navigation));
 }
@@ -6922,6 +6981,7 @@ static int listing_navigation_init(ListingNavigationJsonContext *navigation, uin
       listing_navigation_group_init(&navigation->orphan_code) != 0 ||
       listing_navigation_group_init(&navigation->comments) != 0 ||
       listing_navigation_label_builder_init(&navigation->labels) != 0 ||
+      listing_navigation_equate_builder_init(&navigation->equates) != 0 ||
       listing_app_slot_analysis_init(&navigation->app_slot_analysis, platform_backend_kind, source_analysis) != 0) {
     listing_navigation_destroy(navigation);
     return -1;
@@ -7273,6 +7333,63 @@ static int listing_navigation_has_label_definition(const ListingNavigationLabelB
   return 0;
 }
 
+static int listing_navigation_has_equate_definition(const ListingNavigationEquateBuilder *equates,
+    const char *symbol) {
+  size_t index;
+  if (equates == NULL || symbol == NULL) return 0;
+  for (index = 0U; index < equates->ref_count; ++index)
+    if (strcmp(equates->refs[index].symbol, symbol) == 0 &&
+        equates->refs[index].access_kind == LISTING_LABEL_ACCESS_DEFINITION)
+      return 1;
+  return 0;
+}
+
+static int listing_equate_definition_parts(const char *opcode, const char *operand, char *out_symbol,
+    size_t out_symbol_size, char *out_operand, size_t out_operand_size) {
+  char directive[16];
+  const char *value_start;
+  size_t directive_length = 0U;
+  if (out_symbol != NULL && out_symbol_size != 0U) out_symbol[0] = '\0';
+  if (out_operand != NULL && out_operand_size != 0U) out_operand[0] = '\0';
+  if (opcode == NULL || opcode[0] == '\0' || operand == NULL) return 0;
+  while (operand[directive_length] != '\0' && operand[directive_length] != ' ' &&
+      operand[directive_length] != '\t')
+    ++directive_length;
+  copy_trimmed(directive, sizeof(directive), operand, directive_length);
+  if (!m68k_ascii_equal_ci(directive, "EQU")) return 0;
+  value_start = operand + directive_length;
+  copy_trimmed(out_symbol, out_symbol_size, opcode, strlen(opcode));
+  copy_trimmed(out_operand, out_operand_size, value_start, strlen(value_start));
+  return out_symbol != NULL && out_symbol[0] != '\0';
+}
+
+static int listing_navigation_append_equate_ref(ListingNavigationJsonContext *navigation, const char *symbol,
+    const char *equate_operand, uint8_t access_kind, const char *summary, const char *match_text,
+    const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind) {
+  ListingNavigationEquateRef *ref;
+  if (navigation == NULL || symbol == NULL || symbol[0] == '\0' ||
+      access_kind == LISTING_LABEL_ACCESS_NONE)
+    return 0;
+  ref = listing_navigation_equate_append(&navigation->equates);
+  if (ref == NULL) return -1;
+  listing_copy_text(ref->symbol, sizeof(ref->symbol), symbol);
+  listing_copy_text(ref->operand, sizeof(ref->operand), equate_operand != NULL ? equate_operand : "");
+  ref->access_kind = access_kind;
+  listing_copy_text(ref->summary, sizeof(ref->summary), summary != NULL ? summary : "");
+  listing_copy_text(ref->match_text, sizeof(ref->match_text), match_text != NULL ? match_text : "");
+  ref->row_index = row_index;
+  ref->section_index = section_index;
+  if (stmt != NULL) {
+    ref->has_addr = 1U;
+    ref->addr = stmt->offset;
+    listing_row_stable_key(ref->stable_key, sizeof(ref->stable_key), section_index, stmt->offset, row_kind, row_index);
+  } else {
+    snprintf(ref->stable_key, sizeof(ref->stable_key), "row:%u:%s", (unsigned)row_index,
+      row_kind != NULL ? row_kind : "");
+  }
+  return 0;
+}
+
 static int listing_navigation_observe_label_refs(ListingNavigationJsonContext *navigation,
     const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind,
     const char *match_text) {
@@ -7282,6 +7399,21 @@ static int listing_navigation_observe_label_refs(ListingNavigationJsonContext *n
     const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
     if (operand->symbol_ref.has_name == 0U || operand->symbol_ref.name[0] == '\0') continue;
     if (listing_navigation_append_label_ref(navigation, operand->symbol_ref.name, LISTING_LABEL_ACCESS_REFERENCE,
+        match_text, match_text, stmt, row_index, section_index, row_kind) != 0)
+      return -1;
+  }
+  return 0;
+}
+
+static int listing_navigation_observe_equate_refs(ListingNavigationJsonContext *navigation,
+    const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind,
+    const char *match_text) {
+  size_t operand_index;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return 0;
+  for (operand_index = 0U; operand_index < stmt->u.instruction.operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &stmt->u.instruction.operands[operand_index];
+    if (operand->symbol_ref.has_name == 0U || operand->symbol_ref.name[0] == '\0') continue;
+    if (listing_navigation_append_equate_ref(navigation, operand->symbol_ref.name, "", LISTING_LABEL_ACCESS_REFERENCE,
         match_text, match_text, stmt, row_index, section_index, row_kind) != 0)
       return -1;
   }
@@ -7315,7 +7447,22 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
         symbol, stmt, row_index, section_index, row_kind) != 0)
       return -1;
   }
+  if (row_kind_id == LISTING_ROW_KIND_DIRECTIVE) {
+    char equate_symbol[128];
+    char equate_operand[128];
+    if (listing_equate_definition_parts(opcode, operand, equate_symbol, sizeof(equate_symbol),
+        equate_operand, sizeof(equate_operand))) {
+      char equate_summary[256];
+      snprintf(equate_summary, sizeof(equate_summary), "%s EQU%s%s", equate_symbol,
+        equate_operand[0] != '\0' ? " " : "", equate_operand);
+      if (listing_navigation_append_equate_ref(navigation, equate_symbol, equate_operand,
+          LISTING_LABEL_ACCESS_DEFINITION, equate_summary, match_text, stmt, row_index, section_index, row_kind) != 0)
+        return -1;
+    }
+  }
   if (listing_navigation_observe_label_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
+    return -1;
+  if (listing_navigation_observe_equate_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
     return -1;
   if (stmt != NULL && row_kind_id != LISTING_ROW_KIND_LABEL) {
     const M68kRuntimeViewIR *runtime_view = listing_runtime_view_at_storage_offset(navigation->source_analysis,
@@ -7479,6 +7626,95 @@ static int append_listing_navigation_labels_json(JsonBuilder *builder, const Lis
           continue;
         if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
         if (append_listing_navigation_label_ref_json(builder, ref) != 0) return -1;
+        emitted_ref = 1;
+      }
+    }
+    if (json_builder_append(builder, "]}") != 0) return -1;
+    emitted_def = 1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_listing_navigation_equate_ref_fields_json(JsonBuilder *builder, const ListingNavigationEquateRef *ref) {
+  if (ref == NULL) return -1;
+  if (json_builder_append(builder, "\"addr\":") != 0) return -1;
+  if (ref->has_addr) {
+    if (json_builder_appendf(builder, "%u", (unsigned)ref->addr) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_appendf(builder, ",\"row_index\":%u,\"summary\":", (unsigned)ref->row_index) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, ref->summary) != 0) return -1;
+  if (json_builder_append(builder, ",\"match_text\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, ref->match_text) != 0) return -1;
+  if (json_builder_append(builder, ",\"stable_key\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, ref->stable_key) != 0) return -1;
+  if (ref->section_index >= 0 &&
+      json_builder_appendf(builder, ",\"hunk_index\":%d,\"section_index\":%d", ref->section_index,
+        ref->section_index) != 0)
+    return -1;
+  if (json_builder_append(builder, ",\"symbol\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, ref->symbol) != 0) return -1;
+  if (ref->operand[0] != '\0') {
+    if (json_builder_append(builder, ",\"operand\":") != 0 ||
+        json_builder_append_json_string(builder, ref->operand) != 0)
+      return -1;
+  }
+  if (json_builder_appendf(builder, ",\"access_kind\":%u,\"access\":", (unsigned)ref->access_kind) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, listing_label_access_name(ref->access_kind)) != 0) return -1;
+  return 0;
+}
+
+static int append_listing_navigation_equate_ref_json(JsonBuilder *builder, const ListingNavigationEquateRef *ref) {
+  if (json_builder_append(builder, "{") != 0 ||
+      append_listing_navigation_equate_ref_fields_json(builder, ref) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
+static int append_listing_navigation_equates_json(JsonBuilder *builder,
+    const ListingNavigationEquateBuilder *equates) {
+  size_t def_index;
+  int emitted_def = 0;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (equates == NULL) return json_builder_append(builder, "]");
+  for (def_index = 0U; def_index < equates->ref_count; ++def_index) {
+    const ListingNavigationEquateRef *def = &equates->refs[def_index];
+    size_t ref_index;
+    size_t ref_count = 0U;
+    size_t reference_count = 0U;
+    if (def->access_kind != LISTING_LABEL_ACCESS_DEFINITION) continue;
+    for (ref_index = 0U; ref_index < equates->ref_count; ++ref_index)
+      if (strcmp(equates->refs[ref_index].symbol, def->symbol) == 0 &&
+          (equates->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_DEFINITION ||
+            equates->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_REFERENCE)) {
+        ++ref_count;
+        if (equates->refs[ref_index].access_kind == LISTING_LABEL_ACCESS_REFERENCE) ++reference_count;
+      }
+    if (emitted_def && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{") != 0 ||
+        append_listing_navigation_equate_ref_fields_json(builder, def) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+          ",\"ref_count\":%u,\"access_counts\":{\"definition\":1",
+          (unsigned)ref_count) != 0)
+      return -1;
+    if (reference_count != 0U && json_builder_appendf(builder, ",\"reference\":%u", (unsigned)reference_count) != 0)
+      return -1;
+    if (json_builder_append(builder, "},\"refs\":[") != 0) return -1;
+    {
+      int emitted_ref = 0;
+      for (ref_index = 0U; ref_index < equates->ref_count; ++ref_index) {
+        const ListingNavigationEquateRef *ref = &equates->refs[ref_index];
+        if (strcmp(ref->symbol, def->symbol) != 0) continue;
+        if (ref->access_kind == LISTING_LABEL_ACCESS_REFERENCE &&
+            !listing_navigation_has_equate_definition(equates, ref->symbol))
+          continue;
+        if (ref->access_kind != LISTING_LABEL_ACCESS_DEFINITION &&
+            ref->access_kind != LISTING_LABEL_ACCESS_REFERENCE)
+          continue;
+        if (emitted_ref && json_builder_append(builder, ",") != 0) return -1;
+        if (append_listing_navigation_equate_ref_json(builder, ref) != 0) return -1;
         emitted_ref = 1;
       }
     }
@@ -7969,6 +8205,8 @@ static int append_listing_navigation_groups_json(JsonBuilder *builder, ListingNa
       append_listing_app_slot_api_arg_navigation_json(builder, &navigation->app_slot_analysis) != 0 ||
       json_builder_append(builder, ",\"labels\":") != 0 ||
       append_listing_navigation_labels_json(builder, &navigation->labels) != 0 ||
+      json_builder_append(builder, ",\"equates\":") != 0 ||
+      append_listing_navigation_equates_json(builder, &navigation->equates) != 0 ||
       json_builder_append(builder, ",\"comments\":") != 0 ||
       json_builder_append_builder(builder, &navigation->comments) != 0)
     goto fail;

@@ -1,4 +1,4 @@
-Status: Open
+Status: Complete
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:
@@ -24,6 +24,10 @@ Progress:
   representations, emits rendered `EQU` definitions, and can render immediate
   use sites with those symbols. Focused C-backend coverage proves exact direct
   rebuild.
+- Existing target-local equates are listed in C-backed navigation with
+  definition/reference refs.
+- Rename/remove projection now updates or prunes symbolic representations, so
+  rendered source cannot retain dangling target-equate use sites.
 - Current C policy table intentionally caps target-local equates at 16 entries
   to avoid growing the stack-heavy `M68kAnalysisPolicy`; broader capacity should
   move this table out of the policy struct.
@@ -37,7 +41,9 @@ Acceptance criteria:
 Required tests:
 Manual action replay, command execution, source rendering, and verifier tests.
 
-Remaining:
-- Add listing/navigation workflows for existing target-local equates.
-- Add remove/rename rendered-source regressions beyond effective metadata and
-  command payload coverage.
+Completed evidence:
+- `tests/test_manual_seed_effective_metadata.py` covers target-equate replay,
+  rename propagation into symbolic representations, and remove pruning.
+- `tests/test_c_backend.py` covers rendered `EQU` definitions, symbolic
+  immediate use sites, C-backed equate navigation, rename rendering, remove
+  fallback rendering, and exact direct rebuild.

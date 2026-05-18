@@ -3489,6 +3489,29 @@ start:
     assert direct_profile["direct_rebuild_exact"] is True
 
 
+def _target_equate_manual_action_log_text(source: HunkFileBinarySource, actions: list[dict[str, object]]) -> str:
+    records = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        }
+    ]
+    records.extend(actions)
+    return "\n".join(json.dumps(record, sort_keys=True) for record in records) + "\n"
+
+
+def _target_equate_action(sequence: int, kind: str, payload: dict[str, object]) -> dict[str, object]:
+    return {
+        "record": "manual_action",
+        "action_id": f"a{sequence}",
+        "sequence": sequence,
+        "created_at": f"2026-05-18T00:00:{sequence:02d}+00:00",
+        "kind": kind,
+        **payload,
+    }
+
+
 def test_real_dll_target_equate_renders_definition_and_symbolic_immediate(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
@@ -3518,52 +3541,38 @@ start:
     )
     write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
     (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
-        json.dumps(
-            {
-                "record": "manual_action_log_header",
-                "version": 1,
-                "target_identity": build_target_identity(source),
-            },
-            sort_keys=True,
-        )
-        + "\n"
-        + json.dumps(
-            {
-                "record": "manual_action",
-                "action_id": "a1",
-                "sequence": 1,
-                "created_at": "2026-05-18T00:00:01+00:00",
-                "kind": "create_manual_target_equate",
-                "target_equate": {
-                    "target_equate_id": "equate-1",
-                    "name": "PLAYER_START_LIVES",
-                    "value": 42,
-                },
-            },
-            sort_keys=True,
-        )
-        + "\n"
-        + json.dumps(
-            {
-                "record": "manual_action",
-                "action_id": "a2",
-                "sequence": 2,
-                "created_at": "2026-05-18T00:00:02+00:00",
-                "kind": "create_manual_representation",
-                "representation": {
-                    "representation_id": "repr-1",
-                    "hunk": 0,
-                    "addr": 0,
-                    "end": 4,
-                    "style": "symbol",
-                    "element_kind": "immediate",
-                    "operand_index": 0,
-                    "symbol": "PLAYER_START_LIVES",
-                },
-            },
-            sort_keys=True,
-        )
-        + "\n",
+        _target_equate_manual_action_log_text(
+            source,
+            [
+                _target_equate_action(
+                    1,
+                    "create_manual_target_equate",
+                    {
+                        "target_equate": {
+                            "target_equate_id": "equate-1",
+                            "name": "PLAYER_START_LIVES",
+                            "value": 42,
+                        }
+                    },
+                ),
+                _target_equate_action(
+                    2,
+                    "create_manual_representation",
+                    {
+                        "representation": {
+                            "representation_id": "repr-1",
+                            "hunk": 0,
+                            "addr": 0,
+                            "end": 4,
+                            "style": "symbol",
+                            "element_kind": "immediate",
+                            "operand_index": 0,
+                            "symbol": "PLAYER_START_LIVES",
+                        }
+                    },
+                ),
+            ],
+        ),
         encoding="utf-8",
     )
 
@@ -3579,6 +3588,16 @@ start:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
+        artifact = c_backend.CListingArtifact.create(
+            c_backend._CBackendSourceFile(binary_path, "amiga-hunk"),
+            metadata_text=str(metadata_path),
+            include_dir=str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
+            project_root=PROJECT_ROOT,
+        )
+        try:
+            navigation, _profile = artifact.navigation_payload()
+        finally:
+            artifact.close()
         rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
             source,
             metadata_path=metadata_path,
@@ -3599,6 +3618,137 @@ start:
     ]
     assert "PLAYER_START_LIVES\tEQU\t$2A\n" in rendered
     assert "\tmove.w #PLAYER_START_LIVES,d0\n" in rendered
+    equates = navigation["groups"]["equates"]
+    assert len(equates) == 1
+    assert equates[0]["symbol"] == "PLAYER_START_LIVES"
+    assert equates[0]["operand"] == "$2A"
+    assert equates[0]["ref_count"] == 2
+    assert [ref["access"] for ref in equates[0]["refs"]] == ["definition", "reference"]
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
+def test_real_dll_target_equate_rename_and_remove_update_rendered_source(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-target-equate-rename.bin"
+    source_text = """    SECTION section,code
+start:
+    move.w #42,d0
+    rts
+    dc.w 0
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    base_actions = [
+        _target_equate_action(
+            1,
+            "create_manual_target_equate",
+            {
+                "target_equate": {
+                    "target_equate_id": "equate-1",
+                    "name": "PLAYER_START_LIVES",
+                    "value": 42,
+                },
+            },
+        ),
+        _target_equate_action(
+            2,
+            "create_manual_representation",
+            {
+                "representation": {
+                    "representation_id": "repr-1",
+                    "hunk": 0,
+                    "addr": 0,
+                    "end": 4,
+                    "style": "symbol",
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                    "symbol": "PLAYER_START_LIVES",
+                },
+            },
+        ),
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        _target_equate_manual_action_log_text(
+            source,
+            [
+                *base_actions,
+                _target_equate_action(
+                    3,
+                    "rename_manual_target_equate",
+                    {
+                        "target_equate": {
+                            "target_equate_id": "equate-1",
+                            "previous_name": "PLAYER_START_LIVES",
+                            "name": "PLAYER_INITIAL_LIVES",
+                        }
+                    },
+                ),
+            ],
+        ),
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "PLAYER_INITIAL_LIVES\tEQU\t$2A\n" in rendered
+    assert "\tmove.w #PLAYER_INITIAL_LIVES,d0\n" in rendered
+    assert "PLAYER_START_LIVES" not in rendered
+
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        _target_equate_manual_action_log_text(
+            source,
+            [
+                *base_actions,
+                _target_equate_action(
+                    3,
+                    "remove_manual_target_equate",
+                    {"target_equate": {"target_equate_id": "equate-1", "name": "PLAYER_START_LIVES"}},
+                ),
+            ],
+        ),
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "EQU" not in rendered
+    assert "\tmove.w #$2A,d0\n" in rendered
     assert rebuilt == original
     assert direct_profile["direct_rebuild_exact"] is True
 

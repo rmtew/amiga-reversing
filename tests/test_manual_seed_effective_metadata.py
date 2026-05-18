@@ -238,6 +238,21 @@ def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> No
             _action(
                 "a2",
                 2,
+                "create_manual_representation",
+                representation={
+                    "representation_id": "repr-1",
+                    "hunk": 0,
+                    "addr": 0,
+                    "end": 4,
+                    "style": "symbol",
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                    "symbol": "PLAYER_START_LIVES",
+                },
+            ),
+            _action(
+                "a3",
+                3,
                 "rename_manual_target_equate",
                 target_equate={
                     "target_equate_id": "equate-1",
@@ -260,6 +275,51 @@ def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> No
             "value": 3,
         }
     ]
+    assert payload["manual_representations"][0]["symbol"] == "PLAYER_INITIAL_LIVES"
+
+
+def test_effective_metadata_removes_target_equate_representations(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_target_equate",
+                target_equate={"target_equate_id": "equate-1", "name": "PLAYER_START_LIVES", "value": 3},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_representation",
+                representation={
+                    "representation_id": "repr-1",
+                    "hunk": 0,
+                    "addr": 0,
+                    "end": 4,
+                    "style": "symbol",
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                    "symbol": "PLAYER_START_LIVES",
+                },
+            ),
+            _action(
+                "a3",
+                3,
+                "remove_manual_target_equate",
+                target_equate={"target_equate_id": "equate-1", "name": "PLAYER_START_LIVES"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["target_equates"] == []
+    assert payload["manual_representations"] == []
 
 
 def test_effective_metadata_projects_lvo_semantic_hint_to_symbol_representation(tmp_path: Path) -> None:
