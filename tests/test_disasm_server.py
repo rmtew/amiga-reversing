@@ -43,6 +43,21 @@ from tests.listing_types_fixtures import (
     SymbolOperandMetadata,
 )
 
+_FULL_DATA_ROLE_IDS = {
+    "string",
+    "length_prefixed_string",
+    "string_control_stream",
+    "scalar_table",
+    "lookup_table",
+    "pointer_table",
+    "copper_list",
+    "palette",
+    "bitmap",
+    "sound_sample",
+    "audio_table",
+    "sprite",
+}
+
 
 def _free_tcp_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -1233,7 +1248,9 @@ def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest
     assert project["review_state"] == "needs_review"
     assert review_items[0]["kind"] == "unreconciled_data_range"
     action_ids = [action["action_id"] for action in cast(list[dict[str, object]], review_items[0]["catalog_actions"])]
-    assert "review.seed.data.string" in action_ids
+    assert {action_id.removeprefix("review.seed.data.") for action_id in action_ids if action_id.startswith("review.seed.data.")} >= (
+        _FULL_DATA_ROLE_IDS | {"raw"}
+    )
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
@@ -1270,6 +1287,11 @@ def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: py
     }
     assert actions[0]["action_id"] == "review.navigate"
     seed_action = next(action for action in actions if action["command_id"] == "review.seed.data.string")
+    assert {
+        str(action["action_id"]).removeprefix("review.seed.data.")
+        for action in actions
+        if str(action["action_id"]).removeprefix("review.seed.data.") in _FULL_DATA_ROLE_IDS
+    } == _FULL_DATA_ROLE_IDS
     assert seed_action["effect"] == "manual_mutation"
     assert seed_action["target_context"] == {
         "kind": "review_item",
@@ -1542,6 +1564,13 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
+    assert {
+        str(action["action_id"]).removeprefix("row.seed.data.")
+        for action in row_actions
+        if str(action["action_id"]).removeprefix("row.seed.data.") in _FULL_DATA_ROLE_IDS
+    } == _FULL_DATA_ROLE_IDS
+    palette_action = next(action for action in row_actions if action["action_id"] == "row.seed.data.palette")
+    assert palette_action["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
     comment_action = next(action for action in row_actions if action["action_id"] == "comment.edit")
     assert comment_action["default_key_binding"] == ";"
     assert comment_action["interaction_schema"]["type"] == "text"
@@ -2058,11 +2087,19 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     raw_block = next(action for action in actions if action["action_id"] == "range.seed.data.raw")
+    palette = next(action for action in actions if action["action_id"] == "range.seed.data.palette")
     code_seed = next(action for action in actions if action["action_id"] == "range.seed.code")
     semantic_helpers = next(action for action in actions if action["action_id"] == "range.semantic.helpers")
 
     assert raw_block["range_availability"] == "partial"
     assert raw_block["applicable_subranges"] == [{"row_indexes": [1, 2], "row_ids": ["r1", "r2"], "start_offset": 2, "end_offset": 4}]
+    assert {
+        str(action["action_id"]).removeprefix("range.seed.data.")
+        for action in actions
+        if str(action["action_id"]).removeprefix("range.seed.data.") in _FULL_DATA_ROLE_IDS
+    } == _FULL_DATA_ROLE_IDS
+    assert palette["range_availability"] == "partial"
+    assert palette["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
     assert "2 of 3" in str(raw_block["availability_reason"])
     assert code_seed["range_availability"] == "partial"
     assert semantic_helpers["range_availability"] == "unavailable"
@@ -2470,7 +2507,7 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "row.seed.data.pointer_table",
+            "command_id": "row.seed.data.palette",
             "context": _row_command_context(rows[0]),
         },
     )
@@ -2479,8 +2516,8 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
 
     assert action["kind"] == "create_manual_seed"
     assert seed["kind"] == "data"
-    assert seed["data_role"] == "pointer_table"
-    assert seed["unit"] == "pointer"
+    assert seed["data_role"] == "palette"
+    assert seed["unit"] == "word"
     assert seed["hunk"] == 1
     assert seed["addr"] == 4
     assert seed["end"] == 8
@@ -2531,7 +2568,7 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "review.seed.data.string",
+            "command_id": "review.seed.data.copper_list",
             "context": {"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
         },
     )
@@ -2540,8 +2577,8 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
 
     assert action["kind"] == "create_manual_seed"
     assert seed["kind"] == "data"
-    assert seed["data_role"] == "string"
-    assert seed["unit"] == "byte"
+    assert seed["data_role"] == "copper_list"
+    assert seed["unit"] == "word"
     assert seed["addr"] == 4
     assert seed["end"] == 8
     assert appended_actions == [action]

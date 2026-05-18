@@ -172,7 +172,7 @@ typedef struct M68kAnalysisStructuredDataItem {
   char constant_name[64];
   char semantic_role[64];
   char source_pattern[64];
-  char comment[64];
+  char comment[96];
 } M68kAnalysisStructuredDataItem;
 
 typedef enum M68kAnalysisStructuredDataPlatformKind {

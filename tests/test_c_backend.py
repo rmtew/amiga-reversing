@@ -867,7 +867,7 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("constant_name", ctypes.c_char * 64),
         ("semantic_role", ctypes.c_char * 64),
         ("source_pattern", ctypes.c_char * 64),
-        ("comment", ctypes.c_char * 64),
+        ("comment", ctypes.c_char * 96),
     ]
 
 
@@ -2680,6 +2680,118 @@ after_data:
         in rendered
     )
     assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
+
+
+@pytest.mark.parametrize(
+    ("data_role", "unit", "encoding"),
+    [
+        ("copper_list", "word", None),
+        ("palette", "word", None),
+        ("pointer_table", "pointer", None),
+        ("lookup_table", "word", None),
+        ("scalar_table", "word", None),
+        ("length_prefixed_string", "byte", "ascii"),
+        ("bitmap", "byte", None),
+        ("sound_sample", "byte", None),
+        ("string", "byte", "ascii"),
+        ("audio_table", "pointer", None),
+        ("sprite", "byte", None),
+        ("string_control_stream", "byte", None),
+    ],
+)
+def test_real_dll_required_manual_data_roles_render_source(
+    tmp_path: Path,
+    data_role: str,
+    unit: str,
+    encoding: str | None,
+) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / f"manual-{data_role}.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b $03,$41,$42,$43,$00,$00,$00,$00
+after_data:
+    rts
+"""
+    assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    seed = {
+        "seed_id": f"manual-{data_role}",
+        "kind": "data",
+        "mode": "required",
+        "hunk": 0,
+        "addr": 2,
+        "end": 10,
+        "data_role": data_role,
+        "unit": unit,
+    }
+    if encoding is not None:
+        seed["encoding"] = encoding
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-18T00:00:01+00:00",
+                "kind": "create_manual_seed",
+                "seed": seed,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert f"data_role={data_role}" in rendered
+    assert f"unit={unit}" in rendered
+    if encoding is not None:
+        assert f"encoding={encoding}" in rendered
+    assert "\trts\n" in rendered
+    assert rebuilt == binary_path.read_bytes()
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_manual_representation_styles_classified_bytes_without_classifying(tmp_path: Path) -> None:

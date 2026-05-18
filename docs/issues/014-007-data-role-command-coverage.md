@@ -1,4 +1,4 @@
-Status: Open
+Status: Complete
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:
@@ -24,3 +24,20 @@ Acceptance criteria:
 
 Required tests:
 Focused catalog availability/execution tests and role-specific rendering tests.
+
+Result:
+- Row, range, and unreconciled-data review catalogs now expose every C-backed
+  source-rendered data role: `string`, `length_prefixed_string`,
+  `string_control_stream`, `scalar_table`, `lookup_table`, `pointer_table`,
+  `copper_list`, `palette`, `bitmap`, `sound_sample`, `audio_table`, and
+  `sprite`.
+- Role commands emit durable `create_manual_seed` payloads with hunk/range,
+  `data_role`, `unit`, and `encoding` where required.
+- Rendering coverage loads the Manual Action Log through effective metadata and
+  proves each role projects into source text and direct-rebuilds exactly.
+
+Verification:
+- `uv run python -m pytest tests\test_disasm_server.py::test_route_project_overlays_cached_analysis_review_state tests\test_disasm_server.py::test_route_manual_action_catalog_returns_review_item_actions tests\test_disasm_server.py::test_route_manual_action_catalog_returns_row_and_element_actions tests\test_disasm_server.py::test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibility tests\test_disasm_server.py::test_route_manual_action_catalog_execute_appends_row_data_type_helper_action tests\test_disasm_server.py::test_route_manual_action_catalog_execute_appends_valid_log_action -q`
+- `uv run python -m pytest tests\test_c_backend.py::test_real_dll_required_manual_data_roles_render_source -q`
+- `uv run ruff check amiga_reversing\disasm\manual_action_catalog.py tests\test_disasm_server.py tests\test_c_backend.py`
+- `cmd /c src\precommit.bat`

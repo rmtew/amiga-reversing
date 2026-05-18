@@ -17,6 +17,21 @@ from amiga_reversing.disasm.reproduction import builtin_reproduction_profiles
 
 _KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_includes_parsed.json"
 
+_DATA_ROLE_COMMANDS: tuple[dict[str, str], ...] = (
+    {"role": "string", "label": "String", "unit": "byte", "encoding": "ascii"},
+    {"role": "length_prefixed_string", "label": "Length-prefixed string", "unit": "byte", "encoding": "ascii"},
+    {"role": "string_control_stream", "label": "String control stream", "unit": "byte"},
+    {"role": "scalar_table", "label": "Scalar table", "unit": "word"},
+    {"role": "lookup_table", "label": "Lookup table", "unit": "word"},
+    {"role": "pointer_table", "label": "Pointer table", "unit": "pointer"},
+    {"role": "copper_list", "label": "Copper list", "unit": "word"},
+    {"role": "palette", "label": "Palette", "unit": "word"},
+    {"role": "bitmap", "label": "Bitmap", "unit": "byte"},
+    {"role": "sound_sample", "label": "Sound sample", "unit": "byte"},
+    {"role": "audio_table", "label": "Audio table", "unit": "pointer"},
+    {"role": "sprite", "label": "Sprite", "unit": "byte"},
+)
+
 
 def review_item_action_catalog(item: Mapping[str, object]) -> list[dict[str, object]]:
     kind = str(item.get("kind") or "")
@@ -36,44 +51,8 @@ def review_item_action_catalog(item: Mapping[str, object]) -> list[dict[str, obj
             )
         )
     elif kind == "unreconciled_data_range":
-        actions.extend(
-            [
-                _seed(
-                    "review.seed.data.string",
-                    "String",
-                    item,
-                    seed_kind="data",
-                    data_role="string",
-                    unit="byte",
-                    encoding="ascii",
-                ),
-                _seed(
-                    "review.seed.data.scalar_table",
-                    "Scalar table",
-                    item,
-                    seed_kind="data",
-                    data_role="scalar_table",
-                    unit="word",
-                ),
-                _seed(
-                    "review.seed.data.pointer_table",
-                    "Pointer table",
-                    item,
-                    seed_kind="data",
-                    data_role="pointer_table",
-                    unit="long",
-                ),
-                _seed(
-                    "review.seed.data.raw",
-                    "Raw bytes",
-                    item,
-                    seed_kind="data",
-                    data_role="raw",
-                    unit="byte",
-                ),
-                _resolution("review.resolve.opaque_data", "Opaque data", item, "opaque_data"),
-            ]
-        )
+        actions.extend(_review_data_seed_actions(item))
+        actions.append(_resolution("review.resolve.opaque_data", "Opaque data", item, "opaque_data"))
     elif kind == "suspicious_instruction_decode":
         actions.append(
             _seed("review.seed.data.raw", "Seed data", item, seed_kind="data", data_role="raw", unit="byte")
@@ -138,7 +117,7 @@ def target_action_catalog() -> list[dict[str, object]]:
 
 def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, object]]:
     context = listing_row_context(row)
-    return [
+    actions = [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
         _context_log_action(
             "review_note.add",
@@ -208,28 +187,9 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
             context,
             {"seed_kind": "data", "unit": "long"},
         ),
-        _context_log_action(
-            "row.seed.data.string",
-            "String",
-            "create_manual_seed",
-            context,
-            {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
-        ),
-        _context_log_action(
-            "row.seed.data.scalar_table",
-            "Scalar table",
-            "create_manual_seed",
-            context,
-            {"seed_kind": "data", "data_role": "scalar_table", "unit": "word"},
-        ),
-        _context_log_action(
-            "row.seed.data.pointer_table",
-            "Pointer table",
-            "create_manual_seed",
-            context,
-            {"seed_kind": "data", "data_role": "pointer_table", "unit": "pointer"},
-        ),
     ]
+    actions.extend(_row_data_role_actions(context))
+    return actions
 
 
 def listing_element_action_catalog(
@@ -315,7 +275,7 @@ def listing_element_action_catalog(
 
 def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
     context = listing_range_context(rows)
-    return [
+    actions = [
         _context_log_action(
             "range.review_note.add",
             "Add range review note",
@@ -350,20 +310,24 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             _row_allows_data_seed,
         ),
         _range_seed_action(
-            "range.seed.data.string",
-            "String",
+            "range.seed.data.long",
+            "Long data",
             context,
             rows,
-            {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+            {"seed_kind": "data", "unit": "long"},
             _row_allows_data_seed,
         ),
+    ]
+    actions.extend(_range_data_role_actions(context, rows))
+    actions.append(
         _range_unavailable_action(
             "range.semantic.helpers",
             "Semantic helpers",
             context,
             "Element-level semantic helpers require one selected operand.",
-        ),
-    ]
+        )
+    )
+    return actions
 
 
 def listing_range_context(rows: list[Mapping[str, object]]) -> dict[str, object]:
@@ -415,6 +379,62 @@ def listing_range_catalog_manual_payload(
     if not results:
         raise ValueError("Range action has no available selected rows")
     return results
+
+
+def _data_role_parameters(spec: Mapping[str, str]) -> dict[str, object]:
+    parameters: dict[str, object] = {
+        "seed_kind": "data",
+        "data_role": spec["role"],
+        "unit": spec["unit"],
+    }
+    encoding = spec.get("encoding")
+    if encoding:
+        parameters["encoding"] = encoding
+    return parameters
+
+
+def _review_data_seed_actions(item: Mapping[str, object]) -> list[dict[str, object]]:
+    actions = [_seed("review.seed.data.raw", "Raw bytes", item, seed_kind="data", data_role="raw", unit="byte")]
+    actions.extend(
+        _seed(
+            f"review.seed.data.{spec['role']}",
+            spec["label"],
+            item,
+            seed_kind="data",
+            data_role=spec["role"],
+            unit=spec["unit"],
+            encoding=spec.get("encoding"),
+        )
+        for spec in _DATA_ROLE_COMMANDS
+    )
+    return actions
+
+
+def _row_data_role_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+    return [
+        _context_log_action(
+            f"row.seed.data.{spec['role']}",
+            spec["label"],
+            "create_manual_seed",
+            context,
+            _data_role_parameters(spec),
+        )
+        for spec in _DATA_ROLE_COMMANDS
+    ]
+
+
+def _range_data_role_actions(context: Mapping[str, object], rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    return [
+        _range_seed_action(
+            f"range.seed.data.{spec['role']}",
+            spec["label"],
+            context,
+            rows,
+            _data_role_parameters(spec),
+            _row_allows_data_seed,
+        )
+        for spec in _DATA_ROLE_COMMANDS
+    ]
 
 
 def catalog_entry_by_id(item: Mapping[str, object], action_id: str) -> dict[str, object]:

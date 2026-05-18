@@ -3855,7 +3855,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char encoding[32];
   char name[64];
   char comment[256];
-  char policy_comment[64];
+  char policy_comment[96];
   MetadataSeededEntityClassification classification;
   entity_type[0] = '\0';
   subtype[0] = '\0';
