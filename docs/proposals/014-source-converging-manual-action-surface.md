@@ -163,6 +163,12 @@ Implementation observation from `014-002`: mutation metadata must preserve
 zero-valued row indexes. Using truthiness to choose between source and fallback
 indexes can move row `0` effects to the wrong row.
 
+Implementation observation from `014-006`: inspect candidates can be real but
+all skipped because projected state already satisfies them or their verifier is
+missing. Generic `run-one` must retry listing-derived candidate mining in that
+case; otherwise stale review work can hide available source-converging listing
+edits.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

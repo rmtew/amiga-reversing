@@ -629,6 +629,14 @@ def run_one_iteration(
         inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
     iteration_id = _next_iteration_id(run_result.run_state)
     selected = _select_command_action(inspect_report)
+    if (
+        selected is None
+        and bool(inspect_report.get("candidate_work"))
+        and inspect_report.get("safe_to_mutate") is True
+        and not inspect_report.get("listing_open")
+    ):
+        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
+        selected = _select_command_action(inspect_report)
     if selected is None:
         report = _iteration_report(
             run_state=run_result.run_state,
@@ -966,9 +974,13 @@ def _inspect_report_with_listing_candidates(
         return {**inspect_report, "listing_open": {"status": "failed", "message": str(exc)}}
     data = listing.get("data")
     rows = data.get("rows") if isinstance(data, dict) else None
-    candidates = _listing_representation_candidates(
-        rows if isinstance(rows, list) else [],
-        existing_representations=_existing_representation_keys(inspect_report),
+    existing_candidates = inspect_report.get("candidate_work")
+    candidates = list(existing_candidates) if isinstance(existing_candidates, list) else []
+    candidates.extend(
+        _listing_representation_candidates(
+            rows if isinstance(rows, list) else [],
+            existing_representations=_existing_representation_keys(inspect_report),
+        )
     )
     candidates.extend(
         _listing_data_symbol_candidates(

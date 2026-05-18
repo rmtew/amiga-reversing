@@ -764,6 +764,32 @@ def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
     assert report["planner"]["selected_command_id"] == "representation.character"
 
 
+def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [_representation_candidate(current_representation="character")]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    row = _byte_immediate_row()
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "representation.character"
+    assert report["selected_work_item"]["candidate_id"] == "representation:row-1:0:48:character"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "repr-candidate"
+    assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
 def test_run_one_uses_listing_rsset_suggestion_when_inspect_empty(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

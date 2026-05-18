@@ -50,6 +50,9 @@ Progress:
 - Planner already-satisfied checks now treat rename candidates with
   `previous_name` as satisfied when projected metadata has the requested new
   name.
+- Generic `run-one` now retries listing-derived candidate mining when inspect
+  returns candidates but every candidate is skipped, so stale/projected review
+  work no longer prevents available source-converging listing edits.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
