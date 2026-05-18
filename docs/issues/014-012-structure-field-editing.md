@@ -23,6 +23,9 @@ Current evidence:
 - Listing element commands now expose `typed_gap.field.add/edit` and
   `typed_access.field.edit/rename/remove`, using typed context struct names and
   offsets.
+- `/commands/execute` now has route-level coverage proving selected typed-gap
+  and typed-access element commands append the expected custom-struct-field
+  Manual Action Log entries and return `custom_struct_field` local effects.
 - The loop planner builds explicit `target.custom_struct.*`,
   `target.custom_struct_field.*`, `typed_gap.field.*`, and
   `typed_access.field.*` command candidates and routes typed field commands

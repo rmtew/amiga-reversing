@@ -2015,6 +2015,121 @@ def test_route_manual_action_catalog_execute_returns_custom_struct_local_effect(
     assert appended_actions == [action]
 
 
+@pytest.mark.parametrize(
+    ("row", "element_id", "command_id", "parameters", "action_kind", "expected_field"),
+    [
+        (
+            ListingRow(
+                row_id="r0",
+                kind="instruction",
+                text="move.w 36(a0),d0\n",
+                addr=0x20,
+                section_index=0,
+                start_offset=0x20,
+                end_offset=0x24,
+                stable_key="gap-row",
+                opcode_or_directive="move.w",
+                operand_text="36(a0),d0",
+                source_context=BlockRowContext(kind="core-block", hunk_index=0),
+                unresolved_typed_accesses=(
+                    PlatformUnresolvedTypedAccess(
+                        operand_index=0,
+                        base_register="A0",
+                        displacement=36,
+                        struct_size=40,
+                        root_struct_name="InputEvent",
+                        classification="prefix_extension",
+                        refined_struct_name="DerivedEvent",
+                    ),
+                ),
+            ),
+            "gap-row:typed_gap:0:prefix_extension",
+            "typed_gap.field.add",
+            {"name": "de_Code", "type": "UWORD", "size": 2},
+            "create_manual_custom_struct_field",
+            {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code", "type": "UWORD", "size": 2},
+        ),
+        (
+            ListingRow(
+                row_id="r1",
+                kind="instruction",
+                text="move.w LIB_VERSION(a0),d0\n",
+                addr=0x30,
+                section_index=0,
+                start_offset=0x30,
+                end_offset=0x34,
+                stable_key="typed-row",
+                opcode_or_directive="move.w",
+                operand_text="LIB_VERSION(a0),d0",
+                source_context=BlockRowContext(kind="core-block", hunk_index=0),
+                typed_accesses=(
+                    PlatformTypedAccess(
+                        operand_index=0,
+                        base_register="A0",
+                        displacement=20,
+                        field_offset=20,
+                        root_struct_name="Library",
+                        owner_struct_name="Library",
+                        field_name="LIB_VERSION",
+                        field_expr="LIB_VERSION",
+                    ),
+                ),
+            ),
+            "typed-row:typed_access:0:LIB_VERSION",
+            "typed_access.field.rename",
+            {"name": "LIB_REVISION"},
+            "rename_manual_custom_struct_field",
+            {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"},
+        ),
+    ],
+)
+def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
+    row: ListingRow,
+    element_id: str,
+    command_id: str,
+    parameters: dict[str, object],
+    action_kind: str,
+    expected_field: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact([row]))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {"command_id": command_id, "context": _element_command_context(row, element_id), "parameters": parameters},
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    field = cast(dict[str, object], cast(dict[str, object], action["payload"])["custom_struct_field"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == action_kind
+    assert field == expected_field
+    assert application["status"] == "applied"
+    assert local_effect == {"kind": "custom_struct_field", "custom_struct_field": field}
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 @pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])
 def test_route_manual_action_catalog_execute_appends_execution_view_action(
     command_id: str,

@@ -155,6 +155,10 @@ row affected-locator metadata. Their projection verifier must use authoritative
 payload, then rely on semantic reload and round-trip layers for source
 convergence.
 
+Implementation observation from `014-002`: selected listing element identities
+must preserve zero-valued operand indexes. Treating `0` as absent makes first
+operand app-slot and typed-field command contexts unrecoverable.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

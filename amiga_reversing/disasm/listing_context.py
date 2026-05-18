@@ -42,7 +42,7 @@ def selected_listing_element_context(
         raise ValueError(f"Listing element is not available: {element_id}")
 
     element_kind = _str_or_none(selector.get("element_kind") or selector.get("elementKind"))
-    operand_index = _optional_int(selector.get("operand_index") or selector.get("operandIndex"))
+    operand_index = _optional_int(_first_present(selector, "operand_index", "operandIndex"))
     symbol = _str_or_none(selector.get("symbol"))
     access = _str_or_none(selector.get("access"))
     value = _optional_int(selector.get("value"))
@@ -84,7 +84,7 @@ def _append_operand_contexts(contexts: list[dict[str, object]], row: Mapping[str
     for fallback_index, raw_part in enumerate(operand_parts):
         if not isinstance(raw_part, Mapping):
             continue
-        operand_index = _optional_int(raw_part.get("operand_index") or raw_part.get("operandIndex"))
+        operand_index = _optional_int(_first_present(raw_part, "operand_index", "operandIndex"))
         if operand_index is None:
             operand_index = fallback_index
         raw_kind = _str_or_none(raw_part.get("kind")) or "operand"
@@ -135,7 +135,7 @@ def _append_app_slot_contexts(contexts: list[dict[str, object]], row: Mapping[st
         symbol = _str_or_none(raw_ref.get("symbol"))
         if not symbol:
             continue
-        operand_index = _optional_int(raw_ref.get("operand_index") or raw_ref.get("operandIndex"))
+        operand_index = _optional_int(_first_present(raw_ref, "operand_index", "operandIndex"))
         access = _str_or_none(raw_ref.get("access")) or "reference"
         token = f"app_slot:{operand_index if operand_index is not None else ''}:{symbol}:{access}"
         context = _element_base(row, "app_slot", token)
@@ -157,7 +157,7 @@ def _append_typed_access_contexts(contexts: list[dict[str, object]], row: Mappin
         ("typed_gap", "classification", row.get("unresolved_typed_accesses") or row.get("unresolvedTypedAccesses")),
     ):
         for raw_access in _mapping_sequence(raw_accesses):
-            operand_index = _optional_int(raw_access.get("operand_index") or raw_access.get("operandIndex"))
+            operand_index = _optional_int(_first_present(raw_access, "operand_index", "operandIndex"))
             field = _str_or_none(raw_access.get(field_name) or raw_access.get(_camel(field_name))) or ""
             token = f"{element_kind}:{operand_index if operand_index is not None else ''}:{field}"
             context = _element_base(row, element_kind, token)
@@ -294,7 +294,7 @@ def _camel(key: str) -> str:
 
 
 def _value_token(raw_part: Mapping[str, object]) -> str:
-    value = raw_part.get("signed_value") or raw_part.get("signedValue") or raw_part.get("value")
+    value = _first_present(raw_part, "signed_value", "signedValue", "value")
     return str(value) if isinstance(value, int) and not isinstance(value, bool) else "operand"
 
 

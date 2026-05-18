@@ -28,6 +28,8 @@ Current observations:
   `target_seeded_metadata.json` entries with `(kind, hunk, addr)` plus source
   id/path/locator provenance, which is enough for seeded-item suppression
   commands.
+- Listing element identity preserves operand index `0` for selected operands,
+  app slots, typed accesses, and typed gaps instead of treating it as absent.
 - Review-item/reproduction correction identities beyond seeded-item row
   suppression still need specific contracts.
 
