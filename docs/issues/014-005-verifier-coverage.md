@@ -59,6 +59,9 @@ Current evidence:
 - Generic `run-one` `correction.suppress_seeded_item.*` execution now verifies
   Manual Action Log replay, reloaded suppressed seeded item state, and exact
   round-trip instead of accepting affected-locator metadata alone.
+- Generic `run-one` `target.execution_view.*` execution now verifies Manual
+  Action Log replay, reloaded execution-view state, and exact round-trip instead
+  of accepting target local-effect metadata alone.
 - Planner verifier summaries now report `projected_data_symbol_name` for
   `data_symbol.rename` and `suppressed_seeded_item` for `data_symbol.remove`.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies

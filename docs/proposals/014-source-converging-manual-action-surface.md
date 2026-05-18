@@ -261,6 +261,11 @@ Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and
 round-trip instead of affected locators.
 
+Implementation observation from `014-005`/`014-013`:
+Execution-view commands produce target runtime view state; their verifier should
+check the reloaded execution view or removed-view identity plus round-trip
+instead of accepting target local-effect metadata alone.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

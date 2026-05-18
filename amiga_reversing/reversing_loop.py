@@ -2814,6 +2814,13 @@ def _verify_manual_mutation(
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
+    if command_id in {"target.execution_view.add", "target.execution_view.edit", "target.execution_view.remove"}:
+        return _verify_execution_view_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
     if isinstance(command_id, str) and command_id.startswith(
         ("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")
     ):
@@ -2943,6 +2950,98 @@ def _verify_project_suppressed_seeded_item(
 
 def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr"))
+
+
+def _verify_execution_view_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _execution_view_from_durable_result(durable_result)
+    removed = command_id == "target.execution_view.remove"
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_execution_view(target_id, expected, removed=removed, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _execution_view_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") not in {"execution_view", "execution_view_remove"}:
+                continue
+            view = effect.get("execution_view")
+            if isinstance(view, dict):
+                return cast(dict[str, object], view)
+    action = durable_result.get("action")
+    view = _execution_view_from_action(action)
+    if view is not None:
+        return view
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            view = _execution_view_from_action(raw_action)
+            if view is not None:
+                return view
+    return None
+
+
+def _execution_view_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    view = action.get("execution_view")
+    if isinstance(view, dict):
+        return cast(dict[str, object], view)
+    payload = action.get("payload")
+    view = payload.get("execution_view") if isinstance(payload, dict) else None
+    if isinstance(view, dict):
+        return cast(dict[str, object], view)
+    return None
+
+
+def _verify_project_execution_view(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    removed: bool,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing execution view payload"}
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    key = "removed_execution_views" if removed else "execution_views"
+    views = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(views, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [view for view in views if isinstance(view, dict) and _execution_view_matches(view, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_execution_view": expected,
+        "matching_execution_views": matches,
+        "removed": removed,
+    }
+
+
+def _execution_view_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in ("source_start", "source_end", "base_addr"):
+        if key not in expected or actual.get(key) != expected.get(key):
+            return False
+    for key in ("name", "comment"):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return True
 
 
 def _verify_semantic_hint_mutation(

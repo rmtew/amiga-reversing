@@ -35,6 +35,8 @@ Current evidence:
 - Generic `run-one` now verifies `correction.suppress_seeded_item.*` execution
   by checking reloaded suppressed seeded item state rather than affected row
   metadata.
+- Generic `run-one` now verifies `target.execution_view.*` execution by checking
+  reloaded execution-view state rather than target local-effect metadata.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
