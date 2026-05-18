@@ -639,6 +639,9 @@ def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
         "symbol": "app_input_event",
         "struct_name": "InputEvent",
         "storage_kind": "struct_instance",
+        "parser_role": "input_event",
+        "parser_routine": "parse_input_event",
+        "parse_order": 1,
     }
     assert candidates[0]["default_verifier"] == "round_trip"
 
@@ -652,6 +655,9 @@ def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> 
             "symbol": "app_input_event",
             "struct_name": "InputEvent",
             "storage_kind": "struct_instance",
+            "parser_role": "input_event",
+            "parser_routine": "parse_input_event",
+            "parse_order": 1,
         }
     }
 
@@ -1547,6 +1553,9 @@ def _rsset_suggestion_navigation_payload() -> dict[str, object]:
                         "size": 22,
                         "struct_name": "InputEvent",
                         "storage_kind": "struct_instance",
+                        "parser_role": "input_event",
+                        "parser_routine": "parse_input_event",
+                        "parse_order": 1,
                     },
                 }
             ]

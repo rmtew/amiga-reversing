@@ -952,10 +952,15 @@ def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, obje
         "pointer_struct",
         "storage_kind",
         "semantic_type",
+        "parser_role",
+        "parser_routine",
     ):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
             region[field_name] = value.strip()
+    parse_order = _optional_int(params.get("parse_order"))
+    if parse_order is not None:
+        region["parse_order"] = parse_order
     return region
 
 
@@ -998,10 +1003,21 @@ def _app_slot_region_payload(context: Mapping[str, object], params: Mapping[str,
         "size": size,
         "symbol": symbol.strip(),
     }
-    for field_name in ("layout_name", "base_symbol", "sizeof_symbol", "storage_kind", "semantic_type"):
+    for field_name in (
+        "layout_name",
+        "base_symbol",
+        "sizeof_symbol",
+        "storage_kind",
+        "semantic_type",
+        "parser_role",
+        "parser_routine",
+    ):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
             region[field_name] = value.strip()
+    parse_order = _optional_int(params.get("parse_order"))
+    if parse_order is not None:
+        region["parse_order"] = parse_order
     return region
 
 
@@ -1053,6 +1069,9 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
                 "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
             },
             "semantic_type": {"type": "string"},
+            "parser_role": {"type": "string"},
+            "parser_routine": {"type": "string"},
+            "parse_order": {"type": "integer", "minimum": 0},
         },
         "required": ["symbol", "size"],
     }
@@ -1133,6 +1152,9 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
                 "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
             },
             "semantic_type": {"type": "string"},
+            "parser_role": {"type": "string"},
+            "parser_routine": {"type": "string"},
+            "parse_order": {"type": "integer", "minimum": 0},
         },
         "required": ["offset", "symbol"],
     }

@@ -19,6 +19,9 @@ Current evidence:
 - Listing app-slot elements expose `app_slot.rename/edit/remove`, which map the
   selected app-slot displacement to manual RSSET region create/remove actions
   and require an explicit symbol plus size for rename/edit.
+- RSSET create/edit/rename commands preserve parser metadata
+  (`parser_role`, `parser_routine`, `parse_order`) through Manual Action Log
+  payloads, effective metadata projection, and loop suggestion parameters.
 - Render/rebuild coverage proves a manual named RSSET region emits the RSSET
   field, rewrites a base-relative reference, and direct-rebuilds exactly; removal
   coverage proves source refs return to raw displacement and direct-rebuild
@@ -29,7 +32,7 @@ Current evidence:
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.
-- Parser-role edits and broader autonomous candidate production remain open.
+- Broader autonomous candidate production remains open.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

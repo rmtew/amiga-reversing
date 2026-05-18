@@ -1113,10 +1113,15 @@ def _rsset_region_parameters_from_metadata(metadata: dict[str, object]) -> dict[
         "pointer_struct",
         "storage_kind",
         "semantic_type",
+        "parser_role",
+        "parser_routine",
     ):
         value = metadata.get(field_name)
         if isinstance(value, str) and value.strip():
             parameters[field_name] = value.strip()
+    parse_order = metadata.get("parse_order")
+    if isinstance(parse_order, int) and not isinstance(parse_order, bool):
+        parameters["parse_order"] = parse_order
     return parameters
 
 

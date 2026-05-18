@@ -286,6 +286,9 @@ def test_target_rsset_layout_region_command_payload() -> None:
             "sizeof_symbol": "work_SIZEOF",
             "symbol": "work_counter",
             "storage_kind": "scalar",
+            "parser_role": "option_source",
+            "parser_routine": "parse_options",
+            "parse_order": 0,
         },
     )
 
@@ -300,6 +303,9 @@ def test_target_rsset_layout_region_command_payload() -> None:
             "sizeof_symbol": "work_SIZEOF",
             "symbol": "work_counter",
             "storage_kind": "scalar",
+            "parser_role": "option_source",
+            "parser_routine": "parse_options",
+            "parse_order": 0,
         }
     }
 
@@ -316,6 +322,9 @@ def test_target_rsset_layout_region_edit_and_rename_command_payloads() -> None:
                 "sizeof_symbol": "work_SIZEOF",
                 "symbol": "work_counter",
                 "storage_kind": "scalar",
+                "parser_role": "option_source",
+                "parser_routine": "parse_options",
+                "parse_order": 0,
             },
         )
 
@@ -330,6 +339,9 @@ def test_target_rsset_layout_region_edit_and_rename_command_payloads() -> None:
                 "sizeof_symbol": "work_SIZEOF",
                 "symbol": "work_counter",
                 "storage_kind": "scalar",
+                "parser_role": "option_source",
+                "parser_routine": "parse_options",
+                "parse_order": 0,
             }
         }
 
