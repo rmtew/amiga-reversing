@@ -276,10 +276,25 @@ def _manual_representation_to_metadata(representation: dict[str, object]) -> Man
     )
 
 
-def _manual_equate_hint_to_representation(hint: dict[str, object]) -> ManualRepresentationMetadata | None:
-    if _manual_seed_text(hint, "domain") != "equate":
-        return None
+def _manual_semantic_hint_symbol(hint: dict[str, object]) -> str | None:
+    domain = _manual_seed_text(hint, "domain")
     symbol = _manual_seed_text(hint, "symbol")
+    if symbol is None:
+        return None
+    if domain == "equate":
+        return symbol
+    if domain == "lvo":
+        function = _manual_seed_text(hint, "function")
+        if function is None and "/" in symbol:
+            function = symbol.rsplit("/", 1)[-1]
+        if function is None:
+            return None
+        return function if function.startswith("_LVO") else f"_LVO{function}"
+    return None
+
+
+def _manual_semantic_hint_to_representation(hint: dict[str, object]) -> ManualRepresentationMetadata | None:
+    symbol = _manual_semantic_hint_symbol(hint)
     if symbol is None:
         return None
     parsed_range = _parse_manual_seed_range(hint)
@@ -393,7 +408,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         if manual_representation is not None:
             manual_representations.append(manual_representation)
     for hint in semantic_hints:
-        manual_representation = _manual_equate_hint_to_representation(hint)
+        manual_representation = _manual_semantic_hint_to_representation(hint)
         if manual_representation is not None:
             manual_representations.append(manual_representation)
     for register_seed in register_seed_projections:
