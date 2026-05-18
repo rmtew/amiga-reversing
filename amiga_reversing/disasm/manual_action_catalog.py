@@ -275,7 +275,7 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
                 _data_block_layout_parameter_schema(),
             )
         )
-        actions.extend(_row_data_block_element_actions(context))
+        actions.extend(_row_data_block_element_actions(context, row))
     return actions
 
 
@@ -580,7 +580,7 @@ def listing_range_catalog_manual_payload(
         return [
             (
                 "represent_manual_data_block_element",
-                {"data_block_element": _data_block_element_representation_payload(params)},
+                {"data_block_element": _data_block_element_representation_payload(rows, params)},
             )
         ]
     subranges = action.get("applicable_subranges")
@@ -703,76 +703,100 @@ def _data_block_layout_parameter_schema() -> dict[str, object]:
     }
 
 
-def _data_block_element_parameter_schema() -> dict[str, object]:
-    return {
-        "type": "object",
-        "properties": {
-            "layout_id": {"type": "string"},
-            "offset": {"type": "integer", "minimum": 0},
-            "width": {"type": "integer", "minimum": 1},
-            "kind": {
-                "type": "string",
-                "enum": ["scalar", "array", "padding", "gap", "raw"],
+def _data_block_element_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "width": {"type": "integer", "minimum": 1},
+                "kind": {
+                    "type": "string",
+                    "enum": ["scalar", "array", "padding", "gap", "raw"],
+                },
+                "name": {"type": "string"},
+                "array_count": {"type": "integer", "minimum": 1},
+                "array_stride": {"type": "integer", "minimum": 1},
+                "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
             },
-            "name": {"type": "string"},
-            "array_count": {"type": "integer", "minimum": 1},
-            "array_stride": {"type": "integer", "minimum": 1},
-            "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+            "required": ["layout_id", "offset"],
         },
-        "required": ["layout_id", "offset"],
-    }
+        defaults,
+    )
 
 
-def _data_block_element_identity_parameter_schema() -> dict[str, object]:
-    return {
-        "type": "object",
-        "properties": {
-            "layout_id": {"type": "string"},
-            "offset": {"type": "integer", "minimum": 0},
-            "width": {"type": "integer", "minimum": 1},
-            "removal_state": {"type": "string", "enum": ["raw", "gap"]},
+def _data_block_element_identity_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "width": {"type": "integer", "minimum": 1},
+                "removal_state": {"type": "string", "enum": ["raw", "gap"]},
+            },
+            "required": ["layout_id", "offset"],
         },
-        "required": ["layout_id", "offset"],
-    }
+        defaults,
+    )
 
 
-def _data_block_element_representation_parameter_schema() -> dict[str, object]:
-    return {
-        "type": "object",
-        "properties": {
-            "layout_id": {"type": "string"},
-            "offset": {"type": "integer", "minimum": 0},
-            "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+def _data_block_element_representation_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+            },
+            "required": ["layout_id", "offset", "representation"],
         },
-        "required": ["layout_id", "offset", "representation"],
-    }
+        defaults,
+    )
 
 
-def _row_data_block_element_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+def _data_block_element_schema_with_inferred_identity(
+    schema: dict[str, object],
+    defaults: Mapping[str, object] | None,
+) -> dict[str, object]:
+    if not defaults:
+        return schema
+    required = schema.get("required")
+    if not isinstance(required, list):
+        return schema
+    inferred = {key for key in ("layout_id", "offset") if key in defaults}
+    schema["required"] = [key for key in required if key not in inferred]
+    return schema
+
+
+def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
+    defaults = _data_block_element_context([row])
     return [
         _context_log_action(
             "row.data_block.element.set",
             "Set data-block element",
             "set_manual_data_block_element",
             context,
-            {},
-            _data_block_element_parameter_schema(),
+            defaults,
+            _data_block_element_parameter_schema(defaults),
         ),
         _context_log_action(
             "row.data_block.element.remove",
             "Remove data-block element",
             "remove_manual_data_block_element",
             context,
-            {},
-            _data_block_element_identity_parameter_schema(),
+            defaults,
+            _data_block_element_identity_parameter_schema(defaults),
         ),
         _context_log_action(
             "row.data_block.element.represent",
             "Represent data-block element",
             "represent_manual_data_block_element",
             context,
-            {},
-            _data_block_element_representation_parameter_schema(),
+            {key: value for key, value in defaults.items() if key in {"layout_id", "offset"}},
+            _data_block_element_representation_parameter_schema(defaults),
         ),
     ]
 
@@ -781,6 +805,7 @@ def _range_data_block_element_actions(
     context: Mapping[str, object],
     rows: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
+    defaults = _data_block_element_context(rows)
     return [
         _range_data_block_element_action(
             "range.data_block.element.set",
@@ -788,7 +813,8 @@ def _range_data_block_element_actions(
             "set_manual_data_block_element",
             context,
             rows,
-            _data_block_element_parameter_schema(),
+            defaults,
+            _data_block_element_parameter_schema(defaults),
         ),
         _range_data_block_element_action(
             "range.data_block.element.remove",
@@ -796,7 +822,8 @@ def _range_data_block_element_actions(
             "remove_manual_data_block_element",
             context,
             rows,
-            _data_block_element_identity_parameter_schema(),
+            defaults,
+            _data_block_element_identity_parameter_schema(defaults),
         ),
         _range_data_block_element_action(
             "range.data_block.element.represent",
@@ -804,7 +831,8 @@ def _range_data_block_element_actions(
             "represent_manual_data_block_element",
             context,
             rows,
-            _data_block_element_representation_parameter_schema(),
+            {key: value for key, value in defaults.items() if key in {"layout_id", "offset"}},
+            _data_block_element_representation_parameter_schema(defaults),
         ),
     ]
 
@@ -815,10 +843,11 @@ def _range_data_block_element_action(
     ui_action: str,
     context: Mapping[str, object],
     rows: list[Mapping[str, object]],
+    defaults: Mapping[str, object],
     parameter_schema: Mapping[str, object],
 ) -> dict[str, object]:
     eligible = [row for row in rows if _row_allows_data_seed(row)]
-    action = _context_log_action(action_id, label, ui_action, context, {}, parameter_schema)
+    action = _context_log_action(action_id, label, ui_action, context, defaults, parameter_schema)
     subranges = _contiguous_subranges(eligible)
     if len(eligible) == len(rows):
         action["range_availability"] = "applicable"
@@ -1004,7 +1033,7 @@ def listing_catalog_manual_payload(
         }
     if ui_action == "represent_manual_data_block_element":
         return "represent_manual_data_block_element", {
-            "data_block_element": _data_block_element_representation_payload(params)
+            "data_block_element": _data_block_element_representation_payload([row], params)
         }
     if ui_action == "remove_manual_rsset_use_site_binding":
         if not element_context:
@@ -2317,14 +2346,77 @@ def _data_block_layout_payload(rows: list[Mapping[str, object]], params: Mapping
     return layout
 
 
+def _data_block_element_context(rows: list[Mapping[str, object]]) -> dict[str, object]:
+    if not rows:
+        return {}
+    first = rows[0]
+    last = rows[-1]
+    layout = _active_data_block_layout(first)
+    if layout is None:
+        return {}
+    layout_id = str(layout.get("layout_id") or "").strip()
+    layout_hunk = _optional_int(layout.get("hunk"))
+    layout_start = _optional_int(layout.get("source_start"))
+    layout_end = _optional_int(layout.get("source_end"))
+    if not layout_id or layout_hunk is None or layout_start is None or layout_end is None:
+        return {}
+    hunk = _int_field(first, "section_index", default=0)
+    source_start = _int_field(first, "start_offset", fallback="addr")
+    source_end = _optional_int(last.get("end_offset"))
+    if source_end is None:
+        source_end = _optional_int(last.get("start_offset"))
+    if source_end is None:
+        source_end = _optional_int(last.get("addr"))
+    if hunk != layout_hunk or source_end is None or source_start < layout_start or source_end > layout_end:
+        return {}
+    return {"layout_id": layout_id, "offset": source_start - layout_start, "width": source_end - source_start}
+
+
+def _active_data_block_layout(row: Mapping[str, object]) -> Mapping[str, object] | None:
+    for key in ("active_data_block_layout", "data_block_layout"):
+        layout = row.get(key)
+        if isinstance(layout, Mapping):
+            return layout
+    layouts = row.get("data_block_layouts")
+    if not isinstance(layouts, list | tuple):
+        return None
+    hunk = _optional_int(row.get("section_index"))
+    start = _optional_int(row.get("start_offset"))
+    end = _optional_int(row.get("end_offset"))
+    if hunk is None or start is None:
+        return None
+    end = end if end is not None else start
+    matches: list[Mapping[str, object]] = []
+    for layout in layouts:
+        if not isinstance(layout, Mapping):
+            continue
+        layout_hunk = _optional_int(layout.get("hunk"))
+        layout_start = _optional_int(layout.get("source_start"))
+        layout_end = _optional_int(layout.get("source_end"))
+        if (
+            layout_hunk == hunk
+            and layout_start is not None
+            and layout_end is not None
+            and layout_start <= start
+            and end <= layout_end
+        ):
+            matches.append(layout)
+    return matches[0] if len(matches) == 1 else None
+
+
 def _data_block_element_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
-    layout_id = str(params.get("layout_id") or "").strip()
+    context = _data_block_element_context(rows)
+    layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
     offset = _optional_int(params.get("offset"))
+    if offset is None:
+        offset = _optional_int(context.get("offset"))
     if not layout_id:
         raise ValueError("set_manual_data_block_element requires layout_id")
     if offset is None or offset < 0:
         raise ValueError("set_manual_data_block_element requires non-negative offset")
     width = _optional_int(params.get("width"))
+    if width is None:
+        width = _optional_int(context.get("width"))
     if width is None:
         source_start = _int_field(rows[0], "start_offset", fallback="addr")
         source_end = _optional_int(rows[-1].get("end_offset"))
@@ -2357,14 +2449,19 @@ def _data_block_element_remove_payload(
     rows: list[Mapping[str, object]],
     params: Mapping[str, object],
 ) -> dict[str, object]:
-    layout_id = str(params.get("layout_id") or "").strip()
+    context = _data_block_element_context(rows)
+    layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
     offset = _optional_int(params.get("offset"))
+    if offset is None:
+        offset = _optional_int(context.get("offset"))
     if not layout_id:
         raise ValueError("remove_manual_data_block_element requires layout_id")
     if offset is None or offset < 0:
         raise ValueError("remove_manual_data_block_element requires non-negative offset")
     element: dict[str, object] = {"layout_id": layout_id, "offset": offset}
     width = _optional_int(params.get("width"))
+    if width is None:
+        width = _optional_int(context.get("width"))
     if width is None and rows:
         source_start = _int_field(rows[0], "start_offset", fallback="addr")
         source_end = _optional_int(rows[-1].get("end_offset"))
@@ -2378,9 +2475,15 @@ def _data_block_element_remove_payload(
     return element
 
 
-def _data_block_element_representation_payload(params: Mapping[str, object]) -> dict[str, object]:
-    layout_id = str(params.get("layout_id") or "").strip()
+def _data_block_element_representation_payload(
+    rows: list[Mapping[str, object]],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    context = _data_block_element_context(rows)
+    layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
     offset = _optional_int(params.get("offset"))
+    if offset is None:
+        offset = _optional_int(context.get("offset"))
     representation = params.get("representation")
     if not layout_id:
         raise ValueError("represent_manual_data_block_element requires layout_id")

@@ -1,4 +1,4 @@
-Status: In progress
+Status: Complete
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
@@ -11,10 +11,12 @@ Requirements:
   `row.data_block.layout.create` and `range.data_block.layout.create` append
   `create_manual_data_block_layout` through the public command catalog.
 - Expose element commands to set/remove/represent scalar byte/word/long
-  elements, arrays/runs, padding, and gaps. First slice implemented:
+  elements, arrays/runs, padding, and gaps. Implemented:
   `row/range.data_block.element.set`, `.remove`, and `.represent` append
-  element actions through the public command catalog with explicit `layout_id`
-  and layout-relative `offset`; selected rows/ranges infer width where needed.
+  element actions through the public command catalog. Selected rows/ranges
+  infer width, and infer `layout_id` plus layout-relative `offset` when the
+  selected rows carry active data-block layout context; explicit parameters
+  still override inference.
 - Render element-sized `dc.b`, `dc.w`, `dc.l`, `dcb.*`, numeric values, and
   character values while preserving exact rebuild. First slice implemented for
   scalar element projection via effective metadata: data-block elements emit
@@ -42,6 +44,8 @@ Implemented tests:
   creation.
 - Command catalog availability and `/commands/execute` cover row/range
   element set/remove/represent commands.
+- Command catalog payload tests cover active-layout-aware row element commands
+  that no longer require explicit `layout_id` or `offset`.
 - Reversing loop execution now selects data-block layout/element state
   verifiers, checks Manual Action Log replay, semantic reload state for element
   set/represent/remove, rendered source tokens, exact round-trip, and blocks
@@ -61,8 +65,8 @@ Implemented tests:
   `dc.b` source and reassembles exactly.
 
 Remaining:
-- Active-layout-aware element selection context, so element commands no longer
-  need explicit layout id/offset parameters.
+- None for this scalar command/render/verifier slice. Interpreted references
+  remain in `014-018`; type/platform binding remains in `014-019`.
 
 Acceptance criteria:
 - The command catalog exposes supported layout commands without private loop

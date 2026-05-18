@@ -3,6 +3,7 @@ from __future__ import annotations
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
+    listing_row_action_catalog,
     target_catalog_manual_payload,
 )
 
@@ -174,6 +175,57 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
             "previous_name": "loc_1_00000120",
             "name": "player_table",
         }
+    }
+
+
+def test_data_block_element_commands_infer_active_layout_identity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x1430,
+        "end_offset": 0x143A,
+        "active_data_block_layout": {
+            "layout_id": "ascii-hex",
+            "hunk": 0,
+            "source_start": 0x1400,
+            "source_end": 0x1480,
+        },
+    }
+
+    actions = listing_row_action_catalog(row)
+    set_action = next(action for action in actions if action["action_id"] == "row.data_block.element.set")
+    represent_action = next(action for action in actions if action["action_id"] == "row.data_block.element.represent")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "row.data_block.element.set",
+        parameters={"kind": "array", "name": "digits", "array_count": 10, "array_stride": 1},
+    )
+    represent_kind, represent_payload = listing_catalog_manual_payload(
+        row,
+        "row.data_block.element.represent",
+        parameters={"representation": "hex"},
+    )
+
+    assert set_action["parameters"] == {"layout_id": "ascii-hex", "offset": 0x30, "width": 10}
+    assert set_action["parameter_schema"]["required"] == []
+    assert represent_action["parameters"] == {"layout_id": "ascii-hex", "offset": 0x30}
+    assert represent_action["parameter_schema"]["required"] == ["representation"]
+    assert kind == "set_manual_data_block_element"
+    assert payload == {
+        "data_block_element": {
+            "data_block_element_id": "ascii-hex:30",
+            "layout_id": "ascii-hex",
+            "offset": 0x30,
+            "width": 10,
+            "kind": "array",
+            "name": "digits",
+            "array_count": 10,
+            "array_stride": 1,
+        }
+    }
+    assert represent_kind == "represent_manual_data_block_element"
+    assert represent_payload == {
+        "data_block_element": {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"}
     }
 
 
