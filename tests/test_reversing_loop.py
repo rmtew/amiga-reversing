@@ -893,6 +893,73 @@ def test_run_one_uses_listing_entrypoint_label_candidate_when_inspect_empty(
     assert report["selected_work_item"]["candidate_id"] == "entrypoint-label:entry-label:entrypoint"
 
 
+def test_run_one_entrypoint_label_rename_executes_with_label_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = {
+        "target_id": "demo",
+        "safe_to_mutate": True,
+        "candidate_work": [],
+        "verification_paths": [{"kind": "round_trip", "available": True}],
+    }
+    listing_calls = 0
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: _project_with_manual_labels([{"name": "entrypoint", "addr": 2}]),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        nonlocal listing_calls
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing") and not path.endswith("/listing/navigation"):
+            listing_calls += 1
+            label = "entrypoint" if listing_calls > 1 else "loc_0_00000002"
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            row_key="entry-label",
+                            kind="label",
+                            label=label,
+                            start_offset=2,
+                            end_offset=2,
+                        )
+                    ]
+                }
+            }
+        if path.endswith("/listing/navigation"):
+            return {"data": {}}
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "label.rename"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "label.rename"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_label_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "projection",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "label.rename"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -45,6 +45,9 @@ Current evidence:
 - Seeded data-symbol removal has rendered suppression plus exact direct-rebuild
   coverage in
   `test_real_dll_manual_data_symbol_remove_suppresses_rendered_seeded_entity`.
+- Generic `run-one` `label.rename` execution now uses the label-specific
+  verifier: Manual Action Log match, semantic label reload, projected label row,
+  and exact round-trip.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

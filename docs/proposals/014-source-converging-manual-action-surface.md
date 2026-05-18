@@ -198,6 +198,11 @@ can drive a structured label rename before falling back to an entrypoint
 comment, but only when the current listing label is still generated and matches
 the same hunk/offset identity.
 
+Implementation observation from `014-005`: once `label.rename` is reachable
+through generic `run-one`, verification must remain label-specific. Generic
+projection metadata is insufficient without checking the semantic label and the
+rendered label row at the selected source location.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

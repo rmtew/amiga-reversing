@@ -2610,6 +2610,28 @@ def _verify_manual_mutation(
     command_id = command.get("command_id")
     if isinstance(command_id, str) and command_id.startswith("representation."):
         return _verify_representation_mutation(target_id, command, durable_result, project_root=project_root)
+    if command_id == "label.rename":
+        location = _label_command_source_location(command)
+        if location is None:
+            return {
+                "status": "failed",
+                "layers": [
+                    {
+                        "layer": "projection",
+                        "status": "failed",
+                        "message": "label.rename verification requires a source locator",
+                    }
+                ],
+            }
+        section_index, source_offset = location
+        return _verify_listing_label_rename_mutation(
+            target_id,
+            command,
+            durable_result,
+            section_index=section_index,
+            source_offset=source_offset,
+            project_root=project_root,
+        )
     layers = [
         _verify_semantic_reload(target_id, durable_result, project_root=project_root),
         _verify_projection_metadata(command, durable_result),
@@ -2618,6 +2640,18 @@ def _verify_manual_mutation(
         layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _label_command_source_location(command: dict[str, object]) -> tuple[int, int] | None:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if not isinstance(locator, dict):
+        return None
+    section_index = locator.get("section_index")
+    source_offset = locator.get("start_offset")
+    if isinstance(section_index, int) and isinstance(source_offset, int):
+        return section_index, source_offset
+    return None
 
 
 def _verify_representation_mutation(
