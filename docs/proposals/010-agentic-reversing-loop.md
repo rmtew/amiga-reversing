@@ -1205,3 +1205,18 @@ report. Verification now checks Manual Action Log count and head hash, semantic
 project reload, projected `comment_text` at the affected locator, workflow
 profile capture, and the next recommendation. Listing readiness and command
 availability failures name their layer and stop.
+
+## Follow-Up Implementation 010-011
+
+Issue 010-011 hardened autonomous action selection. Production
+`run-one --listing-backed-comment` no longer mutates the first row that happens
+to expose `comment.edit`. It now builds evidence-backed candidates from
+same-process listing rows plus repo-visible project facts, initially the source
+descriptor entrypoint. A candidate report includes a stable locator or durable
+identity, evidence, current metadata, confidence, rationale, suggested action,
+and verifier.
+
+The loop mutates only high-confidence actionable candidates with a verifier. If
+no evidence-backed candidate exists, it writes the normal iteration report with
+a stop recommendation instead of creating a generic comment. Mechanical
+commentability remains valid only in tests or explicit fixtures.

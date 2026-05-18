@@ -86,6 +86,8 @@ def test_inspect_candidates_include_durable_identity_or_locator(
     assert candidate["durable_id"] == "orphan:h0:$00000010-$00000012"
     assert candidate["locator"] == {"section_index": 0, "start_offset": 0x10, "end_offset": 0x12}
     assert candidate["evidence"]["has_xrefs"] is True
+    assert candidate["confidence"] == "high"
+    assert candidate["default_verifier"] == "round_trip"
 
 
 def test_inspect_unsafe_hygiene_blocks_mutation_readiness(
@@ -313,6 +315,7 @@ def test_listing_backed_comment_acquires_locator_after_open(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _target(tmp_path)
+    _write_raw_source(tmp_path)
     calls: list[tuple[str, str]] = []
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -339,9 +342,93 @@ def test_listing_backed_comment_acquires_locator_after_open(
         ("GET", "/api/projects/demo/listing"),
         ("GET", "/api/projects/demo/commands"),
     ]
-    assert report["selected_work_item"]["kind"] == "listing_row"
+    assert report["selected_work_item"]["kind"] == "source_entrypoint_row"
     assert report["selected_work_item"]["locator"]["row_key"] == "row-1"
     assert report["action"]["command_id"] == "comment.edit"
+    assert report["selected_work_item"]["confidence"] == "high"
+    assert report["selected_work_item"]["default_verifier"] == "projected_comment_text"
+
+
+def test_listing_backed_comment_discovers_entrypoint_candidate(
+    tmp_path: Path,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+
+    candidates = reversing_loop._listing_comment_candidates(
+        "demo",
+        [_listing_row(row_key="row-0", start_offset=0, end_offset=2), _listing_row(row_key="row-2", start_offset=2, end_offset=4)],
+        project_root=tmp_path,
+    )
+
+    assert [candidate["candidate_id"] for candidate in candidates] == ["source-entrypoint:row-2"]
+    assert candidates[0]["rationale"] == "source descriptor entrypoint maps to this listing row"
+    assert candidates[0]["evidence"]["entrypoint"] == 2
+
+
+def test_listing_backed_comment_does_not_use_first_commentable_row_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+    queried_rows: list[str] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(row_key="row-0", start_offset=0, end_offset=2),
+                        _listing_row(row_key="row-2", start_offset=2, end_offset=4),
+                    ]
+                }
+            }
+        if path.endswith("/commands"):
+            locator = json.loads(query["locator"][0])
+            queried_rows.append(locator["row_key"])
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        dry_run=True,
+        project_root=tmp_path,
+    )
+
+    assert queried_rows == ["row-2"]
+    assert report["selected_work_item"]["locator"]["row_key"] == "row-2"
+
+
+def test_listing_backed_comment_stops_when_no_evidence_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=8)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(row_key="row-0", start_offset=0, end_offset=2)]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["layers"][0]["layer"] == "candidate_selection"
+    assert report["next"]["recommendation"] == "stop"
+    assert report["candidate_work"] == []
+    assert not any(path.endswith("/commands/execute") for _, path in calls)
 
 
 def test_listing_backed_comment_checks_availability_before_execution(
@@ -349,6 +436,7 @@ def test_listing_backed_comment_checks_availability_before_execution(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _target(tmp_path)
+    _write_raw_source(tmp_path)
     calls: list[tuple[str, str]] = []
     listing_calls = 0
 
@@ -359,14 +447,14 @@ def test_listing_backed_comment_checks_availability_before_execution(
             return {"data": {"job_id": "job-1", "status": "ready"}}
         if path.endswith("/listing"):
             listing_calls += 1
-            return {"data": {"rows": [_listing_row(comment_text="agent listing comment: row-1") if listing_calls > 1 else _listing_row()]}}
+            return {"data": {"rows": [_listing_row(comment_text="agent note: source-entrypoint:row-1") if listing_calls > 1 else _listing_row()]}}
         if path.endswith("/commands") and method == "GET":
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         if path.endswith("/commands/execute"):
             _write_manual_log(tmp_path)
             return {"data": _executed_listing_comment_payload(tmp_path)}
         if method == "GET" and path == "/api/projects/demo":
-            return {"data": {"project": {"manual_state": {"comments": [{"text": "agent listing comment: row-1"}]}}}}
+            return {"data": {"project": {"manual_state": {"comments": [{"text": "agent note: source-entrypoint:row-1"}]}}}}
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -387,6 +475,7 @@ def test_listing_backed_comment_verifies_projected_comment_text(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _target(tmp_path)
+    _write_raw_source(tmp_path)
     listing_calls = 0
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -425,6 +514,7 @@ def test_listing_backed_comment_stops_on_listing_readiness_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _target(tmp_path)
+    _write_raw_source(tmp_path)
     calls: list[tuple[str, str]] = []
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -455,6 +545,7 @@ def test_listing_backed_comment_blocks_when_comment_edit_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _target(tmp_path)
+    _write_raw_source(tmp_path)
     calls: list[tuple[str, str]] = []
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -545,6 +636,11 @@ def _inspect_with_locator() -> dict[str, object]:
                 "kind": "manual_review_item",
                 "locator": locator,
                 "evidence": {"has_xrefs": True},
+                "confidence": "high",
+                "actionable": True,
+                "default_verifier": "projection_metadata",
+                "verifier": {"kind": "projection_metadata", "requires_semantic_reload": True},
+                "rationale": "test xref-backed candidate",
                 "suggested_action_kinds": ["comment.edit"],
             }
         ],
@@ -574,27 +670,53 @@ def _executed_command_payload(workflow_profile: dict[str, object] | None = None)
     }
 
 
-def _listing_row(comment_text: str | None = None) -> dict[str, object]:
+def _listing_row(
+    comment_text: str | None = None,
+    *,
+    row_key: str = "row-1",
+    start_offset: int = 0,
+    end_offset: int = 2,
+) -> dict[str, object]:
     row = {
-        "row_key": "row-1",
+        "row_key": row_key,
         "kind": "instruction",
-        "locator": _listing_locator(),
+        "addr": start_offset,
+        "locator": _listing_locator(row_key=row_key, start_offset=start_offset, end_offset=end_offset),
     }
     if comment_text is not None:
         row["comment_text"] = comment_text
     return row
 
 
-def _listing_locator() -> dict[str, object]:
+def _listing_locator(*, row_key: str = "row-1", start_offset: int = 0, end_offset: int = 2) -> dict[str, object]:
     return {
         "target_id": "demo",
         "projection_hash": "projection-1",
-        "row_key": "row-1",
+        "row_key": row_key,
         "section_index": 0,
-        "start_offset": 0,
-        "end_offset": 2,
+        "start_offset": start_offset,
+        "end_offset": end_offset,
         "kind": "instruction",
     }
+
+
+def _write_raw_source(tmp_path: Path, *, entrypoint: int = 0) -> None:
+    binary_path = tmp_path / "bin" / "demo.bin"
+    binary_path.parent.mkdir(exist_ok=True)
+    binary_path.write_bytes(b"\x4e\x75\x4e\x75\x4e\x75\x4e\x75\x4e\x75")
+    (tmp_path / "targets" / "demo" / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "raw_binary",
+                "path": str(binary_path),
+                "address_model": "local_offset",
+                "load_address": 0,
+                "entrypoint": entrypoint,
+                "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:

@@ -28,7 +28,9 @@ private mutation path.
 2. Check xrefs before naming, seeding, or classification decisions.
 3. Prefer high-confidence candidates with a locator or durable domain id.
 4. Prefer durable command/manual-action paths over direct file edits.
-5. Reject row index, row text, DOM text, and screenshots as durable identity.
+5. Autonomous mutation requires repo-visible evidence, rationale, suggested
+   action, and verifier; command availability alone is not enough.
+6. Reject row index, row text, DOM text, and screenshots as durable identity.
 
 ## Allowed Mutations
 
@@ -57,8 +59,11 @@ the listing artifact is opened, and that artifact is process-local.
 8. Do not rely on `reversing_loop inspect` alone for arbitrary comment
    opportunities; current inspect candidates come from review items.
 9. Prefer `run-one --target <target> --listing-backed-comment --comment-text <text>`
-   for one real arbitrary comment. Stop if listing readiness, command
-   availability, or projected comment verification fails.
+   for one real evidence-backed comment. The harness must select a
+   high-confidence candidate from listing/project evidence, such as a source
+   entrypoint row, and must stop with a report when no such candidate exists.
+10. Stop if listing readiness, candidate evidence, command availability, or
+    projected comment verification fails.
 
 ## Verification
 

@@ -1,4 +1,4 @@
-Status: Open
+Status: Complete
 Source proposal: docs/proposals/010-agentic-reversing-loop.md
 
 ## Scope
@@ -57,30 +57,30 @@ creating a generic comment.
 
 ## Acceptance criteria
 
-- [ ] Listing-backed comment mode no longer uses "first row with
+- [x] Listing-backed comment mode no longer uses "first row with
       `comment.edit`" as production action selection.
-- [ ] Candidate discovery includes at least entrypoint/startup or another
+- [x] Candidate discovery includes at least entrypoint/startup or another
       repo-derived evidence source beyond Manual Review Items.
-- [ ] Candidate reports include locator/durable identity, evidence, confidence,
+- [x] Candidate reports include locator/durable identity, evidence, confidence,
       rationale, suggested action, and verifier.
-- [ ] `run-one` mutates only actionable candidates with high confidence and a
+- [x] `run-one` mutates only actionable candidates with high confidence and a
       verifier.
-- [ ] No-candidate state produces a stop recommendation and report.
-- [ ] Reports include the selected candidate rationale and checked evidence.
-- [ ] Arbitrary row selection remains only in tests or explicit test fixtures.
-- [ ] Agent playbook documents that autonomous changes require evidence-backed
+- [x] No-candidate state produces a stop recommendation and report.
+- [x] Reports include the selected candidate rationale and checked evidence.
+- [x] Arbitrary row selection remains only in tests or explicit test fixtures.
+- [x] Agent playbook documents that autonomous changes require evidence-backed
       candidates, not mechanical command availability.
 
 ## Required tests
 
-- [ ] Focused candidate discovery test for entrypoint/startup or equivalent
+- [x] Focused candidate discovery test for entrypoint/startup or equivalent
       evidence-backed source.
-- [ ] Focused test that first-commentable-row fallback is not used for
+- [x] Focused test that first-commentable-row fallback is not used for
       production mutation.
-- [ ] Focused high-confidence candidate mutation test.
-- [ ] Focused no-candidate stop/report test.
-- [ ] Focused report shape test for rationale/evidence/verifier.
-- [ ] Agent smoke uses evidence-backed candidate selection.
+- [x] Focused high-confidence candidate mutation test.
+- [x] Focused no-candidate stop/report test.
+- [x] Focused report shape test for rationale/evidence/verifier.
+- [x] Agent smoke uses evidence-backed candidate selection.
 
 ## Blocked by
 
@@ -100,3 +100,22 @@ domain knowledge channelled through repo-visible analysis facts, xrefs, listing
 locators, command metadata, and verification reports. Mechanical command
 availability is not enough evidence for a mutation. A generic comment on the
 first mutable row is useful for smoke tests only, not real reversing.
+
+## Completion
+
+Implemented source-entrypoint-backed autonomous comment selection. Verification
+passed:
+
+```text
+uv run python -m pytest tests\test_reversing_loop.py tests\test_agent_reversing_loop.py -q
+  28 passed
+
+uv run python -m pytest tests\test_api_workflow_harness.py tests\test_disasm_server.py -q
+  136 passed
+
+uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py tests\test_agent_reversing_loop.py
+  All checks passed
+
+cmd /c src\precommit.bat
+  passed
+```

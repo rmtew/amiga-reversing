@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm import projects, server
+from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.reversing_workspace import (
@@ -148,9 +149,11 @@ def run_listing_backed_comment_iteration(
             project_root=project_root,
         )
 
-    selection = _select_listing_comment_action(target_id, comment_text=comment_text)
+    selection = _select_listing_comment_action(target_id, comment_text=comment_text, project_root=project_root)
+    inspect_report = {**inspect_report, "candidate_work": selection.get("candidates", [])}
     if selection.get("status") != "selected":
-        verification = {"status": "failed", "layers": [{**selection, "layer": "command_availability"}]}
+        layer = "candidate_selection" if selection.get("status") == "no_candidate" else "command_availability"
+        verification = {"status": "failed", "layers": [{**selection, "layer": layer}]}
         return _write_listing_comment_report(
             target_id,
             run_state=run_result.run_state,
@@ -161,6 +164,7 @@ def run_listing_backed_comment_iteration(
             action_result={"status": "blocked", "listing_open": listing_ready},
             verification=verification,
             workflow_profile=None,
+            next_evidence={"kind": "missing_domain_judgment", "name": selection.get("message", "no evidence-backed candidate")},
             project_root=project_root,
         )
 
@@ -562,7 +566,12 @@ def _open_and_wait_listing(target_id: str, *, timeout_seconds: float) -> dict[st
         return {"status": "failed", "message": str(exc)}
 
 
-def _select_listing_comment_action(target_id: str, *, comment_text: str | None) -> dict[str, object]:
+def _select_listing_comment_action(
+    target_id: str,
+    *,
+    comment_text: str | None,
+    project_root: Path,
+) -> dict[str, object]:
     try:
         listing = server.route_request(
             "GET",
@@ -577,19 +586,35 @@ def _select_listing_comment_action(target_id: str, *, comment_text: str | None) 
     rows = data.get("rows")
     if not isinstance(rows, list) or not rows:
         return {"status": "failed", "message": "listing returned no rows"}
-    for row in rows:
-        if not isinstance(row, dict):
+    candidates = _listing_comment_candidates(target_id, rows, project_root=project_root)
+    if not candidates:
+        return {
+            "status": "no_candidate",
+            "message": "no evidence-backed listing comment candidate",
+            "candidates": [],
+        }
+    checked_candidates: list[dict[str, object]] = []
+    for candidate in candidates:
+        if not _candidate_is_actionable(candidate):
+            checked_candidates.append(candidate)
             continue
-        locator = row.get("locator")
-        if not _is_full_listing_locator(locator):
-            continue
+        locator = candidate.get("locator")
         availability = _command_availability(target_id, {"kind": "row", "locator": locator})
         commands = availability.get("commands")
         if not isinstance(commands, list) or not any(
             isinstance(entry, dict) and entry.get("command_id") == "comment.edit" for entry in commands
         ):
+            checked = dict(candidate)
+            checked["stop_reason"] = "comment.edit unavailable"
+            checked_candidates.append(checked)
             continue
-        text = comment_text or f"agent listing comment: {row.get('row_key') or 'row'}"
+        checked = dict(candidate)
+        checked["evidence"] = {
+            **cast(dict[str, object], checked.get("evidence", {})),
+            "command_availability_checked": True,
+        }
+        checked_candidates.append(checked)
+        text = comment_text or f"agent note: {candidate.get('candidate_id') or candidate.get('id')}"
         command = {
             "kind": "command",
             "command_id": "comment.edit",
@@ -599,23 +624,110 @@ def _select_listing_comment_action(target_id: str, *, comment_text: str | None) 
         }
         return {
             "status": "selected",
-            "work_item": {
-                "id": f"listing-row:{row.get('row_key')}",
-                "kind": "listing_row",
-                "locator": locator,
-                "evidence": {
-                    "source": "same_process_listing",
-                    "command_availability_checked": True,
-                    "row_kind": row.get("kind"),
-                },
-            },
+            "work_item": checked,
             "command": command,
             "availability": availability,
+            "candidates": checked_candidates,
         }
     return {
         "status": "failed",
-        "message": "comment.edit was unavailable for fetched listing rows",
+        "message": "comment.edit was unavailable for evidence-backed candidates",
+        "candidates": checked_candidates,
     }
+
+
+def _listing_comment_candidates(
+    target_id: str,
+    rows: list[object],
+    *,
+    project_root: Path,
+) -> list[dict[str, object]]:
+    entrypoint = _source_entrypoint_evidence(target_id, project_root=project_root)
+    if entrypoint is None:
+        return []
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        if not _row_covers_offset(row, cast(dict[str, object], locator), entrypoint):
+            continue
+        row_key = locator.get("row_key")
+        candidate_id = f"source-entrypoint:{row_key}"
+        candidates.append(
+            {
+                "id": candidate_id,
+                "candidate_id": candidate_id,
+                "kind": "source_entrypoint_row",
+                "durable_id": f"source_entrypoint:h{locator.get('section_index')}:${entrypoint:08x}",
+                "locator": dict(cast(dict[str, object], locator)),
+                "evidence": {
+                    "source": "source_binary.json",
+                    "entrypoint": entrypoint,
+                    "row_key": row_key,
+                    "row_kind": row.get("kind"),
+                    "row_range": {
+                        "section_index": locator.get("section_index"),
+                        "start_offset": locator.get("start_offset"),
+                        "end_offset": locator.get("end_offset"),
+                    },
+                    "command_availability_checked": False,
+                },
+                "xref_summary": [],
+                "current_metadata": {
+                    "comment_text": row.get("comment_text"),
+                    "row_kind": row.get("kind"),
+                    "text": row.get("text"),
+                },
+                "suggested_action_kind": "comment.edit",
+                "suggested_action_kinds": ["comment.edit"],
+                "default_verifier": "projected_comment_text",
+                "verifier": {"kind": "projected_comment_text", "requires_semantic_reload": True},
+                "confidence": "high",
+                "rationale": "source descriptor entrypoint maps to this listing row",
+                "actionable": True,
+                "stop_reason": None,
+            }
+        )
+    return candidates
+
+
+def _source_entrypoint_evidence(target_id: str, *, project_root: Path) -> int | None:
+    try:
+        target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+        source = resolve_target_binary_source(target_dir, project_root=project_root)
+    except (FileNotFoundError, ValueError, KeyError, AssertionError, json.JSONDecodeError):
+        return None
+    entrypoint = getattr(source, "analysis_entrypoint", None)
+    if isinstance(entrypoint, int) and not isinstance(entrypoint, bool):
+        return entrypoint
+    return None
+
+
+def _row_covers_offset(row: dict[str, object], locator: dict[str, object], offset: int) -> bool:
+    section = locator.get("section_index")
+    if section not in (0, None):
+        return False
+    start = locator.get("start_offset")
+    end = locator.get("end_offset")
+    if isinstance(start, int) and isinstance(end, int) and start <= offset < end:
+        return True
+    addr = row.get("addr")
+    return isinstance(addr, int) and addr == offset
+
+
+def _candidate_is_actionable(candidate: dict[str, object]) -> bool:
+    actions = candidate.get("suggested_action_kinds")
+    return (
+        candidate.get("confidence") == "high"
+        and candidate.get("actionable") is True
+        and candidate.get("default_verifier") is not None
+        and isinstance(actions, list)
+        and "comment.edit" in actions
+        and _is_full_listing_locator(candidate.get("locator"))
+    )
 
 
 def _verify_listing_comment_mutation(
@@ -712,6 +824,7 @@ def _write_listing_comment_report(
     verification: dict[str, object],
     workflow_profile: dict[str, object] | None,
     project_root: Path,
+    next_evidence: dict[str, object] | None = None,
 ) -> dict[str, object]:
     report = _iteration_report(
         run_state=run_state,
@@ -726,6 +839,7 @@ def _write_listing_comment_report(
             inspect_report=inspect_report,
             verification=verification,
             workflow_profile=workflow_profile,
+            evidence=next_evidence,
         ),
     )
     return write_iteration_report(target_id, report, project_root=project_root)
@@ -816,18 +930,35 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
         durable_identity = item_id if isinstance(item_id, str) and item_id else None
         if durable_identity is None and locator is None:
             continue
+        has_xrefs = _has_xref_evidence(item)
+        actions = _suggested_action_kinds(item)
+        verifier = _default_verifier_for_actions(actions)
+        confidence = "high" if locator is not None and has_xrefs and verifier is not None else "low"
         candidate: dict[str, object] = {
             "id": durable_identity or _locator_candidate_id(locator),
+            "candidate_id": durable_identity or _locator_candidate_id(locator),
             "kind": "manual_review_item",
             "review_item_kind": item.get("kind"),
             "durable_id": durable_identity,
             "locator": locator,
             "evidence": {
-                "has_xrefs": _has_xref_evidence(item),
+                "has_xrefs": has_xrefs,
                 "message": item.get("message"),
                 "confidence": item.get("review_confidence"),
             },
-            "suggested_action_kinds": _suggested_action_kinds(item),
+            "xref_summary": item.get("refs") if isinstance(item.get("refs"), list) else [],
+            "current_metadata": {
+                "message": item.get("message"),
+                "review_state": item.get("state"),
+            },
+            "suggested_action_kind": actions[0] if actions else None,
+            "suggested_action_kinds": actions,
+            "default_verifier": verifier,
+            "verifier": {"kind": verifier, "requires_semantic_reload": True} if verifier else None,
+            "confidence": confidence,
+            "rationale": "open manual review item with xref evidence and locator" if confidence == "high" else None,
+            "actionable": confidence == "high",
+            "stop_reason": None if confidence == "high" else "candidate lacks locator, xref evidence, or verifier",
         }
         candidates.append(candidate)
     return candidates
@@ -875,6 +1006,14 @@ def _suggested_action_kinds(item: dict[str, object]) -> list[str]:
         if isinstance(raw, str):
             actions.append(raw)
     return actions
+
+
+def _default_verifier_for_actions(actions: list[str]) -> str | None:
+    if "comment.edit" in actions:
+        return "projection_metadata"
+    if any(action in actions for action in ("create_manual_seed", "row.seed.code", "row.seed.data")):
+        return "round_trip"
+    return None
 
 
 def _manual_action_log_state(target_dir: Path) -> dict[str, object]:
@@ -980,6 +1119,8 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
     for candidate in candidates:
         if not isinstance(candidate, dict):
             continue
+        if not _candidate_is_actionable(candidate):
+            continue
         locator = candidate.get("locator")
         if not _is_full_listing_locator(locator):
             continue
@@ -987,7 +1128,7 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
             "kind": "command",
             "command_id": "comment.edit",
             "context": {"kind": "row", "locator": locator},
-            "parameters": {"text": f"agent note: {candidate.get('id') or 'candidate'}"},
+            "parameters": {"text": f"agent note: {candidate.get('candidate_id') or candidate.get('id') or 'candidate'}"},
             "output_affecting": False,
         }
         return {"work_item": dict(candidate), "command": command}
@@ -1049,6 +1190,7 @@ def _iteration_report(
             "dry_run": action_result.get("status") == "dry_run",
         },
         "target_state": inspect_report.get("target_state"),
+        "candidate_work": inspect_report.get("candidate_work"),
         "selected_work_item": selected_work_item,
         "evidence": None if selected_work_item is None else selected_work_item.get("evidence"),
         "action": command,

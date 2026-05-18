@@ -87,6 +87,8 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
     assert hygiene.safe_to_continue is True
     assert read_only["candidate_work"][0]["locator"]["row_key"] == "row-1"
+    assert read_only["candidate_work"][0]["confidence"] == "high"
+    assert read_only["candidate_work"][0]["default_verifier"] == "projection_metadata"
     assert dry_run["action_result"]["status"] == "dry_run"
     assert report["verification"]["status"] == "passed"
     assert report["workflow_profile"]["workflow_id"] == "manual_command_execution"
@@ -137,7 +139,10 @@ def test_agent_listing_backed_comment_smoke_uses_harness_path(
         project_root=tmp_path,
     )
 
+    assert report["selected_work_item"]["kind"] == "source_entrypoint_row"
     assert report["selected_work_item"]["locator"]["row_key"] == "row-0"
+    assert report["selected_work_item"]["confidence"] == "high"
+    assert report["selected_work_item"]["rationale"] == "source descriptor entrypoint maps to this listing row"
     assert report["action"]["command_id"] == "comment.edit"
     assert report["durable_result"]["mutation"]["manual_action_log_count"] == 1
     assert report["verification"]["status"] == "passed"
