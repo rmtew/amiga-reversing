@@ -39,12 +39,13 @@ Implemented tests:
   `row.data_block.element.clear_ref`.
 - Command execution appends interpreted-reference and corrective clear Manual
   Action Log entries and reports authoritative local effects.
+- Effective metadata projects active manual interpreted-reference facts onto the
+  owning `DataBlockElement.reference_interpretation`, and corrective removal
+  clears that projected element interpretation.
 - Loop execution still blocks interpreted-reference commands as missing an
   action-specific render/xref verifier.
 
 Remaining:
-- Effective metadata / analysis projection for manual interpreted-reference
-  facts.
 - Symbolic rendering for supported reference kinds.
 - Generated bidirectional xrefs with owner identity.
 - Verifiers for rendered text, generated xrefs, cleanup disappearance, and

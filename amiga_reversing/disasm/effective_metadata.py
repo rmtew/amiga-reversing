@@ -596,7 +596,10 @@ def _manual_rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str
     )
 
 
-def _manual_data_block_element_to_metadata(element: dict[str, object]) -> DataBlockElementMetadata | None:
+def _manual_data_block_element_to_metadata(
+    element: dict[str, object],
+    reference_interpretations: Mapping[tuple[str, int], dict[str, object]] | None = None,
+) -> DataBlockElementMetadata | None:
     layout_id = _manual_seed_text(element, "layout_id")
     offset = _manual_seed_int(element, "offset")
     width = _manual_seed_int(element, "width")
@@ -619,6 +622,8 @@ def _manual_data_block_element_to_metadata(element: dict[str, object]) -> DataBl
         return None
     type_binding = element.get("type_binding")
     reference_interpretation = element.get("reference_interpretation")
+    if reference_interpretations is not None:
+        reference_interpretation = reference_interpretations.get((layout_id, offset), reference_interpretation)
     provenance = element.get("provenance")
     if type_binding is not None and not isinstance(type_binding, dict):
         return None
@@ -647,6 +652,7 @@ def _manual_data_block_element_to_metadata(element: dict[str, object]) -> DataBl
 def _manual_data_block_layout_to_metadata(
     layout: dict[str, object],
     elements: tuple[dict[str, object], ...],
+    reference_interpretations: Mapping[tuple[str, int], dict[str, object]] | None = None,
 ) -> DataBlockLayoutMetadata | None:
     layout_id = _manual_seed_text(layout, "layout_id")
     hunk = _manual_seed_int(layout, "hunk")
@@ -674,7 +680,7 @@ def _manual_data_block_layout_to_metadata(
         element
         for raw_element in elements
         if raw_element.get("layout_id") == layout_id
-        if (element := _manual_data_block_element_to_metadata(raw_element)) is not None
+        if (element := _manual_data_block_element_to_metadata(raw_element, reference_interpretations)) is not None
     )
     try:
         return DataBlockLayoutMetadata(
@@ -709,6 +715,17 @@ def _manual_data_block_element_key(element: dict[str, object]) -> tuple[str, int
     if layout_id is None or offset is None or offset < 0:
         return None
     return layout_id, offset
+
+
+def _manual_data_block_reference_interpretations(
+    refs: tuple[dict[str, object], ...],
+) -> dict[tuple[str, int], dict[str, object]]:
+    interpretations: dict[tuple[str, int], dict[str, object]] = {}
+    for ref in refs:
+        key = _manual_data_block_element_key(ref)
+        if key is not None:
+            interpretations[key] = dict(ref)
+    return interpretations
 
 
 def _data_block_element_span(layout: DataBlockLayoutMetadata, element: DataBlockElementMetadata) -> tuple[int, int]:
@@ -872,6 +889,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_data_block_layout_projections = projection.removed_data_block_layouts
     data_block_element_projections = projection.data_block_elements
     removed_data_block_element_projections = projection.removed_data_block_elements
+    data_block_interpreted_ref_projections = projection.data_block_interpreted_refs
+    removed_data_block_interpreted_ref_projections = projection.removed_data_block_interpreted_refs
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -897,6 +916,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not removed_data_block_layout_projections
         and not data_block_element_projections
         and not removed_data_block_element_projections
+        and not data_block_interpreted_ref_projections
+        and not removed_data_block_interpreted_ref_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -1005,6 +1026,24 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             )
             for layout in data_block_layouts
         ]
+    removed_data_block_interpreted_ref_keys = {
+        key
+        for ref in removed_data_block_interpreted_ref_projections
+        if (key := _manual_data_block_element_key(ref)) is not None
+    }
+    if removed_data_block_interpreted_ref_keys:
+        data_block_layouts = [
+            replace(
+                layout,
+                elements=tuple(
+                    replace(element, reference_interpretation=None)
+                    if (element.layout_id, element.offset) in removed_data_block_interpreted_ref_keys
+                    else element
+                    for element in layout.elements
+                ),
+            )
+            for layout in data_block_layouts
+        ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
         if seed_kind is ManualSeedKind.CODE:
@@ -1094,8 +1133,15 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset): region
         for region in rsset_layout_regions
     }
+    data_block_reference_interpretations = _manual_data_block_reference_interpretations(
+        data_block_interpreted_ref_projections
+    )
     for layout in data_block_layout_projections:
-        data_block_layout = _manual_data_block_layout_to_metadata(layout, data_block_element_projections)
+        data_block_layout = _manual_data_block_layout_to_metadata(
+            layout,
+            data_block_element_projections,
+            data_block_reference_interpretations,
+        )
         if data_block_layout is not None:
             data_block_layouts.append(data_block_layout)
     merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
