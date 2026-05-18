@@ -25,8 +25,8 @@ Current evidence:
 - Manual Action Log `remove_manual_execution_view` now removes target runtime
   views by `(source_start, source_end, base_addr)`, and
   `target.execution_view.remove` appends it from target command context.
-- Label commands cover some absolute labels, but not execution view inline edit
-  or broader correction workflows.
+- Label commands cover some absolute labels, and execution-view add/edit/remove
+  are exposed; broader correction workflows remain open.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
