@@ -149,8 +149,10 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
     CREATE_MANUAL_CUSTOM_STRUCT = "create_manual_custom_struct"
+    RENAME_MANUAL_CUSTOM_STRUCT = "rename_manual_custom_struct"
     REMOVE_MANUAL_CUSTOM_STRUCT = "remove_manual_custom_struct"
     CREATE_MANUAL_CUSTOM_STRUCT_FIELD = "create_manual_custom_struct_field"
+    RENAME_MANUAL_CUSTOM_STRUCT_FIELD = "rename_manual_custom_struct_field"
     REMOVE_MANUAL_CUSTOM_STRUCT_FIELD = "remove_manual_custom_struct_field"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
@@ -185,8 +187,10 @@ class ManualActionLogProjection:
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
     custom_structs: tuple[dict[str, object], ...]
+    renamed_custom_structs: tuple[dict[str, object], ...]
     removed_custom_structs: tuple[dict[str, object], ...]
     custom_struct_fields: tuple[dict[str, object], ...]
+    renamed_custom_struct_fields: tuple[dict[str, object], ...]
     removed_custom_struct_fields: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
@@ -341,8 +345,10 @@ def _empty_projection(
         semantic_hints=(),
         suppressed_seeded_items=(),
         custom_structs=(),
+        renamed_custom_structs=(),
         removed_custom_structs=(),
         custom_struct_fields=(),
+        renamed_custom_struct_fields=(),
         removed_custom_struct_fields=(),
         rsset_layout_regions=(),
         removed_rsset_layout_regions=(),
@@ -981,6 +987,16 @@ def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
     return struct_name, offset
 
 
+def _custom_struct_rename_names(custom_struct: dict[str, object]) -> tuple[str, str]:
+    previous_name = custom_struct.get("previous_name")
+    name = custom_struct.get("name")
+    if not isinstance(previous_name, str) or not previous_name:
+        raise ValueError("custom_struct rename requires previous_name")
+    if not isinstance(name, str) or not name:
+        raise ValueError("custom_struct rename requires name")
+    return previous_name, name
+
+
 def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
     hunk = _manual_seed_int(symbol, "hunk")
     addr = _manual_seed_int(symbol, "addr")
@@ -1190,8 +1206,10 @@ def _project_actions(
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
     custom_structs: dict[str, dict[str, object]] = {}
+    renamed_custom_structs: dict[str, dict[str, object]] = {}
     removed_custom_structs: dict[str, dict[str, object]] = {}
     custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
+    renamed_custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
     removed_custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
@@ -1244,6 +1262,15 @@ def _project_actions(
             custom_struct = _action_object(action, "custom_struct")
             _put_by_id(custom_structs, custom_struct, "name")
             removed_custom_structs.pop(str(custom_struct["name"]), None)
+        elif action.kind is ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT:
+            custom_struct = _action_object(action, "custom_struct")
+            previous_name, name = _custom_struct_rename_names(custom_struct)
+            existing = custom_structs.pop(previous_name, None)
+            if existing is not None:
+                updated = dict(existing)
+                updated["name"] = name
+                custom_structs[name] = updated
+            renamed_custom_structs[previous_name] = custom_struct
         elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT:
             custom_struct = _action_object(action, "custom_struct")
             struct_name = custom_struct.get("name")
@@ -1256,6 +1283,18 @@ def _project_actions(
             key = _custom_struct_field_key(field)
             removed_custom_struct_fields.pop(key, None)
             custom_struct_fields[key] = field
+        elif action.kind is ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD:
+            field = _action_object(action, "custom_struct_field")
+            key = _custom_struct_field_key(field)
+            name = field.get("name")
+            if not isinstance(name, str) or not name:
+                raise ValueError("custom_struct_field rename requires name")
+            existing = custom_struct_fields.get(key)
+            if existing is not None:
+                updated = dict(existing)
+                updated["name"] = name
+                custom_struct_fields[key] = updated
+            renamed_custom_struct_fields[key] = field
         elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD:
             field = _action_object(action, "custom_struct_field")
             key = _custom_struct_field_key(field)
@@ -1322,8 +1361,10 @@ def _project_actions(
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
         custom_structs=tuple(custom_structs.values()),
+        renamed_custom_structs=tuple(renamed_custom_structs.values()),
         removed_custom_structs=tuple(removed_custom_structs.values()),
         custom_struct_fields=tuple(custom_struct_fields.values()),
+        renamed_custom_struct_fields=tuple(renamed_custom_struct_fields.values()),
         removed_custom_struct_fields=tuple(removed_custom_struct_fields.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),

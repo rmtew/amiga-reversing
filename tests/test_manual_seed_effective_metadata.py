@@ -939,6 +939,44 @@ def test_effective_metadata_removes_custom_struct_by_name(tmp_path: Path) -> Non
     assert payload["custom_structs"] == []
 
 
+def test_effective_metadata_renames_custom_struct_by_name(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            custom_structs=(
+                CustomStructMetadata(
+                    name="InputEvent",
+                    size=22,
+                    fields=(),
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "rename_manual_custom_struct",
+                custom_struct={"previous_name": "InputEvent", "name": "GameInput"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["custom_structs"][0]["name"] == "GameInput"
+
+
 def test_effective_metadata_applies_manual_custom_struct_field(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -1037,6 +1075,51 @@ def test_effective_metadata_removes_custom_struct_field_by_identity(tmp_path: Pa
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["custom_structs"][0]["fields"] == []
+
+
+def test_effective_metadata_renames_custom_struct_field_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            custom_structs=(
+                CustomStructMetadata(
+                    name="InputEvent",
+                    size=22,
+                    fields=(
+                        CustomStructFieldMetadata(
+                            name="ie_Class",
+                            type="UBYTE",
+                            offset=4,
+                            size=1,
+                        ),
+                    ),
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "rename_manual_custom_struct_field",
+                custom_struct_field={"struct_name": "InputEvent", "offset": 4, "name": "ie_Code"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["custom_structs"][0]["fields"][0]["name"] == "ie_Code"
 
 
 def test_effective_metadata_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:

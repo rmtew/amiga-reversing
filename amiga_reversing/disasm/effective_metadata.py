@@ -483,13 +483,22 @@ def _manual_custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]
     return struct_name, offset
 
 
+def _manual_custom_struct_rename(struct: dict[str, object]) -> tuple[str, str] | None:
+    previous_name = _manual_seed_text(struct, "previous_name")
+    name = _manual_seed_text(struct, "name")
+    if previous_name is None or name is None:
+        return None
+    return previous_name, name
+
+
 def _custom_struct_with_manual_field_projection(
     struct: CustomStructMetadata,
     field_projections: tuple[dict[str, object], ...],
     removed_field_keys: set[tuple[str, int]],
+    renamed_fields: dict[tuple[str, int], str],
 ) -> CustomStructMetadata:
     fields = [
-        field
+        replace(field, name=renamed_fields.get((struct.name, field.offset), field.name))
         for field in struct.fields
         if (struct.name, field.offset) not in removed_field_keys
     ]
@@ -595,8 +604,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     custom_struct_projections = projection.custom_structs
+    renamed_custom_struct_projections = projection.renamed_custom_structs
     removed_custom_struct_projections = projection.removed_custom_structs
     custom_struct_field_projections = projection.custom_struct_fields
+    renamed_custom_struct_field_projections = projection.renamed_custom_struct_fields
     removed_custom_struct_field_projections = projection.removed_custom_struct_fields
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
@@ -611,8 +622,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not register_seed_projections
         and not suppressed_seeded_item_projections
         and not custom_struct_projections
+        and not renamed_custom_struct_projections
         and not removed_custom_struct_projections
         and not custom_struct_field_projections
+        and not renamed_custom_struct_field_projections
         and not removed_custom_struct_field_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
@@ -649,6 +662,17 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         for struct in removed_custom_struct_projections
         if (name := _manual_seed_text(struct, "name")) is not None
     }
+    renamed_custom_structs = {
+        previous_name: name
+        for struct in renamed_custom_struct_projections
+        if (rename := _manual_custom_struct_rename(struct)) is not None
+        for previous_name, name in (rename,)
+    }
+    if renamed_custom_structs:
+        custom_structs = [
+            replace(struct, name=renamed_custom_structs.get(struct.name, struct.name))
+            for struct in custom_structs
+        ]
     if removed_custom_struct_names:
         custom_structs = [
             struct
@@ -713,12 +737,19 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         for field in removed_custom_struct_field_projections
         if (key := _manual_custom_struct_field_key(field)) is not None
     }
-    if custom_struct_field_projections or removed_custom_struct_field_keys:
+    renamed_custom_struct_fields = {
+        key: name
+        for field in renamed_custom_struct_field_projections
+        if (key := _manual_custom_struct_field_key(field)) is not None
+        if (name := _manual_seed_text(field, "name")) is not None
+    }
+    if custom_struct_field_projections or renamed_custom_struct_fields or removed_custom_struct_field_keys:
         custom_structs = [
             _custom_struct_with_manual_field_projection(
                 struct,
                 custom_struct_field_projections,
                 removed_custom_struct_field_keys,
+                renamed_custom_struct_fields,
             )
             for struct in custom_structs
         ]

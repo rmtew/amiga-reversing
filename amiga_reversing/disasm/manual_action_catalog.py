@@ -107,9 +107,11 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_remove_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
+        _target_custom_struct_rename_action(),
         _target_custom_struct_remove_action(),
         _target_custom_struct_field_action(),
         _target_custom_struct_field_edit_action(),
+        _target_custom_struct_field_rename_action(),
         _target_custom_struct_field_remove_action(),
         _target_rsset_layout_region_action(),
         _target_rsset_layout_region_edit_action(),
@@ -145,10 +147,16 @@ def target_catalog_manual_payload(
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
     if action.get("action") == "create_manual_custom_struct":
         return "create_manual_custom_struct", {"custom_struct": _custom_struct_payload(params)}
+    if action.get("action") == "rename_manual_custom_struct":
+        return "rename_manual_custom_struct", {"custom_struct": _custom_struct_rename_payload(params)}
     if action.get("action") == "remove_manual_custom_struct":
         return "remove_manual_custom_struct", {"custom_struct": _custom_struct_identity_payload(params)}
     if action.get("action") == "create_manual_custom_struct_field":
         return "create_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_target_payload(params)}
+    if action.get("action") == "rename_manual_custom_struct_field":
+        return "rename_manual_custom_struct_field", {
+            "custom_struct_field": _custom_struct_field_rename_payload(params)
+        }
     if action.get("action") == "remove_manual_custom_struct_field":
         return "remove_manual_custom_struct_field", {
             "custom_struct_field": _custom_struct_field_identity_payload(params)
@@ -1009,12 +1017,31 @@ def _custom_struct_identity_payload(params: Mapping[str, object]) -> dict[str, o
     return {"name": name.strip()}
 
 
+def _custom_struct_rename_payload(params: Mapping[str, object]) -> dict[str, object]:
+    previous_name = params.get("previous_name")
+    name = params.get("name")
+    if not isinstance(previous_name, str) or not previous_name.strip():
+        raise ValueError("rename_manual_custom_struct requires parameter previous_name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("rename_manual_custom_struct requires parameter name")
+    return {"previous_name": previous_name.strip(), "name": name.strip()}
+
+
 def _custom_struct_field_target_payload(params: Mapping[str, object]) -> dict[str, object]:
     struct_name = params.get("struct_name")
     if not isinstance(struct_name, str) or not struct_name.strip():
         raise ValueError("create_manual_custom_struct_field requires parameter struct_name")
     field = _custom_struct_field_payload(params)
     field["struct_name"] = struct_name.strip()
+    return field
+
+
+def _custom_struct_field_rename_payload(params: Mapping[str, object]) -> dict[str, object]:
+    field = _custom_struct_field_identity_payload(params)
+    name = params.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("rename_manual_custom_struct_field requires parameter name")
+    field["name"] = name.strip()
     return field
 
 
@@ -1280,6 +1307,17 @@ def _custom_struct_identity_parameter_schema() -> dict[str, object]:
     }
 
 
+def _custom_struct_rename_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "previous_name": {"type": "string"},
+            "name": {"type": "string"},
+        },
+        "required": ["previous_name", "name"],
+    }
+
+
 def _custom_struct_field_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -1307,6 +1345,18 @@ def _custom_struct_field_identity_parameter_schema() -> dict[str, object]:
             "name": {"type": "string"},
         },
         "required": ["struct_name", "offset"],
+    }
+
+
+def _custom_struct_field_rename_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "struct_name": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
+            "name": {"type": "string"},
+        },
+        "required": ["struct_name", "offset", "name"],
     }
 
 
@@ -2228,6 +2278,15 @@ def _target_custom_struct_edit_action() -> dict[str, object]:
     )
 
 
+def _target_custom_struct_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct.rename",
+        "Rename custom struct",
+        "rename_manual_custom_struct",
+        _custom_struct_rename_parameter_schema(),
+    )
+
+
 def _target_custom_struct_remove_action() -> dict[str, object]:
     return _target_log_action(
         "target.custom_struct.remove",
@@ -2252,6 +2311,15 @@ def _target_custom_struct_field_edit_action() -> dict[str, object]:
         "Edit custom struct field",
         "create_manual_custom_struct_field",
         _custom_struct_field_parameter_schema(),
+    )
+
+
+def _target_custom_struct_field_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct_field.rename",
+        "Rename custom struct field",
+        "rename_manual_custom_struct_field",
+        _custom_struct_field_rename_parameter_schema(),
     )
 
 
