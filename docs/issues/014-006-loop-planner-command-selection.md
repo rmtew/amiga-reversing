@@ -27,6 +27,9 @@ Progress:
 - Representation verification now refreshes listing projection after command
   cache invalidation before checking rendered text; this was required by the
   first GenAm smoke attempt.
+- Planner now recognizes explicit `data_symbol.rename` and `data_symbol.remove`
+  candidates, ranks them above fallback comments, and skips already-satisfied
+  data-symbol rename/remove candidates from projected metadata.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -54,7 +57,8 @@ failure, and GenAm-style non-comment smoke.
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
   representations.
-- Extend planner tests across listing row seed and label paths.
+- Extend planner tests across listing row seed, label, and autonomous
+  data/global symbol feeds.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

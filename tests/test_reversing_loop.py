@@ -358,6 +358,68 @@ def test_planner_skips_already_satisfied_projected_candidate(
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
 
+def test_planner_selects_data_symbol_rename_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _data_symbol_candidate(current_name="auto_data", new_name="player_table"),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "data_symbol.rename"
+    assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
+    assert report["action"]["parameters"] == {"name": "player_table"}
+    assert report["planner"]["selected_command_id"] == "data_symbol.rename"
+
+
+def test_planner_skips_already_satisfied_data_symbol_rename(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        _data_symbol_candidate(current_name="player_table", new_name="player_table"),
+        inspect_report["candidate_work"][0],
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "comment.edit"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "data-symbol-candidate"
+    assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
+def test_planner_selects_data_symbol_remove_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _data_symbol_remove_candidate(suppressed=False),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "data_symbol.remove"
+    assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
+    assert report["planner"]["selected_command_id"] == "data_symbol.remove"
+
+
 def test_planner_selects_review_seed_command_from_inspect_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1098,6 +1160,41 @@ def _representation_candidate(*, current_representation: str) -> dict[str, objec
         "suggested_action_kinds": ["representation.character"],
         "default_verifier": "projected_representation_text",
         "verifier": {"kind": "projected_representation_text", "requires_semantic_reload": True},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+
+def _data_symbol_candidate(*, current_name: str, new_name: str) -> dict[str, object]:
+    return {
+        "id": "data-symbol-candidate",
+        "candidate_id": "data-symbol-candidate",
+        "kind": "data_symbol_name",
+        "locator": _listing_locator(kind="data"),
+        "evidence": {"source": "listing", "previous_name": current_name},
+        "current_metadata": {"name": current_name},
+        "expected_rendered_source_improvement": f"rename data symbol {current_name} to {new_name}",
+        "suggested_action_kinds": ["data_symbol.rename"],
+        "new_name": new_name,
+        "default_verifier": "round_trip",
+        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+
+def _data_symbol_remove_candidate(*, suppressed: bool) -> dict[str, object]:
+    return {
+        "id": "data-symbol-remove-candidate",
+        "candidate_id": "data-symbol-remove-candidate",
+        "kind": "data_symbol_remove",
+        "locator": _listing_locator(kind="data"),
+        "evidence": {"source": "listing", "name": "wrong_data"},
+        "current_metadata": {"name": "wrong_data", "suppressed": suppressed},
+        "expected_rendered_source_improvement": "remove wrong seeded data symbol wrong_data",
+        "suggested_action_kinds": ["data_symbol.remove"],
+        "default_verifier": "round_trip",
+        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
         "confidence": "high",
         "actionable": True,
     }

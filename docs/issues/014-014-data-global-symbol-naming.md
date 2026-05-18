@@ -21,8 +21,11 @@ Current evidence:
 - Seeded-entity rows now expose `data_symbol.remove`, mapped to durable
   `suppress_seeded_item`, with command execution plus rendered-source/exact
   direct-rebuild coverage.
+- Loop planner recognizes explicit data-symbol rename/remove candidates and
+  skips already-satisfied projected names/removals; autonomous candidate
+  production is still absent.
 - Durable data/global symbol edit, rename-existing-symbol, referenced-use-site,
-  and loop-planner workflows remain open beyond seeded data-entity
+  and autonomous candidate workflows remain open beyond seeded data-entity
   rename/remove.
 - The proposal goal includes clearer global and data names.
 

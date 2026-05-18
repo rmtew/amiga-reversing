@@ -43,10 +43,12 @@ _COMMAND_RANK = {
     "row.seed.data.string": 85,
     "row.seed.data.scalar_table": 85,
     "row.seed.data.pointer_table": 85,
+    "data_symbol.rename": 82,
     "representation.choose": 75,
     "representation.hex": 75,
     "representation.binary": 75,
     "representation.character": 75,
+    "data_symbol.remove": 65,
     "comment.edit": 10,
 }
 
@@ -1811,6 +1813,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "projected_label_name"
     if "comment.edit" in actions:
         return "projection_metadata"
+    if any(action.startswith("data_symbol.") for action in actions):
+        return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
         return "round_trip"
     return None
@@ -2177,6 +2181,25 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": {"name": name} if isinstance(name, str) and name else parameter_payload,
             "output_affecting": True,
         }
+    if action == "data_symbol.rename":
+        name = parameter_payload.get("name") or candidate.get("new_name") or candidate.get("data_symbol_name")
+        if not isinstance(name, str) or not name:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {"name": name},
+            "output_affecting": True,
+        }
+    if action == "data_symbol.remove":
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action.startswith("representation."):
         context = _representation_context_from_candidate(candidate)
         representation = parameter_payload.get("representation") or action.removeprefix("representation.")
@@ -2268,6 +2291,11 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     if command_id == "label.rename":
         name = parameters.get("name")
         return isinstance(name, str) and current.get("label") == name
+    if command_id == "data_symbol.rename":
+        name = parameters.get("name")
+        return isinstance(name, str) and current.get("name") == name
+    if command_id == "data_symbol.remove":
+        return current.get("suppressed") is True
     if command_id.startswith("representation."):
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style
