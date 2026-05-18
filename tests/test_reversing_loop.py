@@ -810,6 +810,79 @@ def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> 
     )
 
 
+def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_verifier() -> None:
+    candidate = {
+        "id": "semantic-library-base",
+        "candidate_id": "semantic-library-base",
+        "kind": "api_register_semantic",
+        "locator": _listing_locator(),
+        "element_id": "row-1:symbol:0:_LVOSetPointer",
+        "element_kind": "symbol",
+        "operand_index": 0,
+        "symbol": "_LVOSetPointer",
+        "base_register": "A6",
+        "api_library": "intuition.library",
+        "api_function": "SetPointer",
+        "suggested_action_kinds": ["semantic.library_base.intuition.library"],
+        "default_verifier": "round_trip",
+        "confidence": "high",
+        "actionable": True,
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidate]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+    selected = reversing_loop._select_command_action(inspect_report)
+
+    assert command["command_id"] == "semantic.library_base.intuition.library"
+    assert command["context"] == {
+        "kind": "element",
+        "locator": _listing_locator(),
+        "element_id": "row-1:symbol:0:_LVOSetPointer",
+        "element_kind": "symbol",
+        "operand_index": 0,
+        "symbol": "_LVOSetPointer",
+        "base_register": "A6",
+        "api_library": "intuition.library",
+        "api_function": "SetPointer",
+    }
+    assert command["output_affecting"] is True
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert selected is not None
+    assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
+
+
+def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
+    candidate = {
+        "command": {
+            "command_id": "semantic.struct_offset.Node.ln_Succ",
+            "context": {
+                "kind": "element",
+                "locator": _listing_locator(),
+                "element_id": "row-1:immediate:0:0",
+            },
+            "parameters": {"domain": "struct_offset", "symbol": "Node.ln_Succ", "value": 0},
+        }
+    }
+
+    options = reversing_loop._candidate_command_options(candidate)
+
+    assert options == [
+        {
+            "kind": "command",
+            "command_id": "semantic.struct_offset.Node.ln_Succ",
+            "context": {
+                "kind": "element",
+                "locator": _listing_locator(),
+                "element_id": "row-1:immediate:0:0",
+            },
+            "parameters": {"domain": "struct_offset", "symbol": "Node.ln_Succ", "value": 0},
+            "output_affecting": True,
+        }
+    ]
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

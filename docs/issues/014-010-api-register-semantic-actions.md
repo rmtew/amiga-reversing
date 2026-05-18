@@ -30,6 +30,10 @@ Progress:
   the selected library and named base struct when the NDK payload provides it.
 - Register-selected struct-pointer seeds now use the existing Manual Action Log
   projection path and no longer default to `exec.library`.
+- The loop planner now accepts explicit dynamic semantic command candidates for
+  `semantic.library_base.*`, `semantic.lvo.*`, `semantic.struct_offset.*`,
+  `semantic.equate.*`, and `semantic.register.struct_ptr`, routes them through
+  selected listing element context, and requires round-trip verification.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and higher-confidence struct-pointer candidate generation remain
   open.
@@ -39,6 +43,8 @@ Acceptance criteria:
 - LVO/API/struct-offset semantic choices project into effective metadata.
 - Commands are available for supported libraries, registers, and struct pointer
   cases without hard-coded exec-only behavior.
+- Loop planner support covers explicit semantic command candidates with
+  source element context and round-trip verification.
 - Verifiers prove rendered-source propagation through calls, arguments, return
   values, or stored state as applicable.
 

@@ -51,9 +51,16 @@ _COMMAND_RANK = {
     "representation.hex": 75,
     "representation.binary": 75,
     "representation.character": 75,
+    "semantic.register.struct_ptr": 73,
     "target.rsset_region.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
+}
+_COMMAND_PREFIX_RANK = {
+    "semantic.library_base.": 74,
+    "semantic.lvo.": 73,
+    "semantic.struct_offset.": 73,
+    "semantic.equate.": 73,
 }
 
 
@@ -2163,6 +2170,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
         return "round_trip"
+    if any(action == "semantic.register.struct_ptr" or action.startswith(tuple(_COMMAND_PREFIX_RANK)) for action in actions):
+        return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
         return "round_trip"
     return None
@@ -2474,7 +2483,7 @@ def _planner_command_ids_for_action(candidate: dict[str, object], action: str) -
 def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object] | None:
     command_id = command.get("command_id")
     context = command.get("context")
-    if not isinstance(command_id, str) or command_id not in _COMMAND_RANK or not isinstance(context, dict):
+    if not isinstance(command_id, str) or _command_rank(command_id) <= 0 or not isinstance(context, dict):
         return None
     parameters = command.get("parameters")
     normalized = dict(command)
@@ -2485,7 +2494,7 @@ def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object
 
 
 def _command_from_candidate_action(candidate: dict[str, object], action: str) -> dict[str, object] | None:
-    if action not in _COMMAND_RANK:
+    if _command_rank(action) <= 0:
         return None
     locator = candidate.get("locator")
     parameters = candidate.get("parameters")
@@ -2567,6 +2576,17 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
+    if action == "semantic.register.struct_ptr" or action.startswith(tuple(_COMMAND_PREFIX_RANK)):
+        context = _semantic_context_from_candidate(candidate)
+        if context is None:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action.startswith("representation."):
         context = _representation_context_from_candidate(candidate)
         representation = parameter_payload.get("representation") or action.removeprefix("representation.")
@@ -2580,6 +2600,33 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "output_affecting": True,
         }
     return None
+
+
+def _semantic_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
+    locator = candidate.get("locator")
+    element_id = candidate.get("element_id")
+    if not isinstance(element_id, str) or not element_id:
+        return None
+    context: dict[str, object] = {"kind": "element", "locator": locator, "element_id": element_id}
+    for key in (
+        "element_kind",
+        "operand_index",
+        "register",
+        "base_register",
+        "symbol",
+        "value",
+        "signed_value",
+        "width_bits",
+        "width_bytes",
+        "api_library",
+        "api_function",
+        "library_name",
+        "function",
+        "domain",
+    ):
+        if key in candidate:
+            context[key] = candidate[key]
+    return context
 
 
 def _representation_context_from_candidate(candidate: dict[str, object]) -> dict[str, object]:
@@ -2685,7 +2732,13 @@ def _candidate_score(candidate: dict[str, object], command: dict[str, object] | 
 
 
 def _command_rank(command_id: str) -> int:
-    return _COMMAND_RANK.get(command_id, 0)
+    rank = _COMMAND_RANK.get(command_id)
+    if rank is not None:
+        return rank
+    for prefix, prefix_rank in _COMMAND_PREFIX_RANK.items():
+        if command_id.startswith(prefix):
+            return prefix_rank
+    return 0
 
 
 def _command_summary(command: dict[str, object]) -> dict[str, object]:
