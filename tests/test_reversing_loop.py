@@ -571,6 +571,41 @@ def test_target_equate_rename_verifier_checks_renamed_equate_state(
     assert verification["layers"][1]["state_key"] == "renamed_target_equates"
 
 
+def test_target_equate_verifier_requires_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [{"name": "PLAYER_START_LIVES", "value": 3}]},
+        ),
+    )
+    durable_result = _executed_command_payload()
+    durable_result["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    durable_result["application"] = {
+        "status": "applied",
+        "local_effects": [{"kind": "target_equate", "target_equate": {"name": "PLAYER_START_LIVES", "value": 3}}],
+    }
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.add",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "missing target equate payload"
+
+
 def test_target_command_verification_rejects_wrong_local_effect() -> None:
     command = {
         "kind": "command",

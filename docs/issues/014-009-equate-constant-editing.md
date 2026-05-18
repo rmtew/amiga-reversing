@@ -19,7 +19,8 @@ Progress:
   `remove_manual_target_equate` replay into effective metadata.
 - Target catalog exposes `target.equate.add/edit/rename/remove`; the loop
   accepts explicit target-equate candidates with target context, verifies
-  reloaded target-equate/rename/removal state, and requires exact round-trip.
+  the durable action payload against reloaded target-equate/rename/removal
+  state, and requires exact round-trip.
 - C policy parsing now loads target-local equates before manual symbolic
   representations, emits rendered `EQU` definitions, and can render immediate
   use sites with those symbols. Focused C-backend coverage proves exact direct

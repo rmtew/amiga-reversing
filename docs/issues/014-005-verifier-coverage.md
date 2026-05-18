@@ -72,6 +72,9 @@ Current evidence:
 - Generic `run-one` `target.equate.*` execution now verifies Manual Action Log
   replay, reloaded target-equate/rename/removal state, and exact round-trip
   instead of accepting target local-effect metadata alone.
+- Target-equate verifiers derive the expected equate from the executed durable
+  action payload, so matching project state plus a local-effect echo cannot hide
+  a missing or mismatched action result.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.

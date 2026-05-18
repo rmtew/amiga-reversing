@@ -242,7 +242,8 @@ locators. Planner summaries should report the semantic state verifier names, not
 generic `round_trip`, so operators can see which state is being checked.
 
 Implementation observation from `014-005`/`014-009`: target-equate commands
-produce target metadata state. Their loop verifier should check the reloaded
+produce target metadata state. Their loop verifier should derive the expected
+equate from the executed durable action payload, then check the reloaded
 target-equate, rename, or removal projection and round-trip, not only the
 command's local-effect echo.
 

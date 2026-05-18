@@ -2902,15 +2902,6 @@ def _verify_target_equate_mutation(
 
 
 def _target_equate_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") not in {"target_equate", "target_equate_remove"}:
-                continue
-            equate = effect.get("target_equate")
-            if isinstance(equate, dict):
-                return cast(dict[str, object], equate)
     action = durable_result.get("action")
     equate = _target_equate_from_action(action)
     if equate is not None:
