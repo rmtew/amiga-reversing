@@ -1666,6 +1666,10 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert any(action["action_id"] == "row.seed.data.named" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.layout.create" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.element.set" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.element.remove" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.element.represent" for action in row_actions)
     assert {
         str(action["action_id"]).removeprefix("row.seed.data.")
         for action in row_actions
@@ -3037,7 +3041,82 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     assert layout["default_unit"] == "byte"
     assert layout_application["status"] == "applied"
     assert cast(dict[str, object], layout_application["refresh"])["mode"] == "project"
-    assert appended_actions == [action, named_action, layout_action]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    element_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "range.data_block.element.set",
+            "context": _range_command_context(rows),
+            "parameters": {
+                "layout_id": "ascii-hex",
+                "offset": 0x30,
+                "kind": "array",
+                "name": "digits",
+                "representation": "character",
+                "array_count": 2,
+                "array_stride": 1,
+            },
+        },
+    )
+    element_action = cast(dict[str, object], cast(dict[str, object], element_payload["data"])["action"])
+    element = cast(dict[str, object], cast(dict[str, object], element_action["payload"])["data_block_element"])
+    element_application = cast(dict[str, object], cast(dict[str, object], element_payload["data"])["application"])
+
+    assert element_action["kind"] == "set_manual_data_block_element"
+    assert element == {
+        "data_block_element_id": "ascii-hex:30",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "kind": "array",
+        "name": "digits",
+        "representation": "character",
+        "array_count": 2,
+        "array_stride": 1,
+    }
+    assert element_application["status"] == "applied"
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    represent_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "range.data_block.element.represent",
+            "context": _range_command_context(rows),
+            "parameters": {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"},
+        },
+    )
+    represent_action = cast(dict[str, object], cast(dict[str, object], represent_payload["data"])["action"])
+
+    assert represent_action["kind"] == "represent_manual_data_block_element"
+    assert cast(dict[str, object], represent_action["payload"])["data_block_element"] == {
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "representation": "hex",
+    }
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    remove_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "range.data_block.element.remove",
+            "context": _range_command_context(rows),
+            "parameters": {"layout_id": "ascii-hex", "offset": 0x30, "removal_state": "raw"},
+        },
+    )
+    remove_action = cast(dict[str, object], cast(dict[str, object], remove_payload["data"])["action"])
+
+    assert remove_action["kind"] == "remove_manual_data_block_element"
+    assert cast(dict[str, object], remove_action["payload"])["data_block_element"] == {
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "removal_state": "raw",
+    }
+    assert appended_actions == [action, named_action, layout_action, element_action, represent_action, remove_action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 

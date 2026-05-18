@@ -11,7 +11,10 @@ Requirements:
   `row.data_block.layout.create` and `range.data_block.layout.create` append
   `create_manual_data_block_layout` through the public command catalog.
 - Expose element commands to set/remove/represent scalar byte/word/long
-  elements, arrays/runs, padding, and gaps. Still open.
+  elements, arrays/runs, padding, and gaps. First slice implemented:
+  `row/range.data_block.element.set`, `.remove`, and `.represent` append
+  element actions through the public command catalog with explicit `layout_id`
+  and layout-relative `offset`; selected rows/ranges infer width where needed.
 - Render element-sized `dc.b`, `dc.w`, `dc.l`, `dcb.*`, numeric values, and
   character values while preserving exact rebuild. First slice implemented for
   scalar element projection via effective metadata: data-block elements emit
@@ -35,11 +38,14 @@ Implemented tests:
   standalone manual representations.
 - Command catalog availability and `/commands/execute` cover range layout
   creation.
+- Command catalog availability and `/commands/execute` cover row/range
+  element set/remove/represent commands.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 
 Remaining:
-- Element set/remove/represent command catalog actions.
+- Active-layout-aware element selection context, so element commands no longer
+  need explicit layout id/offset parameters.
 - Removal-to-raw/gap rendered-source verifier.
 - Loop verifier coverage for replay, rendered source, exact round-trip, and
   unsupported type/reference blockers.
