@@ -1059,6 +1059,34 @@ def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> 
     )
 
 
+def test_listing_rsset_region_candidates_use_platform_api_regions_without_suggestions() -> None:
+    candidates = reversing_loop._listing_rsset_region_candidates(_rsset_region_navigation_payload())
+
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_id"] == "rsset-suggestion:app:__amiga_app_base__:0100:app_input_event"
+    assert candidates[0]["suggested_action_kinds"] == ["target.rsset_region.add"]
+    assert candidates[0]["evidence"]["navigation_group"] == "app-slot-regions"
+    assert candidates[0]["parameters"] == {
+        "offset": 0x100,
+        "size": 22,
+        "symbol": "app_input_event",
+        "struct_name": "InputEvent",
+    }
+
+
+def test_listing_rsset_region_candidates_dedupe_region_when_suggestion_exists() -> None:
+    payload = _rsset_suggestion_navigation_payload()
+    groups = cast(dict[str, object], payload["groups"])
+    groups["app-slot-regions"] = cast(dict[str, object], _rsset_region_navigation_payload()["groups"])[
+        "app-slot-regions"
+    ]
+
+    candidates = reversing_loop._listing_rsset_region_candidates(payload)
+
+    assert len(candidates) == 1
+    assert candidates[0]["evidence"]["navigation_group"] == "app-slot-suggestions"
+
+
 def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_verifier() -> None:
     candidate = {
         "id": "semantic-library-base",
@@ -2577,6 +2605,28 @@ def _rsset_suggestion_navigation_payload() -> dict[str, object]:
                         "parser_routine": "parse_input_event",
                         "parse_order": 1,
                     },
+                }
+            ]
+        }
+    }
+
+
+def _rsset_region_navigation_payload() -> dict[str, object]:
+    return {
+        "groups": {
+            "app-slot-regions": [
+                {
+                    "summary": "app_input_event: InputEvent $0100-$0116",
+                    "match_text": "app_input_event",
+                    "symbol": "app_input_event",
+                    "offset": 0x100,
+                    "size": 22,
+                    "source": "platform_api_arg",
+                    "confidence": "tool-inferred",
+                    "struct_name": "InputEvent",
+                    "row_index": 1,
+                    "addr": 0x14,
+                    "hunk_index": 0,
                 }
             ]
         }

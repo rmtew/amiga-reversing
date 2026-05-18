@@ -173,6 +173,11 @@ Implementation observation from `014-006`: `comment.edit` is still valid as a
 last resort, but it must not be the first accepted generic `run-one` action when
 the listing has not been mined for source-converging candidates.
 
+Implementation observation from `014-011`: app-slot suggestions and platform
+API-derived app-slot regions can describe the same durable RSSET identity.
+Autonomous candidates must de-dupe by `(layout_name, base_symbol, offset,
+symbol)` so the planner does not repeat equivalent edits.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

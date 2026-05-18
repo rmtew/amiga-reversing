@@ -1346,40 +1346,32 @@ def _listing_rsset_region_candidates(
 ) -> list[dict[str, object]]:
     groups = navigation_payload.get("groups")
     suggestions = groups.get("app-slot-suggestions") if isinstance(groups, dict) else None
-    if not isinstance(suggestions, list):
-        return []
+    regions = groups.get("app-slot-regions") if isinstance(groups, dict) else None
     existing = existing_regions or {}
     candidates: list[dict[str, object]] = []
-    for suggestion in suggestions:
-        if not isinstance(suggestion, dict) or suggestion.get("action") != "add_target_metadata":
-            continue
-        metadata = suggestion.get("metadata")
-        if not isinstance(metadata, dict):
-            continue
+    seen_candidate_ids: set[str] = set()
+
+    def append_candidate(metadata: dict[str, object], evidence: dict[str, object]) -> None:
         parameters = _rsset_region_parameters_from_metadata(metadata)
         offset = parameters.get("offset")
         symbol = parameters.get("symbol")
         if not isinstance(offset, int) or not isinstance(symbol, str):
-            continue
+            return
         key = _rsset_region_key(parameters)
         current = existing.get(key, {})
         action_kind = "target.rsset_region.edit" if current else "target.rsset_region.add"
         layout_name, base_symbol, _ = key
         candidate_id = f"rsset-suggestion:{layout_name}:{base_symbol}:{offset:04X}:{symbol}"
+        if candidate_id in seen_candidate_ids:
+            return
+        seen_candidate_ids.add(candidate_id)
         candidates.append(
             {
                 "id": candidate_id,
                 "candidate_id": candidate_id,
                 "kind": "rsset_layout_region",
                 "durable_id": f"rsset_region:{layout_name}:{base_symbol}:{offset:04X}",
-                "evidence": {
-                    "source": "app_slot_analysis",
-                    "navigation_group": "app-slot-suggestions",
-                    "summary": suggestion.get("summary"),
-                    "confidence": suggestion.get("confidence"),
-                    "stable_key": suggestion.get("stable_key"),
-                    "row_index": suggestion.get("row_index"),
-                },
+                "evidence": evidence,
                 "current_metadata": dict(current),
                 "expected_rendered_source_improvement": f"add RSSET region field {symbol} at app+0x{offset:04X}",
                 "suggested_action_kind": action_kind,
@@ -1387,12 +1379,46 @@ def _listing_rsset_region_candidates(
                 "parameters": parameters,
                 "default_verifier": "round_trip",
                 "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
-                "confidence": "high" if suggestion.get("confidence") in {"high", "tool-inferred"} else "medium",
+                "confidence": "high" if evidence.get("confidence") in {"high", "tool-inferred"} else "medium",
                 "rationale": "app-slot analysis suggested durable RSSET layout metadata",
                 "actionable": True,
                 "stop_reason": None,
             }
         )
+    if isinstance(suggestions, list):
+        for suggestion in suggestions:
+            if not isinstance(suggestion, dict) or suggestion.get("action") != "add_target_metadata":
+                continue
+            metadata = suggestion.get("metadata")
+            if not isinstance(metadata, dict):
+                continue
+            append_candidate(
+                metadata,
+                {
+                    "source": "app_slot_analysis",
+                    "navigation_group": "app-slot-suggestions",
+                    "summary": suggestion.get("summary"),
+                    "confidence": suggestion.get("confidence"),
+                    "stable_key": suggestion.get("stable_key"),
+                    "row_index": suggestion.get("row_index"),
+                },
+            )
+    if isinstance(regions, list):
+        for region in regions:
+            if not isinstance(region, dict) or region.get("source") != "platform_api_arg":
+                continue
+            append_candidate(
+                region,
+                {
+                    "source": "app_slot_analysis",
+                    "navigation_group": "app-slot-regions",
+                    "summary": region.get("summary"),
+                    "confidence": region.get("confidence"),
+                    "row_index": region.get("row_index"),
+                    "addr": region.get("addr"),
+                    "hunk_index": region.get("hunk_index"),
+                },
+            )
     return candidates
 
 

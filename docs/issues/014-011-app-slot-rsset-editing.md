@@ -36,6 +36,9 @@ Current evidence:
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.
+- The autonomous RSSET feed also uses high-confidence `app-slot-regions` from
+  platform API argument analysis when no separate suggestion exists, de-duping
+  identical suggestion/region candidates.
 - Broader autonomous candidate production remains open.
 
 Acceptance criteria:
