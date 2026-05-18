@@ -29,6 +29,9 @@ Current progress:
 - A6 LVO element contexts expose `semantic.library_base.<library>` commands
   from row API metadata or NDK lookup, and register elements expose
   `semantic.register.struct_ptr` with required `struct_name`.
+- Rows backed by suppressible `target_seeded_metadata.json` items expose
+  `correction.suppress_seeded_item.<kind>` commands that append
+  `suppress_seeded_item` using durable `(kind, hunk, addr)` identity.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

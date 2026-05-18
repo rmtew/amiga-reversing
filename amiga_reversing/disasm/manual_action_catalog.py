@@ -199,6 +199,7 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
             {"seed_kind": "data", "unit": "long"},
         ),
     ]
+    actions.extend(_suppress_seeded_item_actions(context, row))
     actions.extend(_row_data_role_actions(context))
     return actions
 
@@ -467,6 +468,27 @@ def _range_data_role_actions(context: Mapping[str, object], rows: list[Mapping[s
     ]
 
 
+def _suppress_seeded_item_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
+    actions: list[dict[str, object]] = []
+    for item in _row_suppressible_seeded_items(row):
+        kind = item["kind"]
+        label = {
+            "seeded_entity": "Suppress seeded data",
+            "seeded_code_label": "Suppress seeded label",
+            "seeded_code_entrypoint": "Suppress seeded entrypoint",
+        }.get(kind, "Suppress seeded item")
+        actions.append(
+            _context_log_action(
+                f"correction.suppress_seeded_item.{kind}",
+                label,
+                "suppress_seeded_item",
+                context,
+                {"kind": kind, "hunk": item["hunk"], "addr": item["addr"]},
+            )
+        )
+    return actions
+
+
 def catalog_entry_by_id(item: Mapping[str, object], action_id: str) -> dict[str, object]:
     for action in review_item_action_catalog(item):
         if action.get("action_id") == action_id:
@@ -572,6 +594,8 @@ def listing_catalog_manual_payload(
         return "edit_review_note", _review_note_edit_payload(note_id, params)
     if ui_action == "clear_review_note":
         return "clear_review_note", {"note_id": _review_note_id(row, params)}
+    if ui_action == "suppress_seeded_item":
+        return "suppress_seeded_item", {"suppressed_seeded_item": _suppressed_seeded_item_payload(row, params)}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -640,6 +664,35 @@ def _row_seed_payload(row: Mapping[str, object], params: Mapping[str, object]) -
         if isinstance(encoding, str) and encoding:
             seed["encoding"] = encoding
     return seed
+
+
+def _row_suppressible_seeded_items(row: Mapping[str, object]) -> list[dict[str, object]]:
+    raw_items = row.get("suppressible_seeded_items")
+    if not isinstance(raw_items, list | tuple):
+        return []
+    items: list[dict[str, object]] = []
+    for raw_item in raw_items:
+        if not isinstance(raw_item, Mapping):
+            continue
+        kind = raw_item.get("kind")
+        hunk = _optional_int(raw_item.get("hunk"))
+        addr = _optional_int(raw_item.get("addr"))
+        if kind not in {"seeded_entity", "seeded_code_label", "seeded_code_entrypoint"}:
+            continue
+        if hunk is None or addr is None:
+            continue
+        items.append({"kind": kind, "hunk": hunk, "addr": addr})
+    return items
+
+
+def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    kind = params.get("kind")
+    hunk = _optional_int(params.get("hunk"))
+    addr = _optional_int(params.get("addr"))
+    for item in _row_suppressible_seeded_items(row):
+        if item["kind"] == kind and item["hunk"] == hunk and item["addr"] == addr:
+            return dict(item)
+    raise ValueError("suppress_seeded_item requires a suppressible seeded item on the selected row")
 
 
 def _review_note_parameter_schema() -> dict[str, object]:

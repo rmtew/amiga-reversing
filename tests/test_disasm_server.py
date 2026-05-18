@@ -4754,6 +4754,100 @@ def test_route_listing_returns_cached_window(monkeypatch: pytest.MonkeyPatch) ->
     }
 
 
+def test_route_listing_marks_target_seeded_rows_suppressible(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="data",
+            text="dc.b $00\n",
+            section_index=0,
+            start_offset=0x100,
+            end_offset=0x101,
+            addr=0x100,
+        )
+    ]
+    target_dir = tmp_path / "bloodwych"
+    target_dir.mkdir()
+    (target_dir / "target_seeded_metadata.json").write_text(
+        json.dumps(
+            {
+                "target_type": "program",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "rsset_layout_regions": [],
+                "seeded_entities": [
+                    {
+                        "addr": 0x100,
+                        "end": 0x104,
+                        "hunk": 0,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "generated",
+                        "source_id": "generated:entity",
+                        "source_path": "targets/bloodwych/source.json",
+                        "source_locator": "$.seeded_entities[0]",
+                        "name": "seeded_data",
+                    }
+                ],
+                "seeded_code_labels": [],
+                "seeded_code_entrypoints": [],
+                "absolute_code_labels": [],
+                "entry_comments": [],
+                "manual_representations": [],
+                "execution_views": [],
+                "suppressed_seeded_items": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/listing",
+        {"start": ["0"], "count": ["1"]},
+    )
+    data = cast(dict[str, object], payload["data"])
+    rows_data = cast(list[dict[str, object]], data["rows"])
+
+    assert rows_data[0]["suppressible_seeded_items"] == [
+        {
+            "kind": "seeded_entity",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x104,
+            "name": "seeded_data",
+            "source_id": "generated:entity",
+            "source_path": "targets/bloodwych/source.json",
+            "source_locator": "$.seeded_entities[0]",
+        }
+    ]
+    disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
+    command_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _row_command_query(rows[0]),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], command_payload["data"])["commands"])
+    suppress_action = next(
+        action for action in actions if action["action_id"] == "correction.suppress_seeded_item.seeded_entity"
+    )
+    assert suppress_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+
+
 def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)

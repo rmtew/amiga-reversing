@@ -93,6 +93,11 @@ from amiga_reversing.disasm.reproduction import (
     write_target_reproduction_options,
 )
 from amiga_reversing.disasm.source_export import source_export_payload
+from amiga_reversing.disasm.target_metadata import (
+    SuppressedSeededItemKind,
+    TargetMetadata,
+    load_target_seeded_metadata,
+)
 from amiga_reversing.disasm.tool_graph import (
     capability_availability_for_modes,
     capability_ids_for_oracle_modes,
@@ -386,6 +391,7 @@ def _annotate_listing_payload(
     labels = _project_manual_labels(manual_state)
     comments = _project_manual_comments(manual_state)
     review_notes = _project_review_notes_from_state(manual_state)
+    suppressible_seeded_items = _target_suppressible_seeded_items(project_name)
     window_start = int(payload.get("start") or 0)
     for relative_index, row in enumerate(payload["rows"]):
         annotations: list[str] = []
@@ -397,6 +403,7 @@ def _annotate_listing_payload(
             prefix = "REVIEW" if note.get("tracking") == "needs_review" else "NOTE"
             annotations.append(f"{prefix}: {_review_note_summary(note)}")
         annotated_row = _apply_manual_listing_projection(row, labels, comments, window_start + relative_index)
+        _annotate_suppressible_seeded_items(annotated_row, suppressible_seeded_items)
         if annotations:
             annotated_row["view_annotations"] = annotations
         if row_issues:
@@ -412,6 +419,115 @@ def _annotate_listing_payload(
     if review_warnings:
         result["review_warnings"] = review_warnings
     return result
+
+
+def _target_suppressible_seeded_items(project_name: str) -> list[dict[str, object]]:
+    try:
+        paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
+    except FileNotFoundError:
+        return []
+    metadata = load_target_seeded_metadata(paths.target_dir)
+    if metadata is None:
+        return []
+    return _suppressible_seeded_items_from_metadata(metadata)
+
+
+def _suppressible_seeded_items_from_metadata(metadata: TargetMetadata) -> list[dict[str, object]]:
+    items: list[dict[str, object]] = []
+    for entity in metadata.seeded_entities:
+        item = _suppressible_seeded_item_payload(
+            SuppressedSeededItemKind.SEEDED_ENTITY.value,
+            hunk=entity.hunk,
+            addr=entity.addr,
+            end=entity.end,
+            name=entity.name,
+            source_id=entity.source_id,
+            source_path=entity.source_path,
+            source_locator=entity.source_locator,
+        )
+        items.append(item)
+    for label in metadata.seeded_code_labels:
+        items.append(
+            _suppressible_seeded_item_payload(
+                SuppressedSeededItemKind.SEEDED_CODE_LABEL.value,
+                hunk=label.hunk,
+                addr=label.addr,
+                end=None,
+                name=label.name,
+                source_id=label.source_id,
+                source_path=label.source_path,
+                source_locator=label.source_locator,
+            )
+        )
+    for entrypoint in metadata.seeded_code_entrypoints:
+        items.append(
+            _suppressible_seeded_item_payload(
+                SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT.value,
+                hunk=entrypoint.hunk,
+                addr=entrypoint.addr,
+                end=None,
+                name=entrypoint.name,
+                source_id=entrypoint.source_id,
+                source_path=entrypoint.source_path,
+                source_locator=entrypoint.source_locator,
+            )
+        )
+    return items
+
+
+def _suppressible_seeded_item_payload(
+    kind: str,
+    *,
+    hunk: int,
+    addr: int,
+    end: int | None,
+    name: str | None,
+    source_id: str | None,
+    source_path: str | None,
+    source_locator: str | None,
+) -> dict[str, object]:
+    item: dict[str, object] = {"kind": kind, "hunk": hunk, "addr": addr}
+    if end is not None:
+        item["end"] = end
+    if name:
+        item["name"] = name
+    if source_id:
+        item["source_id"] = source_id
+    if source_path:
+        item["source_path"] = source_path
+    if source_locator:
+        item["source_locator"] = source_locator
+    return item
+
+
+def _annotate_suppressible_seeded_items(
+    row: dict[str, object],
+    suppressible_seeded_items: Sequence[Mapping[str, object]],
+) -> None:
+    row_hunk = _optional_int(row.get("section_index"))
+    row_addr = _optional_int(row.get("start_offset"))
+    if row_addr is None:
+        row_addr = _optional_int(row.get("addr"))
+    if row_hunk is None or row_addr is None:
+        return
+    matches = [
+        dict(item)
+        for item in suppressible_seeded_items
+        if _suppressible_seeded_item_matches_row(item, row_hunk, row_addr)
+    ]
+    if matches:
+        row["suppressible_seeded_items"] = matches
+
+
+def _suppressible_seeded_item_matches_row(item: Mapping[str, object], row_hunk: int, row_addr: int) -> bool:
+    hunk = _optional_int(item.get("hunk"))
+    addr = _optional_int(item.get("addr"))
+    if hunk != row_hunk or addr is None:
+        return False
+    end = _optional_int(item.get("end"))
+    if end is not None and end > addr:
+        return addr <= row_addr < end
+    return addr == row_addr
 
 
 def _project_manual_state(project_name: str) -> dict[str, object]:
@@ -1980,6 +2096,7 @@ def _resolve_command_locator(
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
+    _annotate_suppressible_seeded_items(row, _target_suppressible_seeded_items(project_name))
     return row, projection_hash
 
 
@@ -2002,6 +2119,7 @@ def _resolve_command_range_locator(project_name: str, locator: object) -> tuple[
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
+    _annotate_suppressible_seeded_items(row, _target_suppressible_seeded_items(project_name))
     return row, projection_hash
 
 

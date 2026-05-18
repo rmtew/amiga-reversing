@@ -982,6 +982,13 @@ def write_target_seeded_metadata(target_dir: Path, metadata: TargetMetadata) -> 
     )
 
 
+def load_target_seeded_metadata(target_dir: Path) -> TargetMetadata | None:
+    seeded_path = target_seeded_metadata_path(target_dir)
+    if not seeded_path.exists():
+        return None
+    return _load_target_metadata_file(seeded_path, validate=validate_target_seeded_metadata)
+
+
 def write_target_corrections_metadata(target_dir: Path, metadata: TargetMetadata) -> None:
     target_corrections_path(target_dir).write_text(
         json.dumps(asdict(metadata), indent=2, sort_keys=True) + "\n",
