@@ -2493,6 +2493,10 @@ def _manual_action_application_payload(
         comment = action_payload.get("comment")
         if isinstance(comment, Mapping):
             local_effects.append({"kind": "comment", "comment": dict(comment)})
+    elif kind == "rename_data_symbol":
+        symbol = action_payload.get("data_symbol")
+        if isinstance(symbol, Mapping):
+            local_effects.append({"kind": "data_symbol_rename", "data_symbol": dict(symbol)})
     elif kind == "create_manual_execution_view":
         view = action_payload.get("execution_view")
         if isinstance(view, Mapping):

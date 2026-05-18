@@ -36,6 +36,8 @@ Current progress:
   views into effective metadata by `(source_start, source_end, base_addr)`.
 - `remove_manual_execution_view` replay removes target runtime views by that
   same durable identity.
+- `rename_data_symbol` replay projects a manual seeded-entity name override by
+  durable `(hunk, addr)` identity.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

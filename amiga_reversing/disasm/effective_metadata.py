@@ -360,6 +360,40 @@ def _manual_suppressed_seeded_item_to_metadata(item: dict[str, object]) -> Suppr
         return None
 
 
+def _merge_seeded_entity_projection(
+    existing: SeededEntityMetadata,
+    override: SeededEntityMetadata,
+) -> SeededEntityMetadata:
+    return SeededEntityMetadata(
+        addr=override.addr,
+        hunk=override.hunk,
+        end=override.end if override.end is not None else existing.end,
+        name=override.name if override.name is not None else existing.name,
+        comment=override.comment if override.comment is not None else existing.comment,
+        type=override.type if override.type is not None else existing.type,
+        subtype=override.subtype if override.subtype is not None else existing.subtype,
+        unit=override.unit if override.unit is not None else existing.unit,
+        encoding=override.encoding if override.encoding is not None else existing.encoding,
+        seed_origin=override.seed_origin,
+        review_status=override.review_status,
+        citation=override.citation,
+        source_id=override.source_id if override.source_id is not None else existing.source_id,
+        source_path=override.source_path if override.source_path is not None else existing.source_path,
+        source_locator=override.source_locator if override.source_locator is not None else existing.source_locator,
+    )
+
+
+def _merge_projected_seeded_entities(
+    entities: list[SeededEntityMetadata],
+) -> tuple[SeededEntityMetadata, ...]:
+    merged: dict[tuple[int, int], SeededEntityMetadata] = {}
+    for entity in entities:
+        key = (entity.hunk, entity.addr)
+        existing = merged.get(key)
+        merged[key] = entity if existing is None else _merge_seeded_entity_projection(existing, entity)
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionViewMetadata | None:
     source_start = _manual_seed_int(view, "source_start")
     source_end = _manual_seed_int(view, "source_end")
@@ -509,7 +543,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     result = replace(
         metadata,
         entry_register_seeds=tuple(entry_register_seeds),
-        seeded_entities=tuple(seeded_entities),
+        seeded_entities=_merge_projected_seeded_entities(seeded_entities),
         seeded_code_labels=tuple(seeded_code_labels),
         absolute_code_labels=tuple(absolute_code_labels),
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),

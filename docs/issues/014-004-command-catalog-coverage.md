@@ -38,6 +38,9 @@ Current progress:
 - Target context exposes `target.execution_view.remove`, with required
   `source_start`, `source_end`, and `base_addr`, and `/commands/execute`
   appends `remove_manual_execution_view`.
+- Rows backed by `target_seeded_metadata.json` seeded entities expose
+  `data_symbol.rename`, with required `name`, and `/commands/execute` appends
+  `rename_data_symbol`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

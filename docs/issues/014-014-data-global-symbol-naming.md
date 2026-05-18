@@ -11,8 +11,14 @@ Current evidence:
 - The command catalog now exposes named row, data-literal element, range, and
   unreconciled data review seed commands that write `name` into the seed
   payload.
+- Manual Action Log `rename_data_symbol` now projects a manual seeded-entity
+  name override by durable `(hunk, addr)` identity, preserving generated
+  seeded-entity metadata during effective metadata merge.
+- Rows backed by `target_seeded_metadata.json` seeded entities expose
+  `data_symbol.rename`, and `/commands/execute` appends `rename_data_symbol`.
 - Durable data/global symbol edit, rename, remove, rename-existing-symbol,
-  referenced-use-site, and loop-planner workflows remain open.
+  referenced-use-site, and loop-planner workflows remain open beyond seeded
+  data-entity rename.
 - The proposal goal includes clearer global and data names.
 
 Acceptance criteria:

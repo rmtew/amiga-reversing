@@ -674,6 +674,78 @@ def test_effective_metadata_applies_manual_seeded_item_suppression(tmp_path: Pat
     assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "hunk": 0, "kind": "seeded_entity"}]
 
 
+def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x100,
+                    end=0x104,
+                    hunk=0,
+                    name="auto_data",
+                    comment="generated",
+                    type="data",
+                    subtype="pointer_table",
+                    unit="long",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="GeneratedData",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "rename_data_symbol",
+                data_symbol={
+                    "data_symbol_id": "data-symbol:h0:00000100",
+                    "hunk": 0,
+                    "addr": 0x100,
+                    "end": 0x104,
+                    "previous_name": "auto_data",
+                    "name": "player_table",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_entities"] == [
+        {
+            "addr": 0x100,
+            "citation": "manual_action_log:data-symbol:h0:00000100",
+            "comment": "generated",
+            "encoding": None,
+            "end": 0x104,
+            "hunk": 0,
+            "name": "player_table",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ManualSeed:data-symbol:h0:00000100",
+            "source_path": "source.asm",
+            "subtype": "pointer_table",
+            "type": "data",
+            "unit": "long",
+        }
+    ]
+
+
 def test_effective_metadata_applies_manual_execution_view(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

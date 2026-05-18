@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -133,6 +134,7 @@ def _manual_label_scope_from_json(value: object) -> ManualLabelScope | None:
 class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEED = "create_manual_seed"
     REMOVE_MANUAL_SEED = "remove_manual_seed"
+    RENAME_DATA_SYMBOL = "rename_data_symbol"
     CREATE_MANUAL_REGISTER_SEED = "create_manual_register_seed"
     REMOVE_MANUAL_REGISTER_SEED = "remove_manual_register_seed"
     CREATE_MANUAL_LABEL = "create_manual_label"
@@ -938,6 +940,38 @@ def _execution_view_key(view: dict[str, object]) -> tuple[int, int, int]:
     return source_start, source_end, base_addr
 
 
+def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
+    hunk = _manual_seed_int(symbol, "hunk")
+    addr = _manual_seed_int(symbol, "addr")
+    if hunk is None or addr is None:
+        raise ValueError("data_symbol requires hunk and addr")
+    return f"data-symbol:h{hunk}:{addr:08X}"
+
+
+def _projected_data_symbol_seed(action: _ManualAction) -> dict[str, object]:
+    symbol = dict(_action_object(action, "data_symbol"))
+    hunk = _manual_seed_int(symbol, "hunk")
+    addr = _manual_seed_int(symbol, "addr")
+    end = _manual_seed_int(symbol, "end")
+    name = symbol.get("name")
+    if hunk is None or addr is None:
+        raise ValueError("data_symbol requires hunk and addr")
+    if end is not None and end <= addr:
+        raise ValueError("data_symbol end must be greater than addr")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("data_symbol requires name")
+    seed: dict[str, object] = {
+        "seed_id": str(symbol.get("data_symbol_id") or _data_symbol_seed_id(symbol)),
+        "kind": ManualSeedKind.DATA,
+        "hunk": hunk,
+        "addr": addr,
+        "name": name.strip(),
+    }
+    if end is not None:
+        seed["end"] = end
+    return seed
+
+
 def _projected_manual_seed(action: _ManualAction) -> dict[str, object]:
     seed = dict(_action_object(action, "seed"))
     seed_kind = _manual_seed_kind_from_json(seed.get("kind"))
@@ -1130,6 +1164,8 @@ def _project_actions(
             _put_by_id(seeds, _projected_manual_seed(action), "seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEED:
             _drop_by_id(seeds, action, "seed_id")
+        elif action.kind is ManualActionKind.RENAME_DATA_SYMBOL:
+            _put_by_id(seeds, _projected_data_symbol_seed(action), "seed_id")
         elif action.kind is ManualActionKind.CREATE_MANUAL_REGISTER_SEED:
             _put_by_id(register_seeds, _action_object(action, "register_seed"), "register_seed_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_REGISTER_SEED:

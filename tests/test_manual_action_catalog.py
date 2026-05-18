@@ -54,6 +54,44 @@ def test_suppress_seeded_item_command_uses_row_seed_identity() -> None:
     }
 
 
+def test_data_symbol_rename_command_uses_seeded_entity_identity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x100,
+        "end_offset": 0x104,
+        "suppressible_seeded_items": [
+            {
+                "kind": "seeded_entity",
+                "hunk": 0,
+                "addr": 0x100,
+                "end": 0x104,
+                "name": "auto_data",
+                "source_locator": "GeneratedData",
+            }
+        ],
+    }
+
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload == {
+        "data_symbol": {
+            "data_symbol_id": "data-symbol:h0:00000100",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x104,
+            "previous_name": "auto_data",
+            "source_locator": "GeneratedData",
+            "name": "player_table",
+        }
+    }
+
+
 def test_target_execution_view_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.add",

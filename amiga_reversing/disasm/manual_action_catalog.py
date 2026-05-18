@@ -218,6 +218,7 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
             {"seed_kind": "data", "unit": "long"},
         ),
     ]
+    actions.extend(_data_symbol_actions(context, row))
     actions.extend(_suppress_seeded_item_actions(context, row))
     actions.extend(_row_data_role_actions(context))
     return actions
@@ -594,6 +595,8 @@ def listing_catalog_manual_payload(
         return "create_manual_seed", {"seed": _row_seed_payload(row, params)}
     if ui_action == "create_manual_register_seed":
         return "create_manual_register_seed", {"register_seed": _register_seed_payload(row, params)}
+    if ui_action == "rename_data_symbol":
+        return "rename_data_symbol", {"data_symbol": _data_symbol_payload(row, params)}
     if ui_action == "create_manual_label":
         manual_label_id = row.get("manual_label_id")
         name = params.get("name")
@@ -700,8 +703,69 @@ def _row_suppressible_seeded_items(row: Mapping[str, object]) -> list[dict[str, 
             continue
         if hunk is None or addr is None:
             continue
-        items.append({"kind": kind, "hunk": hunk, "addr": addr})
+        item = {"kind": kind, "hunk": hunk, "addr": addr}
+        end = _optional_int(raw_item.get("end"))
+        if end is not None:
+            item["end"] = end
+        name = raw_item.get("name")
+        if isinstance(name, str) and name:
+            item["name"] = name
+        source_locator = raw_item.get("source_locator")
+        if isinstance(source_locator, str) and source_locator:
+            item["source_locator"] = source_locator
+        items.append(item)
     return items
+
+
+def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
+    actions: list[dict[str, object]] = []
+    for item in _row_suppressible_seeded_items(row):
+        if item["kind"] != "seeded_entity":
+            continue
+        actions.append(
+            _context_log_action(
+                "data_symbol.rename",
+                "Rename data symbol",
+                "rename_data_symbol",
+                context,
+                {
+                    "hunk": item["hunk"],
+                    "addr": item["addr"],
+                    **({"end": item["end"]} if "end" in item else {}),
+                    **({"previous_name": item["name"]} if "name" in item else {}),
+                    **({"source_locator": item["source_locator"]} if "source_locator" in item else {}),
+                },
+                _data_name_parameter_schema(),
+                "F2",
+            )
+        )
+    return actions
+
+
+def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    hunk = _optional_int(params.get("hunk"))
+    addr = _optional_int(params.get("addr"))
+    if hunk is None or addr is None:
+        raise ValueError("rename_data_symbol requires hunk and addr")
+    for item in _row_suppressible_seeded_items(row):
+        if item["kind"] == "seeded_entity" and item["hunk"] == hunk and item["addr"] == addr:
+            name = _data_seed_name(params)
+            if name is None:
+                raise ValueError("rename_data_symbol requires parameter name")
+            symbol: dict[str, object] = {
+                "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
+                "hunk": hunk,
+                "addr": addr,
+                "name": name,
+            }
+            if "end" in item:
+                symbol["end"] = item["end"]
+            if "name" in item:
+                symbol["previous_name"] = item["name"]
+            if "source_locator" in item:
+                symbol["source_locator"] = item["source_locator"]
+            return symbol
+    raise ValueError("rename_data_symbol requires a seeded data entity on the selected row")
 
 
 def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
@@ -710,7 +774,7 @@ def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[s
     addr = _optional_int(params.get("addr"))
     for item in _row_suppressible_seeded_items(row):
         if item["kind"] == kind and item["hunk"] == hunk and item["addr"] == addr:
-            return dict(item)
+            return {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]}
     raise ValueError("suppress_seeded_item requires a suppressible seeded item on the selected row")
 
 
