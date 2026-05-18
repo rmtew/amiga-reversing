@@ -60,6 +60,9 @@ _COMMAND_RANK = {
     "target.custom_struct_field.edit": 72,
     "target.custom_struct_field.rename": 72,
     "target.custom_struct_field.remove": 68,
+    "target.execution_view.add": 72,
+    "target.execution_view.edit": 72,
+    "target.execution_view.remove": 68,
     "typed_gap.field.add": 72,
     "typed_gap.field.edit": 72,
     "typed_access.field.edit": 72,
@@ -74,7 +77,14 @@ _COMMAND_PREFIX_RANK = {
     "semantic.lvo.": 73,
     "semantic.struct_offset.": 73,
     "semantic.equate.": 73,
+    "correction.suppress_seeded_item.": 67,
 }
+_SEMANTIC_COMMAND_PREFIXES = (
+    "semantic.library_base.",
+    "semantic.lvo.",
+    "semantic.struct_offset.",
+    "semantic.equate.",
+)
 
 
 def _parse_int_auto(value: str) -> int:
@@ -2185,7 +2195,9 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith(("target.custom_struct.", "target.custom_struct_field.", "typed_gap.field.", "typed_access.field.")) for action in actions):
         return "round_trip"
-    if any(action == "semantic.register.struct_ptr" or action.startswith(tuple(_COMMAND_PREFIX_RANK)) for action in actions):
+    if any(action.startswith(("target.execution_view.", "correction.suppress_seeded_item.")) for action in actions):
+        return "round_trip"
+    if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
         return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
         return "round_trip"
@@ -2591,11 +2603,22 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         "target.custom_struct_field.edit",
         "target.custom_struct_field.rename",
         "target.custom_struct_field.remove",
+        "target.execution_view.add",
+        "target.execution_view.edit",
+        "target.execution_view.remove",
     }:
         return {
             "kind": "command",
             "command_id": action,
             "context": {"kind": "target"},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action.startswith("correction.suppress_seeded_item."):
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
             "parameters": parameter_payload,
             "output_affecting": True,
         }
@@ -2610,7 +2633,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
-    if action == "semantic.register.struct_ptr" or action.startswith(tuple(_COMMAND_PREFIX_RANK)):
+    if action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES):
         context = _semantic_context_from_candidate(candidate)
         if context is None:
             return None

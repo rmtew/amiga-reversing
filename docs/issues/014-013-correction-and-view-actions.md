@@ -27,6 +27,10 @@ Current evidence:
   `target.execution_view.remove` appends it from target command context.
 - Label commands cover some absolute labels, and execution-view add/edit/remove
   are exposed; broader correction workflows remain open.
+- The loop planner now accepts explicit `target.execution_view.*` and
+  `correction.suppress_seeded_item.*` command candidates, routes execution
+  views through target context and seeded-item suppressions through row context,
+  and requires round-trip verification.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
@@ -40,6 +44,8 @@ Acceptance criteria:
   execution views. Seeded-item row suppression and execution-view add/edit/remove
   are exposed by durable identities, while broader reproduction/view correction
   commands remain open.
+- Loop planner support covers explicit execution-view and seeded-item
+  suppression command candidates.
 - Verifiers prove source rendering, reproduction, and round-trip where
   applicable.
 - The loop distinguishes importer/analyzer defects from target-specific manual

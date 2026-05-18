@@ -961,6 +961,62 @@ def test_typed_field_command_candidate_uses_selected_element_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_target_execution_view_command_candidate_uses_target_context() -> None:
+    candidate = {
+        "id": "execution-view",
+        "candidate_id": "execution-view",
+        "kind": "execution_view",
+        "suggested_action_kinds": ["target.execution_view.add"],
+        "parameters": {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "target.execution_view.add",
+        "context": {"kind": "target"},
+        "parameters": {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        },
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
+def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_rank() -> None:
+    candidate = {
+        "id": "suppress-seeded-entity",
+        "candidate_id": "suppress-seeded-entity",
+        "kind": "seeded_item_correction",
+        "locator": _listing_locator(kind="data"),
+        "suggested_action_kinds": ["correction.suppress_seeded_item.seeded_entity"],
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "correction.suppress_seeded_item.seeded_entity",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
