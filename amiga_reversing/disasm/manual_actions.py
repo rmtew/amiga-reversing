@@ -148,6 +148,7 @@ class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
+    CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -178,6 +179,7 @@ class ManualActionLogProjection:
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
+    rsset_layout_regions: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -328,6 +330,7 @@ def _empty_projection(
         representations=(),
         semantic_hints=(),
         suppressed_seeded_items=(),
+        rsset_layout_regions=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -940,6 +943,19 @@ def _execution_view_key(view: dict[str, object]) -> tuple[int, int, int]:
     return source_start, source_end, base_addr
 
 
+def _rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int]:
+    offset = _manual_seed_int(region, "offset")
+    if offset is None or offset < 0:
+        raise ValueError("rsset_layout_region requires offset")
+    layout_name = region.get("layout_name")
+    base_symbol = region.get("base_symbol")
+    return (
+        layout_name if isinstance(layout_name, str) and layout_name else "app",
+        base_symbol if isinstance(base_symbol, str) and base_symbol else "__amiga_app_base__",
+        offset,
+    )
+
+
 def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
     hunk = _manual_seed_int(symbol, "hunk")
     addr = _manual_seed_int(symbol, "addr")
@@ -1148,6 +1164,7 @@ def _project_actions(
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
+    rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1193,6 +1210,9 @@ def _project_actions(
         elif action.kind is ManualActionKind.SUPPRESS_SEEDED_ITEM:
             item = _action_object(action, "suppressed_seeded_item")
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
+        elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
+            region = _action_object(action, "rsset_layout_region")
+            rsset_layout_regions[_rsset_layout_region_key(region)] = region
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
@@ -1243,6 +1263,7 @@ def _project_actions(
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
+        rsset_layout_regions=tuple(rsset_layout_regions.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),

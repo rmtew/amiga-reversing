@@ -28,6 +28,8 @@ from amiga_reversing.disasm.target_metadata import (
     ExecutionViewMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
+    RssetLayoutRegionMetadata,
+    RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
@@ -415,6 +417,38 @@ def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionView
     )
 
 
+def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetLayoutRegionMetadata | None:
+    offset = _manual_seed_int(region, "offset")
+    if offset is None or offset < 0 or offset > 0x7FFF:
+        return None
+    symbol = _manual_seed_text(region, "symbol")
+    if symbol is None:
+        return None
+    size = _manual_seed_int(region, "size")
+    if size is not None and (size <= 0 or size > 255):
+        return None
+    storage_kind_text = _manual_seed_text(region, "storage_kind")
+    try:
+        storage_kind = None if storage_kind_text is None else RssetLayoutStorageKind(storage_kind_text)
+    except ValueError:
+        return None
+    return RssetLayoutRegionMetadata(
+        offset=offset,
+        size=size,
+        layout_name=_manual_seed_text(region, "layout_name"),
+        base_symbol=_manual_seed_text(region, "base_symbol"),
+        sizeof_symbol=_manual_seed_text(region, "sizeof_symbol"),
+        symbol=symbol,
+        struct_name=_manual_seed_text(region, "struct_name"),
+        pointer_struct=_manual_seed_text(region, "pointer_struct"),
+        storage_kind=storage_kind,
+        semantic_type=_manual_seed_text(region, "semantic_type"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(region, "rsset_layout_region_id"),
+    )
+
+
 def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] | None:
     source_start = _manual_seed_int(view, "source_start")
     source_end = _manual_seed_int(view, "source_end")
@@ -460,6 +494,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
+    rsset_layout_region_projections = projection.rsset_layout_regions
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -470,6 +505,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not semantic_hints
         and not register_seed_projections
         and not suppressed_seeded_item_projections
+        and not rsset_layout_region_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -483,6 +519,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
+    rsset_layout_regions = list(metadata.rsset_layout_regions)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
     removed_execution_view_keys = {
@@ -533,6 +570,14 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
         if suppressed_seeded_item is not None:
             suppressed_seeded_items.append(suppressed_seeded_item)
+    for region in rsset_layout_region_projections:
+        rsset_layout_region = _manual_rsset_layout_region_to_metadata(region)
+        if rsset_layout_region is not None:
+            rsset_layout_regions.append(rsset_layout_region)
+    merged_rsset_layout_regions = {
+        (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset): region
+        for region in rsset_layout_regions
+    }
     for view in execution_view_projections:
         execution_view = _manual_execution_view_to_metadata(view)
         if execution_view is not None:
@@ -549,6 +594,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
+        rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),
     )

@@ -10,9 +10,15 @@ Current evidence:
 - Navigation exposes app-slot slots, regions, gaps, field gaps, suggestions,
   and untyped API args.
 - Target metadata supports `rsset_layout_regions`.
-- No Manual Action Log action or command exists for app-slot/RSSET add, edit,
-  rename, remove, size, storage kind, semantic type, parser role, or region
-  layout changes.
+- Manual Action Log now supports `create_manual_rsset_layout_region`, projected
+  into effective `rsset_layout_regions` by durable
+  `(layout_name, base_symbol, offset)` identity.
+- Target command catalog exposes `target.rsset_region.add`; command execution
+  appends the action and reports a local RSSET-region effect.
+- Render/rebuild coverage proves a manual named RSSET region emits the RSSET
+  field, rewrites a base-relative reference, and direct-rebuilds exactly.
+- App-slot rename/edit/remove, RSSET remove, parser-role edits, and autonomous
+  candidate production remain open.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

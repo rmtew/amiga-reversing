@@ -786,6 +786,57 @@ def test_effective_metadata_applies_manual_execution_view(tmp_path: Path) -> Non
     ]
 
 
+def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_rsset_layout_region",
+                rsset_layout_region={
+                    "rsset_layout_region_id": "work-counter",
+                    "offset": 4,
+                    "size": 2,
+                    "layout_name": "work",
+                    "base_symbol": "__game_work_base__",
+                    "sizeof_symbol": "work_SIZEOF",
+                    "symbol": "work_counter",
+                    "storage_kind": "scalar",
+                    "semantic_type": "counter",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["rsset_layout_regions"] == [
+        {
+            "base_symbol": "__game_work_base__",
+            "citation": "manual_action_log:work-counter",
+            "layout_name": "work",
+            "offset": 4,
+            "parse_order": None,
+            "parser_role": None,
+            "parser_routine": None,
+            "pointer_struct": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "semantic_type": "counter",
+            "sizeof_symbol": "work_SIZEOF",
+            "size": 2,
+            "storage_kind": "scalar",
+            "struct_name": None,
+            "symbol": "work_counter",
+        }
+    ]
+
+
 def test_effective_metadata_removes_execution_view_by_identity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

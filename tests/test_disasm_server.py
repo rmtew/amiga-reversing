@@ -1401,6 +1401,11 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
         "source_end",
         "base_addr",
     ]
+    rsset_region_action = next(action for action in actions if action["action_id"] == "target.rsset_region.add")
+    assert rsset_region_action["category"] == "target_metadata"
+    assert rsset_region_action["appends_to_manual_action_log"] is True
+    assert rsset_region_action["action"] == "create_manual_rsset_layout_region"
+    assert rsset_region_action["parameter_schema"]["required"] == ["offset", "symbol"]
     assert any(action["action_id"] == "navigation.history_back" for action in actions)
 
 
@@ -1841,6 +1846,57 @@ def test_route_manual_action_catalog_execute_removes_execution_view_action(
     assert action["kind"] == "remove_manual_execution_view"
     assert execution_view == {"source_start": 0x20, "source_end": 0x80, "base_addr": 0x4000}
     assert local_effect == {"kind": "execution_view_remove", "execution_view": execution_view}
+    assert appended_actions == [action]
+
+
+def test_route_manual_action_catalog_execute_adds_rsset_layout_region_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "target.rsset_region.add",
+            "context": {"kind": "target"},
+            "parameters": {
+                "offset": 4,
+                "size": 2,
+                "layout_name": "work",
+                "base_symbol": "__game_work_base__",
+                "sizeof_symbol": "work_SIZEOF",
+                "symbol": "work_counter",
+                "storage_kind": "scalar",
+            },
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "create_manual_rsset_layout_region"
+    assert region["rsset_layout_region_id"] == "catalog-rsset-region-work-0004"
+    assert region["symbol"] == "work_counter"
+    assert local_effect == {"kind": "rsset_layout_region", "rsset_layout_region": region}
     assert appended_actions == [action]
 
 

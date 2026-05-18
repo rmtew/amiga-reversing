@@ -105,6 +105,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_source_export_action(),
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
+        _target_rsset_layout_region_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -133,6 +134,8 @@ def target_catalog_manual_payload(
         return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_execution_view":
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_rsset_layout_region":
+        return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -880,6 +883,39 @@ def _execution_view_identity_payload(params: Mapping[str, object]) -> dict[str, 
     }
 
 
+def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, object]:
+    offset = _optional_int(params.get("offset"))
+    size = _optional_int(params.get("size"))
+    symbol = params.get("symbol")
+    if offset is None or offset < 0 or offset > 0x7FFF:
+        raise ValueError("create_manual_rsset_layout_region requires offset in range")
+    if size is not None and (size <= 0 or size > 255):
+        raise ValueError("create_manual_rsset_layout_region size must be 1..255")
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("create_manual_rsset_layout_region requires parameter symbol")
+    layout_name = str(params.get("layout_name") or "app").strip() or "app"
+    region: dict[str, object] = {
+        "rsset_layout_region_id": f"catalog-rsset-region-{layout_name}-{offset:04X}",
+        "offset": offset,
+        "symbol": symbol.strip(),
+    }
+    if size is not None:
+        region["size"] = size
+    for field_name in (
+        "layout_name",
+        "base_symbol",
+        "sizeof_symbol",
+        "struct_name",
+        "pointer_struct",
+        "storage_kind",
+        "semantic_type",
+    ):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            region[field_name] = value.strip()
+    return region
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -961,6 +997,28 @@ def _execution_view_identity_parameter_schema() -> dict[str, object]:
             "base_addr": {"type": "integer", "minimum": 0},
         },
         "required": ["source_start", "source_end", "base_addr"],
+    }
+
+
+def _rsset_layout_region_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "offset": {"type": "integer", "minimum": 0},
+            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "symbol": {"type": "string"},
+            "layout_name": {"type": "string", "default": "app"},
+            "base_symbol": {"type": "string"},
+            "sizeof_symbol": {"type": "string"},
+            "struct_name": {"type": "string"},
+            "pointer_struct": {"type": "string"},
+            "storage_kind": {
+                "type": "string",
+                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
+            },
+            "semantic_type": {"type": "string"},
+        },
+        "required": ["offset", "symbol"],
     }
 
 
@@ -1824,6 +1882,15 @@ def _target_execution_view_remove_action() -> dict[str, object]:
         "Remove execution view",
         "remove_manual_execution_view",
         _execution_view_identity_parameter_schema(),
+    )
+
+
+def _target_rsset_layout_region_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.rsset_region.add",
+        "Add RSSET region",
+        "create_manual_rsset_layout_region",
+        _rsset_layout_region_parameter_schema(),
     )
 
 

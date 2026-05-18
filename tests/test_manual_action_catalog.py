@@ -187,3 +187,32 @@ def test_target_execution_view_remove_command_payload() -> None:
             "base_addr": 0x4000,
         }
     }
+
+
+def test_target_rsset_layout_region_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.rsset_region.add",
+        {
+            "offset": 4,
+            "size": 2,
+            "layout_name": "work",
+            "base_symbol": "__game_work_base__",
+            "sizeof_symbol": "work_SIZEOF",
+            "symbol": "work_counter",
+            "storage_kind": "scalar",
+        },
+    )
+
+    assert kind == "create_manual_rsset_layout_region"
+    assert payload == {
+        "rsset_layout_region": {
+            "rsset_layout_region_id": "catalog-rsset-region-work-0004",
+            "offset": 4,
+            "size": 2,
+            "layout_name": "work",
+            "base_symbol": "__game_work_base__",
+            "sizeof_symbol": "work_SIZEOF",
+            "symbol": "work_counter",
+            "storage_kind": "scalar",
+        }
+    }
