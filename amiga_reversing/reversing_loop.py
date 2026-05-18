@@ -1097,7 +1097,10 @@ def _listing_data_symbol_candidates(
             name = _data_ref_symbol_name(data_class, context.get("runtime_address"), target_hunk, target_addr)
             if name is None or (isinstance(text, str) and name in text):
                 continue
+            context_symbol = context.get("symbol")
             existing_name = existing.get((target_hunk, target_addr))
+            if existing_name is None and isinstance(context_symbol, str) and context_symbol:
+                existing_name = context_symbol
             if existing_name == name:
                 continue
             row_key = cast(dict[str, object], locator).get("row_key")

@@ -957,6 +957,9 @@ def _data_ref_symbol_identity(context: Mapping[str, object]) -> dict[str, object
     data_class = context.get("data_class")
     if isinstance(data_class, str) and data_class:
         identity["data_class"] = data_class
+    symbol = context.get("symbol")
+    if isinstance(symbol, str) and symbol:
+        identity["previous_name"] = symbol
     return identity
 
 

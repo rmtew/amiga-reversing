@@ -704,6 +704,28 @@ def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     assert candidates == []
 
 
+def test_listing_data_symbol_candidates_skip_existing_context_symbol() -> None:
+    row = _listing_row(
+        row_key="code-row",
+        text="\tlea $120(pc),a0\n",
+        start_offset=0x20,
+        end_offset=0x24,
+    )
+    row["runtime_address_refs"] = [
+        {
+            "offset": 0x20,
+            "operand_index": 0,
+            "target_section_index": 1,
+            "target_offset": 0x120,
+            "runtime_address": 0x40120,
+            "data_class": "bitmap",
+            "symbol": "bitmap_00040120",
+        }
+    ]
+
+    assert reversing_loop._listing_data_symbol_candidates([row]) == []
+
+
 def test_listing_data_role_candidates_mine_ascii_string_rows() -> None:
     row = _listing_row(
         row_key="data-row",

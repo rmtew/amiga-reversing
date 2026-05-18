@@ -210,6 +210,9 @@ def _append_runtime_address_ref_contexts(contexts: list[dict[str, object]], row:
         data_class = _str_or_none(raw_ref.get("data_class") or raw_ref.get("dataClass"))
         if data_class:
             context["data_class"] = data_class
+        symbol = _str_or_none(raw_ref.get("symbol") or raw_ref.get("name") or raw_ref.get("label"))
+        if symbol:
+            context["symbol"] = symbol
         contexts.append(context)
 
 

@@ -27,6 +27,9 @@ Current evidence:
 - Listing elements backed by internal `runtime_address_refs` now expose
   `data_symbol.rename` for referenced data use-sites, projecting the referenced
   target hunk/offset/size into the same durable data-symbol identity.
+- Referenced data use-site commands now preserve existing `data_ref` symbols as
+  `previous_name`, and autonomous referenced-data candidates skip symbols that
+  already match the generated data name.
 - Manual data-symbol rename now has rendered-source and exact direct-rebuild
   verifier coverage for an instruction use-site reference to the renamed data
   definition.

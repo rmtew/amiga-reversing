@@ -194,6 +194,7 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
                 "confidence": 2,
                 "data_class": "bitmap",
                 "size": 0x20,
+                "symbol": "old_bitmap",
             }
         ],
     }
@@ -214,6 +215,7 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
         "addr": 0x120,
         "end": 0x140,
         "data_class": "bitmap",
+        "previous_name": "old_bitmap",
     }
     assert kind == "rename_data_symbol"
     assert payload == {
@@ -223,6 +225,7 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
             "addr": 0x120,
             "end": 0x140,
             "data_class": "bitmap",
+            "previous_name": "old_bitmap",
             "name": "player_bitmap",
         }
     }
