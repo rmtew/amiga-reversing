@@ -275,6 +275,8 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
+    if element_kind == "register":
+        actions.extend(_struct_pointer_actions(context))
     actions.extend(_library_base_actions(context))
     if element_kind in {"immediate", "data_literal"}:
         actions.extend(_semantic_hint_actions(context))
@@ -992,14 +994,25 @@ def _representation_payload(
 
 def _register_seed_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
     addr = _int_field(row, "start_offset", fallback="addr")
+    kind = str(params.get("kind") or "library_base")
+    library_name = params.get("library_name")
+    struct_name = params.get("struct_name")
+    context_name = params.get("context_name")
+    library_name_value = library_name if isinstance(library_name, str) else None
+    struct_name_value = struct_name if isinstance(struct_name, str) else None
+    context_name_value = context_name if isinstance(context_name, str) else None
+    if kind != "struct_ptr":
+        library_name_value = library_name_value or "exec.library"
+        struct_name_value = struct_name_value or "LIB"
+        context_name_value = context_name_value or ""
     register_seed: dict[str, object] = {
         "register_seed_id": f"catalog-{uuid.uuid4().hex}",
         "entry_offset": addr,
         "register": str(params.get("register") or "A6"),
-        "kind": str(params.get("kind") or "library_base"),
-        "library_name": str(params.get("library_name") or "exec.library"),
-        "struct_name": str(params.get("struct_name") or "LIB"),
-        "context_name": str(params.get("context_name") or ""),
+        "kind": kind,
+        "library_name": library_name_value,
+        "struct_name": struct_name_value or "",
+        "context_name": context_name_value,
         "note": "Manual semantic helper",
     }
     row_index = _optional_int(row.get("row_index"))
@@ -1144,6 +1157,40 @@ def _struct_offset_candidates(payload: Mapping[str, object], value: int) -> list
             if len(candidates) >= 4:
                 return candidates
     return candidates
+
+
+def _struct_pointer_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+    register = _register_name(context)
+    if register is None:
+        return []
+    return [
+        _context_log_action(
+            "semantic.register.struct_ptr",
+            f"Treat {register} as struct pointer",
+            "create_manual_register_seed",
+            context,
+            {"register": register, "kind": "struct_ptr", "library_name": None},
+            _struct_pointer_parameter_schema(),
+        )
+    ]
+
+
+def _register_name(context: Mapping[str, object]) -> str | None:
+    register = context.get("register")
+    if not isinstance(register, str) or not register:
+        return None
+    return register.upper()
+
+
+def _struct_pointer_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "struct_name": {"type": "string"},
+            "context_name": {"type": "string"},
+        },
+        "required": ["struct_name"],
+    }
 
 
 def _library_base_actions(context: Mapping[str, object]) -> list[dict[str, object]]:

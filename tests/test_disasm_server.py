@@ -3130,6 +3130,78 @@ def test_route_manual_action_catalog_rejects_library_base_semantic_action_withou
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_execute_appends_struct_pointer_register_seed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.l (a1),d0\n",
+            addr=0x160,
+            section_index=0,
+            start_offset=0x160,
+            end_offset=0x162,
+            stable_key="row-0",
+            opcode_or_directive="move.l",
+            operand_text="(a1),d0",
+            operand_parts=(SemanticOperand(kind="register", text="a1", register="A1"),),
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:register:0:operand"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    struct_ptr_action = next(action for action in actions if action["action_id"] == "semantic.register.struct_ptr")
+
+    assert struct_ptr_action["parameter_schema"]["required"] == ["struct_name"]
+    assert struct_ptr_action["interaction_schema"]["type"] == "form"
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "semantic.register.struct_ptr",
+            "context": _element_command_context(rows[0], "row-0:register:0:operand"),
+            "parameters": {"struct_name": "IOStdReq", "context_name": "trackdisk.device"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    register_seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["register_seed"])
+
+    assert action["kind"] == "create_manual_register_seed"
+    assert register_seed["entry_offset"] == 0x160
+    assert register_seed["register"] == "A1"
+    assert register_seed["kind"] == "struct_ptr"
+    assert register_seed["library_name"] is None
+    assert register_seed["struct_name"] == "IOStdReq"
+    assert register_seed["context_name"] == "trackdisk.device"
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helpers(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

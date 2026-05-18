@@ -11,6 +11,8 @@ Current evidence:
 - Command catalog exposes `semantic.library_base.<library>` helpers for A6 LVO
   contexts, using row API metadata when present and NDK library/function lookup
   otherwise.
+- Command catalog exposes `semantic.register.struct_ptr` on register elements;
+  execution writes a `struct_ptr` register seed with an explicit struct name.
 - `semantic.lvo.*` commands append semantic hints; LVO hints for immediate
   operands now project to `_LVO*` symbol representations and render with NDK
   includes.
@@ -26,8 +28,11 @@ Progress:
   rebuild.
 - A6 LVO library-base seeds are no longer exec-only; command execution records
   the selected library and named base struct when the NDK payload provides it.
-- API call semantics, evidence-scoped register lifetimes, struct pointers, and
-  typed field access semantics remain open.
+- Register-selected struct-pointer seeds now use the existing Manual Action Log
+  projection path and no longer default to `exec.library`.
+- API call semantics, evidence-scoped register lifetimes, typed field access
+  semantics, and higher-confidence struct-pointer candidate generation remain
+  open.
 
 Acceptance criteria:
 - Register/base identities cover entry-scoped and evidence-scoped lifetimes.

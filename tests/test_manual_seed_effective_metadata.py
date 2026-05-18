@@ -330,6 +330,21 @@ def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tm
                     "note": "Manual semantic helper",
                 },
             ),
+            _action(
+                "a2",
+                2,
+                "create_manual_register_seed",
+                register_seed={
+                    "register_seed_id": "reg-2",
+                    "entry_offset": 0x140,
+                    "register": "A1",
+                    "kind": "struct_ptr",
+                    "library_name": None,
+                    "struct_name": "IOStdReq",
+                    "context_name": "trackdisk.device",
+                    "note": "Manual semantic helper",
+                },
+            ),
         ],
     )
 
@@ -344,7 +359,16 @@ def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tm
             "note": "Manual semantic helper",
             "register": "A6",
             "struct_name": "LIB",
-        }
+        },
+        {
+            "context_name": "trackdisk.device",
+            "entry_offset": 0x140,
+            "kind": "struct_ptr",
+            "library_name": None,
+            "note": "Manual semantic helper",
+            "register": "A1",
+            "struct_name": "IOStdReq",
+        },
     ]
 
 
