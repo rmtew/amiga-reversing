@@ -27,12 +27,16 @@ Current evidence:
   coverage proves source refs return to raw displacement and direct-rebuild
   exactly.
 - Loop planner recognizes explicit `target.rsset_region.add/edit/rename/remove`
-  candidates, requires round-trip verification, and skips already-satisfied
-  projected add/edit/rename/remove state.
+  candidates, reports `rsset_region_state` verification, and skips
+  already-satisfied projected add/edit/rename/remove state.
 - Loop planner also accepts explicit `app_slot.rename/edit/remove` command
   candidates, routes them through the selected app-slot element context, skips
-  already-projected app-slot region state, and requires round-trip
+  already-projected app-slot region state, and reports `rsset_region_state`
   verification.
+- Generic loop execution verifies RSSET/app-slot commands by matching the
+  executed durable RSSET-region action payload against reloaded
+  `rsset_layout_regions` or `removed_rsset_layout_regions`, then exact
+  round-trip.
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.

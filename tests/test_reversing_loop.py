@@ -391,9 +391,9 @@ def test_target_command_verification_accepts_local_effect_projection(
         "work_item": inspect_report["candidate_work"][0],
         "command": {
             "kind": "command",
-            "command_id": "target.rsset_region.add",
+            "command_id": "target.custom_struct.add",
             "context": {"kind": "target"},
-            "parameters": {"offset": 0x100, "size": 22, "symbol": "app_input_event", "struct_name": "InputEvent"},
+            "parameters": {"name": "InputEvent", "size": 22},
             "output_affecting": True,
         },
     }
@@ -402,20 +402,15 @@ def test_target_command_verification_accepts_local_effect_projection(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET":
-            return {"data": {"commands": [{"command_id": "target.rsset_region.add"}]}}
+            return {"data": {"commands": [{"command_id": "target.custom_struct.add"}]}}
         _write_manual_log(tmp_path)
         payload = _executed_command_payload()
         payload["application"] = {
             "status": "applied",
             "local_effects": [
                 {
-                    "kind": "rsset_layout_region",
-                    "rsset_layout_region": {
-                        "offset": 0x100,
-                        "size": 22,
-                        "symbol": "app_input_event",
-                        "struct_name": "InputEvent",
-                    },
+                    "kind": "custom_struct",
+                    "custom_struct": {"name": "InputEvent", "size": 22},
                 }
             ],
         }
@@ -430,9 +425,84 @@ def test_target_command_verification_accepts_local_effect_projection(
         "layer": "projection",
         "status": "passed",
         "context_kind": "target",
-        "effect_kind": "rsset_layout_region",
+        "effect_kind": "custom_struct",
     }
     assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+
+
+def test_run_one_rsset_region_executes_with_rsset_state_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [_rsset_region_candidate(current_symbol="work_0004", new_symbol="work_flags")]
+    expected = cast(dict[str, object], inspect_report["candidate_work"][0]["parameters"])
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"rsset_layout_regions": [expected]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "target.rsset_region.add"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "target.rsset_region.add"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_rsset_region_payload(tmp_path, expected)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "rsset_layout_regions"
+    assert report["action"]["command_id"] == "target.rsset_region.add"
+
+
+def test_run_one_rsset_region_remove_executes_with_removed_region_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [_rsset_region_remove_candidate(removed=False)]
+    expected = cast(dict[str, object], inspect_report["candidate_work"][0]["parameters"])
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_rsset_layout_regions": [expected]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "target.rsset_region.remove"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "target.rsset_region.remove"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_rsset_region_payload(tmp_path, expected, removed=True)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "removed_rsset_layout_regions"
+    assert report["action"]["command_id"] == "target.rsset_region.remove"
 
 
 def test_run_one_target_equate_executes_with_equate_state_verifier(
@@ -604,6 +674,42 @@ def test_target_equate_verifier_requires_action_payload(
 
     assert verification["status"] == "failed"
     assert verification["layers"][1]["message"] == "missing target equate payload"
+
+
+def test_rsset_region_verifier_requires_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    region = {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__", "symbol": "work_flags"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_layout_regions": [region]},
+        ),
+    )
+    durable_result = _executed_command_payload()
+    durable_result["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    durable_result["application"] = {
+        "status": "applied",
+        "local_effects": [{"kind": "rsset_layout_region", "rsset_layout_region": region}],
+    }
+
+    verification = reversing_loop._verify_rsset_region_mutation(
+        "demo",
+        "app_slot.rename",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "missing RSSET layout region payload"
 
 
 def test_target_command_verification_rejects_wrong_local_effect() -> None:
@@ -2181,7 +2287,7 @@ def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
         "parser_routine": "parse_input_event",
         "parse_order": 1,
     }
-    assert candidates[0]["default_verifier"] == "round_trip"
+    assert candidates[0]["default_verifier"] == "rsset_region_state"
 
 
 def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> None:
@@ -2911,7 +3017,7 @@ def test_app_slot_command_candidate_uses_selected_element_context() -> None:
         "parameters": {"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "rsset_region_state"
 
 
 def test_app_slot_candidate_skips_already_projected_region() -> None:
@@ -3801,8 +3907,8 @@ def _rsset_region_candidate(
         "expected_rendered_source_improvement": f"rename RSSET region field {current_symbol} to {new_symbol}",
         "suggested_action_kinds": [action_kind],
         "parameters": parameters,
-        "default_verifier": "round_trip",
-        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "default_verifier": "rsset_region_state",
+        "verifier": {"kind": "rsset_region_state", "requires_semantic_reload": True},
         "confidence": "high",
         "actionable": True,
     }
@@ -3818,8 +3924,8 @@ def _rsset_region_remove_candidate(*, removed: bool) -> dict[str, object]:
         "expected_rendered_source_improvement": "remove wrong RSSET region field wrong_flags",
         "suggested_action_kinds": ["target.rsset_region.remove"],
         "parameters": {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
-        "default_verifier": "round_trip",
-        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "default_verifier": "rsset_region_state",
+        "verifier": {"kind": "rsset_region_state", "requires_semantic_reload": True},
         "confidence": "high",
         "actionable": True,
     }
@@ -3978,6 +4084,29 @@ def _executed_target_equate_payload(
             {
                 "kind": "target_equate_remove" if removed else "target_equate",
                 "target_equate": dict(target_equate),
+            }
+        ],
+    }
+    return payload
+
+
+def _executed_rsset_region_payload(
+    tmp_path: Path,
+    rsset_layout_region: dict[str, object],
+    *,
+    removed: bool = False,
+) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"rsset_layout_region": dict(rsset_layout_region)}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [
+            {
+                "kind": "rsset_layout_region_remove" if removed else "rsset_layout_region",
+                "rsset_layout_region": dict(rsset_layout_region),
             }
         ],
     }

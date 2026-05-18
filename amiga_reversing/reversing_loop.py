@@ -1812,8 +1812,8 @@ def _listing_rsset_region_candidates(
                 "suggested_action_kind": action_kind,
                 "suggested_action_kinds": [action_kind],
                 "parameters": parameters,
-                "default_verifier": "round_trip",
-                "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                "default_verifier": "rsset_region_state",
+                "verifier": {"kind": "rsset_region_state", "requires_semantic_reload": True},
                 "confidence": "high" if evidence.get("confidence") in {"high", "tool-inferred"} else "medium",
                 "rationale": "app-slot analysis suggested durable RSSET layout metadata",
                 "actionable": True,
@@ -2729,9 +2729,9 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
     if any(action.startswith("data_symbol.") for action in actions):
         return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
-        return "round_trip"
+        return "rsset_region_state"
     if any(action.startswith("app_slot.") for action in actions):
-        return "round_trip"
+        return "rsset_region_state"
     if any(action.startswith("target.execution_view.") for action in actions):
         return "execution_view_state"
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
@@ -2826,6 +2826,13 @@ def _verify_manual_mutation(
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("target.equate."):
         return _verify_target_equate_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if isinstance(command_id, str) and command_id.startswith(("target.rsset_region.", "app_slot.")):
+        return _verify_rsset_region_mutation(
             target_id,
             str(command_id),
             durable_result,
@@ -2963,6 +2970,98 @@ def _target_equate_matches(actual: dict[str, object], expected: dict[str, object
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "name" in expected
+
+
+def _verify_rsset_region_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _rsset_region_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_rsset_region(target_id, command_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _rsset_region_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    region = _rsset_region_from_action(action)
+    if region is not None:
+        return region
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            region = _rsset_region_from_action(raw_action)
+            if region is not None:
+                return region
+    return None
+
+
+def _rsset_region_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    region = action.get("rsset_layout_region")
+    if isinstance(region, dict):
+        return cast(dict[str, object], region)
+    payload = action.get("payload")
+    region = payload.get("rsset_layout_region") if isinstance(payload, dict) else None
+    if isinstance(region, dict):
+        return cast(dict[str, object], region)
+    return None
+
+
+def _verify_project_rsset_region(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing RSSET layout region payload"}
+    key = "removed_rsset_layout_regions" if command_id.endswith(".remove") else "rsset_layout_regions"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    regions = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(regions, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [region for region in regions if isinstance(region, dict) and _rsset_region_matches(region, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_rsset_layout_region": expected,
+        "matching_rsset_layout_regions": matches,
+        "state_key": key,
+    }
+
+
+def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in (
+        "offset",
+        "size",
+        "layout_name",
+        "base_symbol",
+        "sizeof_symbol",
+        "symbol",
+        "storage_kind",
+        "struct_name",
+        "semantic_type",
+        "parser_role",
+        "parser_routine",
+        "parse_order",
+    ):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return "offset" in expected
 
 
 def _verify_seeded_item_suppression_mutation(

@@ -66,6 +66,8 @@ Progress:
   data-symbol rename/remove candidates rather than a generic round-trip label.
 - Planner verifier summaries now report `target_equate_state` for
   target-equate commands rather than a generic round-trip label.
+- Planner verifier summaries now report `rsset_region_state` for target RSSET
+  and selected app-slot commands rather than a generic round-trip label.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an
