@@ -59,6 +59,8 @@ Progress:
 - Planner candidate selection now evaluates alternate command options for a
   candidate, so an unverified higher-ranked command does not hide a supported
   lower option from the same evidence.
+- Autonomous listing feeds now skip data names and data roles already present
+  in effective target metadata, not only Manual Action Log projections.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

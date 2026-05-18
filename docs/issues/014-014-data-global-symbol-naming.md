@@ -37,6 +37,8 @@ Current evidence:
   skips already-satisfied projected names/removals. It also mines internal
   `data_ref` listing elements into autonomous referenced-data rename
   candidates.
+- Autonomous referenced-data rename candidates now skip names already present in
+  effective target metadata as well as Manual Action Log projections.
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
   autonomous candidate workflows remain open beyond seeded data-entity
   rename/remove and internal referenced data use-sites.

@@ -1316,10 +1316,15 @@ def _effective_target_metadata_from_report(inspect_report: dict[str, object]) ->
 
 def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
     target_state = inspect_report.get("target_state")
+    names: dict[tuple[int, int], str] = {}
+    metadata = _effective_target_metadata_from_report(inspect_report)
+    if metadata is not None:
+        for entity in metadata.seeded_entities:
+            if isinstance(entity.name, str) and entity.name:
+                names[(entity.hunk, entity.addr)] = entity.name
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
-    names: dict[tuple[int, int], str] = {}
     if not isinstance(seeds, list | tuple):
         return names
     for seed in seeds:
@@ -1391,10 +1396,15 @@ def _listing_data_role_candidates(
 
 def _existing_data_seed_roles(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
     target_state = inspect_report.get("target_state")
+    roles: dict[tuple[int, int], str] = {}
+    metadata = _effective_target_metadata_from_report(inspect_report)
+    if metadata is not None:
+        for entity in metadata.seeded_entities:
+            if entity.type == "data" and isinstance(entity.subtype, str) and entity.subtype:
+                roles[(entity.hunk, entity.addr)] = entity.subtype
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
-    roles: dict[tuple[int, int], str] = {}
     if not isinstance(seeds, list | tuple):
         return roles
     for seed in seeds:

@@ -22,6 +22,7 @@ from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
+    SeededEntityMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
@@ -968,6 +969,51 @@ def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     assert candidates == []
 
 
+def test_listing_data_symbol_candidates_skip_existing_effective_name(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    hunk=1,
+                    addr=0x120,
+                    name="bitmap_00040120",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    row = _listing_row(
+        row_key="code-row",
+        text="\tlea $120(pc),a0\n",
+        start_offset=0x20,
+        end_offset=0x24,
+    )
+    row["runtime_address_refs"] = [
+        {
+            "offset": 0x20,
+            "operand_index": 0,
+            "target_section_index": 1,
+            "target_offset": 0x120,
+            "runtime_address": 0x40120,
+            "data_class": "bitmap",
+        }
+    ]
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    candidates = reversing_loop._listing_data_symbol_candidates(
+        [row],
+        existing_data_symbols=reversing_loop._existing_data_symbol_names(inspect_report),
+    )
+
+    assert candidates == []
+
+
 def test_listing_data_symbol_candidates_skip_existing_context_symbol() -> None:
     row = _listing_row(
         row_key="code-row",
@@ -1041,6 +1087,45 @@ def test_listing_data_role_candidates_skip_existing_string_seed() -> None:
             }
         }
     }
+
+    candidates = reversing_loop._listing_data_role_candidates(
+        [row],
+        existing_data_roles=reversing_loop._existing_data_seed_roles(inspect_report),
+    )
+
+    assert candidates == []
+
+
+def test_listing_data_role_candidates_skip_existing_effective_role(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    hunk=0,
+                    addr=0x40,
+                    end=0x46,
+                    type="data",
+                    subtype="string",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    row = _listing_row(
+        row_key="data-row",
+        kind="data",
+        text="\tdc.b $48,$45,$4c,$4c,$4f,$00\n",
+        start_offset=0x40,
+        end_offset=0x46,
+    )
+    row["bytes"] = "48454c4c4f00"
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
 
     candidates = reversing_loop._listing_data_role_candidates(
         [row],
