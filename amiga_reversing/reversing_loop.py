@@ -2719,7 +2719,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
     if "label.rename" in actions:
         return "projected_label_name"
     if any(action.startswith("review.label.") for action in actions):
-        return "round_trip"
+        return "manual_label_state"
     if "comment.edit" in actions:
         return "projection_metadata"
     if "data_symbol.rename" in actions:
@@ -2824,6 +2824,13 @@ def _verify_manual_mutation(
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
+    if isinstance(command_id, str) and command_id.startswith("review.label."):
+        return _verify_manual_label_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
     if isinstance(command_id, str) and command_id.startswith("target.equate."):
         return _verify_target_equate_mutation(
             target_id,
@@ -3282,6 +3289,151 @@ def _verify_project_manual_seed_state(
 
 def _manual_seed_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return "seed_id" in expected and all(actual.get(key) == value for key, value in expected.items())
+
+
+def _verify_manual_label_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected_labels = _manual_labels_from_durable_result(durable_result)
+    removed_label_ids = _manual_label_removals_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_manual_label_state(
+            target_id,
+            command_id,
+            expected_labels,
+            removed_label_ids,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _manual_labels_from_durable_result(durable_result: dict[str, object]) -> list[dict[str, object]]:
+    labels: list[dict[str, object]] = []
+    action = durable_result.get("action")
+    label = _manual_label_from_action(action)
+    if label is not None:
+        labels.append(label)
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            label = _manual_label_from_action(raw_action)
+            if label is not None:
+                labels.append(label)
+    return labels
+
+
+def _manual_label_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    label = action.get("label")
+    if isinstance(label, dict):
+        return cast(dict[str, object], label)
+    payload = action.get("payload")
+    if isinstance(payload, dict):
+        label = payload.get("label")
+        if isinstance(label, dict):
+            return cast(dict[str, object], label)
+        if isinstance(payload.get("label_id"), str):
+            return {
+                key: payload[key]
+                for key in ("label_id", "name", "scope", "owner_id", "owner_label_id")
+                if key in payload
+            }
+    if isinstance(action.get("label_id"), str):
+        return {key: action[key] for key in ("label_id", "name", "scope", "owner_id", "owner_label_id") if key in action}
+    return None
+
+
+def _manual_label_removals_from_durable_result(durable_result: dict[str, object]) -> list[str]:
+    label_ids: list[str] = []
+    action = durable_result.get("action")
+    label_id = _manual_label_removal_from_action(action)
+    if label_id is not None:
+        label_ids.append(label_id)
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            label_id = _manual_label_removal_from_action(raw_action)
+            if label_id is not None:
+                label_ids.append(label_id)
+    return label_ids
+
+
+def _manual_label_removal_from_action(action: object) -> str | None:
+    if not isinstance(action, dict):
+        return None
+    label_id = action.get("label_id")
+    if isinstance(label_id, str) and label_id:
+        return label_id
+    payload = action.get("payload")
+    label_id = payload.get("label_id") if isinstance(payload, dict) else None
+    if isinstance(label_id, str) and label_id:
+        return label_id
+    return None
+
+
+def _verify_project_manual_label_state(
+    target_id: str,
+    command_id: str,
+    expected_labels: list[dict[str, object]],
+    removed_label_ids: list[str],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    labels = manual_state.get("labels") if isinstance(manual_state, dict) else None
+    if not isinstance(labels, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual labels were not reloaded"}
+    label_items = [label for label in labels if isinstance(label, dict)]
+    if command_id == "review.label.remove":
+        if not removed_label_ids:
+            return {"layer": "semantic_reload", "status": "failed", "message": "missing removed manual label id payload"}
+        remaining = [label for label in label_items if label.get("label_id") in set(removed_label_ids)]
+        return {
+            "layer": "semantic_reload",
+            "status": "passed" if not remaining else "failed",
+            "removed_label_ids": removed_label_ids,
+            "remaining_manual_labels": remaining,
+        }
+    if not expected_labels:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing manual label payload"}
+    matches = [
+        expected
+        for expected in expected_labels
+        if any(_manual_label_matches(actual, expected) for actual in label_items)
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if len(matches) == len(expected_labels) else "failed",
+        "expected_manual_labels": expected_labels,
+        "matching_manual_labels": matches,
+    }
+
+
+def _manual_label_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    if "label_id" not in expected:
+        return False
+    for key, value in expected.items():
+        if key in {"owner_id", "owner_label_id"}:
+            actual_owner = actual.get("owner_id") or actual.get("owner_label_id")
+            if actual_owner != value:
+                return False
+            continue
+        if actual.get(key) != value:
+            return False
+    return True
 
 
 def _verify_execution_view_mutation(

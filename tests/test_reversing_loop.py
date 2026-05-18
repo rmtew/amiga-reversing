@@ -871,6 +871,115 @@ def test_manual_seed_verifier_rejects_mismatched_payload_field(
     assert verification["layers"][1]["matching_manual_seeds"] == []
 
 
+def test_manual_label_rename_verifier_checks_label_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    label = {"label_id": "manual-label-1", "name": "renamed_label", "scope": "global"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"labels": [label]}),
+    )
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.rename",
+        _executed_manual_label_payload(tmp_path, {"label_id": "manual-label-1", "name": "renamed_label"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["matching_manual_labels"] == [
+        {"label_id": "manual-label-1", "name": "renamed_label"}
+    ]
+
+
+def test_manual_label_scope_verifier_checks_owner_alias(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    label = {"label_id": "manual-label-1", "name": "local_name", "scope": "local", "owner_id": "owner-label"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"labels": [label]}),
+    )
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.change_scope",
+        _executed_manual_label_payload(
+            tmp_path,
+            {"label_id": "manual-label-1", "scope": "local", "owner_label_id": "owner-label"},
+        ),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+
+
+def test_manual_label_remove_verifier_checks_label_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"labels": []}),
+    )
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.remove",
+        _executed_manual_label_payload(tmp_path, {"label_id": "manual-label-1"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["removed_label_ids"] == ["manual-label-1"]
+
+
+def test_manual_label_verifier_requires_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"labels": [{"label_id": "manual-label-1", "name": "renamed_label"}]},
+        ),
+    )
+    durable_result = _executed_command_payload()
+    durable_result["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.rename",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "missing manual label payload"
+
+
 def test_rsset_region_verifier_rejects_mismatched_payload_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3316,7 +3425,7 @@ def test_review_data_role_seed_candidate_uses_review_item_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "manual_seed_state"
 
 
-def test_review_label_candidate_uses_review_item_context_and_round_trip_verifier() -> None:
+def test_review_label_candidate_uses_review_item_context_and_manual_label_verifier() -> None:
     candidate = {
         "id": "review-label-rename",
         "candidate_id": "review-label-rename",
@@ -3342,7 +3451,7 @@ def test_review_label_candidate_uses_review_item_context_and_round_trip_verifier
         "parameters": {"name": "renamed_label"},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "manual_label_state"
 
 
 def test_review_seed_remove_candidate_uses_review_item_context() -> None:
@@ -4331,6 +4440,16 @@ def _executed_manual_seed_payload(tmp_path: Path, seed: dict[str, object]) -> di
 def _executed_manual_seed_remove_payload(tmp_path: Path, seed_id: str) -> dict[str, object]:
     payload = _executed_command_payload()
     payload["action"] = {"action_id": "manual-1", "payload": {"seed_id": seed_id}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {"status": "applied", "refresh": {"mode": "project"}}
+    return payload
+
+
+def _executed_manual_label_payload(tmp_path: Path, label_payload: dict[str, object]) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": dict(label_payload)}
     payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
         tmp_path / "targets" / "demo"
     )["head_hash"]

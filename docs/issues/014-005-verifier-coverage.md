@@ -48,6 +48,12 @@ Current evidence:
 - Generic `run-one` `label.rename` execution now uses the label-specific
   verifier: Manual Action Log match, semantic label reload, projected label row,
   and exact round-trip.
+- Generic `run-one` `review.label.*` execution now verifies Manual Action Log
+  replay, reloaded manual label state or removed-label absence, and exact
+  round-trip.
+- Manual-label verifiers derive expected label payloads or removed label ids
+  from executed durable action payloads, so matching project state alone cannot
+  satisfy a missing or mismatched action result.
 - Generic `run-one` `comment.edit` execution now uses the projected-comment
   verifier instead of accepting affected-locator metadata alone.
 - Generic `run-one` `data_symbol.rename` execution now verifies Manual Action

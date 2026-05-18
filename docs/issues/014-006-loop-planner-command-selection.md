@@ -44,7 +44,8 @@ Progress:
   round-trip verification.
 - Planner now accepts explicit review-item candidates for named/data-role seeds,
   seed removal, and label rename/scope/removal commands, routes them through
-  durable review item ids, and requires round-trip verification for label edits.
+  durable review item ids, and uses manual-label state verification for label
+  edits.
 - Planner now skips already-satisfied target-local equate candidates from
   projected target-equate metadata.
 - Planner already-satisfied checks now treat rename candidates with
@@ -70,6 +71,8 @@ Progress:
   and selected app-slot commands rather than a generic round-trip label.
 - Planner verifier summaries now report `manual_seed_state` for row/range/review
   seed creation and review seed removal rather than a generic round-trip label.
+- Planner verifier summaries now report `manual_label_state` for review label
+  rename/scope/removal commands rather than a generic round-trip label.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an
