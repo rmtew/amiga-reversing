@@ -2769,6 +2769,7 @@ def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object
     row_key = locator.get("row_key")
     section_int = section if isinstance(section, int) else None
     offset_int = offset if isinstance(offset, int) else None
+    checked_rows: list[dict[str, object]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -2779,15 +2780,31 @@ def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object
             section_int is not None and offset_int is not None and _row_covers_source_location(row, locator, section_int, offset_int)
         ):
             matched = row_label == expected or row_symbol == expected or (isinstance(row_text, str) and expected in row_text)
-            return {
-                "layer": "projection",
-                "status": "passed" if matched else "failed",
-                "row_key": row.get("row_key"),
-                "expected_data_symbol_name": expected,
-                "actual_label": row_label,
-                "actual_symbol": row_symbol,
-                "actual_text": row_text,
-            }
+            checked_rows.append(
+                {
+                    "row_key": row.get("row_key"),
+                    "actual_label": row_label,
+                    "actual_symbol": row_symbol,
+                    "actual_text": row_text,
+                }
+            )
+            if matched:
+                return {
+                    "layer": "projection",
+                    "status": "passed",
+                    "row_key": row.get("row_key"),
+                    "expected_data_symbol_name": expected,
+                    "actual_label": row_label,
+                    "actual_symbol": row_symbol,
+                    "actual_text": row_text,
+                }
+    if checked_rows:
+        return {
+            "layer": "projection",
+            "status": "failed",
+            "expected_data_symbol_name": expected,
+            "checked_rows": checked_rows,
+        }
     return {"layer": "projection", "status": "failed", "message": "data symbol row missing after reload"}
 
 

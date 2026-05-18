@@ -1066,6 +1066,34 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_projected_data_symbol_verifier_checks_all_matching_rows(monkeypatch: pytest.MonkeyPatch) -> None:
+    command = {
+        "command_id": "data_symbol.rename",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {"name": "player_table"},
+    }
+    calls = 0
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {
+            "data": {
+                "rows": [
+                    _listing_row(row_key="row-1", kind="data", text="\tdc.b $00\n"),
+                    _listing_row(row_key="data-label", kind="label", label="player_table", start_offset=0, end_offset=0),
+                ]
+            }
+        }
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+    layer = reversing_loop._verify_projected_data_symbol_name("demo", command)
+
+    assert calls == 1
+    assert layer["status"] == "passed"
+    assert layer["row_key"] == "data-label"
+
+
 def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
