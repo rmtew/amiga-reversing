@@ -1117,6 +1117,63 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    candidate = {
+        "id": "suppress-seeded-entity",
+        "candidate_id": "suppress-seeded-entity",
+        "kind": "seeded_item_correction",
+        "locator": _listing_locator(kind="data"),
+        "suggested_action_kinds": ["correction.suppress_seeded_item.seeded_entity"],
+        "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+        "confidence": "high",
+        "actionable": True,
+    }
+    inspect_report["candidate_work"] = [candidate]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "suppressed_seeded_items": [
+                    {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+                ]
+            },
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "correction.suppress_seeded_item.seeded_entity"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "correction.suppress_seeded_item.seeded_entity"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_seeded_item_suppression_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "correction.suppress_seeded_item.seeded_entity"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_semantic_hint_executes_with_hint_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

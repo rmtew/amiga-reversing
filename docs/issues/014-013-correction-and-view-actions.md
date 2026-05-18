@@ -32,6 +32,9 @@ Current evidence:
   views through target context and seeded-item suppressions through row context,
   skips already-projected execution views/suppressions, and requires round-trip
   verification.
+- Generic `run-one` now verifies `correction.suppress_seeded_item.*` execution
+  by checking reloaded suppressed seeded item state rather than affected row
+  metadata.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

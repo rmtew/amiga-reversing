@@ -256,6 +256,11 @@ Implementation observation from `014-006`/`014-014`:
 global naming when they carry a stable runtime address; use
 `runtime_address_XXXXXXXX` rather than dropping the candidate.
 
+Implementation observation from `014-005`/`014-013`:
+Seeded-item correction commands produce suppression state just like
+`data_symbol.remove`; their verifier should check the reloaded suppression and
+round-trip instead of affected locators.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

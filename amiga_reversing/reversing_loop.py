@@ -2811,7 +2811,9 @@ def _verify_manual_mutation(
     if command_id == "data_symbol.rename":
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "data_symbol.remove":
-        return _verify_data_symbol_remove_mutation(target_id, durable_result, project_root=project_root)
+        return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
+    if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
+        return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith(
         ("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")
     ):
@@ -2858,7 +2860,7 @@ def _verify_data_symbol_rename_mutation(
     return {"status": status, "layers": layers}
 
 
-def _verify_data_symbol_remove_mutation(
+def _verify_seeded_item_suppression_mutation(
     target_id: str,
     durable_result: dict[str, object],
     *,
