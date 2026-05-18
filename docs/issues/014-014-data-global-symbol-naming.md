@@ -27,12 +27,15 @@ Current evidence:
 - Listing elements backed by internal `runtime_address_refs` now expose
   `data_symbol.rename` for referenced data use-sites, projecting the referenced
   target hunk/offset/size into the same durable data-symbol identity.
+- Manual data-symbol rename now has rendered-source and exact direct-rebuild
+  verifier coverage for an instruction use-site reference to the renamed data
+  definition.
 - Loop planner recognizes explicit data-symbol rename/remove candidates and
   skips already-satisfied projected names/removals; autonomous candidate
   production is still absent.
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
   autonomous candidate workflows remain open beyond seeded data-entity
-  rename/remove and referenced data use-sites.
+  rename/remove and internal referenced data use-sites.
 - The proposal goal includes clearer global and data names.
 
 Acceptance criteria:

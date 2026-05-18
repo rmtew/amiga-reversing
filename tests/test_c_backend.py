@@ -2980,6 +2980,87 @@ after_data:
     assert direct_profile["direct_rebuild_exact"] is True
 
 
+def test_real_dll_manual_data_symbol_rename_updates_rendered_use_site(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-symbol-use-site.bin"
+    source_text = """    SECTION section,code
+start:
+    lea data_label(pc),a0
+    rts
+data_label:
+    dc.b "DATA",$00,$00
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-18T00:00:01+00:00",
+                "kind": "rename_data_symbol",
+                "data_symbol": {
+                    "data_symbol_id": "data-symbol:h0:00000006",
+                    "hunk": 0,
+                    "addr": 6,
+                    "end": 12,
+                    "name": "renamed_data",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "\tlea.l renamed_data(pc),a0\n" in rendered
+    assert "renamed_data:\n\tdc.b $44,$41,$54,$41,$00,$00\n" in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
 @pytest.mark.parametrize(
     ("data_role", "unit", "encoding"),
     [
