@@ -549,6 +549,7 @@ def test_planner_selects_data_symbol_rename_candidate(
     assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
     assert report["action"]["parameters"] == {"name": "player_table"}
     assert report["planner"]["selected_command_id"] == "data_symbol.rename"
+    assert report["planner"]["selected_verifier"] == "projected_data_symbol_name"
 
 
 def test_planner_skips_already_satisfied_data_symbol_rename(
@@ -590,6 +591,7 @@ def test_planner_selects_data_symbol_remove_candidate(
     assert report["action"]["command_id"] == "data_symbol.remove"
     assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
     assert report["planner"]["selected_command_id"] == "data_symbol.remove"
+    assert report["planner"]["selected_verifier"] == "suppressed_seeded_item"
 
 
 def test_planner_reports_candidate_specific_verifier(
@@ -3211,8 +3213,8 @@ def _data_symbol_candidate(*, current_name: str, new_name: str) -> dict[str, obj
         "expected_rendered_source_improvement": f"rename data symbol {current_name} to {new_name}",
         "suggested_action_kinds": ["data_symbol.rename"],
         "new_name": new_name,
-        "default_verifier": "round_trip",
-        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "default_verifier": "projected_data_symbol_name",
+        "verifier": {"kind": "projected_data_symbol_name", "requires_semantic_reload": True},
         "confidence": "high",
         "actionable": True,
     }
@@ -3228,8 +3230,8 @@ def _data_symbol_remove_candidate(*, suppressed: bool) -> dict[str, object]:
         "current_metadata": {"name": "wrong_data", "suppressed": suppressed},
         "expected_rendered_source_improvement": "remove wrong seeded data symbol wrong_data",
         "suggested_action_kinds": ["data_symbol.remove"],
-        "default_verifier": "round_trip",
-        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "default_verifier": "suppressed_seeded_item",
+        "verifier": {"kind": "suppressed_seeded_item", "requires_semantic_reload": True},
         "confidence": "high",
         "actionable": True,
     }

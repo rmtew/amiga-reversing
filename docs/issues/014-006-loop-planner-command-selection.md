@@ -62,6 +62,8 @@ Progress:
 - Non-dry execution now checks catalog availability across alternate command
   options before stopping, so a missing higher-ranked command does not hide an
   available lower-ranked action from the same candidate.
+- Planner verifier summaries now report the action-specific verifier for
+  data-symbol rename/remove candidates rather than a generic round-trip label.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an

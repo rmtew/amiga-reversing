@@ -1283,8 +1283,8 @@ def _listing_data_symbol_candidates(
                             "suggested_action_kind": "data_symbol.rename",
                             "suggested_action_kinds": ["data_symbol.rename"],
                             "new_name": name,
-                            "default_verifier": "round_trip",
-                            "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                            "default_verifier": "projected_data_symbol_name",
+                            "verifier": {"kind": "projected_data_symbol_name", "requires_semantic_reload": True},
                             "confidence": "high",
                             "rationale": "listing data class identifies named data definition candidate",
                             "actionable": True,
@@ -1349,8 +1349,8 @@ def _listing_data_symbol_candidates(
                     "suggested_action_kind": "data_symbol.rename",
                     "suggested_action_kinds": ["data_symbol.rename"],
                     "new_name": name,
-                    "default_verifier": "round_trip",
-                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "default_verifier": "projected_data_symbol_name",
+                    "verifier": {"kind": "projected_data_symbol_name", "requires_semantic_reload": True},
                     "confidence": "high",
                     "rationale": "internal runtime-address reference identifies named data use-site candidate",
                     "actionable": True,
@@ -2632,6 +2632,10 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if "comment.edit" in actions:
         return "projection_metadata"
+    if "data_symbol.rename" in actions:
+        return "projected_data_symbol_name"
+    if "data_symbol.remove" in actions:
+        return "suppressed_seeded_item"
     if any(action.startswith("data_symbol.") for action in actions):
         return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
@@ -3900,6 +3904,7 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
         "selected_candidate_id": cast(dict[str, object], selected["work_item"]).get("candidate_id")
         or cast(dict[str, object], selected["work_item"]).get("id"),
         "selected_command_id": command.get("command_id"),
+        "selected_verifier": _candidate_verifier(cast(dict[str, object], selected["work_item"]), command),
         "selection_reason": "highest-ranked supported source-converging command",
     }
     return {"work_item": cast(dict[str, object], selected["work_item"]), "command": command}

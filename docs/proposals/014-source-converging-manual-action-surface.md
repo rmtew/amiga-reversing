@@ -238,6 +238,8 @@ locators.
 Implementation observation from `014-005`/`014-014`:
 `data_symbol.remove` produces suppressed seeded item state. Its verifier should
 check that reloaded suppression and round-trip instead of affected locators.
+Planner summaries should expose the same action-specific verifier names so
+operators can distinguish rendered symbol checks from suppression-state checks.
 
 ## Principles
 
