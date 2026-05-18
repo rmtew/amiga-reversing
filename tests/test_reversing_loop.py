@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -123,3 +124,75 @@ def test_inspect_cli_reports_json(tmp_path: Path) -> None:
     assert payload["target_id"] == "demo"
     assert payload["candidate_work"] == []
     assert payload["target_state"]["manual_action_log"]["count"] == 0
+
+
+def test_run_identity_creation_includes_report_paths(tmp_path: Path) -> None:
+    _target(tmp_path)
+
+    result = reversing_loop.start_or_resume_run(
+        "demo",
+        mode="clean-run",
+        project_root=tmp_path,
+        run_id="run-test",
+        now=datetime(2026, 5, 18, tzinfo=UTC),
+    )
+
+    assert result.status == "started"
+    assert result.run_state is not None
+    assert result.run_state["run_id"] == "run-test"
+    assert result.run_state["target_id"] == "demo"
+    assert result.run_state["mode"] == "clean-run"
+    assert result.run_state["last_iteration_id"] is None
+    assert result.run_state["report_paths"]["history"].endswith("reversing-loop.jsonl")
+
+
+def test_iteration_history_is_append_only(tmp_path: Path) -> None:
+    _target(tmp_path)
+    state = reversing_loop.start_or_resume_run("demo", mode="clean-run", project_root=tmp_path, run_id="run-test").run_state
+    assert state is not None
+
+    reversing_loop.write_iteration_report("demo", {"run_state": state, "iteration": {"id": "001", "status": "complete"}}, project_root=tmp_path)
+    reversing_loop.write_iteration_report("demo", {"run_state": state, "iteration": {"id": "002", "status": "complete"}}, project_root=tmp_path)
+
+    history_path = Path(state["report_paths"]["history"])
+    assert len(history_path.read_text(encoding="utf-8").splitlines()) == 2
+    latest = json.loads(Path(state["report_paths"]["latest"]).read_text(encoding="utf-8"))
+    assert latest["iteration"]["id"] == "002"
+
+
+def test_latest_report_write_is_atomic(tmp_path: Path) -> None:
+    _target(tmp_path)
+    state = reversing_loop.start_or_resume_run("demo", mode="clean-run", project_root=tmp_path, run_id="run-test").run_state
+    assert state is not None
+
+    reversing_loop.write_iteration_report("demo", {"run_state": state, "iteration": {"id": "001", "status": "complete"}}, project_root=tmp_path)
+
+    latest_path = Path(state["report_paths"]["latest"])
+    assert latest_path.exists()
+    assert not latest_path.with_name(f".{latest_path.name}.tmp").exists()
+
+
+def test_continue_resumes_complete_non_terminal_run(tmp_path: Path) -> None:
+    _target(tmp_path)
+    state = reversing_loop.start_or_resume_run("demo", mode="clean-run", project_root=tmp_path, run_id="run-test").run_state
+    assert state is not None
+    reversing_loop.write_iteration_report("demo", {"run_state": state, "iteration": {"id": "001", "status": "complete"}}, project_root=tmp_path)
+
+    result = reversing_loop.start_or_resume_run("demo", mode="continue", project_root=tmp_path)
+
+    assert result.status == "resumed"
+    assert result.run_state is not None
+    assert result.run_state["run_id"] == "run-test"
+
+
+def test_continue_rejects_partial_iteration_state(tmp_path: Path) -> None:
+    _target(tmp_path)
+    state = reversing_loop.start_or_resume_run("demo", mode="clean-run", project_root=tmp_path, run_id="run-test").run_state
+    assert state is not None
+    reversing_loop.write_iteration_report("demo", {"run_state": state, "iteration": {"id": "001", "status": "partial"}}, project_root=tmp_path)
+
+    result = reversing_loop.start_or_resume_run("demo", mode="continue", project_root=tmp_path)
+
+    assert result.status == "blocked"
+    assert result.run_state is None
+    assert result.reason == "latest iteration is partial; start a new clean-run or reimport run explicitly"

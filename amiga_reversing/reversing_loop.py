@@ -3,6 +3,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import uuid
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
@@ -13,6 +17,9 @@ from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
     inspect_target_hygiene,
 )
+
+TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
+PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -74,6 +81,78 @@ def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict
     }
 
 
+@dataclass(frozen=True, slots=True)
+class RunStartResult:
+    status: str
+    run_state: dict[str, object] | None
+    reason: str | None = None
+    latest_report: dict[str, object] | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status,
+            "run_state": self.run_state,
+            "reason": self.reason,
+            "latest_report": self.latest_report,
+        }
+
+
+def start_or_resume_run(
+    target_id: str,
+    *,
+    mode: str,
+    project_root: Path = PROJECT_ROOT,
+    run_id: str | None = None,
+    now: datetime | None = None,
+) -> RunStartResult:
+    paths = _run_report_paths(target_id, project_root)
+    latest = _read_latest_report(paths["latest"])
+    if mode == "continue" and latest is not None:
+        if _latest_iteration_is_partial(latest):
+            return RunStartResult(
+                status="blocked",
+                run_state=None,
+                reason="latest iteration is partial; start a new clean-run or reimport run explicitly",
+                latest_report=latest,
+            )
+        latest_state = latest.get("run_state")
+        if isinstance(latest_state, dict) and latest_state.get("status") not in TERMINAL_RUN_STATUSES:
+            return RunStartResult(
+                status="resumed",
+                run_state=dict(latest_state),
+                latest_report=latest,
+            )
+    state = _new_run_state(
+        target_id,
+        mode=mode,
+        paths=paths,
+        run_id=run_id,
+        now=now,
+    )
+    return RunStartResult(status="started", run_state=state)
+
+
+def write_iteration_report(
+    target_id: str,
+    report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    paths = _run_report_paths(target_id, project_root)
+    payload = dict(report)
+    run_state = payload.get("run_state")
+    if not isinstance(run_state, dict):
+        raise ValueError("iteration report requires run_state")
+    run_state = dict(run_state)
+    run_state.setdefault("report_paths", paths)
+    payload["run_state"] = run_state
+    paths["history"].parent.mkdir(parents=True, exist_ok=True)
+    with paths["history"].open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+    _atomic_write_json(paths["latest"], payload)
+    return payload
+
+
 def _project_state_payload(target_id: str, project_root: Path) -> dict[str, object]:
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -88,6 +167,58 @@ def _project_state_payload(target_id: str, project_root: Path) -> dict[str, obje
         "manual_state": project.manual_state,
         "review_items": [dict(item) for item in project.review_items],
     }
+
+
+def _new_run_state(
+    target_id: str,
+    *,
+    mode: str,
+    paths: dict[str, Path],
+    run_id: str | None,
+    now: datetime | None,
+) -> dict[str, object]:
+    current_run_id = run_id or f"run-{uuid.uuid4().hex}"
+    return {
+        "run_id": current_run_id,
+        "target_id": target_id,
+        "mode": mode,
+        "started_at": (now or datetime.now(UTC)).isoformat(),
+        "last_iteration_id": None,
+        "status": "running",
+        "report_paths": {key: str(path) for key, path in paths.items()},
+        "rollback_policy": "append corrective action or use explicit clean-run/reimport; do not delete manual history",
+    }
+
+
+def _run_report_paths(target_id: str, project_root: Path) -> dict[str, Path]:
+    target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    agent_dir = target_dir / "agent"
+    return {
+        "history": agent_dir / "reversing-loop.jsonl",
+        "latest": agent_dir / "latest-reversing-loop.json",
+    }
+
+
+def _read_latest_report(path: Path) -> dict[str, object] | None:
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else None
+
+
+def _latest_iteration_is_partial(report: dict[str, object]) -> bool:
+    iteration = report.get("iteration")
+    if not isinstance(iteration, dict):
+        return False
+    status = iteration.get("status")
+    return isinstance(status, str) and status in PARTIAL_ITERATION_STATUSES
+
+
+def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f".{path.name}.tmp")
+    temp_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(temp_path, path)
 
 
 def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:

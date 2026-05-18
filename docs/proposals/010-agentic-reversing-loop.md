@@ -1110,3 +1110,9 @@ to repeat the loop safely.
   manual action log stamps, optional project/manual-review state, round-trip
   report status, conservative candidate work items, available verification
   paths, and an explicit `safe_to_mutate` gate.
+- 010-005 added explicit run identity and report storage. Loop reports use
+  append-only `targets/<target>/agent/reversing-loop.jsonl` history plus atomic
+  `latest-reversing-loop.json`; `continue` resumes complete non-terminal runs
+  and rejects partial latest iterations, while `clean-run`/`reimport` start new
+  run ids. Reports carry the rollback policy: append corrective actions or use
+  explicit clean-run/reimport, never silent manual-history deletion.
