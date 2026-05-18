@@ -49,14 +49,16 @@ Implemented tests:
 - C backend render matrix covers data-block scalar byte/word/long elements,
   character byte arrays, explicit gap bytes, and padding bytes with exact
   rebuild.
+- C backend removal smoke proves removing a layout drops generated element
+  rendering back to raw data source and still rebuilds exactly.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 
 Remaining:
 - Active-layout-aware element selection context, so element commands no longer
   need explicit layout id/offset parameters.
-- Removal-to-raw/gap rendered-source verifier.
-- Rendered-source verifier coverage beyond semantic state and exact round-trip.
+- Loop rendered-source verifier coverage beyond semantic state and exact
+  round-trip.
 - Compact `dcb.*` run rendering for padding/gap spans and GenAm
   `loc_0_00001442` smoke.
 
