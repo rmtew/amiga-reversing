@@ -1,88 +1,89 @@
 # Amiga Game Disassembly Project
 
-## Project Purpose
+## Purpose
+
 LLM-assisted reverse engineering of Amiga game binaries. The goal is a fully
 reassemblable, documented disassembly with named symbols, typed data, and
 cross-references.
 
-## Spec-Driven Development
+## Spec-Driven M68K Tooling
 
-All M68K tooling (disassembler, assembler, simulator, effect predictor) is
-generated from structured data extracted from the Motorola 68000 Programmer's
-Reference Manual PDF. Nothing is hardcoded from human memory of the spec.
+All M68K tooling is generated from structured data extracted from the Motorola
+68000 Programmer's Reference Manual PDF.
 
-### The Pipeline
-
-```
-PDF  →  parser  →  JSON (knowledge base)  →  generated tools
-                                                  ↕
-                                          independent oracles
+```text
+PDF -> parser -> JSON knowledge base -> generated tools
+                                      -> independent oracle checks
 ```
 
-1. **PDF → JSON**: Parsers extract structured data from the PDF into
-   `knowledge/m68k_instructions.json`. Encodings, EA modes, forms, constraints,
-   condition code effects, SP effects — all derived mechanically.
-2. **JSON → Tools**: Disassembler, assembler, effect predictor, and any future
-   tools are driven from the JSON. No tool encodes M68K knowledge independently.
-3. **Oracles verify tools**: External implementations we did not write (vasm for
-   assembly, machine68k/Musashi for execution) serve as ground truth. They exist
-   only to verify our generated code — they are not components in the tool chain.
+Rules:
 
-### Rules
+- Never hardcode M68K knowledge in generated tools.
+- If generated code is wrong, fix parser/extraction upstream.
+- If the JSON cannot express a required fact, extend the schema and re-extract.
+- Parser-asserted KB entries are allowed only with comments that cite the PDF,
+  explain why the fact cannot be parsed directly, and state the asserted
+  standard interpretation.
+- Oracles such as vasm and machine68k/Musashi are black boxes used only for
+  verification.
 
-- **Never hardcode M68K knowledge.** If a tool needs a fact about an instruction,
-  that fact must be in the JSON, extracted from the PDF by a parser.
-- **Fix upstream, not downstream.** If generated code is wrong, fix the parser or
-  the extraction — don't patch the generated tool.
-- **If the JSON can't express it, extend the JSON.** Add new fields to the schema,
-  add a new parser phase, re-extract from the PDF.
-- **Parser-asserted KB entries are allowed** when the PDF implies but does not
-  explicitly state a fact (e.g. "carry is generated" without defining carry).
-  The parser inserts the interpretation into the JSON with a code comment that:
-  (1) cites the PDF page/section, (2) explains why it cannot be parsed directly,
-  and (3) states the universal or standard definition being asserted.
-  Downstream tools read these entries identically to parsed ones — no special cases.
-- **Oracles are black boxes.** We don't modify vasm or Musashi. We only ask them
-  questions and compare answers.
+## Agentic Reversing Loop
 
-## Key Conventions
+Before agentic target work, read and follow:
 
-### Manual Review
+- `docs/agents/reversing-loop.md`
+- relevant sections of `docs/proposals/010-agentic-reversing-loop.md`
+
+For real locator-backed comment work, use the same-process listing workflow:
+hygiene, `listing/open`, wait ready, fetch a row locator, confirm `comment.edit`
+from `/commands`, execute via `/commands/execute`, then verify Manual Action Log
+count/head hash, semantic reload, projected `comment_text`, `workflow_profile`,
+and agent report output.
+
+Do not rely on `reversing_loop inspect` alone for arbitrary comment candidates;
+it currently surfaces review items. Do not commit `.project.json` timestamp-only
+changes as meaningful progress. `manual_actions.jsonl` is local target state, so
+summarize it in reports unless tracked support code or docs also changed.
+
+## Manual Review State
+
 - C analysis facts are the source of truth for discovered code, data, labels,
   cross-references, and range classification.
-- User intervention is stored as a per-target Manual Action Log, not as mutable
-  `entities.jsonl` state.
-- Manual Review Items are regenerated from current analysis facts and previous
-  Manual Action Log projections.
-- `entities.jsonl`, entity overrides, and entity verification status are retired
-  state models. Do not add new dependencies on them.
+- User intervention lives in the per-target Manual Action Log.
+- Manual Review Items are regenerated from current analysis facts plus Manual
+  Action Log projections.
+- `entities.jsonl`, entity overrides, and entity verification status are retired.
+  Do not add dependencies on them.
 
-### Target Output
-- Per-target output goes in `targets/<name>/`
-- Disassembly output is vasm-compatible `.s` files
+## Target Output
+
+- Per-target output lives in `targets/<name>/`.
+- Disassembly output is vasm-compatible `.s`.
 - Use symbolic names from C analysis facts, target metadata, and accepted manual
-  seeds for all labels and references
-- Hardware register accesses must use symbolic names from `knowledge/amiga-hardware.md`
-- OS library calls must reference names from `knowledge/amiga-os.md`
+  seeds.
+- Hardware register accesses must use `knowledge/amiga-hardware.md`.
+- OS library calls must use `knowledge/amiga-os.md`.
 
-### Verification
-- **Round-trip test is mandatory**: reassemble with vasm, binary-diff against original
+## Verification
+
+- Round-trip verification is mandatory for output-affecting changes.
 - Never mark manual review work clear unless the relevant reproduction or
   type-specific checks pass.
+- Original binaries in `bin/` must never be modified.
+- Rebuilt binaries go in `bin/rebuilt/` and are gitignored.
 
-### Knowledge Files
-- `knowledge/m68k.md` — 68000 ISA reference
-- `knowledge/amiga-hardware.md` — custom chip register map
-- `knowledge/amiga-os.md` — OS library calls and structures
-- `knowledge/game-specific.md` — discovered game conventions (updated as we learn)
-- Load knowledge files on-demand, not all at once
+## Knowledge Files
 
-### Working With Analysis Facts
-- When analyzing code, always check its xrefs first.
-- Propagate naming: if a function is named, its data references can often be named too.
-- When naming, prefer descriptive names: `update_player_position` not `sub_1234`.
-- Record all cross-references bidirectionally (calls/called_by, reads/read_by, etc.).
+- `knowledge/m68k.md`
+- `knowledge/amiga-hardware.md`
+- `knowledge/amiga-os.md`
+- `knowledge/game-specific.md`
 
-### Binary Files
-- Original binary goes in `bin/` — never modify originals
-- Reassembled test binaries go in `bin/rebuilt/` (gitignored)
+Load knowledge files on demand.
+
+## Analysis Practice
+
+- Check xrefs before naming or classification.
+- Propagate naming from functions to referenced data when justified.
+- Prefer descriptive names, e.g. `update_player_position`, not `sub_1234`.
+- Record cross-references bidirectionally.
