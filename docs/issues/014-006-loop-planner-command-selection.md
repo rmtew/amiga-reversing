@@ -30,6 +30,9 @@ Progress:
 - Planner now recognizes explicit `data_symbol.rename` and `data_symbol.remove`
   candidates, ranks them above fallback comments, and skips already-satisfied
   data-symbol rename/remove candidates from projected metadata.
+- Planner now mines internal listing `data_ref` elements backed by
+  `runtime_address_refs` into autonomous `data_symbol.rename` candidates and
+  routes those commands through element context.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -56,8 +59,8 @@ failure, and GenAm-style non-comment smoke.
 
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
-  representations.
-- Extend planner tests across listing row seed, label, and autonomous
+  representations and internal referenced data names.
+- Extend planner tests across listing row seed, label, and broader autonomous
   data/global symbol feeds.
 
 Cleanup / deletion:

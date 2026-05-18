@@ -627,6 +627,41 @@ def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
     assert long_candidates == []
 
 
+def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:
+    row = _listing_row(
+        row_key="code-row",
+        text="\tlea $120(pc),a0\n",
+        start_offset=0x20,
+        end_offset=0x24,
+    )
+    row["runtime_address_refs"] = [
+        {
+            "offset": 0x20,
+            "operand_index": 0,
+            "target_section_index": 1,
+            "target_offset": 0x120,
+            "runtime_address": 0x40120,
+            "data_class": "bitmap",
+            "size": 0x20,
+        }
+    ]
+
+    candidates = reversing_loop._listing_data_symbol_candidates([row])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert candidates[0]["candidate_id"] == "data-ref-symbol:code-row:0:1:00000120:bitmap_00040120"
+    assert candidates[0]["durable_id"] == "data_ref:h1:00000120"
+    assert candidates[0]["new_name"] == "bitmap_00040120"
+    assert candidates[0]["element_id"] == "code-row:data_ref:0:1:00000120"
+    assert command["command_id"] == "data_symbol.rename"
+    assert command["context"] == {
+        "kind": "element",
+        "locator": row["locator"],
+        "element_id": "code-row:data_ref:0:1:00000120",
+    }
+    assert command["parameters"] == {"name": "bitmap_00040120"}
+
+
 def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
     candidates = reversing_loop._listing_rsset_region_candidates(_rsset_suggestion_navigation_payload())
 

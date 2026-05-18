@@ -31,8 +31,9 @@ Current evidence:
   verifier coverage for an instruction use-site reference to the renamed data
   definition.
 - Loop planner recognizes explicit data-symbol rename/remove candidates and
-  skips already-satisfied projected names/removals; autonomous candidate
-  production is still absent.
+  skips already-satisfied projected names/removals. It also mines internal
+  `data_ref` listing elements into autonomous referenced-data rename
+  candidates.
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
   autonomous candidate workflows remain open beyond seeded data-entity
   rename/remove and internal referenced data use-sites.

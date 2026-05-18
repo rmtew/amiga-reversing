@@ -905,6 +905,7 @@ def _inspect_report_with_listing_candidates(
         rows if isinstance(rows, list) else [],
         existing_representations=_existing_representation_keys(inspect_report),
     )
+    candidates.extend(_listing_data_symbol_candidates(rows if isinstance(rows, list) else []))
     try:
         navigation = server.route_request(
             "GET",
@@ -1005,6 +1006,91 @@ def _listing_representation_candidates(
                 }
             )
     return candidates
+
+
+def _listing_data_symbol_candidates(rows: list[object]) -> list[dict[str, object]]:
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        element_row = dict(row)
+        if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
+            element_row["stable_key"] = element_row["row_key"]
+        text = row.get("text")
+        for context in listing_element_contexts(element_row):
+            if context.get("element_kind") != "data_ref":
+                continue
+            element_id = context.get("element_id")
+            target_hunk = context.get("target_hunk")
+            target_addr = context.get("target_addr")
+            data_class = context.get("data_class")
+            if (
+                not isinstance(element_id, str)
+                or not isinstance(target_hunk, int)
+                or not isinstance(target_addr, int)
+                or not isinstance(data_class, str)
+            ):
+                continue
+            name = _data_ref_symbol_name(data_class, context.get("runtime_address"), target_hunk, target_addr)
+            if name is None or (isinstance(text, str) and name in text):
+                continue
+            row_key = cast(dict[str, object], locator).get("row_key")
+            operand_index = context.get("operand_index")
+            candidate_id = f"data-ref-symbol:{row_key}:{operand_index}:{target_hunk}:{target_addr:08X}:{name}"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "kind": "data_symbol_name",
+                    "durable_id": f"data_ref:h{target_hunk}:{target_addr:08X}",
+                    "locator": dict(cast(dict[str, object], locator)),
+                    "element_id": element_id,
+                    "element_kind": "data_ref",
+                    "operand_index": operand_index,
+                    "target_hunk": target_hunk,
+                    "target_addr": target_addr,
+                    "target_end": context.get("target_end"),
+                    "runtime_address": context.get("runtime_address"),
+                    "data_class": data_class,
+                    "evidence": {
+                        "source": "listing",
+                        "evidence_kind": "runtime_address_ref",
+                        "data_class": data_class,
+                        "runtime_address": context.get("runtime_address"),
+                        "target_hunk": target_hunk,
+                        "target_addr": target_addr,
+                    },
+                    "current_metadata": {},
+                    "expected_rendered_source_improvement": f"name referenced {data_class} data as {name}",
+                    "suggested_action_kind": "data_symbol.rename",
+                    "suggested_action_kinds": ["data_symbol.rename"],
+                    "new_name": name,
+                    "default_verifier": "round_trip",
+                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "confidence": "high",
+                    "rationale": "internal runtime-address reference identifies named data use-site candidate",
+                    "actionable": True,
+                    "stop_reason": None,
+                }
+            )
+    return candidates
+
+
+def _data_ref_symbol_name(data_class: str, runtime_address: object, target_hunk: int, target_addr: int) -> str | None:
+    prefix = _symbol_name_fragment(data_class)
+    if not prefix:
+        return None
+    if isinstance(runtime_address, int) and not isinstance(runtime_address, bool):
+        return f"{prefix}_{runtime_address:08X}"
+    return f"{prefix}_h{target_hunk}_{target_addr:08X}"
+
+
+def _symbol_name_fragment(value: str) -> str:
+    chars = [char.lower() if char.isalnum() else "_" for char in value.strip()]
+    return "_".join(part for part in "".join(chars).split("_") if part)
 
 
 def _existing_representation_keys(inspect_report: dict[str, object]) -> set[tuple[int, int, int | None, int | None, str]]:
@@ -2316,10 +2402,16 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         name = parameter_payload.get("name") or candidate.get("new_name") or candidate.get("data_symbol_name")
         if not isinstance(name, str) or not name:
             return None
+        element_id = candidate.get("element_id")
+        context = (
+            {"kind": "element", "locator": locator, "element_id": element_id}
+            if isinstance(element_id, str) and element_id
+            else {"kind": "row", "locator": locator}
+        )
         return {
             "kind": "command",
             "command_id": action,
-            "context": {"kind": "row", "locator": locator},
+            "context": context,
             "parameters": {"name": name},
             "output_affecting": True,
         }
