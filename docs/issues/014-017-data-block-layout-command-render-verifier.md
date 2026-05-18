@@ -16,7 +16,8 @@ Requirements:
   element actions through the public command catalog. Selected rows/ranges
   infer width, and infer `layout_id` plus layout-relative `offset` when the
   selected rows carry active data-block layout context; explicit parameters
-  still override inference.
+  still override inference. Range representation uses the same applicable
+  subranges as set/remove rather than inferring from the full selected range.
 - Render element-sized `dc.b`, `dc.w`, `dc.l`, `dcb.*`, numeric values, and
   character values while preserving exact rebuild. First slice implemented for
   scalar element projection via effective metadata: data-block elements emit
@@ -48,16 +49,20 @@ Implemented tests:
   that no longer require explicit `layout_id` or `offset`.
 - Reversing loop execution now selects data-block layout/element state
   verifiers, checks Manual Action Log replay, semantic reload state for element
-  set/represent/remove, rendered source tokens, exact round-trip, and blocks
-  unsupported type/ref commands without a verifier.
+  set/represent/remove, rendered source directive/value evidence, exact
+  round-trip, and blocks unsupported type/ref commands without a verifier.
 - Reversing loop rendered-source coverage now fails data-block element
   verification when the reloaded listing lacks required visible tokens from the
-  layout/element payload.
+  layout/element payload, emits the wrong directive width (`dc.b` vs `dc.w` vs
+  `dc.l`), or an element removal lacks raw/gap source restoration evidence.
 - C backend render matrix covers data-block scalar byte/word/long elements,
   character byte arrays, explicit gap bytes, and compact padding `dcb.b` runs
   with exact rebuild.
 - C backend removal smoke proves removing a layout drops generated element
   rendering back to raw data source and still rebuilds exactly.
+- C backend removal smoke proves removing a single element drops generated
+  element rendering back to raw data source while the layout remains and still
+  rebuilds exactly.
 - C backend GenAm smoke proves `loc_0_00001442` can render as the
   `ascii_hex_digit_value` lookup table with named digit/letter subranges and
   exact rebuild.

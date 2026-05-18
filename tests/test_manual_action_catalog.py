@@ -3,6 +3,7 @@ from __future__ import annotations
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
+    listing_range_catalog_manual_payload,
     listing_row_action_catalog,
     target_catalog_manual_payload,
 )
@@ -227,6 +228,46 @@ def test_data_block_element_commands_infer_active_layout_identity() -> None:
     assert represent_payload == {
         "data_block_element": {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"}
     }
+
+
+def test_range_data_block_element_represent_uses_applicable_subranges() -> None:
+    layout = {"layout_id": "ascii-hex", "hunk": 0, "source_start": 0x1400, "source_end": 0x1500}
+    rows = [
+        {
+            "kind": "data",
+            "row_index": 1,
+            "section_index": 0,
+            "start_offset": 0x1430,
+            "end_offset": 0x1431,
+            "active_data_block_layout": layout,
+        },
+        {"kind": "instruction", "row_index": 2, "section_index": 0, "start_offset": 0x1432, "end_offset": 0x1434},
+        {
+            "kind": "data",
+            "row_index": 3,
+            "section_index": 0,
+            "start_offset": 0x1440,
+            "end_offset": 0x1441,
+            "active_data_block_layout": layout,
+        },
+    ]
+
+    payloads = listing_range_catalog_manual_payload(
+        rows,
+        "range.data_block.element.represent",
+        parameters={"representation": "hex"},
+    )
+
+    assert payloads == [
+        (
+            "represent_manual_data_block_element",
+            {"data_block_element": {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"}},
+        ),
+        (
+            "represent_manual_data_block_element",
+            {"data_block_element": {"layout_id": "ascii-hex", "offset": 0x40, "representation": "hex"}},
+        ),
+    ]
 
 
 def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:

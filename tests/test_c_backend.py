@@ -3825,6 +3825,104 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_data_block_element_removal_returns_raw_source_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-element-removal.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b $41,$42,$43,$44
+after_data:
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    actions = [
+        {
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "ascii-hex",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 6,
+                "name": "ascii_hex_digit_value",
+                "role": "lookup_table",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "ascii-hex:0",
+                "layout_id": "ascii-hex",
+                "offset": 0,
+                "width": 4,
+                "kind": "array",
+                "name": "digit_chars",
+                "representation": "character",
+            },
+        },
+        {
+            "kind": "remove_manual_data_block_element",
+            "data_block_element": {"layout_id": "ascii-hex", "offset": 0, "removal_state": "raw"},
+        },
+    ]
+    lines = [
+        json.dumps(
+            {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+            sort_keys=True,
+        )
+    ]
+    for sequence, action in enumerate(actions, start=1):
+        lines.append(
+            json.dumps(
+                {
+                    "record": "manual_action",
+                    "action_id": f"a{sequence}",
+                    "sequence": sequence,
+                    "created_at": f"2026-05-18T00:00:{sequence:02d}+00:00",
+                    **action,
+                },
+                sort_keys=True,
+            )
+        )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "digit_chars" not in rendered
+    assert "\tdc.b $41,$42,$43,$44\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
 def test_real_dll_manual_representation_styles_instruction_immediates(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"

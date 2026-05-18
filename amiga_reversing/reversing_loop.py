@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -3477,7 +3478,13 @@ def _verify_projected_data_block_rendered_source(
     rows = data.get("rows") if isinstance(data, dict) else None
     if not isinstance(rows, list):
         return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
-    expected_tokens = _data_block_expected_render_tokens(expected)
+    render_expected = _project_data_block_element_state_match(
+        target_id,
+        command_id,
+        expected,
+        project_root=project_root,
+    ) or expected
+    expected_tokens = _data_block_expected_render_tokens(render_expected)
     rendered_text = "\n".join(
         " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
         for row in rows
@@ -3485,11 +3492,20 @@ def _verify_projected_data_block_rendered_source(
     )
     if command_id.endswith(".remove"):
         stale_tokens = [token for token in expected_tokens if token and token in rendered_text]
+        restore_tokens = _data_block_removal_restore_tokens(render_expected)
+        matched_restore_tokens = [token for token in restore_tokens if _rendered_source_contains_token(rendered_text, token)]
+        status = "failed" if stale_tokens else "passed"
+        if restore_tokens and len(matched_restore_tokens) != len(restore_tokens):
+            status = "failed"
+        if not expected_tokens and not restore_tokens:
+            status = "failed"
         return {
             "layer": "rendered_source",
-            "status": "failed" if stale_tokens else "passed",
+            "status": status,
             "source_offset": source_offset,
             "stale_tokens": stale_tokens,
+            "expected_restore_tokens": restore_tokens,
+            "matched_restore_tokens": matched_restore_tokens,
             "rendered_text": rendered_text,
         }
     if not expected_tokens:
@@ -3498,7 +3514,7 @@ def _verify_projected_data_block_rendered_source(
         metadata["source_offset"] = source_offset
         metadata["message"] = metadata.get("message", "verified affected locator; no stable rendered token in payload")
         return metadata
-    matched_tokens = [token for token in expected_tokens if token in rendered_text]
+    matched_tokens = [token for token in expected_tokens if _rendered_source_contains_token(rendered_text, token)]
     return {
         "layer": "rendered_source",
         "status": "passed" if len(matched_tokens) == len(expected_tokens) else "failed",
@@ -3562,17 +3578,37 @@ def _project_data_block_layout_by_id(
     return None
 
 
+def _project_data_block_element_state_match(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    key = "removed_data_block_elements" if command_id.endswith(".remove") else "data_block_elements"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    elements = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(elements, list | tuple):
+        return None
+    for element in elements:
+        if isinstance(element, dict) and _data_block_element_matches(element, expected):
+            return cast(dict[str, object], element)
+    return None
+
+
 def _data_block_expected_render_tokens(expected: dict[str, object]) -> list[str]:
     tokens: list[str] = []
     for key in ("name", "role"):
         value = expected.get(key)
         if isinstance(value, str) and value:
             tokens.append(value)
-    kind = expected.get("kind")
-    if kind in {"scalar", "array", "gap"}:
-        tokens.append("dc.")
-    if kind == "padding":
-        tokens.append("dcb.")
+    directive = _data_block_expected_directive(expected)
+    if directive is not None:
+        tokens.append(directive)
     representation = expected.get("representation")
     if representation == "character":
         tokens.append("'")
@@ -3581,6 +3617,59 @@ def _data_block_expected_render_tokens(expected: dict[str, object]) -> list[str]
     elif representation == "binary":
         tokens.append("%")
     return list(dict.fromkeys(tokens))
+
+
+def _data_block_removal_restore_tokens(expected: dict[str, object]) -> list[str]:
+    tokens: list[str] = []
+    removal_state = expected.get("removal_state")
+    width = _optional_positive_int(expected.get("width"))
+    if removal_state in {"raw", "gap"} and width is not None:
+        tokens.append("dc")
+    return tokens
+
+
+def _data_block_expected_directive(expected: dict[str, object]) -> str | None:
+    kind = expected.get("kind")
+    if kind == "padding":
+        return "dcb.b"
+    if kind == "gap":
+        return "dc.b"
+    if kind == "array":
+        stride = _optional_positive_int(expected.get("array_stride"))
+        if stride is not None:
+            return _data_block_directive_for_width(stride)
+        count = _optional_positive_int(expected.get("array_count"))
+        width = _optional_positive_int(expected.get("width"))
+        if count is not None and width is not None and width % count == 0:
+            return _data_block_directive_for_width(width // count)
+        return "dc.b"
+    if kind == "scalar":
+        return _data_block_directive_for_width(_optional_positive_int(expected.get("width")))
+    return None
+
+
+def _data_block_directive_for_width(width: int | None) -> str | None:
+    if width == 1:
+        return "dc.b"
+    if width == 2:
+        return "dc.w"
+    if width == 4:
+        return "dc.l"
+    return "dc.b" if width is not None else None
+
+
+def _optional_positive_int(value: object) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+        return value
+    return None
+
+
+def _rendered_source_contains_token(rendered_text: str, token: str) -> bool:
+    if token == "dc":
+        return re.search(r"(?<![A-Za-z0-9_.])dcb?\.[bwl](?![A-Za-z0-9_.])", rendered_text, re.IGNORECASE) is not None
+    if token.startswith(("dc", "dcb")):
+        return re.search(rf"(?<![A-Za-z0-9_.]){re.escape(token)}(?![A-Za-z0-9_.])", rendered_text, re.IGNORECASE) is not None
+    return token in rendered_text
 
 
 def _verify_seeded_item_suppression_mutation(

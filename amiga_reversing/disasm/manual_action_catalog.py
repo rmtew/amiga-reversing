@@ -554,6 +554,7 @@ def listing_range_catalog_manual_payload(
     if action.get("range_availability") == "unavailable":
         raise ValueError(str(action.get("availability_reason") or "Range action is unavailable"))
     params = dict(_object(action.get("parameters"), "catalog action parameters"))
+    user_params = dict(parameters or {})
     if parameters:
         params.update(parameters)
     if action.get("action") == "add_review_note":
@@ -565,14 +566,27 @@ def listing_range_catalog_manual_payload(
         ]
     if action.get("action") == "set_manual_data_block_element":
         return [
-            ("set_manual_data_block_element", {"data_block_element": _data_block_element_payload(subrange_rows, params)})
+            (
+                "set_manual_data_block_element",
+                {
+                    "data_block_element": _data_block_element_payload(
+                        subrange_rows,
+                        _data_block_range_subrange_params(params, user_params, {"layout_id", "offset", "width"}),
+                    )
+                },
+            )
             for subrange_rows in _range_action_subrange_rows(action, rows)
         ]
     if action.get("action") == "remove_manual_data_block_element":
         return [
             (
                 "remove_manual_data_block_element",
-                {"data_block_element": _data_block_element_remove_payload(subrange_rows, params)},
+                {
+                    "data_block_element": _data_block_element_remove_payload(
+                        subrange_rows,
+                        _data_block_range_subrange_params(params, user_params, {"layout_id", "offset", "width"}),
+                    )
+                },
             )
             for subrange_rows in _range_action_subrange_rows(action, rows)
         ]
@@ -580,8 +594,14 @@ def listing_range_catalog_manual_payload(
         return [
             (
                 "represent_manual_data_block_element",
-                {"data_block_element": _data_block_element_representation_payload(rows, params)},
+                {
+                    "data_block_element": _data_block_element_representation_payload(
+                        subrange_rows,
+                        _data_block_range_subrange_params(params, user_params, {"layout_id", "offset"}),
+                    )
+                },
             )
+            for subrange_rows in _range_action_subrange_rows(action, rows)
         ]
     subranges = action.get("applicable_subranges")
     if not isinstance(subranges, list) or not subranges:
@@ -600,6 +620,14 @@ def listing_range_catalog_manual_payload(
     if not results:
         raise ValueError("Range action has no available selected rows")
     return results
+
+
+def _data_block_range_subrange_params(
+    params: Mapping[str, object],
+    user_params: Mapping[str, object],
+    inferred_keys: set[str],
+) -> dict[str, object]:
+    return {key: value for key, value in params.items() if key not in inferred_keys or key in user_params}
 
 
 def _range_action_subrange_rows(
