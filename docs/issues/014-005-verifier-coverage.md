@@ -30,6 +30,9 @@ Current evidence:
   verifier is available before execution.
 - Target-context mutations now use `/commands/execute` local effects as their
   projection verifier instead of requiring row affected-locator metadata.
+- Target-context projection verification now requires a command-specific local
+  effect kind and matching parameter payload, so unrelated local effects cannot
+  satisfy the verifier.
 - Seeded data-symbol rename has rendered definition-name plus exact
   direct-rebuild coverage in
   `test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity`.

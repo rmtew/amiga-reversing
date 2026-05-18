@@ -389,8 +389,76 @@ def test_target_command_verification_accepts_local_effect_projection(
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
 
     assert report["verification"]["status"] == "passed"
-    assert report["verification"]["layers"][1] == {"layer": "projection", "status": "passed", "context_kind": "target"}
+    assert report["verification"]["layers"][1] == {
+        "layer": "projection",
+        "status": "passed",
+        "context_kind": "target",
+        "effect_kind": "target_equate",
+    }
     assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+
+
+def test_target_command_verification_rejects_wrong_local_effect() -> None:
+    command = {
+        "kind": "command",
+        "command_id": "target.equate.add",
+        "context": {"kind": "target"},
+        "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        "output_affecting": True,
+    }
+    durable_result = {
+        "application": {
+            "local_effects": [
+                {
+                    "kind": "execution_view",
+                    "execution_view": {
+                        "source_start": 0x20,
+                        "source_end": 0x80,
+                        "base_addr": 0x4000,
+                        "name": "stage_code",
+                    },
+                }
+            ]
+        }
+    }
+
+    assert reversing_loop._verify_projection_metadata(command, durable_result) == {
+        "layer": "projection",
+        "status": "failed",
+        "message": "target command local effect was not reported",
+    }
+
+
+def test_target_command_verification_rejects_mismatched_local_effect_payload() -> None:
+    command = {
+        "kind": "command",
+        "command_id": "target.equate.add",
+        "context": {"kind": "target"},
+        "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        "output_affecting": True,
+    }
+    durable_result = {
+        "application": {
+            "local_effects": [{"kind": "target_equate", "target_equate": {"name": "PLAYER_START_LIVES", "value": 5}}]
+        }
+    }
+
+    assert reversing_loop._verify_projection_metadata(command, durable_result)["status"] == "failed"
+
+
+def test_target_command_verification_requires_rename_previous_name() -> None:
+    command = {
+        "kind": "command",
+        "command_id": "target.equate.rename",
+        "context": {"kind": "target"},
+        "parameters": {"previous_name": "OLD_NAME", "name": "NEW_NAME"},
+        "output_affecting": True,
+    }
+    durable_result = {
+        "application": {"local_effects": [{"kind": "target_equate", "target_equate": {"name": "NEW_NAME"}}]}
+    }
+
+    assert reversing_loop._verify_projection_metadata(command, durable_result)["status"] == "failed"
 
 
 def test_planner_ranks_source_converging_representation_before_comment(

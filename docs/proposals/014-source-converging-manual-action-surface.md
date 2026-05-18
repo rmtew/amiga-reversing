@@ -151,8 +151,9 @@ reproduction state blocks progress.
 
 Implementation observation from `014-005`: target-context commands do not have
 row affected-locator metadata. Their projection verifier must use authoritative
-`/commands/execute` local effects, then rely on semantic reload and round-trip
-layers for source convergence.
+`/commands/execute` local effects, matched by command-specific effect kind and
+payload, then rely on semantic reload and round-trip layers for source
+convergence.
 
 ## Principles
 

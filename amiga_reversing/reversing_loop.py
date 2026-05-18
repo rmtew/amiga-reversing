@@ -99,6 +99,27 @@ _SEMANTIC_COMMAND_PREFIXES = (
     "semantic.struct_offset.",
     "semantic.equate.",
 )
+_TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
+    "target.equate.add": ("target_equate", "target_equate"),
+    "target.equate.edit": ("target_equate", "target_equate"),
+    "target.equate.rename": ("target_equate", "target_equate"),
+    "target.equate.remove": ("target_equate_remove", "target_equate"),
+    "target.rsset_region.add": ("rsset_layout_region", "rsset_layout_region"),
+    "target.rsset_region.edit": ("rsset_layout_region", "rsset_layout_region"),
+    "target.rsset_region.rename": ("rsset_layout_region", "rsset_layout_region"),
+    "target.rsset_region.remove": ("rsset_layout_region_remove", "rsset_layout_region"),
+    "target.custom_struct.add": ("custom_struct", "custom_struct"),
+    "target.custom_struct.edit": ("custom_struct", "custom_struct"),
+    "target.custom_struct.rename": ("custom_struct", "custom_struct"),
+    "target.custom_struct.remove": ("custom_struct_remove", "custom_struct"),
+    "target.custom_struct_field.add": ("custom_struct_field", "custom_struct_field"),
+    "target.custom_struct_field.edit": ("custom_struct_field", "custom_struct_field"),
+    "target.custom_struct_field.rename": ("custom_struct_field", "custom_struct_field"),
+    "target.custom_struct_field.remove": ("custom_struct_field_remove", "custom_struct_field"),
+    "target.execution_view.add": ("execution_view", "execution_view"),
+    "target.execution_view.edit": ("execution_view", "execution_view"),
+    "target.execution_view.remove": ("execution_view_remove", "execution_view"),
+}
 
 
 def _parse_int_auto(value: str) -> int:
@@ -2471,8 +2492,24 @@ def _verify_projection_metadata(command: dict[str, object], durable_result: dict
     context_kind = context.get("kind") if isinstance(context, dict) else None
     application = durable_result.get("application")
     local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if context_kind == "target" and isinstance(local_effects, list) and local_effects:
-        return {"layer": "projection", "status": "passed", "context_kind": "target"}
+    if context_kind == "target" and isinstance(local_effects, list):
+        matched = [
+            effect
+            for effect in local_effects
+            if isinstance(effect, dict) and _target_local_effect_matches_command(command, effect)
+        ]
+        if matched:
+            return {
+                "layer": "projection",
+                "status": "passed",
+                "context_kind": "target",
+                "effect_kind": matched[0].get("kind"),
+            }
+        return {
+            "layer": "projection",
+            "status": "failed",
+            "message": "target command local effect was not reported",
+        }
     expected_locator = context.get("locator") if isinstance(context, dict) else None
     mutation = durable_result.get("mutation")
     affected = mutation.get("affected_locators") if isinstance(mutation, dict) else None
@@ -2485,6 +2522,28 @@ def _verify_projection_metadata(command: dict[str, object], durable_result: dict
         "status": "failed",
         "message": "affected locator was not reported by command execution",
     }
+
+
+def _target_local_effect_matches_command(command: dict[str, object], effect: dict[str, object]) -> bool:
+    command_id = command.get("command_id")
+    if not isinstance(command_id, str):
+        return False
+    effect_contract = _TARGET_LOCAL_EFFECTS.get(command_id)
+    if effect_contract is None:
+        return False
+    effect_kind, payload_key = effect_contract
+    if effect.get("kind") != effect_kind:
+        return False
+    payload = effect.get(payload_key)
+    parameters = command.get("parameters")
+    return isinstance(payload, dict) and _projection_payload_matches_parameters(
+        payload,
+        parameters if isinstance(parameters, dict) else {},
+    )
+
+
+def _projection_payload_matches_parameters(payload: dict[str, object], parameters: dict[str, object]) -> bool:
+    return all(payload.get(key) == value for key, value in parameters.items())
 
 
 def _round_trip_verifier_available(inspect_report: dict[str, object]) -> bool:
