@@ -739,6 +739,15 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                 "F2",
             )
         )
+        actions.append(
+            _context_log_action(
+                "data_symbol.remove",
+                "Remove data symbol",
+                "suppress_seeded_item",
+                context,
+                {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]},
+            )
+        )
     return actions
 
 

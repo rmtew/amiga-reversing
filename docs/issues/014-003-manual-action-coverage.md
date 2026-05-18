@@ -38,6 +38,8 @@ Current progress:
   same durable identity.
 - `rename_data_symbol` replay projects a manual seeded-entity name override by
   durable `(hunk, addr)` identity.
+- Seeded data symbol removal uses existing durable `suppress_seeded_item`
+  replay.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

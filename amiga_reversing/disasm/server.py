@@ -2497,6 +2497,10 @@ def _manual_action_application_payload(
         symbol = action_payload.get("data_symbol")
         if isinstance(symbol, Mapping):
             local_effects.append({"kind": "data_symbol_rename", "data_symbol": dict(symbol)})
+    elif kind == "suppress_seeded_item":
+        item = action_payload.get("suppressed_seeded_item")
+        if isinstance(item, Mapping):
+            local_effects.append({"kind": "seeded_item_suppression", "suppressed_seeded_item": dict(item)})
     elif kind == "create_manual_execution_view":
         view = action_payload.get("execution_view")
         if isinstance(view, Mapping):
