@@ -207,6 +207,10 @@ The same applies to fallback comments: generic `run-one` must verify the
 projected comment text, not merely that command execution reported an affected
 locator.
 
+Implementation observation from `014-006`/`014-014`: data-class annotations on
+definition rows are durable enough to feed row-level data-symbol naming. Use the
+row hunk/offset identity and skip projected names before proposing a rename.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

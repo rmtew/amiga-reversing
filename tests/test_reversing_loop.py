@@ -1165,6 +1165,27 @@ def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:
     assert command["parameters"] == {"name": "bitmap_00040120"}
 
 
+def test_listing_data_symbol_candidates_use_data_class_row_identity() -> None:
+    row = _listing_row(
+        row_key="bitmap-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "bitmap"
+
+    candidates = reversing_loop._listing_data_symbol_candidates([row])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert candidates[0]["candidate_id"] == "data-class-symbol:bitmap-row:0:00000040:bitmap_h0_00000040"
+    assert candidates[0]["durable_id"] == "data_class:h0:00000040"
+    assert candidates[0]["new_name"] == "bitmap_h0_00000040"
+    assert command["command_id"] == "data_symbol.rename"
+    assert command["context"] == {"kind": "row", "locator": row["locator"]}
+    assert command["parameters"] == {"name": "bitmap_h0_00000040"}
+
+
 def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     row = _listing_row(
         row_key="code-row",

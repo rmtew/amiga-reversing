@@ -67,6 +67,8 @@ Progress:
 - Generic `run-one` now mines source descriptor entrypoint evidence into an
   autonomous `label.rename` candidate when the listing still has the generated
   source label at that address.
+- Generic `run-one` now mines `data_class` listing rows into row-level
+  `data_symbol.rename` candidates, beyond referenced data use-sites.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

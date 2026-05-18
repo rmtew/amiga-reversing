@@ -39,6 +39,8 @@ Current evidence:
   candidates.
 - Autonomous referenced-data rename candidates now skip names already present in
   effective target metadata as well as Manual Action Log projections.
+- Autonomous data-symbol rename candidates now include row-level `data_class`
+  evidence for data definitions, not only referenced data use-sites.
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
   autonomous candidate workflows remain open beyond seeded data-entity
   rename/remove and internal referenced data use-sites.

@@ -1238,6 +1238,54 @@ def _listing_data_symbol_candidates(
         locator = row.get("locator")
         if not _is_full_listing_locator(locator):
             continue
+        locator_dict = cast(dict[str, object], locator)
+        if row.get("kind") == "data":
+            hunk = locator_dict.get("section_index")
+            addr = locator_dict.get("start_offset")
+            data_class = row.get("data_class")
+            if isinstance(hunk, int) and isinstance(addr, int) and isinstance(data_class, str) and data_class:
+                name = _data_ref_symbol_name(data_class, row.get("runtime_address"), hunk, addr)
+                text = row.get("text")
+                existing_name = existing.get((hunk, addr))
+                row_symbol = row.get("symbol") or row.get("label")
+                if existing_name is None and isinstance(row_symbol, str) and row_symbol:
+                    existing_name = row_symbol
+                if name is not None and existing_name != name and not (isinstance(text, str) and name in text):
+                    row_key = locator_dict.get("row_key")
+                    candidate_id = f"data-class-symbol:{row_key}:{hunk}:{addr:08X}:{name}"
+                    candidates.append(
+                        {
+                            "id": candidate_id,
+                            "candidate_id": candidate_id,
+                            "kind": "data_symbol_name",
+                            "durable_id": f"data_class:h{hunk}:{addr:08X}",
+                            "locator": dict(locator_dict),
+                            "target_hunk": hunk,
+                            "target_addr": addr,
+                            "target_end": locator_dict.get("end_offset"),
+                            "runtime_address": row.get("runtime_address"),
+                            "data_class": data_class,
+                            "evidence": {
+                                "source": "listing",
+                                "evidence_kind": "data_class_row",
+                                "data_class": data_class,
+                                "runtime_address": row.get("runtime_address"),
+                                "target_hunk": hunk,
+                                "target_addr": addr,
+                            },
+                            "current_metadata": {"name": existing_name} if isinstance(existing_name, str) else {},
+                            "expected_rendered_source_improvement": f"name {data_class} data row as {name}",
+                            "suggested_action_kind": "data_symbol.rename",
+                            "suggested_action_kinds": ["data_symbol.rename"],
+                            "new_name": name,
+                            "default_verifier": "round_trip",
+                            "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                            "confidence": "high",
+                            "rationale": "listing data class identifies named data definition candidate",
+                            "actionable": True,
+                            "stop_reason": None,
+                        }
+                    )
         element_row = dict(row)
         if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
             element_row["stable_key"] = element_row["row_key"]
