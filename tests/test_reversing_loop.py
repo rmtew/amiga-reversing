@@ -883,6 +883,84 @@ def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
     ]
 
 
+def test_target_custom_struct_command_candidate_uses_target_context_and_round_trip_verifier() -> None:
+    candidate = {
+        "id": "custom-struct-field",
+        "candidate_id": "custom-struct-field",
+        "kind": "custom_struct_field",
+        "suggested_action_kinds": ["target.custom_struct_field.add"],
+        "parameters": {
+            "struct_name": "InputEvent",
+            "name": "ie_Code",
+            "type": "UWORD",
+            "offset": 6,
+            "size": 2,
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "target.custom_struct_field.add",
+        "context": {"kind": "target"},
+        "parameters": {
+            "struct_name": "InputEvent",
+            "name": "ie_Code",
+            "type": "UWORD",
+            "offset": 6,
+            "size": 2,
+        },
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
+def test_typed_field_command_candidate_uses_selected_element_context() -> None:
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "typed_gap.field.add",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(),
+            "element_id": "row-1:typed_gap:1:A0:36",
+            "element_kind": "typed_gap",
+            "operand_index": 1,
+            "base_register": "A0",
+            "displacement": 36,
+            "root_struct_name": "InputEvent",
+            "refined_struct_name": "DerivedEvent",
+            "classification": "prefix_extension",
+        },
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

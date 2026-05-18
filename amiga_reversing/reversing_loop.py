@@ -52,6 +52,19 @@ _COMMAND_RANK = {
     "representation.binary": 75,
     "representation.character": 75,
     "semantic.register.struct_ptr": 73,
+    "target.custom_struct.add": 72,
+    "target.custom_struct.edit": 72,
+    "target.custom_struct.rename": 72,
+    "target.custom_struct.remove": 68,
+    "target.custom_struct_field.add": 72,
+    "target.custom_struct_field.edit": 72,
+    "target.custom_struct_field.rename": 72,
+    "target.custom_struct_field.remove": 68,
+    "typed_gap.field.add": 72,
+    "typed_gap.field.edit": 72,
+    "typed_access.field.edit": 72,
+    "typed_access.field.rename": 72,
+    "typed_access.field.remove": 68,
     "target.rsset_region.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
@@ -2170,6 +2183,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
         return "round_trip"
+    if any(action.startswith(("target.custom_struct.", "target.custom_struct_field.", "typed_gap.field.", "typed_access.field.")) for action in actions):
+        return "round_trip"
     if any(action == "semantic.register.struct_ptr" or action.startswith(tuple(_COMMAND_PREFIX_RANK)) for action in actions):
         return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
@@ -2568,11 +2583,30 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         "target.rsset_region.edit",
         "target.rsset_region.rename",
         "target.rsset_region.remove",
+        "target.custom_struct.add",
+        "target.custom_struct.edit",
+        "target.custom_struct.rename",
+        "target.custom_struct.remove",
+        "target.custom_struct_field.add",
+        "target.custom_struct_field.edit",
+        "target.custom_struct_field.rename",
+        "target.custom_struct_field.remove",
     }:
         return {
             "kind": "command",
             "command_id": action,
             "context": {"kind": "target"},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action.startswith(("typed_gap.field.", "typed_access.field.")):
+        context = _typed_field_context_from_candidate(candidate)
+        if context is None:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
             "parameters": parameter_payload,
             "output_affecting": True,
         }
@@ -2600,6 +2634,30 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "output_affecting": True,
         }
     return None
+
+
+def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
+    locator = candidate.get("locator")
+    element_id = candidate.get("element_id")
+    if not isinstance(element_id, str) or not element_id:
+        return None
+    context: dict[str, object] = {"kind": "element", "locator": locator, "element_id": element_id}
+    for key in (
+        "element_kind",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "field_offset",
+        "root_struct_name",
+        "owner_struct_name",
+        "refined_struct_name",
+        "field_name",
+        "field_expr",
+        "classification",
+    ):
+        if key in candidate:
+            context[key] = candidate[key]
+    return context
 
 
 def _semantic_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
