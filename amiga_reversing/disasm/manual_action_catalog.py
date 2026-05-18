@@ -303,6 +303,15 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             _row_allows_data_seed,
         ),
         _range_seed_action(
+            "range.seed.data.named",
+            "Name data",
+            context,
+            rows,
+            {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
+            _row_allows_data_seed,
+            _data_name_parameter_schema(),
+        ),
+        _range_seed_action(
             "range.seed.data.byte",
             "Byte data",
             context,
@@ -1378,9 +1387,10 @@ def _range_seed_action(
     rows: list[Mapping[str, object]],
     parameters: Mapping[str, object],
     predicate: Callable[[Mapping[str, object]], bool],
+    parameter_schema: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     eligible = [row for row in rows if predicate(row)]
-    action = _context_log_action(action_id, label, "create_manual_seed", context, parameters)
+    action = _context_log_action(action_id, label, "create_manual_seed", context, parameters, parameter_schema)
     subranges = _contiguous_subranges(eligible)
     if len(eligible) == len(rows):
         action["range_availability"] = "applicable"

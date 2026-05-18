@@ -2099,6 +2099,7 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
 
     raw_block = next(action for action in actions if action["action_id"] == "range.seed.data.raw")
+    named_block = next(action for action in actions if action["action_id"] == "range.seed.data.named")
     palette = next(action for action in actions if action["action_id"] == "range.seed.data.palette")
     code_seed = next(action for action in actions if action["action_id"] == "range.seed.code")
     semantic_helpers = next(action for action in actions if action["action_id"] == "range.semantic.helpers")
@@ -2110,6 +2111,11 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
         for action in actions
         if str(action["action_id"]).removeprefix("range.seed.data.") in _FULL_DATA_ROLE_IDS
     } == _FULL_DATA_ROLE_IDS
+    assert named_block["range_availability"] == "partial"
+    assert named_block["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
+    assert named_block["parameter_schema"]["required"] == ["name"]
+    assert named_block["interaction_schema"]["type"] == "text"
+    assert named_block["interaction_schema"]["primary_field"] == "name"
     assert palette["range_availability"] == "partial"
     assert palette["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
     assert "2 of 3" in str(raw_block["availability_reason"])
@@ -2197,7 +2203,28 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     assert application["status"] == "pending"
     assert cast(dict[str, object], application["refresh"])["mode"] == "analysis"
     assert pending_ranges[0]["row_indexes"] == [1, 2]
-    assert appended_actions == [action]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    named_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "range.seed.data.named",
+            "context": _range_command_context(rows),
+            "parameters": {"name": "manual_range"},
+        },
+    )
+    named_action = cast(dict[str, object], cast(dict[str, object], named_payload["data"])["action"])
+    named_seed = cast(dict[str, object], cast(dict[str, object], named_action["payload"])["seed"])
+
+    assert named_seed["kind"] == "data"
+    assert named_seed["name"] == "manual_range"
+    assert named_seed["data_role"] == "raw"
+    assert named_seed["unit"] == "byte"
+    assert named_seed["addr"] == 2
+    assert named_seed["end"] == 4
+    assert named_seed["row_indexes"] == [1, 2]
+    assert appended_actions == [action, named_action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
