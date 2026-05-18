@@ -39,6 +39,8 @@ Current evidence:
   reloaded execution-view state rather than target local-effect metadata.
 - Execution-view verifier coverage now includes removed-view identities, not
   only add/edit execution views.
+- Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
+  corrections and `execution_view_state` for execution-view commands.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

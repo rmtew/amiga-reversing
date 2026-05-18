@@ -2504,7 +2504,7 @@ def test_target_execution_view_command_candidate_uses_target_context() -> None:
         },
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "execution_view_state"
 
 
 def test_target_execution_view_candidate_skips_already_projected_view() -> None:
@@ -2617,7 +2617,7 @@ def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_
         "parameters": {},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "suppressed_seeded_item"
 
 
 def test_correction_suppress_seeded_item_skips_already_projected_suppression() -> None:

@@ -64,6 +64,8 @@ Current evidence:
   of accepting target local-effect metadata alone.
 - Planner verifier summaries now report `projected_data_symbol_name` for
   `data_symbol.rename` and `suppressed_seeded_item` for `data_symbol.remove`.
+- Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
+  corrections and `execution_view_state` for execution-view commands.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.
