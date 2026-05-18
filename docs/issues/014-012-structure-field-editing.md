@@ -36,6 +36,13 @@ Current evidence:
   verifier before catalog availability or execution, so forced or stale
   selections cannot bypass the custom-struct missing-verifier block through
   generic target local-effect projection.
+- That pre-execution block is covered for target custom-struct commands,
+  target custom-struct-field commands, typed-gap field commands, and typed-access
+  field commands.
+- The C analysis policy currently imports target metadata for register seeds,
+  seeded entities, target equates, manual representations, execution views,
+  absolute labels, and Amiga RSSET layout regions, but has no `custom_structs`
+  import into the typed-reference resolver.
 - No verifier proves rendered typed field paths from custom struct metadata yet.
 
 Acceptance criteria:

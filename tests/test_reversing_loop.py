@@ -387,7 +387,43 @@ def test_output_affecting_action_runs_round_trip_layer(
     assert report["verification"]["layers"][-1]["round_trip"]["status"] == "mismatch"
 
 
-def test_target_custom_struct_command_blocks_without_specific_verifier(
+@pytest.mark.parametrize(
+    ("command_id", "context", "parameters"),
+    [
+        (
+            "target.custom_struct.add",
+            {"kind": "target"},
+            {"name": "InputEvent", "size": 22},
+        ),
+        (
+            "target.custom_struct_field.add",
+            {"kind": "target"},
+            {"struct_name": "InputEvent", "name": "ie_Class", "type": "UBYTE", "offset": 4, "size": 1},
+        ),
+        (
+            "typed_gap.field.add",
+            {
+                "kind": "element",
+                "element_id": "row-1:typed_gap:0:prefix_extension",
+                "element_kind": "typed_gap",
+            },
+            {"name": "de_Code", "type": "UWORD", "size": 2},
+        ),
+        (
+            "typed_access.field.rename",
+            {
+                "kind": "element",
+                "element_id": "row-1:typed_access:0:LIB_VERSION",
+                "element_kind": "typed_access",
+            },
+            {"name": "LIB_REVISION"},
+        ),
+    ],
+)
+def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_verifier(
+    command_id: str,
+    context: dict[str, object],
+    parameters: dict[str, object],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -399,9 +435,9 @@ def test_target_custom_struct_command_blocks_without_specific_verifier(
         "work_item": inspect_report["candidate_work"][0],
         "command": {
             "kind": "command",
-            "command_id": "target.custom_struct.add",
-            "context": {"kind": "target"},
-            "parameters": {"name": "InputEvent", "size": 22},
+            "command_id": command_id,
+            "context": context,
+            "parameters": parameters,
             "output_affecting": True,
         },
     }
@@ -409,7 +445,7 @@ def test_target_custom_struct_command_blocks_without_specific_verifier(
     monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
-        raise AssertionError("unsupported custom struct command should not execute")
+        raise AssertionError("unsupported custom struct or typed field command should not execute")
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
@@ -418,7 +454,7 @@ def test_target_custom_struct_command_blocks_without_specific_verifier(
     assert report["action_result"]["status"] == "blocked"
     assert report["verification"]["status"] == "failed"
     assert report["verification"]["layers"][0]["layer"] == "verifier"
-    assert report["verification"]["layers"][0]["command_id"] == "target.custom_struct.add"
+    assert report["verification"]["layers"][0]["command_id"] == command_id
 
 
 def test_run_one_manual_seed_executes_with_seed_state_verifier(

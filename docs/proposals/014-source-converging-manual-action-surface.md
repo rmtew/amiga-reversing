@@ -311,6 +311,12 @@ Execution-view commands produce target runtime view state; their verifier should
 check the reloaded execution view or removed-view identity plus round-trip
 instead of accepting target local-effect metadata alone.
 
+Implementation observation from `014-012`: custom struct and typed-field Manual
+Action Log entries currently project into effective target metadata, but the C
+analysis policy does not import `custom_structs` into the typed-reference
+resolver. Keep target/listing custom-field commands blocked until a backend
+render path and rendered-field verifier exist.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
