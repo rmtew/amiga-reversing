@@ -368,6 +368,26 @@ def test_listing_backed_comment_discovers_entrypoint_candidate(
     assert candidates[0]["evidence"]["entrypoint"] == 2
 
 
+def test_listing_backed_comment_discovers_hunk_file_entrypoint_candidate(
+    tmp_path: Path,
+) -> None:
+    _target(tmp_path)
+    _write_hunk_source(tmp_path)
+
+    candidates = reversing_loop._listing_comment_candidates(
+        "demo",
+        [
+            _listing_row(row_key="global", kind="directive", start_offset=None, end_offset=None),
+            _listing_row(row_key="entry", kind="label", start_offset=0, end_offset=0),
+        ],
+        project_root=tmp_path,
+    )
+
+    assert [candidate["candidate_id"] for candidate in candidates] == ["source-entrypoint:entry"]
+    assert candidates[0]["evidence"]["evidence_kind"] == "hunk_load_entrypoint"
+    assert candidates[0]["suggested_comment_text"] == "Hunk file entrypoint."
+
+
 def test_listing_backed_comment_does_not_use_first_commentable_row_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -405,6 +425,43 @@ def test_listing_backed_comment_does_not_use_first_commentable_row_fallback(
 
     assert queried_rows == ["row-2"]
     assert report["selected_work_item"]["locator"]["row_key"] == "row-2"
+
+
+def test_listing_backed_comment_selects_hunk_entrypoint_beyond_header_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_hunk_source(tmp_path)
+    listing_queries: list[dict[str, list[str]]] = []
+    rows = [
+        _listing_row(row_key=f"global-{index}", kind="directive", start_offset=None, end_offset=None)
+        for index in range(120)
+    ]
+    rows.append(_listing_row(row_key="entry", kind="label", start_offset=0, end_offset=0))
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            listing_queries.append(query)
+            return {"data": {"rows": rows}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        dry_run=True,
+        project_root=tmp_path,
+    )
+
+    assert listing_queries == [{"start": ["0"], "count": [str(reversing_loop._LISTING_COMMENT_SEARCH_ROW_COUNT)]}]
+    assert report["selected_work_item"]["locator"]["row_key"] == "entry"
+    assert report["action"]["parameters"] == {"text": "Hunk file entrypoint."}
 
 
 def test_listing_backed_comment_stops_when_no_evidence_candidate(
@@ -710,21 +767,28 @@ def _listing_row(
     comment_text: str | None = None,
     *,
     row_key: str = "row-1",
-    start_offset: int = 0,
-    end_offset: int = 2,
+    kind: str = "instruction",
+    start_offset: int | None = 0,
+    end_offset: int | None = 2,
 ) -> dict[str, object]:
     row = {
         "row_key": row_key,
-        "kind": "instruction",
+        "kind": kind,
         "addr": start_offset,
-        "locator": _listing_locator(row_key=row_key, start_offset=start_offset, end_offset=end_offset),
+        "locator": _listing_locator(row_key=row_key, kind=kind, start_offset=start_offset, end_offset=end_offset),
     }
     if comment_text is not None:
         row["comment_text"] = comment_text
     return row
 
 
-def _listing_locator(*, row_key: str = "row-1", start_offset: int = 0, end_offset: int = 2) -> dict[str, object]:
+def _listing_locator(
+    *,
+    row_key: str = "row-1",
+    kind: str = "instruction",
+    start_offset: int | None = 0,
+    end_offset: int | None = 2,
+) -> dict[str, object]:
     return {
         "target_id": "demo",
         "projection_hash": "projection-1",
@@ -732,7 +796,7 @@ def _listing_locator(*, row_key: str = "row-1", start_offset: int = 0, end_offse
         "section_index": 0,
         "start_offset": start_offset,
         "end_offset": end_offset,
-        "kind": "instruction",
+        "kind": kind,
     }
 
 
@@ -749,6 +813,21 @@ def _write_raw_source(tmp_path: Path, *, entrypoint: int = 0) -> None:
                 "load_address": 0,
                 "entrypoint": entrypoint,
                 "code_start_offset": 0,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_hunk_source(tmp_path: Path) -> None:
+    binary_path = tmp_path / "bin" / "demo"
+    binary_path.parent.mkdir(exist_ok=True)
+    binary_path.write_bytes(b"\x00\x00\x03\xf3")
+    (tmp_path / "targets" / "demo" / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "hunk_file",
+                "path": str(binary_path),
             }
         ),
         encoding="utf-8",

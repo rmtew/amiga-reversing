@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm import projects, server
-from amiga_reversing.disasm.binary_source import resolve_target_binary_source
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    resolve_target_binary_source,
+)
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.reversing_workspace import (
@@ -22,6 +25,7 @@ from amiga_reversing.reversing_workspace import (
 
 TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
 PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
+_LISTING_COMMENT_SEARCH_ROW_COUNT = 512
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -629,7 +633,7 @@ def _select_listing_comment_action(
         listing = server.route_request(
             "GET",
             f"/api/projects/{target_id}/listing",
-            {"start": ["0"], "count": ["80"]},
+            {"start": ["0"], "count": [str(_LISTING_COMMENT_SEARCH_ROW_COUNT)]},
         )
     except Exception as exc:
         return {"status": "failed", "message": str(exc)}
@@ -667,7 +671,7 @@ def _select_listing_comment_action(
             "command_availability_checked": True,
         }
         checked_candidates.append(checked)
-        text = _clean_comment_text(comment_text)
+        text = _clean_comment_text(comment_text) or _comment_text_from_candidate(checked)
         command = {
             "kind": "command",
             "command_id": "comment.edit",
@@ -698,6 +702,10 @@ def _listing_comment_candidates(
     entrypoint = _source_entrypoint_evidence(target_id, project_root=project_root)
     if entrypoint is None:
         return []
+    section_index = entrypoint["section_index"]
+    offset = entrypoint["offset"]
+    assert isinstance(section_index, int)
+    assert isinstance(offset, int)
     candidates: list[dict[str, object]] = []
     for row in rows:
         if not isinstance(row, dict):
@@ -705,49 +713,54 @@ def _listing_comment_candidates(
         locator = row.get("locator")
         if not _is_full_listing_locator(locator):
             continue
-        if not _row_covers_offset(row, cast(dict[str, object], locator), entrypoint):
+        if not _row_covers_source_location(row, cast(dict[str, object], locator), section_index, offset):
             continue
         row_key = locator.get("row_key")
         candidate_id = f"source-entrypoint:{row_key}"
-        candidates.append(
-            {
-                "id": candidate_id,
-                "candidate_id": candidate_id,
-                "kind": "source_entrypoint_row",
-                "durable_id": f"source_entrypoint:h{locator.get('section_index')}:${entrypoint:08x}",
-                "locator": dict(cast(dict[str, object], locator)),
-                "evidence": {
-                    "source": "source_binary.json",
-                    "entrypoint": entrypoint,
-                    "row_key": row_key,
-                    "row_kind": row.get("kind"),
-                    "row_range": {
-                        "section_index": locator.get("section_index"),
-                        "start_offset": locator.get("start_offset"),
-                        "end_offset": locator.get("end_offset"),
-                    },
-                    "command_availability_checked": False,
+        candidate = {
+            "id": candidate_id,
+            "candidate_id": candidate_id,
+            "kind": "source_entrypoint_row",
+            "durable_id": f"source_entrypoint:h{section_index}:${offset:08x}",
+            "locator": dict(cast(dict[str, object], locator)),
+            "evidence": {
+                "source": "source_binary.json",
+                "source_kind": entrypoint["source_kind"],
+                "evidence_kind": entrypoint["evidence_kind"],
+                "entrypoint": offset,
+                "section_index": section_index,
+                "row_key": row_key,
+                "row_kind": row.get("kind"),
+                "row_range": {
+                    "section_index": locator.get("section_index"),
+                    "start_offset": locator.get("start_offset"),
+                    "end_offset": locator.get("end_offset"),
                 },
-                "xref_summary": [],
-                "current_metadata": {
-                    "comment_text": row.get("comment_text"),
-                    "row_kind": row.get("kind"),
-                    "text": row.get("text"),
-                },
-                "suggested_action_kind": "comment.edit",
-                "suggested_action_kinds": ["comment.edit"],
-                "default_verifier": "projected_comment_text",
-                "verifier": {"kind": "projected_comment_text", "requires_semantic_reload": True},
-                "confidence": "high",
-                "rationale": "source descriptor entrypoint maps to this listing row",
-                "actionable": True,
-                "stop_reason": None,
-            }
-        )
+                "command_availability_checked": False,
+            },
+            "xref_summary": [],
+            "current_metadata": {
+                "comment_text": row.get("comment_text"),
+                "row_kind": row.get("kind"),
+                "text": row.get("text"),
+            },
+            "suggested_action_kind": "comment.edit",
+            "suggested_action_kinds": ["comment.edit"],
+            "default_verifier": "projected_comment_text",
+            "verifier": {"kind": "projected_comment_text", "requires_semantic_reload": True},
+            "confidence": "high",
+            "rationale": entrypoint["rationale"],
+            "actionable": True,
+            "stop_reason": None,
+        }
+        suggested_comment_text = entrypoint.get("suggested_comment_text")
+        if isinstance(suggested_comment_text, str) and suggested_comment_text:
+            candidate["suggested_comment_text"] = suggested_comment_text
+        candidates.append(candidate)
     return candidates
 
 
-def _source_entrypoint_evidence(target_id: str, *, project_root: Path) -> int | None:
+def _source_entrypoint_evidence(target_id: str, *, project_root: Path) -> dict[str, object] | None:
     try:
         target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
         source = resolve_target_binary_source(target_dir, project_root=project_root)
@@ -755,17 +768,37 @@ def _source_entrypoint_evidence(target_id: str, *, project_root: Path) -> int | 
         return None
     entrypoint = getattr(source, "analysis_entrypoint", None)
     if isinstance(entrypoint, int) and not isinstance(entrypoint, bool):
-        return entrypoint
+        return {
+            "source_kind": str(getattr(source, "kind", "")),
+            "evidence_kind": "source_descriptor_entrypoint",
+            "section_index": 0,
+            "offset": entrypoint,
+            "rationale": "source descriptor entrypoint maps to this listing row",
+        }
+    if getattr(source, "kind", None) is BinarySourceKind.HUNK_FILE:
+        return {
+            "source_kind": BinarySourceKind.HUNK_FILE.value,
+            "evidence_kind": "hunk_load_entrypoint",
+            "section_index": 0,
+            "offset": 0,
+            "rationale": "hunk load file starts execution at section 0 offset 0",
+            "suggested_comment_text": "Hunk file entrypoint.",
+        }
     return None
 
 
-def _row_covers_offset(row: dict[str, object], locator: dict[str, object], offset: int) -> bool:
+def _row_covers_source_location(
+    row: dict[str, object],
+    locator: dict[str, object],
+    section_index: int,
+    offset: int,
+) -> bool:
     section = locator.get("section_index")
-    if section not in (0, None):
+    if section != section_index:
         return False
     start = locator.get("start_offset")
     end = locator.get("end_offset")
-    if isinstance(start, int) and isinstance(end, int) and start <= offset < end:
+    if isinstance(start, int) and isinstance(end, int) and (start <= offset < end or start == offset == end):
         return True
     addr = row.get("addr")
     return isinstance(addr, int) and addr == offset
@@ -798,12 +831,13 @@ def _comment_text_missing(command: dict[str, object]) -> bool:
     return _clean_comment_text(text) is None
 
 
+def _comment_text_from_candidate(candidate: dict[str, object]) -> str | None:
+    return _clean_comment_text(candidate.get("comment_text")) or _clean_comment_text(candidate.get("suggested_comment_text"))
+
+
 def _comment_parameters_from_candidate(candidate: dict[str, object]) -> dict[str, object]:
-    for key in ("comment_text", "suggested_comment_text"):
-        text = _clean_comment_text(candidate.get(key))
-        if text is not None:
-            return {"text": text}
-    return {}
+    text = _comment_text_from_candidate(candidate)
+    return {"text": text} if text is not None else {}
 
 
 def _verify_listing_comment_mutation(
@@ -867,7 +901,7 @@ def _verify_projected_comment_text(target_id: str, command: dict[str, object]) -
         listing = server.route_request(
             "GET",
             f"/api/projects/{target_id}/listing",
-            {"start": ["0"], "count": ["80"]},
+            {"start": ["0"], "count": [str(_LISTING_COMMENT_SEARCH_ROW_COUNT)]},
         )
     except Exception as exc:
         return {"layer": "projection", "status": "failed", "message": str(exc)}

@@ -61,7 +61,8 @@ the listing artifact is opened, and that artifact is process-local.
 9. Prefer `run-one --target <target> --listing-backed-comment --comment-text <text>`
    for one real evidence-backed comment. The harness must select a
    high-confidence candidate from listing/project evidence, such as a source
-   entrypoint row, and must stop with a report when no such candidate exists.
+   entrypoint row. For hunk-file targets, section 0 offset 0 is valid
+   entrypoint evidence. Stop with a report when no such candidate exists.
 10. Non-dry-run `comment.edit` requires explicit evidence-backed comment text.
     Never create generic placeholder notes.
 11. Stop if listing readiness, candidate evidence, command availability, or

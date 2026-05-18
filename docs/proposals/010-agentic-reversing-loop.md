@@ -1225,3 +1225,8 @@ Follow-up cleanup removed generated comment text from production paths.
 Non-dry-run `comment.edit` now requires explicit evidence-backed text, such as a
 CLI `--comment-text` value or candidate-provided suggested text, and stops with
 a `comment_text` verification failure when the loop lacks that domain judgment.
+
+The listing-backed selector now handles hunk-file targets such as
+`amiga_hunk_genam` by treating section 0 offset 0 as hunk load-entrypoint
+evidence, scanning enough of the listing prefix to find the corresponding row,
+and carrying the candidate's own suggested comment text into `comment.edit`.
