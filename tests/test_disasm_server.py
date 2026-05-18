@@ -1971,6 +1971,65 @@ def test_route_manual_action_catalog_execute_renames_app_slot_with_rsset_region(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_execute_removes_app_slot_rsset_region(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="move.l d0,app_0234(a6)\n",
+            addr=0x20,
+            section_index=0,
+            start_offset=0x20,
+            end_offset=0x24,
+            stable_key="app-write",
+            opcode_or_directive="move.l",
+            operand_text="d0,app_0234(a6)",
+            source_context=BlockRowContext(kind="core-block", hunk_index=0),
+            app_slot_refs=(AppSlotRef("app_0234", 0x0234, "A6", 1, "write"),),
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "app_slot.remove",
+            "context": _element_command_context(rows[0], "app-write:app_slot:1:app_0234:write"),
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    region = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_layout_region"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "remove_manual_rsset_layout_region"
+    assert region == {"offset": 0x0234}
+    assert local_effect == {"kind": "rsset_layout_region_remove", "rsset_layout_region": region}
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_route_manual_action_catalog_execute_removes_rsset_layout_region_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

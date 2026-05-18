@@ -189,6 +189,38 @@ def test_app_slot_rename_command_uses_selected_slot_displacement() -> None:
     }
 
 
+def test_app_slot_remove_command_uses_selected_slot_identity() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x20,
+        "end_offset": 0x24,
+        "stable_key": "app-write",
+        "app_slot_refs": [
+            {
+                "symbol": "app_0234",
+                "displacement": 0x234,
+                "base_register": "A6",
+                "operand_index": 1,
+                "access": "write",
+            }
+        ],
+    }
+    selector = {"element_kind": "app_slot", "symbol": "app_0234", "operand_index": 1, "access": "write"}
+
+    actions = listing_element_action_catalog(row, selector)
+    remove_action = next(action for action in actions if action["action_id"] == "app_slot.remove")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "app_slot.remove",
+        element_context=selector,
+    )
+
+    assert remove_action["parameters"] == {"offset": 0x234, "previous_symbol": "app_0234"}
+    assert kind == "remove_manual_rsset_layout_region"
+    assert payload == {"rsset_layout_region": {"offset": 0x234}}
+
+
 def test_target_execution_view_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.add",

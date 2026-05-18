@@ -303,15 +303,25 @@ def listing_element_action_catalog(
             )
         )
     if element_kind == "app_slot":
-        actions.append(
-            _context_log_action(
-                "app_slot.rename",
-                "Rename app slot",
-                "create_manual_rsset_layout_region",
-                context,
-                _app_slot_region_identity_parameters(context),
-                _app_slot_rename_parameter_schema(),
-                "F2",
+        actions.extend(
+            (
+                _context_log_action(
+                    "app_slot.rename",
+                    "Rename app slot",
+                    "create_manual_rsset_layout_region",
+                    context,
+                    _app_slot_region_identity_parameters(context),
+                    _app_slot_rename_parameter_schema(),
+                    "F2",
+                ),
+                _context_log_action(
+                    "app_slot.remove",
+                    "Remove app slot",
+                    "remove_manual_rsset_layout_region",
+                    context,
+                    _app_slot_region_identity_parameters(context),
+                    _app_slot_remove_parameter_schema(),
+                ),
             )
         )
     if element_kind == "register":
@@ -629,6 +639,10 @@ def listing_catalog_manual_payload(
         if not element_context or element_context.get("element_kind") != "app_slot":
             raise ValueError("create_manual_rsset_layout_region requires an app-slot element context")
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _app_slot_region_payload(element_context, params)}
+    if ui_action == "remove_manual_rsset_layout_region":
+        if not element_context or element_context.get("element_kind") != "app_slot":
+            raise ValueError("remove_manual_rsset_layout_region requires an app-slot element context")
+        return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
     if ui_action == "set_representation":
         return "create_manual_representation", {"representation": _representation_payload(row, element_context, params)}
     if ui_action == "add_review_note":
@@ -1031,6 +1045,17 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
             "semantic_type": {"type": "string"},
         },
         "required": ["symbol", "size"],
+    }
+
+
+def _app_slot_remove_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "layout_name": {"type": "string"},
+            "base_symbol": {"type": "string"},
+        },
+        "required": [],
     }
 
 
