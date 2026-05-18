@@ -1445,8 +1445,8 @@ def _listing_struct_pointer_candidates(
                     "suggested_action_kind": "semantic.register.struct_ptr",
                     "suggested_action_kinds": ["semantic.register.struct_ptr"],
                     "parameters": {"struct_name": struct_name},
-                    "default_verifier": "round_trip",
-                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "default_verifier": "struct_pointer_register_seed",
+                    "verifier": {"kind": "struct_pointer_register_seed", "requires_semantic_reload": True},
                     "confidence": "high",
                     "rationale": "typed-access analysis found a base register with unresolved struct field usage",
                     "actionable": True,
@@ -1523,8 +1523,8 @@ def _listing_library_base_candidates(
                     "expected_rendered_source_improvement": f"treat {register} as {library} base for {function}",
                     "suggested_action_kind": f"semantic.library_base.{library}",
                     "suggested_action_kinds": [f"semantic.library_base.{library}"],
-                    "default_verifier": "round_trip",
-                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "default_verifier": "library_base_register_seed",
+                    "verifier": {"kind": "library_base_register_seed", "requires_semantic_reload": True},
                     "confidence": "high",
                     "rationale": "LVO API call identifies the selected library base register",
                     "actionable": True,
@@ -2738,6 +2738,12 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "suppressed_seeded_item"
     if any(action.startswith("target.equate.") for action in actions):
         return "round_trip"
+    if any(action.startswith("semantic.library_base.") for action in actions):
+        return "library_base_register_seed"
+    if "semantic.register.struct_ptr" in actions:
+        return "struct_pointer_register_seed"
+    if any(action.startswith(("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")) for action in actions):
+        return "semantic_hint_state"
     if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
         return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.", "range.seed.")) for action in actions):

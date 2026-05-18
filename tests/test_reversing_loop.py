@@ -2150,8 +2150,10 @@ def test_listing_library_base_candidates_use_lvo_api_call() -> None:
     assert candidates[0]["element_id"] == "row-1:symbol:0:_LVOSetPointer"
     assert candidates[0]["suggested_action_kinds"] == ["semantic.library_base.intuition.library"]
     assert candidates[0]["api_function"] == "SetPointer"
+    assert candidates[0]["default_verifier"] == "library_base_register_seed"
     assert command["command_id"] == "semantic.library_base.intuition.library"
     assert command["context"]["api_library"] == "intuition.library"
+    assert reversing_loop._candidate_verifier(candidates[0], command) == "library_base_register_seed"
 
 
 def test_listing_library_base_candidates_skip_already_projected_seed() -> None:
@@ -2167,6 +2169,7 @@ def test_listing_library_base_candidates_skip_already_projected_seed() -> None:
 
 def test_listing_struct_pointer_candidates_use_unresolved_typed_access_register() -> None:
     candidates = reversing_loop._listing_struct_pointer_candidates([_struct_pointer_row()])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
 
     assert len(candidates) == 1
     assert candidates[0]["candidate_id"] == "struct-ptr:row-1:0:A0:InputEvent"
@@ -2174,6 +2177,8 @@ def test_listing_struct_pointer_candidates_use_unresolved_typed_access_register(
     assert candidates[0]["suggested_action_kinds"] == ["semantic.register.struct_ptr"]
     assert candidates[0]["parameters"] == {"struct_name": "InputEvent"}
     assert candidates[0]["evidence"]["classification"] == "prefix_extension"
+    assert candidates[0]["default_verifier"] == "struct_pointer_register_seed"
+    assert reversing_loop._candidate_verifier(candidates[0], command) == "struct_pointer_register_seed"
 
 
 def test_listing_struct_pointer_candidates_use_memory_operand_register() -> None:
@@ -2371,6 +2376,7 @@ def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
             "output_affecting": True,
         }
     ]
+    assert reversing_loop._candidate_verifier(candidate, options[0]) == "semantic_hint_state"
 
 
 def test_target_custom_struct_command_candidate_uses_target_context_and_requires_verifier() -> None:

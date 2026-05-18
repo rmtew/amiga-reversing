@@ -238,7 +238,8 @@ otherwise mask a missing or mismatched action result.
 Implementation observation from `014-005`/`014-010`:
 `semantic.library_base.*` also produces register-seed state. Its verifier should
 check the reloaded library-base seed and round-trip instead of affected
-locators.
+locators. Planner summaries should report the semantic state verifier names, not
+generic `round_trip`, so operators can see which state is being checked.
 
 Implementation observation from `014-005`/`014-014`:
 `data_symbol.remove` produces suppressed seeded item state. Its verifier should

@@ -66,6 +66,9 @@ Current evidence:
   `data_symbol.rename` and `suppressed_seeded_item` for `data_symbol.remove`.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
+- Planner verifier summaries now report `semantic_hint_state`,
+  `library_base_register_seed`, and `struct_pointer_register_seed` for semantic
+  hint/register-seed command families instead of generic `round_trip`.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.

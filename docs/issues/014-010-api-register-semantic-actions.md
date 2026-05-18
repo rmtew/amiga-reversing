@@ -56,6 +56,9 @@ Progress:
 - Generic `run-one` now verifies `semantic.lvo.*`, `semantic.struct_offset.*`,
   and `semantic.equate.*` execution by checking reloaded semantic hint state
   rather than affected row metadata.
+- Planner verifier summaries now name semantic state checks as
+  `semantic_hint_state`, `library_base_register_seed`, or
+  `struct_pointer_register_seed` instead of generic `round_trip`.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 
