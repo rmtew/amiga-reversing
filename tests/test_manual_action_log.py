@@ -1035,6 +1035,51 @@ def test_manual_action_log_projects_rsset_layout_region(tmp_path: Path) -> None:
     )
 
 
+def test_manual_action_log_projects_custom_struct(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct",
+                custom_struct={
+                    "name": "InputEvent",
+                    "size": 22,
+                    "fields": [
+                        {
+                            "name": "ie_Class",
+                            "type": "UBYTE",
+                            "offset": 4,
+                            "size": 1,
+                        }
+                    ],
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.custom_structs == (
+        {
+            "name": "InputEvent",
+            "size": 22,
+            "fields": [
+                {
+                    "name": "ie_Class",
+                    "type": "UBYTE",
+                    "offset": 4,
+                    "size": 1,
+                }
+            ],
+        },
+    )
+
+
 def test_manual_action_log_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

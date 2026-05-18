@@ -22,6 +22,8 @@ from amiga_reversing.disasm.manual_actions import (
 )
 from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
+    CustomStructFieldMetadata,
+    CustomStructMetadata,
     EntryCommentMetadata,
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
@@ -417,6 +419,58 @@ def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionView
     )
 
 
+def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomStructFieldMetadata | None:
+    name = _manual_seed_text(field, "name")
+    field_type = _manual_seed_text(field, "type")
+    offset = _manual_seed_int(field, "offset")
+    size = _manual_seed_int(field, "size")
+    if name is None or field_type is None or offset is None or size is None:
+        return None
+    if offset < 0 or size <= 0:
+        return None
+    return CustomStructFieldMetadata(
+        name=name,
+        type=field_type,
+        offset=offset,
+        size=size,
+        available_since=_manual_seed_text(field, "available_since") or "1.0",
+        struct=_manual_seed_text(field, "struct"),
+        pointer_struct=_manual_seed_text(field, "pointer_struct"),
+        named_base=_manual_seed_text(field, "named_base"),
+    )
+
+
+def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStructMetadata | None:
+    name = _manual_seed_text(struct, "name")
+    size = _manual_seed_int(struct, "size")
+    if name is None or size is None or size <= 0:
+        return None
+    raw_fields = struct.get("fields", ())
+    if not isinstance(raw_fields, list | tuple):
+        return None
+    fields: list[CustomStructFieldMetadata] = []
+    for raw_field in raw_fields:
+        if not isinstance(raw_field, dict):
+            return None
+        field = _manual_custom_struct_field_to_metadata(raw_field)
+        if field is None:
+            return None
+        fields.append(field)
+    base_offset = _manual_seed_int(struct, "base_offset")
+    return CustomStructMetadata(
+        name=name,
+        size=size,
+        fields=tuple(fields),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=f"manual_action_log:{_manual_seed_text(struct, 'custom_struct_id') or name}",
+        source="manual_action_log",
+        base_offset=base_offset if base_offset is not None else 0,
+        base_struct=_manual_seed_text(struct, "base_struct"),
+        available_since=_manual_seed_text(struct, "available_since") or "1.0",
+    )
+
+
 def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetLayoutRegionMetadata | None:
     offset = _manual_seed_int(region, "offset")
     if offset is None or offset < 0 or offset > 0x7FFF:
@@ -508,6 +562,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
+    custom_struct_projections = projection.custom_structs
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
     execution_view_projections = projection.execution_views
@@ -520,6 +575,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not semantic_hints
         and not register_seed_projections
         and not suppressed_seeded_item_projections
+        and not custom_struct_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
         and not execution_view_projections
@@ -535,6 +591,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
+    custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
@@ -598,6 +655,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
         if suppressed_seeded_item is not None:
             suppressed_seeded_items.append(suppressed_seeded_item)
+    for struct in custom_struct_projections:
+        custom_struct = _manual_custom_struct_to_metadata(struct)
+        if custom_struct is not None:
+            custom_structs.append(custom_struct)
+    merged_custom_structs = {struct.name: struct for struct in custom_structs}
     for region in rsset_layout_region_projections:
         rsset_layout_region = _manual_rsset_layout_region_to_metadata(region)
         if rsset_layout_region is not None:
@@ -622,6 +684,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
+        custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),

@@ -842,6 +842,63 @@ def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -
     ]
 
 
+def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct",
+                custom_struct={
+                    "name": "InputEvent",
+                    "size": 22,
+                    "fields": [
+                        {
+                            "name": "ie_Class",
+                            "type": "UBYTE",
+                            "offset": 4,
+                            "size": 1,
+                        }
+                    ],
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["custom_structs"] == [
+        {
+            "available_since": "1.0",
+            "base_offset": 0,
+            "base_struct": None,
+            "citation": "manual_action_log:InputEvent",
+            "fields": [
+                {
+                    "available_since": "1.0",
+                    "name": "ie_Class",
+                    "named_base": None,
+                    "offset": 4,
+                    "pointer_struct": None,
+                    "size": 1,
+                    "struct": None,
+                    "type": "UBYTE",
+                }
+            ],
+            "name": "InputEvent",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "size": 22,
+            "source": "manual_action_log",
+        }
+    ]
+
+
 def test_effective_metadata_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

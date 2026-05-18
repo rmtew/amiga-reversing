@@ -148,6 +148,7 @@ class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
+    CREATE_MANUAL_CUSTOM_STRUCT = "create_manual_custom_struct"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
@@ -180,6 +181,7 @@ class ManualActionLogProjection:
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
+    custom_structs: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
@@ -332,6 +334,7 @@ def _empty_projection(
         representations=(),
         semantic_hints=(),
         suppressed_seeded_items=(),
+        custom_structs=(),
         rsset_layout_regions=(),
         removed_rsset_layout_regions=(),
         execution_views=(),
@@ -1167,6 +1170,7 @@ def _project_actions(
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
+    custom_structs: dict[str, dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
@@ -1214,6 +1218,8 @@ def _project_actions(
         elif action.kind is ManualActionKind.SUPPRESS_SEEDED_ITEM:
             item = _action_object(action, "suppressed_seeded_item")
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
+        elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT:
+            _put_by_id(custom_structs, _action_object(action, "custom_struct"), "name")
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")
             key = _rsset_layout_region_key(region)
@@ -1274,6 +1280,7 @@ def _project_actions(
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
+        custom_structs=tuple(custom_structs.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
         execution_views=tuple(execution_views.values()),
