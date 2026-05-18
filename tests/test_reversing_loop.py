@@ -196,3 +196,97 @@ def test_continue_rejects_partial_iteration_state(tmp_path: Path) -> None:
     assert result.status == "blocked"
     assert result.run_state is None
     assert result.reason == "latest iteration is partial; start a new clean-run or reimport run explicitly"
+
+
+def test_run_one_dry_run_selects_command_without_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    calls: list[str] = []
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: calls.append(method) or {"data": {}},
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert calls == []
+    assert report["action"]["command_id"] == "comment.edit"
+    assert report["action_result"]["status"] == "dry_run"
+    assert not (tmp_path / "targets" / "demo" / "manual_actions.jsonl").exists()
+
+
+def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _target(tmp_path)
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if method == "GET":
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        return {
+            "data": {
+                "action": {"action_id": "manual-1"},
+                "mutation": {"durable_action_id": "manual-1"},
+                "workflow_profile": {"workflow_id": "manual_command_execution", "spans": [{"name": "manual_action_append"}]},
+            }
+        }
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert calls == [
+        ("GET", "/api/projects/demo/commands"),
+        ("POST", "/api/projects/demo/commands/execute"),
+    ]
+    assert report["action_result"]["status"] == "executed"
+    assert report["durable_result"]["mutation"]["durable_action_id"] == "manual-1"
+
+
+def test_run_one_report_includes_workflow_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _target(tmp_path)
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: (
+            {"data": {"commands": [{"command_id": "comment.edit"}]}}
+            if method == "GET"
+            else {"data": {"workflow_profile": {"workflow_id": "manual_command_execution", "spans": []}}}
+        ),
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["workflow_profile"] == {"workflow_id": "manual_command_execution", "spans": []}
+
+
+def _inspect_with_locator() -> dict[str, object]:
+    locator = {
+        "target_id": "demo",
+        "projection_hash": "projection-1",
+        "row_key": "row-1",
+        "section_index": 0,
+        "start_offset": 0,
+        "end_offset": 2,
+        "kind": "instruction",
+    }
+    return {
+        "target_id": "demo",
+        "target_state": {},
+        "candidate_work": [
+            {
+                "id": "candidate-1",
+                "kind": "manual_review_item",
+                "locator": locator,
+                "evidence": {"has_xrefs": True},
+                "suggested_action_kinds": ["comment.edit"],
+            }
+        ],
+        "safe_to_mutate": True,
+    }

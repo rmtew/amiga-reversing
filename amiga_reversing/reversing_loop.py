@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from amiga_reversing.disasm import projects
+from amiga_reversing.disasm import projects, server
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.reversing_workspace import (
@@ -36,6 +36,11 @@ def main(argv: list[str] | None = None) -> int:
     inspect_parser = subparsers.add_parser("inspect", help="Emit read-only target state and candidate work.")
     inspect_parser.add_argument("--target", required=True)
 
+    run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
+    run_parser.add_argument("--target", required=True)
+    run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
+    run_parser.add_argument("--dry-run", action="store_true")
+
     args = parser.parse_args(argv)
     if args.command == "hygiene":
         report = inspect_target_hygiene(
@@ -51,6 +56,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "inspect":
         _print_json(inspect_target(args.target, project_root=args.project_root))
+        return 0
+    if args.command == "run-one":
+        _print_json(
+            run_one_iteration(
+                args.target,
+                mode=args.mode,
+                dry_run=args.dry_run,
+                project_root=args.project_root,
+            )
+        )
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
 
@@ -79,6 +94,93 @@ def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict
         "verification_paths": _verification_paths(target_dir),
         "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
     }
+
+
+def run_one_iteration(
+    target_id: str,
+    *,
+    mode: str = "continue",
+    dry_run: bool = False,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    run_result = start_or_resume_run(target_id, mode=mode, project_root=project_root)
+    if run_result.status == "blocked":
+        return run_result.to_dict()
+    if run_result.run_state is None:
+        raise ValueError("run state is required")
+    inspect_report = inspect_target(target_id, project_root=project_root)
+    iteration_id = _next_iteration_id(run_result.run_state)
+    selected = _select_command_action(inspect_report)
+    if selected is None:
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=None,
+            command=None,
+            action_result={"status": "not_run"},
+            workflow_profile=None,
+            next_recommendation={"recommendation": "stop", "reason": "no locator-backed command candidate"},
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    command = cast(dict[str, object], selected["command"])
+    if dry_run:
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "dry_run"},
+            workflow_profile=None,
+            next_recommendation={"recommendation": "continue", "reason": "dry-run selected a safe command action"},
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
+    commands = availability.get("commands")
+    if not isinstance(commands, list) or not any(
+        isinstance(entry, dict) and entry.get("command_id") == command["command_id"] for entry in commands
+    ):
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked", "availability": availability},
+            workflow_profile=None,
+            next_recommendation={"recommendation": "stop", "reason": "selected command is not available"},
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    execution = server.route_request(
+        "POST",
+        f"/api/projects/{target_id}/commands/execute",
+        {},
+        {
+            "command_id": command["command_id"],
+            "context": command["context"],
+            "parameters": command["parameters"],
+        },
+    )
+    result = cast(dict[str, object], execution["data"])
+    workflow_profile = result.get("workflow_profile") if isinstance(result.get("workflow_profile"), dict) else None
+    report = _iteration_report(
+        run_state=run_result.run_state,
+        iteration_id=iteration_id,
+        inspect_report=inspect_report,
+        selected_work_item=cast(dict[str, object], selected["work_item"]),
+        command=command,
+        action_result={
+            "status": "executed",
+            "durable_result": result,
+        },
+        workflow_profile=cast(dict[str, object] | None, workflow_profile),
+        next_recommendation={"recommendation": "continue", "reason": "manual command executed"},
+    )
+    return write_iteration_report(target_id, report, project_root=project_root)
 
 
 @dataclass(frozen=True, slots=True)
@@ -256,6 +358,9 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
 
 
 def _locator_from_review_item(item: dict[str, object]) -> dict[str, object] | None:
+    existing = item.get("locator")
+    if isinstance(existing, dict):
+        return dict(cast(dict[str, object], existing))
     start = item.get("start") if isinstance(item.get("start"), int) else item.get("addr")
     hunk = item.get("hunk") if isinstance(item.get("hunk"), int) else None
     if not isinstance(start, int):
@@ -327,6 +432,92 @@ def _verification_paths(target_dir: Path) -> list[dict[str, object]]:
         {"kind": "round_trip", "available": (target_dir / "reproduction.json").exists()},
     ]
     return paths
+
+
+def _select_command_action(inspect_report: dict[str, object]) -> dict[str, object] | None:
+    candidates = inspect_report.get("candidate_work")
+    if not isinstance(candidates, list):
+        return None
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        locator = candidate.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        command = {
+            "kind": "command",
+            "command_id": "comment.edit",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {"text": f"agent note: {candidate.get('id') or 'candidate'}"},
+            "output_affecting": False,
+        }
+        return {"work_item": dict(candidate), "command": command}
+    return None
+
+
+def _is_full_listing_locator(value: object) -> bool:
+    if not isinstance(value, dict):
+        return False
+    return all(isinstance(value.get(key), str) and value.get(key) for key in ("target_id", "projection_hash", "row_key", "kind"))
+
+
+def _command_availability(target_id: str, context: dict[str, object]) -> dict[str, object]:
+    payload = server.route_request(
+        "GET",
+        f"/api/projects/{target_id}/commands",
+        _command_query_from_context(context),
+    )
+    data = payload.get("data")
+    return dict(data) if isinstance(data, dict) else {}
+
+
+def _command_query_from_context(context: dict[str, object]) -> dict[str, list[str]]:
+    kind = context.get("kind")
+    if kind == "row":
+        return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+    if kind == "review_item":
+        return {"context": ["review-item"], "item_id": [str(context["item_id"])]}
+    return {"context": ["target"]}
+
+
+def _next_iteration_id(run_state: dict[str, object]) -> str:
+    last = run_state.get("last_iteration_id")
+    if isinstance(last, str) and last.isdigit():
+        return f"{int(last) + 1:06d}"
+    return "000001"
+
+
+def _iteration_report(
+    *,
+    run_state: dict[str, object],
+    iteration_id: str,
+    inspect_report: dict[str, object],
+    selected_work_item: dict[str, object] | None,
+    command: dict[str, object] | None,
+    action_result: dict[str, object],
+    workflow_profile: dict[str, object] | None,
+    next_recommendation: dict[str, object],
+) -> dict[str, object]:
+    updated_run_state = dict(run_state)
+    updated_run_state["last_iteration_id"] = iteration_id
+    return {
+        "schema_version": 1,
+        "run_state": updated_run_state,
+        "iteration": {
+            "id": iteration_id,
+            "status": "complete",
+            "dry_run": action_result.get("status") == "dry_run",
+        },
+        "target_state": inspect_report.get("target_state"),
+        "selected_work_item": selected_work_item,
+        "evidence": None if selected_work_item is None else selected_work_item.get("evidence"),
+        "action": command,
+        "durable_result": action_result.get("durable_result"),
+        "action_result": action_result,
+        "verification": {"status": "not_configured", "layers": []},
+        "workflow_profile": workflow_profile,
+        "next": next_recommendation,
+    }
 
 
 def _print_json(value: object) -> None:

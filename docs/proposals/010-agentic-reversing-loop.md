@@ -1116,3 +1116,8 @@ to repeat the loop safely.
   and rejects partial latest iterations, while `clean-run`/`reimport` start new
   run ids. Reports carry the rollback policy: append corrective actions or use
   explicit clean-run/reimport, never silent manual-history deletion.
+- 010-006 added `run-one` dry-run and execution flow for one safe manual
+  command. The first action is intentionally narrow: a locator-backed candidate
+  can run `comment.edit` only through command discovery and the existing
+  `/commands/execute` route, and the iteration report records the selected work
+  item, evidence, command, durable result, and workflow profile.
