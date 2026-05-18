@@ -230,6 +230,11 @@ Implementation observation from `014-005`/`014-010`:
 state. Its verifier should check the reloaded register seed and round-trip
 instead of affected locators.
 
+Implementation observation from `014-005`/`014-010`: register-seed verifiers
+must derive their expected seed from the executed durable action payload before
+matching reloaded project state. Command intent plus matching project state can
+otherwise mask a missing or mismatched action result.
+
 Implementation observation from `014-005`/`014-010`:
 `semantic.library_base.*` also produces register-seed state. Its verifier should
 check the reloaded library-base seed and round-trip instead of affected

@@ -72,6 +72,9 @@ Current evidence:
 - Generic `run-one` `semantic.library_base.*` execution now verifies Manual
   Action Log replay, reloaded library-base register seed, and exact round-trip
   instead of accepting affected-locator metadata alone.
+- Register-seed verifiers now derive the expected seed from the executed
+  durable action payload, so matching project state alone cannot satisfy a
+  missing or mismatched action result.
 - Generic `run-one` `semantic.lvo.*`, `semantic.struct_offset.*`, and
   `semantic.equate.*` execution now verifies Manual Action Log replay, reloaded
   semantic hint state, and exact round-trip instead of accepting affected-row

@@ -1392,7 +1392,12 @@ def test_run_one_library_base_executes_with_register_seed_verifier(
             assert isinstance(body, dict)
             assert body["command_id"] == "semantic.library_base.intuition.library"
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
+            return {
+                "data": _executed_register_seed_payload(
+                    tmp_path,
+                    {"register": "A6", "kind": "library_base", "library_name": "intuition.library"},
+                )
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -1407,6 +1412,43 @@ def test_run_one_library_base_executes_with_register_seed_verifier(
     ]
     assert report["action"]["command_id"] == "semantic.library_base.intuition.library"
     assert report["action_result"]["status"] == "executed"
+
+
+def test_library_base_register_seed_verifier_requires_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "register_seeds": [
+                    {"register": "A6", "kind": "library_base", "library_name": "intuition.library"},
+                ]
+            },
+        ),
+    )
+    command = {
+        "command_id": "semantic.library_base.intuition.library",
+        "context": {"kind": "element", "base_register": "A6"},
+        "parameters": {},
+        "output_affecting": True,
+    }
+
+    verification = reversing_loop._verify_library_base_register_seed_mutation(
+        "demo",
+        command,
+        _executed_listing_comment_payload(tmp_path),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "missing register seed payload"
 
 
 def test_run_one_struct_pointer_seed_executes_with_register_seed_verifier(
@@ -1454,7 +1496,12 @@ def test_run_one_struct_pointer_seed_executes_with_register_seed_verifier(
             assert isinstance(body, dict)
             assert body["command_id"] == "semantic.register.struct_ptr"
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
+            return {
+                "data": _executed_register_seed_payload(
+                    tmp_path,
+                    {"register": "A1", "kind": "struct_ptr", "struct_name": "IOStdReq"},
+                )
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -3699,6 +3746,22 @@ def _executed_semantic_hint_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
     return {
         "action": {"action_id": "manual-1", "payload": {"semantic_hint": _semantic_hint_payload()}},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator(end_offset=4)],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
+    }
+
+
+def _executed_register_seed_payload(tmp_path: Path, register_seed: dict[str, object]) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1", "register_seed": dict(register_seed)},
         "mutation": {
             "durable_action_id": "manual-1",
             "manual_action_log_count": state["count"],

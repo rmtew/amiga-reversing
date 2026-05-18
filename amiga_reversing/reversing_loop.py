@@ -3207,31 +3207,64 @@ def _verify_library_base_register_seed_mutation(
     *,
     project_root: Path,
 ) -> dict[str, object]:
+    expected = _register_seed_from_durable_result(durable_result)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
-        _verify_project_library_base_register_seed(target_id, command, project_root=project_root),
+        _verify_project_library_base_register_seed(target_id, command, expected, project_root=project_root),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
 
 
+def _register_seed_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    seed = _register_seed_from_action(action)
+    if seed is not None:
+        return seed
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            seed = _register_seed_from_action(raw_action)
+            if seed is not None:
+                return seed
+    return None
+
+
+def _register_seed_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    seed = action.get("register_seed")
+    if isinstance(seed, dict):
+        return cast(dict[str, object], seed)
+    payload = action.get("payload")
+    seed = payload.get("register_seed") if isinstance(payload, dict) else None
+    if isinstance(seed, dict):
+        return cast(dict[str, object], seed)
+    return None
+
+
 def _verify_project_library_base_register_seed(
     target_id: str,
     command: dict[str, object],
+    expected: dict[str, object] | None,
     *,
     project_root: Path,
 ) -> dict[str, object]:
     command_id = command.get("command_id")
-    context = command.get("context")
-    register = None
-    if isinstance(context, dict):
-        register = context.get("register") or context.get("base_register")
     if not isinstance(command_id, str) or not command_id.startswith("semantic.library_base."):
         return {"layer": "semantic_reload", "status": "failed", "message": "missing library-base command"}
     library_name = command_id.removeprefix("semantic.library_base.")
-    if not isinstance(register, str) or not library_name:
-        return {"layer": "semantic_reload", "status": "failed", "message": "missing register or library name"}
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing register seed payload"}
+    register = expected.get("register")
+    if (
+        not isinstance(register, str)
+        or not library_name
+        or expected.get("kind") != "library_base"
+        or expected.get("library_name") != library_name
+    ):
+        return {"layer": "semantic_reload", "status": "failed", "message": "unexpected library-base register seed payload"}
     try:
         project = projects.get_project(target_id, project_root=project_root)
     except Exception as exc:
@@ -3254,6 +3287,7 @@ def _verify_project_library_base_register_seed(
         "status": "passed" if matches else "failed",
         "expected_register": expected_register,
         "expected_library_name": library_name,
+        "expected_register_seed": expected,
         "matching_register_seeds": matches,
     }
 
@@ -3265,9 +3299,10 @@ def _verify_struct_pointer_register_seed_mutation(
     *,
     project_root: Path,
 ) -> dict[str, object]:
+    expected = _register_seed_from_durable_result(durable_result)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
-        _verify_project_semantic_register_seed(target_id, command, project_root=project_root),
+        _verify_project_semantic_register_seed(target_id, command, expected, project_root=project_root),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -3277,15 +3312,23 @@ def _verify_struct_pointer_register_seed_mutation(
 def _verify_project_semantic_register_seed(
     target_id: str,
     command: dict[str, object],
+    expected: dict[str, object] | None,
     *,
     project_root: Path,
 ) -> dict[str, object]:
-    context = command.get("context")
     parameters = command.get("parameters")
-    register = context.get("register") if isinstance(context, dict) else None
     struct_name = parameters.get("struct_name") if isinstance(parameters, dict) else None
-    if not isinstance(register, str) or not isinstance(struct_name, str) or not struct_name:
-        return {"layer": "semantic_reload", "status": "failed", "message": "missing register or struct name"}
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing register seed payload"}
+    register = expected.get("register")
+    if (
+        not isinstance(register, str)
+        or not isinstance(struct_name, str)
+        or not struct_name
+        or expected.get("kind") != "struct_ptr"
+        or expected.get("struct_name") != struct_name
+    ):
+        return {"layer": "semantic_reload", "status": "failed", "message": "unexpected struct-pointer register seed payload"}
     try:
         project = projects.get_project(target_id, project_root=project_root)
     except Exception as exc:
@@ -3308,6 +3351,7 @@ def _verify_project_semantic_register_seed(
         "status": "passed" if matches else "failed",
         "expected_register": expected_register,
         "expected_struct_name": struct_name,
+        "expected_register_seed": expected,
         "matching_register_seeds": matches,
     }
 
