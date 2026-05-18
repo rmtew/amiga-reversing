@@ -5,6 +5,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -307,6 +308,174 @@ def test_output_affecting_action_requires_round_trip_verifier(
     assert report["next"]["recommendation"] == "stop"
 
 
+def test_listing_backed_comment_acquires_locator_after_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row()]}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        dry_run=True,
+        project_root=tmp_path,
+    )
+
+    assert calls == [
+        ("POST", "/api/projects/demo/listing/open"),
+        ("GET", "/api/projects/demo/listing"),
+        ("GET", "/api/projects/demo/commands"),
+    ]
+    assert report["selected_work_item"]["kind"] == "listing_row"
+    assert report["selected_work_item"]["locator"]["row_key"] == "row-1"
+    assert report["action"]["command_id"] == "comment.edit"
+
+
+def test_listing_backed_comment_checks_availability_before_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    calls: list[tuple[str, str]] = []
+    listing_calls = 0
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        nonlocal listing_calls
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            listing_calls += 1
+            return {"data": {"rows": [_listing_row(comment_text="agent listing comment: row-1") if listing_calls > 1 else _listing_row()]}}
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        if path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {"comments": [{"text": "agent listing comment: row-1"}]}}}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert calls[:4] == [
+        ("POST", "/api/projects/demo/listing/open"),
+        ("GET", "/api/projects/demo/listing"),
+        ("GET", "/api/projects/demo/commands"),
+        ("POST", "/api/projects/demo/commands/execute"),
+    ]
+    assert report["verification"]["status"] == "passed"
+
+
+def test_listing_backed_comment_verifies_projected_comment_text(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    listing_calls = 0
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        nonlocal listing_calls
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            listing_calls += 1
+            text = "custom comment" if listing_calls > 1 else None
+            return {"data": {"rows": [_listing_row(comment_text=text)]}}
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        if path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {"comments": [{"text": "custom comment"}]}}}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        comment_text="custom comment",
+        project_root=tmp_path,
+    )
+
+    projection = next(layer for layer in report["verification"]["layers"] if layer["layer"] == "projection")
+    assert projection["status"] == "passed"
+    assert projection["actual_comment_text"] == "custom comment"
+
+
+def test_listing_backed_comment_stops_on_listing_readiness_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "queued"}}
+        if path.endswith("/listing/status"):
+            return {"data": {"job_id": "job-1", "status": "building"}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        listing_timeout_seconds=0,
+        project_root=tmp_path,
+    )
+
+    assert report["verification"]["status"] == "failed"
+    assert report["verification"]["layers"][0]["layer"] == "listing_readiness"
+    assert report["next"]["recommendation"] == "stop"
+    assert calls == [("POST", "/api/projects/demo/listing/open")]
+
+
+def test_listing_backed_comment_blocks_when_comment_edit_unavailable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row()]}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": []}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "failed"
+    assert report["verification"]["layers"][0]["layer"] == "command_availability"
+    assert not any(path.endswith("/commands/execute") for _, path in calls)
+
+
 def test_continue_recommendation_when_verification_passes() -> None:
     recommendation = reversing_loop.recommend_next_step(
         inspect_report={"hygiene": {"unknown_files": []}},
@@ -402,4 +571,46 @@ def _executed_command_payload(workflow_profile: dict[str, object] | None = None)
         },
         "workflow_profile": workflow_profile
         or {"workflow_id": "manual_command_execution", "spans": [{"name": "manual_action_append"}]},
+    }
+
+
+def _listing_row(comment_text: str | None = None) -> dict[str, object]:
+    row = {
+        "row_key": "row-1",
+        "kind": "instruction",
+        "locator": _listing_locator(),
+    }
+    if comment_text is not None:
+        row["comment_text"] = comment_text
+    return row
+
+
+def _listing_locator() -> dict[str, object]:
+    return {
+        "target_id": "demo",
+        "projection_hash": "projection-1",
+        "row_key": "row-1",
+        "section_index": 0,
+        "start_offset": 0,
+        "end_offset": 2,
+        "kind": "instruction",
+    }
+
+
+def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1"},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator()],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {
+            "workflow_id": "manual_command_execution",
+            "spans": [{"name": "locator_resolution", "seconds": 0.01, "module": "listing_projection"}],
+        },
     }

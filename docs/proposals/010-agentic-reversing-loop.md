@@ -1189,3 +1189,19 @@ The same run also showed that `manual_actions.jsonl` is local/ignored project
 state. Committing only a `.project.json` timestamp after a manual command is not
 a meaningful durable code commit; the agent must summarize Manual Action Log
 changes in reports unless the run also changes tracked support code or docs.
+
+## Follow-Up Implementation 010-010
+
+Issue 010-010 encoded that operational lesson in the harness. Use:
+
+```text
+python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-comment --comment-text <text>
+```
+
+That mode runs hygiene, opens the listing artifact, waits for readiness, fetches
+a real row locator from `/listing`, checks `/commands` for `comment.edit`,
+executes through `/commands/execute`, and writes the normal agent iteration
+report. Verification now checks Manual Action Log count and head hash, semantic
+project reload, projected `comment_text` at the affected locator, workflow
+profile capture, and the next recommendation. Listing readiness and command
+availability failures name their layer and stop.

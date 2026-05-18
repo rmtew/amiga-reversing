@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import time
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -40,6 +41,13 @@ def main(argv: list[str] | None = None) -> int:
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
     run_parser.add_argument("--dry-run", action="store_true")
+    run_parser.add_argument(
+        "--listing-backed-comment",
+        action="store_true",
+        help="Acquire a listing row locator in-process and execute comment.edit.",
+    )
+    run_parser.add_argument("--comment-text")
+    run_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
     args = parser.parse_args(argv)
     if args.command == "hygiene":
@@ -58,6 +66,18 @@ def main(argv: list[str] | None = None) -> int:
         _print_json(inspect_target(args.target, project_root=args.project_root))
         return 0
     if args.command == "run-one":
+        if args.listing_backed_comment:
+            _print_json(
+                run_listing_backed_comment_iteration(
+                    args.target,
+                    mode=args.mode,
+                    dry_run=args.dry_run,
+                    comment_text=args.comment_text,
+                    listing_timeout_seconds=args.listing_timeout_seconds,
+                    project_root=args.project_root,
+                )
+            )
+            return 0
         _print_json(
             run_one_iteration(
                 args.target,
@@ -68,6 +88,132 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def run_listing_backed_comment_iteration(
+    target_id: str,
+    *,
+    mode: str = "continue",
+    dry_run: bool = False,
+    comment_text: str | None = None,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    run_result = start_or_resume_run(target_id, mode=mode, project_root=project_root)
+    if run_result.status == "blocked":
+        return run_result.to_dict()
+    if run_result.run_state is None:
+        raise ValueError("run state is required")
+
+    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    inspect_report = _listing_comment_inspect_report(target_id, hygiene.to_dict(), project_root=project_root)
+    iteration_id = _next_iteration_id(run_result.run_state)
+    if hygiene.unknown_files or not hygiene.safe_to_continue:
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "hygiene",
+                    "status": "failed",
+                    "unknown_files": list(hygiene.unknown_files),
+                }
+            ],
+        }
+        return _write_listing_comment_report(
+            target_id,
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=None,
+            command=None,
+            action_result={"status": "blocked"},
+            verification=verification,
+            workflow_profile=None,
+            project_root=project_root,
+        )
+
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    if listing_ready.get("status") != "ready":
+        verification = {"status": "failed", "layers": [{**listing_ready, "layer": "listing_readiness"}]}
+        return _write_listing_comment_report(
+            target_id,
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report={**inspect_report, "listing_open": listing_ready},
+            selected_work_item=None,
+            command=None,
+            action_result={"status": "blocked", "listing_open": listing_ready},
+            verification=verification,
+            workflow_profile=None,
+            project_root=project_root,
+        )
+
+    selection = _select_listing_comment_action(target_id, comment_text=comment_text)
+    if selection.get("status") != "selected":
+        verification = {"status": "failed", "layers": [{**selection, "layer": "command_availability"}]}
+        return _write_listing_comment_report(
+            target_id,
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report={**inspect_report, "listing_open": listing_ready},
+            selected_work_item=None,
+            command=None,
+            action_result={"status": "blocked", "listing_open": listing_ready},
+            verification=verification,
+            workflow_profile=None,
+            project_root=project_root,
+        )
+
+    work_item = cast(dict[str, object], selection["work_item"])
+    command = cast(dict[str, object], selection["command"])
+    if dry_run:
+        return _write_listing_comment_report(
+            target_id,
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report={**inspect_report, "listing_open": listing_ready},
+            selected_work_item=work_item,
+            command=command,
+            action_result={"status": "dry_run", "listing_open": listing_ready},
+            verification={"status": "not_run", "layers": []},
+            workflow_profile=None,
+            project_root=project_root,
+        )
+
+    execution = server.route_request(
+        "POST",
+        f"/api/projects/{target_id}/commands/execute",
+        {},
+        {
+            "command_id": command["command_id"],
+            "context": command["context"],
+            "parameters": command["parameters"],
+        },
+    )
+    result = cast(dict[str, object], execution["data"])
+    workflow_profile = result.get("workflow_profile") if isinstance(result.get("workflow_profile"), dict) else None
+    verification = _verify_listing_comment_mutation(
+        target_id,
+        command,
+        result,
+        project_root=project_root,
+    )
+    return _write_listing_comment_report(
+        target_id,
+        run_state=run_result.run_state,
+        iteration_id=iteration_id,
+        inspect_report={**inspect_report, "listing_open": listing_ready},
+        selected_work_item=work_item,
+        command=command,
+        action_result={
+            "status": "executed",
+            "listing_open": listing_ready,
+            "durable_result": result,
+        },
+        verification=verification,
+        workflow_profile=cast(dict[str, object] | None, workflow_profile),
+        project_root=project_root,
+    )
 
 
 def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -93,6 +239,29 @@ def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict
         "candidate_work": candidates,
         "verification_paths": _verification_paths(target_dir),
         "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
+    }
+
+
+def _listing_comment_inspect_report(
+    target_id: str,
+    hygiene: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    return {
+        "target_id": target_id,
+        "mode": "listing-backed-comment",
+        "hygiene": hygiene,
+        "target_state": {
+            "target_dir": str(target_dir),
+            "manual_action_log": _manual_action_log_state(target_dir),
+            "project": _project_state_payload(target_id, project_root),
+            "round_trip": _round_trip_state(target_dir),
+        },
+        "candidate_work": [],
+        "verification_paths": _verification_paths(target_dir),
+        "safe_to_mutate": not hygiene.get("unknown_files") and hygiene.get("safe_to_continue") is True,
     }
 
 
@@ -360,6 +529,206 @@ def recommend_next_step(
         "reason": "verification passed or no mutation was executed",
         "profile_summary": profile_summary(workflow_profile),
     }
+
+
+def _open_and_wait_listing(target_id: str, *, timeout_seconds: float) -> dict[str, object]:
+    try:
+        opened = server.route_request("POST", f"/api/projects/{target_id}/listing/open", {}, {})
+        job = opened.get("data")
+        if not isinstance(job, dict):
+            return {"status": "failed", "message": "listing/open returned malformed job"}
+        job_id = job.get("job_id")
+        if not isinstance(job_id, str) or not job_id:
+            return {"status": "failed", "message": "listing/open did not return job_id", "job": job}
+        deadline = time.monotonic() + max(0.0, timeout_seconds)
+        current = dict(job)
+        while True:
+            status = current.get("status")
+            if status == "ready":
+                return {"status": "ready", "job": current}
+            if status == "failed":
+                return {"status": "failed", "message": str(current.get("error") or "listing job failed"), "job": current}
+            if time.monotonic() >= deadline:
+                return {"status": "failed", "message": "listing readiness timed out", "job": current}
+            time.sleep(0.05)
+            polled = server.route_request(
+                "GET",
+                f"/api/projects/{target_id}/listing/status",
+                {"job_id": [job_id]},
+            )
+            data = polled.get("data")
+            current = dict(data) if isinstance(data, dict) else {"status": "failed", "error": "malformed status"}
+    except Exception as exc:
+        return {"status": "failed", "message": str(exc)}
+
+
+def _select_listing_comment_action(target_id: str, *, comment_text: str | None) -> dict[str, object]:
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"start": ["0"], "count": ["80"]},
+        )
+    except Exception as exc:
+        return {"status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    if not isinstance(data, dict):
+        return {"status": "failed", "message": "listing returned malformed payload"}
+    rows = data.get("rows")
+    if not isinstance(rows, list) or not rows:
+        return {"status": "failed", "message": "listing returned no rows"}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        availability = _command_availability(target_id, {"kind": "row", "locator": locator})
+        commands = availability.get("commands")
+        if not isinstance(commands, list) or not any(
+            isinstance(entry, dict) and entry.get("command_id") == "comment.edit" for entry in commands
+        ):
+            continue
+        text = comment_text or f"agent listing comment: {row.get('row_key') or 'row'}"
+        command = {
+            "kind": "command",
+            "command_id": "comment.edit",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {"text": text},
+            "output_affecting": False,
+        }
+        return {
+            "status": "selected",
+            "work_item": {
+                "id": f"listing-row:{row.get('row_key')}",
+                "kind": "listing_row",
+                "locator": locator,
+                "evidence": {
+                    "source": "same_process_listing",
+                    "command_availability_checked": True,
+                    "row_kind": row.get("kind"),
+                },
+            },
+            "command": command,
+            "availability": availability,
+        }
+    return {
+        "status": "failed",
+        "message": "comment.edit was unavailable for fetched listing rows",
+    }
+
+
+def _verify_listing_comment_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_semantic_reload(target_id),
+        _verify_projected_comment_text(target_id, command),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _verify_manual_log_matches_mutation(
+    target_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    mutation = durable_result.get("mutation")
+    expected_count = mutation.get("manual_action_log_count") if isinstance(mutation, dict) else None
+    expected_head = mutation.get("manual_action_log_head_hash") if isinstance(mutation, dict) else None
+    target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    actual = _manual_action_log_state(target_dir)
+    passed = actual["count"] == expected_count and actual["head_hash"] == expected_head
+    return {
+        "layer": "manual_action_log",
+        "status": "passed" if passed else "failed",
+        "expected_manual_action_count": expected_count,
+        "actual_manual_action_count": actual["count"],
+        "expected_head_hash": expected_head,
+        "actual_head_hash": actual["head_hash"],
+    }
+
+
+def _verify_project_semantic_reload(target_id: str) -> dict[str, object]:
+    try:
+        payload = server.route_request("GET", f"/api/projects/{target_id}", {})
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    data = payload.get("data")
+    project = data.get("project") if isinstance(data, dict) else None
+    if isinstance(project, dict) and isinstance(project.get("manual_state"), dict):
+        return {"layer": "semantic_reload", "status": "passed"}
+    return {"layer": "semantic_reload", "status": "failed", "message": "manual_state was not reloaded"}
+
+
+def _verify_projected_comment_text(target_id: str, command: dict[str, object]) -> dict[str, object]:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    parameters = command.get("parameters")
+    expected = parameters.get("text") if isinstance(parameters, dict) else None
+    if not isinstance(locator, dict) or not isinstance(expected, str):
+        return {"layer": "projection", "status": "failed", "message": "missing locator or expected comment text"}
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"start": ["0"], "count": ["80"]},
+        )
+    except Exception as exc:
+        return {"layer": "projection", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "projection", "status": "failed", "message": "listing rows missing after reload"}
+    for row in rows:
+        if isinstance(row, dict) and row.get("row_key") == locator.get("row_key"):
+            actual = row.get("comment_text")
+            return {
+                "layer": "projection",
+                "status": "passed" if actual == expected else "failed",
+                "row_key": locator.get("row_key"),
+                "expected_comment_text": expected,
+                "actual_comment_text": actual,
+            }
+    return {"layer": "projection", "status": "failed", "message": "affected locator row missing after reload"}
+
+
+def _write_listing_comment_report(
+    target_id: str,
+    *,
+    run_state: dict[str, object],
+    iteration_id: str,
+    inspect_report: dict[str, object],
+    selected_work_item: dict[str, object] | None,
+    command: dict[str, object] | None,
+    action_result: dict[str, object],
+    verification: dict[str, object],
+    workflow_profile: dict[str, object] | None,
+    project_root: Path,
+) -> dict[str, object]:
+    report = _iteration_report(
+        run_state=run_state,
+        iteration_id=iteration_id,
+        inspect_report=inspect_report,
+        selected_work_item=selected_work_item,
+        command=command,
+        action_result=action_result,
+        verification=verification,
+        workflow_profile=workflow_profile,
+        next_recommendation=recommend_next_step(
+            inspect_report=inspect_report,
+            verification=verification,
+            workflow_profile=workflow_profile,
+        ),
+    )
+    return write_iteration_report(target_id, report, project_root=project_root)
 
 
 def _project_state_payload(target_id: str, project_root: Path) -> dict[str, object]:

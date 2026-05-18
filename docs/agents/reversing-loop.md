@@ -10,6 +10,7 @@ private mutation path.
 - `uv run python -m amiga_reversing.reversing_loop inspect --target <target>`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --dry-run`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target>`
+- `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-comment`
 
 ## Mode Choice
 
@@ -55,6 +56,9 @@ the listing artifact is opened, and that artifact is process-local.
    `comment_text`, `workflow_profile`, and `agent/` report output.
 8. Do not rely on `reversing_loop inspect` alone for arbitrary comment
    opportunities; current inspect candidates come from review items.
+9. Prefer `run-one --target <target> --listing-backed-comment --comment-text <text>`
+   for one real arbitrary comment. Stop if listing readiness, command
+   availability, or projected comment verification fails.
 
 ## Verification
 

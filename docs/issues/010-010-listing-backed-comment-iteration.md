@@ -1,4 +1,4 @@
-Status: Open
+Status: Complete
 Source proposal: docs/proposals/010-agentic-reversing-loop.md
 
 ## Scope
@@ -38,26 +38,26 @@ process that executes the command:
 
 ## Acceptance criteria
 
-- [ ] Harness has a command or mode that performs listing open/wait/locator
+- [x] Harness has a command or mode that performs listing open/wait/locator
       acquisition and `comment.edit` in one process.
-- [ ] The flow does not rely on `reversing_loop inspect` review-item candidates
+- [x] The flow does not rely on `reversing_loop inspect` review-item candidates
       for arbitrary comment opportunities.
-- [ ] Command availability is checked before execution.
-- [ ] Mutation executes through the existing command/manual-action route.
-- [ ] Report records selected locator, command, durable result, verification
+- [x] Command availability is checked before execution.
+- [x] Mutation executes through the existing command/manual-action route.
+- [x] Report records selected locator, command, durable result, verification
       layers, workflow profile, and next recommendation.
-- [ ] Verification checks projected `comment_text` at the affected locator after
+- [x] Verification checks projected `comment_text` at the affected locator after
       reload/projection.
-- [ ] Partial or failed listing readiness names the failing layer and stops.
-- [ ] No tracked timestamp-only target changes are committed.
+- [x] Partial or failed listing readiness names the failing layer and stops.
+- [x] No tracked timestamp-only target changes are committed.
 
 ## Required tests
 
-- [ ] Focused test for listing-backed locator acquisition.
-- [ ] Focused test for command availability before execution.
-- [ ] Focused test that projected `comment_text` is verified.
-- [ ] Focused failure-layer test for listing readiness failure.
-- [ ] End-to-end smoke using the harness path without DOM scraping or private
+- [x] Focused test for listing-backed locator acquisition.
+- [x] Focused test for command availability before execution.
+- [x] Focused test that projected `comment_text` is verified.
+- [x] Focused failure-layer test for listing readiness failure.
+- [x] End-to-end smoke using the harness path without DOM scraping or private
       state patching.
 
 ## Blocked by
@@ -78,3 +78,21 @@ process-local. A fresh CLI `inspect` process cannot see row locators unless it
 opens and waits for the listing artifact in that same process. The implementation
 should encode that workflow in the harness so future goals do not need to
 hand-roll it.
+
+## Completion
+
+Implemented in `run-one --listing-backed-comment`. Verification passed:
+
+```text
+uv run python -m pytest tests\test_reversing_loop.py tests\test_agent_reversing_loop.py -q
+  25 passed
+
+uv run python -m pytest tests\test_api_workflow_harness.py tests\test_disasm_server.py -q
+  136 passed
+
+uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py tests\test_agent_reversing_loop.py
+  All checks passed
+
+cmd /c src\precommit.bat
+  passed
+```
