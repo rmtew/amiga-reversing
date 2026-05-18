@@ -35,6 +35,8 @@ _COMMAND_RANK = {
     "review.seed.data.string": 87,
     "review.seed.data.scalar_table": 87,
     "review.seed.data.pointer_table": 87,
+    "app_slot.rename": 82,
+    "app_slot.edit": 80,
     "row.seed.code": 90,
     "row.seed.data.raw": 85,
     "row.seed.data.byte": 85,
@@ -68,6 +70,7 @@ _COMMAND_RANK = {
     "typed_access.field.edit": 72,
     "typed_access.field.rename": 72,
     "typed_access.field.remove": 68,
+    "app_slot.remove": 66,
     "target.rsset_region.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
@@ -2193,6 +2196,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
         return "round_trip"
+    if any(action.startswith("app_slot.") for action in actions):
+        return "round_trip"
     if any(action.startswith(("target.custom_struct.", "target.custom_struct_field.", "typed_gap.field.", "typed_access.field.")) for action in actions):
         return "round_trip"
     if any(action.startswith(("target.execution_view.", "correction.suppress_seeded_item.")) for action in actions):
@@ -2590,6 +2595,17 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
+    if action.startswith("app_slot."):
+        context = _app_slot_context_from_candidate(candidate)
+        if context is None:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action in {
         "target.rsset_region.add",
         "target.rsset_region.edit",
@@ -2657,6 +2673,18 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "output_affecting": True,
         }
     return None
+
+
+def _app_slot_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
+    locator = candidate.get("locator")
+    element_id = candidate.get("element_id")
+    if not isinstance(element_id, str) or not element_id:
+        return None
+    context: dict[str, object] = {"kind": "element", "locator": locator, "element_id": element_id}
+    for key in ("element_kind", "operand_index", "symbol", "displacement", "base_register", "access"):
+        if key in candidate:
+            context[key] = candidate[key]
+    return context
 
 
 def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:

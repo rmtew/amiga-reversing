@@ -1017,6 +1017,47 @@ def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_app_slot_command_candidate_uses_selected_element_context() -> None:
+    candidate = {
+        "id": "app-slot-rename",
+        "candidate_id": "app-slot-rename",
+        "kind": "app_slot_region",
+        "locator": _listing_locator(),
+        "element_id": "row-1:app_slot:1:0234",
+        "element_kind": "app_slot",
+        "operand_index": 1,
+        "symbol": "app_0234",
+        "displacement": 0x234,
+        "base_register": "A6",
+        "access": "write",
+        "suggested_action_kinds": ["app_slot.rename"],
+        "parameters": {"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "app_slot.rename",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(),
+            "element_id": "row-1:app_slot:1:0234",
+            "element_kind": "app_slot",
+            "operand_index": 1,
+            "symbol": "app_0234",
+            "displacement": 0x234,
+            "base_register": "A6",
+            "access": "write",
+        },
+        "parameters": {"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
