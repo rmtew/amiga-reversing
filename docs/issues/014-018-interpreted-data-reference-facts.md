@@ -1,4 +1,4 @@
-Status: Open
+Status: In progress
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
@@ -9,7 +9,8 @@ binding.
 
 Requirements:
 - Add `interpret_manual_data_block_element_ref` Manual Action Log support,
-  exposed through a `data_block.element.interpret_ref` command id.
+  exposed through a `data_block.element.interpret_ref` command id. First slice
+  implements replay/projection state; command catalog exposure remains open.
 - Model reference kind, width, signedness, base/source evidence, scale, target
   locator, confidence, and xref-generation mode.
 - Project interpreted refs into a dedicated manual fact family.
@@ -24,6 +25,25 @@ Requirements:
   refs remain.
 - Support only reference kinds with clear local evidence and verifier coverage;
   unsupported kinds remain missing capability blockers.
+
+Implemented tests:
+- Manual Action Log projects active `data_block_interpreted_refs` with durable
+  interpretation id, owning `layout_id`, element `offset`, width, reference
+  kind, target locator, confidence, and xref-generation mode.
+- Manual Action Log projects explicit interpreted-reference removal into
+  `removed_data_block_interpreted_refs`.
+- Removing an owning data-block layout also removes owned interpreted-reference
+  state.
+
+Remaining:
+- Command catalog exposure for supported `data_block.element.interpret_ref` and
+  corrective remove/clear commands.
+- Effective metadata / analysis projection for manual interpreted-reference
+  facts.
+- Symbolic rendering for supported reference kinds.
+- Generated bidirectional xrefs with owner identity.
+- Verifiers for rendered text, generated xrefs, cleanup disappearance, and
+  exact rebuild.
 
 Acceptance criteria:
 - Replay reloads interpreted-reference state exactly.

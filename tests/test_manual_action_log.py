@@ -1154,6 +1154,80 @@ def test_manual_action_log_projects_data_block_layout_and_elements(tmp_path: Pat
     assert projection.removed_data_block_elements == ()
 
 
+def test_manual_action_log_projects_data_block_interpreted_refs(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {"layout_id": "ptr-table", "hunk": 0, "source_start": 0x100, "source_end": 0x110}
+    element = {
+        "data_block_element_id": "ptr-table:0",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "kind": "scalar",
+    }
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x200,
+        "xref_generation_mode": "bidirectional",
+        "confidence": "manual",
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a2", 2, "set_manual_data_block_element", data_block_element=element),
+            _action("a3", 3, "interpret_manual_data_block_element_ref", data_block_interpreted_ref=interpreted_ref),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_interpreted_refs == (interpreted_ref,)
+    assert projection.removed_data_block_interpreted_refs == ()
+
+
+def test_manual_action_log_removes_data_block_interpreted_ref(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {"layout_id": "ptr-table", "hunk": 0, "source_start": 0x100, "source_end": 0x110}
+    element = {"data_block_element_id": "ptr-table:0", "layout_id": "ptr-table", "offset": 0, "width": 4, "kind": "scalar"}
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x200,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a2", 2, "set_manual_data_block_element", data_block_element=element),
+            _action("a3", 3, "interpret_manual_data_block_element_ref", data_block_interpreted_ref=interpreted_ref),
+            _action(
+                "a4",
+                4,
+                "remove_manual_data_block_element_ref",
+                data_block_interpreted_ref={"data_block_ref_id": "ptr-table:0:absolute", "layout_id": "ptr-table", "offset": 0},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_interpreted_refs == ()
+    assert projection.removed_data_block_interpreted_refs == ({**interpreted_ref, "cleanup_action_id": "a4"},)
+
+
 def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -1165,15 +1239,23 @@ def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path
         "width": 0x30,
         "kind": "padding",
     }
+    interpreted_ref = {
+        "data_block_ref_id": "ascii-hex:0:absolute",
+        "layout_id": "ascii-hex",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+    }
     _append_jsonl(
         target_dir / MANUAL_ACTION_LOG_FILE_NAME,
         [
             {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
             _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
             _action("a2", 2, "set_manual_data_block_element", data_block_element=element),
+            _action("a3", 3, "interpret_manual_data_block_element_ref", data_block_interpreted_ref=interpreted_ref),
             _action(
-                "a3",
-                3,
+                "a4",
+                4,
                 "remove_manual_data_block_layout",
                 data_block_layout={"layout_id": "ascii-hex", "removal_state": "raw"},
             ),
@@ -1184,10 +1266,12 @@ def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path
 
     assert projection.data_block_layouts == ()
     assert projection.data_block_elements == ()
-    assert projection.removed_data_block_layouts == ({**layout, "cleanup_action_id": "a3"},)
+    assert projection.data_block_interpreted_refs == ()
+    assert projection.removed_data_block_layouts == ({**layout, "cleanup_action_id": "a4"},)
     assert projection.removed_data_block_elements == (
-        {**element, "cleanup_action_id": "a3", "removal_state": "raw"},
+        {**element, "cleanup_action_id": "a4", "removal_state": "raw"},
     )
+    assert projection.removed_data_block_interpreted_refs == ({**interpreted_ref, "cleanup_action_id": "a4"},)
 
 
 def test_manual_action_log_flags_overlapping_data_block_layout_without_replace(tmp_path: Path) -> None:

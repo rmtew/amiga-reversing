@@ -168,6 +168,8 @@ class ManualActionKind(StrEnum):
     SET_MANUAL_DATA_BLOCK_ELEMENT = "set_manual_data_block_element"
     REMOVE_MANUAL_DATA_BLOCK_ELEMENT = "remove_manual_data_block_element"
     REPRESENT_MANUAL_DATA_BLOCK_ELEMENT = "represent_manual_data_block_element"
+    INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF = "interpret_manual_data_block_element_ref"
+    REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF = "remove_manual_data_block_element_ref"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -215,6 +217,8 @@ class ManualActionLogProjection:
     removed_data_block_layouts: tuple[dict[str, object], ...]
     data_block_elements: tuple[dict[str, object], ...]
     removed_data_block_elements: tuple[dict[str, object], ...]
+    data_block_interpreted_refs: tuple[dict[str, object], ...]
+    removed_data_block_interpreted_refs: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -382,6 +386,8 @@ def _empty_projection(
         removed_data_block_layouts=(),
         data_block_elements=(),
         removed_data_block_elements=(),
+        data_block_interpreted_refs=(),
+        removed_data_block_interpreted_refs=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -1103,7 +1109,9 @@ def _data_block_layout_conflict_item(layout: dict[str, object], existing: dict[s
 def _replace_data_block_overlaps(
     layouts: dict[str, dict[str, object]],
     elements: dict[tuple[str, int], dict[str, object]],
+    interpreted_refs: dict[str, dict[str, object]],
     removed_layouts: dict[str, dict[str, object]],
+    removed_interpreted_refs: dict[str, dict[str, object]],
     layout: dict[str, object],
     *,
     action_id: str,
@@ -1118,6 +1126,12 @@ def _replace_data_block_overlaps(
         for element_key in list(elements):
             if element_key[0] == existing_id:
                 elements.pop(element_key, None)
+        for ref_id in list(interpreted_refs):
+            ref = interpreted_refs[ref_id]
+            if ref.get("layout_id") == existing_id:
+                removed_ref = interpreted_refs.pop(ref_id)
+                removed_ref["replacement_action_id"] = action_id
+                removed_interpreted_refs[ref_id] = removed_ref
 
 
 def _data_block_element_key(element: dict[str, object]) -> tuple[str, int]:
@@ -1171,6 +1185,37 @@ def _representation_data_block_element(action: _ManualAction, elements: dict[tup
         updated["provenance"] = representation["provenance"]
     updated["representation_action_id"] = action.action_id
     return updated
+
+
+def _data_block_interpreted_ref_key(ref: dict[str, object]) -> str:
+    ref_id = ref.get("data_block_ref_id") or ref.get("interpreted_ref_id")
+    if not isinstance(ref_id, str) or not ref_id:
+        raise ValueError("data_block_interpreted_ref requires data_block_ref_id")
+    _data_block_element_key(ref)
+    return ref_id
+
+
+def _validated_data_block_interpreted_ref(
+    ref: dict[str, object],
+    elements: dict[tuple[str, int], dict[str, object]],
+) -> dict[str, object]:
+    element_key = _data_block_element_key(ref)
+    if element_key not in elements:
+        raise ValueError(f"data_block_interpreted_ref references unknown element: {element_key[0]}:{element_key[1]}")
+    _data_block_interpreted_ref_key(ref)
+    width = _manual_seed_int(ref, "width")
+    if width is None or width <= 0:
+        raise ValueError("data_block_interpreted_ref requires positive width")
+    reference_kind = ref.get("reference_kind")
+    if not isinstance(reference_kind, str) or not reference_kind:
+        raise ValueError("data_block_interpreted_ref requires reference_kind")
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    if target_hunk is not None and target_hunk < 0:
+        raise ValueError("data_block_interpreted_ref target_hunk must be non-negative")
+    if target_offset is not None and target_offset < 0:
+        raise ValueError("data_block_interpreted_ref target_offset must be non-negative")
+    return dict(ref)
 
 
 def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
@@ -1428,6 +1473,8 @@ def _project_actions(
     removed_data_block_layouts: dict[str, dict[str, object]] = {}
     data_block_elements: dict[tuple[str, int], dict[str, object]] = {}
     removed_data_block_elements: dict[tuple[str, int], dict[str, object]] = {}
+    data_block_interpreted_refs: dict[str, dict[str, object]] = {}
+    removed_data_block_interpreted_refs: dict[str, dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1587,7 +1634,9 @@ def _project_actions(
                 _replace_data_block_overlaps(
                     data_block_layouts,
                     data_block_elements,
+                    data_block_interpreted_refs,
                     removed_data_block_layouts,
+                    removed_data_block_interpreted_refs,
                     layout,
                     action_id=action.action_id,
                 )
@@ -1610,6 +1659,12 @@ def _project_actions(
                     removed_element["cleanup_action_id"] = action.action_id
                     removed_element.setdefault("removal_state", layout.get("removal_state", "raw"))
                     removed_data_block_elements[element_key] = removed_element
+            for ref_id in list(data_block_interpreted_refs):
+                ref = data_block_interpreted_refs[ref_id]
+                if ref.get("layout_id") == layout_id:
+                    removed_ref = data_block_interpreted_refs.pop(ref_id)
+                    removed_ref["cleanup_action_id"] = action.action_id
+                    removed_data_block_interpreted_refs[ref_id] = removed_ref
         elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
             element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
             element_key = _data_block_element_key(element)
@@ -1630,6 +1685,27 @@ def _project_actions(
             removed["cleanup_action_id"] = action.action_id
             removed.setdefault("removal_state", element.get("removal_state", "gap"))
             removed_data_block_elements[element_key] = removed
+            for ref_id in list(data_block_interpreted_refs):
+                ref = data_block_interpreted_refs[ref_id]
+                if _data_block_element_key(ref) == element_key:
+                    removed_ref = data_block_interpreted_refs.pop(ref_id)
+                    removed_ref["cleanup_action_id"] = action.action_id
+                    removed_data_block_interpreted_refs[ref_id] = removed_ref
+        elif action.kind is ManualActionKind.INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF:
+            ref = _validated_data_block_interpreted_ref(
+                _action_object(action, "data_block_interpreted_ref"),
+                data_block_elements,
+            )
+            ref_id = _data_block_interpreted_ref_key(ref)
+            removed_data_block_interpreted_refs.pop(ref_id, None)
+            data_block_interpreted_refs[ref_id] = ref
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF:
+            ref = dict(_action_object(action, "data_block_interpreted_ref"))
+            ref_id = _data_block_interpreted_ref_key(ref)
+            existing = data_block_interpreted_refs.pop(ref_id, None)
+            removed = dict(existing or ref)
+            removed["cleanup_action_id"] = action.action_id
+            removed_data_block_interpreted_refs[ref_id] = removed
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
@@ -1697,6 +1773,8 @@ def _project_actions(
         removed_data_block_layouts=tuple(removed_data_block_layouts.values()),
         data_block_elements=tuple(data_block_elements.values()),
         removed_data_block_elements=tuple(removed_data_block_elements.values()),
+        data_block_interpreted_refs=tuple(data_block_interpreted_refs.values()),
+        removed_data_block_interpreted_refs=tuple(removed_data_block_interpreted_refs.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),
