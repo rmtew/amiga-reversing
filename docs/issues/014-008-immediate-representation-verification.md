@@ -1,4 +1,4 @@
-Status: Open
+Status: Complete
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:
@@ -20,6 +20,9 @@ Progress:
   assembler parser accepts binary (`%...`) and character (`'A'`) literals so
   rendered output round-trips exactly.
 - Data-literal representation coverage remains intact.
+- The reversing-loop verifier for representation commands checks Manual Action
+  Log hash/count, semantic reload of the representation, rendered listing text,
+  and exact round-trip.
 
 Acceptance criteria:
 - Operand identity is durable across listing rebuilds.
@@ -27,11 +30,12 @@ Acceptance criteria:
 - The loop verifier checks Manual Action Log, semantic reload, projected
   representation, rendered text, and round-trip exactness where output-affecting.
 
-Remaining work:
-- Add the action-specific reversing-loop verifier for representation commands.
-- Add negative verifier tests that fail on missing Manual Action Log projection,
-  missing rendered text, or failed round-trip.
-
 Required tests:
 Operand identity tests, instruction-immediate rendering tests, data literal
 regression tests, and loop verifier tests.
+
+Completed evidence:
+- `tests/test_manual_seed_effective_metadata.py`
+- `tests/test_c_backend.py::test_real_dll_manual_representation_styles_classified_bytes_without_classifying`
+- `tests/test_c_backend.py::test_real_dll_manual_representation_styles_instruction_immediates`
+- `tests/test_reversing_loop.py` representation verifier tests

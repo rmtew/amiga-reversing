@@ -316,6 +316,101 @@ def test_output_affecting_action_requires_round_trip_verifier(
     assert report["next"]["recommendation"] == "stop"
 
 
+def test_representation_command_requires_round_trip_verifier_even_without_flag(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    selected = {
+        "work_item": {"kind": "literal_representation", "confidence": "high"},
+        "command": _representation_command(output_affecting=False),
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_representation(round_trip=False))
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"][0]["layer"] == "round_trip"
+
+
+def test_representation_command_verifies_source_projection_and_round_trip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    selected = {
+        "work_item": {"kind": "literal_representation", "confidence": "high"},
+        "command": _representation_command(),
+    }
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "representation.character"}]}}
+        if path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_representation_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {"representations": [_representation_payload()]}}}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(text="\tmove.b #'A',d0\n", end_offset=4)]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_representation())
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert ("POST", "/api/projects/demo/commands/execute") in calls
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "projection",
+        "round_trip",
+    ]
+
+
+def test_representation_command_fails_when_rendered_text_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    selected = {
+        "work_item": {"kind": "literal_representation", "confidence": "high"},
+        "command": _representation_command(),
+    }
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "representation.character"}]}}
+        if path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_representation_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {"representations": [_representation_payload()]}}}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(text="\tmove.b #65,d0\n", end_offset=4)]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_representation())
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "failed"
+    projection = next(layer for layer in report["verification"]["layers"] if layer["layer"] == "projection")
+    assert projection["status"] == "failed"
+    assert projection["expected_tokens"] == ["#'A'"]
+    assert report["next"]["recommendation"] == "stop"
+
+
 def test_listing_backed_comment_acquires_locator_after_open(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -845,12 +940,68 @@ def _inspect_with_locator() -> dict[str, object]:
     }
 
 
+def _inspect_with_representation(*, round_trip: bool = True) -> dict[str, object]:
+    report = _inspect_with_locator()
+    report["verification_paths"] = [{"kind": "round_trip", "available": round_trip}]
+    report["candidate_work"] = [{"kind": "literal_representation", "confidence": "high"}]
+    return report
+
+
+def _representation_command(*, output_affecting: bool = True) -> dict[str, object]:
+    command = {
+        "kind": "command",
+        "command_id": "representation.character",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(end_offset=4),
+            "element_id": "row-1:immediate:0:65",
+            "element_kind": "immediate",
+            "operand_index": 0,
+            "value": 65,
+            "width_bits": 8,
+            "width_bytes": 1,
+        },
+        "parameters": {"representation": "character"},
+    }
+    if output_affecting:
+        command["output_affecting"] = True
+    return command
+
+
 def _write_manual_log(tmp_path: Path) -> None:
     path = tmp_path / "targets" / "demo" / "manual_actions.jsonl"
     path.write_text(
         '{"record": "manual_action_log_header"}\n{"record": "manual_action", "action_id": "manual-1"}\n',
         encoding="utf-8",
     )
+
+
+def _representation_payload() -> dict[str, object]:
+    return {
+        "representation_id": "repr-1",
+        "hunk": 0,
+        "addr": 0,
+        "end": 4,
+        "style": "character",
+        "element_kind": "immediate",
+        "operand_index": 0,
+    }
+
+
+def _executed_representation_payload(tmp_path: Path) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1", "representation": _representation_payload()},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator(end_offset=4)],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
+    }
 
 
 def _executed_command_payload(workflow_profile: dict[str, object] | None = None) -> dict[str, object]:
@@ -873,6 +1024,7 @@ def _listing_row(
     row_key: str = "row-1",
     kind: str = "instruction",
     label: str | None = None,
+    text: str | None = None,
     start_offset: int | None = 0,
     end_offset: int | None = 2,
 ) -> dict[str, object]:
@@ -885,6 +1037,8 @@ def _listing_row(
     if label is not None:
         row["label"] = label
         row["text"] = f"{label}:\n"
+    if text is not None:
+        row["text"] = text
     if comment_text is not None:
         row["comment_text"] = comment_text
     return row

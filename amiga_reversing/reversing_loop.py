@@ -597,7 +597,7 @@ def run_one_iteration(
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
-    if command.get("output_affecting") is True and not _round_trip_verifier_available(inspect_report):
+    if _command_requires_round_trip(command) and not _round_trip_verifier_available(inspect_report):
         verification = {
             "status": "failed",
             "layers": [
@@ -1675,12 +1675,179 @@ def _verify_manual_mutation(
     *,
     project_root: Path,
 ) -> dict[str, object]:
+    command_id = command.get("command_id")
+    if isinstance(command_id, str) and command_id.startswith("representation."):
+        return _verify_representation_mutation(target_id, command, durable_result, project_root=project_root)
     layers = [
         _verify_semantic_reload(target_id, durable_result, project_root=project_root),
         _verify_projection_metadata(command, durable_result),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _verify_representation_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    representation = _representation_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_semantic_representation(target_id, representation),
+        _verify_projected_representation_text(target_id, command, representation),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _representation_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    if isinstance(action, dict):
+        representation = action.get("representation")
+        if isinstance(representation, dict):
+            return cast(dict[str, object], representation)
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            if not isinstance(raw_action, dict):
+                continue
+            representation = raw_action.get("representation")
+            if isinstance(representation, dict):
+                return cast(dict[str, object], representation)
+    return None
+
+
+def _verify_project_semantic_representation(
+    target_id: str,
+    expected: dict[str, object] | None,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing durable representation payload"}
+    try:
+        payload = server.route_request("GET", f"/api/projects/{target_id}", {})
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    data = payload.get("data")
+    project = data.get("project") if isinstance(data, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    representations = manual_state.get("representations") if isinstance(manual_state, dict) else None
+    if not isinstance(representations, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual representations were not reloaded"}
+    matches = [
+        representation
+        for representation in representations
+        if isinstance(representation, dict) and _representation_matches(representation, expected)
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_representation": expected,
+        "matching_representations": matches,
+    }
+
+
+def _representation_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in ("style", "element_kind", "hunk", "addr", "end", "operand_index"):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return True
+
+
+def _verify_projected_representation_text(
+    target_id: str,
+    command: dict[str, object],
+    representation: dict[str, object] | None,
+) -> dict[str, object]:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if not isinstance(locator, dict) or representation is None:
+        return {"layer": "projection", "status": "failed", "message": "missing locator or representation payload"}
+    expected_tokens = _expected_representation_tokens(command, representation)
+    if not expected_tokens:
+        return {"layer": "projection", "status": "failed", "message": "missing expected representation token"}
+    section_index = locator.get("section_index")
+    source_offset = locator.get("start_offset")
+    if not isinstance(section_index, int) or not isinstance(source_offset, int):
+        return {"layer": "projection", "status": "failed", "message": "locator lacks section/source offset"}
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["8"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "projection", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "projection", "status": "failed", "message": "listing rows missing after reload"}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        row_locator = row.get("locator")
+        same_row_key = row.get("row_key") == locator.get("row_key")
+        same_location = isinstance(row_locator, dict) and _row_covers_source_location(
+            row, row_locator, section_index, source_offset
+        )
+        if not same_row_key and not same_location:
+            continue
+        rendered_text = " ".join(str(row.get(key) or "") for key in ("text", "operand_text", "source_text"))
+        matched = [token for token in expected_tokens if token in rendered_text]
+        return {
+            "layer": "projection",
+            "status": "passed" if matched else "failed",
+            "expected_tokens": expected_tokens,
+            "matched_tokens": matched,
+            "rendered_text": rendered_text,
+            "row_key": row.get("row_key"),
+        }
+    return {"layer": "projection", "status": "failed", "message": "affected locator row missing after reload"}
+
+
+def _expected_representation_tokens(command: dict[str, object], representation: dict[str, object]) -> list[str]:
+    context = command.get("context")
+    value = context.get("value") if isinstance(context, dict) else None
+    if not isinstance(value, int):
+        value = representation.get("value")
+    if not isinstance(value, int):
+        return []
+    width_bits = context.get("width_bits") if isinstance(context, dict) else None
+    width_bytes = context.get("width_bytes") if isinstance(context, dict) else None
+    if not isinstance(width_bits, int) and isinstance(width_bytes, int):
+        width_bits = width_bytes * 8
+    style = representation.get("style")
+    element_kind = representation.get("element_kind")
+    prefix = "#" if element_kind == "immediate" else ""
+    masked = _mask_representation_value(value, width_bits if isinstance(width_bits, int) else None)
+    if style == "binary":
+        digits = f"{masked:b}"
+        if isinstance(width_bits, int) and width_bits > 0:
+            digits = digits.zfill(width_bits)
+        return [f"{prefix}%{digits}"]
+    if style == "character" and 32 <= masked <= 126 and masked not in {ord("'"), ord("\\")}:
+        return [f"{prefix}'{chr(masked)}'"]
+    if style in {"hex", "character"}:
+        return [f"{prefix}${masked:X}"]
+    return []
+
+
+def _mask_representation_value(value: int, width_bits: int | None) -> int:
+    if width_bits == 8:
+        return value & 0xFF
+    if width_bits == 16:
+        return value & 0xFFFF
+    if width_bits == 32:
+        return value & 0xFFFFFFFF
+    return value
 
 
 def _verify_semantic_reload(
@@ -1729,6 +1896,13 @@ def _round_trip_verifier_available(inspect_report: dict[str, object]) -> bool:
     if not isinstance(paths, list):
         return False
     return any(isinstance(path, dict) and path.get("kind") == "round_trip" and path.get("available") is True for path in paths)
+
+
+def _command_requires_round_trip(command: dict[str, object]) -> bool:
+    command_id = command.get("command_id")
+    return command.get("output_affecting") is True or (
+        isinstance(command_id, str) and command_id.startswith("representation.")
+    )
 
 
 def _select_command_action(inspect_report: dict[str, object]) -> dict[str, object] | None:
