@@ -25,6 +25,9 @@ Required tests:
 Positive and negative verifier tests for each implemented action family.
 
 Current evidence:
+- Generic output-affecting manual mutations now run a round-trip verification
+  layer after command execution, instead of only checking that a round-trip
+  verifier is available before execution.
 - Seeded data-symbol rename has rendered definition-name plus exact
   direct-rebuild coverage in
   `test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity`.

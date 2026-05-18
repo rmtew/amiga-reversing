@@ -2270,6 +2270,8 @@ def _verify_manual_mutation(
         _verify_semantic_reload(target_id, durable_result, project_root=project_root),
         _verify_projection_metadata(command, durable_result),
     ]
+    if _command_requires_round_trip(command):
+        layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
 

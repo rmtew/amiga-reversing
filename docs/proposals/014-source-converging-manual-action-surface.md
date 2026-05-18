@@ -144,6 +144,11 @@ Implementation observation from `014-006`: planner reports must show the
 candidate-specific verifier used for selection. Static command defaults are only
 fallbacks and can misdescribe candidates with stricter projection verifiers.
 
+Implementation observation from `014-005`: checking that `round_trip` is
+available before execution is not enough. Generic output-affecting mutations
+must include an actual post-execution round-trip layer so stale or mismatched
+reproduction state blocks progress.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
