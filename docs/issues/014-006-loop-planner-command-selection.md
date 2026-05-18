@@ -17,6 +17,16 @@ Progress:
 - Generic inspect review candidates with `create_manual_seed` suggestions now
   map to review-item catalog commands such as `review.seed.code` and
   `review.seed.data.raw`, using the durable review item id.
+- Generic `run-one` now opens listing projection when inspect has no candidates
+  and emits conservative representation candidates for byte-sized printable
+  immediates in byte instructions.
+- GenAm smoke performed a non-comment source-converging action through the
+  command catalog: `representation.character` rendered `subi.b #48,d1` as
+  `subi.b #'0',d1`, verified Manual Action Log, semantic reload, rendered
+  listing text, and exact round-trip in iteration `000022`.
+- Representation verification now refreshes listing projection after command
+  cache invalidation before checking rendered text; this was required by the
+  first GenAm smoke attempt.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -42,11 +52,9 @@ Planner ranking, already-satisfied skipping, command-catalog selection, verifier
 failure, and GenAm-style non-comment smoke.
 
 Remaining work:
-- Feed real listing/navigation representation and seed candidates into generic
-  inspect beyond current review-item seed candidates.
-- Run and document a GenAm non-comment smoke through the command catalog.
-- Extend planner tests across listing row seed and label paths, including
-  missing command/verifier blockers.
+- Extend autonomous listing candidate feeds beyond byte immediate
+  representations.
+- Extend planner tests across listing row seed and label paths.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

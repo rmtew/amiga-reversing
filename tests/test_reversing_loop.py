@@ -389,6 +389,41 @@ def test_planner_selects_review_seed_command_from_inspect_candidate(
     assert report["planner"]["selected_command_id"] == "review.seed.code"
 
 
+def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = []
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    row = _byte_immediate_row()
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "representation.character"
+    assert report["action"]["parameters"] == {"representation": "character"}
+    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render byte immediate 48 as #'0'"
+    assert report["planner"]["selected_command_id"] == "representation.character"
+
+
+def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
+    byte_candidates = reversing_loop._listing_representation_candidates([_byte_immediate_row()])
+    long_candidates = reversing_loop._listing_representation_candidates(
+        [_byte_immediate_row(opcode="moveq.l", width_bits=32)]
+    )
+
+    assert byte_candidates[0]["element_id"] == "row-1:immediate:0:48"
+    assert long_candidates == []
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -421,6 +456,8 @@ def test_representation_command_verifies_source_projection_and_round_trip(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
         if path.endswith("/commands") and method == "GET":
             return {"data": {"commands": [{"command_id": "representation.character"}]}}
         if path.endswith("/commands/execute"):
@@ -460,6 +497,8 @@ def test_representation_command_fails_when_rendered_text_missing(
     }
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
         if path.endswith("/commands") and method == "GET":
             return {"data": {"commands": [{"command_id": "representation.character"}]}}
         if path.endswith("/commands/execute"):
@@ -1137,6 +1176,30 @@ def _listing_row(
         row["text"] = text
     if comment_text is not None:
         row["comment_text"] = comment_text
+    return row
+
+
+def _byte_immediate_row(*, opcode: str = "subi.b", width_bits: int = 8) -> dict[str, object]:
+    row = _listing_row(text=f"\t{opcode} #48,d1\n", end_offset=2)
+    row.update(
+        {
+            "opcode_or_directive": opcode,
+            "operand_text": "#48,d1",
+            "operand_parts": [
+                {
+                    "kind": "immediate",
+                    "operand_index": 0,
+                    "value": 48,
+                    "signed_value": 48,
+                    "width_bits": width_bits,
+                    "width_bytes": width_bits // 8,
+                    "metadata": {},
+                }
+            ],
+            "operand_accesses": ["immediate", "register_write"],
+            "operand_registers": [None, "D1"],
+        }
+    )
     return row
 
 

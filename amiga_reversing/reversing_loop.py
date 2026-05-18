@@ -16,6 +16,7 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.reversing_workspace import (
@@ -26,6 +27,7 @@ from amiga_reversing.reversing_workspace import (
 TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
 PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
+_LISTING_SOURCE_CANDIDATE_ROW_COUNT = 2048
 _COMMAND_RANK = {
     "label.rename": 100,
     "review.seed.code": 92,
@@ -552,6 +554,8 @@ def run_one_iteration(
     if run_result.run_state is None:
         raise ValueError("run state is required")
     inspect_report = inspect_target(target_id, project_root=project_root)
+    if not inspect_report.get("candidate_work") and inspect_report.get("safe_to_mutate") is True:
+        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
     iteration_id = _next_iteration_id(run_result.run_state)
     selected = _select_command_action(inspect_report)
     if selected is None:
@@ -872,6 +876,148 @@ def _open_and_wait_listing(target_id: str, *, timeout_seconds: float) -> dict[st
             current = dict(data) if isinstance(data, dict) else {"status": "failed", "error": "malformed status"}
     except Exception as exc:
         return {"status": "failed", "message": str(exc)}
+
+
+def _inspect_report_with_listing_candidates(
+    target_id: str,
+    inspect_report: dict[str, object],
+) -> dict[str, object]:
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=10.0)
+    if listing_ready.get("status") != "ready":
+        return {**inspect_report, "listing_open": listing_ready}
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"start": ["0"], "count": [str(_LISTING_SOURCE_CANDIDATE_ROW_COUNT)]},
+        )
+    except Exception as exc:
+        return {**inspect_report, "listing_open": {"status": "failed", "message": str(exc)}}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    candidates = _listing_representation_candidates(
+        rows if isinstance(rows, list) else [],
+        existing_representations=_existing_representation_keys(inspect_report),
+    )
+    return {**inspect_report, "listing_open": listing_ready, "candidate_work": candidates}
+
+
+def _listing_representation_candidates(
+    rows: list[object],
+    *,
+    existing_representations: set[tuple[int, int, int | None, int | None, str]] | None = None,
+) -> list[dict[str, object]]:
+    candidates: list[dict[str, object]] = []
+    existing = existing_representations or set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        text = row.get("text")
+        opcode = row.get("opcode_or_directive")
+        if not isinstance(opcode, str) or not opcode.endswith(".b"):
+            continue
+        element_row = dict(row)
+        if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
+            element_row["stable_key"] = element_row["row_key"]
+        for context in listing_element_contexts(element_row):
+            if context.get("element_kind") != "immediate":
+                continue
+            value = context.get("value")
+            width_bits = context.get("width_bits")
+            if not isinstance(value, int) or not isinstance(width_bits, int):
+                continue
+            if width_bits != 8 or not _printable_character_representation_value(value):
+                continue
+            char = chr(value)
+            if isinstance(text, str) and f"#'{char}'" in text:
+                continue
+            element_id = context.get("element_id")
+            if not isinstance(element_id, str) or not element_id:
+                continue
+            row_key = cast(dict[str, object], locator).get("row_key")
+            operand_index = context.get("operand_index")
+            hunk = context.get("hunk")
+            addr = context.get("addr")
+            end = context.get("end_offset")
+            if (
+                isinstance(hunk, int)
+                and isinstance(addr, int)
+                and (hunk, addr, end if isinstance(end, int) else None, operand_index if isinstance(operand_index, int) else None, "character")
+                in existing
+            ):
+                continue
+            candidate_id = f"representation:{row_key}:{operand_index}:{value}:character"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "kind": "literal_representation",
+                    "durable_id": f"source_immediate:{row_key}:{operand_index}:{value}",
+                    "locator": dict(cast(dict[str, object], locator)),
+                    "element_id": element_id,
+                    "element_kind": "immediate",
+                    "operand_index": operand_index,
+                    "value": value,
+                    "width_bits": width_bits,
+                    "width_bytes": context.get("width_bytes"),
+                    "evidence": {
+                        "source": "listing",
+                        "evidence_kind": "byte_printable_immediate",
+                        "opcode": opcode,
+                        "text": text,
+                        "value": value,
+                        "character": char,
+                    },
+                    "current_metadata": {"representation": "decimal"},
+                    "expected_rendered_source_improvement": f"render byte immediate {value} as #'{char}'",
+                    "suggested_action_kind": "representation.character",
+                    "suggested_action_kinds": ["representation.character"],
+                    "default_verifier": "projected_representation_text",
+                    "verifier": {"kind": "projected_representation_text", "requires_semantic_reload": True},
+                    "confidence": "high",
+                    "rationale": "byte instruction uses a printable immediate value",
+                    "actionable": True,
+                    "stop_reason": None,
+                }
+            )
+    return candidates
+
+
+def _existing_representation_keys(inspect_report: dict[str, object]) -> set[tuple[int, int, int | None, int | None, str]]:
+    target_state = inspect_report.get("target_state")
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    representations = manual_state.get("representations") if isinstance(manual_state, dict) else None
+    keys: set[tuple[int, int, int | None, int | None, str]] = set()
+    if not isinstance(representations, list):
+        return keys
+    for representation in representations:
+        if not isinstance(representation, dict):
+            continue
+        hunk = representation.get("hunk")
+        addr = representation.get("addr")
+        style = representation.get("style")
+        if not isinstance(hunk, int) or not isinstance(addr, int) or not isinstance(style, str):
+            continue
+        end = representation.get("end")
+        operand_index = representation.get("operand_index")
+        keys.add(
+            (
+                hunk,
+                addr,
+                end if isinstance(end, int) else None,
+                operand_index if isinstance(operand_index, int) else None,
+                style,
+            )
+        )
+    return keys
+
+
+def _printable_character_representation_value(value: int) -> bool:
+    return 32 <= value <= 126 and value not in {ord("'"), ord("\\")}
 
 
 def _select_listing_comment_action(
@@ -1729,6 +1875,7 @@ def _verify_representation_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     representation = _representation_from_durable_result(durable_result)
+    _open_and_wait_listing(target_id, timeout_seconds=10.0)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_semantic_representation(target_id, representation),
