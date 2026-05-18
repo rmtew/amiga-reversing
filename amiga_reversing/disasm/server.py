@@ -2513,6 +2513,22 @@ def _manual_action_application_payload(
         region = action_payload.get("rsset_layout_region")
         if isinstance(region, Mapping):
             local_effects.append({"kind": "rsset_layout_region_remove", "rsset_layout_region": dict(region)})
+    elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
+        custom_struct = action_payload.get("custom_struct")
+        if isinstance(custom_struct, Mapping):
+            local_effects.append({"kind": "custom_struct", "custom_struct": dict(custom_struct)})
+    elif kind == "remove_manual_custom_struct":
+        custom_struct = action_payload.get("custom_struct")
+        if isinstance(custom_struct, Mapping):
+            local_effects.append({"kind": "custom_struct_remove", "custom_struct": dict(custom_struct)})
+    elif kind in {"create_manual_custom_struct_field", "rename_manual_custom_struct_field"}:
+        field = action_payload.get("custom_struct_field")
+        if isinstance(field, Mapping):
+            local_effects.append({"kind": "custom_struct_field", "custom_struct_field": dict(field)})
+    elif kind == "remove_manual_custom_struct_field":
+        field = action_payload.get("custom_struct_field")
+        if isinstance(field, Mapping):
+            local_effects.append({"kind": "custom_struct_field_remove", "custom_struct_field": dict(field)})
     elif kind == "create_manual_execution_view":
         view = action_payload.get("execution_view")
         if isinstance(view, Mapping):

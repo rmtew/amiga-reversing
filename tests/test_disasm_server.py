@@ -1829,6 +1829,104 @@ def test_route_manual_action_catalog_execute_appends_target_equate_action(
     assert appended_actions == [action]
 
 
+@pytest.mark.parametrize(
+    ("command_id", "parameters", "action_kind", "payload_key", "local_effect_kind", "expected_payload"),
+    [
+        (
+            "target.custom_struct.add",
+            {"name": "InputEvent", "size": 22},
+            "create_manual_custom_struct",
+            "custom_struct",
+            "custom_struct",
+            {"name": "InputEvent", "size": 22, "fields": []},
+        ),
+        (
+            "target.custom_struct.remove",
+            {"name": "InputEvent"},
+            "remove_manual_custom_struct",
+            "custom_struct",
+            "custom_struct_remove",
+            {"name": "InputEvent"},
+        ),
+        (
+            "target.custom_struct.rename",
+            {"previous_name": "InputEvent", "name": "GameInput"},
+            "rename_manual_custom_struct",
+            "custom_struct",
+            "custom_struct",
+            {"previous_name": "InputEvent", "name": "GameInput"},
+        ),
+        (
+            "target.custom_struct_field.add",
+            {"struct_name": "InputEvent", "name": "ie_Class", "type": "UBYTE", "offset": 4, "size": 1},
+            "create_manual_custom_struct_field",
+            "custom_struct_field",
+            "custom_struct_field",
+            {"struct_name": "InputEvent", "name": "ie_Class", "type": "UBYTE", "offset": 4, "size": 1},
+        ),
+        (
+            "target.custom_struct_field.remove",
+            {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+            "remove_manual_custom_struct_field",
+            "custom_struct_field",
+            "custom_struct_field_remove",
+            {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+        ),
+        (
+            "target.custom_struct_field.rename",
+            {"struct_name": "InputEvent", "offset": 4, "name": "ie_Code"},
+            "rename_manual_custom_struct_field",
+            "custom_struct_field",
+            "custom_struct_field",
+            {"struct_name": "InputEvent", "offset": 4, "name": "ie_Code"},
+        ),
+    ],
+)
+def test_route_manual_action_catalog_execute_returns_custom_struct_local_effect(
+    command_id: str,
+    parameters: dict[str, object],
+    action_kind: str,
+    payload_key: str,
+    local_effect_kind: str,
+    expected_payload: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {"command_id": command_id, "context": {"kind": "target"}, "parameters": parameters},
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    projected = cast(dict[str, object], cast(dict[str, object], action["payload"])[payload_key])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == action_kind
+    assert projected == expected_payload
+    assert application["status"] == "applied"
+    assert local_effect == {"kind": local_effect_kind, payload_key: projected}
+    assert appended_actions == [action]
+
+
 @pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])
 def test_route_manual_action_catalog_execute_appends_execution_view_action(
     command_id: str,
