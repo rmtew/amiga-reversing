@@ -21,6 +21,9 @@ Current evidence:
 - Seeded-entity rows now expose `data_symbol.remove`, mapped to durable
   `suppress_seeded_item`, with command execution plus rendered-source/exact
   direct-rebuild coverage.
+- Ordinary data rows now expose `data_symbol.rename`, projecting a manual named
+  data seed by hunk/source range with rendered-source/exact direct-rebuild
+  coverage.
 - Loop planner recognizes explicit data-symbol rename/remove candidates and
   skips already-satisfied projected names/removals; autonomous candidate
   production is still absent.

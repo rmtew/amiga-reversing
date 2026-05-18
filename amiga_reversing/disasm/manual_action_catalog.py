@@ -719,9 +719,11 @@ def _row_suppressible_seeded_items(row: Mapping[str, object]) -> list[dict[str, 
 
 def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     actions: list[dict[str, object]] = []
+    has_seeded_entity = False
     for item in _row_suppressible_seeded_items(row):
         if item["kind"] != "seeded_entity":
             continue
+        has_seeded_entity = True
         actions.append(
             _context_log_action(
                 "data_symbol.rename",
@@ -748,7 +750,42 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                 {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]},
             )
         )
+    if not has_seeded_entity and row.get("kind") == "data":
+        identity = _row_data_symbol_identity(row)
+        if identity is not None:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.rename",
+                    "Rename data symbol",
+                    "rename_data_symbol",
+                    context,
+                    identity,
+                    _data_name_parameter_schema(),
+                    "F2",
+                )
+            )
     return actions
+
+
+def _row_data_symbol_identity(row: Mapping[str, object]) -> dict[str, object] | None:
+    hunk = _optional_int(row.get("section_index"))
+    if hunk is None:
+        hunk = _optional_int(row.get("hunk"))
+    addr = _optional_int(row.get("start_offset"))
+    if addr is None:
+        addr = _optional_int(row.get("addr"))
+    if hunk is None or addr is None:
+        return None
+    identity: dict[str, object] = {"hunk": hunk, "addr": addr}
+    end = _optional_int(row.get("end_offset"))
+    if end is None:
+        end = _optional_int(row.get("end"))
+    if end is not None and end > addr:
+        identity["end"] = end
+    label = row.get("label")
+    if isinstance(label, str) and label:
+        identity["previous_name"] = label
+    return identity
 
 
 def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
@@ -774,7 +811,24 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
             if "source_locator" in item:
                 symbol["source_locator"] = item["source_locator"]
             return symbol
-    raise ValueError("rename_data_symbol requires a seeded data entity on the selected row")
+    if row.get("kind") == "data":
+        name = _data_seed_name(params)
+        if name is None:
+            raise ValueError("rename_data_symbol requires parameter name")
+        symbol = {
+            "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
+            "hunk": hunk,
+            "addr": addr,
+            "name": name,
+        }
+        end = _optional_int(params.get("end"))
+        if end is not None and end > addr:
+            symbol["end"] = end
+        previous_name = params.get("previous_name")
+        if isinstance(previous_name, str) and previous_name:
+            symbol["previous_name"] = previous_name
+        return symbol
+    raise ValueError("rename_data_symbol requires a data row or seeded data entity on the selected row")
 
 
 def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:

@@ -118,6 +118,34 @@ def test_data_symbol_remove_command_suppresses_seeded_entity_identity() -> None:
     }
 
 
+def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 1,
+        "start_offset": 0x120,
+        "end_offset": 0x128,
+        "label": "loc_1_00000120",
+    }
+
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload == {
+        "data_symbol": {
+            "data_symbol_id": "data-symbol:h1:00000120",
+            "hunk": 1,
+            "addr": 0x120,
+            "end": 0x128,
+            "previous_name": "loc_1_00000120",
+            "name": "player_table",
+        }
+    }
+
+
 def test_target_execution_view_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.add",

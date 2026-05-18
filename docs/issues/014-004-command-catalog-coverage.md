@@ -41,6 +41,8 @@ Current progress:
 - Rows backed by `target_seeded_metadata.json` seeded entities expose
   `data_symbol.rename`, with required `name`, and `/commands/execute` appends
   `rename_data_symbol`.
+- Ordinary data rows expose `data_symbol.rename`, with required `name`, and
+  `/commands/execute` appends `rename_data_symbol` as a manual named data seed.
 - Rows backed by `target_seeded_metadata.json` seeded entities expose
   `data_symbol.remove`, and `/commands/execute` appends `suppress_seeded_item`.
 

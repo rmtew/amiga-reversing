@@ -28,6 +28,9 @@ Current evidence:
 - Seeded data-symbol rename has rendered definition-name plus exact
   direct-rebuild coverage in
   `test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity`.
+- Ordinary data-row symbol rename has rendered definition-name plus exact
+  direct-rebuild coverage in
+  `test_real_dll_manual_data_symbol_rename_renders_ordinary_data_row`.
 - Seeded data-symbol removal has rendered suppression plus exact direct-rebuild
   coverage in
   `test_real_dll_manual_data_symbol_remove_suppresses_rendered_seeded_entity`.
