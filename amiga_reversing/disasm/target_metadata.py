@@ -1078,7 +1078,7 @@ def validate_target_corrections_metadata(metadata: TargetMetadata) -> TargetMeta
     return metadata
 
 
-def _apply_suppressed_seeded_items(
+def apply_suppressed_seeded_items(
     seeded: TargetMetadata,
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...],
 ) -> TargetMetadata:
@@ -1327,7 +1327,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
         raise ValueError("Conflicting target_type between target metadata and seeded target metadata")
     if seeded.entry_register_seeds:
         raise ValueError("Conflicting entry_register_seeds between target metadata and seeded target metadata")
-    seeded = _apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
+    seeded = apply_suppressed_seeded_items(seeded, manual.suppressed_seeded_items)
     return TargetMetadata(
         target_type=manual.target_type,
         entry_register_seeds=manual.entry_register_seeds,

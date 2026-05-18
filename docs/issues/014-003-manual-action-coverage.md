@@ -30,6 +30,8 @@ Current progress:
   conflict item's durable `seed_ids`.
 - Existing `create_manual_register_seed` replay now has explicit coverage for
   both `library_base` and `struct_ptr` semantic helper payloads.
+- `suppress_seeded_item` replay projects append-only target-specific seeded
+  item suppressions into effective metadata.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

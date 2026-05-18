@@ -883,6 +883,33 @@ def test_required_manual_code_seed_conflicts_with_stronger_seeded_entity(tmp_pat
     )
 
 
+def test_manual_action_log_projects_seeded_item_suppression(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "suppress_seeded_item",
+                suppressed_seeded_item={"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+            ),
+            _action(
+                "a2",
+                2,
+                "suppress_seeded_item",
+                suppressed_seeded_item={"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.suppressed_seeded_items == ({"kind": "seeded_entity", "hunk": 0, "addr": 0x100},)
+
+
 def test_required_manual_data_seed_conflicts_with_raw_entrypoint(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

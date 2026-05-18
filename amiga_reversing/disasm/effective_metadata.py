@@ -30,9 +30,11 @@ from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
+    SuppressedSeededItemMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
+    apply_suppressed_seeded_items,
     load_target_metadata,
 )
 
@@ -345,6 +347,18 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
     )
 
 
+def _manual_suppressed_seeded_item_to_metadata(item: dict[str, object]) -> SuppressedSeededItemMetadata | None:
+    kind = _manual_seed_text(item, "kind")
+    hunk = _manual_seed_int(item, "hunk")
+    addr = _manual_seed_int(item, "addr")
+    if kind is None or hunk is None or addr is None:
+        return None
+    try:
+        return SuppressedSeededItemMetadata.from_dict({"kind": kind, "hunk": hunk, "addr": addr})
+    except AssertionError:
+        return None
+
+
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
@@ -378,7 +392,16 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     representations = projection.representations
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
-    if not required_seeds and not labels and not comments and not representations and not semantic_hints and not register_seed_projections:
+    suppressed_seeded_item_projections = projection.suppressed_seeded_items
+    if (
+        not required_seeds
+        and not labels
+        and not comments
+        and not representations
+        and not semantic_hints
+        and not register_seed_projections
+        and not suppressed_seeded_item_projections
+    ):
         return metadata
     if metadata is None:
         metadata = TargetMetadata(target_type="program", entry_register_seeds=())
@@ -389,6 +412,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
+    suppressed_seeded_items = list(metadata.suppressed_seeded_items)
     for seed in required_seeds:
         seed_kind = seed.get("kind")
         if seed_kind is ManualSeedKind.CODE:
@@ -422,7 +446,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         entry_register_seed = _manual_register_seed_to_metadata(register_seed)
         if entry_register_seed is not None:
             entry_register_seeds.append(entry_register_seed)
-    return replace(
+    for item in suppressed_seeded_item_projections:
+        suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
+        if suppressed_seeded_item is not None:
+            suppressed_seeded_items.append(suppressed_seeded_item)
+    result = replace(
         metadata,
         entry_register_seeds=tuple(entry_register_seeds),
         seeded_entities=tuple(seeded_entities),
@@ -431,7 +459,12 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
+        suppressed_seeded_items=tuple(suppressed_seeded_items),
     )
+    if suppressed_seeded_items:
+        result = apply_suppressed_seeded_items(result, tuple(suppressed_seeded_items))
+        result = replace(result, suppressed_seeded_items=tuple(suppressed_seeded_items))
+    return result
 
 
 def effective_metadata_text(target_dir: Path) -> str:

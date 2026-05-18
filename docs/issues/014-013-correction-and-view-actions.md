@@ -10,8 +10,10 @@ bugs that affect a whole class of targets.
 Current evidence:
 - Target metadata supports `execution_views`, `absolute_code_labels`, and
   `suppressed_seeded_items`.
-- `target_corrections.json` can suppress seeded items, but there is no append-only
-  manual action or command for this capability.
+- `target_corrections.json` can suppress seeded items.
+- Manual Action Log `suppress_seeded_item` now projects append-only
+  target-specific suppressions into effective metadata for seeded entities,
+  seeded code labels, and seeded code entrypoints.
 - Label commands cover some absolute labels, but not execution view add/edit or
   correction/suppression workflows.
 - High-level bootblock, resident, library/device, autoinit, and import
@@ -24,7 +26,8 @@ Acceptance criteria:
   identities.
 - Manual actions replay deterministically into effective metadata.
 - Review/catalog commands can suppress wrong auto/imported facts and add/edit
-  execution views.
+  execution views. Command exposure remains open pending listing/review identity
+  sources for suppressible auto facts.
 - Verifiers prove source rendering, reproduction, and round-trip where
   applicable.
 - The loop distinguishes importer/analyzer defects from target-specific manual

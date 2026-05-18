@@ -16,7 +16,10 @@ from amiga_reversing.disasm.binary_source import (
     HunkFileBinarySource,
     RawBinarySource,
 )
-from amiga_reversing.disasm.target_metadata import TargetMetadata
+from amiga_reversing.disasm.target_metadata import (
+    SuppressedSeededItemKind,
+    TargetMetadata,
+)
 
 MANUAL_ACTION_LOG_FILE_NAME = "manual_actions.jsonl"
 MANUAL_ACTION_LOG_VERSION = 1
@@ -142,6 +145,7 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_REPRESENTATION = "remove_manual_representation"
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
+    SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -169,6 +173,7 @@ class ManualActionLogProjection:
     comments: tuple[dict[str, object], ...]
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
+    suppressed_seeded_items: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
@@ -316,6 +321,7 @@ def _empty_projection(
         comments=(),
         representations=(),
         semantic_hints=(),
+        suppressed_seeded_items=(),
         review_notes=(),
         resolutions=(),
         active_action_ids=(),
@@ -902,6 +908,19 @@ def _action_object(action: _ManualAction, field_name: str) -> dict[str, object]:
     return _object(action.payload.get(field_name), what=f"{action.kind} {field_name}")
 
 
+def _suppressed_seeded_item_key(item: dict[str, object]) -> tuple[str, int, int]:
+    kind = item.get("kind")
+    hunk = _manual_seed_int(item, "hunk")
+    addr = _manual_seed_int(item, "addr")
+    if not isinstance(kind, str) or hunk is None or addr is None:
+        raise ValueError("suppressed_seeded_item requires kind, hunk, and addr")
+    try:
+        SuppressedSeededItemKind(kind)
+    except ValueError:
+        raise ValueError(f"unsupported suppressed seeded item kind: {kind}") from None
+    return kind, hunk, addr
+
+
 def _projected_manual_seed(action: _ManualAction) -> dict[str, object]:
     seed = dict(_action_object(action, "seed"))
     seed_kind = _manual_seed_kind_from_json(seed.get("kind"))
@@ -1077,6 +1096,7 @@ def _project_actions(
     comments: dict[str, dict[str, object]] = {}
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
+    suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
@@ -1115,6 +1135,9 @@ def _project_actions(
             _put_by_id(semantic_hints, _action_object(action, "semantic_hint"), "semantic_hint_id")
         elif action.kind is ManualActionKind.REMOVE_MANUAL_SEMANTIC_HINT:
             _drop_by_id(semantic_hints, action, "semantic_hint_id")
+        elif action.kind is ManualActionKind.SUPPRESS_SEEDED_ITEM:
+            item = _action_object(action, "suppressed_seeded_item")
+            suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -1154,6 +1177,7 @@ def _project_actions(
         comments=tuple(comments.values()),
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
+        suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
         review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),

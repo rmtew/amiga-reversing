@@ -11,10 +11,12 @@ from amiga_reversing.disasm.manual_actions import (
 )
 from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
     write_target_metadata,
+    write_target_seeded_metadata,
 )
 
 
@@ -625,6 +627,50 @@ def test_effective_metadata_preserves_stronger_code_entrypoint_over_conflicting_
         }
     ]
     assert payload["seeded_entities"] == []
+
+
+def test_effective_metadata_applies_manual_seeded_item_suppression(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x100,
+                    end=0x104,
+                    hunk=0,
+                    name="auto_data",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="GeneratedData",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "suppress_seeded_item",
+                suppressed_seeded_item={"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["seeded_entities"] == []
+    assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "hunk": 0, "kind": "seeded_entity"}]
 
 
 def test_effective_metadata_ignores_manual_data_seed_conflicting_with_raw_entrypoint(tmp_path: Path) -> None:
