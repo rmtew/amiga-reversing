@@ -704,6 +704,36 @@ def run_one_iteration(
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
+    command_verifier = _candidate_verifier(cast(dict[str, object], selected["work_item"]), command)
+    if command_verifier is None:
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "verifier",
+                    "status": "failed",
+                    "message": "source-converging action requires an action-specific verifier",
+                    "command_id": command.get("command_id"),
+                }
+            ],
+        }
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked"},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "missing_verifier", "name": str(command.get("command_id") or "")},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
     if _command_requires_round_trip(command) and not _round_trip_verifier_available(inspect_report):
         verification = {
             "status": "failed",
@@ -4439,16 +4469,31 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
 
 def _candidate_verifier(candidate: dict[str, object], command: dict[str, object] | None) -> str | None:
     command_verifier: str | None = None
+    command_id: str | None = None
     if command is not None:
-        command_id = command.get("command_id")
-        if isinstance(command_id, str):
-            command_verifier = _default_verifier_for_actions([command_id])
+        raw_command_id = command.get("command_id")
+        if isinstance(raw_command_id, str):
+            command_id = raw_command_id
+            command_verifier = _default_verifier_for_actions([raw_command_id])
     verifier = candidate.get("default_verifier")
     if isinstance(verifier, str) and verifier:
+        if command_id is not None and not _candidate_advertises_command(candidate, command_id):
+            return command_verifier
         if verifier == "round_trip" and command_verifier not in {None, "round_trip"}:
             return command_verifier
         return verifier
     return command_verifier
+
+
+def _candidate_advertises_command(candidate: dict[str, object], command_id: str) -> bool:
+    actions = candidate.get("suggested_action_kinds")
+    if isinstance(actions, list) and any(action == command_id for action in actions):
+        return True
+    action = candidate.get("suggested_action_kind")
+    if action == command_id:
+        return True
+    embedded = candidate.get("command")
+    return isinstance(embedded, dict) and embedded.get("command_id") == command_id
 
 
 def _command_context_complete(command: dict[str, object]) -> bool:

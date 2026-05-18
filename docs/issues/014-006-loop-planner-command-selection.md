@@ -76,6 +76,9 @@ Progress:
 - Planner verifier summaries now let a command-specific verifier override a
   candidate's generic `round_trip` fallback, so stale explicit candidates do
   not hide stricter state verifiers.
+- Non-dry execution now blocks selected commands with no action-specific
+  verifier before catalog availability or command execution, so bypassed or
+  stale selections cannot execute unverified source changes.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an

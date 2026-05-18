@@ -355,20 +355,28 @@ def test_output_affecting_action_runs_round_trip_layer(
         "work_item": inspect_report["candidate_work"][0],
         "command": {
             "kind": "command",
-            "command_id": "target.custom_struct.add",
+            "command_id": "target.equate.add",
             "context": {"kind": "target"},
-            "parameters": {"name": "InputEvent", "size": 22},
+            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
             "output_affecting": True,
         },
     }
     monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
     monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [{"name": "PLAYER_START_LIVES", "value": 3}]},
+        ),
+    )
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET":
-            return {"data": {"commands": [{"command_id": "target.custom_struct.add"}]}}
+            return {"data": {"commands": [{"command_id": "target.equate.add"}]}}
         _write_manual_log(tmp_path)
-        return {"data": _executed_command_payload()}
+        return {"data": _executed_target_equate_payload(tmp_path, {"name": "PLAYER_START_LIVES", "value": 3})}
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
@@ -379,7 +387,7 @@ def test_output_affecting_action_runs_round_trip_layer(
     assert report["verification"]["layers"][-1]["round_trip"]["status"] == "mismatch"
 
 
-def test_target_command_verification_accepts_local_effect_projection(
+def test_target_custom_struct_command_blocks_without_specific_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -401,33 +409,16 @@ def test_target_command_verification_accepts_local_effect_projection(
     monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
-        if method == "GET":
-            return {"data": {"commands": [{"command_id": "target.custom_struct.add"}]}}
-        _write_manual_log(tmp_path)
-        payload = _executed_command_payload()
-        payload["application"] = {
-            "status": "applied",
-            "local_effects": [
-                {
-                    "kind": "custom_struct",
-                    "custom_struct": {"name": "InputEvent", "size": 22},
-                }
-            ],
-        }
-        return {"data": payload}
+        raise AssertionError("unsupported custom struct command should not execute")
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
 
-    assert report["verification"]["status"] == "passed"
-    assert report["verification"]["layers"][1] == {
-        "layer": "projection",
-        "status": "passed",
-        "context_kind": "target",
-        "effect_kind": "custom_struct",
-    }
-    assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["status"] == "failed"
+    assert report["verification"]["layers"][0]["layer"] == "verifier"
+    assert report["verification"]["layers"][0]["command_id"] == "target.custom_struct.add"
 
 
 def test_run_one_manual_seed_executes_with_seed_state_verifier(

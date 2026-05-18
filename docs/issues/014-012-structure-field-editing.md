@@ -32,6 +32,10 @@ Current evidence:
   through selected listing element context. It skips already-projected
   struct/field candidates, but blocks unproven changes as missing an
   action-specific verifier until rendered custom-field paths are proven.
+- Non-dry execution now rechecks the selected command's action-specific
+  verifier before catalog availability or execution, so forced or stale
+  selections cannot bypass the custom-struct missing-verifier block through
+  generic target local-effect projection.
 - No verifier proves rendered typed field paths from custom struct metadata yet.
 
 Acceptance criteria:

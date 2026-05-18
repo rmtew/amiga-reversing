@@ -135,6 +135,11 @@ valid verifier for custom-struct commands while rendered custom-field paths are
 unproven. The loop should surface a missing action-specific verifier instead of
 executing metadata-only struct edits as source-converging work.
 
+Implementation observation from `014-006`/`014-012`: the missing-verifier guard
+must run immediately before non-dry execution, not only during planner
+selection. Tests can force selections, and stale reports can carry commands
+whose verifier support has since been removed.
+
 Implementation observation from `014-006`: already-satisfied checks for rename
 commands must compare projected state to the requested new identity. Comparing
 all command parameters treats `previous_name` as required future state and can
