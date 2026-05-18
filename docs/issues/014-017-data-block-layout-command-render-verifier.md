@@ -46,6 +46,9 @@ Implemented tests:
   verifiers, checks Manual Action Log replay, semantic reload state for element
   set/represent/remove, exact round-trip, and blocks unsupported type/ref
   commands without a verifier.
+- C backend render matrix covers data-block scalar byte/word/long elements,
+  character byte arrays, explicit gap bytes, and padding bytes with exact
+  rebuild.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 
@@ -54,7 +57,7 @@ Remaining:
   need explicit layout id/offset parameters.
 - Removal-to-raw/gap rendered-source verifier.
 - Rendered-source verifier coverage beyond semantic state and exact round-trip.
-- Full byte/word/long/run/padding/gap render matrix and GenAm
+- Compact `dcb.*` run rendering for padding/gap spans and GenAm
   `loc_0_00001442` smoke.
 
 Acceptance criteria:
@@ -73,7 +76,8 @@ Required tests:
 - Command catalog availability and `/commands/execute` tests for row/range
   layout creation and element set/remove/represent commands.
 - Rendered-source and exact rebuild tests for scalar byte/word/long elements,
-  runs, padding, gaps, numeric values, and character values.
+  padding/gaps, numeric values, and character values; compact run rendering
+  remains open.
 - Effective-metadata precedence tests for data-block element representations
   over standalone manual representations, plus removal fallback.
 - Loop verifier tests for replay, rendered source, removal, exact round-trip,

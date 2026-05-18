@@ -3128,6 +3128,7 @@ start:
     dc.b $03,$41,$42,$43,$00,$00,$00,$00
 after_data:
     rts
+    dc.b $00
 """
     assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
@@ -3404,6 +3405,167 @@ after_data:
         )
 
     assert "ascii_hex_digit_value:\n\tdc.b 'A','B','C','D'\t; lookup_table\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_data_block_layout_scalar_matrix_renders_source_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-layout-matrix.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b $12,$00
+    dc.w $3456
+    dc.l $789ABCDE
+    dc.b $41,$42,$43,$44
+    dcb.b 4,$00
+after_data:
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    actions = [
+        {
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "matrix",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 18,
+                "role": "lookup_table",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:0",
+                "layout_id": "matrix",
+                "offset": 0,
+                "width": 1,
+                "kind": "scalar",
+                "name": "byte_value",
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:1",
+                "layout_id": "matrix",
+                "offset": 1,
+                "width": 1,
+                "kind": "gap",
+                "name": "gap_byte",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:2",
+                "layout_id": "matrix",
+                "offset": 2,
+                "width": 2,
+                "kind": "scalar",
+                "name": "word_value",
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:4",
+                "layout_id": "matrix",
+                "offset": 4,
+                "width": 4,
+                "kind": "scalar",
+                "name": "long_value",
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:8",
+                "layout_id": "matrix",
+                "offset": 8,
+                "width": 4,
+                "kind": "array",
+                "name": "letters",
+                "array_count": 4,
+                "array_stride": 1,
+                "representation": "character",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "matrix:C",
+                "layout_id": "matrix",
+                "offset": 12,
+                "width": 4,
+                "kind": "padding",
+                "name": "zero_pad",
+            },
+        },
+    ]
+    lines = [
+        json.dumps(
+            {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+            sort_keys=True,
+        )
+    ]
+    for sequence, action in enumerate(actions, start=1):
+        lines.append(
+            json.dumps(
+                {
+                    "record": "manual_action",
+                    "action_id": f"a{sequence}",
+                    "sequence": sequence,
+                    "created_at": f"2026-05-18T00:00:{sequence:02d}+00:00",
+                    **action,
+                },
+                sort_keys=True,
+            )
+        )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+    )
+
+    assert "byte_value:\n\tdc.b $12\t; lookup_table\n" in rendered
+    assert "gap_byte:\n\tdc.b $00\t; lookup_table\n" in rendered
+    assert "word_value:\n\tdc.w $3456\t; lookup_table\n" in rendered
+    assert "long_value:\n\tdc.l $789ABCDE\t; lookup_table\n" in rendered
+    assert "letters:\n\tdc.b 'A','B','C','D'\t; lookup_table\n" in rendered
+    assert "zero_pad:\n\tdc.b $00,$00,$00,$00\t; lookup_table\n" in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,

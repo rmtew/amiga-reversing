@@ -716,11 +716,19 @@ def _data_block_element_span(layout: DataBlockLayoutMetadata, element: DataBlock
 
 
 def _data_block_element_unit(layout: DataBlockLayoutMetadata, element: DataBlockElementMetadata) -> str:
+    if element.kind is DataBlockElementKind.SCALAR:
+        return _data_block_unit_from_width(element.width)
+    if element.kind is DataBlockElementKind.ARRAY and element.array_stride in {1, 2, 4}:
+        return _data_block_unit_from_width(element.array_stride)
     if layout.default_unit in {"byte", "word", "long"}:
         return layout.default_unit
-    if element.width == 4:
+    return _data_block_unit_from_width(element.width)
+
+
+def _data_block_unit_from_width(width: int) -> str:
+    if width == 4:
         return "long"
-    if element.width == 2:
+    if width == 2:
         return "word"
     return "byte"
 
