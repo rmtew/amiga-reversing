@@ -1025,6 +1025,47 @@ def test_run_one_comment_edit_executes_with_projected_comment_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [_data_symbol_candidate(current_name="auto_data", new_name="player_table")]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "data_symbol.rename"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "data_symbol.rename"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(row_key="row-1", kind="data", text="player_table:\n")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "projection",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "data_symbol.rename"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

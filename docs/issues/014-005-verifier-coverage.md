@@ -50,6 +50,9 @@ Current evidence:
   and exact round-trip.
 - Generic `run-one` `comment.edit` execution now uses the projected-comment
   verifier instead of accepting affected-locator metadata alone.
+- Generic `run-one` `data_symbol.rename` execution now verifies Manual Action
+  Log replay, semantic reload, projected listing text/name, and exact
+  round-trip instead of accepting affected-locator metadata alone.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

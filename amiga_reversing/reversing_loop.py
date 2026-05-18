@@ -2714,6 +2714,8 @@ def _verify_manual_mutation(
             source_offset=source_offset,
             project_root=project_root,
         )
+    if command_id == "data_symbol.rename":
+        return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     layers = [
         _verify_semantic_reload(target_id, durable_result, project_root=project_root),
         _verify_projection_metadata(command, durable_result),
@@ -2722,6 +2724,71 @@ def _verify_manual_mutation(
         layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _verify_data_symbol_rename_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    _open_and_wait_listing(target_id, timeout_seconds=10.0)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_semantic_reload(target_id, durable_result, project_root=project_root),
+        _verify_projected_data_symbol_name(target_id, command),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object]) -> dict[str, object]:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    parameters = command.get("parameters")
+    expected = parameters.get("name") if isinstance(parameters, dict) else None
+    if not isinstance(locator, dict) or not isinstance(expected, str):
+        return {"layer": "projection", "status": "failed", "message": "missing locator or expected data symbol name"}
+    section = locator.get("section_index")
+    offset = locator.get("start_offset")
+    query = (
+        {"section_index": [str(section)], "source_offset": [str(offset)], "before": ["8"], "after": ["24"]}
+        if isinstance(section, int) and isinstance(offset, int)
+        else {"start": ["0"], "count": [str(_LISTING_COMMENT_SEARCH_ROW_COUNT)]}
+    )
+    try:
+        listing = server.route_request("GET", f"/api/projects/{target_id}/listing", query)
+    except Exception as exc:
+        return {"layer": "projection", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "projection", "status": "failed", "message": "listing rows missing after reload"}
+    row_key = locator.get("row_key")
+    section_int = section if isinstance(section, int) else None
+    offset_int = offset if isinstance(offset, int) else None
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        row_text = row.get("text")
+        row_label = row.get("label")
+        row_symbol = row.get("symbol")
+        if row.get("row_key") == row_key or (
+            section_int is not None and offset_int is not None and _row_covers_source_location(row, locator, section_int, offset_int)
+        ):
+            matched = row_label == expected or row_symbol == expected or (isinstance(row_text, str) and expected in row_text)
+            return {
+                "layer": "projection",
+                "status": "passed" if matched else "failed",
+                "row_key": row.get("row_key"),
+                "expected_data_symbol_name": expected,
+                "actual_label": row_label,
+                "actual_symbol": row_symbol,
+                "actual_text": row_text,
+            }
+    return {"layer": "projection", "status": "failed", "message": "data symbol row missing after reload"}
 
 
 def _label_command_source_location(command: dict[str, object]) -> tuple[int, int] | None:

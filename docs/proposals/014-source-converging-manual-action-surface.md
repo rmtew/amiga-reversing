@@ -220,6 +220,11 @@ any selectable operand context that carries the base register, not only operands
 whose element kind is `register`; memory operands often carry the register via
 operand metadata.
 
+Implementation observation from `014-005`: data-symbol rename verification must
+look at the refreshed listing text/name at the selected source location. An
+affected-locator echo proves command execution touched a row, but not that the
+source now renders the requested symbol.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
