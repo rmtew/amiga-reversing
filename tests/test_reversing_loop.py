@@ -513,6 +513,68 @@ def test_run_one_manual_seed_executes_with_seed_state_verifier(
     assert report["action"]["command_id"] == "row.seed.data.string"
 
 
+def test_run_one_range_seed_checks_range_catalog_before_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locators = [
+        _listing_locator(row_key="row-1", kind="data", start_offset=0x20, end_offset=0x22),
+        _listing_locator(row_key="row-2", kind="data", start_offset=0x22, end_offset=0x24),
+    ]
+    candidate = {
+        "id": "range-string",
+        "candidate_id": "range-string",
+        "kind": "range_data_seed",
+        "locators": locators,
+        "suggested_action_kinds": ["range.seed.data.string"],
+        "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+        "confidence": "high",
+        "actionable": True,
+    }
+    seed = {
+        "seed_id": "catalog-range-seed-1",
+        "kind": "data",
+        "mode": "required",
+        "hunk": 0,
+        "addr": 0x20,
+        "end": 0x24,
+        "data_role": "string",
+        "unit": "byte",
+        "encoding": "ascii",
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidate]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            assert query == {"context": ["range"], "locators": [json.dumps(locators)]}
+            return {"data": {"commands": [{"command_id": "range.seed.data.string"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "range.seed.data.string"
+            assert body["context"] == {"kind": "range", "locators": locators}
+            _write_manual_log(tmp_path)
+            return {"data": _executed_manual_seed_payload(tmp_path, seed)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["action"]["command_id"] == "range.seed.data.string"
+    assert report["action"]["context"] == {"kind": "range", "locators": locators}
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
