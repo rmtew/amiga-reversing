@@ -26,7 +26,10 @@ Current evidence:
 - Loop planner recognizes explicit `target.rsset_region.add/edit/rename/remove`
   candidates, requires round-trip verification, and skips already-satisfied
   projected add/edit/rename/remove state.
-- Parser-role edits and autonomous candidate production remain open.
+- When inspect has no review candidates, the loop now mines listing navigation
+  `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
+  candidates and skips already-projected RSSET metadata.
+- Parser-role edits and broader autonomous candidate production remain open.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

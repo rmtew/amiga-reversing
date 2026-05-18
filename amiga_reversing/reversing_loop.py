@@ -905,6 +905,21 @@ def _inspect_report_with_listing_candidates(
         rows if isinstance(rows, list) else [],
         existing_representations=_existing_representation_keys(inspect_report),
     )
+    try:
+        navigation = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing/navigation",
+            {},
+        )
+    except Exception:
+        navigation = {}
+    navigation_data = navigation.get("data") if isinstance(navigation, dict) else None
+    candidates.extend(
+        _listing_rsset_region_candidates(
+            navigation_data if isinstance(navigation_data, dict) else {},
+            existing_regions=_existing_rsset_region_map(inspect_report),
+        )
+    )
     return {**inspect_report, "listing_open": listing_ready, "candidate_work": candidates}
 
 
@@ -1024,6 +1039,111 @@ def _existing_representation_keys(inspect_report: dict[str, object]) -> set[tupl
 
 def _printable_character_representation_value(value: int) -> bool:
     return 32 <= value <= 126 and value not in {ord("'"), ord("\\")}
+
+
+def _listing_rsset_region_candidates(
+    navigation_payload: dict[str, object],
+    *,
+    existing_regions: dict[tuple[str, str, int], dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    groups = navigation_payload.get("groups")
+    suggestions = groups.get("app-slot-suggestions") if isinstance(groups, dict) else None
+    if not isinstance(suggestions, list):
+        return []
+    existing = existing_regions or {}
+    candidates: list[dict[str, object]] = []
+    for suggestion in suggestions:
+        if not isinstance(suggestion, dict) or suggestion.get("action") != "add_target_metadata":
+            continue
+        metadata = suggestion.get("metadata")
+        if not isinstance(metadata, dict):
+            continue
+        parameters = _rsset_region_parameters_from_metadata(metadata)
+        offset = parameters.get("offset")
+        symbol = parameters.get("symbol")
+        if not isinstance(offset, int) or not isinstance(symbol, str):
+            continue
+        key = _rsset_region_key(parameters)
+        current = existing.get(key, {})
+        action_kind = "target.rsset_region.edit" if current else "target.rsset_region.add"
+        layout_name, base_symbol, _ = key
+        candidate_id = f"rsset-suggestion:{layout_name}:{base_symbol}:{offset:04X}:{symbol}"
+        candidates.append(
+            {
+                "id": candidate_id,
+                "candidate_id": candidate_id,
+                "kind": "rsset_layout_region",
+                "durable_id": f"rsset_region:{layout_name}:{base_symbol}:{offset:04X}",
+                "evidence": {
+                    "source": "app_slot_analysis",
+                    "navigation_group": "app-slot-suggestions",
+                    "summary": suggestion.get("summary"),
+                    "confidence": suggestion.get("confidence"),
+                    "stable_key": suggestion.get("stable_key"),
+                    "row_index": suggestion.get("row_index"),
+                },
+                "current_metadata": dict(current),
+                "expected_rendered_source_improvement": f"add RSSET region field {symbol} at app+0x{offset:04X}",
+                "suggested_action_kind": action_kind,
+                "suggested_action_kinds": [action_kind],
+                "parameters": parameters,
+                "default_verifier": "round_trip",
+                "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                "confidence": "high" if suggestion.get("confidence") in {"high", "tool-inferred"} else "medium",
+                "rationale": "app-slot analysis suggested durable RSSET layout metadata",
+                "actionable": True,
+                "stop_reason": None,
+            }
+        )
+    return candidates
+
+
+def _rsset_region_parameters_from_metadata(metadata: dict[str, object]) -> dict[str, object]:
+    parameters: dict[str, object] = {}
+    for field_name in ("offset", "size"):
+        value = metadata.get(field_name)
+        if isinstance(value, int) and not isinstance(value, bool):
+            parameters[field_name] = value
+    for field_name in (
+        "symbol",
+        "layout_name",
+        "base_symbol",
+        "sizeof_symbol",
+        "struct_name",
+        "pointer_struct",
+        "storage_kind",
+        "semantic_type",
+    ):
+        value = metadata.get(field_name)
+        if isinstance(value, str) and value.strip():
+            parameters[field_name] = value.strip()
+    return parameters
+
+
+def _rsset_region_key(region: dict[str, object]) -> tuple[str, str, int]:
+    offset = region.get("offset")
+    return (
+        str(region.get("layout_name") or "app"),
+        str(region.get("base_symbol") or "__amiga_app_base__"),
+        offset if isinstance(offset, int) and not isinstance(offset, bool) else -1,
+    )
+
+
+def _existing_rsset_region_map(inspect_report: dict[str, object]) -> dict[tuple[str, str, int], dict[str, object]]:
+    target_state = inspect_report.get("target_state")
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    regions = manual_state.get("rsset_layout_regions") if isinstance(manual_state, dict) else None
+    result: dict[tuple[str, str, int], dict[str, object]] = {}
+    if not isinstance(regions, list | tuple):
+        return result
+    for region in regions:
+        if not isinstance(region, dict):
+            continue
+        key = _rsset_region_key(region)
+        if key[2] >= 0:
+            result[key] = dict(region)
+    return result
 
 
 def _select_listing_comment_action(

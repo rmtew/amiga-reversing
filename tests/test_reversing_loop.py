@@ -589,6 +589,34 @@ def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
     assert report["planner"]["selected_command_id"] == "representation.character"
 
 
+def test_run_one_uses_listing_rsset_suggestion_when_inspect_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = []
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/navigation"):
+            return {"data": _rsset_suggestion_navigation_payload()}
+        if path.endswith("/listing"):
+            return {"data": {"rows": []}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "target.rsset_region.add"
+    assert report["action"]["context"] == {"kind": "target"}
+    assert report["action"]["parameters"]["symbol"] == "app_input_event"
+    assert report["planner"]["selected_command_id"] == "target.rsset_region.add"
+
+
 def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
     byte_candidates = reversing_loop._listing_representation_candidates([_byte_immediate_row()])
     long_candidates = reversing_loop._listing_representation_candidates(
@@ -597,6 +625,46 @@ def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
 
     assert byte_candidates[0]["element_id"] == "row-1:immediate:0:48"
     assert long_candidates == []
+
+
+def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
+    candidates = reversing_loop._listing_rsset_region_candidates(_rsset_suggestion_navigation_payload())
+
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_id"] == "rsset-suggestion:app:__amiga_app_base__:0100:app_input_event"
+    assert candidates[0]["suggested_action_kinds"] == ["target.rsset_region.add"]
+    assert candidates[0]["parameters"] == {
+        "offset": 0x100,
+        "size": 22,
+        "symbol": "app_input_event",
+        "struct_name": "InputEvent",
+        "storage_kind": "struct_instance",
+    }
+    assert candidates[0]["default_verifier"] == "round_trip"
+
+
+def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> None:
+    navigation = _rsset_suggestion_navigation_payload()
+    existing = {
+        ("app", "__amiga_app_base__", 0x100): {
+            "offset": 0x100,
+            "size": 22,
+            "symbol": "app_input_event",
+            "struct_name": "InputEvent",
+            "storage_kind": "struct_instance",
+        }
+    }
+
+    candidates = reversing_loop._listing_rsset_region_candidates(navigation, existing_regions=existing)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidates[0]]
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+
+    assert candidates[0]["suggested_action_kinds"] == ["target.rsset_region.edit"]
+    assert reversing_loop._select_command_action(inspect_report) is None
+    assert inspect_report["planner"]["skipped_candidates"][0]["stop_reason"] == (
+        "candidate already satisfied in projected semantic state"
+    )
 
 
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
@@ -1459,6 +1527,31 @@ def _byte_immediate_row(*, opcode: str = "subi.b", width_bits: int = 8) -> dict[
         }
     )
     return row
+
+
+def _rsset_suggestion_navigation_payload() -> dict[str, object]:
+    return {
+        "groups": {
+            "app-slot-suggestions": [
+                {
+                    "summary": "app_input_event at app+0x100 matches InputEvent from platform API usage",
+                    "action": "add_target_metadata",
+                    "confidence": "tool-inferred",
+                    "symbol": "app_input_event",
+                    "offset": 0x100,
+                    "row_index": 1,
+                    "stable_key": "call-row",
+                    "metadata": {
+                        "symbol": "app_input_event",
+                        "offset": 0x100,
+                        "size": 22,
+                        "struct_name": "InputEvent",
+                        "storage_kind": "struct_instance",
+                    },
+                }
+            ]
+        }
+    }
 
 
 def _listing_locator(
