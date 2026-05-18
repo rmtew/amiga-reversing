@@ -391,9 +391,9 @@ def test_target_command_verification_accepts_local_effect_projection(
         "work_item": inspect_report["candidate_work"][0],
         "command": {
             "kind": "command",
-            "command_id": "target.equate.add",
+            "command_id": "target.rsset_region.add",
             "context": {"kind": "target"},
-            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+            "parameters": {"offset": 0x100, "size": 22, "symbol": "app_input_event", "struct_name": "InputEvent"},
             "output_affecting": True,
         },
     }
@@ -402,12 +402,22 @@ def test_target_command_verification_accepts_local_effect_projection(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET":
-            return {"data": {"commands": [{"command_id": "target.equate.add"}]}}
+            return {"data": {"commands": [{"command_id": "target.rsset_region.add"}]}}
         _write_manual_log(tmp_path)
         payload = _executed_command_payload()
         payload["application"] = {
             "status": "applied",
-            "local_effects": [{"kind": "target_equate", "target_equate": {"name": "PLAYER_START_LIVES", "value": 3}}],
+            "local_effects": [
+                {
+                    "kind": "rsset_layout_region",
+                    "rsset_layout_region": {
+                        "offset": 0x100,
+                        "size": 22,
+                        "symbol": "app_input_event",
+                        "struct_name": "InputEvent",
+                    },
+                }
+            ],
         }
         return {"data": payload}
 
@@ -420,9 +430,145 @@ def test_target_command_verification_accepts_local_effect_projection(
         "layer": "projection",
         "status": "passed",
         "context_kind": "target",
-        "effect_kind": "target_equate",
+        "effect_kind": "rsset_layout_region",
     }
     assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+
+
+def test_run_one_target_equate_executes_with_equate_state_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "target-equate",
+            "candidate_id": "target-equate",
+            "kind": "target_equate",
+            "suggested_action_kinds": ["target.equate.add"],
+            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [{"name": "PLAYER_START_LIVES", "value": 3}]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "target.equate.add"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "target.equate.add"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_target_equate_payload(tmp_path, {"name": "PLAYER_START_LIVES", "value": 3})}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "target_equates"
+    assert report["action"]["command_id"] == "target.equate.add"
+
+
+def test_run_one_target_equate_remove_executes_with_removed_equate_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "target-equate-remove",
+            "candidate_id": "target-equate-remove",
+            "kind": "target_equate",
+            "suggested_action_kinds": ["target.equate.remove"],
+            "parameters": {"name": "PLAYER_START_LIVES"},
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_target_equates": [{"name": "PLAYER_START_LIVES"}]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "target.equate.remove"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "target.equate.remove"
+            _write_manual_log(tmp_path)
+            return {
+                "data": _executed_target_equate_payload(
+                    tmp_path,
+                    {"name": "PLAYER_START_LIVES"},
+                    removed=True,
+                )
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == "removed_target_equates"
+    assert report["action"]["command_id"] == "target.equate.remove"
+
+
+def test_target_equate_rename_verifier_checks_renamed_equate_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "renamed_target_equates": [
+                    {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"}
+                ]
+            },
+        ),
+    )
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.rename",
+        _executed_target_equate_payload(
+            tmp_path,
+            {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"},
+        ),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["state_key"] == "renamed_target_equates"
 
 
 def test_target_command_verification_rejects_wrong_local_effect() -> None:
@@ -2609,7 +2755,7 @@ def test_target_equate_command_candidate_uses_target_context() -> None:
         "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "target_equate_state"
 
 
 def test_target_equate_candidate_skips_already_projected_equate() -> None:
@@ -3778,6 +3924,29 @@ def _executed_register_seed_payload(tmp_path: Path, register_seed: dict[str, obj
         },
         "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
     }
+
+
+def _executed_target_equate_payload(
+    tmp_path: Path,
+    target_equate: dict[str, object],
+    *,
+    removed: bool = False,
+) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"target_equate": dict(target_equate)}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [
+            {
+                "kind": "target_equate_remove" if removed else "target_equate",
+                "target_equate": dict(target_equate),
+            }
+        ],
+    }
+    return payload
 
 
 def _executed_command_payload(workflow_profile: dict[str, object] | None = None) -> dict[str, object]:

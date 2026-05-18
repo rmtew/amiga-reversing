@@ -2737,7 +2737,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
         return "suppressed_seeded_item"
     if any(action.startswith("target.equate.") for action in actions):
-        return "round_trip"
+        return "target_equate_state"
     if any(action.startswith("semantic.library_base.") for action in actions):
         return "library_base_register_seed"
     if "semantic.register.struct_ptr" in actions:
@@ -2824,6 +2824,13 @@ def _verify_manual_mutation(
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
+    if isinstance(command_id, str) and command_id.startswith("target.equate."):
+        return _verify_target_equate_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
     if command_id in {"target.execution_view.add", "target.execution_view.edit", "target.execution_view.remove"}:
         return _verify_execution_view_mutation(
             target_id,
@@ -2875,6 +2882,96 @@ def _verify_data_symbol_rename_mutation(
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _verify_target_equate_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _target_equate_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_target_equate(target_id, command_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _target_equate_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") not in {"target_equate", "target_equate_remove"}:
+                continue
+            equate = effect.get("target_equate")
+            if isinstance(equate, dict):
+                return cast(dict[str, object], equate)
+    action = durable_result.get("action")
+    equate = _target_equate_from_action(action)
+    if equate is not None:
+        return equate
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            equate = _target_equate_from_action(raw_action)
+            if equate is not None:
+                return equate
+    return None
+
+
+def _target_equate_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    equate = action.get("target_equate")
+    if isinstance(equate, dict):
+        return cast(dict[str, object], equate)
+    payload = action.get("payload")
+    equate = payload.get("target_equate") if isinstance(payload, dict) else None
+    if isinstance(equate, dict):
+        return cast(dict[str, object], equate)
+    return None
+
+
+def _verify_project_target_equate(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing target equate payload"}
+    key = "removed_target_equates" if command_id == "target.equate.remove" else "target_equates"
+    if command_id == "target.equate.rename":
+        key = "renamed_target_equates"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    equates = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(equates, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [equate for equate in equates if isinstance(equate, dict) and _target_equate_matches(equate, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_target_equate": expected,
+        "matching_target_equates": matches,
+        "state_key": key,
+    }
+
+
+def _target_equate_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in ("previous_name", "name", "value", "comment"):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return "name" in expected
 
 
 def _verify_seeded_item_suppression_mutation(

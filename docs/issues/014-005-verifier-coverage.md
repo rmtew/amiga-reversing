@@ -69,6 +69,9 @@ Current evidence:
 - Planner verifier summaries now report `semantic_hint_state`,
   `library_base_register_seed`, and `struct_pointer_register_seed` for semantic
   hint/register-seed command families instead of generic `round_trip`.
+- Generic `run-one` `target.equate.*` execution now verifies Manual Action Log
+  replay, reloaded target-equate/rename/removal state, and exact round-trip
+  instead of accepting target local-effect metadata alone.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.
