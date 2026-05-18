@@ -246,10 +246,16 @@ def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pyt
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         calls.append((method, path))
-        if method == "GET":
+        if method == "GET" and path.endswith("/commands"):
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
-        _write_manual_log(tmp_path)
-        return {"data": _executed_command_payload()}
+        if method == "POST" and path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(comment_text="xref-backed test comment")]}}
+        raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
@@ -258,6 +264,8 @@ def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pyt
     assert calls == [
         ("GET", "/api/projects/demo/commands"),
         ("POST", "/api/projects/demo/commands/execute"),
+        ("GET", "/api/projects/demo"),
+        ("GET", "/api/projects/demo/listing"),
     ]
     assert report["action_result"]["status"] == "executed"
     assert report["durable_result"]["mutation"]["durable_action_id"] == "manual-1"
@@ -267,15 +275,22 @@ def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pyt
 def test_run_one_report_includes_workflow_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _target(tmp_path)
     monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
-    monkeypatch.setattr(
-        reversing_loop.server,
-        "route_request",
-        lambda method, path, query, body=None: (
-            {"data": {"commands": [{"command_id": "comment.edit"}]}}
-            if method == "GET"
-            else (_write_manual_log(tmp_path) or {"data": _executed_command_payload(workflow_profile={"workflow_id": "manual_command_execution", "spans": []})})
-        ),
-    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            payload = _executed_listing_comment_payload(tmp_path)
+            payload["workflow_profile"] = {"workflow_id": "manual_command_execution", "spans": []}
+            return {"data": payload}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(comment_text="xref-backed test comment")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
 
@@ -298,7 +313,7 @@ def test_run_one_verification_failure_names_layer(tmp_path: Path, monkeypatch: p
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
 
     assert report["verification"]["status"] == "failed"
-    assert report["verification"]["layers"][0]["layer"] == "semantic_reload"
+    assert report["verification"]["layers"][0]["layer"] == "manual_action_log"
     assert report["next"]["recommendation"] == "stop"
 
 
@@ -957,6 +972,55 @@ def test_run_one_entrypoint_label_rename_executes_with_label_verifier(
         "round_trip",
     ]
     assert report["action"]["command_id"] == "label.rename"
+    assert report["action_result"]["status"] == "executed"
+
+
+def test_run_one_comment_edit_executes_with_projected_comment_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [
+        {
+            "id": "comment-candidate",
+            "candidate_id": "comment-candidate",
+            "kind": "source_entrypoint_row",
+            "locator": _listing_locator(),
+            "suggested_comment_text": "Hunk file entrypoint.",
+            "suggested_action_kinds": ["comment.edit"],
+            "default_verifier": "projected_comment_text",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "comment.edit"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(comment_text="Hunk file entrypoint.")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "projection",
+    ]
+    assert report["action"]["command_id"] == "comment.edit"
     assert report["action_result"]["status"] == "executed"
 
 

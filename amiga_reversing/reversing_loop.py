@@ -2610,6 +2610,8 @@ def _verify_manual_mutation(
     command_id = command.get("command_id")
     if isinstance(command_id, str) and command_id.startswith("representation."):
         return _verify_representation_mutation(target_id, command, durable_result, project_root=project_root)
+    if command_id == "comment.edit":
+        return _verify_listing_comment_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "label.rename":
         location = _label_command_source_location(command)
         if location is None:

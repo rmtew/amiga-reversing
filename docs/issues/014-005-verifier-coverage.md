@@ -48,6 +48,8 @@ Current evidence:
 - Generic `run-one` `label.rename` execution now uses the label-specific
   verifier: Manual Action Log match, semantic label reload, projected label row,
   and exact round-trip.
+- Generic `run-one` `comment.edit` execution now uses the projected-comment
+  verifier instead of accepting affected-locator metadata alone.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

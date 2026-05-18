@@ -203,6 +203,10 @@ through generic `run-one`, verification must remain label-specific. Generic
 projection metadata is insufficient without checking the semantic label and the
 rendered label row at the selected source location.
 
+The same applies to fallback comments: generic `run-one` must verify the
+projected comment text, not merely that command execution reported an affected
+locator.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
