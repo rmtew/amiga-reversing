@@ -32,6 +32,8 @@ Current progress:
   both `library_base` and `struct_ptr` semantic helper payloads.
 - `suppress_seeded_item` replay projects append-only target-specific seeded
   item suppressions into effective metadata.
+- `create_manual_execution_view` replay projects append-only target runtime
+  views into effective metadata by `(source_start, source_end, base_addr)`.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

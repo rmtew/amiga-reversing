@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from amiga_reversing.disasm.manual_action_catalog import listing_catalog_manual_payload
+from amiga_reversing.disasm.manual_action_catalog import (
+    listing_catalog_manual_payload,
+    target_catalog_manual_payload,
+)
 
 
 def test_runtime_label_rename_uses_generated_absolute_address() -> None:
@@ -48,4 +51,27 @@ def test_suppress_seeded_item_command_uses_row_seed_identity() -> None:
     assert kind == "suppress_seeded_item"
     assert payload == {
         "suppressed_seeded_item": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    }
+
+
+def test_target_execution_view_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.execution_view.add",
+        {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        },
+    )
+
+    assert kind == "create_manual_execution_view"
+    assert payload == {
+        "execution_view": {
+            "execution_view_id": "catalog-execution-view-00000020-00000080-00004000",
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        }
     }

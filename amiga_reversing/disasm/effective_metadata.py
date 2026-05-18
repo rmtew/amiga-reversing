@@ -25,6 +25,7 @@ from amiga_reversing.disasm.target_metadata import (
     EntryCommentMetadata,
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
+    ExecutionViewMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
     SeededCodeEntrypointMetadata,
@@ -359,6 +360,27 @@ def _manual_suppressed_seeded_item_to_metadata(item: dict[str, object]) -> Suppr
         return None
 
 
+def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionViewMetadata | None:
+    source_start = _manual_seed_int(view, "source_start")
+    source_end = _manual_seed_int(view, "source_end")
+    base_addr = _manual_seed_int(view, "base_addr")
+    name = _manual_seed_text(view, "name")
+    if source_start is None or source_end is None or base_addr is None or name is None:
+        return None
+    if source_start < 0 or source_end <= source_start or base_addr < 0:
+        return None
+    return ExecutionViewMetadata(
+        source_start=source_start,
+        source_end=source_end,
+        base_addr=base_addr,
+        name=name,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(view, "execution_view_id"),
+        comment=_manual_seed_text(view, "comment"),
+    )
+
+
 def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
     projection = load_manual_projection(
         target_dir,
@@ -393,6 +415,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
+    execution_view_projections = projection.execution_views
     if (
         not required_seeds
         and not labels
@@ -401,6 +424,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not semantic_hints
         and not register_seed_projections
         and not suppressed_seeded_item_projections
+        and not execution_view_projections
     ):
         return metadata
     if metadata is None:
@@ -412,6 +436,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
+    execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
     for seed in required_seeds:
         seed_kind = seed.get("kind")
@@ -450,6 +475,13 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
         if suppressed_seeded_item is not None:
             suppressed_seeded_items.append(suppressed_seeded_item)
+    for view in execution_view_projections:
+        execution_view = _manual_execution_view_to_metadata(view)
+        if execution_view is not None:
+            execution_views.append(execution_view)
+    merged_execution_views = {
+        (view.source_start, view.source_end, view.base_addr): view for view in execution_views
+    }
     result = replace(
         metadata,
         entry_register_seeds=tuple(entry_register_seeds),
@@ -459,6 +491,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
+        execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),
     )
     if suppressed_seeded_items:

@@ -103,6 +103,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
         _target_source_export_action(),
+        _target_execution_view_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -115,6 +116,21 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("listing.viewport_page_up", "Page Up", "viewport_page_up", "PageUp"),
         _target_transient("listing.viewport_page_down", "Page Down", "viewport_page_down", "PageDown"),
     ]
+
+
+def target_catalog_manual_payload(
+    action_id: str,
+    parameters: Mapping[str, object] | None = None,
+) -> tuple[str, dict[str, object]]:
+    action = _catalog_action(target_action_catalog(), action_id)
+    if action.get("appends_to_manual_action_log") is not True:
+        raise ValueError(f"Catalog action does not append to Manual Action Log: {action_id}")
+    params = dict(_object(action.get("parameters"), "catalog action parameters"))
+    if parameters:
+        params.update(parameters)
+    if action.get("action") == "create_manual_execution_view":
+        return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
+    raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
 def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, object]]:
@@ -695,6 +711,30 @@ def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[s
     raise ValueError("suppress_seeded_item requires a suppressible seeded item on the selected row")
 
 
+def _execution_view_payload(params: Mapping[str, object]) -> dict[str, object]:
+    source_start = _optional_int(params.get("source_start"))
+    source_end = _optional_int(params.get("source_end"))
+    base_addr = _optional_int(params.get("base_addr"))
+    name = params.get("name")
+    if source_start is None or source_end is None or base_addr is None:
+        raise ValueError("create_manual_execution_view requires source_start, source_end, and base_addr")
+    if source_start < 0 or source_end <= source_start or base_addr < 0:
+        raise ValueError("create_manual_execution_view has invalid source/runtime range")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("create_manual_execution_view requires parameter name")
+    view: dict[str, object] = {
+        "execution_view_id": f"catalog-execution-view-{source_start:08X}-{source_end:08X}-{base_addr:08X}",
+        "source_start": source_start,
+        "source_end": source_end,
+        "base_addr": base_addr,
+        "name": name.strip(),
+    }
+    comment = params.get("comment")
+    if isinstance(comment, str) and comment.strip():
+        view["comment"] = comment.strip()
+    return view
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -750,6 +790,20 @@ def _representation_parameter_schema() -> dict[str, object]:
             "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
         },
         "required": ["representation"],
+    }
+
+
+def _execution_view_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "source_start": {"type": "integer", "minimum": 0},
+            "source_end": {"type": "integer", "minimum": 1},
+            "base_addr": {"type": "integer", "minimum": 0},
+            "name": {"type": "string"},
+            "comment": {"type": "string"},
+        },
+        "required": ["source_start", "source_end", "base_addr", "name"],
     }
 
 
@@ -1517,6 +1571,24 @@ def _target_transient(
     }
 
 
+def _target_log_action(
+    action_id: str,
+    label: str,
+    ui_action: str,
+    parameter_schema: Mapping[str, object],
+) -> dict[str, object]:
+    action = _target_transient(action_id, label, ui_action, None)
+    action["appends_to_manual_action_log"] = True
+    action["parameter_schema"] = dict(parameter_schema)
+    action["category"] = "target_metadata"
+    action["interaction_schema"] = {
+        "type": "form",
+        "hosts": ["palette"],
+        "primary_rank": 88,
+    }
+    return action
+
+
 def _target_reproduction_profile_action() -> dict[str, object]:
     profiles = builtin_reproduction_profiles()
     profile_ids = [str(profile["profile_id"]) for profile in profiles]
@@ -1578,6 +1650,15 @@ def _target_source_export_action() -> dict[str, object]:
         "preview": {"kind": "source_export"},
     }
     return action
+
+
+def _target_execution_view_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.execution_view.add",
+        "Add execution view",
+        "create_manual_execution_view",
+        _execution_view_parameter_schema(),
+    )
 
 
 def _context_transient(

@@ -17,8 +17,11 @@ Current evidence:
 - Listing rows are annotated with suppressible `target_seeded_metadata.json`
   source identities, and row command catalogs expose
   `correction.suppress_seeded_item.<kind>` for those rows.
-- Label commands cover some absolute labels, but not execution view add/edit or
-  broader correction workflows.
+- Manual Action Log `create_manual_execution_view` now projects target runtime
+  views into effective metadata, and `target.execution_view.add` appends it
+  from target command context.
+- Label commands cover some absolute labels, but not execution view edit/remove
+  or broader correction workflows.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
@@ -29,8 +32,9 @@ Acceptance criteria:
   identities.
 - Manual actions replay deterministically into effective metadata.
 - Review/catalog commands can suppress wrong imported seeded facts and add/edit
-  execution views. Seeded-item row suppression is exposed; execution-view
-  commands and broader reproduction/view correction commands remain open.
+  execution views. Seeded-item row suppression and execution-view add are
+  exposed; execution-view edit/remove and broader reproduction/view correction
+  commands remain open.
 - Verifiers prove source rendering, reproduction, and round-trip where
   applicable.
 - The loop distinguishes importer/analyzer defects from target-specific manual

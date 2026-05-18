@@ -146,6 +146,7 @@ class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
+    CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
     EDIT_REVIEW_NOTE = "edit_review_note"
     CLEAR_REVIEW_NOTE = "clear_review_note"
@@ -174,6 +175,7 @@ class ManualActionLogProjection:
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
+    execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
     resolutions: tuple[dict[str, object], ...]
     active_action_ids: tuple[str, ...]
@@ -322,6 +324,7 @@ def _empty_projection(
         representations=(),
         semantic_hints=(),
         suppressed_seeded_items=(),
+        execution_views=(),
         review_notes=(),
         resolutions=(),
         active_action_ids=(),
@@ -921,6 +924,17 @@ def _suppressed_seeded_item_key(item: dict[str, object]) -> tuple[str, int, int]
     return kind, hunk, addr
 
 
+def _execution_view_key(view: dict[str, object]) -> tuple[int, int, int]:
+    source_start = _manual_seed_int(view, "source_start")
+    source_end = _manual_seed_int(view, "source_end")
+    base_addr = _manual_seed_int(view, "base_addr")
+    if source_start is None or source_end is None or base_addr is None:
+        raise ValueError("execution_view requires source_start, source_end, and base_addr")
+    if source_start < 0 or source_end <= source_start or base_addr < 0:
+        raise ValueError("execution_view has invalid source/runtime range")
+    return source_start, source_end, base_addr
+
+
 def _projected_manual_seed(action: _ManualAction) -> dict[str, object]:
     seed = dict(_action_object(action, "seed"))
     seed_kind = _manual_seed_kind_from_json(seed.get("kind"))
@@ -1097,6 +1111,7 @@ def _project_actions(
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
+    execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
     resolutions: dict[str, dict[str, object]] = {}
     active_action_ids: list[str] = []
@@ -1138,6 +1153,9 @@ def _project_actions(
         elif action.kind is ManualActionKind.SUPPRESS_SEEDED_ITEM:
             item = _action_object(action, "suppressed_seeded_item")
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
+        elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
+            view = _action_object(action, "execution_view")
+            execution_views[_execution_view_key(view)] = view
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -1178,6 +1196,7 @@ def _project_actions(
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
+        execution_views=tuple(execution_views.values()),
         review_notes=tuple(review_notes.values()),
         resolutions=tuple(resolutions.values()),
         active_action_ids=tuple(active_action_ids),

@@ -673,6 +673,46 @@ def test_effective_metadata_applies_manual_seeded_item_suppression(tmp_path: Pat
     assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "hunk": 0, "kind": "seeded_entity"}]
 
 
+def test_effective_metadata_applies_manual_execution_view(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_execution_view",
+                execution_view={
+                    "execution_view_id": "stage",
+                    "source_start": 0x20,
+                    "source_end": 0x80,
+                    "base_addr": 0x4000,
+                    "name": "stage_code",
+                    "comment": "copied stage",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["execution_views"] == [
+        {
+            "base_addr": 0x4000,
+            "citation": "manual_action_log:stage",
+            "comment": "copied stage",
+            "name": "stage_code",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_end": 0x80,
+            "source_start": 0x20,
+        }
+    ]
+
+
 def test_effective_metadata_ignores_manual_data_seed_conflicting_with_raw_entrypoint(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

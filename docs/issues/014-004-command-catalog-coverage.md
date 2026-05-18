@@ -32,6 +32,9 @@ Current progress:
 - Rows backed by suppressible `target_seeded_metadata.json` items expose
   `correction.suppress_seeded_item.<kind>` commands that append
   `suppress_seeded_item` using durable `(kind, hunk, addr)` identity.
+- Target context exposes `target.execution_view.add`, with required
+  `source_start`, `source_end`, `base_addr`, and `name`, and `/commands/execute`
+  appends `create_manual_execution_view`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

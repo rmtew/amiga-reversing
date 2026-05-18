@@ -52,6 +52,7 @@ from amiga_reversing.disasm.manual_action_catalog import (
     review_item_action_catalog,
     review_item_catalog_manual_payload,
     target_action_catalog,
+    target_catalog_manual_payload,
 )
 from amiga_reversing.disasm.manual_actions import (
     ManualActionKind,
@@ -1985,6 +1986,8 @@ def _command_context_from_body(
     workflow_profile: WorkflowProfile | None = None,
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     kind = raw_context.get("kind")
+    if kind == "target":
+        return {"kind": "target"}, []
     if kind == "review_item":
         item_id = raw_context.get("item_id")
         if not isinstance(item_id, str) or not item_id:
@@ -2231,6 +2234,9 @@ def _execute_manual_action_command(
     if context_kind == "review_item":
         item = _catalog_review_item(project_name, cast(str, context.get("item_id")), None)
         kind, action_payload = review_item_catalog_manual_payload(item, action_id, parameters)
+        action_payloads = [(kind, action_payload)]
+    elif context_kind == "target":
+        kind, action_payload = target_catalog_manual_payload(action_id, parameters)
         action_payloads = [(kind, action_payload)]
     elif context_kind in {"row", "element"}:
         element_context = context if context_kind == "element" else None
@@ -2487,6 +2493,10 @@ def _manual_action_application_payload(
         comment = action_payload.get("comment")
         if isinstance(comment, Mapping):
             local_effects.append({"kind": "comment", "comment": dict(comment)})
+    elif kind == "create_manual_execution_view":
+        view = action_payload.get("execution_view")
+        if isinstance(view, Mapping):
+            local_effects.append({"kind": "execution_view", "execution_view": dict(view)})
     elif kind == "add_review_note":
         note = action_payload.get("note")
         if isinstance(note, Mapping):
