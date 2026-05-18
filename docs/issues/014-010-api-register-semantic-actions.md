@@ -53,6 +53,17 @@ Progress:
 - Generic `run-one` now mines listing LVO API-call rows into autonomous
   `semantic.library_base.*` candidates and skips library-base seeds already in
   effective metadata or Manual Action Log projections.
+- Real C listing rows now preserve the decoded base register and displacement
+  on `_LVO*(a6)` symbol operand parts. Synthetic rows had `base_register`
+  already, but real GenAm rows were missing it until the C JSON emitter copied
+  the effective-address register from the IR.
+- Generic `run-one` now pages through bounded listing windows instead of only
+  sampling the first 2048 rows, so real GenAm direct LVO rows around row 8030
+  can feed autonomous `semantic.library_base.*` work.
+- `tests/test_agent_reversing_loop.py::test_agent_real_genam_autonomous_lvo_library_base_candidate_converges`
+  proves real GenAm LVO evidence -> `semantic.library_base.exec.library` ->
+  Manual Action Log register seed -> reloaded library-base state -> exact
+  round-trip.
 - Generic `run-one` now verifies `semantic.lvo.*`, `semantic.struct_offset.*`,
   and `semantic.equate.*` execution by checking reloaded semantic hint state
   rather than affected row metadata.
@@ -61,6 +72,18 @@ Progress:
   `struct_pointer_register_seed` instead of generic `round_trip`.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
+- Applying a struct/platform type should be able to feed type-flow analysis:
+  propagated pointer/base types, rendered field paths at other references,
+  interpreted field references where supported, and review items when
+  propagation is uncertain or conflicts with existing facts. This must remain
+  agent-visible through Manual Action Log and command catalog capabilities, not
+  UI-only state. Data-block element type binding and its type-flow/review-item
+  projection are owned by `014-019-data-block-type-binding-and-platform-structs.md`.
+- RSSET binding type refinement from `014-021` also feeds this issue: a bound
+  app/RSSET field may propagate pointer/base type facts only after the binding
+  owner, base evidence, observed access width, rendered typed path, semantic
+  reload, and exact round-trip are verified. Ambiguous propagation must create
+  review feedback, not silent type-flow facts.
 
 Acceptance criteria:
 - Register/base identities cover entry-scoped and evidence-scoped lifetimes.

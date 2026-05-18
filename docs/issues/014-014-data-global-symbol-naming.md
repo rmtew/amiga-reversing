@@ -49,6 +49,10 @@ Current evidence:
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
   autonomous candidate workflows remain open beyond seeded data-entity
   rename/remove and internal referenced data use-sites.
+- Data symbols created or consumed by manual interpretation of values inside
+  opaque data blocks are tracked by the data-block investigation in `014-015`,
+  with interpreted-reference facts in `014-018` and type/domain binding in
+  `014-019`.
 - The proposal goal includes clearer global and data names.
 
 Acceptance criteria:

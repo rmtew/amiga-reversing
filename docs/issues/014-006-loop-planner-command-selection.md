@@ -94,6 +94,14 @@ Progress:
   `data_symbol.rename` candidates, beyond referenced data use-sites.
 - Generic `run-one` now mines listing LVO API-call rows into autonomous
   `semantic.library_base.*` candidates.
+- Listing-derived candidates are now mined from bounded paged listing windows
+  instead of the first 2048 rows only; this is required for real GenAm direct
+  LVO calls, which first appear around row 8030.
+- GenAm real-target smoke now proves the autonomous API/register feed can mine
+  a direct `_LVOAllocMem(a6)` row, select
+  `semantic.library_base.exec.library`, execute through the command catalog,
+  append Manual Action Log state, reload the library-base register seed, and
+  retain exact round-trip status.
 - Autonomous referenced-data rename candidates now also use stable runtime
   addresses when `runtime_address_refs` have no data class.
 - GenAm real-target smoke now proves the autonomous RSSET feed can mine an
@@ -140,13 +148,21 @@ Remaining work:
   representations, internal referenced data names, and obvious ASCII strings.
 - Extend autonomous planner feeds for label and broader data/global symbol
   candidates.
-- Do not broaden custom-struct, typed-field, or API/register semantic feeds
-  past explicit candidates until their rendered-source verifiers are proven in
-  `014-005`, `014-010`, and `014-012`.
+- Do not broaden custom-struct or typed-field semantic feeds past explicit
+  candidates until their rendered-source verifiers are proven in `014-005`,
+  `014-010`, and `014-012`. API/register has first real GenAm evidence for
+  library-base register seeds, but broader API argument/return semantics remain
+  open.
 - Add real-target smoke coverage for each new autonomous feed before considering
-  the feed mature; app-slot/RSSET has first GenAm coverage, while API/register,
-  structures, correction/view actions, and broader data/global symbols still
-  need family-specific evidence.
+  the feed mature; app-slot/RSSET and API/register library-base seeds have first
+  GenAm coverage, while structures, correction/view actions, broader
+  data/global symbols, data-block layouts/interpreted references, and richer
+  API semantics still need family-specific evidence (`014-010`, `014-012`,
+  `014-013`, `014-014`, `014-017`, `014-018`, `014-019`, `014-020`).
+- Do not mine raw numeric RSSET binding candidates broadly until `014-011`
+  implements the `014-021` report/bind/refine/unbind model and its verifiers.
+  First feed should use a real target like GenAm `$0102(a6)` with one selected
+  use-site, clear base evidence, linked gap state, and owned cleanup.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

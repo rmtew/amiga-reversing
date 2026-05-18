@@ -44,6 +44,22 @@ Current evidence:
   absolute labels, and Amiga RSSET layout regions, but has no `custom_structs`
   import into the typed-reference resolver.
 - No verifier proves rendered typed field paths from custom struct metadata yet.
+- Applying custom or platform structs inside arbitrary data blocks, and mixing
+  those fields with ad hoc layout elements or interpreted references, is tracked
+  by the `014-015-data-block-layout-and-reference-interpretation.md`
+  investigation and the concrete `014-019-data-block-type-binding-and-platform-structs.md`
+  implementation issue.
+- Struct fields need representation and type metadata rich enough for agentic
+  reversing work: per-field display style, enum/equate domain, nested
+  custom/platform struct type, array count/stride, generated field names that
+  can be renamed durably, and enough source identity to propagate typed access
+  improvements through `014-010`.
+- Platform struct reuse should be based on parsed/static platform data such as
+  NDK include output, not copied ad hoc strings in individual actions.
+- RSSET binding type refinement from `014-021` depends on this issue for
+  custom/platform type compatibility. A `rsset.binding.type_refine` command must
+  block until rendered typed-field paths are proven and the chosen type shape
+  reconciles with the bound field size and observed accesses.
 
 Acceptance criteria:
 - Struct and field identities are stable by namespace/name/offset and survive

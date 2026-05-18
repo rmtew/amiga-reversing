@@ -32,6 +32,10 @@ Current evidence:
   views through target context and seeded-item suppressions through row context,
   skips already-projected execution views/suppressions, and requires round-trip
   verification.
+- Corrections must distinguish suppressing analyzer/imported facts from
+  retracting descendants of a manual action. Manual-derived descendants should
+  be removed by the owning corrective action; objectively wrong analyzer classes
+  remain importer/analyzer bugs rather than per-target suppressions.
 - Generic `run-one` now verifies `correction.suppress_seeded_item.*` execution
   by checking reloaded suppressed seeded item state rather than affected row
   metadata.
@@ -45,6 +49,10 @@ Current evidence:
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
   bugs with regression tests, not become per-target Manual Action Log edits.
+- `014-021` RSSET binding cleanup is correction-like but not analyzer
+  suppression: unbind/remove/clear-type must retract only descendants owned by
+  the selected manual binding or type action, leaving unrelated RSSET fields,
+  analyzer-native facts, and independently accepted bindings intact.
 
 Acceptance criteria:
 - Target-specific suppressions/corrections and execution views have durable
@@ -60,6 +68,8 @@ Acceptance criteria:
   applicable.
 - The loop distinguishes importer/analyzer defects from target-specific manual
   suppressions and reports the former as upstream implementation blockers.
+- Cleanup verifiers prove only the selected manual-derived descendants were
+  retracted; unrelated analyzer-native and user-owned facts remain.
 
 Required tests:
 Manual replay, command execution, source rendering, and reproduction/round-trip

@@ -19,6 +19,24 @@ Current evidence:
 - Listing app-slot elements expose `app_slot.rename/edit/remove`, which map the
   selected app-slot displacement to manual RSSET region create/remove actions
   and require an explicit symbol plus size for rename/edit.
+- `014-021` completed the numeric-displacement binding investigation. Raw
+  base-relative use-sites need explicit RSSET binding facts before field
+  creation, with durable identity based on target, hunk, source address,
+  operand index, base register, displacement, chosen `(layout_name,
+  base_symbol)`, and base-evidence id.
+- Planned binding actions are `create_manual_rsset_use_site_binding`,
+  `remove_manual_rsset_use_site_binding`,
+  `create_manual_rsset_binding_type_refinement`, and
+  `remove_manual_rsset_binding_type_refinement`.
+- Planned command ids are `rsset.binding.report`, `rsset.binding.bind`,
+  `rsset.binding.bind_refine`, `rsset.binding.unbind`,
+  `rsset.binding.type_refine`, and `rsset.binding.clear_type`.
+- Bind-only may leave raw rendering in place when no field exists yet; it must
+  create linked gap/report state rather than an unlinked `RS.*` field.
+- RSSET bind/refine commands must expose corrective unbind/remove paths. Undo
+  must remove only the binding or derived field/type facts owned by the selected
+  Manual Action Log action, then verify that rendered source returns to the raw
+  displacement or previous RSSET field.
 - RSSET create/edit/rename commands preserve parser metadata
   (`parser_role`, `parser_routine`, `parse_order`) through Manual Action Log
   payloads, effective metadata projection, and loop suggestion parameters.
@@ -56,8 +74,10 @@ Current evidence:
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
 - Manual actions replay into effective metadata and rendered RSSET/source refs.
-- Command catalog exposes add/edit/rename/remove and field/region operations.
-- Verifier proves RSSET definitions, all refs, semantic reload, and round-trip.
+- Command catalog exposes add/edit/rename/remove, bind/unbind, and field/region
+  operations.
+- Verifier proves RSSET definitions, linked use-site refs, cleanup/undo state,
+  semantic reload, and round-trip.
 
 Required tests:
 Identity tests, manual replay tests, catalog execution tests, rendered-source
@@ -73,6 +93,17 @@ Working goal:
   exact round-trip.
 
 Remaining work:
+- Implement the `014-021` binding/reporting/cascade/recovery model for explicit
+  numeric-displacement-to-RSSET binding and unbinding commands.
+- Add exploratory reports that show candidate layouts, base evidence, current
+  field/gap state, access width, existing xrefs, type compatibility, expected
+  cascade, and missing verifier blockers.
+- Add conflict feedback for bind+type refinement: if observed access width,
+  base evidence, or platform/custom type application does not reconcile, block
+  the application or create a review item instead of silently applying it.
+- Make generated binding descendants carry owner action ids so unbind or
+  clear-type retracts same-displacement candidates, linked gaps, xrefs,
+  review items, and type-flow facts without deleting unrelated RSSET fields.
 - Keep broader autonomous candidate production evidence-first and de-duped by
   durable RSSET identity before adding more feed types; durable identity gaps
   belong in `014-002`, command exposure gaps in `014-004`, and RSSET-specific

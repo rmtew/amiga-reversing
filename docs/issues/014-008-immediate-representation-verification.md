@@ -39,3 +39,9 @@ Completed evidence:
 - `tests/test_c_backend.py::test_real_dll_manual_representation_styles_classified_bytes_without_classifying`
 - `tests/test_c_backend.py::test_real_dll_manual_representation_styles_instruction_immediates`
 - `tests/test_reversing_loop.py` representation verifier tests
+
+Follow-up boundary:
+Per-element data-block layout, field breakdown, and treating values as
+references without relocation require more than display representation; track
+the investigation in `014-015-data-block-layout-and-reference-interpretation.md`
+and implementation in `014-016` through `014-019`.

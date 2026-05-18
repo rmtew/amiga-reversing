@@ -55,6 +55,16 @@ Current progress:
 - Command execution tests now cover edit-variant local effects for target
   equates, RSSET regions, custom structs, and custom struct fields, not only
   add/remove/rename paths.
+- Data-block layout and interpreted-reference command exposure is not covered
+  by the existing data-role, representation, symbol, or struct commands; track
+  that surface in `014-017` through `014-019`. `014-016` owns metadata and
+  Manual Action Log replay only, not command exposure.
+- Target-equate definition value representation command exposure is tracked in
+  `014-020-target-equate-value-representation.md`.
+- RSSET numeric use-site binding command exposure is defined by `014-021` and
+  implemented in `014-011`: `rsset.binding.report`, `rsset.binding.bind`,
+  `rsset.binding.bind_refine`, `rsset.binding.unbind`,
+  `rsset.binding.type_refine`, and `rsset.binding.clear_type`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action

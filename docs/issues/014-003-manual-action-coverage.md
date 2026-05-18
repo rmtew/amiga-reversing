@@ -20,9 +20,12 @@ Acceptance criteria:
   family.
 - Replay produces deterministic effective metadata/projection state.
 - Existing manual state remains append-only and undo uses corrective actions.
+- Actions that generate derived analysis facts have paired corrective actions
+  that retract or recompute only the derived facts owned by the original action.
 - Gaps such as app-slot add/edit/rename, equate add/edit/rename, data roles,
-  structure fields, API/register semantics, correction/suppression, and
-  immediate representation are either implemented or split into child issues.
+  data-block layouts, structure fields, API/register semantics,
+  correction/suppression, and immediate representation are either implemented
+  or split into child issues.
 
 Current progress:
 - `remove_manual_seed` replay exists and is now reachable from
@@ -41,7 +44,7 @@ Current progress:
 - Seeded data symbol removal uses existing durable `suppress_seeded_item`
   replay.
 
-Child issues:
+Child / related implementation issues:
 - `014-007-data-role-command-coverage.md`
 - `014-008-immediate-representation-verification.md`
 - `014-009-equate-constant-editing.md`
@@ -50,6 +53,17 @@ Child issues:
 - `014-012-structure-field-editing.md`
 - `014-013-correction-and-view-actions.md`
 - `014-014-data-global-symbol-naming.md`
+- `014-015-data-block-layout-and-reference-interpretation.md`
+- `014-016-data-block-layout-core-metadata.md`
+- `014-017-data-block-layout-command-render-verifier.md`
+- `014-018-interpreted-data-reference-facts.md`
+- `014-019-data-block-type-binding-and-platform-structs.md`
+- `014-020-target-equate-value-representation.md`
+
+Note: `014-015` is the data-block investigation parent. Its concrete Manual
+Action Log work is split across `014-016` through `014-019`; command/verifier
+details in those issues remain blocked until their durable action and replay
+semantics are defined.
 
 Required tests:
 Manual action append/replay/projection tests for each added action family.

@@ -20,6 +20,9 @@ Acceptance criteria:
 - Verification failures name the failed layer and stop the loop.
 - Output-affecting source changes require round-trip exactness or a documented
   unavailable-oracle stop.
+- Corrective actions that undo or replace a source fact must verify cleanup of
+  owned derived analysis facts, including xrefs, type-flow facts, review items,
+  symbolic projections, and invalidated code/data descendants where applicable.
 
 Required tests:
 Positive and negative verifier tests for each implemented action family.
@@ -126,14 +129,30 @@ Current evidence:
 - `tests/test_agent_reversing_loop.py::test_agent_real_genam_autonomous_rsset_candidate_converges_source`
   proves an autonomous GenAm RSSET candidate through command execution, reloaded
   RSSET state, rendered RSSET definition, and exact round-trip availability.
+- `tests/test_agent_reversing_loop.py::test_agent_real_genam_autonomous_lvo_library_base_candidate_converges`
+  proves an autonomous GenAm LVO library-base candidate through command
+  execution, durable Manual Action Log state, reloaded library-base register
+  seed, and exact round-trip availability.
 
 Remaining work:
 - Add or document one real-target smoke for each newly executable action family
   before treating synthetic verifier coverage as sufficient; record the
   verifier evidence here and the candidate/feed evidence in `014-006` or the
-  family issue (`014-010`, `014-011`, `014-012`, `014-013`, `014-014`).
+  family issue (`014-010`, `014-011`, `014-012`, `014-013`, `014-014`,
+  `014-017`, `014-018`, `014-019`, `014-020`). `014-016` only needs replay and
+  metadata invariants until rendering/command slices depend on it.
 - Keep custom struct and typed-field commands blocked until rendered custom
   field paths and their verifier are proven in `014-012`.
+- Keep data-block layout and interpreted-reference commands blocked until
+  layout rendering, generated xrefs, removal behavior, and exact round-trip
+  verifiers are proven in `014-017`, `014-018`, and `014-019`.
+- Keep target-equate definition representation commands blocked until rendered
+  `EQU` value text, semantic reload, and exact round-trip verifiers are proven
+  in `014-020`.
+- Keep RSSET numeric binding commands blocked until `014-011` proves replay,
+  selected-use rendering or linked-gap state, owned descendant cleanup, exact
+  round-trip, and type/xref verifiers where applicable. `014-021` defines the
+  verifier shape.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

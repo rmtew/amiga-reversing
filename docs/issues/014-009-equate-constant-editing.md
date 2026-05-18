@@ -33,6 +33,12 @@ Progress:
   to avoid growing the stack-heavy `M68kAnalysisPolicy`; broader capacity should
   move this table out of the policy struct.
 
+Follow-up:
+- Target-local EQU definition value representation is tracked separately in
+  `014-020-target-equate-value-representation.md`, so this completed issue
+  remains scoped to target-local equate identity, CRUD, use-site binding, and
+  rendered use-site verification.
+
 Acceptance criteria:
 - Equates have durable target-local identities.
 - Manual actions replay into effective metadata and rendered source.

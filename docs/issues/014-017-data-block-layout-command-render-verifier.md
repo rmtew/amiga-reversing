@@ -1,0 +1,44 @@
+Status: Open
+Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
+Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
+
+Scope:
+Expose scalar data block layout commands, render layout elements, and verify
+source convergence. This is the first production slice after `014-016`.
+
+Requirements:
+- Expose row/range commands to create scalar layouts over selected data ranges.
+- Expose element commands to set/remove/represent scalar byte/word/long
+  elements, arrays/runs, padding, and gaps.
+- Render element-sized `dc.b`, `dc.w`, `dc.l`, `dcb.*`, numeric values, and
+  character values while preserving exact rebuild.
+- Make element representation authoritative over overlapping standalone manual
+  representations.
+- Treat scalar layout as rendering/effective-metadata only: it may consume
+  existing analysis evidence for candidates, but must not generate xrefs,
+  type-flow facts, or review items.
+- Add replay, rendered-source, removal, and exact round-trip verifiers.
+- Add loop execution coverage that reports the action-specific verifier.
+- Add a GenAm smoke for `loc_0_00001442` as `ascii_hex_digit_value`.
+
+Acceptance criteria:
+- The command catalog exposes supported layout commands without private loop
+  routes.
+- Applying the GenAm hex table layout changes rendered source as expected and
+  rebuilds exactly.
+- Removing the layout returns the affected source to raw/coarse data rendering.
+- Effective metadata gives data-block element representation precedence over
+  overlapping standalone manual representations, and removing the element or
+  layout restores the standalone representation where it still applies.
+- The loop blocks unsupported layout/type/ref requests with precise missing
+  capability reports.
+
+Required tests:
+- Command catalog availability and `/commands/execute` tests for row/range
+  layout creation and element set/remove/represent commands.
+- Rendered-source and exact rebuild tests for scalar byte/word/long elements,
+  runs, padding, gaps, numeric values, and character values.
+- Effective-metadata precedence tests for data-block element representations
+  over standalone manual representations, plus removal fallback.
+- Loop verifier tests for replay, rendered source, removal, exact round-trip,
+  and unsupported type/ref blockers.

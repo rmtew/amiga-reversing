@@ -11,7 +11,10 @@ The proposal now contains an evidence-backed matrix covering current target
 metadata, Manual Action Log projection, command catalog exposure, source
 rendering support, reversing-loop support, verifier state, and known gaps.
 Concrete child issues were added for the missing fact families discovered by
-the audit:
+the audit. The later data-block investigation in `014-015` split its concrete
+implementation work into `014-016` through `014-019`, and the equate follow-up
+in `014-020` keeps EQU definition display style separate from completed
+target-equate CRUD/use-site work:
 
 - `014-007-data-role-command-coverage.md`
 - `014-008-immediate-representation-verification.md`
@@ -21,6 +24,12 @@ the audit:
 - `014-012-structure-field-editing.md`
 - `014-013-correction-and-view-actions.md`
 - `014-014-data-global-symbol-naming.md`
+- `014-015-data-block-layout-and-reference-interpretation.md`
+- `014-016-data-block-layout-core-metadata.md`
+- `014-017-data-block-layout-command-render-verifier.md`
+- `014-018-interpreted-data-reference-facts.md`
+- `014-019-data-block-type-binding-and-platform-structs.md`
+- `014-020-target-equate-value-representation.md`
 
 Out of scope:
 Do not implement missing commands in this slice except tiny inspection helpers
@@ -36,8 +45,9 @@ Acceptance criteria:
   durable identity, Manual Action Log support, command support, loop support,
   verifier, and gap issue for every fact family.
 - Fact families include labels/functions, app/base slots, globals, equates,
-  immediate representation, code/data seeds, strings/tables, structures/types,
-  API semantics, register/base facts, review items, and semantic comments.
+  immediate representation, code/data seeds, strings/tables, data-block
+  layouts, structures/types, API semantics, register/base facts, review items,
+  and semantic comments.
 - Unsupported required capabilities are linked to specific 014 issues,
   including data/global symbol naming.
 - Agent instructions say missing matrix/command coverage is a blocker, not a
