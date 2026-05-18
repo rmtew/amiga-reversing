@@ -972,6 +972,55 @@ def test_data_block_element_remove_verifier_requires_raw_restore_source(
     assert report["layers"][2]["matched_restore_tokens"] == []
 
 
+def test_data_block_element_remove_verifier_accepts_raw_dc_after_named_element_removal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x22)
+    element = {
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "kind": "array",
+        "name": "digits",
+        "removal_state": "raw",
+    }
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.remove",
+        "context": {"kind": "row", "locator": locator},
+        "parameters": {"layout_id": "ascii-hex", "offset": 0x30, "removal_state": "raw"},
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"removed_data_block_elements": [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    _write_manual_log(tmp_path)
+    report = reversing_loop._verify_data_block_element_mutation(
+        "demo",
+        command,
+        "row.data_block.element.remove",
+        _executed_data_block_element_payload(tmp_path, element),
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "passed"
+    assert report["layers"][2]["stale_tokens"] == []
+    assert report["layers"][2]["matched_restore_tokens"] == ["dc"]
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

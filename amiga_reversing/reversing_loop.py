@@ -3491,7 +3491,11 @@ def _verify_projected_data_block_rendered_source(
         if isinstance(row, dict)
     )
     if command_id.endswith(".remove"):
-        stale_tokens = [token for token in expected_tokens if token and token in rendered_text]
+        stale_tokens = [
+            token
+            for token in _data_block_stale_removal_tokens(render_expected)
+            if token and _rendered_source_contains_token(rendered_text, token)
+        ]
         restore_tokens = _data_block_removal_restore_tokens(render_expected)
         matched_restore_tokens = [token for token in restore_tokens if _rendered_source_contains_token(rendered_text, token)]
         status = "failed" if stale_tokens else "passed"
@@ -3626,6 +3630,20 @@ def _data_block_removal_restore_tokens(expected: dict[str, object]) -> list[str]
     if removal_state in {"raw", "gap"} and width is not None:
         tokens.append("dc")
     return tokens
+
+
+def _data_block_stale_removal_tokens(expected: dict[str, object]) -> list[str]:
+    tokens: list[str] = []
+    for key in ("name", "role"):
+        value = expected.get(key)
+        if isinstance(value, str) and value:
+            tokens.append(value)
+    representation = expected.get("representation")
+    if representation == "character":
+        tokens.append("'")
+    elif representation == "binary":
+        tokens.append("%")
+    return list(dict.fromkeys(tokens))
 
 
 def _data_block_expected_directive(expected: dict[str, object]) -> str | None:
