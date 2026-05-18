@@ -316,6 +316,48 @@ def test_output_affecting_action_requires_round_trip_verifier(
     assert report["next"]["recommendation"] == "stop"
 
 
+def test_planner_ranks_source_converging_representation_before_comment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _representation_candidate(current_representation="hex"),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "representation.character"
+    assert report["selected_work_item"]["candidate_id"] == "repr-candidate"
+    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render immediate 65 as #'A'"
+    assert report["planner"]["selected_command_id"] == "representation.character"
+
+
+def test_planner_skips_already_satisfied_projected_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        _representation_candidate(current_representation="character"),
+        inspect_report["candidate_work"][0],
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "comment.edit"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "repr-candidate"
+    assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -966,6 +1008,29 @@ def _representation_command(*, output_affecting: bool = True) -> dict[str, objec
     if output_affecting:
         command["output_affecting"] = True
     return command
+
+
+def _representation_candidate(*, current_representation: str) -> dict[str, object]:
+    return {
+        "id": "repr-candidate",
+        "candidate_id": "repr-candidate",
+        "kind": "literal_representation",
+        "locator": _listing_locator(end_offset=4),
+        "element_id": "row-1:immediate:0:65",
+        "element_kind": "immediate",
+        "operand_index": 0,
+        "value": 65,
+        "width_bits": 8,
+        "width_bytes": 1,
+        "evidence": {"source": "listing", "value": 65},
+        "current_metadata": {"representation": current_representation},
+        "expected_rendered_source_improvement": "render immediate 65 as #'A'",
+        "suggested_action_kinds": ["representation.character"],
+        "default_verifier": "projected_representation_text",
+        "verifier": {"kind": "projected_representation_text", "requires_semantic_reload": True},
+        "confidence": "high",
+        "actionable": True,
+    }
 
 
 def _write_manual_log(tmp_path: Path) -> None:

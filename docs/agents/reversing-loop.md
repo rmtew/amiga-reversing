@@ -35,6 +35,9 @@ private mutation path.
 6. Autonomous mutation requires repo-visible evidence, rationale, suggested
    action, and verifier; command availability alone is not enough.
 7. Reject row index, row text, DOM text, and screenshots as durable identity.
+8. Generic `run-one` records planner state: ranked candidates, selected command,
+   and skipped-candidate reasons. Treat an already-satisfied skip as evidence
+   to move to the next candidate, not as progress.
 
 ## Source-Converging Work
 

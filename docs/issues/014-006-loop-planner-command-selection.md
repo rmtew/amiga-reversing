@@ -5,6 +5,16 @@ Scope:
 Teach the reversing loop to select source-converging actions from analysis,
 listing/navigation facts, and command catalog capabilities.
 
+Progress:
+- Generic `run-one` now ranks known source-converging command candidates
+  (`label.rename`, row data/code seeds, representation commands, and fallback
+  comments) instead of selecting only `comment.edit`.
+- Iteration reports include planner state with ranked candidates, selected
+  command, and skipped-candidate reasons.
+- Planner skips candidates already satisfied by projected semantic/current
+  metadata, including already-selected literal representations.
+- Command availability failures now name the selected missing catalog command.
+
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
 back to comments or scripts when a structured action is missing.
@@ -28,6 +38,12 @@ Required tests:
 Planner ranking, already-satisfied skipping, command-catalog selection, verifier
 failure, and GenAm-style non-comment smoke.
 
+Remaining work:
+- Feed real listing/navigation representation and seed candidates into generic
+  inspect, not only tests or specialized listing-backed paths.
+- Run and document a GenAm non-comment smoke through the command catalog.
+- Extend planner tests across row seed and label paths, including missing
+  command/verifier blockers.
+
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.
-

@@ -26,6 +26,22 @@ from amiga_reversing.reversing_workspace import (
 TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
 PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
+_COMMAND_RANK = {
+    "label.rename": 100,
+    "row.seed.code": 90,
+    "row.seed.data.raw": 85,
+    "row.seed.data.byte": 85,
+    "row.seed.data.word": 85,
+    "row.seed.data.long": 85,
+    "row.seed.data.string": 85,
+    "row.seed.data.scalar_table": 85,
+    "row.seed.data.pointer_table": 85,
+    "representation.choose": 75,
+    "representation.hex": 75,
+    "representation.binary": 75,
+    "representation.character": 75,
+    "comment.edit": 10,
+}
 
 
 def _parse_int_auto(value: str) -> int:
@@ -630,6 +646,16 @@ def run_one_iteration(
     if not isinstance(commands, list) or not any(
         isinstance(entry, dict) and entry.get("command_id") == command["command_id"] for entry in commands
     ):
+        availability_layer = {
+            "layer": "command_availability",
+            "status": "failed",
+            "message": "selected source-converging command is unavailable in the command catalog",
+            "command_id": command.get("command_id"),
+            "context_kind": cast(dict[str, object], command.get("context")).get("kind")
+            if isinstance(command.get("context"), dict)
+            else None,
+        }
+        verification = {"status": "failed", "layers": [availability_layer]}
         report = _iteration_report(
             run_state=run_result.run_state,
             iteration_id=iteration_id,
@@ -637,11 +663,11 @@ def run_one_iteration(
             selected_work_item=cast(dict[str, object], selected["work_item"]),
             command=command,
             action_result={"status": "blocked", "availability": availability},
-            verification={"status": "failed", "layers": [{"layer": "command_availability", "status": "failed"}]},
+            verification=verification,
             workflow_profile=None,
             next_recommendation=recommend_next_step(
                 inspect_report=inspect_report,
-                verification={"status": "failed", "layers": [{"layer": "command_availability", "status": "failed"}]},
+                verification=verification,
                 evidence={"kind": "api_gap", "name": "command_availability"},
             ),
         )
@@ -1172,14 +1198,14 @@ def _row_covers_source_location(
 
 
 def _candidate_is_actionable(candidate: dict[str, object]) -> bool:
-    actions = candidate.get("suggested_action_kinds")
-    return (
+    options = _candidate_command_options(candidate)
+    return bool(
         candidate.get("confidence") == "high"
         and candidate.get("actionable") is True
-        and candidate.get("default_verifier") is not None
-        and isinstance(actions, list)
-        and "comment.edit" in actions
-        and _is_full_listing_locator(candidate.get("locator"))
+        and _candidate_verifier(candidate, options[0] if options else None) is not None
+        and options
+        and _command_context_complete(options[0])
+        and not _candidate_already_satisfied(candidate, options[0])
     )
 
 
@@ -1628,9 +1654,13 @@ def _suggested_action_kinds(item: dict[str, object]) -> list[str]:
 
 
 def _default_verifier_for_actions(actions: list[str]) -> str | None:
+    if any(action.startswith("representation.") for action in actions):
+        return "projected_representation_text"
+    if "label.rename" in actions:
+        return "projected_label_name"
     if "comment.edit" in actions:
         return "projection_metadata"
-    if any(action in actions for action in ("create_manual_seed", "row.seed.code", "row.seed.data")):
+    if any(action == "create_manual_seed" or action.startswith("row.seed.") for action in actions):
         return "round_trip"
     return None
 
@@ -1905,27 +1935,241 @@ def _command_requires_round_trip(command: dict[str, object]) -> bool:
     )
 
 
+def _candidate_command_options(candidate: dict[str, object]) -> list[dict[str, object]]:
+    embedded = candidate.get("command")
+    if isinstance(embedded, dict):
+        normalized = _normalize_candidate_command(cast(dict[str, object], embedded))
+        return [normalized] if normalized is not None else []
+    actions = candidate.get("suggested_action_kinds")
+    if not isinstance(actions, list):
+        return []
+    options: list[dict[str, object]] = []
+    for raw_action in actions:
+        if not isinstance(raw_action, str):
+            continue
+        command = _command_from_candidate_action(candidate, raw_action)
+        if command is not None:
+            options.append(command)
+    return sorted(options, key=lambda command: _command_rank(str(command.get("command_id") or "")), reverse=True)
+
+
+def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object] | None:
+    command_id = command.get("command_id")
+    context = command.get("context")
+    if not isinstance(command_id, str) or command_id not in _COMMAND_RANK or not isinstance(context, dict):
+        return None
+    parameters = command.get("parameters")
+    normalized = dict(command)
+    normalized["kind"] = "command"
+    normalized["parameters"] = dict(parameters) if isinstance(parameters, dict) else {}
+    normalized["output_affecting"] = command.get("output_affecting") is True or _command_id_affects_output(command_id)
+    return normalized
+
+
+def _command_from_candidate_action(candidate: dict[str, object], action: str) -> dict[str, object] | None:
+    if action not in _COMMAND_RANK:
+        return None
+    locator = candidate.get("locator")
+    parameters = candidate.get("parameters")
+    parameter_payload = dict(parameters) if isinstance(parameters, dict) else {}
+    if action == "comment.edit":
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
+            "parameters": parameter_payload or _comment_parameters_from_candidate(candidate),
+            "output_affecting": False,
+        }
+    if action.startswith("row.seed."):
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action == "label.rename":
+        element_id = candidate.get("element_id")
+        name = parameter_payload.get("name") or candidate.get("new_label")
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "element", "locator": locator, "element_id": element_id},
+            "parameters": {"name": name} if isinstance(name, str) and name else parameter_payload,
+            "output_affecting": True,
+        }
+    if action.startswith("representation."):
+        context = _representation_context_from_candidate(candidate)
+        representation = parameter_payload.get("representation") or action.removeprefix("representation.")
+        if representation == "choose":
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
+            "parameters": {"representation": representation},
+            "output_affecting": True,
+        }
+    return None
+
+
+def _representation_context_from_candidate(candidate: dict[str, object]) -> dict[str, object]:
+    context = candidate.get("context")
+    if isinstance(context, dict):
+        payload = dict(context)
+    else:
+        payload = {
+            "kind": "element",
+            "locator": candidate.get("locator"),
+            "element_id": candidate.get("element_id"),
+        }
+    for key in ("element_kind", "operand_index", "value", "width_bits", "width_bytes"):
+        if key in candidate and key not in payload:
+            payload[key] = candidate[key]
+    payload["kind"] = "element"
+    return payload
+
+
+def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, object] | None) -> str | None:
+    if candidate.get("confidence") != "high":
+        return "candidate confidence is not high"
+    if candidate.get("actionable") is not True:
+        existing = candidate.get("stop_reason")
+        return str(existing) if isinstance(existing, str) and existing else "candidate is not actionable"
+    if command is None:
+        return "no supported source-converging command"
+    if _candidate_verifier(candidate, command) is None:
+        return "missing action-specific verifier"
+    if not _command_context_complete(command):
+        return "missing durable command context"
+    if _candidate_already_satisfied(candidate, command):
+        return "candidate already satisfied in projected semantic state"
+    return None
+
+
+def _candidate_verifier(candidate: dict[str, object], command: dict[str, object] | None) -> str | None:
+    verifier = candidate.get("default_verifier")
+    if isinstance(verifier, str) and verifier:
+        return verifier
+    if command is None:
+        return None
+    command_id = command.get("command_id")
+    if isinstance(command_id, str):
+        return _default_verifier_for_actions([command_id])
+    return None
+
+
+def _command_context_complete(command: dict[str, object]) -> bool:
+    context = command.get("context")
+    if not isinstance(context, dict):
+        return False
+    kind = context.get("kind")
+    if kind == "row":
+        return _is_full_listing_locator(context.get("locator"))
+    if kind == "element":
+        return _is_full_listing_locator(context.get("locator")) and isinstance(context.get("element_id"), str)
+    if kind == "review_item":
+        return isinstance(context.get("item_id"), str) and bool(context.get("item_id"))
+    return kind == "target"
+
+
+def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str, object]) -> bool:
+    if candidate.get("satisfied") is True:
+        return True
+    current = candidate.get("current_metadata")
+    if not isinstance(current, dict):
+        return False
+    parameters = command.get("parameters")
+    command_id = command.get("command_id")
+    if not isinstance(parameters, dict) or not isinstance(command_id, str):
+        return False
+    if command_id == "comment.edit":
+        text = parameters.get("text")
+        return isinstance(text, str) and current.get("comment_text") == text
+    if command_id == "label.rename":
+        name = parameters.get("name")
+        return isinstance(name, str) and current.get("label") == name
+    if command_id.startswith("representation."):
+        style = parameters.get("representation")
+        return isinstance(style, str) and current.get("representation") == style
+    return False
+
+
+def _candidate_score(candidate: dict[str, object], command: dict[str, object] | None) -> int:
+    command_id = command.get("command_id") if isinstance(command, dict) else None
+    score = _command_rank(str(command_id or ""))
+    if candidate.get("confidence") == "high":
+        score += 20
+    evidence = candidate.get("evidence")
+    if isinstance(evidence, dict) and evidence:
+        score += 5
+    return score
+
+
+def _command_rank(command_id: str) -> int:
+    return _COMMAND_RANK.get(command_id, 0)
+
+
+def _command_summary(command: dict[str, object]) -> dict[str, object]:
+    return {
+        "command_id": command.get("command_id"),
+        "output_affecting": command.get("output_affecting") is True,
+        "verifier": _default_verifier_for_actions([str(command.get("command_id") or "")]),
+    }
+
+
+def _command_id_affects_output(command_id: str) -> bool:
+    return command_id != "comment.edit"
+
+
 def _select_command_action(inspect_report: dict[str, object]) -> dict[str, object] | None:
     candidates = inspect_report.get("candidate_work")
     if not isinstance(candidates, list):
+        inspect_report["planner"] = {"status": "no_candidate", "ranked_candidates": [], "skipped_candidates": []}
         return None
+    ranked: list[dict[str, object]] = []
+    skipped: list[dict[str, object]] = []
+    eligible: list[dict[str, object]] = []
     for candidate in candidates:
         if not isinstance(candidate, dict):
             continue
-        if not _candidate_is_actionable(candidate):
+        options = _candidate_command_options(candidate)
+        command = options[0] if options else None
+        score = _candidate_score(candidate, command)
+        checked = dict(candidate)
+        checked["planner_score"] = score
+        checked["candidate_commands"] = [_command_summary(option) for option in options]
+        ranked.append(checked)
+        skip_reason = _candidate_skip_reason(candidate, command)
+        if skip_reason is not None:
+            checked["stop_reason"] = skip_reason
+            skipped.append(checked)
             continue
-        locator = candidate.get("locator")
-        if not _is_full_listing_locator(locator):
-            continue
-        command = {
-            "kind": "command",
-            "command_id": "comment.edit",
-            "context": {"kind": "row", "locator": locator},
-            "parameters": _comment_parameters_from_candidate(candidate),
-            "output_affecting": False,
+        selected = dict(candidate)
+        selected["planner_score"] = score
+        eligible.append({"work_item": selected, "command": command, "planner_score": score})
+    eligible.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
+    ranked.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
+    if not eligible:
+        inspect_report["planner"] = {
+            "status": "no_candidate",
+            "ranked_candidates": ranked,
+            "skipped_candidates": skipped,
+            "message": "no supported source-converging command candidate",
         }
-        return {"work_item": dict(candidate), "command": command}
-    return None
+        return None
+    selected = eligible[0]
+    command = cast(dict[str, object], selected["command"])
+    inspect_report["planner"] = {
+        "status": "selected",
+        "ranked_candidates": ranked,
+        "skipped_candidates": skipped,
+        "selected_candidate_id": cast(dict[str, object], selected["work_item"]).get("candidate_id")
+        or cast(dict[str, object], selected["work_item"]).get("id"),
+        "selected_command_id": command.get("command_id"),
+        "selection_reason": "highest-ranked supported source-converging command",
+    }
+    return {"work_item": cast(dict[str, object], selected["work_item"]), "command": command}
 
 
 def _is_full_listing_locator(value: object) -> bool:
@@ -1990,6 +2234,7 @@ def _iteration_report(
         },
         "target_state": inspect_report.get("target_state"),
         "candidate_work": inspect_report.get("candidate_work"),
+        "planner": inspect_report.get("planner"),
         "selected_work_item": selected_work_item,
         "evidence": None if selected_work_item is None else selected_work_item.get("evidence"),
         "action": command,
