@@ -1220,3 +1220,8 @@ The loop mutates only high-confidence actionable candidates with a verifier. If
 no evidence-backed candidate exists, it writes the normal iteration report with
 a stop recommendation instead of creating a generic comment. Mechanical
 commentability remains valid only in tests or explicit fixtures.
+
+Follow-up cleanup removed generated comment text from production paths.
+Non-dry-run `comment.edit` now requires explicit evidence-backed text, such as a
+CLI `--comment-text` value or candidate-provided suggested text, and stops with
+a `comment_text` verification failure when the loop lacks that domain judgment.

@@ -218,6 +218,7 @@ def test_run_one_dry_run_selects_command_without_execution(
 
     assert calls == []
     assert report["action"]["command_id"] == "comment.edit"
+    assert report["action"]["parameters"] == {"text": "xref-backed test comment"}
     assert report["action_result"]["status"] == "dry_run"
     assert not (tmp_path / "targets" / "demo" / "manual_actions.jsonl").exists()
 
@@ -345,6 +346,7 @@ def test_listing_backed_comment_acquires_locator_after_open(
     assert report["selected_work_item"]["kind"] == "source_entrypoint_row"
     assert report["selected_work_item"]["locator"]["row_key"] == "row-1"
     assert report["action"]["command_id"] == "comment.edit"
+    assert report["action"]["parameters"] == {}
     assert report["selected_work_item"]["confidence"] == "high"
     assert report["selected_work_item"]["default_verifier"] == "projected_comment_text"
 
@@ -447,19 +449,24 @@ def test_listing_backed_comment_checks_availability_before_execution(
             return {"data": {"job_id": "job-1", "status": "ready"}}
         if path.endswith("/listing"):
             listing_calls += 1
-            return {"data": {"rows": [_listing_row(comment_text="agent note: source-entrypoint:row-1") if listing_calls > 1 else _listing_row()]}}
+            return {"data": {"rows": [_listing_row(comment_text="entrypoint returns") if listing_calls > 1 else _listing_row()]}}
         if path.endswith("/commands") and method == "GET":
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         if path.endswith("/commands/execute"):
             _write_manual_log(tmp_path)
             return {"data": _executed_listing_comment_payload(tmp_path)}
         if method == "GET" and path == "/api/projects/demo":
-            return {"data": {"project": {"manual_state": {"comments": [{"text": "agent note: source-entrypoint:row-1"}]}}}}
+            return {"data": {"project": {"manual_state": {"comments": [{"text": "entrypoint returns"}]}}}}
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
-    report = reversing_loop.run_listing_backed_comment_iteration("demo", mode="clean-run", project_root=tmp_path)
+    report = reversing_loop.run_listing_backed_comment_iteration(
+        "demo",
+        mode="clean-run",
+        comment_text="entrypoint returns",
+        project_root=tmp_path,
+    )
 
     assert calls[:4] == [
         ("POST", "/api/projects/demo/listing/open"),
@@ -468,6 +475,34 @@ def test_listing_backed_comment_checks_availability_before_execution(
         ("POST", "/api/projects/demo/commands/execute"),
     ]
     assert report["verification"]["status"] == "passed"
+
+
+def test_listing_backed_comment_blocks_execution_without_comment_text(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path)
+    calls: list[tuple[str, str]] = []
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row()]}}
+        if path.endswith("/commands") and method == "GET":
+            return {"data": {"commands": [{"command_id": "comment.edit"}]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_listing_backed_comment_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"][0]["layer"] == "comment_text"
+    assert report["next"]["recommendation"] == "stop"
+    assert not any(path.endswith("/commands/execute") for _, path in calls)
 
 
 def test_listing_backed_comment_verifies_projected_comment_text(
@@ -642,6 +677,7 @@ def _inspect_with_locator() -> dict[str, object]:
                 "verifier": {"kind": "projection_metadata", "requires_semantic_reload": True},
                 "rationale": "test xref-backed candidate",
                 "suggested_action_kinds": ["comment.edit"],
+                "suggested_comment_text": "xref-backed test comment",
             }
         ],
         "safe_to_mutate": True,

@@ -62,7 +62,9 @@ the listing artifact is opened, and that artifact is process-local.
    for one real evidence-backed comment. The harness must select a
    high-confidence candidate from listing/project evidence, such as a source
    entrypoint row, and must stop with a report when no such candidate exists.
-10. Stop if listing readiness, candidate evidence, command availability, or
+10. Non-dry-run `comment.edit` requires explicit evidence-backed comment text.
+    Never create generic placeholder notes.
+11. Stop if listing readiness, candidate evidence, command availability, or
     projected comment verification fails.
 
 ## Verification

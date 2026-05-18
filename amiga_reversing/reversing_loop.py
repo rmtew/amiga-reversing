@@ -184,6 +184,31 @@ def run_listing_backed_comment_iteration(
             project_root=project_root,
         )
 
+    if _comment_text_missing(command):
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "comment_text",
+                    "status": "failed",
+                    "message": "comment.edit requires explicit evidence-backed comment text",
+                }
+            ],
+        }
+        return _write_listing_comment_report(
+            target_id,
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report={**inspect_report, "listing_open": listing_ready},
+            selected_work_item=work_item,
+            command=command,
+            action_result={"status": "blocked", "listing_open": listing_ready},
+            verification=verification,
+            workflow_profile=None,
+            next_evidence={"kind": "missing_domain_judgment", "name": "comment_text"},
+            project_root=project_root,
+        )
+
     execution = server.route_request(
         "POST",
         f"/api/projects/{target_id}/commands/execute",
@@ -316,6 +341,34 @@ def run_one_iteration(
             next_recommendation=recommend_next_step(
                 inspect_report=inspect_report,
                 verification={"status": "not_run", "layers": []},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    if _comment_text_missing(command):
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "comment_text",
+                    "status": "failed",
+                    "message": "comment.edit requires explicit evidence-backed comment text",
+                }
+            ],
+        }
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked"},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "missing_domain_judgment", "name": "comment_text"},
             ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
@@ -614,12 +667,12 @@ def _select_listing_comment_action(
             "command_availability_checked": True,
         }
         checked_candidates.append(checked)
-        text = comment_text or f"agent note: {candidate.get('candidate_id') or candidate.get('id')}"
+        text = _clean_comment_text(comment_text)
         command = {
             "kind": "command",
             "command_id": "comment.edit",
             "context": {"kind": "row", "locator": locator},
-            "parameters": {"text": text},
+            "parameters": {"text": text} if text is not None else {},
             "output_affecting": False,
         }
         return {
@@ -728,6 +781,29 @@ def _candidate_is_actionable(candidate: dict[str, object]) -> bool:
         and "comment.edit" in actions
         and _is_full_listing_locator(candidate.get("locator"))
     )
+
+
+def _clean_comment_text(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text or None
+
+
+def _comment_text_missing(command: dict[str, object]) -> bool:
+    if command.get("command_id") != "comment.edit":
+        return False
+    parameters = command.get("parameters")
+    text = parameters.get("text") if isinstance(parameters, dict) else None
+    return _clean_comment_text(text) is None
+
+
+def _comment_parameters_from_candidate(candidate: dict[str, object]) -> dict[str, object]:
+    for key in ("comment_text", "suggested_comment_text"):
+        text = _clean_comment_text(candidate.get(key))
+        if text is not None:
+            return {"text": text}
+    return {}
 
 
 def _verify_listing_comment_mutation(
@@ -934,6 +1010,7 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
         actions = _suggested_action_kinds(item)
         verifier = _default_verifier_for_actions(actions)
         confidence = "high" if locator is not None and has_xrefs and verifier is not None else "low"
+        suggested_comment_text = _clean_comment_text(item.get("suggested_comment_text"))
         candidate: dict[str, object] = {
             "id": durable_identity or _locator_candidate_id(locator),
             "candidate_id": durable_identity or _locator_candidate_id(locator),
@@ -960,6 +1037,8 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
             "actionable": confidence == "high",
             "stop_reason": None if confidence == "high" else "candidate lacks locator, xref evidence, or verifier",
         }
+        if suggested_comment_text is not None:
+            candidate["suggested_comment_text"] = suggested_comment_text
         candidates.append(candidate)
     return candidates
 
@@ -1128,7 +1207,7 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
             "kind": "command",
             "command_id": "comment.edit",
             "context": {"kind": "row", "locator": locator},
-            "parameters": {"text": f"agent note: {candidate.get('candidate_id') or candidate.get('id') or 'candidate'}"},
+            "parameters": _comment_parameters_from_candidate(candidate),
             "output_affecting": False,
         }
         return {"work_item": dict(candidate), "command": command}

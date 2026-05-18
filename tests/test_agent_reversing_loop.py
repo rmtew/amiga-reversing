@@ -51,6 +51,7 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         "ref_count": 1,
         "message": "candidate with xrefs",
         "suggested_actions": [{"action": "comment.edit"}],
+        "suggested_comment_text": "xref-backed smoke comment",
     }
     monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))
     calls: list[tuple[str, str]] = []
