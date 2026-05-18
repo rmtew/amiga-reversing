@@ -11,6 +11,7 @@ private mutation path.
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --dry-run`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target>`
 - `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-comment`
+- `uv run python -m amiga_reversing.reversing_loop run-one --target <target> --listing-backed-label-rename --label-offset <offset> --label-name <name>`
 
 ## Mode Choice
 
@@ -40,10 +41,15 @@ private mutation path.
 Useful target-progress actions improve the rendered source in ways a human
 reverser would recognize:
 
-- name functions, labels, app slots, globals, and referenced data from xrefs and
-  behavior;
+- name functions, labels, globals, and referenced data from xrefs and behavior;
+- add, edit, or rename app/base-relative slots when the command catalog exposes
+  durable app-slot actions;
+- add, edit, or rename equates for domain constants when equate commands are
+  supported;
+- change immediate value representations when an operand-level representation
+  command is supported and the new form carries domain meaning;
 - classify code, raw data, strings, scalar tables, pointer tables, structured
-  data, and representations;
+  data, and broader representations;
 - record API/library call semantics and propagate them through callers,
   arguments, return values, and stored state;
 - add type, structure, field, or register-base facts when evidence supports
@@ -55,6 +61,11 @@ represented by a more structured command. Do not create entrypoint, placeholder,
 proof, fallback, or "note that this exists" comments as autonomous progress.
 Every selected action must state the evidence used, the expected rendered-source
 improvement, the command/manual action used, and the verifier.
+
+If the ideal source-converging action is not available in the command catalog,
+do not write a temporary script or mutate target metadata directly. Stop with a
+precise missing-capability report, then add or complete the command support
+issue before trying the target action again.
 
 ## Allowed Mutations
 
