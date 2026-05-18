@@ -2502,6 +2502,7 @@ def test_listing_data_role_candidates_mine_ascii_string_rows() -> None:
     assert candidates[0]["candidate_id"] == "data-role-string:data-row:0:00000040"
     assert candidates[0]["durable_id"] == "data_role:h0:00000040:string"
     assert candidates[0]["evidence"]["preview"] == "HELLO"
+    assert candidates[0]["default_verifier"] == "manual_seed_state"
     assert command["command_id"] == "row.seed.data.string"
     assert command["context"] == {"kind": "row", "locator": row["locator"]}
     assert command["parameters"] == {
