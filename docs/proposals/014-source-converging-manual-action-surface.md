@@ -215,6 +215,11 @@ Implementation observation from `014-006`: source-label feeds also need
 effective metadata skips, because generated listing text can lag projected
 label state during a loop iteration.
 
+Implementation observation from `014-010`: struct-pointer candidates should use
+any selectable operand context that carries the base register, not only operands
+whose element kind is `register`; memory operands often carry the register via
+operand metadata.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

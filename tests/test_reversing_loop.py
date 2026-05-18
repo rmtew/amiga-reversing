@@ -1602,6 +1602,22 @@ def test_listing_struct_pointer_candidates_use_unresolved_typed_access_register(
     assert candidates[0]["evidence"]["classification"] == "prefix_extension"
 
 
+def test_listing_struct_pointer_candidates_use_memory_operand_register() -> None:
+    row = _struct_pointer_row()
+    row["operand_parts"] = [
+        {"kind": "memory", "operand_index": 0, "metadata": {}},
+        {"kind": "register", "operand_index": 1, "register": "D0", "metadata": {}},
+    ]
+
+    candidates = reversing_loop._listing_struct_pointer_candidates([row])
+
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_id"] == "struct-ptr:row-1:0:A0:InputEvent"
+    assert candidates[0]["element_id"] == "row-1:memory:0:operand"
+    assert candidates[0]["element_kind"] == "memory"
+    assert candidates[0]["parameters"] == {"struct_name": "InputEvent"}
+
+
 def test_listing_struct_pointer_candidates_skip_already_projected_seed() -> None:
     existing = {("A0", "struct_ptr"): {"kind": "struct_ptr", "register": "A0", "struct_name": "InputEvent"}}
 

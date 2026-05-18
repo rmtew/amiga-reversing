@@ -37,7 +37,8 @@ Progress:
   struct-pointer register seeds, and requires round-trip verification.
 - Generic `run-one` now mines unresolved typed-access listing evidence into
   autonomous `semantic.register.struct_ptr` candidates when the same row exposes
-  a concrete register element for the base register, skipping already-projected
+  a selectable operand context for the base register, including memory operands
+  whose register is supplied by operand metadata, skipping already-projected
   struct-pointer register seeds.
 - Autonomous struct-pointer candidate skipping now reads effective target
   metadata as well as Manual Action Log projections, so seeded register-base

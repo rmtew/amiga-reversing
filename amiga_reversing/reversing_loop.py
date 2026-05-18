@@ -1380,7 +1380,7 @@ def _listing_struct_pointer_candidates(
         register_contexts = [
             context
             for context in contexts
-            if context.get("element_kind") == "register" and isinstance(context.get("register"), str)
+            if isinstance(context.get("register"), str)
         ]
         for context in contexts:
             if context.get("element_kind") != "typed_gap":
@@ -1418,7 +1418,7 @@ def _listing_struct_pointer_candidates(
                     "durable_id": f"register_seed:{register}:struct_ptr",
                     "locator": dict(cast(dict[str, object], locator)),
                     "element_id": element_id,
-                    "element_kind": "register",
+                    "element_kind": register_context.get("element_kind"),
                     "operand_index": operand_index,
                     "register": register,
                     "base_register": register,
