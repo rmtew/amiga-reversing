@@ -106,6 +106,8 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
         _target_rsset_layout_region_action(),
+        _target_rsset_layout_region_edit_action(),
+        _target_rsset_layout_region_rename_action(),
         _target_rsset_layout_region_remove_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
@@ -2007,6 +2009,24 @@ def _target_rsset_layout_region_action() -> dict[str, object]:
     return _target_log_action(
         "target.rsset_region.add",
         "Add RSSET region",
+        "create_manual_rsset_layout_region",
+        _rsset_layout_region_parameter_schema(),
+    )
+
+
+def _target_rsset_layout_region_edit_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.rsset_region.edit",
+        "Edit RSSET region",
+        "create_manual_rsset_layout_region",
+        _rsset_layout_region_parameter_schema(),
+    )
+
+
+def _target_rsset_layout_region_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.rsset_region.rename",
+        "Rename RSSET region",
         "create_manual_rsset_layout_region",
         _rsset_layout_region_parameter_schema(),
     )

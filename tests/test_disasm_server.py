@@ -1406,6 +1406,12 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert rsset_region_action["appends_to_manual_action_log"] is True
     assert rsset_region_action["action"] == "create_manual_rsset_layout_region"
     assert rsset_region_action["parameter_schema"]["required"] == ["offset", "symbol"]
+    rsset_region_edit_action = next(action for action in actions if action["action_id"] == "target.rsset_region.edit")
+    assert rsset_region_edit_action["action"] == "create_manual_rsset_layout_region"
+    assert rsset_region_edit_action["parameter_schema"]["required"] == ["offset", "symbol"]
+    rsset_region_rename_action = next(action for action in actions if action["action_id"] == "target.rsset_region.rename")
+    assert rsset_region_rename_action["action"] == "create_manual_rsset_layout_region"
+    assert rsset_region_rename_action["parameter_schema"]["required"] == ["offset", "symbol"]
     rsset_region_remove_action = next(action for action in actions if action["action_id"] == "target.rsset_region.remove")
     assert rsset_region_remove_action["category"] == "target_metadata"
     assert rsset_region_remove_action["appends_to_manual_action_log"] is True

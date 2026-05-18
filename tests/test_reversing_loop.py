@@ -441,6 +441,31 @@ def test_planner_selects_rsset_region_add_candidate(
     assert report["planner"]["selected_command_id"] == "target.rsset_region.add"
 
 
+def test_planner_selects_rsset_region_rename_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _rsset_region_candidate(
+            current_symbol="work_0004",
+            new_symbol="work_flags",
+            action_kind="target.rsset_region.rename",
+        ),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "target.rsset_region.rename"
+    assert report["action"]["context"] == {"kind": "target"}
+    assert report["action"]["parameters"]["symbol"] == "work_flags"
+    assert report["planner"]["selected_command_id"] == "target.rsset_region.rename"
+
+
 def test_planner_skips_already_satisfied_rsset_region_add(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1288,7 +1313,12 @@ def _data_symbol_remove_candidate(*, suppressed: bool) -> dict[str, object]:
     }
 
 
-def _rsset_region_candidate(*, current_symbol: str, new_symbol: str) -> dict[str, object]:
+def _rsset_region_candidate(
+    *,
+    current_symbol: str,
+    new_symbol: str,
+    action_kind: str = "target.rsset_region.add",
+) -> dict[str, object]:
     parameters = {
         "offset": 4,
         "size": 2,
@@ -1305,7 +1335,7 @@ def _rsset_region_candidate(*, current_symbol: str, new_symbol: str) -> dict[str
         "evidence": {"source": "app_slot_analysis", "previous_symbol": current_symbol},
         "current_metadata": {**parameters, "symbol": current_symbol},
         "expected_rendered_source_improvement": f"rename RSSET region field {current_symbol} to {new_symbol}",
-        "suggested_action_kinds": ["target.rsset_region.add"],
+        "suggested_action_kinds": [action_kind],
         "parameters": parameters,
         "default_verifier": "round_trip",
         "verifier": {"kind": "round_trip", "requires_semantic_reload": True},

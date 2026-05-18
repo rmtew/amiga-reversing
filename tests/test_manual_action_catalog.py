@@ -293,6 +293,36 @@ def test_target_rsset_layout_region_command_payload() -> None:
     }
 
 
+def test_target_rsset_layout_region_edit_and_rename_command_payloads() -> None:
+    for command_id in ("target.rsset_region.edit", "target.rsset_region.rename"):
+        kind, payload = target_catalog_manual_payload(
+            command_id,
+            {
+                "offset": 4,
+                "size": 2,
+                "layout_name": "work",
+                "base_symbol": "__game_work_base__",
+                "sizeof_symbol": "work_SIZEOF",
+                "symbol": "work_counter",
+                "storage_kind": "scalar",
+            },
+        )
+
+        assert kind == "create_manual_rsset_layout_region"
+        assert payload == {
+            "rsset_layout_region": {
+                "rsset_layout_region_id": "catalog-rsset-region-work-0004",
+                "offset": 4,
+                "size": 2,
+                "layout_name": "work",
+                "base_symbol": "__game_work_base__",
+                "sizeof_symbol": "work_SIZEOF",
+                "symbol": "work_counter",
+                "storage_kind": "scalar",
+            }
+        }
+
+
 def test_target_rsset_layout_region_remove_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.remove",

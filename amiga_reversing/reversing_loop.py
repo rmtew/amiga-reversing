@@ -44,7 +44,9 @@ _COMMAND_RANK = {
     "row.seed.data.scalar_table": 85,
     "row.seed.data.pointer_table": 85,
     "data_symbol.rename": 82,
+    "target.rsset_region.rename": 82,
     "target.rsset_region.add": 80,
+    "target.rsset_region.edit": 80,
     "representation.choose": 75,
     "representation.hex": 75,
     "representation.binary": 75,
@@ -2204,7 +2206,12 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
-    if action in {"target.rsset_region.add", "target.rsset_region.remove"}:
+    if action in {
+        "target.rsset_region.add",
+        "target.rsset_region.edit",
+        "target.rsset_region.rename",
+        "target.rsset_region.remove",
+    }:
         return {
             "kind": "command",
             "command_id": action,
@@ -2308,7 +2315,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":
         return current.get("suppressed") is True
-    if command_id == "target.rsset_region.add":
+    if command_id in {"target.rsset_region.add", "target.rsset_region.edit", "target.rsset_region.rename"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
         return current.get("removed") is True
