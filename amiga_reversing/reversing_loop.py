@@ -2878,6 +2878,10 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":
         return current.get("suppressed") is True
+    if command_id in {"app_slot.rename", "app_slot.edit"}:
+        return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "app_slot.remove":
+        return current.get("removed") is True
     if command_id in {"target.rsset_region.add", "target.rsset_region.edit", "target.rsset_region.rename"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":

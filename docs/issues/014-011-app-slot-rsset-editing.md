@@ -30,8 +30,9 @@ Current evidence:
   candidates, requires round-trip verification, and skips already-satisfied
   projected add/edit/rename/remove state.
 - Loop planner also accepts explicit `app_slot.rename/edit/remove` command
-  candidates, routes them through the selected app-slot element context, and
-  requires round-trip verification.
+  candidates, routes them through the selected app-slot element context, skips
+  already-projected app-slot region state, and requires round-trip
+  verification.
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.

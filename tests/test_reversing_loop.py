@@ -1279,6 +1279,34 @@ def test_app_slot_command_candidate_uses_selected_element_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_app_slot_candidate_skips_already_projected_region() -> None:
+    parameters = {"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"}
+    candidate = {
+        "id": "app-slot-rename",
+        "candidate_id": "app-slot-rename",
+        "kind": "app_slot_region",
+        "locator": _listing_locator(),
+        "element_id": "row-1:app_slot:1:0234",
+        "element_kind": "app_slot",
+        "operand_index": 1,
+        "symbol": "app_0234",
+        "displacement": 0x234,
+        "base_register": "A6",
+        "access": "write",
+        "suggested_action_kinds": ["app_slot.rename"],
+        "parameters": parameters,
+        "current_metadata": parameters,
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_range_seed_command_candidate_uses_range_context_and_verifier() -> None:
     locators = [
         _listing_locator(row_key="row-1", kind="data", start_offset=0x20, end_offset=0x22),
