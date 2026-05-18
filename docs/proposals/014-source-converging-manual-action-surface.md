@@ -225,6 +225,11 @@ look at the refreshed listing text/name at the selected source location. An
 affected-locator echo proves command execution touched a row, but not that the
 source now renders the requested symbol.
 
+Implementation observation from `014-005`/`014-010`:
+`semantic.register.struct_ptr` produces register-seed state, not row projection
+state. Its verifier should check the reloaded register seed and round-trip
+instead of affected locators.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

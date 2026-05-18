@@ -43,6 +43,9 @@ Progress:
 - Autonomous struct-pointer candidate skipping now reads effective target
   metadata as well as Manual Action Log projections, so seeded register-base
   facts from target metadata are not repeated.
+- Generic `run-one` now verifies `semantic.register.struct_ptr` execution by
+  checking the reloaded struct-pointer register seed rather than affected row
+  metadata.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 

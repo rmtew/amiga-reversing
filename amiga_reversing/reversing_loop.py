@@ -2716,6 +2716,13 @@ def _verify_manual_mutation(
         )
     if command_id == "data_symbol.rename":
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
+    if command_id == "semantic.register.struct_ptr":
+        return _verify_struct_pointer_register_seed_mutation(
+            target_id,
+            command,
+            durable_result,
+            project_root=project_root,
+        )
     layers = [
         _verify_semantic_reload(target_id, durable_result, project_root=project_root),
         _verify_projection_metadata(command, durable_result),
@@ -2806,6 +2813,60 @@ def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object
             "checked_rows": checked_rows,
         }
     return {"layer": "projection", "status": "failed", "message": "data symbol row missing after reload"}
+
+
+def _verify_struct_pointer_register_seed_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_semantic_register_seed(target_id, command, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _verify_project_semantic_register_seed(
+    target_id: str,
+    command: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    context = command.get("context")
+    parameters = command.get("parameters")
+    register = context.get("register") if isinstance(context, dict) else None
+    struct_name = parameters.get("struct_name") if isinstance(parameters, dict) else None
+    if not isinstance(register, str) or not isinstance(struct_name, str) or not struct_name:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing register or struct name"}
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    register_seeds = manual_state.get("register_seeds") if isinstance(manual_state, dict) else None
+    if not isinstance(register_seeds, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual register seeds were not reloaded"}
+    expected_register = register.upper()
+    matches = [
+        seed
+        for seed in register_seeds
+        if isinstance(seed, dict)
+        and str(seed.get("register")).upper() == expected_register
+        and seed.get("kind") == "struct_ptr"
+        and seed.get("struct_name") == struct_name
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_register": expected_register,
+        "expected_struct_name": struct_name,
+        "matching_register_seeds": matches,
+    }
 
 
 def _label_command_source_location(command: dict[str, object]) -> tuple[int, int] | None:
