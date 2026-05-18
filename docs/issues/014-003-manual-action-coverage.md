@@ -20,8 +20,18 @@ Acceptance criteria:
   family.
 - Replay produces deterministic effective metadata/projection state.
 - Existing manual state remains append-only and undo uses corrective actions.
-- Gaps such as app-slot add/edit/rename, equate add/edit/rename, and immediate
-  representation are either implemented or split into child issues.
+- Gaps such as app-slot add/edit/rename, equate add/edit/rename, data roles,
+  structure fields, API/register semantics, correction/suppression, and
+  immediate representation are either implemented or split into child issues.
+
+Child issues:
+- `014-007-data-role-command-coverage.md`
+- `014-008-immediate-representation-verification.md`
+- `014-009-equate-constant-editing.md`
+- `014-010-api-register-semantic-actions.md`
+- `014-011-app-slot-rsset-editing.md`
+- `014-012-structure-field-editing.md`
+- `014-013-correction-and-view-actions.md`
 
 Required tests:
 Manual action append/replay/projection tests for each added action family.
@@ -29,4 +39,3 @@ Manual action append/replay/projection tests for each added action family.
 Cleanup / deletion:
 Delete after manual-action coverage is complete or all remaining gaps have
 specific child issues.
-

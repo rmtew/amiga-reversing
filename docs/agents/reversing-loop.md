@@ -56,6 +56,11 @@ reverser would recognize:
   them;
 - resolve review items only with the type-specific verifier.
 
+Use `docs/proposals/014-source-converging-manual-action-surface.md` as the
+capability map. If the best source-converging action is not in the matrix, or
+the matrix says identity/command/verifier support is missing, report that as
+the blocker instead of using a script or direct target metadata edit.
+
 Comments are allowed only for concrete semantic discoveries that cannot be
 represented by a more structured command. Do not create entrypoint, placeholder,
 proof, fallback, or "note that this exists" comments as autonomous progress.
