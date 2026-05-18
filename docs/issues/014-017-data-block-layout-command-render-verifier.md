@@ -1,4 +1,4 @@
-Status: Open
+Status: In progress
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
@@ -7,19 +7,44 @@ Expose scalar data block layout commands, render layout elements, and verify
 source convergence. This is the first production slice after `014-016`.
 
 Requirements:
-- Expose row/range commands to create scalar layouts over selected data ranges.
+- Expose row/range commands to create scalar layouts over selected data ranges. First slice implemented:
+  `row.data_block.layout.create` and `range.data_block.layout.create` append
+  `create_manual_data_block_layout` through the public command catalog.
 - Expose element commands to set/remove/represent scalar byte/word/long
-  elements, arrays/runs, padding, and gaps.
+  elements, arrays/runs, padding, and gaps. Still open.
 - Render element-sized `dc.b`, `dc.w`, `dc.l`, `dcb.*`, numeric values, and
-  character values while preserving exact rebuild.
+  character values while preserving exact rebuild. First slice implemented for
+  scalar element projection via effective metadata: data-block elements emit
+  renderable seeded entities, and element representation emits render policy
+  manual representations.
 - Make element representation authoritative over overlapping standalone manual
-  representations.
+  representations. First slice implemented in effective metadata by removing
+  overlapping standalone representations while the data-block element
+  representation is active.
 - Treat scalar layout as rendering/effective-metadata only: it may consume
   existing analysis evidence for candidates, but must not generate xrefs,
   type-flow facts, or review items.
 - Add replay, rendered-source, removal, and exact round-trip verifiers.
 - Add loop execution coverage that reports the action-specific verifier.
 - Add a GenAm smoke for `loc_0_00001442` as `ascii_hex_digit_value`.
+
+Implemented tests:
+- Effective metadata projects data-block elements into seeded entities and
+  element-scoped manual representations.
+- Effective metadata gives element representation precedence over overlapping
+  standalone manual representations.
+- Command catalog availability and `/commands/execute` cover range layout
+  creation.
+- C backend smoke proves a data-block layout element renders named character
+  `dc.b` source and reassembles exactly.
+
+Remaining:
+- Element set/remove/represent command catalog actions.
+- Removal-to-raw/gap rendered-source verifier.
+- Loop verifier coverage for replay, rendered source, exact round-trip, and
+  unsupported type/reference blockers.
+- Full byte/word/long/run/padding/gap render matrix and GenAm
+  `loc_0_00001442` smoke.
 
 Acceptance criteria:
 - The command catalog exposes supported layout commands without private loop

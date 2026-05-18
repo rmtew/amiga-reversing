@@ -2883,6 +2883,7 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     raw_block = next(action for action in actions if action["action_id"] == "range.seed.data.raw")
     named_block = next(action for action in actions if action["action_id"] == "range.seed.data.named")
     palette = next(action for action in actions if action["action_id"] == "range.seed.data.palette")
+    data_block_layout = next(action for action in actions if action["action_id"] == "range.data_block.layout.create")
     code_seed = next(action for action in actions if action["action_id"] == "range.seed.code")
     semantic_helpers = next(action for action in actions if action["action_id"] == "range.semantic.helpers")
 
@@ -2900,6 +2901,11 @@ def test_route_manual_action_catalog_returns_range_actions_with_mixed_eligibilit
     assert named_block["interaction_schema"]["primary_field"] == "name"
     assert palette["range_availability"] == "partial"
     assert palette["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
+    assert data_block_layout["range_availability"] == "partial"
+    assert data_block_layout["parameters"] == {"default_unit": "byte"}
+    assert data_block_layout["applicable_subranges"] == [
+        {"row_indexes": [1, 2], "row_ids": ["r1", "r2"], "start_offset": 2, "end_offset": 4}
+    ]
     assert "2 of 3" in str(raw_block["availability_reason"])
     assert code_seed["range_availability"] == "partial"
     assert semantic_helpers["range_availability"] == "unavailable"
@@ -3006,7 +3012,32 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
     assert named_seed["addr"] == 2
     assert named_seed["end"] == 4
     assert named_seed["row_indexes"] == [1, 2]
-    assert appended_actions == [action, named_action]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    layout_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "range.data_block.layout.create",
+            "context": _range_command_context(rows),
+            "parameters": {"name": "ascii_hex_digit_value", "role": "lookup_table", "default_unit": "byte"},
+        },
+    )
+    layout_action = cast(dict[str, object], cast(dict[str, object], layout_payload["data"])["action"])
+    layout = cast(dict[str, object], cast(dict[str, object], layout_action["payload"])["data_block_layout"])
+    layout_application = cast(dict[str, object], cast(dict[str, object], layout_payload["data"])["application"])
+
+    assert layout_action["kind"] == "create_manual_data_block_layout"
+    assert layout["hunk"] == 0
+    assert layout["source_start"] == 2
+    assert layout["source_end"] == 4
+    assert layout["row_indexes"] == [1, 2]
+    assert layout["name"] == "ascii_hex_digit_value"
+    assert layout["role"] == "lookup_table"
+    assert layout["default_unit"] == "byte"
+    assert layout_application["status"] == "applied"
+    assert cast(dict[str, object], layout_application["refresh"])["mode"] == "project"
+    assert appended_actions == [action, named_action, layout_action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 

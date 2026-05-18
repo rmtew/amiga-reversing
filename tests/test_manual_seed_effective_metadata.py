@@ -16,6 +16,7 @@ from amiga_reversing.disasm.target_metadata import (
     DataBlockElementMetadata,
     DataBlockLayoutMetadata,
     ExecutionViewMetadata,
+    ManualRepresentationMetadata,
     ManualRepresentationStyle,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
@@ -1068,6 +1069,74 @@ def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_p
             "version": 1,
         }
     ]
+    assert payload["seeded_entities"] == [
+        {
+            "addr": 0x1442,
+            "citation": "manual_action_log:ascii-hex:0",
+            "comment": "lookup_table",
+            "encoding": None,
+            "end": 0x1472,
+            "hunk": 0,
+            "name": "ascii_hex_digit_value",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "subtype": "lookup_table",
+            "type": "data",
+            "unit": "byte",
+        },
+        {
+            "addr": 0x1472,
+            "citation": "manual_action_log:ascii-hex:0x30",
+            "comment": "lookup_table",
+            "encoding": None,
+            "end": 0x147C,
+            "hunk": 0,
+            "name": "digits",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "subtype": "lookup_table",
+            "type": "data",
+            "unit": "byte",
+        },
+    ]
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x1442,
+            "citation": "manual_action_log:ascii-hex:0",
+            "element_kind": "data_block_element",
+            "end": 0x1472,
+            "hunk": 0,
+            "operand_index": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "style": "hex",
+            "symbol": None,
+        },
+        {
+            "addr": 0x1472,
+            "citation": "manual_action_log:ascii-hex:0x30",
+            "element_kind": "data_block_element",
+            "end": 0x147C,
+            "hunk": 0,
+            "operand_index": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "style": "character",
+            "symbol": None,
+        },
+    ]
 
 
 def test_effective_metadata_removes_manual_data_block_layout(tmp_path: Path) -> None:
@@ -1158,6 +1227,80 @@ def test_effective_metadata_removes_data_block_element_from_existing_layout(tmp_
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["data_block_layouts"][0]["elements"] == []
+
+
+def test_effective_metadata_data_block_representation_overrides_standalone_representation(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            manual_representations=(
+                ManualRepresentationMetadata(
+                    addr=0x100,
+                    end=0x104,
+                    hunk=0,
+                    style=ManualRepresentationStyle.BINARY,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:standalone",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "values",
+                    "hunk": 0,
+                    "source_start": 0x100,
+                    "source_end": 0x104,
+                    "default_unit": "byte",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "values:0",
+                    "layout_id": "values",
+                    "offset": 0,
+                    "width": 4,
+                    "kind": "array",
+                    "representation": "character",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x100,
+            "citation": "manual_action_log:values:0",
+            "element_kind": "data_block_element",
+            "end": 0x104,
+            "hunk": 0,
+            "operand_index": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "style": "character",
+            "symbol": None,
+        }
+    ]
 
 
 def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None:

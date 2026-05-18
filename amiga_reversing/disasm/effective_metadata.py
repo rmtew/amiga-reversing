@@ -711,6 +711,99 @@ def _manual_data_block_element_key(element: dict[str, object]) -> tuple[str, int
     return layout_id, offset
 
 
+def _data_block_element_span(layout: DataBlockLayoutMetadata, element: DataBlockElementMetadata) -> tuple[int, int]:
+    return layout.source_start + element.offset, layout.source_start + element.offset + element.width
+
+
+def _data_block_element_unit(layout: DataBlockLayoutMetadata, element: DataBlockElementMetadata) -> str:
+    if layout.default_unit in {"byte", "word", "long"}:
+        return layout.default_unit
+    if element.width == 4:
+        return "long"
+    if element.width == 2:
+        return "word"
+    return "byte"
+
+
+def _data_block_element_entity(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+) -> SeededEntityMetadata | None:
+    addr, end = _data_block_element_span(layout, element)
+    if end <= addr or end > layout.source_end:
+        return None
+    name = element.name or (layout.name if element.offset == 0 else None)
+    comment = layout.role
+    return SeededEntityMetadata(
+        addr=addr,
+        end=end,
+        hunk=layout.hunk,
+        name=name,
+        comment=comment,
+        type="data",
+        subtype=layout.role,
+        unit=_data_block_element_unit(layout, element),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=element.citation,
+    )
+
+
+def _data_block_element_representation(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+) -> ManualRepresentationMetadata | None:
+    if element.representation is None:
+        return None
+    addr, end = _data_block_element_span(layout, element)
+    if end <= addr or end > layout.source_end:
+        return None
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=layout.hunk,
+        style=element.representation,
+        element_kind="data_block_element",
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=element.citation,
+    )
+
+
+def _metadata_range_end(addr: int, end: int | None) -> int:
+    return end if end is not None and end > addr else addr + 1
+
+
+def _ranges_overlap(left_start: int, left_end: int, right_start: int, right_end: int) -> bool:
+    return left_start < right_end and right_start < left_end
+
+
+def _data_block_element_representation_ranges(
+    layouts: list[DataBlockLayoutMetadata],
+) -> set[tuple[int, int, int]]:
+    ranges: set[tuple[int, int, int]] = set()
+    for layout in layouts:
+        for element in layout.elements:
+            if element.representation is None:
+                continue
+            addr, end = _data_block_element_span(layout, element)
+            if end > addr and end <= layout.source_end:
+                ranges.add((layout.hunk, addr, end))
+    return ranges
+
+
+def _representation_overlaps_data_block_element(
+    representation: ManualRepresentationMetadata,
+    ranges: set[tuple[int, int, int]],
+) -> bool:
+    rep_start = representation.addr
+    rep_end = _metadata_range_end(representation.addr, representation.end)
+    return any(
+        representation.hunk == hunk and _ranges_overlap(rep_start, rep_end, element_start, element_end)
+        for hunk, element_start, element_end in ranges
+    )
+
+
 def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] | None:
     source_start = _manual_seed_int(view, "source_start")
     source_end = _manual_seed_int(view, "source_end")
@@ -998,6 +1091,22 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         if data_block_layout is not None:
             data_block_layouts.append(data_block_layout)
     merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
+    effective_data_block_layouts = list(merged_data_block_layouts.values())
+    data_block_representation_ranges = _data_block_element_representation_ranges(effective_data_block_layouts)
+    if data_block_representation_ranges:
+        manual_representations = [
+            representation
+            for representation in manual_representations
+            if not _representation_overlaps_data_block_element(representation, data_block_representation_ranges)
+        ]
+    for layout in effective_data_block_layouts:
+        for element in layout.elements:
+            entity = _data_block_element_entity(layout, element)
+            if entity is not None:
+                seeded_entities.append(entity)
+            representation = _data_block_element_representation(layout, element)
+            if representation is not None:
+                manual_representations.append(representation)
     for view in execution_view_projections:
         execution_view = _manual_execution_view_to_metadata(view)
         if execution_view is not None:
@@ -1017,7 +1126,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         target_equates=tuple(merged_target_equates.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
-        data_block_layouts=tuple(merged_data_block_layouts.values()),
+        data_block_layouts=tuple(effective_data_block_layouts),
         execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),
     )

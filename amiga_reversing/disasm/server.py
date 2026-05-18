@@ -2535,6 +2535,22 @@ def _manual_action_application_payload(
         binding = action_payload.get("rsset_use_site_binding")
         if isinstance(binding, Mapping):
             local_effects.append({"kind": "rsset_use_site_binding_remove", "rsset_use_site_binding": dict(binding)})
+    elif kind in {"create_manual_data_block_layout", "edit_manual_data_block_layout"}:
+        layout = action_payload.get("data_block_layout")
+        if isinstance(layout, Mapping):
+            local_effects.append({"kind": "data_block_layout", "data_block_layout": dict(layout)})
+    elif kind == "remove_manual_data_block_layout":
+        layout = action_payload.get("data_block_layout")
+        if isinstance(layout, Mapping):
+            local_effects.append({"kind": "data_block_layout_remove", "data_block_layout": dict(layout)})
+    elif kind in {"set_manual_data_block_element", "represent_manual_data_block_element"}:
+        element = action_payload.get("data_block_element")
+        if isinstance(element, Mapping):
+            local_effects.append({"kind": "data_block_element", "data_block_element": dict(element)})
+    elif kind == "remove_manual_data_block_element":
+        element = action_payload.get("data_block_element")
+        if isinstance(element, Mapping):
+            local_effects.append({"kind": "data_block_element_remove", "data_block_element": dict(element)})
     elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
         custom_struct = action_payload.get("custom_struct")
         if isinstance(custom_struct, Mapping):

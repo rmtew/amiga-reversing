@@ -264,6 +264,17 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
     actions.extend(_data_symbol_actions(context, row))
     actions.extend(_suppress_seeded_item_actions(context, row))
     actions.extend(_row_data_role_actions(context))
+    if _row_allows_data_seed(row):
+        actions.append(
+            _context_log_action(
+                "row.data_block.layout.create",
+                "Create data-block layout",
+                "create_manual_data_block_layout",
+                context,
+                {"default_unit": "byte"},
+                _data_block_layout_parameter_schema(),
+            )
+        )
     return actions
 
 
@@ -497,6 +508,7 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
         ),
     ]
     actions.extend(_range_data_role_actions(context, rows))
+    actions.append(_range_data_block_layout_action(context, rows))
     actions.append(
         _range_unavailable_action(
             "range.semantic.helpers",
@@ -540,6 +552,11 @@ def listing_range_catalog_manual_payload(
         params.update(parameters)
     if action.get("action") == "add_review_note":
         return [("add_review_note", {"note": _range_review_note_payload(rows, params)})]
+    if action.get("action") == "create_manual_data_block_layout":
+        return [
+            ("create_manual_data_block_layout", {"data_block_layout": _data_block_layout_payload(subrange_rows, params)})
+            for subrange_rows in _range_action_subrange_rows(action, rows)
+        ]
     subranges = action.get("applicable_subranges")
     if not isinstance(subranges, list) or not subranges:
         raise ValueError("Range action has no explicit applicable subranges")
@@ -557,6 +574,29 @@ def listing_range_catalog_manual_payload(
     if not results:
         raise ValueError("Range action has no available selected rows")
     return results
+
+
+def _range_action_subrange_rows(
+    action: Mapping[str, object],
+    rows: list[Mapping[str, object]],
+) -> list[list[Mapping[str, object]]]:
+    subranges = action.get("applicable_subranges")
+    if not isinstance(subranges, list) or not subranges:
+        raise ValueError("Range action has no explicit applicable subranges")
+    rows_by_index = {_optional_int(row.get("row_index")): row for row in rows}
+    result: list[list[Mapping[str, object]]] = []
+    for raw_subrange in subranges:
+        if not isinstance(raw_subrange, Mapping):
+            continue
+        row_indexes = [
+            value for value in raw_subrange.get("row_indexes", []) if isinstance(value, int) and not isinstance(value, bool)
+        ]
+        subrange_rows = [rows_by_index[index] for index in row_indexes if index in rows_by_index]
+        if subrange_rows:
+            result.append(subrange_rows)
+    if not result:
+        raise ValueError("Range action has no available selected rows")
+    return result
 
 
 def _data_role_parameters(spec: Mapping[str, str]) -> dict[str, object]:
@@ -624,6 +664,43 @@ def _range_data_role_actions(context: Mapping[str, object], rows: list[Mapping[s
         )
         for spec in _DATA_ROLE_COMMANDS
     ]
+
+
+def _data_block_layout_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "role": {"type": "string"},
+            "default_unit": {"type": "string", "enum": ["byte", "word", "long"]},
+        },
+    }
+
+
+def _range_data_block_layout_action(context: Mapping[str, object], rows: list[Mapping[str, object]]) -> dict[str, object]:
+    eligible = [row for row in rows if _row_allows_data_seed(row)]
+    action = _context_log_action(
+        "range.data_block.layout.create",
+        "Create data-block layout",
+        "create_manual_data_block_layout",
+        context,
+        {"default_unit": "byte"},
+        _data_block_layout_parameter_schema(),
+    )
+    subranges = _contiguous_subranges(eligible)
+    if len(eligible) == len(rows):
+        action["range_availability"] = "applicable"
+        action["availability_reason"] = f"Applies to all {len(rows)} selected rows."
+    elif eligible:
+        action["range_availability"] = "partial"
+        action["availability_reason"] = f"Applies to {len(eligible)} of {len(rows)} selected rows."
+    else:
+        action["range_availability"] = "unavailable"
+        action["availability_reason"] = "No selected rows match this action."
+        action["enabled"] = False
+    action["applicable_subranges"] = subranges
+    action["row_reasons"] = _row_eligibility_reasons(rows, eligible)
+    return action
 
 
 def _suppress_seeded_item_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
@@ -759,6 +836,8 @@ def listing_catalog_manual_payload(
         return "create_manual_rsset_use_site_binding", {
             "rsset_use_site_binding": _rsset_use_site_binding_payload(row, element_context, params)
         }
+    if ui_action == "create_manual_data_block_layout":
+        return "create_manual_data_block_layout", {"data_block_layout": _data_block_layout_payload([row], params)}
     if ui_action == "remove_manual_rsset_use_site_binding":
         if not element_context:
             raise ValueError("remove_manual_rsset_use_site_binding requires an element context")
@@ -1998,6 +2077,39 @@ def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, o
         if isinstance(encoding, str) and encoding:
             seed["encoding"] = encoding
     return seed
+
+
+def _data_block_layout_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
+    first = rows[0]
+    last = rows[-1]
+    source_start = _int_field(first, "start_offset", fallback="addr")
+    source_end = _optional_int(last.get("end_offset"))
+    if source_end is None:
+        source_end = _optional_int(last.get("start_offset"))
+    if source_end is None:
+        source_end = _optional_int(last.get("addr"))
+    if source_end is None or source_end <= source_start:
+        raise ValueError("create_manual_data_block_layout requires a non-empty source range")
+    hunk = _int_field(first, "section_index", default=0)
+    layout: dict[str, object] = {
+        "layout_id": f"catalog-{uuid.uuid4().hex}",
+        "hunk": hunk,
+        "source_start": source_start,
+        "source_end": source_end,
+        "row_indexes": [
+            index for row in rows if (index := _optional_int(row.get("row_index"))) is not None
+        ],
+    }
+    name = params.get("name")
+    if isinstance(name, str) and name.strip():
+        layout["name"] = name.strip()
+    role = params.get("role")
+    if isinstance(role, str) and role.strip():
+        layout["role"] = role.strip()
+    default_unit = params.get("default_unit")
+    if isinstance(default_unit, str) and default_unit in {"byte", "word", "long"}:
+        layout["default_unit"] = default_unit
+    return layout
 
 
 def _data_seed_name(params: Mapping[str, object]) -> str | None:
