@@ -905,7 +905,12 @@ def _inspect_report_with_listing_candidates(
         rows if isinstance(rows, list) else [],
         existing_representations=_existing_representation_keys(inspect_report),
     )
-    candidates.extend(_listing_data_symbol_candidates(rows if isinstance(rows, list) else []))
+    candidates.extend(
+        _listing_data_symbol_candidates(
+            rows if isinstance(rows, list) else [],
+            existing_data_symbols=_existing_data_symbol_names(inspect_report),
+        )
+    )
     try:
         navigation = server.route_request(
             "GET",
@@ -1008,8 +1013,13 @@ def _listing_representation_candidates(
     return candidates
 
 
-def _listing_data_symbol_candidates(rows: list[object]) -> list[dict[str, object]]:
+def _listing_data_symbol_candidates(
+    rows: list[object],
+    *,
+    existing_data_symbols: dict[tuple[int, int], str] | None = None,
+) -> list[dict[str, object]]:
     candidates: list[dict[str, object]] = []
+    existing = existing_data_symbols or {}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -1037,6 +1047,9 @@ def _listing_data_symbol_candidates(rows: list[object]) -> list[dict[str, object
             name = _data_ref_symbol_name(data_class, context.get("runtime_address"), target_hunk, target_addr)
             if name is None or (isinstance(text, str) and name in text):
                 continue
+            existing_name = existing.get((target_hunk, target_addr))
+            if existing_name == name:
+                continue
             row_key = cast(dict[str, object], locator).get("row_key")
             operand_index = context.get("operand_index")
             candidate_id = f"data-ref-symbol:{row_key}:{operand_index}:{target_hunk}:{target_addr:08X}:{name}"
@@ -1063,7 +1076,7 @@ def _listing_data_symbol_candidates(rows: list[object]) -> list[dict[str, object
                         "target_hunk": target_hunk,
                         "target_addr": target_addr,
                     },
-                    "current_metadata": {},
+                    "current_metadata": {"name": existing_name} if isinstance(existing_name, str) else {},
                     "expected_rendered_source_improvement": f"name referenced {data_class} data as {name}",
                     "suggested_action_kind": "data_symbol.rename",
                     "suggested_action_kinds": ["data_symbol.rename"],
@@ -1077,6 +1090,25 @@ def _listing_data_symbol_candidates(rows: list[object]) -> list[dict[str, object
                 }
             )
     return candidates
+
+
+def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
+    target_state = inspect_report.get("target_state")
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
+    names: dict[tuple[int, int], str] = {}
+    if not isinstance(seeds, list | tuple):
+        return names
+    for seed in seeds:
+        if not isinstance(seed, dict) or seed.get("kind") != "data":
+            continue
+        hunk = seed.get("hunk")
+        addr = seed.get("addr")
+        name = seed.get("name")
+        if isinstance(hunk, int) and isinstance(addr, int) and isinstance(name, str) and name:
+            names[(hunk, addr)] = name
+    return names
 
 
 def _data_ref_symbol_name(data_class: str, runtime_address: object, target_hunk: int, target_addr: int) -> str | None:

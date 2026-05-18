@@ -662,6 +662,48 @@ def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:
     assert command["parameters"] == {"name": "bitmap_00040120"}
 
 
+def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
+    row = _listing_row(
+        row_key="code-row",
+        text="\tlea $120(pc),a0\n",
+        start_offset=0x20,
+        end_offset=0x24,
+    )
+    row["runtime_address_refs"] = [
+        {
+            "offset": 0x20,
+            "operand_index": 0,
+            "target_section_index": 1,
+            "target_offset": 0x120,
+            "runtime_address": 0x40120,
+            "data_class": "bitmap",
+        }
+    ]
+    inspect_report = {
+        "target_state": {
+            "project": {
+                "manual_state": {
+                    "seeds": [
+                        {
+                            "kind": "data",
+                            "hunk": 1,
+                            "addr": 0x120,
+                            "name": "bitmap_00040120",
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    candidates = reversing_loop._listing_data_symbol_candidates(
+        [row],
+        existing_data_symbols=reversing_loop._existing_data_symbol_names(inspect_report),
+    )
+
+    assert candidates == []
+
+
 def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
     candidates = reversing_loop._listing_rsset_region_candidates(_rsset_suggestion_navigation_payload())
 

@@ -32,7 +32,8 @@ Progress:
   data-symbol rename/remove candidates from projected metadata.
 - Planner now mines internal listing `data_ref` elements backed by
   `runtime_address_refs` into autonomous `data_symbol.rename` candidates and
-  routes those commands through element context.
+  routes those commands through element context, skipping candidates already
+  satisfied by projected manual data-symbol seeds.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
