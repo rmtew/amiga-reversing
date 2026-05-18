@@ -20,6 +20,7 @@ the audit:
 - `014-011-app-slot-rsset-editing.md`
 - `014-012-structure-field-editing.md`
 - `014-013-correction-and-view-actions.md`
+- `014-014-data-global-symbol-naming.md`
 
 Out of scope:
 Do not implement missing commands in this slice except tiny inspection helpers
@@ -37,7 +38,8 @@ Acceptance criteria:
 - Fact families include labels/functions, app/base slots, globals, equates,
   immediate representation, code/data seeds, strings/tables, structures/types,
   API semantics, register/base facts, review items, and semantic comments.
-- Unsupported required capabilities are linked to specific 014 issues.
+- Unsupported required capabilities are linked to specific 014 issues,
+  including data/global symbol naming.
 - Agent instructions say missing matrix/command coverage is a blocker, not a
   reason to script around normal paths.
 

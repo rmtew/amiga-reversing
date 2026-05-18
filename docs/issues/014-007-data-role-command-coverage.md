@@ -18,7 +18,9 @@ Acceptance criteria:
   source-rendered data roles.
 - Each role has required parameters, durable identity, and projected metadata.
 - Verifiers prove semantic reload, rendered-source effect, and round-trip
-  exactness for representative roles.
+  exactness for every exposed role. If roles share one verifier implementation,
+  the issue must name the equivalence class and include at least one rendering
+  fixture per role.
 
 Required tests:
 Focused catalog availability/execution tests and role-specific rendering tests.

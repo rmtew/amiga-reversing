@@ -32,6 +32,7 @@ Child issues:
 - `014-011-app-slot-rsset-editing.md`
 - `014-012-structure-field-editing.md`
 - `014-013-correction-and-view-actions.md`
+- `014-014-data-global-symbol-naming.md`
 
 Required tests:
 Manual action append/replay/projection tests for each added action family.
