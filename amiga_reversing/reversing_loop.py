@@ -2965,11 +2965,16 @@ def _command_rank(command_id: str) -> int:
     return 0
 
 
-def _command_summary(command: dict[str, object]) -> dict[str, object]:
+def _command_summary(command: dict[str, object], candidate: dict[str, object] | None = None) -> dict[str, object]:
+    verifier = (
+        _candidate_verifier(candidate, command)
+        if candidate is not None
+        else _default_verifier_for_actions([str(command.get("command_id") or "")])
+    )
     return {
         "command_id": command.get("command_id"),
         "output_affecting": command.get("output_affecting") is True,
-        "verifier": _default_verifier_for_actions([str(command.get("command_id") or "")]),
+        "verifier": verifier,
     }
 
 
@@ -2993,7 +2998,7 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
         score = _candidate_score(candidate, command)
         checked = dict(candidate)
         checked["planner_score"] = score
-        checked["candidate_commands"] = [_command_summary(option) for option in options]
+        checked["candidate_commands"] = [_command_summary(option, candidate) for option in options]
         ranked.append(checked)
         skip_reason = _candidate_skip_reason(candidate, command)
         if skip_reason is not None:

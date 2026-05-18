@@ -140,6 +140,10 @@ commands must compare projected state to the requested new identity. Comparing
 all command parameters treats `previous_name` as required future state and can
 repeat a rename after it has already converged.
 
+Implementation observation from `014-006`: planner reports must show the
+candidate-specific verifier used for selection. Static command defaults are only
+fallbacks and can misdescribe candidates with stricter projection verifiers.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

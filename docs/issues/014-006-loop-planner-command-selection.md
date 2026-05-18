@@ -11,6 +11,8 @@ Progress:
   comments) instead of selecting only `comment.edit`.
 - Iteration reports include planner state with ranked candidates, selected
   command, and skipped-candidate reasons.
+- Ranked candidate command summaries now report the candidate-specific verifier
+  that selection uses, not only the static command default.
 - Planner skips candidates already satisfied by projected semantic/current
   metadata, including already-selected literal representations.
 - Command availability failures now name the selected missing catalog command.

@@ -420,6 +420,36 @@ def test_planner_selects_data_symbol_remove_candidate(
     assert report["planner"]["selected_command_id"] == "data_symbol.remove"
 
 
+def test_planner_reports_candidate_specific_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "label-candidate",
+            "candidate_id": "label-candidate",
+            "kind": "label_name",
+            "locator": _listing_locator(kind="instruction"),
+            "element_id": "row-1:label:loc_10",
+            "suggested_action_kinds": ["label.rename"],
+            "new_label": "init_display",
+            "default_verifier": "projection_metadata",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    command = report["planner"]["ranked_candidates"][0]["candidate_commands"][0]
+    assert command["command_id"] == "label.rename"
+    assert command["verifier"] == "projection_metadata"
+
+
 def test_planner_selects_rsset_region_add_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
