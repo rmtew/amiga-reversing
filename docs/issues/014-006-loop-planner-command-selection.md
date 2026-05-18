@@ -34,6 +34,9 @@ Progress:
   `runtime_address_refs` into autonomous `data_symbol.rename` candidates and
   routes those commands through element context, skipping candidates already
   satisfied by projected manual data-symbol seeds.
+- Planner now mines null-terminated printable ASCII data rows into autonomous
+  `row.seed.data.string` candidates, skipping rows already covered by projected
+  manual string seeds.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -60,7 +63,7 @@ failure, and GenAm-style non-comment smoke.
 
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
-  representations and internal referenced data names.
+  representations, internal referenced data names, and obvious ASCII strings.
 - Extend planner tests across listing row seed, label, and broader autonomous
   data/global symbol feeds.
 

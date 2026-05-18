@@ -704,6 +704,66 @@ def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     assert candidates == []
 
 
+def test_listing_data_role_candidates_mine_ascii_string_rows() -> None:
+    row = _listing_row(
+        row_key="data-row",
+        kind="data",
+        text="\tdc.b $48,$45,$4C,$4C,$4F,$00\n",
+        start_offset=0x40,
+        end_offset=0x46,
+    )
+    row["bytes"] = "48454c4c4f00"
+
+    candidates = reversing_loop._listing_data_role_candidates([row])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert candidates[0]["candidate_id"] == "data-role-string:data-row:0:00000040"
+    assert candidates[0]["durable_id"] == "data_role:h0:00000040:string"
+    assert candidates[0]["evidence"]["preview"] == "HELLO"
+    assert command["command_id"] == "row.seed.data.string"
+    assert command["context"] == {"kind": "row", "locator": row["locator"]}
+    assert command["parameters"] == {
+        "seed_kind": "data",
+        "data_role": "string",
+        "unit": "byte",
+        "encoding": "ascii",
+    }
+
+
+def test_listing_data_role_candidates_skip_existing_string_seed() -> None:
+    row = _listing_row(
+        row_key="data-row",
+        kind="data",
+        text="\tdc.b $48,$49,$00\n",
+        start_offset=0x40,
+        end_offset=0x43,
+    )
+    row["bytes"] = "484900"
+    inspect_report = {
+        "target_state": {
+            "project": {
+                "manual_state": {
+                    "seeds": [
+                        {
+                            "kind": "data",
+                            "hunk": 0,
+                            "addr": 0x40,
+                            "data_role": "string",
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    candidates = reversing_loop._listing_data_role_candidates(
+        [row],
+        existing_data_roles=reversing_loop._existing_data_seed_roles(inspect_report),
+    )
+
+    assert candidates == []
+
+
 def test_listing_rsset_region_candidates_use_navigation_suggestions() -> None:
     candidates = reversing_loop._listing_rsset_region_candidates(_rsset_suggestion_navigation_payload())
 

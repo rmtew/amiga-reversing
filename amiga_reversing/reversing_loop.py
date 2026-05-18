@@ -911,6 +911,12 @@ def _inspect_report_with_listing_candidates(
             existing_data_symbols=_existing_data_symbol_names(inspect_report),
         )
     )
+    candidates.extend(
+        _listing_data_role_candidates(
+            rows if isinstance(rows, list) else [],
+            existing_data_roles=_existing_data_seed_roles(inspect_report),
+        )
+    )
     try:
         navigation = server.route_request(
             "GET",
@@ -1109,6 +1115,99 @@ def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple
         if isinstance(hunk, int) and isinstance(addr, int) and isinstance(name, str) and name:
             names[(hunk, addr)] = name
     return names
+
+
+def _listing_data_role_candidates(
+    rows: list[object],
+    *,
+    existing_data_roles: dict[tuple[int, int], str] | None = None,
+) -> list[dict[str, object]]:
+    candidates: list[dict[str, object]] = []
+    existing = existing_data_roles or {}
+    for row in rows:
+        if not isinstance(row, dict) or row.get("kind") != "data":
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        locator_dict = cast(dict[str, object], locator)
+        hunk = locator_dict.get("section_index")
+        addr = locator_dict.get("start_offset")
+        if not isinstance(hunk, int) or not isinstance(addr, int):
+            continue
+        if existing.get((hunk, addr)) == "string" or row.get("data_class") == "string":
+            continue
+        text = row.get("text")
+        if isinstance(text, str) and '"' in text:
+            continue
+        string_text = _ascii_string_from_row_bytes(row.get("bytes"))
+        if string_text is None:
+            continue
+        row_key = locator_dict.get("row_key")
+        candidate_id = f"data-role-string:{row_key}:{hunk}:{addr:08X}"
+        candidates.append(
+            {
+                "id": candidate_id,
+                "candidate_id": candidate_id,
+                "kind": "data_role_seed",
+                "durable_id": f"data_role:h{hunk}:{addr:08X}:string",
+                "locator": dict(locator_dict),
+                "evidence": {
+                    "source": "listing",
+                    "evidence_kind": "null_terminated_printable_ascii",
+                    "preview": string_text,
+                },
+                "current_metadata": {"data_role": existing.get((hunk, addr))} if (hunk, addr) in existing else {},
+                "expected_rendered_source_improvement": f"render printable bytes as ASCII string {string_text!r}",
+                "suggested_action_kind": "row.seed.data.string",
+                "suggested_action_kinds": ["row.seed.data.string"],
+                "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+                "default_verifier": "round_trip",
+                "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                "confidence": "high",
+                "rationale": "data row bytes form a null-terminated printable ASCII string",
+                "actionable": True,
+                "stop_reason": None,
+            }
+        )
+    return candidates
+
+
+def _existing_data_seed_roles(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
+    target_state = inspect_report.get("target_state")
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
+    roles: dict[tuple[int, int], str] = {}
+    if not isinstance(seeds, list | tuple):
+        return roles
+    for seed in seeds:
+        if not isinstance(seed, dict) or seed.get("kind") != "data":
+            continue
+        hunk = seed.get("hunk")
+        addr = seed.get("addr")
+        data_role = seed.get("data_role")
+        if isinstance(hunk, int) and isinstance(addr, int) and isinstance(data_role, str) and data_role:
+            roles[(hunk, addr)] = data_role
+    return roles
+
+
+def _ascii_string_from_row_bytes(value: object) -> str | None:
+    if isinstance(value, str):
+        try:
+            data = bytes.fromhex(value)
+        except ValueError:
+            return None
+    elif isinstance(value, bytes):
+        data = value
+    else:
+        return None
+    if len(data) < 3 or data[-1] != 0:
+        return None
+    body = data[:-1]
+    if not body or any(byte < 0x20 or byte > 0x7E for byte in body):
+        return None
+    return body.decode("ascii")
 
 
 def _data_ref_symbol_name(data_class: str, runtime_address: object, target_hunk: int, target_addr: int) -> str | None:
