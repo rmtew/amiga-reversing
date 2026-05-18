@@ -57,6 +57,7 @@ class ReviewItemKind(StrEnum):
     SUSPICIOUS_INSTRUCTION_DECODE = "suspicious_instruction_decode"
     MANUAL_LABEL_UNRECONCILED = "manual_label_unreconciled"
     MANUAL_COMMENT_UNRECONCILED = "manual_comment_unreconciled"
+    MANUAL_DATA_BLOCK_LAYOUT_CONFLICT = "manual_data_block_layout_conflict"
     REVIEW_NOTE = "review_note"
     LABEL_SCOPE_CONFLICT = "label_scope_conflict"
     DECOMPRESSION_BLOCKER = "decompression_blocker"
@@ -161,6 +162,12 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
     CREATE_MANUAL_RSSET_USE_SITE_BINDING = "create_manual_rsset_use_site_binding"
     REMOVE_MANUAL_RSSET_USE_SITE_BINDING = "remove_manual_rsset_use_site_binding"
+    CREATE_MANUAL_DATA_BLOCK_LAYOUT = "create_manual_data_block_layout"
+    EDIT_MANUAL_DATA_BLOCK_LAYOUT = "edit_manual_data_block_layout"
+    REMOVE_MANUAL_DATA_BLOCK_LAYOUT = "remove_manual_data_block_layout"
+    SET_MANUAL_DATA_BLOCK_ELEMENT = "set_manual_data_block_element"
+    REMOVE_MANUAL_DATA_BLOCK_ELEMENT = "remove_manual_data_block_element"
+    REPRESENT_MANUAL_DATA_BLOCK_ELEMENT = "represent_manual_data_block_element"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -204,6 +211,10 @@ class ManualActionLogProjection:
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
     rsset_use_site_bindings: tuple[dict[str, object], ...]
     removed_rsset_use_site_bindings: tuple[dict[str, object], ...]
+    data_block_layouts: tuple[dict[str, object], ...]
+    removed_data_block_layouts: tuple[dict[str, object], ...]
+    data_block_elements: tuple[dict[str, object], ...]
+    removed_data_block_elements: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -367,6 +378,10 @@ def _empty_projection(
         removed_rsset_layout_regions=(),
         rsset_use_site_bindings=(),
         removed_rsset_use_site_bindings=(),
+        data_block_layouts=(),
+        removed_data_block_layouts=(),
+        data_block_elements=(),
+        removed_data_block_elements=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -1019,6 +1034,137 @@ def _rsset_use_site_binding_key(binding: dict[str, object]) -> str:
     return f"h{hunk}:{addr:08X}:op{operand_index}:{base_register.upper()}:{displacement:04X}:{layout}:{base}:{evidence}"
 
 
+def _data_block_layout_key(layout: dict[str, object], *, require_range: bool = True) -> str:
+    layout_id = layout.get("layout_id")
+    if not isinstance(layout_id, str) or not layout_id:
+        raise ValueError("data_block_layout requires layout_id")
+    hunk = _manual_seed_int(layout, "hunk")
+    source_start = _manual_seed_int(layout, "source_start")
+    source_end = _manual_seed_int(layout, "source_end")
+    if not require_range and hunk is None and source_start is None and source_end is None:
+        return layout_id
+    if hunk is None or source_start is None or source_end is None:
+        raise ValueError("data_block_layout requires hunk, source_start, and source_end")
+    if hunk < 0 or source_start < 0 or source_end <= source_start:
+        raise ValueError("data_block_layout has invalid source range")
+    runtime_start = _manual_seed_int(layout, "runtime_start")
+    runtime_end = _manual_seed_int(layout, "runtime_end")
+    if runtime_start is not None and runtime_start < 0:
+        raise ValueError("data_block_layout runtime_start must be non-negative")
+    if runtime_end is not None and (runtime_start is None or runtime_end <= runtime_start):
+        raise ValueError("data_block_layout runtime_end must be greater than runtime_start")
+    version = _manual_seed_int(layout, "version")
+    if version is not None and version <= 0:
+        raise ValueError("data_block_layout version must be positive")
+    return layout_id
+
+
+def _data_block_layout_overlaps(left: dict[str, object], right: dict[str, object]) -> bool:
+    left_hunk = _manual_seed_int(left, "hunk")
+    right_hunk = _manual_seed_int(right, "hunk")
+    left_start = _manual_seed_int(left, "source_start")
+    left_end = _manual_seed_int(left, "source_end")
+    right_start = _manual_seed_int(right, "source_start")
+    right_end = _manual_seed_int(right, "source_end")
+    if None in (left_hunk, right_hunk, left_start, left_end, right_start, right_end):
+        return False
+    return left_hunk == right_hunk and left_start < right_end and right_start < left_end
+
+
+def _data_block_layout_conflict_item(layout: dict[str, object], existing: dict[str, object]) -> dict[str, object]:
+    layout_id = str(layout["layout_id"])
+    existing_id = str(existing["layout_id"])
+    hunk = _manual_seed_int(layout, "hunk")
+    start = _manual_seed_int(layout, "source_start")
+    end = _manual_seed_int(layout, "source_end")
+    return {
+        "kind": ReviewItemKind.MANUAL_DATA_BLOCK_LAYOUT_CONFLICT,
+        "item_id": f"manual_data_block_layout_conflict:{layout_id}:{existing_id}",
+        "scope": ReviewItemScope.RANGE,
+        "state": ReviewItemState.OPEN,
+        "review_blocker": True,
+        "layout_id": layout_id,
+        "conflicting_layout_id": existing_id,
+        "hunk": hunk,
+        "start": start,
+        "end": end,
+        "message": f"Data block layout {layout_id} overlaps existing layout {existing_id}",
+    }
+
+
+def _replace_data_block_overlaps(
+    layouts: dict[str, dict[str, object]],
+    elements: dict[tuple[str, int], dict[str, object]],
+    removed_layouts: dict[str, dict[str, object]],
+    layout: dict[str, object],
+    *,
+    action_id: str,
+) -> None:
+    for existing_id, existing in list(layouts.items()):
+        if existing_id == layout.get("layout_id") or not _data_block_layout_overlaps(layout, existing):
+            continue
+        removed = dict(existing)
+        removed["replacement_action_id"] = action_id
+        removed_layouts[existing_id] = removed
+        layouts.pop(existing_id, None)
+        for element_key in list(elements):
+            if element_key[0] == existing_id:
+                elements.pop(element_key, None)
+
+
+def _data_block_element_key(element: dict[str, object]) -> tuple[str, int]:
+    layout_id = element.get("layout_id")
+    offset = _manual_seed_int(element, "offset")
+    if not isinstance(layout_id, str) or not layout_id:
+        raise ValueError("data_block_element requires layout_id")
+    if offset is None or offset < 0:
+        raise ValueError("data_block_element requires non-negative offset")
+    return layout_id, offset
+
+
+def _validated_data_block_element(element: dict[str, object], layouts: dict[str, dict[str, object]]) -> dict[str, object]:
+    layout_id, offset = _data_block_element_key(element)
+    width = _manual_seed_int(element, "width")
+    kind = element.get("kind")
+    if width is None or width <= 0:
+        raise ValueError("data_block_element requires positive width")
+    if not isinstance(kind, str) or not kind:
+        raise ValueError("data_block_element requires kind")
+    layout = layouts.get(layout_id)
+    if layout is None:
+        raise ValueError(f"data_block_element references unknown layout_id: {layout_id}")
+    source_start = _manual_seed_int(layout, "source_start")
+    source_end = _manual_seed_int(layout, "source_end")
+    if source_start is None or source_end is None or offset + width > source_end - source_start:
+        raise ValueError("data_block_element falls outside layout range")
+    array_count = _manual_seed_int(element, "array_count")
+    array_stride = _manual_seed_int(element, "array_stride")
+    if array_count is not None and array_count <= 0:
+        raise ValueError("data_block_element array_count must be positive")
+    if array_stride is not None and array_stride <= 0:
+        raise ValueError("data_block_element array_stride must be positive")
+    return dict(element)
+
+
+def _representation_data_block_element(action: _ManualAction, elements: dict[tuple[str, int], dict[str, object]]) -> dict[str, object]:
+    representation = _action_object(action, "data_block_element")
+    key = _data_block_element_key(representation)
+    existing = elements.get(key)
+    if existing is None:
+        raise ValueError(f"represent_manual_data_block_element references unknown element: {key[0]}:{key[1]}")
+    style = representation.get("representation")
+    if not isinstance(style, str) or not style:
+        raise ValueError("represent_manual_data_block_element requires representation")
+    updated = dict(existing)
+    updated["representation"] = style
+    if "symbol" in representation:
+        updated["symbol"] = representation["symbol"]
+    if "provenance" in representation:
+        updated["provenance"] = representation["provenance"]
+    updated["representation_action_id"] = action.action_id
+    return updated
+
+
 def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
     struct_name = field.get("struct_name")
     offset = _manual_seed_int(field, "offset")
@@ -1270,6 +1416,10 @@ def _project_actions(
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     rsset_use_site_bindings: dict[str, dict[str, object]] = {}
     removed_rsset_use_site_bindings: dict[str, dict[str, object]] = {}
+    data_block_layouts: dict[str, dict[str, object]] = {}
+    removed_data_block_layouts: dict[str, dict[str, object]] = {}
+    data_block_elements: dict[tuple[str, int], dict[str, object]] = {}
+    removed_data_block_elements: dict[tuple[str, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1403,6 +1553,70 @@ def _project_actions(
             binding["cleanup_action_id"] = action.action_id
             rsset_use_site_bindings.pop(key, None)
             removed_rsset_use_site_bindings[key] = binding
+        elif action.kind in {
+            ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT,
+            ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
+        }:
+            layout = dict(_action_object(action, "data_block_layout"))
+            if action.kind is ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT:
+                layout_id = _data_block_layout_key(layout, require_range=False)
+                existing_layout = data_block_layouts.get(layout_id)
+                if existing_layout is not None:
+                    layout = {**existing_layout, **layout}
+            layout_id = _data_block_layout_key(layout)
+            conflicts = [
+                existing
+                for existing_id, existing in data_block_layouts.items()
+                if existing_id != layout_id and _data_block_layout_overlaps(layout, existing)
+            ]
+            if conflicts and layout.get("replace_overlaps") is not True:
+                for existing in conflicts:
+                    review_items.append(_data_block_layout_conflict_item(layout, existing))
+                continue
+            if layout.get("replace_overlaps") is True:
+                _replace_data_block_overlaps(
+                    data_block_layouts,
+                    data_block_elements,
+                    removed_data_block_layouts,
+                    layout,
+                    action_id=action.action_id,
+                )
+            removed_data_block_layouts.pop(layout_id, None)
+            data_block_layouts[layout_id] = layout
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_LAYOUT:
+            layout = dict(_action_object(action, "data_block_layout"))
+            layout_id = _data_block_layout_key(layout, require_range=False)
+            existing = data_block_layouts.pop(layout_id, None)
+            removed = dict(existing or layout)
+            removed["cleanup_action_id"] = action.action_id
+            removed_data_block_layouts[layout_id] = removed
+            for element_key in list(data_block_elements):
+                if element_key[0] == layout_id:
+                    element = data_block_elements.pop(element_key)
+                    removed_element = dict(element)
+                    removed_element["cleanup_action_id"] = action.action_id
+                    removed_element.setdefault("removal_state", layout.get("removal_state", "raw"))
+                    removed_data_block_elements[element_key] = removed_element
+        elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
+            element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
+            element_key = _data_block_element_key(element)
+            removed_data_block_elements.pop(element_key, None)
+            data_block_elements[element_key] = element
+        elif action.kind is ManualActionKind.REPRESENT_MANUAL_DATA_BLOCK_ELEMENT:
+            element = _representation_data_block_element(action, data_block_elements)
+            data_block_elements[_data_block_element_key(element)] = element
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_DATA_BLOCK_ELEMENT:
+            element = dict(_action_object(action, "data_block_element"))
+            element_key = _data_block_element_key(element)
+            existing = data_block_elements.pop(element_key, None)
+            if existing is None:
+                width = _manual_seed_int(element, "width")
+                if width is None or width <= 0:
+                    raise ValueError("remove_manual_data_block_element requires width when no active element exists")
+            removed = dict(existing or element)
+            removed["cleanup_action_id"] = action.action_id
+            removed.setdefault("removal_state", element.get("removal_state", "gap"))
+            removed_data_block_elements[element_key] = removed
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
@@ -1466,6 +1680,10 @@ def _project_actions(
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
         rsset_use_site_bindings=tuple(rsset_use_site_bindings.values()),
         removed_rsset_use_site_bindings=tuple(removed_rsset_use_site_bindings.values()),
+        data_block_layouts=tuple(data_block_layouts.values()),
+        removed_data_block_layouts=tuple(removed_data_block_layouts.values()),
+        data_block_elements=tuple(data_block_elements.values()),
+        removed_data_block_elements=tuple(removed_data_block_elements.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),

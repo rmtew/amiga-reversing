@@ -53,6 +53,17 @@ class ManualRepresentationStyle(StrEnum):
     SYMBOL = "symbol"
 
 
+class DataBlockElementKind(StrEnum):
+    SCALAR = "scalar"
+    ARRAY = "array"
+    STRUCT = "struct"
+    PLATFORM_STRUCT = "platform_struct"
+    POINTER_REFERENCE = "pointer_reference"
+    PADDING = "padding"
+    GAP = "gap"
+    RAW = "raw"
+
+
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
     assert isinstance(value, dict)
     return cast(dict[str, object], value)
@@ -109,6 +120,14 @@ def _manual_representation_style(value: object) -> ManualRepresentationStyle:
         return ManualRepresentationStyle(value)
     except ValueError:
         raise AssertionError(f"Unsupported manual representation style: {value}") from None
+
+
+def _data_block_element_kind(value: object) -> DataBlockElementKind:
+    assert isinstance(value, str)
+    try:
+        return DataBlockElementKind(value)
+    except ValueError:
+        raise AssertionError(f"Unsupported data block element kind: {value}") from None
 
 
 def _assert_target_metadata_review_fields(
@@ -874,6 +893,170 @@ class SuppressedSeededItemMetadata:
     def __post_init__(self) -> None:
         assert isinstance(self.kind, SuppressedSeededItemKind)
 
+
+@dataclass(frozen=True, slots=True)
+class DataBlockElementMetadata:
+    layout_id: str
+    offset: int
+    width: int
+    kind: DataBlockElementKind
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    name: str | None = None
+    array_count: int | None = None
+    array_stride: int | None = None
+    representation: ManualRepresentationStyle | None = None
+    type_binding: dict[str, object] | None = None
+    reference_interpretation: dict[str, object] | None = None
+    provenance: dict[str, object] | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        assert isinstance(self.kind, DataBlockElementKind)
+        assert self.offset >= 0
+        assert self.width > 0
+        if self.array_count is not None:
+            assert self.array_count > 0
+        if self.array_stride is not None:
+            assert self.array_stride > 0
+        if self.representation is not None:
+            assert isinstance(self.representation, ManualRepresentationStyle)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> DataBlockElementMetadata:
+        layout_id = payload["layout_id"]
+        offset = payload["offset"]
+        width = payload["width"]
+        kind = payload["kind"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        name = payload.get("name")
+        array_count = payload.get("array_count")
+        array_stride = payload.get("array_stride")
+        representation = payload.get("representation")
+        type_binding = payload.get("type_binding")
+        reference_interpretation = payload.get("reference_interpretation")
+        provenance = payload.get("provenance")
+        assert isinstance(layout_id, str)
+        assert isinstance(offset, int)
+        assert isinstance(width, int)
+        assert isinstance(kind, str)
+        assert isinstance(citation, str)
+        assert name is None or isinstance(name, str)
+        assert array_count is None or isinstance(array_count, int)
+        assert array_stride is None or isinstance(array_stride, int)
+        assert representation is None or isinstance(representation, str)
+        assert type_binding is None or isinstance(type_binding, dict)
+        assert reference_interpretation is None or isinstance(reference_interpretation, dict)
+        assert provenance is None or isinstance(provenance, dict)
+        return cls(
+            layout_id=layout_id,
+            offset=offset,
+            width=width,
+            kind=_data_block_element_kind(kind),
+            name=name,
+            array_count=array_count,
+            array_stride=array_stride,
+            representation=None if representation is None else _manual_representation_style(representation),
+            type_binding=cast(dict[str, object], type_binding),
+            reference_interpretation=cast(dict[str, object], reference_interpretation),
+            provenance=cast(dict[str, object], provenance),
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DataBlockLayoutMetadata:
+    layout_id: str
+    hunk: int
+    source_start: int
+    source_end: int
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    runtime_execution_view_id: str | None = None
+    runtime_start: int | None = None
+    runtime_end: int | None = None
+    role: str | None = None
+    name: str | None = None
+    default_unit: str | None = None
+    version: int = 1
+    provenance: dict[str, object] | None = None
+    elements: tuple[DataBlockElementMetadata, ...] = ()
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        assert self.layout_id
+        assert self.hunk >= 0
+        assert self.source_start >= 0
+        assert self.source_end > self.source_start
+        assert self.version > 0
+        if self.runtime_start is not None:
+            assert self.runtime_start >= 0
+        if self.runtime_end is not None:
+            assert self.runtime_start is not None
+            assert self.runtime_end > self.runtime_start
+        for element in self.elements:
+            assert element.layout_id == self.layout_id
+            assert element.offset + element.width <= self.source_end - self.source_start
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> DataBlockLayoutMetadata:
+        layout_id = payload["layout_id"]
+        hunk = payload["hunk"]
+        source_start = payload["source_start"]
+        source_end = payload["source_end"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        runtime_execution_view_id = payload.get("runtime_execution_view_id")
+        runtime_start = payload.get("runtime_start")
+        runtime_end = payload.get("runtime_end")
+        role = payload.get("role")
+        name = payload.get("name")
+        default_unit = payload.get("default_unit")
+        version = payload.get("version", 1)
+        provenance = payload.get("provenance")
+        elements = payload.get("elements", [])
+        assert isinstance(layout_id, str)
+        assert isinstance(hunk, int)
+        assert isinstance(source_start, int)
+        assert isinstance(source_end, int)
+        assert isinstance(citation, str)
+        assert runtime_execution_view_id is None or isinstance(runtime_execution_view_id, str)
+        assert runtime_start is None or isinstance(runtime_start, int)
+        assert runtime_end is None or isinstance(runtime_end, int)
+        assert role is None or isinstance(role, str)
+        assert name is None or isinstance(name, str)
+        assert default_unit is None or isinstance(default_unit, str)
+        assert isinstance(version, int)
+        assert provenance is None or isinstance(provenance, dict)
+        return cls(
+            layout_id=layout_id,
+            hunk=hunk,
+            source_start=source_start,
+            source_end=source_end,
+            runtime_execution_view_id=runtime_execution_view_id,
+            runtime_start=runtime_start,
+            runtime_end=runtime_end,
+            role=role,
+            name=name,
+            default_unit=default_unit,
+            version=version,
+            provenance=cast(dict[str, object], provenance),
+            elements=tuple(
+                DataBlockElementMetadata.from_dict(_json_object(element_payload))
+                for element_payload in _json_list(elements)
+            ),
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+        )
+
 @dataclass(frozen=True, slots=True)
 class TargetMetadata:
     target_type: str
@@ -890,6 +1073,7 @@ class TargetMetadata:
     entry_comments: tuple[EntryCommentMetadata, ...] = ()
     manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
     target_equates: tuple[TargetEquateMetadata, ...] = ()
+    data_block_layouts: tuple[DataBlockLayoutMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
 
@@ -909,6 +1093,7 @@ class TargetMetadata:
         entry_comments = payload.get("entry_comments", [])
         manual_representations = payload.get("manual_representations", [])
         target_equates = payload.get("target_equates", [])
+        data_block_layouts = payload.get("data_block_layouts", [])
         execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
@@ -957,6 +1142,10 @@ class TargetMetadata:
             target_equates=tuple(
                 TargetEquateMetadata.from_dict(_json_object(equate_payload))
                 for equate_payload in _json_list(target_equates)
+            ),
+            data_block_layouts=tuple(
+                DataBlockLayoutMetadata.from_dict(_json_object(layout_payload))
+                for layout_payload in _json_list(data_block_layouts)
             ),
             execution_views=tuple(
                 ExecutionViewMetadata.from_dict(_json_object(view_payload))
@@ -1162,6 +1351,7 @@ def apply_suppressed_seeded_items(
         entry_comments=seeded.entry_comments,
         manual_representations=seeded.manual_representations,
         target_equates=seeded.target_equates,
+        data_block_layouts=seeded.data_block_layouts,
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
     )
@@ -1384,6 +1574,16 @@ def _merge_execution_views(
     return tuple(merged[key] for key in sorted(merged))
 
 
+def _merge_data_block_layouts(
+    manual: tuple[DataBlockLayoutMetadata, ...],
+    seeded: tuple[DataBlockLayoutMetadata, ...],
+) -> tuple[DataBlockLayoutMetadata, ...]:
+    merged: dict[str, DataBlockLayoutMetadata] = {layout.layout_id: layout for layout in seeded}
+    for layout in manual:
+        merged[layout.layout_id] = layout
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> TargetMetadata:
     if manual.target_type != seeded.target_type:
         raise ValueError("Conflicting target_type between target metadata and seeded target metadata")
@@ -1424,6 +1624,10 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             seeded.manual_representations,
         ),
         target_equates=_merge_target_equates(manual.target_equates, seeded.target_equates),
+        data_block_layouts=_merge_data_block_layouts(
+            manual.data_block_layouts,
+            seeded.data_block_layouts,
+        ),
         execution_views=_merge_execution_views(
             manual.execution_views,
             seeded.execution_views,

@@ -24,6 +24,9 @@ from amiga_reversing.disasm.target_metadata import (
     AbsoluteCodeLabelMetadata,
     CustomStructFieldMetadata,
     CustomStructMetadata,
+    DataBlockElementKind,
+    DataBlockElementMetadata,
+    DataBlockLayoutMetadata,
     EntryCommentMetadata,
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
@@ -593,6 +596,121 @@ def _manual_rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str
     )
 
 
+def _manual_data_block_element_to_metadata(element: dict[str, object]) -> DataBlockElementMetadata | None:
+    layout_id = _manual_seed_text(element, "layout_id")
+    offset = _manual_seed_int(element, "offset")
+    width = _manual_seed_int(element, "width")
+    kind_text = _manual_seed_text(element, "kind")
+    if layout_id is None or offset is None or width is None or kind_text is None:
+        return None
+    if offset < 0 or width <= 0:
+        return None
+    array_count = _manual_seed_int(element, "array_count")
+    array_stride = _manual_seed_int(element, "array_stride")
+    if array_count is not None and array_count <= 0:
+        return None
+    if array_stride is not None and array_stride <= 0:
+        return None
+    representation_text = _manual_seed_text(element, "representation")
+    try:
+        kind = DataBlockElementKind(kind_text)
+        representation = None if representation_text is None else ManualRepresentationStyle(representation_text)
+    except ValueError:
+        return None
+    type_binding = element.get("type_binding")
+    reference_interpretation = element.get("reference_interpretation")
+    provenance = element.get("provenance")
+    if type_binding is not None and not isinstance(type_binding, dict):
+        return None
+    if reference_interpretation is not None and not isinstance(reference_interpretation, dict):
+        return None
+    if provenance is not None and not isinstance(provenance, dict):
+        return None
+    return DataBlockElementMetadata(
+        layout_id=layout_id,
+        offset=offset,
+        width=width,
+        kind=kind,
+        name=_manual_seed_text(element, "name"),
+        array_count=array_count,
+        array_stride=array_stride,
+        representation=representation,
+        type_binding=type_binding,
+        reference_interpretation=reference_interpretation,
+        provenance=provenance,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(element, "data_block_element_id"),
+    )
+
+
+def _manual_data_block_layout_to_metadata(
+    layout: dict[str, object],
+    elements: tuple[dict[str, object], ...],
+) -> DataBlockLayoutMetadata | None:
+    layout_id = _manual_seed_text(layout, "layout_id")
+    hunk = _manual_seed_int(layout, "hunk")
+    source_start = _manual_seed_int(layout, "source_start")
+    source_end = _manual_seed_int(layout, "source_end")
+    if layout_id is None or hunk is None or source_start is None or source_end is None:
+        return None
+    if hunk < 0 or source_start < 0 or source_end <= source_start:
+        return None
+    runtime_start = _manual_seed_int(layout, "runtime_start")
+    runtime_end = _manual_seed_int(layout, "runtime_end")
+    if runtime_start is not None and runtime_start < 0:
+        return None
+    if runtime_end is not None and (runtime_start is None or runtime_end <= runtime_start):
+        return None
+    version = _manual_seed_int(layout, "version")
+    if version is None:
+        version = 1
+    if version <= 0:
+        return None
+    provenance = layout.get("provenance")
+    if provenance is not None and not isinstance(provenance, dict):
+        return None
+    projected_elements = tuple(
+        element
+        for raw_element in elements
+        if raw_element.get("layout_id") == layout_id
+        if (element := _manual_data_block_element_to_metadata(raw_element)) is not None
+    )
+    try:
+        return DataBlockLayoutMetadata(
+            layout_id=layout_id,
+            hunk=hunk,
+            source_start=source_start,
+            source_end=source_end,
+            runtime_execution_view_id=_manual_seed_text(layout, "runtime_execution_view_id"),
+            runtime_start=runtime_start,
+            runtime_end=runtime_end,
+            role=_manual_seed_text(layout, "role"),
+            name=_manual_seed_text(layout, "name"),
+            default_unit=_manual_seed_text(layout, "default_unit"),
+            version=version,
+            provenance=provenance,
+            elements=projected_elements,
+            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+            review_status=TargetMetadataReviewStatus.SEEDED,
+            citation=_manual_action_citation(layout, "layout_id"),
+        )
+    except AssertionError:
+        return None
+
+
+def _manual_data_block_layout_key(layout: dict[str, object]) -> str | None:
+    return _manual_seed_text(layout, "layout_id")
+
+
+def _manual_data_block_element_key(element: dict[str, object]) -> tuple[str, int] | None:
+    layout_id = _manual_seed_text(element, "layout_id")
+    offset = _manual_seed_int(element, "offset")
+    if layout_id is None or offset is None or offset < 0:
+        return None
+    return layout_id, offset
+
+
 def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] | None:
     source_start = _manual_seed_int(view, "source_start")
     source_end = _manual_seed_int(view, "source_end")
@@ -649,6 +767,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_custom_struct_field_projections = projection.removed_custom_struct_fields
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
+    data_block_layout_projections = projection.data_block_layouts
+    removed_data_block_layout_projections = projection.removed_data_block_layouts
+    data_block_element_projections = projection.data_block_elements
+    removed_data_block_element_projections = projection.removed_data_block_elements
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -670,6 +792,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not removed_custom_struct_field_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
+        and not data_block_layout_projections
+        and not removed_data_block_layout_projections
+        and not data_block_element_projections
+        and not removed_data_block_element_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -686,6 +812,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     target_equates = list(metadata.target_equates)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
+    data_block_layouts = list(metadata.data_block_layouts)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
     removed_target_equate_names = {
@@ -750,6 +877,32 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             for region in rsset_layout_regions
             if (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset)
             not in removed_rsset_layout_region_keys
+        ]
+    removed_data_block_layout_ids = {
+        layout_id
+        for layout in removed_data_block_layout_projections
+        if (layout_id := _manual_data_block_layout_key(layout)) is not None
+    }
+    if removed_data_block_layout_ids:
+        data_block_layouts = [
+            layout for layout in data_block_layouts if layout.layout_id not in removed_data_block_layout_ids
+        ]
+    removed_data_block_element_keys = {
+        key
+        for element in removed_data_block_element_projections
+        if (key := _manual_data_block_element_key(element)) is not None
+    }
+    if removed_data_block_element_keys:
+        data_block_layouts = [
+            replace(
+                layout,
+                elements=tuple(
+                    element
+                    for element in layout.elements
+                    if (element.layout_id, element.offset) not in removed_data_block_element_keys
+                ),
+            )
+            for layout in data_block_layouts
         ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
@@ -840,6 +993,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset): region
         for region in rsset_layout_regions
     }
+    for layout in data_block_layout_projections:
+        data_block_layout = _manual_data_block_layout_to_metadata(layout, data_block_element_projections)
+        if data_block_layout is not None:
+            data_block_layouts.append(data_block_layout)
+    merged_data_block_layouts = {layout.layout_id: layout for layout in data_block_layouts}
     for view in execution_view_projections:
         execution_view = _manual_execution_view_to_metadata(view)
         if execution_view is not None:
@@ -859,6 +1017,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         target_equates=tuple(merged_target_equates.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
+        data_block_layouts=tuple(merged_data_block_layouts.values()),
         execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),
     )

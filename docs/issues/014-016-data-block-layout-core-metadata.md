@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
@@ -23,10 +23,47 @@ Requirements:
 - Removing a layout or element must produce explicit raw/gap state and remove
   generated element facts.
 
+Current evidence:
+- Target metadata now has first-class `data_block_layouts` containing
+  `DataBlockLayout` and nested `DataBlockElement` metadata. Layouts carry
+  `layout_id`, hunk/source range, optional runtime identity, role/name/default
+  unit, version, provenance, citation, and review fields. Elements carry
+  `layout_id`, offset, width, kind, optional name, array shape,
+  representation, type-binding placeholder, reference-interpretation
+  placeholder, provenance, citation, and review fields.
+- Manual Action Log replay supports `create_manual_data_block_layout`,
+  `edit_manual_data_block_layout`, `remove_manual_data_block_layout`,
+  `set_manual_data_block_element`, `remove_manual_data_block_element`, and
+  `represent_manual_data_block_element`.
+- Replay preserves zero offsets, rejects invalid zero/negative element widths,
+  rejects element spans outside the owning layout, and projects element
+  representation changes onto the owning element.
+- Overlapping manual layouts are blocked with a
+  `manual_data_block_layout_conflict` review item unless the newer layout
+  explicitly sets `replace_overlaps=true`; explicit replacement removes the
+  replaced layout and its owned elements from active projection.
+- Effective metadata projects active manual data-block layouts and nested
+  elements into `data_block_layouts`; removing a layout removes it from
+  effective metadata and records explicit cleanup/raw state in Manual Action
+  Log projection. Removing an element also removes that element from existing
+  effective layout metadata when the action provides an explicit span.
+- No command catalog, renderer, loop, xref, or type-flow route has been added
+  in this issue.
+
 Acceptance criteria:
-- Manual replay produces deterministic effective layout/element state.
+- Manual replay produces deterministic effective layout/element state. Covered
+  by `tests/test_manual_action_log.py`.
 - Layout and element identities survive reload and unrelated source rendering
-  changes.
+  changes. Covered by `tests/test_manual_seed_effective_metadata.py` effective
+  metadata projection tests.
 - Overlap and replacement behavior is tested.
-- Removal returns layout spans to raw/gap metadata state.
+- Removal returns layout spans to raw/gap metadata state in projection and
+  removes active effective layout metadata.
 - No command catalog or loop-private mutation route is introduced here.
+
+Remaining work:
+- `014-017` owns command catalog exposure, rendering, rendered-source
+  verifiers, exact rebuild checks, representation precedence over standalone
+  manual representations, and the GenAm `loc_0_00001442` smoke.
+- `014-018` owns interpreted-reference facts/xrefs.
+- `014-019` owns type/platform binding and type-flow projection.

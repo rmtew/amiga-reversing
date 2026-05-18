@@ -12,7 +12,11 @@ from amiga_reversing.disasm.manual_actions import (
 from amiga_reversing.disasm.target_metadata import (
     CustomStructFieldMetadata,
     CustomStructMetadata,
+    DataBlockElementKind,
+    DataBlockElementMetadata,
+    DataBlockLayoutMetadata,
     ExecutionViewMetadata,
+    ManualRepresentationStyle,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
@@ -947,6 +951,213 @@ def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -
             "symbol": "work_counter",
         }
     ]
+
+
+def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "ascii-hex",
+                    "hunk": 0,
+                    "source_start": 0x1442,
+                    "source_end": 0x14A2,
+                    "name": "ascii_hex_digit_value",
+                    "role": "lookup_table",
+                    "default_unit": "byte",
+                    "provenance": {"xref": "loc_0_0000140E"},
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "ascii-hex:0",
+                    "layout_id": "ascii-hex",
+                    "offset": 0,
+                    "width": 0x30,
+                    "kind": "padding",
+                    "representation": "hex",
+                },
+            ),
+            _action(
+                "a3",
+                3,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "ascii-hex:0x30",
+                    "layout_id": "ascii-hex",
+                    "offset": 0x30,
+                    "width": 10,
+                    "kind": "array",
+                    "name": "digits",
+                    "array_count": 10,
+                    "array_stride": 1,
+                },
+            ),
+            _action(
+                "a4",
+                4,
+                "represent_manual_data_block_element",
+                data_block_element={"layout_id": "ascii-hex", "offset": 0x30, "representation": "character"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["data_block_layouts"] == [
+        {
+            "citation": "manual_action_log:ascii-hex",
+            "default_unit": "byte",
+            "elements": [
+                {
+                    "array_count": None,
+                    "array_stride": None,
+                    "citation": "manual_action_log:ascii-hex:0",
+                    "kind": "padding",
+                    "layout_id": "ascii-hex",
+                    "name": None,
+                    "offset": 0,
+                    "provenance": None,
+                    "reference_interpretation": None,
+                    "representation": "hex",
+                    "review_status": "seeded",
+                    "seed_origin": "manual_analysis",
+                    "type_binding": None,
+                    "width": 0x30,
+                },
+                {
+                    "array_count": 10,
+                    "array_stride": 1,
+                    "citation": "manual_action_log:ascii-hex:0x30",
+                    "kind": "array",
+                    "layout_id": "ascii-hex",
+                    "name": "digits",
+                    "offset": 0x30,
+                    "provenance": None,
+                    "reference_interpretation": None,
+                    "representation": "character",
+                    "review_status": "seeded",
+                    "seed_origin": "manual_analysis",
+                    "type_binding": None,
+                    "width": 10,
+                },
+            ],
+            "hunk": 0,
+            "layout_id": "ascii-hex",
+            "name": "ascii_hex_digit_value",
+            "provenance": {"xref": "loc_0_0000140E"},
+            "review_status": "seeded",
+            "role": "lookup_table",
+            "runtime_end": None,
+            "runtime_execution_view_id": None,
+            "runtime_start": None,
+            "seed_origin": "manual_analysis",
+            "source_end": 0x14A2,
+            "source_start": 0x1442,
+            "version": 1,
+        }
+    ]
+
+
+def test_effective_metadata_removes_manual_data_block_layout(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "ascii-hex",
+                    "hunk": 0,
+                    "source_start": 0x1442,
+                    "source_end": 0x14A2,
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "remove_manual_data_block_layout",
+                data_block_layout={"layout_id": "ascii-hex", "removal_state": "raw"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["data_block_layouts"] == []
+
+
+def test_effective_metadata_removes_data_block_element_from_existing_layout(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            data_block_layouts=(
+                DataBlockLayoutMetadata(
+                    layout_id="ascii-hex",
+                    hunk=0,
+                    source_start=0x1442,
+                    source_end=0x14A2,
+                    name="ascii_hex_digit_value",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata",
+                    elements=(
+                        DataBlockElementMetadata(
+                            layout_id="ascii-hex",
+                            offset=0,
+                            width=0x30,
+                            kind=DataBlockElementKind.PADDING,
+                            representation=ManualRepresentationStyle.HEX,
+                            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                            review_status=TargetMetadataReviewStatus.SEEDED,
+                            citation="target_metadata",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "remove_manual_data_block_element",
+                data_block_element={
+                    "layout_id": "ascii-hex",
+                    "offset": 0,
+                    "width": 0x30,
+                    "removal_state": "gap",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["data_block_layouts"][0]["elements"] == []
 
 
 def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None:

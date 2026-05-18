@@ -10,6 +10,7 @@ from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     ManualActionKind,
+    ReviewItemKind,
     append_manual_action,
     build_target_identity,
     load_manual_projection,
@@ -1093,6 +1094,155 @@ def test_manual_action_log_removes_rsset_use_site_binding(tmp_path: Path) -> Non
 
     assert projection.rsset_use_site_bindings == ()
     assert projection.removed_rsset_use_site_bindings == ({**binding_identity, "cleanup_action_id": "a2"},)
+
+
+def test_manual_action_log_projects_data_block_layout_and_elements(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {
+        "layout_id": "ascii-hex",
+        "hunk": 0,
+        "source_start": 0x1442,
+        "source_end": 0x14A2,
+        "name": "ascii_hex_digit_value",
+        "role": "lookup_table",
+        "default_unit": "byte",
+    }
+    first_element = {
+        "data_block_element_id": "ascii-hex:0",
+        "layout_id": "ascii-hex",
+        "offset": 0,
+        "width": 0x30,
+        "kind": "padding",
+        "representation": "hex",
+    }
+    second_element = {
+        "data_block_element_id": "ascii-hex:0x30",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 10,
+        "kind": "array",
+        "name": "digits",
+        "array_count": 10,
+        "array_stride": 1,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a2", 2, "set_manual_data_block_element", data_block_element=first_element),
+            _action("a3", 3, "set_manual_data_block_element", data_block_element=second_element),
+            _action(
+                "a4",
+                4,
+                "represent_manual_data_block_element",
+                data_block_element={"layout_id": "ascii-hex", "offset": 0x30, "representation": "character"},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_layouts == (layout,)
+    assert projection.data_block_elements == (
+        first_element,
+        {**second_element, "representation": "character", "representation_action_id": "a4"},
+    )
+    assert projection.removed_data_block_layouts == ()
+    assert projection.removed_data_block_elements == ()
+
+
+def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {"layout_id": "ascii-hex", "hunk": 0, "source_start": 0x1442, "source_end": 0x14A2}
+    element = {
+        "data_block_element_id": "ascii-hex:0",
+        "layout_id": "ascii-hex",
+        "offset": 0,
+        "width": 0x30,
+        "kind": "padding",
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a2", 2, "set_manual_data_block_element", data_block_element=element),
+            _action(
+                "a3",
+                3,
+                "remove_manual_data_block_layout",
+                data_block_layout={"layout_id": "ascii-hex", "removal_state": "raw"},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_layouts == ()
+    assert projection.data_block_elements == ()
+    assert projection.removed_data_block_layouts == ({**layout, "cleanup_action_id": "a3"},)
+    assert projection.removed_data_block_elements == (
+        {**element, "cleanup_action_id": "a3", "removal_state": "raw"},
+    )
+
+
+def test_manual_action_log_flags_overlapping_data_block_layout_without_replace(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "first", "hunk": 0, "source_start": 0x100, "source_end": 0x120},
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_data_block_layout",
+                data_block_layout={"layout_id": "second", "hunk": 0, "source_start": 0x110, "source_end": 0x130},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert [layout["layout_id"] for layout in projection.data_block_layouts] == ["first"]
+    assert projection.review_items[0]["kind"] is ReviewItemKind.MANUAL_DATA_BLOCK_LAYOUT_CONFLICT
+    assert projection.review_items[0]["layout_id"] == "second"
+    assert projection.review_items[0]["conflicting_layout_id"] == "first"
+
+
+def test_manual_action_log_replaces_overlapping_data_block_layout_when_explicit(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    first = {"layout_id": "first", "hunk": 0, "source_start": 0x100, "source_end": 0x120}
+    second = {
+        "layout_id": "second",
+        "hunk": 0,
+        "source_start": 0x110,
+        "source_end": 0x130,
+        "replace_overlaps": True,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=first),
+            _action("a2", 2, "create_manual_data_block_layout", data_block_layout=second),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_layouts == (second,)
+    assert projection.removed_data_block_layouts == ({**first, "replacement_action_id": "a2"},)
 
 
 def test_manual_action_log_projects_custom_struct(tmp_path: Path) -> None:
