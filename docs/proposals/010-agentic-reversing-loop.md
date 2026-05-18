@@ -1106,3 +1106,7 @@ to repeat the loop safely.
   source/import facts and agent audit files, deletes only generated,
   obsolete-UI, and local manual state, and blocks without deletion when hygiene
   reports unknown files.
+- 010-004 added a read-only `inspect` harness report. It combines hygiene,
+  manual action log stamps, optional project/manual-review state, round-trip
+  report status, conservative candidate work items, available verification
+  paths, and an explicit `safe_to_mutate` gate.
