@@ -40,6 +40,9 @@ Progress:
 - Planner now accepts explicit `range.seed.code` and `range.seed.data.*`
   candidates, routes them through durable range locators, and requires
   round-trip verification.
+- Planner now accepts explicit review-item candidates for named/data-role seeds,
+  seed removal, and label rename/scope/removal commands, routes them through
+  durable review item ids, and requires round-trip verification for label edits.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -67,8 +70,8 @@ failure, and GenAm-style non-comment smoke.
 Remaining work:
 - Extend autonomous listing candidate feeds beyond byte immediate
   representations, internal referenced data names, and obvious ASCII strings.
-- Extend planner tests across label and broader autonomous data/global symbol
-  feeds.
+- Extend autonomous planner feeds for label and broader data/global symbol
+  candidates.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

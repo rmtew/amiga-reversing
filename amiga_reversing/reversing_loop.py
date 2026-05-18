@@ -35,6 +35,9 @@ _COMMAND_RANK = {
     "review.seed.data.string": 87,
     "review.seed.data.scalar_table": 87,
     "review.seed.data.pointer_table": 87,
+    "review.label.rename": 86,
+    "review.label.change_scope": 84,
+    "review.label.remove": 66,
     "app_slot.rename": 82,
     "app_slot.edit": 80,
     "row.seed.code": 90,
@@ -73,10 +76,12 @@ _COMMAND_RANK = {
     "typed_access.field.remove": 68,
     "app_slot.remove": 66,
     "target.rsset_region.remove": 66,
+    "review.seed.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
 }
 _COMMAND_PREFIX_RANK = {
+    "review.seed.data.": 87,
     "range.seed.data.": 85,
     "semantic.library_base.": 74,
     "semantic.lvo.": 73,
@@ -2192,6 +2197,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "projected_representation_text"
     if "label.rename" in actions:
         return "projected_label_name"
+    if any(action.startswith("review.label.") for action in actions):
+        return "round_trip"
     if "comment.edit" in actions:
         return "projection_metadata"
     if any(action.startswith("data_symbol.") for action in actions):
@@ -2534,6 +2541,19 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
     parameters = candidate.get("parameters")
     parameter_payload = dict(parameters) if isinstance(parameters, dict) else {}
     if action.startswith("review.seed."):
+        item_id = candidate.get("durable_id") or candidate.get("candidate_id") or candidate.get("id")
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {
+                "kind": "review_item",
+                "item_id": item_id,
+                "review_item_kind": candidate.get("review_item_kind"),
+            },
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action.startswith("review.label."):
         item_id = candidate.get("durable_id") or candidate.get("candidate_id") or candidate.get("id")
         return {
             "kind": "command",

@@ -1092,6 +1092,93 @@ def test_range_seed_command_candidate_uses_range_context_and_verifier() -> None:
     assert selected["command"]["command_id"] == "range.seed.data.string"
 
 
+def test_review_data_role_seed_candidate_uses_review_item_context() -> None:
+    candidate = {
+        "id": "review-data-named",
+        "candidate_id": "review-data-named",
+        "kind": "manual_review_item",
+        "review_item_kind": "unreconciled_data_range",
+        "durable_id": "unreconciled:h0:00000004-00000008",
+        "suggested_action_kinds": ["review.seed.data.named"],
+        "parameters": {"name": "manual_gap"},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "review.seed.data.named",
+        "context": {
+            "kind": "review_item",
+            "item_id": "unreconciled:h0:00000004-00000008",
+            "review_item_kind": "unreconciled_data_range",
+        },
+        "parameters": {"name": "manual_gap"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
+def test_review_label_candidate_uses_review_item_context_and_round_trip_verifier() -> None:
+    candidate = {
+        "id": "review-label-rename",
+        "candidate_id": "review-label-rename",
+        "kind": "manual_review_item",
+        "review_item_kind": "label_scope_conflict",
+        "durable_id": "label_scope_conflict:l1:missing-owner",
+        "suggested_action_kinds": ["review.label.rename"],
+        "parameters": {"name": "renamed_label"},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "review.label.rename",
+        "context": {
+            "kind": "review_item",
+            "item_id": "label_scope_conflict:l1:missing-owner",
+            "review_item_kind": "label_scope_conflict",
+        },
+        "parameters": {"name": "renamed_label"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
+def test_review_seed_remove_candidate_uses_review_item_context() -> None:
+    candidate = {
+        "id": "review-seed-remove",
+        "candidate_id": "review-seed-remove",
+        "kind": "manual_review_item",
+        "review_item_kind": "manual_seed_conflict",
+        "durable_id": "manual_seed_conflict:data-as-code:entry",
+        "suggested_action_kinds": ["review.seed.remove"],
+        "parameters": {"seed_id": "data-as-code"},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "review.seed.remove",
+        "context": {
+            "kind": "review_item",
+            "item_id": "manual_seed_conflict:data-as-code:entry",
+            "review_item_kind": "manual_seed_conflict",
+        },
+        "parameters": {"seed_id": "data-as-code"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
