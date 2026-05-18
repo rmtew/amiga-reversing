@@ -377,6 +377,94 @@ def test_target_custom_struct_field_rename_command_payload() -> None:
     assert payload == {"custom_struct_field": {"struct_name": "InputEvent", "offset": 4, "name": "ie_Code"}}
 
 
+def test_typed_gap_field_add_command_uses_gap_identity() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x34,
+        "stable_key": "gap-row",
+        "unresolved_typed_accesses": [
+            {
+                "operand_index": 1,
+                "base_register": "A0",
+                "displacement": 36,
+                "root_struct_name": "InputEvent",
+                "refined_struct_name": "DerivedEvent",
+                "classification": "prefix_extension",
+            }
+        ],
+    }
+    selector = {"element_kind": "typed_gap", "operand_index": 1}
+
+    actions = listing_element_action_catalog(row, selector)
+    add_action = next(action for action in actions if action["action_id"] == "typed_gap.field.add")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "typed_gap.field.add",
+        element_context=selector,
+        parameters={"name": "de_Code", "type": "UWORD", "size": 2},
+    )
+
+    assert add_action["parameters"] == {"struct_name": "DerivedEvent", "offset": 36}
+    assert add_action["parameter_schema"]["required"] == ["name", "type", "size"]
+    assert kind == "create_manual_custom_struct_field"
+    assert payload == {
+        "custom_struct_field": {
+            "struct_name": "DerivedEvent",
+            "name": "de_Code",
+            "type": "UWORD",
+            "offset": 36,
+            "size": 2,
+        }
+    }
+
+
+def test_typed_access_field_commands_use_resolved_identity() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x30,
+        "stable_key": "typed-row",
+        "typed_accesses": [
+            {
+                "operand_index": 1,
+                "base_register": "A0",
+                "displacement": 20,
+                "field_offset": 20,
+                "root_struct_name": "Library",
+                "owner_struct_name": "Library",
+                "field_name": "LIB_VERSION",
+                "field_expr": "LIB_VERSION",
+            }
+        ],
+    }
+    selector = {"element_kind": "typed_access", "operand_index": 1}
+
+    actions = listing_element_action_catalog(row, selector)
+    rename_action = next(action for action in actions if action["action_id"] == "typed_access.field.rename")
+    rename_kind, rename_payload = listing_catalog_manual_payload(
+        row,
+        "typed_access.field.rename",
+        element_context=selector,
+        parameters={"name": "LIB_REVISION"},
+    )
+    remove_kind, remove_payload = listing_catalog_manual_payload(
+        row,
+        "typed_access.field.remove",
+        element_context=selector,
+    )
+
+    assert rename_action["parameters"] == {"struct_name": "Library", "offset": 20, "name": "LIB_VERSION"}
+    assert rename_kind == "rename_manual_custom_struct_field"
+    assert rename_payload == {
+        "custom_struct_field": {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"}
+    }
+    assert remove_kind == "remove_manual_custom_struct_field"
+    assert remove_payload == {
+        "custom_struct_field": {"struct_name": "Library", "offset": 20, "name": "LIB_VERSION"}
+    }
+
+
 def test_target_rsset_layout_region_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.add",

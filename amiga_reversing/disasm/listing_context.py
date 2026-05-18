@@ -163,10 +163,26 @@ def _append_typed_access_contexts(contexts: list[dict[str, object]], row: Mappin
             if operand_index is not None:
                 context["operand_index"] = operand_index
             _copy_optional_int(context, raw_access, "displacement")
-            for key in ("base_register", "root_struct_name", "owner_struct_name", "field_name", "field_expr"):
+            _copy_optional_int(context, raw_access, "field_offset", "fieldOffset")
+            _copy_optional_int(context, raw_access, "struct_size", "structSize")
+            _copy_optional_int(context, raw_access, "container_candidate_count", "containerCandidateCount")
+            for key in (
+                "base_register",
+                "root_struct_name",
+                "owner_struct_name",
+                "field_name",
+                "field_expr",
+                "classification",
+                "container_struct_name",
+                "container_field_expr",
+                "refined_struct_name",
+            ):
                 value = _str_or_none(raw_access.get(key) or raw_access.get(_camel(key)))
                 if value:
                     context[key] = value
+            refinement_applied = _first_present(raw_access, "refinement_applied", "refinementApplied")
+            if isinstance(refinement_applied, bool):
+                context["refinement_applied"] = refinement_applied
             contexts.append(context)
 
 

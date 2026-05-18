@@ -20,7 +20,10 @@ Current evidence:
   name-keyed custom struct payloads and offset-keyed field payloads.
 - Listing/navigation exposes typed accesses, unresolved typed accesses, type
   flow analysis, app-slot field gaps, and field paths.
-- No command catalog action exists for typed-gap resolution.
+- Listing element commands now expose `typed_gap.field.add/edit` and
+  `typed_access.field.edit/rename/remove`, using typed context struct names and
+  offsets.
+- No verifier proves rendered typed field paths from custom struct metadata yet.
 
 Acceptance criteria:
 - Struct and field identities are stable by namespace/name/offset and survive

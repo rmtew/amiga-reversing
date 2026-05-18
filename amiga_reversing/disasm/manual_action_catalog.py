@@ -358,6 +358,56 @@ def listing_element_action_catalog(
                 ),
             )
         )
+    if element_kind == "typed_gap":
+        actions.extend(
+            (
+                _context_log_action(
+                    "typed_gap.field.add",
+                    "Add struct field",
+                    "create_manual_custom_struct_field",
+                    context,
+                    _typed_field_identity_parameters(context),
+                    _typed_field_parameter_schema(),
+                ),
+                _context_log_action(
+                    "typed_gap.field.edit",
+                    "Edit struct field",
+                    "create_manual_custom_struct_field",
+                    context,
+                    _typed_field_identity_parameters(context),
+                    _typed_field_parameter_schema(),
+                ),
+            )
+        )
+    if element_kind == "typed_access":
+        actions.extend(
+            (
+                _context_log_action(
+                    "typed_access.field.edit",
+                    "Edit struct field",
+                    "create_manual_custom_struct_field",
+                    context,
+                    _typed_field_identity_parameters(context),
+                    _typed_field_parameter_schema(),
+                ),
+                _context_log_action(
+                    "typed_access.field.rename",
+                    "Rename struct field",
+                    "rename_manual_custom_struct_field",
+                    context,
+                    _typed_field_identity_parameters(context),
+                    _typed_field_rename_parameter_schema(),
+                    "F2",
+                ),
+                _context_log_action(
+                    "typed_access.field.remove",
+                    "Remove struct field",
+                    "remove_manual_custom_struct_field",
+                    context,
+                    _typed_field_identity_parameters(context),
+                ),
+            )
+        )
     if element_kind == "register":
         actions.extend(_struct_pointer_actions(context))
     actions.extend(_library_base_actions(context))
@@ -677,6 +727,18 @@ def listing_catalog_manual_payload(
         if not element_context or element_context.get("element_kind") != "app_slot":
             raise ValueError("remove_manual_rsset_layout_region requires an app-slot element context")
         return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
+    if ui_action == "create_manual_custom_struct_field":
+        if not element_context or element_context.get("element_kind") not in {"typed_access", "typed_gap"}:
+            raise ValueError("create_manual_custom_struct_field requires a typed element context")
+        return "create_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_target_payload(params)}
+    if ui_action == "rename_manual_custom_struct_field":
+        if not element_context or element_context.get("element_kind") != "typed_access":
+            raise ValueError("rename_manual_custom_struct_field requires a typed-access element context")
+        return "rename_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_rename_payload(params)}
+    if ui_action == "remove_manual_custom_struct_field":
+        if not element_context or element_context.get("element_kind") != "typed_access":
+            raise ValueError("remove_manual_custom_struct_field requires a typed-access element context")
+        return "remove_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_identity_payload(params)}
     if ui_action == "set_representation":
         return "create_manual_representation", {"representation": _representation_payload(row, element_context, params)}
     if ui_action == "add_review_note":
@@ -1154,6 +1216,27 @@ def _app_slot_region_payload(context: Mapping[str, object], params: Mapping[str,
     return region
 
 
+def _typed_field_identity_parameters(context: Mapping[str, object]) -> dict[str, object]:
+    struct_name = (
+        context.get("owner_struct_name")
+        or context.get("refined_struct_name")
+        or context.get("container_struct_name")
+        or context.get("root_struct_name")
+    )
+    offset = _optional_int(context.get("field_offset"))
+    if offset is None:
+        offset = _optional_int(context.get("displacement"))
+    params: dict[str, object] = {}
+    if isinstance(struct_name, str) and struct_name.strip():
+        params["struct_name"] = struct_name.strip()
+    if offset is not None:
+        params["offset"] = offset
+    field_name = context.get("field_name")
+    if isinstance(field_name, str) and field_name.strip():
+        params["name"] = field_name.strip()
+    return params
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -1218,6 +1301,29 @@ def _app_slot_remove_parameter_schema() -> dict[str, object]:
             "base_symbol": {"type": "string"},
         },
         "required": [],
+    }
+
+
+def _typed_field_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "type": {"type": "string"},
+            "size": {"type": "integer", "minimum": 1},
+            "struct": {"type": "string"},
+            "pointer_struct": {"type": "string"},
+            "named_base": {"type": "string"},
+        },
+        "required": ["name", "type", "size"],
+    }
+
+
+def _typed_field_rename_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
 
 
