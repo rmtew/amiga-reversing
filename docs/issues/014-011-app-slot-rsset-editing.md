@@ -18,6 +18,9 @@ Current evidence:
 - Target command catalog exposes `target.rsset_region.remove`; Manual Action
   Log removal filters manual/seeded effective regions by the same durable
   identity.
+- Listing app-slot elements expose `app_slot.rename`, which maps the selected
+  app-slot displacement to `create_manual_rsset_layout_region` and requires an
+  explicit symbol plus size.
 - Render/rebuild coverage proves a manual named RSSET region emits the RSSET
   field, rewrites a base-relative reference, and direct-rebuilds exactly; removal
   coverage proves source refs return to raw displacement and direct-rebuild
@@ -25,7 +28,7 @@ Current evidence:
 - Loop planner recognizes explicit `target.rsset_region.add/remove` candidates,
   requires round-trip verification, and skips already-satisfied projected
   add/remove state.
-- App-slot rename/edit/remove, RSSET edit/rename, parser-role edits, and
+- App-slot edit/remove, RSSET edit/rename, parser-role edits, and
   autonomous candidate production remain open.
 
 Acceptance criteria:

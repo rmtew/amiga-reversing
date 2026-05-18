@@ -302,6 +302,18 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
+    if element_kind == "app_slot":
+        actions.append(
+            _context_log_action(
+                "app_slot.rename",
+                "Rename app slot",
+                "create_manual_rsset_layout_region",
+                context,
+                _app_slot_region_identity_parameters(context),
+                _app_slot_rename_parameter_schema(),
+                "F2",
+            )
+        )
     if element_kind == "register":
         actions.extend(_struct_pointer_actions(context))
     actions.extend(_library_base_actions(context))
@@ -613,6 +625,10 @@ def listing_catalog_manual_payload(
         return "create_manual_comment", {"comment": _row_comment_payload(row, params)}
     if ui_action == "create_manual_semantic_hint":
         return "create_manual_semantic_hint", {"semantic_hint": _semantic_hint_payload(row, element_context, params)}
+    if ui_action == "create_manual_rsset_layout_region":
+        if not element_context or element_context.get("element_kind") != "app_slot":
+            raise ValueError("create_manual_rsset_layout_region requires an app-slot element context")
+        return "create_manual_rsset_layout_region", {"rsset_layout_region": _app_slot_region_payload(element_context, params)}
     if ui_action == "set_representation":
         return "create_manual_representation", {"representation": _representation_payload(row, element_context, params)}
     if ui_action == "add_review_note":
@@ -931,6 +947,40 @@ def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[
     return region
 
 
+def _app_slot_region_identity_parameters(context: Mapping[str, object]) -> dict[str, object]:
+    displacement = _optional_int(context.get("displacement"))
+    params: dict[str, object] = {}
+    if displacement is not None:
+        params["offset"] = displacement
+    symbol = context.get("symbol")
+    if isinstance(symbol, str) and symbol:
+        params["previous_symbol"] = symbol
+    return params
+
+
+def _app_slot_region_payload(context: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    offset = _optional_int(params.get("offset"))
+    size = _optional_int(params.get("size"))
+    symbol = params.get("symbol") or params.get("name")
+    if offset is None or offset < 0 or offset > 0x7FFF:
+        raise ValueError("app_slot.rename requires app-slot displacement")
+    if size is None or size <= 0 or size > 255:
+        raise ValueError("app_slot.rename requires size 1..255")
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("app_slot.rename requires parameter symbol")
+    region: dict[str, object] = {
+        "rsset_layout_region_id": f"catalog-rsset-region-app-{offset:04X}",
+        "offset": offset,
+        "size": size,
+        "symbol": symbol.strip(),
+    }
+    for field_name in ("layout_name", "base_symbol", "sizeof_symbol", "storage_kind", "semantic_type"):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            region[field_name] = value.strip()
+    return region
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -965,6 +1015,22 @@ def _data_name_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {"name": {"type": "string"}},
         "required": ["name"],
+    }
+
+
+def _app_slot_rename_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "symbol": {"type": "string"},
+            "size": {"type": "integer", "minimum": 1, "maximum": 255},
+            "storage_kind": {
+                "type": "string",
+                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
+            },
+            "semantic_type": {"type": "string"},
+        },
+        "required": ["symbol", "size"],
     }
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
+    listing_element_action_catalog,
     target_catalog_manual_payload,
 )
 
@@ -142,6 +143,48 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
             "end": 0x128,
             "previous_name": "loc_1_00000120",
             "name": "player_table",
+        }
+    }
+
+
+def test_app_slot_rename_command_uses_selected_slot_displacement() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x20,
+        "end_offset": 0x24,
+        "stable_key": "app-write",
+        "app_slot_refs": [
+            {
+                "symbol": "app_0234",
+                "displacement": 0x234,
+                "base_register": "A6",
+                "operand_index": 1,
+                "access": "write",
+            }
+        ],
+    }
+    selector = {"element_kind": "app_slot", "symbol": "app_0234", "operand_index": 1, "access": "write"}
+
+    actions = listing_element_action_catalog(row, selector)
+    rename_action = next(action for action in actions if action["action_id"] == "app_slot.rename")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "app_slot.rename",
+        element_context=selector,
+        parameters={"symbol": "app_player_state", "size": 4, "storage_kind": "pointer"},
+    )
+
+    assert rename_action["parameters"] == {"offset": 0x234, "previous_symbol": "app_0234"}
+    assert rename_action["parameter_schema"]["required"] == ["symbol", "size"]
+    assert kind == "create_manual_rsset_layout_region"
+    assert payload == {
+        "rsset_layout_region": {
+            "rsset_layout_region_id": "catalog-rsset-region-app-0234",
+            "offset": 0x234,
+            "size": 4,
+            "symbol": "app_player_state",
+            "storage_kind": "pointer",
         }
     }
 
