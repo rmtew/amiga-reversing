@@ -119,6 +119,7 @@ def run_one_iteration(
             selected_work_item=None,
             command=None,
             action_result={"status": "not_run"},
+            verification={"status": "not_run", "layers": []},
             workflow_profile=None,
             next_recommendation={"recommendation": "stop", "reason": "no locator-backed command candidate"},
         )
@@ -133,8 +134,33 @@ def run_one_iteration(
             selected_work_item=cast(dict[str, object], selected["work_item"]),
             command=command,
             action_result={"status": "dry_run"},
+            verification={"status": "not_run", "layers": []},
             workflow_profile=None,
             next_recommendation={"recommendation": "continue", "reason": "dry-run selected a safe command action"},
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    if command.get("output_affecting") is True and not _round_trip_verifier_available(inspect_report):
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "round_trip",
+                    "status": "failed",
+                    "message": "output-affecting action requires an available round-trip verifier",
+                }
+            ],
+        }
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked"},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation={"recommendation": "stop", "reason": "output-affecting action has no verifier"},
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -150,6 +176,7 @@ def run_one_iteration(
             selected_work_item=cast(dict[str, object], selected["work_item"]),
             command=command,
             action_result={"status": "blocked", "availability": availability},
+            verification={"status": "failed", "layers": [{"layer": "command_availability", "status": "failed"}]},
             workflow_profile=None,
             next_recommendation={"recommendation": "stop", "reason": "selected command is not available"},
         )
@@ -167,6 +194,7 @@ def run_one_iteration(
     )
     result = cast(dict[str, object], execution["data"])
     workflow_profile = result.get("workflow_profile") if isinstance(result.get("workflow_profile"), dict) else None
+    verification = _verify_manual_mutation(target_id, command, result, project_root=project_root)
     report = _iteration_report(
         run_state=run_result.run_state,
         iteration_id=iteration_id,
@@ -177,8 +205,13 @@ def run_one_iteration(
             "status": "executed",
             "durable_result": result,
         },
+        verification=verification,
         workflow_profile=cast(dict[str, object] | None, workflow_profile),
-        next_recommendation={"recommendation": "continue", "reason": "manual command executed"},
+        next_recommendation=(
+            {"recommendation": "continue", "reason": "manual command executed and verified"}
+            if verification["status"] == "passed"
+            else {"recommendation": "stop", "reason": "verification failed"}
+        ),
     )
     return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -434,6 +467,69 @@ def _verification_paths(target_dir: Path) -> list[dict[str, object]]:
     return paths
 
 
+def _verify_manual_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    layers = [
+        _verify_semantic_reload(target_id, durable_result, project_root=project_root),
+        _verify_projection_metadata(command, durable_result),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _verify_semantic_reload(
+    target_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    mutation = durable_result.get("mutation")
+    expected_count = mutation.get("manual_action_log_count") if isinstance(mutation, dict) else None
+    target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    actual = _manual_action_log_state(target_dir)
+    if isinstance(expected_count, int) and actual["count"] >= expected_count:
+        return {
+            "layer": "semantic_reload",
+            "status": "passed",
+            "expected_manual_action_count": expected_count,
+            "actual_manual_action_count": actual["count"],
+        }
+    return {
+        "layer": "semantic_reload",
+        "status": "failed",
+        "expected_manual_action_count": expected_count,
+        "actual_manual_action_count": actual["count"],
+    }
+
+
+def _verify_projection_metadata(command: dict[str, object], durable_result: dict[str, object]) -> dict[str, object]:
+    context = command.get("context")
+    expected_locator = context.get("locator") if isinstance(context, dict) else None
+    mutation = durable_result.get("mutation")
+    affected = mutation.get("affected_locators") if isinstance(mutation, dict) else None
+    if isinstance(expected_locator, dict) and isinstance(affected, list) and any(
+        isinstance(locator, dict) and locator.get("row_key") == expected_locator.get("row_key") for locator in affected
+    ):
+        return {"layer": "projection", "status": "passed", "row_key": expected_locator.get("row_key")}
+    return {
+        "layer": "projection",
+        "status": "failed",
+        "message": "affected locator was not reported by command execution",
+    }
+
+
+def _round_trip_verifier_available(inspect_report: dict[str, object]) -> bool:
+    paths = inspect_report.get("verification_paths")
+    if not isinstance(paths, list):
+        return False
+    return any(isinstance(path, dict) and path.get("kind") == "round_trip" and path.get("available") is True for path in paths)
+
+
 def _select_command_action(inspect_report: dict[str, object]) -> dict[str, object] | None:
     candidates = inspect_report.get("candidate_work")
     if not isinstance(candidates, list):
@@ -495,6 +591,7 @@ def _iteration_report(
     selected_work_item: dict[str, object] | None,
     command: dict[str, object] | None,
     action_result: dict[str, object],
+    verification: dict[str, object],
     workflow_profile: dict[str, object] | None,
     next_recommendation: dict[str, object],
 ) -> dict[str, object]:
@@ -514,7 +611,7 @@ def _iteration_report(
         "action": command,
         "durable_result": action_result.get("durable_result"),
         "action_result": action_result,
-        "verification": {"status": "not_configured", "layers": []},
+        "verification": verification,
         "workflow_profile": workflow_profile,
         "next": next_recommendation,
     }

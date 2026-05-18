@@ -1121,3 +1121,8 @@ to repeat the loop safely.
   can run `comment.edit` only through command discovery and the existing
   `/commands/execute` route, and the iteration report records the selected work
   item, evidence, command, durable result, and workflow profile.
+- 010-007 attached verification to mutation reports. Manual command execution
+  now checks semantic reload against the Manual Action Log count and confirms
+  the affected locator is reported by command execution. Verification failures
+  name the layer and force a stop recommendation; output-affecting actions are
+  blocked unless a round-trip verifier is available.

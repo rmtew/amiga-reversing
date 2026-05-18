@@ -228,13 +228,8 @@ def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pyt
         calls.append((method, path))
         if method == "GET":
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
-        return {
-            "data": {
-                "action": {"action_id": "manual-1"},
-                "mutation": {"durable_action_id": "manual-1"},
-                "workflow_profile": {"workflow_id": "manual_command_execution", "spans": [{"name": "manual_action_append"}]},
-            }
-        }
+        _write_manual_log(tmp_path)
+        return {"data": _executed_command_payload()}
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
 
@@ -246,6 +241,7 @@ def test_run_one_executes_existing_command_path(tmp_path: Path, monkeypatch: pyt
     ]
     assert report["action_result"]["status"] == "executed"
     assert report["durable_result"]["mutation"]["durable_action_id"] == "manual-1"
+    assert report["verification"]["status"] == "passed"
 
 
 def test_run_one_report_includes_workflow_profile(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -257,13 +253,58 @@ def test_run_one_report_includes_workflow_profile(tmp_path: Path, monkeypatch: p
         lambda method, path, query, body=None: (
             {"data": {"commands": [{"command_id": "comment.edit"}]}}
             if method == "GET"
-            else {"data": {"workflow_profile": {"workflow_id": "manual_command_execution", "spans": []}}}
+            else (_write_manual_log(tmp_path) or {"data": _executed_command_payload(workflow_profile={"workflow_id": "manual_command_execution", "spans": []})})
         ),
     )
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
 
     assert report["workflow_profile"] == {"workflow_id": "manual_command_execution", "spans": []}
+
+
+def test_run_one_verification_failure_names_layer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _target(tmp_path)
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: (
+            {"data": {"commands": [{"command_id": "comment.edit"}]}}
+            if method == "GET"
+            else {"data": _executed_command_payload()}
+        ),
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "failed"
+    assert report["verification"]["layers"][0]["layer"] == "semantic_reload"
+    assert report["next"]["recommendation"] == "stop"
+
+
+def test_output_affecting_action_requires_round_trip_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    selected = {
+        "work_item": _inspect_with_locator()["candidate_work"][0],
+        "command": {
+            "kind": "command",
+            "command_id": "row.seed.code",
+            "context": {"kind": "row", "locator": _inspect_with_locator()["candidate_work"][0]["locator"]},
+            "parameters": {},
+            "output_affecting": True,
+        },
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"][0]["layer"] == "round_trip"
+    assert report["next"]["recommendation"] == "stop"
 
 
 def _inspect_with_locator() -> dict[str, object]:
@@ -279,6 +320,7 @@ def _inspect_with_locator() -> dict[str, object]:
     return {
         "target_id": "demo",
         "target_state": {},
+        "verification_paths": [{"kind": "round_trip", "available": False}],
         "candidate_work": [
             {
                 "id": "candidate-1",
@@ -289,4 +331,26 @@ def _inspect_with_locator() -> dict[str, object]:
             }
         ],
         "safe_to_mutate": True,
+    }
+
+
+def _write_manual_log(tmp_path: Path) -> None:
+    path = tmp_path / "targets" / "demo" / "manual_actions.jsonl"
+    path.write_text(
+        '{"record": "manual_action_log_header"}\n{"record": "manual_action", "action_id": "manual-1"}\n',
+        encoding="utf-8",
+    )
+
+
+def _executed_command_payload(workflow_profile: dict[str, object] | None = None) -> dict[str, object]:
+    locator = _inspect_with_locator()["candidate_work"][0]["locator"]
+    return {
+        "action": {"action_id": "manual-1"},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": 1,
+            "affected_locators": [locator],
+        },
+        "workflow_profile": workflow_profile
+        or {"workflow_id": "manual_command_execution", "spans": [{"name": "manual_action_append"}]},
     }
