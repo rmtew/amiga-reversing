@@ -347,6 +347,11 @@ Listing rows with LVO API-call metadata are enough to produce conservative
 `semantic.library_base.*` candidates when the selected symbol operand carries a
 base register and API library/function identity.
 
+Implementation observation from `014-006`/`014-010`: real target evidence can
+sit far outside the first listing page. GenAm direct LVO rows first appeared
+around row 8030, so source-candidate mining needs bounded pagination rather
+than a single 2048-row sample.
+
 Implementation observation from `014-005`/`014-010`:
 `semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.equate.*` produce
 semantic-hint state. Their verifier should check the reloaded hint and

@@ -4191,14 +4191,22 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
       } else if (json_builder_append(builder, ",\"metadata\":{}") != 0) return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     } else {
+      uint8_t base_reg = 0U;
+      int16_t displacement = 0;
+      int has_base_register = operand_is_indirect_or_disp_an(operand, &base_reg, &displacement) && base_reg < 8U;
       if (json_builder_appendf(builder, "{\"kind\":\"symbol\",\"operand_index\":%u,\"text\":",
             (unsigned)operand_index) != 0)
         return -1;
       if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
-      if (json_builder_append(builder,
-            ",\"value\":null,\"register\":null,\"base_register\":null,\"displacement\":null,"
-            "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0)
+      if (json_builder_append(builder, ",\"value\":null,\"register\":null,\"base_register\":") != 0) return -1;
+      if (has_base_register) {
+        if (json_builder_appendf(builder, "\"A%u\",\"displacement\":%d,",
+              (unsigned)base_reg, (int)displacement) != 0)
+          return -1;
+      } else if (json_builder_append(builder, "null,\"displacement\":null,") != 0) {
         return -1;
+      }
+      if (json_builder_append(builder, "\"segment_addr\":null,\"metadata\":{\"symbol\":") != 0) return -1;
       if (json_builder_append_json_string(builder, symbol_name) != 0) return -1;
       if (json_builder_append(builder, "}}") != 0) return -1;
     }

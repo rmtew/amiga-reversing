@@ -1073,6 +1073,28 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}
 
 
+def test_real_dll_genam_lvo_symbol_operand_parts_expose_base_register() -> None:
+    _requires_c_backend_dlls()
+    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
+        "amiga_hunk_genam",
+        project_root=PROJECT_ROOT,
+    )
+    lvo_row = next(
+        row
+        for row in rows
+        if isinstance(row.get("api_call"), dict)
+        and row["api_call"].get("library") == "exec.library"
+        and row["api_call"].get("function") == "AllocMem"
+        and row.get("operand_text") == "_LVOAllocMem(a6)"
+    )
+    operand_part = lvo_row["operand_parts"][0]
+
+    assert operand_part["kind"] == "symbol"
+    assert operand_part["text"] == "_LVOAllocMem"
+    assert operand_part["base_register"] == "A6"
+    assert operand_part["metadata"] == {"symbol": "_LVOAllocMem"}
+
+
 def test_full_listing_instruction_rows_expose_immediate_operand_parts(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     path = tmp_path / "raw.bin"

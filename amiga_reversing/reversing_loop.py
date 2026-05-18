@@ -30,6 +30,7 @@ TERMINAL_RUN_STATUSES = frozenset({"completed", "failed", "stopped"})
 PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
 _LISTING_SOURCE_CANDIDATE_ROW_COUNT = 2048
+_LISTING_SOURCE_CANDIDATE_MAX_ROWS = 16384
 _COMMAND_RANK = {
     "label.rename": 100,
     "review.seed.code": 92,
@@ -1027,15 +1028,9 @@ def _inspect_report_with_listing_candidates(
     if listing_ready.get("status") != "ready":
         return {**inspect_report, "listing_open": listing_ready}
     try:
-        listing = server.route_request(
-            "GET",
-            f"/api/projects/{target_id}/listing",
-            {"start": ["0"], "count": [str(_LISTING_SOURCE_CANDIDATE_ROW_COUNT)]},
-        )
+        rows = _listing_source_candidate_rows(target_id)
     except Exception as exc:
         return {**inspect_report, "listing_open": {"status": "failed", "message": str(exc)}}
-    data = listing.get("data")
-    rows = data.get("rows") if isinstance(data, dict) else None
     existing_candidates = inspect_report.get("candidate_work")
     candidates = list(existing_candidates) if isinstance(existing_candidates, list) else []
     candidates.extend(
@@ -1092,6 +1087,33 @@ def _inspect_report_with_listing_candidates(
         )
     )
     return {**inspect_report, "listing_open": listing_ready, "candidate_work": candidates}
+
+
+def _listing_source_candidate_rows(target_id: str) -> list[object]:
+    rows: list[object] = []
+    start = 0
+    while start < _LISTING_SOURCE_CANDIDATE_MAX_ROWS:
+        count = min(_LISTING_SOURCE_CANDIDATE_ROW_COUNT, _LISTING_SOURCE_CANDIDATE_MAX_ROWS - start)
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"start": [str(start)], "count": [str(count)]},
+        )
+        data = listing.get("data")
+        if not isinstance(data, dict):
+            break
+        page_rows = data.get("rows")
+        if not isinstance(page_rows, list) or not page_rows:
+            break
+        rows.extend(page_rows)
+        if data.get("has_more_after") is not True:
+            break
+        raw_end = data.get("end")
+        next_start = raw_end if isinstance(raw_end, int) and not isinstance(raw_end, bool) else None
+        if next_start is None or next_start <= start:
+            next_start = start + len(page_rows)
+        start = next_start
+    return rows
 
 
 def _listing_entrypoint_label_candidates(
