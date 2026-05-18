@@ -2211,8 +2211,6 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith("app_slot.") for action in actions):
         return "round_trip"
-    if any(action.startswith(("target.custom_struct.", "target.custom_struct_field.", "typed_gap.field.", "typed_access.field.")) for action in actions):
-        return "round_trip"
     if any(action.startswith(("target.equate.", "target.execution_view.", "correction.suppress_seeded_item.")) for action in actions):
         return "round_trip"
     if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):

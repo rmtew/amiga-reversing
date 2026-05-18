@@ -23,10 +23,11 @@ Current evidence:
 - Listing element commands now expose `typed_gap.field.add/edit` and
   `typed_access.field.edit/rename/remove`, using typed context struct names and
   offsets.
-- The loop planner now accepts explicit `target.custom_struct.*`,
+- The loop planner builds explicit `target.custom_struct.*`,
   `target.custom_struct_field.*`, `typed_gap.field.*`, and
-  `typed_access.field.*` command candidates, routes typed field commands through
-  selected listing element context, and requires round-trip verification.
+  `typed_access.field.*` command candidates and routes typed field commands
+  through selected listing element context, but now blocks them as missing an
+  action-specific verifier until rendered custom-field paths are proven.
 - No verifier proves rendered typed field paths from custom struct metadata yet.
 
 Acceptance criteria:

@@ -883,7 +883,7 @@ def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
     ]
 
 
-def test_target_custom_struct_command_candidate_uses_target_context_and_round_trip_verifier() -> None:
+def test_target_custom_struct_command_candidate_uses_target_context_and_requires_verifier() -> None:
     candidate = {
         "id": "custom-struct-field",
         "candidate_id": "custom-struct-field",
@@ -915,7 +915,8 @@ def test_target_custom_struct_command_candidate_uses_target_context_and_round_tr
         },
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
 
 
 def test_typed_field_command_candidate_uses_selected_element_context() -> None:
@@ -958,7 +959,8 @@ def test_typed_field_command_candidate_uses_selected_element_context() -> None:
         "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
 
 
 def test_target_execution_view_command_candidate_uses_target_context() -> None:
