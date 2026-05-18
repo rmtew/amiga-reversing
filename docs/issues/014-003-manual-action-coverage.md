@@ -28,6 +28,8 @@ Current progress:
 - `remove_manual_seed` replay exists and is now reachable from
   `manual_seed_conflict` review items through the command catalog, using the
   conflict item's durable `seed_ids`.
+- Existing `create_manual_register_seed` replay now has explicit coverage for
+  both `library_base` and `struct_ptr` semantic helper payloads.
 
 Child issues:
 - `014-007-data-role-command-coverage.md`

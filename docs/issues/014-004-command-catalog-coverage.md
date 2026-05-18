@@ -26,6 +26,9 @@ Current progress:
 - `manual_seed_conflict` review items expose `review.seed.remove`, parameterized
   by durable Manual Action Log `seed_id`, and `/commands/execute` appends
   `remove_manual_seed`.
+- A6 LVO element contexts expose `semantic.library_base.<library>` commands
+  from row API metadata or NDK lookup, and register elements expose
+  `semantic.register.struct_ptr` with required `struct_name`.
 
 Required tests:
 Command catalog availability and execution tests for each supported action
