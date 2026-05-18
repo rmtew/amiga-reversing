@@ -275,6 +275,42 @@ def test_target_execution_view_remove_command_payload() -> None:
     }
 
 
+def test_target_custom_struct_add_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.custom_struct.add",
+        {
+            "name": "InputEvent",
+            "size": 22,
+            "fields": [
+                {
+                    "name": "ie_Class",
+                    "type": "UBYTE",
+                    "offset": 4,
+                    "size": 1,
+                    "available_since": "1.0",
+                }
+            ],
+        },
+    )
+
+    assert kind == "create_manual_custom_struct"
+    assert payload == {
+        "custom_struct": {
+            "name": "InputEvent",
+            "size": 22,
+            "fields": [
+                {
+                    "name": "ie_Class",
+                    "type": "UBYTE",
+                    "offset": 4,
+                    "size": 1,
+                    "available_since": "1.0",
+                }
+            ],
+        }
+    }
+
+
 def test_target_rsset_layout_region_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.add",

@@ -105,6 +105,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_source_export_action(),
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
+        _target_custom_struct_action(),
         _target_rsset_layout_region_action(),
         _target_rsset_layout_region_edit_action(),
         _target_rsset_layout_region_rename_action(),
@@ -137,6 +138,8 @@ def target_catalog_manual_payload(
         return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_execution_view":
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_custom_struct":
+        return "create_manual_custom_struct", {"custom_struct": _custom_struct_payload(params)}
     if action.get("action") == "create_manual_rsset_layout_region":
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
@@ -926,6 +929,66 @@ def _execution_view_identity_payload(params: Mapping[str, object]) -> dict[str, 
     }
 
 
+def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, object]:
+    name = field.get("name")
+    field_type = field.get("type")
+    offset = _optional_int(field.get("offset"))
+    size = _optional_int(field.get("size"))
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("create_manual_custom_struct field requires name")
+    if not isinstance(field_type, str) or not field_type.strip():
+        raise ValueError("create_manual_custom_struct field requires type")
+    if offset is None or offset < 0:
+        raise ValueError("create_manual_custom_struct field requires offset")
+    if size is None or size <= 0:
+        raise ValueError("create_manual_custom_struct field requires size")
+    payload: dict[str, object] = {
+        "name": name.strip(),
+        "type": field_type.strip(),
+        "offset": offset,
+        "size": size,
+    }
+    for field_name in ("available_since", "struct", "pointer_struct", "named_base"):
+        value = field.get(field_name)
+        if isinstance(value, str) and value.strip():
+            payload[field_name] = value.strip()
+    return payload
+
+
+def _custom_struct_payload(params: Mapping[str, object]) -> dict[str, object]:
+    name = params.get("name")
+    size = _optional_int(params.get("size"))
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("create_manual_custom_struct requires parameter name")
+    if size is None or size <= 0:
+        raise ValueError("create_manual_custom_struct requires size")
+    raw_fields = params.get("fields", ())
+    if raw_fields is None:
+        raw_fields = ()
+    if not isinstance(raw_fields, list | tuple):
+        raise ValueError("create_manual_custom_struct fields must be an array")
+    fields = [
+        _custom_struct_field_payload(field)
+        for field in raw_fields
+        if isinstance(field, Mapping)
+    ]
+    struct: dict[str, object] = {
+        "name": name.strip(),
+        "size": size,
+        "fields": fields,
+    }
+    if len(fields) != len(raw_fields):
+        raise ValueError("create_manual_custom_struct fields must be objects")
+    base_offset = _optional_int(params.get("base_offset"))
+    if base_offset is not None:
+        struct["base_offset"] = base_offset
+    for field_name in ("base_struct", "available_since"):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            struct[field_name] = value.strip()
+    return struct
+
+
 def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, object]:
     offset = _optional_int(params.get("offset"))
     size = _optional_int(params.get("size"))
@@ -1132,6 +1195,37 @@ def _execution_view_identity_parameter_schema() -> dict[str, object]:
             "base_addr": {"type": "integer", "minimum": 0},
         },
         "required": ["source_start", "source_end", "base_addr"],
+    }
+
+
+def _custom_struct_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "size": {"type": "integer", "minimum": 1},
+            "fields": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "type": {"type": "string"},
+                        "offset": {"type": "integer", "minimum": 0},
+                        "size": {"type": "integer", "minimum": 1},
+                        "available_since": {"type": "string", "default": "1.0"},
+                        "struct": {"type": "string"},
+                        "pointer_struct": {"type": "string"},
+                        "named_base": {"type": "string"},
+                    },
+                    "required": ["name", "type", "offset", "size"],
+                },
+            },
+            "base_offset": {"type": "integer", "default": 0},
+            "base_struct": {"type": "string"},
+            "available_since": {"type": "string", "default": "1.0"},
+        },
+        "required": ["name", "size"],
     }
 
 
@@ -2032,6 +2126,15 @@ def _target_execution_view_remove_action() -> dict[str, object]:
         "Remove execution view",
         "remove_manual_execution_view",
         _execution_view_identity_parameter_schema(),
+    )
+
+
+def _target_custom_struct_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct.add",
+        "Add custom struct",
+        "create_manual_custom_struct",
+        _custom_struct_parameter_schema(),
     )
 
 
