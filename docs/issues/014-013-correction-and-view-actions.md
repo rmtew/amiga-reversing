@@ -37,6 +37,8 @@ Current evidence:
   metadata.
 - Generic `run-one` now verifies `target.execution_view.*` execution by checking
   reloaded execution-view state rather than target local-effect metadata.
+- Execution-view verifier coverage now includes removed-view identities, not
+  only add/edit execution views.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
