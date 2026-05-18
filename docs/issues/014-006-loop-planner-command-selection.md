@@ -43,6 +43,8 @@ Progress:
 - Planner now accepts explicit review-item candidates for named/data-role seeds,
   seed removal, and label rename/scope/removal commands, routes them through
   durable review item ids, and requires round-trip verification for label edits.
+- Planner now skips already-satisfied target-local equate candidates from
+  projected target-equate metadata.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

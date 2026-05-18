@@ -1048,6 +1048,25 @@ def test_target_equate_command_candidate_uses_target_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_target_equate_candidate_skips_already_projected_equate() -> None:
+    candidate = {
+        "id": "target-equate",
+        "candidate_id": "target-equate",
+        "kind": "target_equate",
+        "suggested_action_kinds": ["target.equate.add"],
+        "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        "current_metadata": {"name": "PLAYER_START_LIVES", "value": 3},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_rank() -> None:
     candidate = {
         "id": "suppress-seeded-entity",

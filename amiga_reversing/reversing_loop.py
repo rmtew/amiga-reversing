@@ -2879,6 +2879,10 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
         return current.get("removed") is True
+    if command_id in {"target.equate.add", "target.equate.edit", "target.equate.rename"}:
+        return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "target.equate.remove":
+        return current.get("removed") is True
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.execution_view.remove":
