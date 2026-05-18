@@ -73,6 +73,9 @@ Progress:
   seed creation and review seed removal rather than a generic round-trip label.
 - Planner verifier summaries now report `manual_label_state` for review label
   rename/scope/removal commands rather than a generic round-trip label.
+- Planner verifier summaries now let a command-specific verifier override a
+  candidate's generic `round_trip` fallback, so stale explicit candidates do
+  not hide stricter state verifiers.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an

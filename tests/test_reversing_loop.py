@@ -2700,7 +2700,7 @@ def test_listing_rsset_region_candidates_dedupe_region_when_suggestion_exists() 
     assert candidates[0]["evidence"]["navigation_group"] == "app-slot-suggestions"
 
 
-def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_verifier() -> None:
+def test_semantic_dynamic_command_candidate_uses_element_context_and_specific_verifier() -> None:
     candidate = {
         "id": "semantic-library-base",
         "candidate_id": "semantic-library-base",
@@ -2738,7 +2738,7 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_
         "api_function": "SetPointer",
     }
     assert command["output_affecting"] is True
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "library_base_register_seed"
     assert selected is not None
     assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
 

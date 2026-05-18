@@ -144,6 +144,11 @@ Implementation observation from `014-006`: planner reports must show the
 candidate-specific verifier used for selection. Static command defaults are only
 fallbacks and can misdescribe candidates with stricter projection verifiers.
 
+Implementation observation from `014-006`: a candidate's generic `round_trip`
+fallback must not override a stricter command-specific verifier. Explicit or
+older candidates can carry stale verifier labels, so planner summaries should
+prefer command-specific state verifiers whenever they are more precise.
+
 Implementation observation from `014-005`: checking that `round_trip` is
 available before execution is not enough. Generic output-affecting mutations
 must include an actual post-execution round-trip layer so stale or mismatched

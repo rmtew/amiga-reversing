@@ -4442,15 +4442,17 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
 
 
 def _candidate_verifier(candidate: dict[str, object], command: dict[str, object] | None) -> str | None:
+    command_verifier: str | None = None
+    if command is not None:
+        command_id = command.get("command_id")
+        if isinstance(command_id, str):
+            command_verifier = _default_verifier_for_actions([command_id])
     verifier = candidate.get("default_verifier")
     if isinstance(verifier, str) and verifier:
+        if verifier == "round_trip" and command_verifier not in {None, "round_trip"}:
+            return command_verifier
         return verifier
-    if command is None:
-        return None
-    command_id = command.get("command_id")
-    if isinstance(command_id, str):
-        return _default_verifier_for_actions([command_id])
-    return None
+    return command_verifier
 
 
 def _command_context_complete(command: dict[str, object]) -> bool:
