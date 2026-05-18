@@ -2130,6 +2130,16 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_manual_action_pending_range_preserves_subject_row_index_zero() -> None:
+    pending = disasm_server._manual_action_pending_range(
+        {"seed": {"row_index": 0, "hunk": 0, "addr": 4, "end": 6}},
+        {"row_index": 9},
+    )
+
+    assert pending is not None
+    assert pending["row_indexes"] == [0]
+
+
 @pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])
 def test_route_manual_action_catalog_execute_appends_execution_view_action(
     command_id: str,

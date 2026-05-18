@@ -30,6 +30,8 @@ Current observations:
   commands.
 - Listing element identity preserves operand index `0` for selected operands,
   app slots, typed accesses, and typed gaps instead of treating it as absent.
+- Command mutation metadata preserves row index `0` when reporting label local
+  effects and pending analysis ranges.
 - Review-item/reproduction correction identities beyond seeded-item row
   suppression still need specific contracts.
 

@@ -2435,6 +2435,14 @@ def _optional_int(value: object) -> int | None:
     return None
 
 
+def _first_optional_int(*values: object) -> int | None:
+    for value in values:
+        parsed = _optional_int(value)
+        if parsed is not None:
+            return parsed
+    return None
+
+
 def _manual_label_by_id(project_name: str, label_id: str) -> dict[str, object] | None:
     for label in _project_manual_labels(_project_manual_state(project_name)):
         if label.get("label_id") == label_id:
@@ -2456,7 +2464,7 @@ def _manual_action_application_payload(
             local_effects.append(
                 {
                     "kind": "label_rename",
-                    "row_index": _optional_int(label.get("row_index")) or _optional_int(context.get("row_index")),
+                    "row_index": _first_optional_int(label.get("row_index"), context.get("row_index")),
                     "stable_key": label.get("stable_key"),
                     "name": label.get("name"),
                     "previous_name": label.get("previous_name"),
@@ -2475,7 +2483,7 @@ def _manual_action_application_payload(
                 local_effects.append(
                     {
                         "kind": "label_rename",
-                        "row_index": _optional_int(label.get("row_index")) or _optional_int(context.get("row_index")),
+                        "row_index": _first_optional_int(label.get("row_index"), context.get("row_index")),
                         "stable_key": label.get("stable_key"),
                         "name": name.strip(),
                         "previous_name": label.get("name"),
@@ -2629,7 +2637,7 @@ def _manual_action_pending_range(
         context_row_indexes = context.get("row_indexes")
         if isinstance(context_row_indexes, list):
             row_indexes = [index for index in context_row_indexes if isinstance(index, int) and not isinstance(index, bool)]
-    row_index = _optional_int(subject.get("row_index")) or _optional_int(context.get("row_index"))
+    row_index = _first_optional_int(subject.get("row_index"), context.get("row_index"))
     if not row_indexes and row_index is not None:
         row_indexes = [row_index]
     pending: dict[str, object] = {

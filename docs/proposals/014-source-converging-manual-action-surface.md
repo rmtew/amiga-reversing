@@ -159,6 +159,10 @@ Implementation observation from `014-002`: selected listing element identities
 must preserve zero-valued operand indexes. Treating `0` as absent makes first
 operand app-slot and typed-field command contexts unrecoverable.
 
+Implementation observation from `014-002`: mutation metadata must preserve
+zero-valued row indexes. Using truthiness to choose between source and fallback
+indexes can move row `0` effects to the wrong row.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
