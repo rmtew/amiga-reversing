@@ -317,6 +317,14 @@ def listing_element_action_catalog(
                     "F2",
                 ),
                 _context_log_action(
+                    "app_slot.edit",
+                    "Edit app slot",
+                    "create_manual_rsset_layout_region",
+                    context,
+                    _app_slot_region_identity_parameters(context),
+                    _app_slot_rename_parameter_schema(),
+                ),
+                _context_log_action(
                     "app_slot.remove",
                     "Remove app slot",
                     "remove_manual_rsset_layout_region",
