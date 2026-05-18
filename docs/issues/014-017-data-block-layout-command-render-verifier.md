@@ -36,6 +36,8 @@ Implemented tests:
   element-scoped manual representations.
 - Effective metadata gives element representation precedence over overlapping
   standalone manual representations.
+- Effective metadata restores an overlapping standalone manual representation
+  after the owning data-block element is removed.
 - Command catalog availability and `/commands/execute` cover range layout
   creation.
 - Command catalog availability and `/commands/execute` cover row/range

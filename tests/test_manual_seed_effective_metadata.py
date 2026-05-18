@@ -1303,6 +1303,86 @@ def test_effective_metadata_data_block_representation_overrides_standalone_repre
     ]
 
 
+def test_effective_metadata_restores_standalone_representation_after_data_block_element_removal(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            manual_representations=(
+                ManualRepresentationMetadata(
+                    addr=0x100,
+                    end=0x104,
+                    hunk=0,
+                    style=ManualRepresentationStyle.BINARY,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:standalone",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "values",
+                    "hunk": 0,
+                    "source_start": 0x100,
+                    "source_end": 0x104,
+                    "default_unit": "byte",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "values:0",
+                    "layout_id": "values",
+                    "offset": 0,
+                    "width": 4,
+                    "kind": "array",
+                    "representation": "character",
+                },
+            ),
+            _action(
+                "a3",
+                3,
+                "remove_manual_data_block_element",
+                data_block_element={"layout_id": "values", "offset": 0, "width": 4, "removal_state": "raw"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x100,
+            "citation": "target_metadata:standalone",
+            "element_kind": None,
+            "end": 0x104,
+            "hunk": 0,
+            "operand_index": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": None,
+            "source_locator": None,
+            "source_path": None,
+            "style": "binary",
+            "symbol": None,
+        }
+    ]
+
+
 def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
