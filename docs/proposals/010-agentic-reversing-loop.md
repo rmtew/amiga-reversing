@@ -1131,3 +1131,8 @@ to repeat the loop safely.
   `continue`, `verify`, `refactor`, or `stop`; `refactor` requires a named span,
   API/state contract gap, or blocking duplication, while unsafe hygiene and
   verification failures stop the loop.
+- 010-009 added an end-to-end agent smoke covering the playbook path: hygiene,
+  read-only inspect, dry-run selection, command discovery/execution through the
+  route boundary, semantic/projection verification, workflow profile capture,
+  and latest iteration report output. Browser/CDP was not needed because no
+  browser/debug behavior changed.
