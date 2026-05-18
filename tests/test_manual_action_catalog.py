@@ -232,27 +232,28 @@ def test_app_slot_remove_command_uses_selected_slot_identity() -> None:
     assert payload == {"rsset_layout_region": {"offset": 0x234}}
 
 
-def test_target_execution_view_command_payload() -> None:
-    kind, payload = target_catalog_manual_payload(
-        "target.execution_view.add",
-        {
-            "source_start": 0x20,
-            "source_end": 0x80,
-            "base_addr": 0x4000,
-            "name": "stage_code",
-        },
-    )
+def test_target_execution_view_add_and_edit_command_payloads() -> None:
+    for command_id in ("target.execution_view.add", "target.execution_view.edit"):
+        kind, payload = target_catalog_manual_payload(
+            command_id,
+            {
+                "source_start": 0x20,
+                "source_end": 0x80,
+                "base_addr": 0x4000,
+                "name": "stage_code",
+            },
+        )
 
-    assert kind == "create_manual_execution_view"
-    assert payload == {
-        "execution_view": {
-            "execution_view_id": "catalog-execution-view-00000020-00000080-00004000",
-            "source_start": 0x20,
-            "source_end": 0x80,
-            "base_addr": 0x4000,
-            "name": "stage_code",
+        assert kind == "create_manual_execution_view"
+        assert payload == {
+            "execution_view": {
+                "execution_view_id": "catalog-execution-view-00000020-00000080-00004000",
+                "source_start": 0x20,
+                "source_end": 0x80,
+                "base_addr": 0x4000,
+                "name": "stage_code",
+            }
         }
-    }
 
 
 def test_target_execution_view_remove_command_payload() -> None:

@@ -19,7 +19,9 @@ Current evidence:
   `correction.suppress_seeded_item.<kind>` for those rows.
 - Manual Action Log `create_manual_execution_view` now projects target runtime
   views into effective metadata, and `target.execution_view.add` appends it
-  from target command context.
+  from target command context. `target.execution_view.edit` also emits the same
+  name/range payload to replace a view by `(source_start, source_end,
+  base_addr)`.
 - Manual Action Log `remove_manual_execution_view` now removes target runtime
   views by `(source_start, source_end, base_addr)`, and
   `target.execution_view.remove` appends it from target command context.
@@ -35,9 +37,9 @@ Acceptance criteria:
   identities.
 - Manual actions replay deterministically into effective metadata.
 - Review/catalog commands can suppress wrong imported seeded facts and add/edit
-  execution views. Seeded-item row suppression and execution-view add are
-  exposed; execution-view removal is exposed by identity, while inline edit and
-  broader reproduction/view correction commands remain open.
+  execution views. Seeded-item row suppression and execution-view add/edit/remove
+  are exposed by durable identities, while broader reproduction/view correction
+  commands remain open.
 - Verifiers prove source rendering, reproduction, and round-trip where
   applicable.
 - The loop distinguishes importer/analyzer defects from target-specific manual

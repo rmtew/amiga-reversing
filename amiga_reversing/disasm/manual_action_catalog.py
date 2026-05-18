@@ -104,6 +104,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_reproduction_profile_action(),
         _target_source_export_action(),
         _target_execution_view_action(),
+        _target_execution_view_edit_action(),
         _target_execution_view_remove_action(),
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
@@ -2352,6 +2353,15 @@ def _target_execution_view_action() -> dict[str, object]:
     return _target_log_action(
         "target.execution_view.add",
         "Add execution view",
+        "create_manual_execution_view",
+        _execution_view_parameter_schema(),
+    )
+
+
+def _target_execution_view_edit_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.execution_view.edit",
+        "Edit execution view",
         "create_manual_execution_view",
         _execution_view_parameter_schema(),
     )
