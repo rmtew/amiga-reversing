@@ -3425,7 +3425,7 @@ start:
     dc.w $3456
     dc.l $789ABCDE
     dc.b $41,$42,$43,$44
-    dcb.b 4,$00
+    dcb.b 8,$00
 after_data:
     rts
 """
@@ -3453,7 +3453,7 @@ after_data:
                 "layout_id": "matrix",
                 "hunk": 0,
                 "source_start": 2,
-                "source_end": 18,
+                "source_end": 22,
                 "role": "lookup_table",
                 "default_unit": "byte",
             },
@@ -3525,7 +3525,7 @@ after_data:
                 "data_block_element_id": "matrix:C",
                 "layout_id": "matrix",
                 "offset": 12,
-                "width": 4,
+                "width": 8,
                 "kind": "padding",
                 "name": "zero_pad",
             },
@@ -3565,7 +3565,7 @@ after_data:
     assert "word_value:\n\tdc.w $3456\t; lookup_table\n" in rendered
     assert "long_value:\n\tdc.l $789ABCDE\t; lookup_table\n" in rendered
     assert "letters:\n\tdc.b 'A','B','C','D'\t; lookup_table\n" in rendered
-    assert "zero_pad:\n\tdc.b $00,$00,$00,$00\t; lookup_table\n" in rendered
+    assert "zero_pad:\n\tdcb.b $8,$00\t; lookup_table\n" in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,
