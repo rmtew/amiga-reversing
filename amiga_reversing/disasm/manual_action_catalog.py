@@ -167,6 +167,15 @@ def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, obje
             {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
         ),
         _context_log_action(
+            "row.seed.data.named",
+            "Name data",
+            "create_manual_seed",
+            context,
+            {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
+            _data_name_parameter_schema(),
+            "F2",
+        ),
+        _context_log_action(
             "row.seed.data.byte",
             "Byte data",
             "create_manual_seed",
@@ -394,7 +403,18 @@ def _data_role_parameters(spec: Mapping[str, str]) -> dict[str, object]:
 
 
 def _review_data_seed_actions(item: Mapping[str, object]) -> list[dict[str, object]]:
-    actions = [_seed("review.seed.data.raw", "Raw bytes", item, seed_kind="data", data_role="raw", unit="byte")]
+    actions = [
+        _seed("review.seed.data.raw", "Raw bytes", item, seed_kind="data", data_role="raw", unit="byte"),
+        _seed(
+            "review.seed.data.named",
+            "Name data",
+            item,
+            seed_kind="data",
+            data_role="raw",
+            unit="byte",
+            parameter_schema=_data_name_parameter_schema(),
+        ),
+    ]
     actions.extend(
         _seed(
             f"review.seed.data.{spec['role']}",
@@ -557,6 +577,9 @@ def _seed_payload(item: Mapping[str, object], params: Mapping[str, object]) -> d
     if end is not None and end > addr:
         seed["end"] = end
     if seed_kind == "data":
+        name = _data_seed_name(params)
+        if name is not None:
+            seed["name"] = name
         data_role = params.get("data_role")
         unit = params.get("unit")
         if isinstance(data_role, str) and data_role:
@@ -592,6 +615,9 @@ def _row_seed_payload(row: Mapping[str, object], params: Mapping[str, object]) -
     if end is not None and end > addr:
         seed["end"] = end
     if seed_kind == "data":
+        name = _data_seed_name(params)
+        if name is not None:
+            seed["name"] = name
         data_role = params.get("data_role")
         unit = params.get("unit")
         if isinstance(data_role, str) and data_role:
@@ -630,6 +656,14 @@ def _comment_parameter_schema() -> dict[str, object]:
             "text": {"type": "string"},
         },
         "required": ["text"],
+    }
+
+
+def _data_name_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
 
 
@@ -795,6 +829,9 @@ def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, o
     if end is not None and end > addr:
         seed["end"] = end
     if seed_kind == "data":
+        name = _data_seed_name(params)
+        if name is not None:
+            seed["name"] = name
         data_role = params.get("data_role")
         unit = params.get("unit")
         if isinstance(data_role, str) and data_role:
@@ -805,6 +842,15 @@ def _range_seed_payload(rows: list[Mapping[str, object]], params: Mapping[str, o
         if isinstance(encoding, str) and encoding:
             seed["encoding"] = encoding
     return seed
+
+
+def _data_seed_name(params: Mapping[str, object]) -> str | None:
+    if "name" not in params:
+        return None
+    name = params.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("create_manual_seed requires parameter name")
+    return name.strip()
 
 
 def _row_label_payload(
@@ -1189,6 +1235,7 @@ def _seed(
     data_role: str | None = None,
     unit: str | None = None,
     encoding: str | None = None,
+    parameter_schema: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     parameters: dict[str, object] = {"seed_kind": seed_kind}
     if data_role is not None:
@@ -1197,7 +1244,7 @@ def _seed(
         parameters["unit"] = unit
     if encoding is not None:
         parameters["encoding"] = encoding
-    return _log_action(action_id, label, "create_manual_seed", item, parameters)
+    return _log_action(action_id, label, "create_manual_seed", item, parameters, parameter_schema)
 
 
 def _resolution(action_id: str, label: str, item: Mapping[str, object], disposition: str) -> dict[str, object]:
@@ -1517,6 +1564,16 @@ def _interaction_schema(
             "primary_field": "name",
             "submit_label": label,
             "preview": {"kind": "label", "symbol": context.get("symbol") or (item or {}).get("message")},
+            "validation": _label_validation_metadata(context),
+        }
+    if ui_action == "create_manual_seed" and action_id.endswith(".seed.data.named"):
+        return {
+            "type": "text",
+            "hosts": ["palette", "inline"],
+            "primary_rank": 5,
+            "primary_field": "name",
+            "submit_label": label,
+            "preview": {"kind": "data_label", "addr": context.get("addr") or (item or {}).get("start")},
             "validation": _label_validation_metadata(context),
         }
     if ui_action == "create_manual_comment":

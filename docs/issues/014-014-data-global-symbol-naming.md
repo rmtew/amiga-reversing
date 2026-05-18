@@ -7,9 +7,11 @@ that are not function or code labels.
 
 Current evidence:
 - `SeededEntityMetadata.name` can name data definitions.
-- Manual data seeds can carry a name, but the command catalog exposes role/unit
-  classification rather than durable data/global symbol add, edit, rename, or
-  remove operations.
+- Manual data seeds can carry a name.
+- The command catalog now exposes a named row data seed and named unreconciled
+  data review seed that write `name` into the seed payload.
+- Durable data/global symbol edit, rename, remove, rename-existing-symbol, range,
+  element, referenced-use-site, and loop-planner workflows remain open.
 - The proposal goal includes clearer global and data names.
 
 Acceptance criteria:

@@ -1287,11 +1287,16 @@ def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: py
     }
     assert actions[0]["action_id"] == "review.navigate"
     seed_action = next(action for action in actions if action["command_id"] == "review.seed.data.string")
+    named_seed_action = next(action for action in actions if action["command_id"] == "review.seed.data.named")
     assert {
         str(action["action_id"]).removeprefix("review.seed.data.")
         for action in actions
         if str(action["action_id"]).removeprefix("review.seed.data.") in _FULL_DATA_ROLE_IDS
     } == _FULL_DATA_ROLE_IDS
+    assert named_seed_action["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
+    assert named_seed_action["parameter_schema"]["required"] == ["name"]
+    assert named_seed_action["interaction_schema"]["type"] == "text"
+    assert named_seed_action["interaction_schema"]["primary_field"] == "name"
     assert seed_action["effect"] == "manual_mutation"
     assert seed_action["target_context"] == {
         "kind": "review_item",
@@ -1562,6 +1567,7 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     element_actions = cast(list[dict[str, object]], cast(dict[str, object], element_payload["data"])["commands"])
 
     assert any(action["action_id"] == "row.seed.data.string" for action in row_actions)
+    assert any(action["action_id"] == "row.seed.data.named" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.word" for action in row_actions)
     assert any(action["action_id"] == "row.seed.data.pointer_table" for action in row_actions)
     assert {
@@ -1571,6 +1577,12 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     } == _FULL_DATA_ROLE_IDS
     palette_action = next(action for action in row_actions if action["action_id"] == "row.seed.data.palette")
     assert palette_action["parameters"] == {"seed_kind": "data", "data_role": "palette", "unit": "word"}
+    named_action = next(action for action in row_actions if action["action_id"] == "row.seed.data.named")
+    assert named_action["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
+    assert named_action["parameter_schema"]["required"] == ["name"]
+    assert named_action["default_key_binding"] == "F2"
+    assert named_action["interaction_schema"]["type"] == "text"
+    assert named_action["interaction_schema"]["primary_field"] == "name"
     comment_action = next(action for action in row_actions if action["action_id"] == "comment.edit")
     assert comment_action["default_key_binding"] == ";"
     assert comment_action["interaction_schema"]["type"] == "text"
@@ -2525,6 +2537,68 @@ def test_route_manual_action_catalog_execute_appends_row_data_type_helper_action
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_execute_appends_named_data_seed_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="data",
+            text="dc.b $41,$42\n",
+            addr=4,
+            section_index=1,
+            start_offset=4,
+            end_offset=6,
+            stable_key="row-0",
+            bytes=b"AB",
+            opcode_or_directive="dc.b",
+            operand_text="$41,$42",
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "row.seed.data.named",
+            "context": _row_command_context(rows[0]),
+            "parameters": {"name": "manual_data"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    seed = cast(dict[str, object], cast(dict[str, object], action["payload"])["seed"])
+
+    assert action["kind"] == "create_manual_seed"
+    assert seed["kind"] == "data"
+    assert seed["name"] == "manual_data"
+    assert seed["data_role"] == "raw"
+    assert seed["unit"] == "byte"
+    assert seed["hunk"] == 1
+    assert seed["addr"] == 4
+    assert seed["end"] == 6
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_route_manual_action_catalog_execute_appends_valid_log_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2581,7 +2655,26 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
     assert seed["unit"] == "word"
     assert seed["addr"] == 4
     assert seed["end"] == 8
-    assert appended_actions == [action]
+    named_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "review.seed.data.named",
+            "context": {"kind": "review_item", "item_id": "unreconciled:h0:00000004-00000008"},
+            "parameters": {"name": "manual_gap"},
+        },
+    )
+    named_action = cast(dict[str, object], cast(dict[str, object], named_payload["data"])["action"])
+    named_seed = cast(dict[str, object], cast(dict[str, object], named_action["payload"])["seed"])
+
+    assert named_seed["kind"] == "data"
+    assert named_seed["name"] == "manual_gap"
+    assert named_seed["data_role"] == "raw"
+    assert named_seed["unit"] == "byte"
+    assert named_seed["addr"] == 4
+    assert named_seed["end"] == 8
+    assert appended_actions == [action, named_action]
 
 
 def test_route_manual_action_catalog_execute_appends_label_rename_action(
