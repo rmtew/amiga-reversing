@@ -1782,7 +1782,9 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+@pytest.mark.parametrize("command_id", ["target.equate.add", "target.equate.edit"])
 def test_route_manual_action_catalog_execute_appends_target_equate_action(
+    command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1808,7 +1810,7 @@ def test_route_manual_action_catalog_execute_appends_target_equate_action(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "target.equate.add",
+            "command_id": command_id,
             "context": {"kind": "target"},
             "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
         },
@@ -1911,6 +1913,14 @@ def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
             {"name": "InputEvent", "size": 22, "fields": []},
         ),
         (
+            "target.custom_struct.edit",
+            {"name": "InputEvent", "size": 24},
+            "create_manual_custom_struct",
+            "custom_struct",
+            "custom_struct",
+            {"name": "InputEvent", "size": 24, "fields": []},
+        ),
+        (
             "target.custom_struct.remove",
             {"name": "InputEvent"},
             "remove_manual_custom_struct",
@@ -1933,6 +1943,14 @@ def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
             "custom_struct_field",
             "custom_struct_field",
             {"struct_name": "InputEvent", "name": "ie_Class", "type": "UBYTE", "offset": 4, "size": 1},
+        ),
+        (
+            "target.custom_struct_field.edit",
+            {"struct_name": "InputEvent", "name": "ie_Class", "type": "UWORD", "offset": 4, "size": 2},
+            "create_manual_custom_struct_field",
+            "custom_struct_field",
+            "custom_struct_field",
+            {"struct_name": "InputEvent", "name": "ie_Class", "type": "UWORD", "offset": 4, "size": 2},
         ),
         (
             "target.custom_struct_field.remove",
@@ -2099,7 +2117,9 @@ def test_route_manual_action_catalog_execute_removes_execution_view_action(
     assert appended_actions == [action]
 
 
+@pytest.mark.parametrize("command_id", ["target.rsset_region.add", "target.rsset_region.edit"])
 def test_route_manual_action_catalog_execute_adds_rsset_layout_region_action(
+    command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2125,7 +2145,7 @@ def test_route_manual_action_catalog_execute_adds_rsset_layout_region_action(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "target.rsset_region.add",
+            "command_id": command_id,
             "context": {"kind": "target"},
             "parameters": {
                 "offset": 4,
