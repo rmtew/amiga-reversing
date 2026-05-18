@@ -1,6 +1,6 @@
 # Proposal 010: Agentic Reversing Loop
 
-Status: Draft.
+Status: Complete.
 
 This proposal defines the missing orchestration layer on top of Proposal 007
 and Proposal 009: a repo-visible reversing loop harness plus an agent playbook
@@ -1136,3 +1136,41 @@ to repeat the loop safely.
   route boundary, semantic/projection verification, workflow profile capture,
   and latest iteration report output. Browser/CDP was not needed because no
   browser/debug behavior changed.
+
+## Final State
+
+Proposal 010 is implemented. The repo now exposes:
+
+```text
+python -m amiga_reversing.reversing_loop hygiene --target <target>
+python -m amiga_reversing.reversing_loop clean-run --target <target>
+python -m amiga_reversing.reversing_loop inspect --target <target>
+python -m amiga_reversing.reversing_loop run-one --target <target> --dry-run
+python -m amiga_reversing.reversing_loop run-one --target <target>
+```
+
+The harness has a conservative workspace classifier, safe clean-run cleanup,
+read-only candidate reports, run identity and append-only report storage,
+locator-backed command execution, durability/projection verification, workflow
+profile summaries, recommendation policy, and an end-to-end agent smoke.
+
+Final verification:
+
+```text
+uv run python -m pytest tests\test_agent_reversing_loop.py tests\test_reversing_loop.py tests\test_reversing_workspace.py tests\test_api_workflow_harness.py -q
+  35 passed
+
+uv run python -m pytest tests\test_disasm_server.py -q
+  131 passed
+
+uv run ruff check amiga_reversing\reversing_loop.py amiga_reversing\reversing_workspace.py tests\test_agent_reversing_loop.py tests\test_reversing_loop.py tests\test_reversing_workspace.py
+  All checks passed
+
+cmd /c src\precommit.bat
+  passed
+```
+
+No round-trip verification was required for the implemented tracer mutation
+because it is a comment action and output-affecting actions are blocked unless a
+round-trip verifier is available. No CDP smoke was required because no
+browser/debug behavior changed.
