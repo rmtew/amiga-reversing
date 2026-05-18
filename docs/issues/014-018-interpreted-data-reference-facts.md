@@ -10,7 +10,8 @@ binding.
 Requirements:
 - Add `interpret_manual_data_block_element_ref` Manual Action Log support,
   exposed through a `data_block.element.interpret_ref` command id. First slice
-  implements replay/projection state; command catalog exposure remains open.
+  implements replay/projection state and row command catalog exposure through
+  `row.data_block.element.interpret_ref`; render/xref projection remains open.
 - Model reference kind, width, signedness, base/source evidence, scale, target
   locator, confidence, and xref-generation mode.
 - Project interpreted refs into a dedicated manual fact family.
@@ -34,10 +35,14 @@ Implemented tests:
   `removed_data_block_interpreted_refs`.
 - Removing an owning data-block layout also removes owned interpreted-reference
   state.
+- Row command catalog exposes `row.data_block.element.interpret_ref` and
+  `row.data_block.element.clear_ref`.
+- Command execution appends interpreted-reference and corrective clear Manual
+  Action Log entries and reports authoritative local effects.
+- Loop execution still blocks interpreted-reference commands as missing an
+  action-specific render/xref verifier.
 
 Remaining:
-- Command catalog exposure for supported `data_block.element.interpret_ref` and
-  corrective remove/clear commands.
 - Effective metadata / analysis projection for manual interpreted-reference
   facts.
 - Symbolic rendering for supported reference kinds.

@@ -230,6 +230,85 @@ def test_data_block_element_commands_infer_active_layout_identity() -> None:
     }
 
 
+def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x1430,
+        "end_offset": 0x1432,
+        "active_data_block_layout": {
+            "layout_id": "ptr-table",
+            "hunk": 0,
+            "source_start": 0x1400,
+            "source_end": 0x1480,
+        },
+        "active_data_block_interpreted_ref": {
+            "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
+            "layout_id": "ptr-table",
+            "offset": 0x30,
+            "reference_kind": "absolute",
+            "target_hunk": 0,
+            "target_offset": 0x2000,
+        },
+    }
+
+    actions = listing_row_action_catalog(row)
+    interpret_action = next(action for action in actions if action["action_id"] == "row.data_block.element.interpret_ref")
+    clear_action = next(action for action in actions if action["action_id"] == "row.data_block.element.clear_ref")
+    interpret_kind, interpret_payload = listing_catalog_manual_payload(
+        row,
+        "row.data_block.element.interpret_ref",
+        parameters={"target_hunk": 0, "target_offset": 0x2000},
+    )
+    clear_kind, clear_payload = listing_catalog_manual_payload(row, "row.data_block.element.clear_ref")
+
+    assert interpret_action["parameters"] == {
+        "layout_id": "ptr-table",
+        "offset": 0x30,
+        "width": 2,
+        "reference_kind": "absolute",
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+    }
+    assert interpret_action["parameter_schema"]["required"] == ["reference_kind", "target_hunk", "target_offset"]
+    assert clear_action["parameters"] == {
+        "layout_id": "ptr-table",
+        "offset": 0x30,
+        "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x2000,
+    }
+    assert clear_action["parameters"]["data_block_ref_id"] == "ptr-table:30:absolute:h0:00002000"
+    assert clear_action["parameter_schema"]["required"] == []
+    assert interpret_kind == "interpret_manual_data_block_element_ref"
+    assert interpret_payload == {
+        "data_block_interpreted_ref": {
+            "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
+            "layout_id": "ptr-table",
+            "offset": 0x30,
+            "width": 2,
+            "reference_kind": "absolute",
+            "target_hunk": 0,
+            "target_offset": 0x2000,
+            "target_locator": {"hunk": 0, "offset": 0x2000},
+            "confidence": "manual",
+            "xref_generation_mode": "bidirectional",
+        }
+    }
+    assert clear_kind == "remove_manual_data_block_element_ref"
+    assert clear_payload == {
+        "data_block_interpreted_ref": {
+            "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
+            "layout_id": "ptr-table",
+            "offset": 0x30,
+            "reference_kind": "absolute",
+            "target_hunk": 0,
+            "target_offset": 0x2000,
+        }
+    }
+
+
 def test_range_data_block_element_represent_uses_applicable_subranges() -> None:
     layout = {"layout_id": "ascii-hex", "hunk": 0, "source_start": 0x1400, "source_end": 0x1500}
     rows = [

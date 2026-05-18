@@ -1670,6 +1670,8 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert any(action["action_id"] == "row.data_block.element.set" for action in row_actions)
     assert any(action["action_id"] == "row.data_block.element.remove" for action in row_actions)
     assert any(action["action_id"] == "row.data_block.element.represent" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.element.interpret_ref" for action in row_actions)
+    assert any(action["action_id"] == "row.data_block.element.clear_ref" for action in row_actions)
     assert {
         str(action["action_id"]).removeprefix("row.seed.data.")
         for action in row_actions
@@ -3116,7 +3118,80 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "width": 2,
         "removal_state": "raw",
     }
-    assert appended_actions == [action, named_action, layout_action, element_action, represent_action, remove_action]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    interpret_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "row.data_block.element.interpret_ref",
+            "context": _row_command_context(rows[1]),
+            "parameters": {
+                "layout_id": "ascii-hex",
+                "offset": 0x30,
+                "width": 2,
+                "reference_kind": "absolute",
+                "target_hunk": 0,
+                "target_offset": 0x2000,
+            },
+        },
+    )
+    interpret_action = cast(dict[str, object], cast(dict[str, object], interpret_payload["data"])["action"])
+    interpreted_ref = cast(dict[str, object], cast(dict[str, object], interpret_action["payload"])["data_block_interpreted_ref"])
+    interpret_application = cast(dict[str, object], cast(dict[str, object], interpret_payload["data"])["application"])
+    interpret_effect = cast(list[dict[str, object]], interpret_application["local_effects"])[0]
+
+    assert interpret_action["kind"] == "interpret_manual_data_block_element_ref"
+    assert interpreted_ref == {
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+        "width": 2,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x2000,
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+    }
+    assert interpret_effect["kind"] == "data_block_interpreted_ref"
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    clear_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "row.data_block.element.clear_ref",
+            "context": _row_command_context(rows[1]),
+            "parameters": {
+                "layout_id": "ascii-hex",
+                "offset": 0x30,
+                "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+            },
+        },
+    )
+    clear_action = cast(dict[str, object], cast(dict[str, object], clear_payload["data"])["action"])
+    cleared_ref = cast(dict[str, object], cast(dict[str, object], clear_action["payload"])["data_block_interpreted_ref"])
+    clear_application = cast(dict[str, object], cast(dict[str, object], clear_payload["data"])["application"])
+    clear_effect = cast(list[dict[str, object]], clear_application["local_effects"])[0]
+
+    assert clear_action["kind"] == "remove_manual_data_block_element_ref"
+    assert cleared_ref == {
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+        "layout_id": "ascii-hex",
+        "offset": 0x30,
+    }
+    assert clear_effect["kind"] == "data_block_interpreted_ref_remove"
+    assert appended_actions == [
+        action,
+        named_action,
+        layout_action,
+        element_action,
+        represent_action,
+        remove_action,
+        interpret_action,
+        clear_action,
+    ]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 

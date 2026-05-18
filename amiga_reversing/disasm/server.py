@@ -2577,6 +2577,14 @@ def _manual_action_application_payload(
         element = action_payload.get("data_block_element")
         if isinstance(element, Mapping):
             local_effects.append({"kind": "data_block_element_remove", "data_block_element": dict(element)})
+    elif kind == "interpret_manual_data_block_element_ref":
+        ref = action_payload.get("data_block_interpreted_ref")
+        if isinstance(ref, Mapping):
+            local_effects.append({"kind": "data_block_interpreted_ref", "data_block_interpreted_ref": dict(ref)})
+    elif kind == "remove_manual_data_block_element_ref":
+        ref = action_payload.get("data_block_interpreted_ref")
+        if isinstance(ref, Mapping):
+            local_effects.append({"kind": "data_block_interpreted_ref_remove", "data_block_interpreted_ref": dict(ref)})
     elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
         custom_struct = action_payload.get("custom_struct")
         if isinstance(custom_struct, Mapping):

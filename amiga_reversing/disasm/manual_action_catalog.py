@@ -785,6 +785,53 @@ def _data_block_element_representation_parameter_schema(defaults: Mapping[str, o
     )
 
 
+def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "width": {"type": "integer", "minimum": 1},
+                "reference_kind": {"type": "string", "enum": ["absolute"]},
+                "target_hunk": {"type": "integer", "minimum": 0},
+                "target_offset": {"type": "integer", "minimum": 0},
+                "signed": {"type": "boolean"},
+                "scale": {"type": "integer", "minimum": 1},
+                "base_evidence_id": {"type": "string"},
+                "source_evidence_id": {"type": "string"},
+                "confidence": {"type": "string", "enum": ["manual", "high", "medium", "low"]},
+                "xref_generation_mode": {"type": "string", "enum": ["bidirectional", "source_only", "none"]},
+                "data_block_ref_id": {"type": "string"},
+            },
+            "required": ["layout_id", "offset", "width", "reference_kind", "target_hunk", "target_offset"],
+        },
+        defaults,
+    )
+
+
+def _data_block_element_ref_remove_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    schema = _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "data_block_ref_id": {"type": "string"},
+                "reference_kind": {"type": "string", "enum": ["absolute"]},
+                "target_hunk": {"type": "integer", "minimum": 0},
+                "target_offset": {"type": "integer", "minimum": 0},
+            },
+            "required": ["layout_id", "offset", "data_block_ref_id"],
+        },
+        defaults,
+    )
+    required = schema.get("required")
+    if isinstance(required, list) and defaults and "data_block_ref_id" in defaults:
+        schema["required"] = [key for key in required if key != "data_block_ref_id"]
+    return schema
+
+
 def _data_block_element_schema_with_inferred_identity(
     schema: dict[str, object],
     defaults: Mapping[str, object] | None,
@@ -794,13 +841,14 @@ def _data_block_element_schema_with_inferred_identity(
     required = schema.get("required")
     if not isinstance(required, list):
         return schema
-    inferred = {key for key in ("layout_id", "offset") if key in defaults}
+    inferred = {key for key in ("layout_id", "offset", "width") if key in defaults}
     schema["required"] = [key for key in required if key not in inferred]
     return schema
 
 
 def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     defaults = _data_block_element_context([row])
+    ref_defaults = _data_block_element_ref_context(row)
     return [
         _context_log_action(
             "row.data_block.element.set",
@@ -825,6 +873,26 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
             context,
             {key: value for key, value in defaults.items() if key in {"layout_id", "offset"}},
             _data_block_element_representation_parameter_schema(defaults),
+        ),
+        _context_log_action(
+            "row.data_block.element.interpret_ref",
+            "Interpret data-block element reference",
+            "interpret_manual_data_block_element_ref",
+            context,
+            {**defaults, "reference_kind": "absolute", "confidence": "manual", "xref_generation_mode": "bidirectional"},
+            _data_block_element_ref_parameter_schema(defaults),
+        ),
+        _context_log_action(
+            "row.data_block.element.clear_ref",
+            "Clear data-block element reference",
+            "remove_manual_data_block_element_ref",
+            context,
+            {
+                key: value
+                for key, value in ref_defaults.items()
+                if key in {"layout_id", "offset", "data_block_ref_id", "reference_kind", "target_hunk", "target_offset"}
+            },
+            _data_block_element_ref_remove_parameter_schema(ref_defaults),
         ),
     ]
 
@@ -1062,6 +1130,14 @@ def listing_catalog_manual_payload(
     if ui_action == "represent_manual_data_block_element":
         return "represent_manual_data_block_element", {
             "data_block_element": _data_block_element_representation_payload([row], params)
+        }
+    if ui_action == "interpret_manual_data_block_element_ref":
+        return "interpret_manual_data_block_element_ref", {
+            "data_block_interpreted_ref": _data_block_element_ref_payload([row], params)
+        }
+    if ui_action == "remove_manual_data_block_element_ref":
+        return "remove_manual_data_block_element_ref", {
+            "data_block_interpreted_ref": _data_block_element_ref_remove_payload([row], params)
         }
     if ui_action == "remove_manual_rsset_use_site_binding":
         if not element_context:
@@ -2432,6 +2508,44 @@ def _active_data_block_layout(row: Mapping[str, object]) -> Mapping[str, object]
     return matches[0] if len(matches) == 1 else None
 
 
+def _data_block_element_ref_context(row: Mapping[str, object]) -> dict[str, object]:
+    context = _data_block_element_context([row])
+    ref = _active_data_block_interpreted_ref(row, context)
+    if ref is None:
+        return context
+    merged = dict(context)
+    for key in ("data_block_ref_id", "reference_kind", "target_hunk", "target_offset"):
+        value = ref.get(key)
+        if value is not None:
+            merged[key] = value
+    return merged
+
+
+def _active_data_block_interpreted_ref(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+) -> Mapping[str, object] | None:
+    for key in ("active_data_block_interpreted_ref", "data_block_interpreted_ref"):
+        ref = row.get(key)
+        if isinstance(ref, Mapping):
+            return ref
+    refs = row.get("data_block_interpreted_refs")
+    if not isinstance(refs, list | tuple):
+        return None
+    layout_id = context.get("layout_id")
+    offset = context.get("offset")
+    matches: list[Mapping[str, object]] = []
+    for ref in refs:
+        if not isinstance(ref, Mapping):
+            continue
+        if layout_id is not None and ref.get("layout_id") != layout_id:
+            continue
+        if offset is not None and _optional_int(ref.get("offset")) != offset:
+            continue
+        matches.append(ref)
+    return matches[0] if len(matches) == 1 else None
+
+
 def _data_block_element_payload(rows: list[Mapping[str, object]], params: Mapping[str, object]) -> dict[str, object]:
     context = _data_block_element_context(rows)
     layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
@@ -2520,6 +2634,103 @@ def _data_block_element_representation_payload(
     if representation not in {"hex", "binary", "character"}:
         raise ValueError("represent_manual_data_block_element requires representation")
     return {"layout_id": layout_id, "offset": offset, "representation": representation}
+
+
+def _data_block_element_ref_payload(
+    rows: list[Mapping[str, object]],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    context = _data_block_element_context(rows)
+    layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
+    offset = _optional_int(params.get("offset"))
+    if offset is None:
+        offset = _optional_int(context.get("offset"))
+    width = _optional_int(params.get("width"))
+    if width is None:
+        width = _optional_int(context.get("width"))
+    reference_kind = str(params.get("reference_kind") or "").strip()
+    target_hunk = _optional_int(params.get("target_hunk"))
+    target_offset = _optional_int(params.get("target_offset"))
+    if not layout_id:
+        raise ValueError("interpret_manual_data_block_element_ref requires layout_id")
+    if offset is None or offset < 0:
+        raise ValueError("interpret_manual_data_block_element_ref requires non-negative offset")
+    if width is None or width <= 0:
+        raise ValueError("interpret_manual_data_block_element_ref requires positive width")
+    if reference_kind != "absolute":
+        raise ValueError("interpret_manual_data_block_element_ref supports only absolute references")
+    if target_hunk is None or target_hunk < 0:
+        raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_hunk")
+    if target_offset is None or target_offset < 0:
+        raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_offset")
+    ref_id = str(params.get("data_block_ref_id") or "").strip()
+    if not ref_id:
+        ref_id = f"{layout_id}:{offset:X}:{reference_kind}:h{target_hunk}:{target_offset:08X}"
+    confidence = str(params.get("confidence") or "manual").strip() or "manual"
+    if confidence not in {"manual", "high", "medium", "low"}:
+        raise ValueError("interpret_manual_data_block_element_ref confidence is unsupported")
+    xref_generation_mode = str(params.get("xref_generation_mode") or "bidirectional").strip() or "bidirectional"
+    if xref_generation_mode not in {"bidirectional", "source_only", "none"}:
+        raise ValueError("interpret_manual_data_block_element_ref xref_generation_mode is unsupported")
+    ref: dict[str, object] = {
+        "data_block_ref_id": ref_id,
+        "layout_id": layout_id,
+        "offset": offset,
+        "width": width,
+        "reference_kind": reference_kind,
+        "target_hunk": target_hunk,
+        "target_offset": target_offset,
+        "target_locator": {"hunk": target_hunk, "offset": target_offset},
+        "confidence": confidence,
+        "xref_generation_mode": xref_generation_mode,
+    }
+    signed = params.get("signed")
+    if isinstance(signed, bool):
+        ref["signed"] = signed
+    scale = _optional_int(params.get("scale"))
+    if scale is not None:
+        if scale <= 0:
+            raise ValueError("interpret_manual_data_block_element_ref scale must be positive")
+        ref["scale"] = scale
+    for field_name in ("base_evidence_id", "source_evidence_id"):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            ref[field_name] = value.strip()
+    return ref
+
+
+def _data_block_element_ref_remove_payload(
+    rows: list[Mapping[str, object]],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    context = _data_block_element_ref_context(rows[0]) if rows else {}
+    layout_id = str(params.get("layout_id") or context.get("layout_id") or "").strip()
+    offset = _optional_int(params.get("offset"))
+    if offset is None:
+        offset = _optional_int(context.get("offset"))
+    if not layout_id:
+        raise ValueError("remove_manual_data_block_element_ref requires layout_id")
+    if offset is None or offset < 0:
+        raise ValueError("remove_manual_data_block_element_ref requires non-negative offset")
+    ref_id = str(params.get("data_block_ref_id") or context.get("data_block_ref_id") or "").strip()
+    if not ref_id:
+        reference_kind = str(params.get("reference_kind") or context.get("reference_kind") or "").strip()
+        target_hunk = _optional_int(params.get("target_hunk"))
+        if target_hunk is None:
+            target_hunk = _optional_int(context.get("target_hunk"))
+        target_offset = _optional_int(params.get("target_offset"))
+        if target_offset is None:
+            target_offset = _optional_int(context.get("target_offset"))
+        if reference_kind and target_hunk is not None and target_offset is not None:
+            ref_id = f"{layout_id}:{offset:X}:{reference_kind}:h{target_hunk}:{target_offset:08X}"
+    if not ref_id:
+        raise ValueError("remove_manual_data_block_element_ref requires data_block_ref_id")
+    ref: dict[str, object] = {"data_block_ref_id": ref_id, "layout_id": layout_id, "offset": offset}
+    for field_name in ("reference_kind", "target_hunk", "target_offset"):
+        value = params.get(field_name) if field_name in params else context.get(field_name)
+        if value is not None:
+            ref[field_name] = value
+    return ref
 
 
 def _data_seed_name(params: Mapping[str, object]) -> str | None:
