@@ -39,6 +39,9 @@ Progress:
   autonomous `semantic.register.struct_ptr` candidates when the same row exposes
   a concrete register element for the base register, skipping already-projected
   struct-pointer register seeds.
+- Autonomous struct-pointer candidate skipping now reads effective target
+  metadata as well as Manual Action Log projections, so seeded register-base
+  facts from target metadata are not repeated.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 

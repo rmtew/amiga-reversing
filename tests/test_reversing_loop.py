@@ -17,6 +17,12 @@ from amiga_reversing.disasm.manual_actions import (
     ReviewItemState,
 )
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
+from amiga_reversing.disasm.target_metadata import (
+    EntryRegisterSeedKind,
+    EntryRegisterSeedMetadata,
+    TargetMetadata,
+    write_target_metadata,
+)
 
 
 def _target(tmp_path: Path, name: str = "demo") -> Path:
@@ -1149,6 +1155,35 @@ def test_listing_struct_pointer_candidates_skip_already_projected_seed() -> None
         existing_register_seeds=existing,
     )
 
+    assert candidates == []
+
+
+def test_existing_register_seed_map_reads_effective_target_metadata(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(
+                EntryRegisterSeedMetadata(
+                    entry_offset=None,
+                    register="a0",
+                    kind=EntryRegisterSeedKind.STRUCT_PTR,
+                    note="seeded by target metadata",
+                    struct_name="InputEvent",
+                ),
+            ),
+        ),
+    )
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    existing = reversing_loop._existing_register_seed_map(inspect_report)
+    candidates = reversing_loop._listing_struct_pointer_candidates(
+        [_struct_pointer_row()],
+        existing_register_seeds=existing,
+    )
+
+    assert existing[("A0", "struct_ptr")]["struct_name"] == "InputEvent"
     assert candidates == []
 
 

@@ -16,6 +16,7 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.effective_metadata import effective_target_metadata
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
@@ -1273,10 +1274,28 @@ def _listing_struct_pointer_candidates(
 
 def _existing_register_seed_map(inspect_report: dict[str, object]) -> dict[tuple[str, str], dict[str, object]]:
     target_state = inspect_report.get("target_state")
+    result: dict[tuple[str, str], dict[str, object]] = {}
+    if isinstance(target_state, dict):
+        target_dir = target_state.get("target_dir")
+        if isinstance(target_dir, str):
+            try:
+                metadata = effective_target_metadata(Path(target_dir))
+            except (AssertionError, OSError, ValueError):
+                metadata = None
+            if metadata is not None:
+                for seed in metadata.entry_register_seeds:
+                    result[(seed.register.upper(), seed.kind.value)] = {
+                        "entry_offset": seed.entry_offset,
+                        "register": seed.register,
+                        "kind": seed.kind.value,
+                        "note": seed.note,
+                        "library_name": seed.library_name,
+                        "struct_name": seed.struct_name,
+                        "context_name": seed.context_name,
+                    }
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     register_seeds = manual_state.get("register_seeds") if isinstance(manual_state, dict) else None
-    result: dict[tuple[str, str], dict[str, object]] = {}
     if not isinstance(register_seeds, list | tuple):
         return result
     for seed in register_seeds:
