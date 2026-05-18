@@ -73,6 +73,8 @@ Progress:
   effective target metadata or Manual Action Log projections.
 - Generic `run-one` now mines `data_class` listing rows into row-level
   `data_symbol.rename` candidates, beyond referenced data use-sites.
+- Generic `run-one` now mines listing LVO API-call rows into autonomous
+  `semantic.library_base.*` candidates.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

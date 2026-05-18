@@ -241,6 +241,11 @@ check that reloaded suppression and round-trip instead of affected locators.
 Planner summaries should expose the same action-specific verifier names so
 operators can distinguish rendered symbol checks from suppression-state checks.
 
+Implementation observation from `014-010`:
+Listing rows with LVO API-call metadata are enough to produce conservative
+`semantic.library_base.*` candidates when the selected symbol operand carries a
+base register and API library/function identity.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

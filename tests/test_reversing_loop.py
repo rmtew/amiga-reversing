@@ -1838,6 +1838,30 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_
     assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
 
 
+def test_listing_library_base_candidates_use_lvo_api_call() -> None:
+    candidates = reversing_loop._listing_library_base_candidates([_library_base_row()])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_id"] == "library-base:row-1:0:A6:intuition.library"
+    assert candidates[0]["element_id"] == "row-1:symbol:0:_LVOSetPointer"
+    assert candidates[0]["suggested_action_kinds"] == ["semantic.library_base.intuition.library"]
+    assert candidates[0]["api_function"] == "SetPointer"
+    assert command["command_id"] == "semantic.library_base.intuition.library"
+    assert command["context"]["api_library"] == "intuition.library"
+
+
+def test_listing_library_base_candidates_skip_already_projected_seed() -> None:
+    existing = {("A6", "library_base"): {"kind": "library_base", "register": "A6", "library_name": "intuition.library"}}
+
+    candidates = reversing_loop._listing_library_base_candidates(
+        [_library_base_row()],
+        existing_register_seeds=existing,
+    )
+
+    assert candidates == []
+
+
 def test_listing_struct_pointer_candidates_use_unresolved_typed_access_register() -> None:
     candidates = reversing_loop._listing_struct_pointer_candidates([_struct_pointer_row()])
 
@@ -1930,6 +1954,32 @@ def test_run_one_uses_listing_struct_pointer_candidate_when_inspect_empty(
     assert report["action"]["command_id"] == "semantic.register.struct_ptr"
     assert report["action"]["context"]["element_id"] == "row-1:register:0:operand"
     assert report["action"]["parameters"] == {"struct_name": "InputEvent"}
+
+
+def test_run_one_uses_listing_library_base_candidate_when_inspect_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = []
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/navigation"):
+            return {"data": {"groups": {}}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_library_base_row()]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "semantic.library_base.intuition.library"
+    assert report["selected_work_item"]["candidate_id"] == "library-base:row-1:0:A6:intuition.library"
 
 
 def test_semantic_library_base_candidate_skips_already_projected_seed() -> None:
@@ -3408,6 +3458,29 @@ def _struct_pointer_row() -> dict[str, object]:
                     "classification": "prefix_extension",
                 }
             ],
+        }
+    )
+    return row
+
+
+def _library_base_row() -> dict[str, object]:
+    row = _listing_row(text="\tjsr _LVOSetPointer(a6)\n", end_offset=4)
+    row.update(
+        {
+            "opcode_or_directive": "jsr",
+            "operand_text": "_LVOSetPointer(a6)",
+            "operand_parts": [
+                {
+                    "kind": "symbol",
+                    "operand_index": 0,
+                    "symbol": "_LVOSetPointer",
+                    "base_register": "A6",
+                    "metadata": {"symbol": "_LVOSetPointer"},
+                }
+            ],
+            "operand_accesses": ["call"],
+            "operand_registers": ["A6"],
+            "api_call": {"library": "intuition.library", "function": "SetPointer"},
         }
     )
     return row

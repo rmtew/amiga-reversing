@@ -1040,6 +1040,12 @@ def _inspect_report_with_listing_candidates(
             existing_register_seeds=_existing_register_seed_map(inspect_report),
         )
     )
+    candidates.extend(
+        _listing_library_base_candidates(
+            rows if isinstance(rows, list) else [],
+            existing_register_seeds=_existing_register_seed_map(inspect_report),
+        )
+    )
     try:
         navigation = server.route_request(
             "GET",
@@ -1439,6 +1445,84 @@ def _listing_struct_pointer_candidates(
                     "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
                     "confidence": "high",
                     "rationale": "typed-access analysis found a base register with unresolved struct field usage",
+                    "actionable": True,
+                    "stop_reason": None,
+                }
+            )
+    return candidates
+
+
+def _listing_library_base_candidates(
+    rows: list[object],
+    *,
+    existing_register_seeds: dict[tuple[str, str], dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    existing = existing_register_seeds or {}
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        element_row = dict(row)
+        if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
+            element_row["stable_key"] = element_row["row_key"]
+        for context in listing_element_contexts(element_row):
+            if context.get("element_kind") != "symbol" or context.get("domain") != "lvo":
+                continue
+            library = context.get("api_library")
+            function = context.get("api_function")
+            register = context.get("base_register") or context.get("register")
+            element_id = context.get("element_id")
+            if (
+                not isinstance(library, str)
+                or not library
+                or not isinstance(function, str)
+                or not function
+                or not isinstance(register, str)
+                or not register
+                or not isinstance(element_id, str)
+            ):
+                continue
+            register = register.upper()
+            current = existing.get((register, "library_base"), {})
+            if current.get("library_name") == library:
+                continue
+            row_key = cast(dict[str, object], locator).get("row_key")
+            operand_index = context.get("operand_index")
+            symbol = context.get("symbol")
+            candidate_id = f"library-base:{row_key}:{operand_index}:{register}:{library}"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "kind": "api_register_semantic",
+                    "durable_id": f"register_seed:{register}:library_base",
+                    "locator": dict(cast(dict[str, object], locator)),
+                    "element_id": element_id,
+                    "element_kind": "symbol",
+                    "operand_index": operand_index,
+                    "symbol": symbol,
+                    "base_register": register,
+                    "api_library": library,
+                    "api_function": function,
+                    "domain": "lvo",
+                    "evidence": {
+                        "source": "listing",
+                        "evidence_kind": "lvo_api_call",
+                        "library": library,
+                        "function": function,
+                        "symbol": symbol,
+                    },
+                    "current_metadata": dict(current),
+                    "expected_rendered_source_improvement": f"treat {register} as {library} base for {function}",
+                    "suggested_action_kind": f"semantic.library_base.{library}",
+                    "suggested_action_kinds": [f"semantic.library_base.{library}"],
+                    "default_verifier": "round_trip",
+                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "confidence": "high",
+                    "rationale": "LVO API call identifies the selected library base register",
                     "actionable": True,
                     "stop_reason": None,
                 }

@@ -48,6 +48,9 @@ Progress:
   metadata.
 - Generic `run-one` now verifies `semantic.library_base.*` execution by checking
   the reloaded library-base register seed rather than affected row metadata.
+- Generic `run-one` now mines listing LVO API-call rows into autonomous
+  `semantic.library_base.*` candidates and skips library-base seeds already in
+  effective metadata or Manual Action Log projections.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 
