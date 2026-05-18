@@ -377,6 +377,11 @@ M68kParseU32Result m68k_parse_number_u32(const char *text) {
   int negative = 0;
   int base = 10;
   if (text == NULL || *text == '\0') return result;
+  if (text[0] == '\'' && text[1] != '\0' && text[2] == '\'' && text[3] == '\0') {
+    result.ok = 1U;
+    result.value = (uint8_t)text[1];
+    return result;
+  }
   if (*text == '-') {
     negative = 1;
     ++text;
@@ -387,6 +392,18 @@ M68kParseU32Result m68k_parse_number_u32(const char *text) {
   if (*text == '$') {
     base = 16;
     ++text;
+  } else if (*text == '%') {
+    uint32_t value = 0U;
+    ++text;
+    if (*text == '\0') return result;
+    while (*text != '\0') {
+      if (*text != '0' && *text != '1') return result;
+      value = (value << 1U) | (uint32_t)(*text - '0');
+      ++text;
+    }
+    result.ok = 1U;
+    result.value = negative ? (uint32_t)(0U - value) : value;
+    return result;
   }
   if (*text == '\0') return result;
   magnitude = (uint64_t)strtoull(text, &endptr, base);

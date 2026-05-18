@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from amiga_reversing.disasm.binary_source import BinarySourceKind, resolve_target_binary_source
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    resolve_target_binary_source,
+)
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     build_target_identity,
@@ -21,8 +24,8 @@ from amiga_reversing.disasm.projects import (
     mark_project_opened,
 )
 from amiga_reversing.disasm.target_metadata import (
-    EntryRegisterSeedMetadata,
     EntryRegisterSeedKind,
+    EntryRegisterSeedMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,

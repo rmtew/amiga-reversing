@@ -270,7 +270,8 @@ typedef enum M68kAnalysisRepresentationStyle {
 typedef struct M68kAnalysisManualRepresentation {
   uint8_t has_section_index;
   uint8_t style_id;
-  uint8_t reserved[2];
+  uint8_t has_operand_index;
+  uint8_t operand_index;
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;
@@ -366,6 +367,8 @@ typedef struct M68kSymbolRefIR {
 typedef struct M68kOperandIR {
   uint8_t kind;
   uint8_t has_exact_render_value;
+  uint8_t manual_representation_style_id;
+  uint8_t reserved0;
   M68kAsmOperandValue value;
   uint32_t exact_render_value;
   M68kSymbolRefIR symbol_ref;

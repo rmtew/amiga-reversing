@@ -724,6 +724,7 @@ class ManualRepresentationMetadata:
     end: int | None = None
     hunk: int = 0
     element_kind: str | None = None
+    operand_index: int | None = None
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
@@ -742,6 +743,7 @@ class ManualRepresentationMetadata:
         end = payload.get("end")
         hunk = payload.get("hunk", 0)
         element_kind = payload.get("element_kind")
+        operand_index = payload.get("operand_index")
         source_id = payload.get("source_id")
         source_path = payload.get("source_path")
         source_locator = payload.get("source_locator")
@@ -750,6 +752,7 @@ class ManualRepresentationMetadata:
         assert isinstance(hunk, int)
         assert isinstance(citation, str)
         assert element_kind is None or isinstance(element_kind, str)
+        assert operand_index is None or isinstance(operand_index, int)
         assert source_id is None or isinstance(source_id, str)
         assert source_path is None or isinstance(source_path, str)
         assert source_locator is None or isinstance(source_locator, str)
@@ -759,6 +762,7 @@ class ManualRepresentationMetadata:
             hunk=hunk,
             style=_manual_representation_style(style),
             element_kind=element_kind,
+            operand_index=operand_index,
             seed_origin=_target_metadata_seed_origin(seed_origin),
             review_status=_target_metadata_review_status(review_status),
             citation=citation,
@@ -1276,12 +1280,24 @@ def _merge_manual_representations(
     manual: tuple[ManualRepresentationMetadata, ...],
     seeded: tuple[ManualRepresentationMetadata, ...],
 ) -> tuple[ManualRepresentationMetadata, ...]:
-    merged: dict[tuple[int, int, int | None, str | None], ManualRepresentationMetadata] = {
-        (representation.hunk, representation.addr, representation.end, representation.element_kind): representation
+    merged: dict[tuple[int, int, int | None, str | None, int | None], ManualRepresentationMetadata] = {
+        (
+            representation.hunk,
+            representation.addr,
+            representation.end,
+            representation.element_kind,
+            representation.operand_index,
+        ): representation
         for representation in seeded
     }
     for representation in manual:
-        key = (representation.hunk, representation.addr, representation.end, representation.element_kind)
+        key = (
+            representation.hunk,
+            representation.addr,
+            representation.end,
+            representation.element_kind,
+            representation.operand_index,
+        )
         existing = merged.get(key)
         if existing is not None and existing.style != representation.style:
             raise ValueError(f"Conflicting manual representation style for {(representation.hunk, representation.addr)!r}")

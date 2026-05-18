@@ -21,7 +21,7 @@ def main() -> int:
     if not seeded_path.exists():
         raise FileNotFoundError(f"Missing target_seeded_metadata.json: {target_dir}")
     try:
-        seeded_only = validate_target_seeded_metadata(
+        validate_target_seeded_metadata(
             TargetMetadata.from_dict(json.loads(seeded_path.read_text(encoding="utf-8")))
         )
     except Exception as exc:

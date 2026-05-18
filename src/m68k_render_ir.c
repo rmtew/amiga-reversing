@@ -1765,6 +1765,23 @@ static const M68kAnalysisManualRepresentation *lookup_manual_representation_at(
        index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (representation->has_section_index && representation->section_index == section_index &&
+        !representation->has_operand_index && representation->offset == offset && representation->size != 0U) {
+      return representation;
+    }
+  }
+  return NULL;
+}
+
+static const M68kAnalysisManualRepresentation *lookup_manual_operand_representation(
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, size_t operand_index) {
+  uint16_t index;
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  if (policy == NULL || operand_index > 3U) return NULL;
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    if (representation->has_section_index && representation->section_index == section_index &&
+        representation->has_operand_index && representation->operand_index == operand_index &&
         representation->offset == offset && representation->size != 0U) {
       return representation;
     }
@@ -1782,7 +1799,7 @@ static uint32_t next_manual_representation_offset(const M68kRenderLookup *lookup
        index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
     if (representation->has_section_index && representation->section_index == section_index &&
-        representation->offset > offset && representation->offset < next) {
+        !representation->has_operand_index && representation->offset > offset && representation->offset < next) {
       next = representation->offset;
     }
   }
@@ -3824,6 +3841,21 @@ static uint32_t immediate_domain_value_for_instruction_size(const M68kInstructio
   if (instruction->size_suffix == 'b') return value & 0xFFU;
   if (instruction->size_suffix == 'w') return value & 0xFFFFU;
   return value;
+}
+
+static void apply_manual_immediate_representations(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (instruction == NULL) return;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    const M68kAnalysisManualRepresentation *representation;
+    uint32_t value = 0U;
+    if (operand->symbol_ref.has_name != 0U || !operand_is_immediate_value_local(operand, &value)) continue;
+    representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    if (representation == NULL) continue;
+    operand->manual_representation_style_id = representation->style_id;
+  }
 }
 
 static uint32_t byte_width_for_instruction_size(const M68kInstructionIR *instruction) {
@@ -9412,6 +9444,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
   apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
+  apply_manual_immediate_representations(lookup, section->section_index, candidate->offset, &instruction);
   mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
   render_instruction = instruction;
   if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&

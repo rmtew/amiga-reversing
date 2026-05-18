@@ -83,6 +83,52 @@ static int append_signed_immediate_text(char *out_text, size_t out_text_size, si
   return append_format(out_text, out_text_size, inout_used, "#%d", signed_value);
 }
 
+static uint32_t immediate_render_mask(char size_suffix) {
+  if (size_suffix == 'b') return 0xFFU;
+  if (size_suffix == 'w') return 0xFFFFU;
+  return 0xFFFFFFFFU;
+}
+
+static unsigned immediate_render_width_bits(char size_suffix) {
+  if (size_suffix == 'b') return 8U;
+  if (size_suffix == 'w') return 16U;
+  if (size_suffix == 'l') return 32U;
+  return 0U;
+}
+
+static int append_binary_value(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
+    unsigned width_bits) {
+  int bit;
+  if (append_text(out_text, out_text_size, inout_used, "%") != 0) return -1;
+  if (width_bits == 0U) {
+    if (value == 0U) return append_text(out_text, out_text_size, inout_used, "0");
+    for (bit = 31; bit > 0 && ((value >> (unsigned)bit) & 1U) == 0U; --bit) {}
+  } else {
+    bit = (int)width_bits - 1;
+  }
+  for (; bit >= 0; --bit) {
+    if (append_text(out_text, out_text_size, inout_used, ((value >> (unsigned)bit) & 1U) ? "1" : "0") != 0)
+      return -1;
+  }
+  return 0;
+}
+
+static int append_manual_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
+    char size_suffix, uint8_t style_id) {
+  uint32_t mask = immediate_render_mask(size_suffix);
+  uint32_t rendered_value = value & mask;
+  unsigned width_bits = immediate_render_width_bits(size_suffix);
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY) {
+    if (append_text(out_text, out_text_size, inout_used, "#") != 0) return -1;
+    return append_binary_value(out_text, out_text_size, inout_used, rendered_value, width_bits);
+  }
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER &&
+      rendered_value >= 32U && rendered_value <= 126U && rendered_value != '\'' && rendered_value != '\\') {
+    return append_format(out_text, out_text_size, inout_used, "#'%c'", (char)rendered_value);
+  }
+  return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)rendered_value);
+}
+
 static int append_register_text(char *out_text, size_t out_text_size, size_t *inout_used, int is_address, uint8_t reg) {
   return append_format(out_text, out_text_size, inout_used, "%c%u", is_address ? 'a' : 'd', (unsigned)reg);
 }
@@ -669,6 +715,10 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0)
           goto overflow;
+      } else if (operand->manual_representation_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
+        if (append_manual_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
+              operand->manual_representation_style_id) != 0)
+          goto overflow;
       } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) {
         if (append_format(out_text, out_text_size, &used, "#%d",
               (int32_t)m68k_sign_extend32(operand->value.value, 8U)) != 0)
@@ -696,7 +746,13 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       break;
     case M68K_ASM_OPERAND_EA:
     case M68K_ASM_OPERAND_BF_EA:
-      if ((operand_has_renderable_symbol_name(operand, policy) == 0 ||
+      if (operand_has_renderable_symbol_name(operand, policy) == 0 &&
+          operand->manual_representation_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE &&
+          operand->value.ea_mode == 7U && operand->value.ea_reg == 4U) {
+        if (append_manual_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
+              operand->manual_representation_style_id) != 0)
+          goto overflow;
+      } else if ((operand_has_renderable_symbol_name(operand, policy) == 0 ||
           append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0) &&
           append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
             operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)

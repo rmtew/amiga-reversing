@@ -235,7 +235,8 @@ class M68kAnalysisManualRepresentation(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
         ("style_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("has_operand_index", ctypes.c_uint8),
+        ("operand_index", ctypes.c_uint8),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),

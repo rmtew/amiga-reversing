@@ -224,7 +224,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-  uint32_t offset, uint32_t size, uint8_t style_id);
+  uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -811,7 +811,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
 }
 
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-    uint32_t offset, uint32_t size, uint8_t style_id) {
+    uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index) {
   M68kAnalysisManualRepresentation *slot;
   uint16_t index;
   if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
@@ -821,7 +821,9 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *existing = &policy->manual_representations[index];
     if (existing->has_section_index && existing->section_index == section_index &&
-        existing->offset == offset && existing->size == size) {
+        existing->offset == offset && existing->size == size &&
+        existing->has_operand_index == has_operand_index &&
+        (!has_operand_index || existing->operand_index == operand_index)) {
       return existing->style_id == style_id;
     }
   }
@@ -829,6 +831,8 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   memset(slot, 0, sizeof(*slot));
   slot->has_section_index = 1U;
   slot->style_id = style_id;
+  slot->has_operand_index = has_operand_index;
+  slot->operand_index = has_operand_index ? operand_index : 0U;
   slot->section_index = section_index;
   slot->offset = offset;
   slot->size = size;
@@ -3894,15 +3898,18 @@ static int append_metadata_manual_representation_local(const char *object_start,
   uint32_t end = 0U;
   uint32_t hunk = 0U;
   uint32_t size = 1U;
+  uint32_t operand_index = 0U;
   uint8_t style_id;
   int has_addr = 0;
   int has_end = 0;
   int has_hunk = 0;
+  int has_operand_index = 0;
   char style[32];
   style[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
       !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "operand_index", &operand_index, &has_operand_index) ||
       !json_optional_string_field_local(object_start, object_end, "style", style, sizeof(style))) {
     return 0;
   }
@@ -3910,7 +3917,9 @@ static int append_metadata_manual_representation_local(const char *object_start,
   style_id = analysis_representation_style_id_from_text_local(style);
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
   if (has_end && end > addr) size = end - addr;
-  return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id);
+  if (has_operand_index && operand_index > 3U) return 1;
+  return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id,
+    has_operand_index ? 1U : 0U, (uint8_t)operand_index);
 }
 
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
@@ -5839,6 +5848,9 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
       return -1;
     if (json_builder_append_json_string(builder,
         manual_representation_style_name_local(representation->style_id)) != 0)
+      return -1;
+    if (representation->has_operand_index &&
+        json_builder_appendf(builder, ",\"operand_index\":%u", (unsigned)representation->operand_index) != 0)
       return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   }

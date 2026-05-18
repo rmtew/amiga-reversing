@@ -935,7 +935,8 @@ class _M68kAnalysisManualRepresentation(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
         ("style_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
+        ("has_operand_index", ctypes.c_uint8),
+        ("operand_index", ctypes.c_uint8),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),
@@ -2780,6 +2781,115 @@ after_data:
         {"section_index": 0, "offset": 2, "size": 4, "style": "character"}
     ]
     assert "manual_bytes:\n\tdc.b 'A','B','C','D'\t; mode=required, unit=byte\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_manual_representation_styles_instruction_immediates(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-immediate-representation.bin"
+    source_text = """    SECTION section,code
+start:
+    move.b #65,d0
+    move.w #5,d1
+    rts
+    dc.w 0
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_representation",
+                "representation": {
+                    "representation_id": "repr-char",
+                    "hunk": 0,
+                    "addr": 0,
+                    "end": 4,
+                    "style": "character",
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a2",
+                "sequence": 2,
+                "created_at": "2026-05-13T00:00:02+00:00",
+                "kind": "create_manual_representation",
+                "representation": {
+                    "representation_id": "repr-binary",
+                    "hunk": 0,
+                    "addr": 4,
+                    "end": 8,
+                    "style": "binary",
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["manual_representations"] == [
+        {"section_index": 0, "offset": 0, "size": 4, "style": "character", "operand_index": 0},
+        {"section_index": 0, "offset": 4, "size": 4, "style": "binary", "operand_index": 0},
+    ]
+    assert "\tmove.b #'A',d0\n" in rendered
+    assert "\tmove.w #%0000000000000101,d1\n" in rendered
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,
@@ -6193,11 +6303,17 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
         assert profile["facts_v2"]["asm_source_refused"] is False
         expected = []
         seen = set()
-        for index, row in enumerate(rows):
+        for row in rows:
             key = (row.get("section_index"), row.get("addr"), row.get("data_class"))
             if row.get("data_class") and row.get("kind") not in {"instruction", "label"} and key not in seen:
                 seen.add(key)
-                expected.append((index, row.get("comment_text") or row["data_class"]))
+                expected.append(
+                    (
+                        row.get("section_index"),
+                        row.get("addr"),
+                        row.get("comment_text") or row["data_class"],
+                    )
+                )
         duplicate_keys = [
             key
             for key, count in Counter(
@@ -6226,17 +6342,14 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
         finally:
             artifact.close()
 
-        entries = {
-            (entry.get("row_index"), entry.get("summary"))
-            for entry in navigation["groups"]["typed-data"]
-        }
         keys = [
             (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
             for entry in navigation["groups"]["typed-data"]
         ]
         assert len(keys) == len(set(keys))
-        for row_index, data_class in expected:
-            assert (row_index, data_class) in entries
+        entries = set(keys)
+        for key in expected:
+            assert key in entries
 
 
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
