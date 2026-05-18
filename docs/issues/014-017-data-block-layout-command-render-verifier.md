@@ -51,6 +51,9 @@ Implemented tests:
   with exact rebuild.
 - C backend removal smoke proves removing a layout drops generated element
   rendering back to raw data source and still rebuilds exactly.
+- C backend GenAm smoke proves `loc_0_00001442` can render as the
+  `ascii_hex_digit_value` lookup table with named digit/letter subranges and
+  exact rebuild.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 
@@ -59,7 +62,6 @@ Remaining:
   need explicit layout id/offset parameters.
 - Loop rendered-source verifier coverage beyond semantic state and exact
   round-trip.
-- GenAm `loc_0_00001442` smoke.
 
 Acceptance criteria:
 - The command catalog exposes supported layout commands without private loop

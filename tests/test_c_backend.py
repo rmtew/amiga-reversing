@@ -3574,6 +3574,160 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_genam_ascii_hex_table_data_block_layout_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    paths = _requires_project_paths("amiga_hunk_genam")
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    actions = [
+        {
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "genam-ascii-hex",
+                "hunk": 0,
+                "source_start": 0x1442,
+                "source_end": 0x14C2,
+                "name": "ascii_hex_digit_value",
+                "role": "lookup_table",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:0",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0,
+                "width": 0x30,
+                "kind": "padding",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:30",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x30,
+                "width": 10,
+                "kind": "array",
+                "name": "ascii_hex_digit_values",
+                "array_count": 10,
+                "array_stride": 1,
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:3A",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x3A,
+                "width": 7,
+                "kind": "padding",
+                "name": "ascii_hex_digit_separator",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:41",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x41,
+                "width": 6,
+                "kind": "array",
+                "name": "ascii_hex_upper_values",
+                "array_count": 6,
+                "array_stride": 1,
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:47",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x47,
+                "width": 0x1A,
+                "kind": "padding",
+                "name": "ascii_hex_case_gap",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:61",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x61,
+                "width": 6,
+                "kind": "array",
+                "name": "ascii_hex_lower_values",
+                "array_count": 6,
+                "array_stride": 1,
+                "representation": "hex",
+            },
+        },
+        {
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "genam-ascii-hex:67",
+                "layout_id": "genam-ascii-hex",
+                "offset": 0x67,
+                "width": 0x19,
+                "kind": "padding",
+                "name": "ascii_hex_tail",
+            },
+        },
+    ]
+    lines = [
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(paths.binary_source),
+            },
+            sort_keys=True,
+        )
+    ]
+    for sequence, action in enumerate(actions, start=1):
+        lines.append(
+            json.dumps(
+                {
+                    "record": "manual_action",
+                    "action_id": f"a{sequence}",
+                    "sequence": sequence,
+                    "created_at": f"2026-05-18T00:00:{sequence:02d}+00:00",
+                    **action,
+                },
+                sort_keys=True,
+            )
+        )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    original = paths.binary_source.path.read_bytes()
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "ascii_hex_digit_value:\n\tdcb.b $30,$FF\t; lookup_table\n" in rendered
+    assert "ascii_hex_digit_values:\n\tdc.b $00,$01,$02,$03,$04,$05,$06,$07,$08,$09\t; lookup_table\n" in rendered
+    assert "ascii_hex_upper_values:\n\tdc.b $0A,$0B,$0C,$0D,$0E,$0F\t; lookup_table\n" in rendered
+    assert "ascii_hex_lower_values:\n\tdc.b $0A,$0B,$0C,$0D,$0E,$0F\t; lookup_table\n" in rendered
+    assert "ascii_hex_tail:\n\tdcb.b $19,$FF\t; lookup_table\n" in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
 def test_real_dll_data_block_layout_removal_returns_raw_source_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
