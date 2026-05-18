@@ -41,8 +41,9 @@ Implemented tests:
 - Command catalog availability and `/commands/execute` cover row/range
   element set/remove/represent commands.
 - Reversing loop execution now selects data-block layout/element state
-  verifiers, checks Manual Action Log replay, semantic reload state, and exact
-  round-trip, and blocks unsupported type/ref commands without a verifier.
+  verifiers, checks Manual Action Log replay, semantic reload state for element
+  set/represent/remove, exact round-trip, and blocks unsupported type/ref
+  commands without a verifier.
 - C backend smoke proves a data-block layout element renders named character
   `dc.b` source and reassembles exactly.
 

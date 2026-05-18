@@ -727,6 +727,78 @@ def test_run_one_data_block_element_executes_with_element_state_verifier(
     assert report["action"]["command_id"] == "row.data_block.element.set"
 
 
+@pytest.mark.parametrize(
+    ("command_id", "element", "state_key"),
+    [
+        (
+            "row.data_block.element.represent",
+            {"layout_id": "ascii-hex", "offset": 0x30, "representation": "hex"},
+            "data_block_elements",
+        ),
+        (
+            "row.data_block.element.remove",
+            {"layout_id": "ascii-hex", "offset": 0x30, "width": 2, "removal_state": "raw"},
+            "removed_data_block_elements",
+        ),
+    ],
+)
+def test_run_one_data_block_element_update_commands_verify_expected_state(
+    command_id: str,
+    element: dict[str, object],
+    state_key: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x22)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": {
+            "id": "data-block-element-update",
+            "kind": "data_block_element",
+            "locator": locator,
+            "suggested_action_kinds": [command_id],
+            "confidence": "high",
+            "actionable": True,
+        },
+        "command": {
+            "kind": "command",
+            "command_id": command_id,
+            "context": {"kind": "row", "locator": locator},
+            "parameters": dict(element),
+            "output_affecting": True,
+        },
+    }
+    assert reversing_loop._candidate_verifier(selected["work_item"], selected["command"]) == "data_block_element_state"
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={state_key: [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": command_id}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == command_id
+            _write_manual_log(tmp_path)
+            return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["state_key"] == state_key
+    assert report["action"]["command_id"] == command_id
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
