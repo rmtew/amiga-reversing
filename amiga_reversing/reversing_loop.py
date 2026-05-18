@@ -3046,6 +3046,7 @@ def _verify_project_rsset_region(
 
 def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     for key in (
+        "rsset_layout_region_id",
         "offset",
         "size",
         "layout_name",
@@ -3054,6 +3055,7 @@ def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]
         "symbol",
         "storage_kind",
         "struct_name",
+        "pointer_struct",
         "semantic_type",
         "parser_role",
         "parser_routine",

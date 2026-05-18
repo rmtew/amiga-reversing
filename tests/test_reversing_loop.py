@@ -712,6 +712,52 @@ def test_rsset_region_verifier_requires_action_payload(
     assert verification["layers"][1]["message"] == "missing RSSET layout region payload"
 
 
+def test_rsset_region_verifier_rejects_mismatched_payload_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "rsset_layout_regions": [
+                    {
+                        "rsset_layout_region_id": "catalog-rsset-region-work-0004",
+                        "offset": 4,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "symbol": "work_flags",
+                    }
+                ]
+            },
+        ),
+    )
+
+    verification = reversing_loop._verify_rsset_region_mutation(
+        "demo",
+        "target.rsset_region.add",
+        _executed_rsset_region_payload(
+            tmp_path,
+            {
+                "rsset_layout_region_id": "catalog-rsset-region-work-0008",
+                "offset": 4,
+                "layout_name": "work",
+                "base_symbol": "__game_work_base__",
+                "symbol": "work_flags",
+            },
+        ),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["matching_rsset_layout_regions"] == []
+
+
 def test_target_command_verification_rejects_wrong_local_effect() -> None:
     command = {
         "kind": "command",
