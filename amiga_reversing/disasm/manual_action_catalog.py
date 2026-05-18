@@ -103,6 +103,10 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_transient("target.open_reproduction_report", "Open Reproduction", "open_reproduction_report", None),
         _target_reproduction_profile_action(),
         _target_source_export_action(),
+        _target_equate_action(),
+        _target_equate_edit_action(),
+        _target_equate_rename_action(),
+        _target_equate_remove_action(),
         _target_execution_view_action(),
         _target_execution_view_edit_action(),
         _target_execution_view_remove_action(),
@@ -146,6 +150,12 @@ def target_catalog_manual_payload(
         return "create_manual_execution_view", {"execution_view": _execution_view_payload(params)}
     if action.get("action") == "remove_manual_execution_view":
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
+    if action.get("action") == "create_manual_target_equate":
+        return "create_manual_target_equate", {"target_equate": _target_equate_payload(params)}
+    if action.get("action") == "rename_manual_target_equate":
+        return "rename_manual_target_equate", {"target_equate": _target_equate_rename_payload(params)}
+    if action.get("action") == "remove_manual_target_equate":
+        return "remove_manual_target_equate", {"target_equate": _target_equate_identity_payload(params)}
     if action.get("action") == "create_manual_custom_struct":
         return "create_manual_custom_struct", {"custom_struct": _custom_struct_payload(params)}
     if action.get("action") == "rename_manual_custom_struct":
@@ -1045,6 +1055,45 @@ def _execution_view_identity_payload(params: Mapping[str, object]) -> dict[str, 
     }
 
 
+def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
+    name = str(params.get("name") or "").strip()
+    value = _optional_int(params.get("value"))
+    if not name:
+        raise ValueError("create_manual_target_equate requires parameter name")
+    if value is None:
+        raise ValueError("create_manual_target_equate requires value")
+    equate: dict[str, object] = {
+        "target_equate_id": f"catalog-target-equate-{_action_id_token(name)}",
+        "name": name,
+        "value": value,
+    }
+    comment = params.get("comment")
+    if isinstance(comment, str) and comment.strip():
+        equate["comment"] = comment.strip()
+    return equate
+
+
+def _target_equate_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    name = str(params.get("name") or "").strip()
+    if not name:
+        raise ValueError("remove_manual_target_equate requires parameter name")
+    return {"target_equate_id": f"catalog-target-equate-{_action_id_token(name)}", "name": name}
+
+
+def _target_equate_rename_payload(params: Mapping[str, object]) -> dict[str, object]:
+    previous_name = str(params.get("previous_name") or "").strip()
+    name = str(params.get("name") or "").strip()
+    if not previous_name:
+        raise ValueError("rename_manual_target_equate requires parameter previous_name")
+    if not name:
+        raise ValueError("rename_manual_target_equate requires parameter name")
+    return {
+        "target_equate_id": f"catalog-target-equate-{_action_id_token(previous_name)}",
+        "previous_name": previous_name,
+        "name": name,
+    }
+
+
 def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, object]:
     name = field.get("name")
     field_type = field.get("type")
@@ -1392,6 +1441,37 @@ def _execution_view_parameter_schema() -> dict[str, object]:
             "comment": {"type": "string"},
         },
         "required": ["source_start", "source_end", "base_addr", "name"],
+    }
+
+
+def _target_equate_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "value": {"type": "integer"},
+            "comment": {"type": "string"},
+        },
+        "required": ["name", "value"],
+    }
+
+
+def _target_equate_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    }
+
+
+def _target_equate_rename_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "previous_name": {"type": "string"},
+            "name": {"type": "string"},
+        },
+        "required": ["previous_name", "name"],
     }
 
 
@@ -2387,6 +2467,42 @@ def _target_execution_view_action() -> dict[str, object]:
         "Add execution view",
         "create_manual_execution_view",
         _execution_view_parameter_schema(),
+    )
+
+
+def _target_equate_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.equate.add",
+        "Add equate",
+        "create_manual_target_equate",
+        _target_equate_parameter_schema(),
+    )
+
+
+def _target_equate_edit_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.equate.edit",
+        "Edit equate",
+        "create_manual_target_equate",
+        _target_equate_parameter_schema(),
+    )
+
+
+def _target_equate_rename_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.equate.rename",
+        "Rename equate",
+        "rename_manual_target_equate",
+        _target_equate_rename_parameter_schema(),
+    )
+
+
+def _target_equate_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.equate.remove",
+        "Remove equate",
+        "remove_manual_target_equate",
+        _target_equate_identity_parameter_schema(),
     )
 
 

@@ -58,6 +58,10 @@ _COMMAND_RANK = {
     "representation.binary": 75,
     "representation.character": 75,
     "semantic.register.struct_ptr": 73,
+    "target.equate.add": 72,
+    "target.equate.edit": 72,
+    "target.equate.rename": 72,
+    "target.equate.remove": 68,
     "target.custom_struct.add": 72,
     "target.custom_struct.edit": 72,
     "target.custom_struct.rename": 72,
@@ -2209,7 +2213,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "round_trip"
     if any(action.startswith(("target.custom_struct.", "target.custom_struct_field.", "typed_gap.field.", "typed_access.field.")) for action in actions):
         return "round_trip"
-    if any(action.startswith(("target.execution_view.", "correction.suppress_seeded_item.")) for action in actions):
+    if any(action.startswith(("target.equate.", "target.execution_view.", "correction.suppress_seeded_item.")) for action in actions):
         return "round_trip"
     if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
         return "round_trip"
@@ -2644,6 +2648,10 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         "target.rsset_region.edit",
         "target.rsset_region.rename",
         "target.rsset_region.remove",
+        "target.equate.add",
+        "target.equate.edit",
+        "target.equate.rename",
+        "target.equate.remove",
         "target.custom_struct.add",
         "target.custom_struct.edit",
         "target.custom_struct.rename",

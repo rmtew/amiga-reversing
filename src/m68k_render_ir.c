@@ -657,6 +657,21 @@ static int render_asm_define_m68k_vector_symbol_once(M68kRenderIRPreview *previe
   return render_asm_declare_symbol_hex_once(preview, symbol_name, vector->address);
 }
 
+static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy) {
+  uint16_t index;
+  if (preview == NULL || policy == NULL) return 1;
+  for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
+    const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
+    if (equate->name[0] == '\0') continue;
+    if (equate->value >= 0) {
+      if (!render_asm_declare_symbol_hex_once(preview, equate->name, (uint32_t)equate->value)) return 0;
+    } else if (!render_asm_declare_symbol_once(preview, equate->name, equate->value)) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 static int render_asm_include_for_symbol_expr(M68kRenderIRPreview *preview, const char *expr);
 
 static int render_asm_define_amiga_hardware_instance_alias_once(M68kRenderIRPreview *preview,
@@ -3843,6 +3858,19 @@ static uint32_t immediate_domain_value_for_instruction_size(const M68kInstructio
   return value;
 }
 
+static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
+    const M68kAnalysisManualRepresentation *representation) {
+  const M68kAnalysisPolicy *policy;
+  if (representation == NULL) return NULL;
+  if (representation->symbol_id != 0U) return amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
+  if (lookup == NULL || lookup->policy == NULL || representation->target_equate_index == 0U) return NULL;
+  policy = lookup->policy;
+  if (representation->target_equate_index > policy->target_equate_count ||
+      representation->target_equate_index > M68K_ANALYSIS_TARGET_EQUATE_LIMIT)
+    return NULL;
+  return policy->target_equates[representation->target_equate_index - 1U].name;
+}
+
 static void apply_manual_immediate_representations(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -3854,14 +3882,14 @@ static void apply_manual_immediate_representations(const M68kRenderLookup *looku
     if (operand->symbol_ref.has_name != 0U || !operand_is_immediate_value_local(operand, &value)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
-    if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
-        representation->symbol_id != 0U) {
-      const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
+    if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
+      const char *symbol_name = manual_representation_symbol_name(lookup, representation);
       if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) continue;
       m68k_ir_symbol_ref_init(&operand->symbol_ref);
       operand->symbol_ref.has_name = 1U;
       operand->symbol_ref.name_is_generated = 0U;
-      operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+      operand->symbol_ref.name_provenance = representation->symbol_id != 0U ?
+        M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA : M68K_IR_SYMBOL_PROVENANCE_NONE;
       operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
       snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
       continue;
@@ -9635,6 +9663,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
     render_asm_app_extension_rs(out_preview, &lookup, decode, out_source_analysis);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
+    if (!render_asm_declare_target_equates(out_preview, policy)) goto cleanup;
     out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;
   }
   phase_end = clock();

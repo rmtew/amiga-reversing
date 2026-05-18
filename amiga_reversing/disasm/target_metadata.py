@@ -778,6 +778,40 @@ class ManualRepresentationMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class TargetEquateMetadata:
+    name: str
+    value: int
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    comment: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> TargetEquateMetadata:
+        name = payload["name"]
+        value = payload["value"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        comment = payload.get("comment")
+        assert isinstance(name, str)
+        assert isinstance(value, int)
+        assert isinstance(citation, str)
+        assert comment is None or isinstance(comment, str)
+        return cls(
+            name=name,
+            value=value,
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+            comment=comment,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionViewMetadata:
     source_start: int
     source_end: int
@@ -855,6 +889,7 @@ class TargetMetadata:
     absolute_code_labels: tuple[AbsoluteCodeLabelMetadata, ...] = ()
     entry_comments: tuple[EntryCommentMetadata, ...] = ()
     manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
+    target_equates: tuple[TargetEquateMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
 
@@ -873,6 +908,7 @@ class TargetMetadata:
         absolute_code_labels = payload.get("absolute_code_labels", [])
         entry_comments = payload.get("entry_comments", [])
         manual_representations = payload.get("manual_representations", [])
+        target_equates = payload.get("target_equates", [])
         execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
         assert isinstance(target_type, str)
@@ -917,6 +953,10 @@ class TargetMetadata:
             manual_representations=tuple(
                 ManualRepresentationMetadata.from_dict(_json_object(representation_payload))
                 for representation_payload in _json_list(manual_representations)
+            ),
+            target_equates=tuple(
+                TargetEquateMetadata.from_dict(_json_object(equate_payload))
+                for equate_payload in _json_list(target_equates)
             ),
             execution_views=tuple(
                 ExecutionViewMetadata.from_dict(_json_object(view_payload))
@@ -1020,6 +1060,8 @@ def validate_target_seeded_metadata(metadata: TargetMetadata) -> TargetMetadata:
         raise ValueError("target_seeded_metadata.json must not contain entry_register_seeds")
     if metadata.suppressed_seeded_items:
         raise ValueError("target_seeded_metadata.json must not contain suppressed_seeded_items")
+    if metadata.target_equates:
+        raise ValueError("target_seeded_metadata.json must not contain target_equates")
     for entity in metadata.seeded_entities:
         if entity.source_id is None:
             raise ValueError(f"target_seeded_metadata.json entity at {entity.addr:#x} is missing source_id")
@@ -1082,6 +1124,8 @@ def validate_target_corrections_metadata(metadata: TargetMetadata) -> TargetMeta
         raise ValueError("target_corrections.json must not contain custom_structs")
     if metadata.rsset_layout_regions:
         raise ValueError("target_corrections.json must not contain rsset_layout_regions")
+    if metadata.target_equates:
+        raise ValueError("target_corrections.json must not contain target_equates")
     return metadata
 
 
@@ -1117,6 +1161,7 @@ def apply_suppressed_seeded_items(
         ),
         entry_comments=seeded.entry_comments,
         manual_representations=seeded.manual_representations,
+        target_equates=seeded.target_equates,
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
     )
@@ -1317,6 +1362,16 @@ def _merge_manual_representations(
     return tuple(merged[key] for key in sorted(merged))
 
 
+def _merge_target_equates(
+    manual: tuple[TargetEquateMetadata, ...],
+    seeded: tuple[TargetEquateMetadata, ...],
+) -> tuple[TargetEquateMetadata, ...]:
+    merged: dict[str, TargetEquateMetadata] = {equate.name: equate for equate in seeded}
+    for equate in manual:
+        merged[equate.name] = equate
+    return tuple(merged[key] for key in sorted(merged))
+
+
 def _merge_execution_views(
     manual: tuple[ExecutionViewMetadata, ...],
     seeded: tuple[ExecutionViewMetadata, ...],
@@ -1368,6 +1423,7 @@ def merge_target_metadata(manual: TargetMetadata, seeded: TargetMetadata) -> Tar
             manual.manual_representations,
             seeded.manual_representations,
         ),
+        target_equates=_merge_target_equates(manual.target_equates, seeded.target_equates),
         execution_views=_merge_execution_views(
             manual.execution_views,
             seeded.execution_views,

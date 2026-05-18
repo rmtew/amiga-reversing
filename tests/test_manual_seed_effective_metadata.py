@@ -217,6 +217,51 @@ def test_effective_metadata_projects_equate_semantic_hint_to_symbol_representati
     ]
 
 
+def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_target_equate",
+                target_equate={
+                    "target_equate_id": "equate-1",
+                    "name": "PLAYER_START_LIVES",
+                    "value": 3,
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "rename_manual_target_equate",
+                target_equate={
+                    "target_equate_id": "equate-1",
+                    "previous_name": "PLAYER_START_LIVES",
+                    "name": "PLAYER_INITIAL_LIVES",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["target_equates"] == [
+        {
+            "citation": "manual_action_log:equate-1",
+            "comment": None,
+            "name": "PLAYER_INITIAL_LIVES",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "value": 3,
+        }
+    ]
+
+
 def test_effective_metadata_projects_lvo_semantic_hint_to_symbol_representation(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

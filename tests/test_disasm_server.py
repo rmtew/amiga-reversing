@@ -1380,6 +1380,17 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert export_action["appends_to_manual_action_log"] is False
     assert export_action["action"] == "export_source"
     assert export_action["parameter_schema"]["properties"]["assembler_profile"]["enum"] == ["vasm", "devpac"]
+    equate_action = next(action for action in actions if action["action_id"] == "target.equate.add")
+    assert equate_action["category"] == "target_metadata"
+    assert equate_action["appends_to_manual_action_log"] is True
+    assert equate_action["action"] == "create_manual_target_equate"
+    assert equate_action["parameter_schema"]["required"] == ["name", "value"]
+    equate_rename_action = next(action for action in actions if action["action_id"] == "target.equate.rename")
+    assert equate_rename_action["action"] == "rename_manual_target_equate"
+    assert equate_rename_action["parameter_schema"]["required"] == ["previous_name", "name"]
+    equate_remove_action = next(action for action in actions if action["action_id"] == "target.equate.remove")
+    assert equate_remove_action["action"] == "remove_manual_target_equate"
+    assert equate_remove_action["parameter_schema"]["required"] == ["name"]
     execution_view_action = next(action for action in actions if action["action_id"] == "target.execution_view.add")
     assert execution_view_action["category"] == "target_metadata"
     assert execution_view_action["appends_to_manual_action_log"] is True
@@ -1769,6 +1780,53 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     assert local_effect["kind"] == "review_note_add"
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
+def test_route_manual_action_catalog_execute_appends_target_equate_action(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "target.equate.add",
+            "context": {"kind": "target"},
+            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    target_equate = cast(dict[str, object], cast(dict[str, object], action["payload"])["target_equate"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "create_manual_target_equate"
+    assert target_equate == {
+        "target_equate_id": "catalog-target-equate-PLAYER_START_LIVES",
+        "name": "PLAYER_START_LIVES",
+        "value": 3,
+    }
+    assert application["status"] == "applied"
+    assert local_effect == {"kind": "target_equate", "target_equate": target_equate}
+    assert appended_actions == [action]
 
 
 @pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])

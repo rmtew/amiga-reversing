@@ -36,6 +36,7 @@ from amiga_reversing.disasm.target_metadata import (
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
     SuppressedSeededItemMetadata,
+    TargetEquateMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
@@ -419,6 +420,29 @@ def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionView
     )
 
 
+def _manual_target_equate_to_metadata(equate: dict[str, object]) -> TargetEquateMetadata | None:
+    name = _manual_seed_text(equate, "name")
+    value = _manual_seed_int(equate, "value")
+    if name is None or value is None:
+        return None
+    return TargetEquateMetadata(
+        name=name,
+        value=value,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(equate, "target_equate_id"),
+        comment=_manual_seed_text(equate, "comment"),
+    )
+
+
+def _manual_target_equate_rename(equate: dict[str, object]) -> tuple[str, str] | None:
+    previous_name = _manual_seed_text(equate, "previous_name")
+    name = _manual_seed_text(equate, "name")
+    if previous_name is None or name is None:
+        return None
+    return previous_name, name
+
+
 def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomStructFieldMetadata | None:
     name = _manual_seed_text(field, "name")
     field_type = _manual_seed_text(field, "type")
@@ -603,6 +627,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
+    target_equate_projections = projection.target_equates
+    renamed_target_equate_projections = projection.renamed_target_equates
+    removed_target_equate_projections = projection.removed_target_equates
     custom_struct_projections = projection.custom_structs
     renamed_custom_struct_projections = projection.renamed_custom_structs
     removed_custom_struct_projections = projection.removed_custom_structs
@@ -621,6 +648,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not semantic_hints
         and not register_seed_projections
         and not suppressed_seeded_item_projections
+        and not target_equate_projections
+        and not renamed_target_equate_projections
+        and not removed_target_equate_projections
         and not custom_struct_projections
         and not renamed_custom_struct_projections
         and not removed_custom_struct_projections
@@ -642,10 +672,29 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_comments = list(metadata.entry_comments)
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
+    target_equates = list(metadata.target_equates)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
+    removed_target_equate_names = {
+        name
+        for equate in removed_target_equate_projections
+        if (name := _manual_seed_text(equate, "name")) is not None
+    }
+    renamed_target_equates = {
+        previous_name: name
+        for equate in renamed_target_equate_projections
+        if (rename := _manual_target_equate_rename(equate)) is not None
+        for previous_name, name in (rename,)
+    }
+    if renamed_target_equates:
+        target_equates = [
+            replace(equate, name=renamed_target_equates.get(equate.name, equate.name))
+            for equate in target_equates
+        ]
+    if removed_target_equate_names:
+        target_equates = [equate for equate in target_equates if equate.name not in removed_target_equate_names]
     removed_execution_view_keys = {
         key
         for view in removed_execution_view_projections
@@ -728,6 +777,11 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         suppressed_seeded_item = _manual_suppressed_seeded_item_to_metadata(item)
         if suppressed_seeded_item is not None:
             suppressed_seeded_items.append(suppressed_seeded_item)
+    for equate in target_equate_projections:
+        target_equate = _manual_target_equate_to_metadata(equate)
+        if target_equate is not None:
+            target_equates.append(target_equate)
+    merged_target_equates = {equate.name: equate for equate in target_equates}
     for struct in custom_struct_projections:
         custom_struct = _manual_custom_struct_to_metadata(struct)
         if custom_struct is not None:
@@ -778,6 +832,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         seeded_code_entrypoints=tuple(seeded_code_entrypoints),
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
+        target_equates=tuple(merged_target_equates.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         execution_views=tuple(merged_execution_views.values()),

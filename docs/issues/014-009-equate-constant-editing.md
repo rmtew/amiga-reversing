@@ -14,8 +14,19 @@ Current evidence:
 Progress:
 - Known NDK equate use sites are source-converging: Manual Action Log hint ->
   effective metadata -> rendered symbol -> exact direct rebuild.
-- Target-local equate identities and add/edit/rename/remove commands remain
-  open.
+- Target-local equate identities now exist as `target_equates` keyed by symbol
+  name. `create_manual_target_equate`, `rename_manual_target_equate`, and
+  `remove_manual_target_equate` replay into effective metadata.
+- Target catalog exposes `target.equate.add/edit/rename/remove`; the loop
+  accepts explicit target-equate candidates with target context and round-trip
+  verification.
+- C policy parsing now loads target-local equates before manual symbolic
+  representations, emits rendered `EQU` definitions, and can render immediate
+  use sites with those symbols. Focused C-backend coverage proves exact direct
+  rebuild.
+- Current C policy table intentionally caps target-local equates at 16 entries
+  to avoid growing the stack-heavy `M68kAnalysisPolicy`; broader capacity should
+  move this table out of the policy struct.
 
 Acceptance criteria:
 - Equates have durable target-local identities.
@@ -25,3 +36,8 @@ Acceptance criteria:
 
 Required tests:
 Manual action replay, command execution, source rendering, and verifier tests.
+
+Remaining:
+- Add listing/navigation workflows for existing target-local equates.
+- Add remove/rename rendered-source regressions beyond effective metadata and
+  command payload coverage.

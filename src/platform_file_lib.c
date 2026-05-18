@@ -14,6 +14,7 @@
 #include "m68k_object.h"
 #include "m68k_parse_util.h"
 #include "m68k_reproduction_compare.h"
+#include "m68k_render_lookup_internal.h"
 #include "m68k_simulator.h"
 #include "m68k_source_pipeline.h"
 #include "m68k_source_ir_render.h"
@@ -224,6 +225,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
+static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
   const char *symbol_name);
@@ -812,19 +814,60 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   return 1;
 }
 
+static int policy_find_target_equate_index_local(const M68kAnalysisPolicy *policy, const char *name,
+    uint16_t *out_index) {
+  uint16_t index;
+  if (out_index != NULL) *out_index = 0U;
+  if (policy == NULL || name == NULL || name[0] == '\0') return 0;
+  for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
+    if (strcmp(policy->target_equates[index].name, name) == 0) {
+      if (out_index != NULL) *out_index = (uint16_t)(index + 1U);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value) {
+  uint16_t index;
+  M68kAnalysisTargetEquate *slot;
+  if (policy == NULL || name == NULL || name[0] == '\0' || !asm_symbol_name_is_safe_local(name)) return 0;
+  for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
+    slot = &policy->target_equates[index];
+    if (strcmp(slot->name, name) == 0) {
+      slot->value = value;
+      return 1;
+    }
+  }
+  if (policy->target_equate_count >= M68K_ANALYSIS_TARGET_EQUATE_LIMIT) return 0;
+  slot = &policy->target_equates[policy->target_equate_count++];
+  memset(slot, 0, sizeof(*slot));
+  if (!copy_policy_text(slot->name, sizeof(slot->name), name)) {
+    memset(slot, 0, sizeof(*slot));
+    --policy->target_equate_count;
+    return 0;
+  }
+  slot->value = value;
+  return 1;
+}
+
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
     uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
     const char *symbol_name) {
   M68kAnalysisManualRepresentation *slot;
   uint16_t index;
   uint16_t symbol_id = 0U;
+  uint16_t target_equate_index = 0U;
   if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
       policy->manual_representation_count >= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) {
     return 0;
   }
   if (symbol_name != NULL && symbol_name[0] != '\0') {
     symbol_id = amiga_os_name_id(M68K_PLATFORM_NAME_SYMBOL, symbol_name);
-    if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id) == NULL) return 0;
+    if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id) == NULL) {
+      symbol_id = 0U;
+      if (!policy_find_target_equate_index_local(policy, symbol_name, &target_equate_index)) return 0;
+    }
   }
   for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *existing = &policy->manual_representations[index];
@@ -832,7 +875,8 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
         existing->offset == offset && existing->size == size &&
         existing->has_operand_index == has_operand_index &&
         (!has_operand_index || existing->operand_index == operand_index)) {
-      return existing->style_id == style_id && existing->symbol_id == symbol_id;
+      return existing->style_id == style_id && existing->symbol_id == symbol_id &&
+        existing->target_equate_index == target_equate_index;
     }
   }
   slot = &policy->manual_representations[policy->manual_representation_count++];
@@ -845,6 +889,7 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   slot->offset = offset;
   slot->size = size;
   slot->symbol_id = symbol_id;
+  slot->target_equate_index = target_equate_index;
   return 1;
 }
 
@@ -3936,6 +3981,31 @@ static int append_metadata_manual_representation_local(const char *object_start,
     style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ? symbol : NULL);
 }
 
+static int append_metadata_target_equate_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  const char *value_start;
+  char number_text[32];
+  char *endptr = NULL;
+  long parsed;
+  size_t used = 0U;
+  char name[64];
+  name[0] = '\0';
+  if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name))) return 0;
+  value_start = json_find_key_local(object_start, object_end, "value");
+  if (name[0] == '\0' || value_start == NULL) return 1;
+  value_start = json_skip_ws_local(value_start, object_end);
+  while (value_start < object_end && ((*value_start >= '0' && *value_start <= '9') ||
+         *value_start == '-' || *value_start == '+')) {
+    if (used + 1U >= sizeof(number_text)) return 0;
+    number_text[used++] = *value_start++;
+  }
+  number_text[used] = '\0';
+  if (used == 0U) return 0;
+  parsed = strtol(number_text, &endptr, 10);
+  if (endptr == NULL || *endptr != '\0' || parsed < INT32_MIN || parsed > INT32_MAX) return 0;
+  return policy_add_target_equate_local(policy, name, (int32_t)parsed);
+}
+
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
   const char *end = text + strlen(text);
   const char *cursor = json_find_key_local(text, end, key);
@@ -4705,6 +4775,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     if (object_start == NULL) break;
     if (!append_metadata_seeded_entity_local(object_start, object_end, policy)) {
       platform_file_add_error(diagnostics.list, "failed parsing target metadata seeded entity");
+      return -1;
+    }
+    cursor = object_end;
+  }
+  cursor = json_find_array_local(text, "target_equates", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_target_equate_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata target equate");
       return -1;
     }
     cursor = object_end;
@@ -5849,6 +5930,15 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
       return -1;
   }
+  if (json_builder_append(builder, "],\"target_equates\":[") != 0) return -1;
+  for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
+    const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"name\":") != 0 ||
+        json_builder_append_json_string(builder, equate->name) != 0 ||
+        json_builder_appendf(builder, ",\"value\":%d}", (int)equate->value) != 0)
+      return -1;
+  }
   if (json_builder_append(builder, "],\"manual_representations\":[") != 0) return -1;
   for (index = 0U; index < policy->manual_representation_count &&
        index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
@@ -5872,6 +5962,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
       if (symbol_name != NULL && symbol_name[0] != '\0' &&
           (json_builder_append(builder, ",\"symbol\":") != 0 ||
            json_builder_append_json_string(builder, symbol_name) != 0))
+        return -1;
+    } else if (representation->target_equate_index != 0U &&
+        representation->target_equate_index <= policy->target_equate_count) {
+      const M68kAnalysisTargetEquate *equate = &policy->target_equates[representation->target_equate_index - 1U];
+      if (equate->name[0] != '\0' &&
+          (json_builder_append(builder, ",\"symbol\":") != 0 ||
+           json_builder_append_json_string(builder, equate->name) != 0))
         return -1;
     }
     if (json_builder_append(builder, "}") != 0) return -1;

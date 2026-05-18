@@ -7,6 +7,36 @@ from amiga_reversing.disasm.manual_action_catalog import (
 )
 
 
+def test_target_equate_catalog_payloads() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.equate.add",
+        {"name": "PLAYER_START_LIVES", "value": 3},
+    )
+
+    assert kind == "create_manual_target_equate"
+    assert payload == {
+        "target_equate": {
+            "target_equate_id": "catalog-target-equate-PLAYER_START_LIVES",
+            "name": "PLAYER_START_LIVES",
+            "value": 3,
+        }
+    }
+
+    kind, payload = target_catalog_manual_payload(
+        "target.equate.rename",
+        {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"},
+    )
+
+    assert kind == "rename_manual_target_equate"
+    assert payload == {
+        "target_equate": {
+            "target_equate_id": "catalog-target-equate-PLAYER_START_LIVES",
+            "previous_name": "PLAYER_START_LIVES",
+            "name": "PLAYER_INITIAL_LIVES",
+        }
+    }
+
+
 def test_runtime_label_rename_uses_generated_absolute_address() -> None:
     row = {
         "kind": "label",

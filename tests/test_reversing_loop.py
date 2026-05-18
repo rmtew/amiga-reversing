@@ -994,6 +994,29 @@ def test_target_execution_view_command_candidate_uses_target_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_target_equate_command_candidate_uses_target_context() -> None:
+    candidate = {
+        "id": "target-equate",
+        "candidate_id": "target-equate",
+        "kind": "target_equate",
+        "suggested_action_kinds": ["target.equate.add"],
+        "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "target.equate.add",
+        "context": {"kind": "target"},
+        "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
 def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_rank() -> None:
     candidate = {
         "id": "suppress-seeded-entity",

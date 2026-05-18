@@ -51,6 +51,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
+#define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 16U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -274,11 +275,16 @@ typedef struct M68kAnalysisManualRepresentation {
   uint8_t has_operand_index;
   uint8_t operand_index;
   uint16_t symbol_id;
-  uint16_t reserved;
+  uint16_t target_equate_index;
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;
 } M68kAnalysisManualRepresentation;
+
+typedef struct M68kAnalysisTargetEquate {
+  char name[64];
+  int32_t value;
+} M68kAnalysisTargetEquate;
 
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
@@ -294,6 +300,8 @@ typedef struct M68kAnalysisPolicy {
   uint16_t runtime_entry_point_count;
   uint16_t rsset_layout_region_count;
   uint16_t manual_representation_count;
+  uint16_t target_equate_count;
+  uint16_t reserved_count0;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -304,6 +312,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
+  M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {

@@ -148,6 +148,9 @@ class ManualActionKind(StrEnum):
     CREATE_MANUAL_SEMANTIC_HINT = "create_manual_semantic_hint"
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
+    CREATE_MANUAL_TARGET_EQUATE = "create_manual_target_equate"
+    RENAME_MANUAL_TARGET_EQUATE = "rename_manual_target_equate"
+    REMOVE_MANUAL_TARGET_EQUATE = "remove_manual_target_equate"
     CREATE_MANUAL_CUSTOM_STRUCT = "create_manual_custom_struct"
     RENAME_MANUAL_CUSTOM_STRUCT = "rename_manual_custom_struct"
     REMOVE_MANUAL_CUSTOM_STRUCT = "remove_manual_custom_struct"
@@ -186,6 +189,9 @@ class ManualActionLogProjection:
     representations: tuple[dict[str, object], ...]
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
+    target_equates: tuple[dict[str, object], ...]
+    renamed_target_equates: tuple[dict[str, object], ...]
+    removed_target_equates: tuple[dict[str, object], ...]
     custom_structs: tuple[dict[str, object], ...]
     renamed_custom_structs: tuple[dict[str, object], ...]
     removed_custom_structs: tuple[dict[str, object], ...]
@@ -344,6 +350,9 @@ def _empty_projection(
         representations=(),
         semantic_hints=(),
         suppressed_seeded_items=(),
+        target_equates=(),
+        renamed_target_equates=(),
+        removed_target_equates=(),
         custom_structs=(),
         renamed_custom_structs=(),
         removed_custom_structs=(),
@@ -997,6 +1006,16 @@ def _custom_struct_rename_names(custom_struct: dict[str, object]) -> tuple[str, 
     return previous_name, name
 
 
+def _target_equate_rename_names(equate: dict[str, object]) -> tuple[str, str]:
+    previous_name = equate.get("previous_name")
+    name = equate.get("name")
+    if not isinstance(previous_name, str) or not previous_name:
+        raise ValueError("target_equate rename requires previous_name")
+    if not isinstance(name, str) or not name:
+        raise ValueError("target_equate rename requires name")
+    return previous_name, name
+
+
 def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
     hunk = _manual_seed_int(symbol, "hunk")
     addr = _manual_seed_int(symbol, "addr")
@@ -1205,6 +1224,9 @@ def _project_actions(
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
+    target_equates: dict[str, dict[str, object]] = {}
+    renamed_target_equates: dict[str, dict[str, object]] = {}
+    removed_target_equates: dict[str, dict[str, object]] = {}
     custom_structs: dict[str, dict[str, object]] = {}
     renamed_custom_structs: dict[str, dict[str, object]] = {}
     removed_custom_structs: dict[str, dict[str, object]] = {}
@@ -1258,6 +1280,26 @@ def _project_actions(
         elif action.kind is ManualActionKind.SUPPRESS_SEEDED_ITEM:
             item = _action_object(action, "suppressed_seeded_item")
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
+        elif action.kind is ManualActionKind.CREATE_MANUAL_TARGET_EQUATE:
+            equate = _action_object(action, "target_equate")
+            _put_by_id(target_equates, equate, "name")
+            removed_target_equates.pop(str(equate["name"]), None)
+        elif action.kind is ManualActionKind.RENAME_MANUAL_TARGET_EQUATE:
+            equate = _action_object(action, "target_equate")
+            previous_name, name = _target_equate_rename_names(equate)
+            existing = target_equates.pop(previous_name, None)
+            if existing is not None:
+                updated = dict(existing)
+                updated["name"] = name
+                target_equates[name] = updated
+            renamed_target_equates[previous_name] = equate
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_TARGET_EQUATE:
+            equate = _action_object(action, "target_equate")
+            name = equate.get("name")
+            if not isinstance(name, str):
+                raise ValueError("target_equate requires name")
+            target_equates.pop(name, None)
+            removed_target_equates[name] = equate
         elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT:
             custom_struct = _action_object(action, "custom_struct")
             _put_by_id(custom_structs, custom_struct, "name")
@@ -1360,6 +1402,9 @@ def _project_actions(
         representations=tuple(representations.values()),
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
+        target_equates=tuple(target_equates.values()),
+        renamed_target_equates=tuple(renamed_target_equates.values()),
+        removed_target_equates=tuple(removed_target_equates.values()),
         custom_structs=tuple(custom_structs.values()),
         renamed_custom_structs=tuple(renamed_custom_structs.values()),
         removed_custom_structs=tuple(removed_custom_structs.values()),
