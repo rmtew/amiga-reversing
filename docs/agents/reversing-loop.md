@@ -24,13 +24,37 @@ private mutation path.
 
 ## Candidate Choice
 
-1. Inspect current target state, review items, round-trip state, and candidates.
-2. Check xrefs before naming, seeding, or classification decisions.
-3. Prefer high-confidence candidates with a locator or durable domain id.
-4. Prefer durable command/manual-action paths over direct file edits.
-5. Autonomous mutation requires repo-visible evidence, rationale, suggested
+1. Select work that moves rendered source closer to human-quality reconstructed
+   source, not work that merely proves the loop can mutate.
+2. Inspect current target state, review items, round-trip state, listing
+   navigation, analysis facts, and candidates.
+3. Check xrefs before naming, seeding, or classification decisions.
+4. Prefer high-confidence candidates with a locator or durable domain id.
+5. Prefer durable command/manual-action paths over direct file edits.
+6. Autonomous mutation requires repo-visible evidence, rationale, suggested
    action, and verifier; command availability alone is not enough.
-6. Reject row index, row text, DOM text, and screenshots as durable identity.
+7. Reject row index, row text, DOM text, and screenshots as durable identity.
+
+## Source-Converging Work
+
+Useful target-progress actions improve the rendered source in ways a human
+reverser would recognize:
+
+- name functions, labels, app slots, globals, and referenced data from xrefs and
+  behavior;
+- classify code, raw data, strings, scalar tables, pointer tables, structured
+  data, and representations;
+- record API/library call semantics and propagate them through callers,
+  arguments, return values, and stored state;
+- add type, structure, field, or register-base facts when evidence supports
+  them;
+- resolve review items only with the type-specific verifier.
+
+Comments are allowed only for concrete semantic discoveries that cannot be
+represented by a more structured command. Do not create entrypoint, placeholder,
+proof, fallback, or "note that this exists" comments as autonomous progress.
+Every selected action must state the evidence used, the expected rendered-source
+improvement, the command/manual action used, and the verifier.
 
 ## Allowed Mutations
 
@@ -42,31 +66,24 @@ private mutation path.
 - Do not treat a `.project.json` timestamp-only change as meaningful progress;
   Manual Action Log state is local/ignored and must be summarized in reports.
 
-## Real Listing Comment Iteration
+## Listing Workflow
 
-For a real locator-backed comment iteration, use one Python/server process for
-listing access and command execution. Listing locators are available only after
-the listing artifact is opened, and that artifact is process-local.
+Use one Python/server process for listing access and command execution. Listing
+locators are available only after the listing artifact is opened, and that
+artifact is process-local.
 
 1. Run hygiene.
 2. Open the listing with `POST /api/projects/<target>/listing/open`.
 3. Wait for listing status to become ready in the same process.
-4. Fetch a real row locator from `/listing`.
-5. Confirm `/commands` exposes `comment.edit` for that locator.
-6. Execute only `comment.edit` through `/commands/execute`.
-7. Verify Manual Action Log count/head hash, semantic reload, projected
-   `comment_text`, `workflow_profile`, and `agent/` report output.
-8. Do not rely on `reversing_loop inspect` alone for arbitrary comment
-   opportunities; current inspect candidates come from review items.
-9. Prefer `run-one --target <target> --listing-backed-comment --comment-text <text>`
-   for one real evidence-backed comment. The harness must select a
-   high-confidence candidate from listing/project evidence, such as a source
-   entrypoint row. For hunk-file targets, section 0 offset 0 is valid
-   entrypoint evidence. Stop with a report when no such candidate exists.
-10. Non-dry-run `comment.edit` requires explicit evidence-backed comment text.
-    Never create generic placeholder notes.
-11. Stop if listing readiness, candidate evidence, command availability, or
-    projected comment verification fails.
+4. Fetch real row locators, navigation groups, and command catalogs from the
+   opened listing.
+5. Choose the highest-value source-converging action with evidence and a
+   verifier.
+6. Execute only through `/commands/execute`.
+7. Verify Manual Action Log count/head hash, semantic reload, projected state,
+   `workflow_profile`, and source/rendering checks appropriate to the action.
+8. Stop if listing readiness, candidate evidence, command availability, or
+   action-specific verification fails.
 
 ## Verification
 

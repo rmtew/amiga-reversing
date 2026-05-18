@@ -34,14 +34,20 @@ Before agentic target work, read and follow:
 - `docs/agents/reversing-loop.md`
 - relevant sections of `docs/proposals/010-agentic-reversing-loop.md`
 
-For real locator-backed comment work, use the same-process listing workflow:
-hygiene, `listing/open`, wait ready, fetch a row locator, confirm `comment.edit`
-from `/commands`, execute via `/commands/execute`, then verify Manual Action Log
-count/head hash, semantic reload, projected `comment_text`, `workflow_profile`,
-and agent report output.
+Agentic target work is useful only when it moves the rendered target source
+toward human-quality reconstructed source: clearer symbols, typed data,
+structured ranges, verified control/data flow, and documented platform/game
+semantics. Do not perform proof, fallback, or makework actions just to exercise
+the loop.
 
-Do not rely on `reversing_loop inspect` alone for arbitrary comment candidates;
-it currently surfaces review items. Do not commit `.project.json` timestamp-only
+Prefer structured durable facts over free-form notes: function/data labels,
+app/global slot names, type or field facts, code/data/string/table
+classification, API/library semantics, and xref-backed propagation. Comments are
+valid only for concrete semantic discoveries when no more structured command
+exists.
+
+Do not rely on `reversing_loop inspect` alone for arbitrary candidates; it
+currently surfaces review items. Do not commit `.project.json` timestamp-only
 changes as meaningful progress. `manual_actions.jsonl` is local target state, so
 summarize it in reports unless tracked support code or docs also changed.
 
