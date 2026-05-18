@@ -353,6 +353,7 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
+    actions.extend(_rsset_binding_actions(context))
     if element_kind == "app_slot":
         actions.extend(
             (
@@ -752,6 +753,18 @@ def listing_catalog_manual_payload(
         if not element_context or element_context.get("element_kind") != "app_slot":
             raise ValueError("remove_manual_rsset_layout_region requires an app-slot element context")
         return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
+    if ui_action == "create_manual_rsset_use_site_binding":
+        if not element_context:
+            raise ValueError("create_manual_rsset_use_site_binding requires an element context")
+        return "create_manual_rsset_use_site_binding", {
+            "rsset_use_site_binding": _rsset_use_site_binding_payload(row, element_context, params)
+        }
+    if ui_action == "remove_manual_rsset_use_site_binding":
+        if not element_context:
+            raise ValueError("remove_manual_rsset_use_site_binding requires an element context")
+        return "remove_manual_rsset_use_site_binding", {
+            "rsset_use_site_binding": _rsset_use_site_binding_identity_payload(row, element_context, params)
+        }
     if ui_action == "create_manual_custom_struct_field":
         if not element_context or element_context.get("element_kind") not in {"typed_access", "typed_gap"}:
             raise ValueError("create_manual_custom_struct_field requires a typed element context")
@@ -1254,6 +1267,187 @@ def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[
         if isinstance(value, str) and value.strip():
             region[field_name] = value.strip()
     return region
+
+
+def _rsset_binding_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+    params = _rsset_use_site_binding_parameters(context)
+    if params is None:
+        return []
+    report = _context_transient("rsset.binding.report", "RSSET binding report", "rsset_binding_report", context, None)
+    report["parameters"] = dict(params)
+    report["report"] = _rsset_binding_report(context, params)
+    return [
+        report,
+        _context_log_action(
+            "rsset.binding.bind",
+            "Bind RSSET use site",
+            "create_manual_rsset_use_site_binding",
+            context,
+            params,
+            _rsset_use_site_binding_parameter_schema(),
+        ),
+        _context_log_action(
+            "rsset.binding.unbind",
+            "Remove RSSET use-site binding",
+            "remove_manual_rsset_use_site_binding",
+            context,
+            params,
+        ),
+    ]
+
+
+def _rsset_use_site_binding_parameters(context: Mapping[str, object]) -> dict[str, object] | None:
+    displacement = _optional_int(context.get("displacement"))
+    operand_index = _optional_int(context.get("operand_index"))
+    base_register = context.get("base_register")
+    if displacement is None or displacement < 0 or displacement > 0x7FFF:
+        return None
+    if operand_index is None:
+        return None
+    if not isinstance(base_register, str) or not base_register.strip():
+        return None
+    symbol = context.get("symbol")
+    if isinstance(symbol, str) and symbol.startswith("_LVO"):
+        return None
+    return {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_register": base_register.strip().upper(),
+        "base_evidence_id": f"selected-base:{base_register.strip().upper()}:__amiga_app_base__",
+        "displacement": displacement,
+        "operand_index": operand_index,
+    }
+
+
+def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "layout_name": {"type": "string", "default": "app"},
+            "base_symbol": {"type": "string", "default": "__amiga_app_base__"},
+            "base_evidence_id": {"type": "string"},
+        },
+        "required": [],
+    }
+
+
+def _rsset_binding_report(context: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
+    displacement = _optional_int(params.get("displacement")) or 0
+    width_bytes = _optional_int(context.get("width_bytes"))
+    return {
+        "kind": "rsset_binding_report",
+        "candidate": {
+            "layout_name": params.get("layout_name"),
+            "base_symbol": params.get("base_symbol"),
+            "base_register": params.get("base_register"),
+            "base_evidence_id": params.get("base_evidence_id"),
+            "displacement": displacement,
+        },
+        "selected_use": {
+            "hunk": context.get("hunk"),
+            "addr": context.get("addr") or context.get("start_offset"),
+            "operand_index": params.get("operand_index"),
+            "access": context.get("access") or "reference",
+            "width_bytes": width_bytes,
+        },
+        "render": {
+            "state": "linked_gap_or_raw",
+            "reason": "No field is created by bind-only; source rendering changes after a field/refinement action.",
+        },
+    }
+
+
+def _rsset_use_site_binding_payload(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    hunk = _int_field(row, "section_index", default=0)
+    addr = _int_field(row, "start_offset", fallback="addr")
+    displacement = _optional_int(params.get("displacement"))
+    operand_index = _optional_int(params.get("operand_index"))
+    base_register = params.get("base_register")
+    if displacement is None or operand_index is None or not isinstance(base_register, str) or not base_register:
+        raise ValueError("create_manual_rsset_use_site_binding requires base_register, displacement, and operand_index")
+    layout_name = str(params.get("layout_name") or "app").strip() or "app"
+    base_symbol = str(params.get("base_symbol") or "__amiga_app_base__").strip() or "__amiga_app_base__"
+    base_evidence_id = str(params.get("base_evidence_id") or f"selected-base:{base_register.upper()}:{base_symbol}").strip()
+    binding: dict[str, object] = {
+        "rsset_use_site_binding_id": _rsset_use_site_binding_id(
+            hunk=hunk,
+            addr=addr,
+            operand_index=operand_index,
+            base_register=base_register,
+            displacement=displacement,
+            layout_name=layout_name,
+            base_symbol=base_symbol,
+            base_evidence_id=base_evidence_id,
+        ),
+        "hunk": hunk,
+        "addr": addr,
+        "operand_index": operand_index,
+        "base_register": base_register.upper(),
+        "displacement": displacement,
+        "layout_name": layout_name,
+        "base_symbol": base_symbol,
+        "base_evidence_id": base_evidence_id,
+        "access": context.get("access") or "reference",
+        "render_state": "linked_gap_or_raw",
+    }
+    width_bytes = _optional_int(context.get("width_bytes"))
+    if width_bytes is not None:
+        binding["width_bytes"] = width_bytes
+    row_index = _optional_int(row.get("row_index"))
+    if row_index is not None:
+        binding["row_index"] = row_index
+    for field_name in ("stable_key", "row_id", "text"):
+        value = row.get(field_name)
+        if isinstance(value, str) and value:
+            binding[field_name if field_name != "text" else "source_text"] = value.strip()
+    element_id = context.get("element_id")
+    if isinstance(element_id, str) and element_id:
+        binding["element_id"] = element_id
+    return binding
+
+
+def _rsset_use_site_binding_identity_payload(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    payload = _rsset_use_site_binding_payload(row, context, params)
+    return {
+        key: payload[key]
+        for key in (
+            "rsset_use_site_binding_id",
+            "hunk",
+            "addr",
+            "operand_index",
+            "base_register",
+            "base_evidence_id",
+            "displacement",
+            "layout_name",
+            "base_symbol",
+        )
+    }
+
+
+def _rsset_use_site_binding_id(
+    *,
+    hunk: int,
+    addr: int,
+    operand_index: int,
+    base_register: str,
+    displacement: int,
+    layout_name: str,
+    base_symbol: str,
+    base_evidence_id: str,
+) -> str:
+    return (
+        f"rsset-binding-h{hunk}-{addr:08X}-op{operand_index}-"
+        f"{base_register.upper()}-{displacement:04X}-{_id_token(layout_name)}-"
+        f"{_id_token(base_symbol)}-{_id_token(base_evidence_id)}"
+    )
 
 
 def _app_slot_region_identity_parameters(context: Mapping[str, object]) -> dict[str, object]:

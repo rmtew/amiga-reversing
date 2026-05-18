@@ -1035,6 +1035,66 @@ def test_manual_action_log_projects_rsset_layout_region(tmp_path: Path) -> None:
     )
 
 
+def test_manual_action_log_projects_rsset_use_site_binding_with_owner_action(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binding = {
+        "rsset_use_site_binding_id": "bind-h0-0102",
+        "hunk": 0,
+        "addr": 0xE2,
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "access": "write",
+        "width_bytes": 1,
+        "render_state": "linked_gap_or_raw",
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_rsset_use_site_binding", rsset_use_site_binding=binding),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.rsset_use_site_bindings == ({**binding, "owner_action_id": "a1"},)
+    assert projection.removed_rsset_use_site_bindings == ()
+
+
+def test_manual_action_log_removes_rsset_use_site_binding(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binding_identity = {
+        "rsset_use_site_binding_id": "bind-h0-0102",
+        "hunk": 0,
+        "addr": 0xE2,
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_rsset_use_site_binding", rsset_use_site_binding=binding_identity),
+            _action("a2", 2, "remove_manual_rsset_use_site_binding", rsset_use_site_binding=binding_identity),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.rsset_use_site_bindings == ()
+    assert projection.removed_rsset_use_site_bindings == ({**binding_identity, "cleanup_action_id": "a2"},)
+
+
 def test_manual_action_log_projects_custom_struct(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

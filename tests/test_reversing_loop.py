@@ -2837,6 +2837,37 @@ def test_unknown_source_command_prefixes_do_not_get_round_trip_fallback() -> Non
     assert reversing_loop._default_verifier_for_actions(["semantic.api_arg.foo"]) is None
 
 
+def test_rsset_binding_candidate_uses_element_context_and_binding_verifier() -> None:
+    candidate = {
+        "id": "rsset-binding",
+        "candidate_id": "rsset-binding",
+        "kind": "rsset_use_site_binding",
+        "locator": _listing_locator(),
+        "element_id": "row-1:displacement:0:operand",
+        "suggested_action_kinds": ["rsset.binding.bind"],
+        "parameters": {
+            "layout_name": "app",
+            "base_symbol": "__amiga_app_base__",
+            "base_register": "A6",
+            "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+            "displacement": 0x0102,
+            "operand_index": 0,
+        },
+        "default_verifier": "rsset_binding_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["command_id"] == "rsset.binding.bind"
+    assert command["context"] == {
+        "kind": "element",
+        "locator": _listing_locator(),
+        "element_id": "row-1:displacement:0:operand",
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "rsset_binding_state"
+
+
 def test_listing_library_base_candidates_use_lvo_api_call() -> None:
     candidates = reversing_loop._listing_library_base_candidates([_library_base_row()])
     command = reversing_loop._candidate_command_options(candidates[0])[0]

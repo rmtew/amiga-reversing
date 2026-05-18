@@ -246,6 +246,8 @@ _PRESENTATION_MANUAL_ACTION_KINDS = {
     ManualActionKind.REMOVE_MANUAL_COMMENT,
     ManualActionKind.CREATE_MANUAL_REPRESENTATION,
     ManualActionKind.REMOVE_MANUAL_REPRESENTATION,
+    ManualActionKind.CREATE_MANUAL_RSSET_USE_SITE_BINDING,
+    ManualActionKind.REMOVE_MANUAL_RSSET_USE_SITE_BINDING,
     ManualActionKind.RESOLVE_REVIEW_ITEM,
 }
 
@@ -1838,7 +1840,7 @@ def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
             "element_id": context["element_id"],
             "element_kind": context.get("element_kind"),
         }
-        for key in ("symbol", "access", "operand_index", "value"):
+        for key in ("symbol", "access", "operand_index", "value", "base_register", "displacement", "width_bytes"):
             if key in context:
                 public[key] = context[key]
         return public
@@ -2525,6 +2527,14 @@ def _manual_action_application_payload(
         region = action_payload.get("rsset_layout_region")
         if isinstance(region, Mapping):
             local_effects.append({"kind": "rsset_layout_region_remove", "rsset_layout_region": dict(region)})
+    elif kind == "create_manual_rsset_use_site_binding":
+        binding = action_payload.get("rsset_use_site_binding")
+        if isinstance(binding, Mapping):
+            local_effects.append({"kind": "rsset_use_site_binding", "rsset_use_site_binding": dict(binding)})
+    elif kind == "remove_manual_rsset_use_site_binding":
+        binding = action_payload.get("rsset_use_site_binding")
+        if isinstance(binding, Mapping):
+            local_effects.append({"kind": "rsset_use_site_binding_remove", "rsset_use_site_binding": dict(binding)})
     elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
         custom_struct = action_payload.get("custom_struct")
         if isinstance(custom_struct, Mapping):

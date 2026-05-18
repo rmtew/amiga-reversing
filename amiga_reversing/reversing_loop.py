@@ -53,6 +53,7 @@ _COMMAND_RANK = {
     "row.seed.data.pointer_table": 85,
     "range.seed.code": 90,
     "data_symbol.rename": 82,
+    "rsset.binding.bind": 81,
     "target.rsset_region.rename": 82,
     "target.rsset_region.add": 80,
     "target.rsset_region.edit": 80,
@@ -83,6 +84,7 @@ _COMMAND_RANK = {
     "typed_access.field.remove": 68,
     "app_slot.remove": 66,
     "target.rsset_region.remove": 66,
+    "rsset.binding.unbind": 66,
     "review.seed.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
@@ -111,6 +113,8 @@ _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
     "target.rsset_region.edit": ("rsset_layout_region", "rsset_layout_region"),
     "target.rsset_region.rename": ("rsset_layout_region", "rsset_layout_region"),
     "target.rsset_region.remove": ("rsset_layout_region_remove", "rsset_layout_region"),
+    "rsset.binding.bind": ("rsset_use_site_binding", "rsset_use_site_binding"),
+    "rsset.binding.unbind": ("rsset_use_site_binding_remove", "rsset_use_site_binding"),
     "target.custom_struct.add": ("custom_struct", "custom_struct"),
     "target.custom_struct.edit": ("custom_struct", "custom_struct"),
     "target.custom_struct.rename": ("custom_struct", "custom_struct"),
@@ -2782,6 +2786,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "rsset_region_state"
     if any(action.startswith("app_slot.") for action in actions):
         return "rsset_region_state"
+    if any(action.startswith("rsset.binding.") for action in actions):
+        return "rsset_binding_state"
     if any(action.startswith("target.execution_view.") for action in actions):
         return "execution_view_state"
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
@@ -2888,6 +2894,13 @@ def _verify_manual_mutation(
         )
     if isinstance(command_id, str) and command_id.startswith(("target.rsset_region.", "app_slot.")):
         return _verify_rsset_region_mutation(
+            target_id,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if isinstance(command_id, str) and command_id.startswith("rsset.binding."):
+        return _verify_rsset_binding_mutation(
             target_id,
             str(command_id),
             durable_result,
@@ -3126,6 +3139,95 @@ def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "offset" in expected
+
+
+def _verify_rsset_binding_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _rsset_binding_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_rsset_binding(target_id, command_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _rsset_binding_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    binding = _rsset_binding_from_action(action)
+    if binding is not None:
+        return binding
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            binding = _rsset_binding_from_action(raw_action)
+            if binding is not None:
+                return binding
+    return None
+
+
+def _rsset_binding_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    binding = action.get("rsset_use_site_binding")
+    if isinstance(binding, dict):
+        return cast(dict[str, object], binding)
+    payload = action.get("payload")
+    binding = payload.get("rsset_use_site_binding") if isinstance(payload, dict) else None
+    if isinstance(binding, dict):
+        return cast(dict[str, object], binding)
+    return None
+
+
+def _verify_project_rsset_binding(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing RSSET use-site binding payload"}
+    key = "removed_rsset_use_site_bindings" if command_id.endswith(".unbind") else "rsset_use_site_bindings"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    bindings = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(bindings, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [binding for binding in bindings if isinstance(binding, dict) and _rsset_binding_matches(binding, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_rsset_use_site_binding": expected,
+        "matching_rsset_use_site_bindings": matches,
+        "state_key": key,
+    }
+
+
+def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in (
+        "rsset_use_site_binding_id",
+        "hunk",
+        "addr",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "layout_name",
+        "base_symbol",
+        "base_evidence_id",
+    ):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return "rsset_use_site_binding_id" in expected
 
 
 def _verify_seeded_item_suppression_mutation(
@@ -4306,6 +4408,17 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "kind": "command",
             "command_id": action,
             "context": context,
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action.startswith("rsset.binding."):
+        element_id = candidate.get("element_id")
+        if not isinstance(element_id, str) or not element_id:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "element", "locator": locator, "element_id": element_id},
             "parameters": parameter_payload,
             "output_affecting": True,
         }

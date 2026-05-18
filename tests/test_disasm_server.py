@@ -3756,6 +3756,87 @@ def test_route_manual_action_catalog_execute_appends_library_base_semantic_actio
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="sf.b $0102(a6)\n",
+            addr=0xE2,
+            section_index=0,
+            start_offset=0xE2,
+            end_offset=0xE6,
+            stable_key="row-0",
+            opcode_or_directive="sf.b",
+            operand_text="$0102(a6)",
+            operand_parts=(SemanticOperand(kind="displacement", text="$0102(a6)", base_register="A6", displacement=0x0102),),
+            operand_accesses=("write",),
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:displacement:0:operand"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
+    bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
+
+    assert report_action["report"]["candidate"]["displacement"] == 0x0102
+    assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
+    assert bind_action["parameters"] == {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_register": "A6",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "displacement": 0x0102,
+        "operand_index": 0,
+    }
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {"command_id": "rsset.binding.bind", "context": _element_command_context(rows[0], "row-0:displacement:0:operand")},
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    binding = cast(dict[str, object], cast(dict[str, object], action["payload"])["rsset_use_site_binding"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "create_manual_rsset_use_site_binding"
+    assert (
+        binding["rsset_use_site_binding_id"]
+        == "rsset-binding-h0-000000E2-op0-A6-0102-app-__amiga_app_base__-selected-base_A6___amiga_app_base__"
+    )
+    assert binding["access"] == "write"
+    assert binding["render_state"] == "linked_gap_or_raw"
+    assert local_effect["kind"] == "rsset_use_site_binding"
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_route_manual_action_catalog_executes_api_specific_library_base_semantic_action(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

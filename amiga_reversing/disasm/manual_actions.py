@@ -159,6 +159,8 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_CUSTOM_STRUCT_FIELD = "remove_manual_custom_struct_field"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
+    CREATE_MANUAL_RSSET_USE_SITE_BINDING = "create_manual_rsset_use_site_binding"
+    REMOVE_MANUAL_RSSET_USE_SITE_BINDING = "remove_manual_rsset_use_site_binding"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -200,6 +202,8 @@ class ManualActionLogProjection:
     removed_custom_struct_fields: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
+    rsset_use_site_bindings: tuple[dict[str, object], ...]
+    removed_rsset_use_site_bindings: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -361,6 +365,8 @@ def _empty_projection(
         removed_custom_struct_fields=(),
         rsset_layout_regions=(),
         removed_rsset_layout_regions=(),
+        rsset_use_site_bindings=(),
+        removed_rsset_use_site_bindings=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -986,6 +992,33 @@ def _rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int]:
     )
 
 
+def _rsset_use_site_binding_key(binding: dict[str, object]) -> str:
+    binding_id = binding.get("rsset_use_site_binding_id")
+    if isinstance(binding_id, str) and binding_id:
+        return binding_id
+    hunk = _manual_seed_int(binding, "hunk")
+    addr = _manual_seed_int(binding, "addr")
+    operand_index = _manual_seed_int(binding, "operand_index")
+    displacement = _manual_seed_int(binding, "displacement")
+    base_register = binding.get("base_register")
+    layout_name = binding.get("layout_name")
+    base_symbol = binding.get("base_symbol")
+    base_evidence_id = binding.get("base_evidence_id")
+    if (
+        hunk is None
+        or addr is None
+        or operand_index is None
+        or displacement is None
+        or not isinstance(base_register, str)
+        or not base_register
+    ):
+        raise ValueError("rsset_use_site_binding requires binding id or hunk, addr, operand_index, base_register, and displacement")
+    layout = layout_name if isinstance(layout_name, str) and layout_name else "app"
+    base = base_symbol if isinstance(base_symbol, str) and base_symbol else "__amiga_app_base__"
+    evidence = base_evidence_id if isinstance(base_evidence_id, str) and base_evidence_id else f"selected-base:{base_register.upper()}:{base}"
+    return f"h{hunk}:{addr:08X}:op{operand_index}:{base_register.upper()}:{displacement:04X}:{layout}:{base}:{evidence}"
+
+
 def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
     struct_name = field.get("struct_name")
     offset = _manual_seed_int(field, "offset")
@@ -1235,6 +1268,8 @@ def _project_actions(
     removed_custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
+    rsset_use_site_bindings: dict[str, dict[str, object]] = {}
+    removed_rsset_use_site_bindings: dict[str, dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1352,6 +1387,22 @@ def _project_actions(
             key = _rsset_layout_region_key(region)
             rsset_layout_regions.pop(key, None)
             removed_rsset_layout_regions[key] = region
+        elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_USE_SITE_BINDING:
+            binding = _action_object(action, "rsset_use_site_binding")
+            key = _rsset_use_site_binding_key(binding)
+            binding = dict(binding)
+            binding.setdefault("rsset_use_site_binding_id", key)
+            binding["owner_action_id"] = action.action_id
+            removed_rsset_use_site_bindings.pop(key, None)
+            rsset_use_site_bindings[key] = binding
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_RSSET_USE_SITE_BINDING:
+            binding = _action_object(action, "rsset_use_site_binding")
+            key = _rsset_use_site_binding_key(binding)
+            binding = dict(binding)
+            binding.setdefault("rsset_use_site_binding_id", key)
+            binding["cleanup_action_id"] = action.action_id
+            rsset_use_site_bindings.pop(key, None)
+            removed_rsset_use_site_bindings[key] = binding
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
@@ -1413,6 +1464,8 @@ def _project_actions(
         removed_custom_struct_fields=tuple(removed_custom_struct_fields.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
+        rsset_use_site_bindings=tuple(rsset_use_site_bindings.values()),
+        removed_rsset_use_site_bindings=tuple(removed_rsset_use_site_bindings.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),

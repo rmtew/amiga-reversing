@@ -24,15 +24,20 @@ Current evidence:
   creation, with durable identity based on target, hunk, source address,
   operand index, base register, displacement, chosen `(layout_name,
   base_symbol)`, and base-evidence id.
-- Planned binding actions are `create_manual_rsset_use_site_binding`,
-  `remove_manual_rsset_use_site_binding`,
-  `create_manual_rsset_binding_type_refinement`, and
-  `remove_manual_rsset_binding_type_refinement`.
-- Planned command ids are `rsset.binding.report`, `rsset.binding.bind`,
-  `rsset.binding.bind_refine`, `rsset.binding.unbind`,
-  `rsset.binding.type_refine`, and `rsset.binding.clear_type`.
-- Bind-only may leave raw rendering in place when no field exists yet; it must
-  create linked gap/report state rather than an unlinked `RS.*` field.
+- Manual Action Log now supports `create_manual_rsset_use_site_binding` and
+  `remove_manual_rsset_use_site_binding`. Replay projects active and removed
+  bindings by durable use-site identity, and creation projection stamps
+  `owner_action_id` from the persisted Manual Action Log `action_id`. Binding
+  payloads include `base_evidence_id` so later cleanup/cascade work keeps the
+  `014-021` identity shape.
+- Selected numeric base-relative operands expose `rsset.binding.report`,
+  `rsset.binding.bind`, and `rsset.binding.unbind`. Bind-only records the
+  selected use and linked-gap/raw render state without inventing an unlinked
+  `RS.*` field.
+- Planned refinement actions remain `create_manual_rsset_binding_type_refinement`
+  and `remove_manual_rsset_binding_type_refinement`; planned refinement command
+  ids remain `rsset.binding.bind_refine`, `rsset.binding.type_refine`, and
+  `rsset.binding.clear_type`.
 - RSSET bind/refine commands must expose corrective unbind/remove paths. Undo
   must remove only the binding or derived field/type facts owned by the selected
   Manual Action Log action, then verify that rendered source returns to the raw
@@ -55,6 +60,9 @@ Current evidence:
   executed durable RSSET-region action payload against reloaded
   `rsset_layout_regions` or `removed_rsset_layout_regions`, then exact
   round-trip.
+- Generic loop execution verifies RSSET binding commands by matching the
+  durable binding payload against reloaded `rsset_use_site_bindings` or
+  `removed_rsset_use_site_bindings`, then exact round-trip.
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.
@@ -93,11 +101,10 @@ Working goal:
   exact round-trip.
 
 Remaining work:
-- Implement the `014-021` binding/reporting/cascade/recovery model for explicit
-  numeric-displacement-to-RSSET binding and unbinding commands.
-- Add exploratory reports that show candidate layouts, base evidence, current
-  field/gap state, access width, existing xrefs, type compatibility, expected
-  cascade, and missing verifier blockers.
+- Broaden `rsset.binding.report` beyond the first selected-use report so it
+  shows candidate layouts, base evidence, current field/gap state, access
+  width, existing xrefs, type compatibility, expected cascade, and missing
+  verifier blockers.
 - Add conflict feedback for bind+type refinement: if observed access width,
   base evidence, or platform/custom type application does not reconcile, block
   the application or create a review item instead of silently applying it.
