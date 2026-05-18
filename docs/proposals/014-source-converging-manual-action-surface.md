@@ -149,6 +149,11 @@ available before execution is not enough. Generic output-affecting mutations
 must include an actual post-execution round-trip layer so stale or mismatched
 reproduction state blocks progress.
 
+Implementation observation from `014-005`: target-context commands do not have
+row affected-locator metadata. Their projection verifier must use authoritative
+`/commands/execute` local effects, then rely on semantic reload and round-trip
+layers for source convergence.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

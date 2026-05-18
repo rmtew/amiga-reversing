@@ -352,6 +352,47 @@ def test_output_affecting_action_runs_round_trip_layer(
     assert report["verification"]["layers"][-1]["round_trip"]["status"] == "mismatch"
 
 
+def test_target_command_verification_accepts_local_effect_projection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    (target_dir / "reproduction.json").write_text('{"status": "exact"}', encoding="utf-8")
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": inspect_report["candidate_work"][0],
+        "command": {
+            "kind": "command",
+            "command_id": "target.equate.add",
+            "context": {"kind": "target"},
+            "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
+            "output_affecting": True,
+        },
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET":
+            return {"data": {"commands": [{"command_id": "target.equate.add"}]}}
+        _write_manual_log(tmp_path)
+        payload = _executed_command_payload()
+        payload["application"] = {
+            "status": "applied",
+            "local_effects": [{"kind": "target_equate", "target_equate": {"name": "PLAYER_START_LIVES", "value": 3}}],
+        }
+        return {"data": payload}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1] == {"layer": "projection", "status": "passed", "context_kind": "target"}
+    assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+
+
 def test_planner_ranks_source_converging_representation_before_comment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

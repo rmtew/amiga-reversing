@@ -2468,6 +2468,11 @@ def _verify_semantic_reload(
 
 def _verify_projection_metadata(command: dict[str, object], durable_result: dict[str, object]) -> dict[str, object]:
     context = command.get("context")
+    context_kind = context.get("kind") if isinstance(context, dict) else None
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if context_kind == "target" and isinstance(local_effects, list) and local_effects:
+        return {"layer": "projection", "status": "passed", "context_kind": "target"}
     expected_locator = context.get("locator") if isinstance(context, dict) else None
     mutation = durable_result.get("mutation")
     affected = mutation.get("affected_locators") if isinstance(mutation, dict) else None
