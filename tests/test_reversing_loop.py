@@ -2743,6 +2743,11 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_specific_ve
     assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
 
 
+def test_unknown_source_command_prefixes_do_not_get_round_trip_fallback() -> None:
+    assert reversing_loop._default_verifier_for_actions(["data_symbol.create"]) is None
+    assert reversing_loop._default_verifier_for_actions(["semantic.api_arg.foo"]) is None
+
+
 def test_listing_library_base_candidates_use_lvo_api_call() -> None:
     candidates = reversing_loop._listing_library_base_candidates([_library_base_row()])
     command = reversing_loop._candidate_command_options(candidates[0])[0]

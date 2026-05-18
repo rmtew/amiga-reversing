@@ -75,6 +75,9 @@ Current evidence:
 - Planner verifier summaries now report `semantic_hint_state`,
   `library_base_register_seed`, and `struct_pointer_register_seed` for semantic
   hint/register-seed command families instead of generic `round_trip`.
+- Unsupported future `data_symbol.*` and semantic command prefixes no longer
+  receive a generic `round_trip` fallback; they stop as missing-verifier work
+  until a type-specific verifier is added.
 - Generic `run-one` `target.equate.*` execution now verifies Manual Action Log
   replay, reloaded target-equate/rename/removal state, and exact round-trip
   instead of accepting target local-effect metadata alone.

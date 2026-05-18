@@ -2726,8 +2726,6 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "projected_data_symbol_name"
     if "data_symbol.remove" in actions:
         return "suppressed_seeded_item"
-    if any(action.startswith("data_symbol.") for action in actions):
-        return "round_trip"
     if any(action.startswith("target.rsset_region.") for action in actions):
         return "rsset_region_state"
     if any(action.startswith("app_slot.") for action in actions):
@@ -2744,8 +2742,6 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "struct_pointer_register_seed"
     if any(action.startswith(("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")) for action in actions):
         return "semantic_hint_state"
-    if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
-        return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.", "range.seed.")) for action in actions):
         return "manual_seed_state"
     return None

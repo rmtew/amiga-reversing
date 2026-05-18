@@ -149,6 +149,11 @@ fallback must not override a stricter command-specific verifier. Explicit or
 older candidates can carry stale verifier labels, so planner summaries should
 prefer command-specific state verifiers whenever they are more precise.
 
+Implementation observation from `014-005`: broad prefix fallbacks to
+`round_trip` are unsafe for source-valued command families. Unknown
+`data_symbol.*` or semantic commands should stop as missing-verifier work until
+their rendered/state verifier is explicit.
+
 Implementation observation from `014-005`: checking that `round_trip` is
 available before execution is not enough. Generic output-affecting mutations
 must include an actual post-execution round-trip layer so stale or mismatched
