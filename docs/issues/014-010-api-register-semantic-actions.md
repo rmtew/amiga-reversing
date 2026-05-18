@@ -46,6 +46,8 @@ Progress:
 - Generic `run-one` now verifies `semantic.register.struct_ptr` execution by
   checking the reloaded struct-pointer register seed rather than affected row
   metadata.
+- Generic `run-one` now verifies `semantic.library_base.*` execution by checking
+  the reloaded library-base register seed rather than affected row metadata.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 

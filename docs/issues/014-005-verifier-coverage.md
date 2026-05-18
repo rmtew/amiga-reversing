@@ -56,6 +56,9 @@ Current evidence:
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.
+- Generic `run-one` `semantic.library_base.*` execution now verifies Manual
+  Action Log replay, reloaded library-base register seed, and exact round-trip
+  instead of accepting affected-locator metadata alone.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

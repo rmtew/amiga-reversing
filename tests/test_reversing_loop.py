@@ -1066,6 +1066,71 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_run_one_library_base_executes_with_register_seed_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "semantic-library-base",
+            "candidate_id": "semantic-library-base",
+            "kind": "api_register_semantic",
+            "locator": _listing_locator(),
+            "element_id": "row-1:symbol:0:_LVOSetPointer",
+            "element_kind": "symbol",
+            "operand_index": 0,
+            "symbol": "_LVOSetPointer",
+            "base_register": "A6",
+            "api_library": "intuition.library",
+            "api_function": "SetPointer",
+            "suggested_action_kinds": ["semantic.library_base.intuition.library"],
+            "default_verifier": "round_trip",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "register_seeds": [
+                    {"register": "A6", "kind": "library_base", "library_name": "intuition.library"},
+                ]
+            },
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "semantic.library_base.intuition.library"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "semantic.library_base.intuition.library"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_listing_comment_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "semantic.library_base.intuition.library"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_struct_pointer_seed_executes_with_register_seed_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
