@@ -64,6 +64,10 @@ Current evidence:
 - Generic `run-one` `semantic.library_base.*` execution now verifies Manual
   Action Log replay, reloaded library-base register seed, and exact round-trip
   instead of accepting affected-locator metadata alone.
+- Generic `run-one` `semantic.lvo.*`, `semantic.struct_offset.*`, and
+  `semantic.equate.*` execution now verifies Manual Action Log replay, reloaded
+  semantic hint state, and exact round-trip instead of accepting affected-row
+  metadata alone.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

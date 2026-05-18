@@ -51,6 +51,9 @@ Progress:
 - Generic `run-one` now mines listing LVO API-call rows into autonomous
   `semantic.library_base.*` candidates and skips library-base seeds already in
   effective metadata or Manual Action Log projections.
+- Generic `run-one` now verifies `semantic.lvo.*`, `semantic.struct_offset.*`,
+  and `semantic.equate.*` execution by checking reloaded semantic hint state
+  rather than affected row metadata.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 

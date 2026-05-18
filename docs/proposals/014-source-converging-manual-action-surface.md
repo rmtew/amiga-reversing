@@ -246,6 +246,11 @@ Listing rows with LVO API-call metadata are enough to produce conservative
 `semantic.library_base.*` candidates when the selected symbol operand carries a
 base register and API library/function identity.
 
+Implementation observation from `014-005`/`014-010`:
+`semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.equate.*` produce
+semantic-hint state. Their verifier should check the reloaded hint and
+round-trip instead of affected locators.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

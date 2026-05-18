@@ -2806,6 +2806,10 @@ def _verify_manual_mutation(
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "data_symbol.remove":
         return _verify_data_symbol_remove_mutation(target_id, durable_result, project_root=project_root)
+    if isinstance(command_id, str) and command_id.startswith(
+        ("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")
+    ):
+        return _verify_semantic_hint_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("semantic.library_base."):
         return _verify_library_base_register_seed_mutation(
             target_id,
@@ -2931,6 +2935,94 @@ def _verify_project_suppressed_seeded_item(
 
 def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr"))
+
+
+def _verify_semantic_hint_mutation(
+    target_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _semantic_hint_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_semantic_hint(target_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _semantic_hint_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") != "semantic_hint":
+                continue
+            hint = effect.get("semantic_hint")
+            if isinstance(hint, dict):
+                return cast(dict[str, object], hint)
+    action = durable_result.get("action")
+    hint = _semantic_hint_from_action(action)
+    if hint is not None:
+        return hint
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            hint = _semantic_hint_from_action(raw_action)
+            if hint is not None:
+                return hint
+    return None
+
+
+def _semantic_hint_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    hint = action.get("semantic_hint")
+    if isinstance(hint, dict):
+        return cast(dict[str, object], hint)
+    payload = action.get("payload")
+    hint = payload.get("semantic_hint") if isinstance(payload, dict) else None
+    if isinstance(hint, dict):
+        return cast(dict[str, object], hint)
+    return None
+
+
+def _verify_project_semantic_hint(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing semantic hint payload"}
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    semantic_hints = manual_state.get("semantic_hints") if isinstance(manual_state, dict) else None
+    if not isinstance(semantic_hints, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual semantic hints were not reloaded"}
+    matches = [
+        hint
+        for hint in semantic_hints
+        if isinstance(hint, dict) and _semantic_hint_matches(hint, expected)
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_semantic_hint": expected,
+        "matching_semantic_hints": matches,
+    }
+
+
+def _semantic_hint_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    return all(
+        key in expected and actual.get(key) == expected.get(key)
+        for key in ("domain", "symbol", "value", "hunk", "addr", "element_kind")
+    )
 
 
 def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object]) -> dict[str, object]:

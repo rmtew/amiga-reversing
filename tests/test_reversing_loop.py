@@ -1117,6 +1117,64 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_run_one_semantic_hint_executes_with_hint_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "semantic-lvo",
+            "candidate_id": "semantic-lvo",
+            "kind": "api_semantic_hint",
+            "locator": _listing_locator(),
+            "element_id": "row-1:immediate:0:-552",
+            "element_kind": "immediate",
+            "operand_index": 0,
+            "value": -552,
+            "suggested_action_kinds": ["semantic.lvo.exec.library_OpenLibrary"],
+            "default_verifier": "round_trip",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"semantic_hints": [_semantic_hint_payload()]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "semantic.lvo.exec.library_OpenLibrary"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "semantic.lvo.exec.library_OpenLibrary"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_semantic_hint_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "semantic.lvo.exec.library_OpenLibrary"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_library_base_executes_with_register_seed_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3355,10 +3413,42 @@ def _representation_payload() -> dict[str, object]:
     }
 
 
+def _semantic_hint_payload() -> dict[str, object]:
+    return {
+        "semantic_hint_id": "hint-1",
+        "hunk": 0,
+        "addr": 0,
+        "element_kind": "immediate",
+        "domain": "lvo",
+        "symbol": "exec.library/OpenLibrary",
+        "value": -552,
+        "namespace": "exec.library",
+        "function": "OpenLibrary",
+        "element_id": "row-1:immediate:0:-552",
+        "operand_index": 0,
+    }
+
+
 def _executed_representation_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
     return {
         "action": {"action_id": "manual-1", "representation": _representation_payload()},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator(end_offset=4)],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
+    }
+
+
+def _executed_semantic_hint_payload(tmp_path: Path) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1", "payload": {"semantic_hint": _semantic_hint_payload()}},
         "mutation": {
             "durable_action_id": "manual-1",
             "manual_action_log_count": state["count"],
