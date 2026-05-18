@@ -1597,6 +1597,12 @@ def test_route_manual_action_catalog_returns_row_and_element_actions(monkeypatch
     assert representation_choice["interaction_schema"]["primary_rank"] == 20
     assert representation_choice["interaction_schema"]["options"][0]["value"] == "hex"
     assert any(action["action_id"] == "representation.hex" for action in element_actions)
+    element_named = next(action for action in element_actions if action["action_id"] == "element.seed.data.named")
+    assert element_named["parameters"] == {"seed_kind": "data", "data_role": "raw", "unit": "byte"}
+    assert element_named["parameter_schema"]["required"] == ["name"]
+    assert element_named["default_key_binding"] == "F2"
+    assert element_named["interaction_schema"]["type"] == "text"
+    assert element_named["interaction_schema"]["primary_field"] == "name"
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
@@ -2818,7 +2824,27 @@ def test_route_manual_action_catalog_execute_appends_representation_action(
     assert representation["addr"] == 4
     assert representation["end"] == 5
     assert representation["stable_key"] == "row-0"
-    assert appended_actions == [action]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    named_payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "element.seed.data.named",
+            "context": _element_command_context(rows[0], "row-0:data_literal:4"),
+            "parameters": {"name": "manual_byte"},
+        },
+    )
+    named_action = cast(dict[str, object], cast(dict[str, object], named_payload["data"])["action"])
+    named_seed = cast(dict[str, object], cast(dict[str, object], named_action["payload"])["seed"])
+
+    assert named_seed["kind"] == "data"
+    assert named_seed["name"] == "manual_byte"
+    assert named_seed["data_role"] == "raw"
+    assert named_seed["unit"] == "byte"
+    assert named_seed["addr"] == 4
+    assert named_seed["end"] == 5
+    assert appended_actions == [action, named_action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 

@@ -245,6 +245,18 @@ def listing_element_action_catalog(
                 ),
             ]
         )
+    if element_kind == "data_literal":
+        actions.append(
+            _context_log_action(
+                "element.seed.data.named",
+                "Name data",
+                "create_manual_seed",
+                context,
+                {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
+                _data_name_parameter_schema(),
+                "F2",
+            )
+        )
     if element_kind == "label":
         actions.append(
             _context_log_action(
