@@ -22,6 +22,7 @@ from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
+    SeededCodeLabelMetadata,
     SeededEntityMetadata,
     TargetMetadata,
     TargetMetadataReviewStatus,
@@ -1126,6 +1127,45 @@ def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) ->
     )
 
     candidates = reversing_loop._listing_entrypoint_label_candidates("demo", [row], project_root=tmp_path)
+
+    assert candidates == []
+
+
+def test_listing_entrypoint_label_candidates_skip_existing_effective_label(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_code_labels=(
+                SeededCodeLabelMetadata(
+                    hunk=0,
+                    addr=2,
+                    name="entrypoint",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    row = _listing_row(
+        row_key="entry-label",
+        kind="label",
+        label="loc_0_00000002",
+        start_offset=2,
+        end_offset=2,
+    )
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    candidates = reversing_loop._listing_entrypoint_label_candidates(
+        "demo",
+        [row],
+        project_root=tmp_path,
+        existing_labels=reversing_loop._existing_source_label_names(inspect_report),
+    )
 
     assert candidates == []
 

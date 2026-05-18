@@ -211,6 +211,10 @@ Implementation observation from `014-006`/`014-014`: data-class annotations on
 definition rows are durable enough to feed row-level data-symbol naming. Use the
 row hunk/offset identity and skip projected names before proposing a rename.
 
+Implementation observation from `014-006`: source-label feeds also need
+effective metadata skips, because generated listing text can lag projected
+label state during a loop iteration.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

@@ -1013,6 +1013,7 @@ def _inspect_report_with_listing_candidates(
             target_id,
             rows if isinstance(rows, list) else [],
             project_root=project_root,
+            existing_labels=_existing_source_label_names(inspect_report),
         )
     )
     candidates.extend(
@@ -1062,6 +1063,7 @@ def _listing_entrypoint_label_candidates(
     rows: list[object],
     *,
     project_root: Path,
+    existing_labels: dict[tuple[int, int], str] | None = None,
 ) -> list[dict[str, object]]:
     entrypoint = _source_entrypoint_evidence(target_id, project_root=project_root)
     if entrypoint is None:
@@ -1071,6 +1073,9 @@ def _listing_entrypoint_label_candidates(
     if not isinstance(section_index, int) or not isinstance(offset, int):
         return []
     new_label = "entrypoint"
+    existing = existing_labels or {}
+    if existing.get((section_index, offset)) == new_label:
+        return []
     candidates: list[dict[str, object]] = []
     for row in rows:
         if not isinstance(row, dict):
@@ -1501,6 +1506,33 @@ def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple
         hunk = seed.get("hunk")
         addr = seed.get("addr")
         name = seed.get("name")
+        if isinstance(hunk, int) and isinstance(addr, int) and isinstance(name, str) and name:
+            names[(hunk, addr)] = name
+    return names
+
+
+def _existing_source_label_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
+    target_state = inspect_report.get("target_state")
+    names: dict[tuple[int, int], str] = {}
+    metadata = _effective_target_metadata_from_report(inspect_report)
+    if metadata is not None:
+        for label in metadata.seeded_code_labels:
+            if isinstance(label.name, str) and label.name:
+                names[(label.hunk, label.addr)] = label.name
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    labels = manual_state.get("labels") if isinstance(manual_state, dict) else None
+    if not isinstance(labels, list | tuple):
+        return names
+    for label in labels:
+        if not isinstance(label, dict):
+            continue
+        hunk = label.get("hunk", 0)
+        addr = label.get("addr")
+        name = label.get("name")
+        address_domain = label.get("address_domain")
+        if address_domain == "runtime":
+            continue
         if isinstance(hunk, int) and isinstance(addr, int) and isinstance(name, str) and name:
             names[(hunk, addr)] = name
     return names

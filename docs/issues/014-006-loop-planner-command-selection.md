@@ -67,6 +67,8 @@ Progress:
 - Generic `run-one` now mines source descriptor entrypoint evidence into an
   autonomous `label.rename` candidate when the listing still has the generated
   source label at that address.
+- Autonomous entrypoint label candidates now skip labels already present in
+  effective target metadata or Manual Action Log projections.
 - Generic `run-one` now mines `data_class` listing rows into row-level
   `data_symbol.rename` candidates, beyond referenced data use-sites.
 
