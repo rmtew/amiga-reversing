@@ -35,9 +35,12 @@ Progress:
   `semantic.equate.*`, and `semantic.register.struct_ptr`, routes them through
   selected listing element context, skips already-projected library-base and
   struct-pointer register seeds, and requires round-trip verification.
+- Generic `run-one` now mines unresolved typed-access listing evidence into
+  autonomous `semantic.register.struct_ptr` candidates when the same row exposes
+  a concrete register element for the base register, skipping already-projected
+  struct-pointer register seeds.
 - API call semantics, evidence-scoped register lifetimes, typed field access
-  semantics, and higher-confidence struct-pointer candidate generation remain
-  open.
+  semantics, and broader struct-pointer candidate generation remain open.
 
 Acceptance criteria:
 - Register/base identities cover entry-scoped and evidence-scoped lifetimes.

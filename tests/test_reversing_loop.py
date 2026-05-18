@@ -1130,6 +1130,55 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_
     assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
 
 
+def test_listing_struct_pointer_candidates_use_unresolved_typed_access_register() -> None:
+    candidates = reversing_loop._listing_struct_pointer_candidates([_struct_pointer_row()])
+
+    assert len(candidates) == 1
+    assert candidates[0]["candidate_id"] == "struct-ptr:row-1:0:A0:InputEvent"
+    assert candidates[0]["element_id"] == "row-1:register:0:operand"
+    assert candidates[0]["suggested_action_kinds"] == ["semantic.register.struct_ptr"]
+    assert candidates[0]["parameters"] == {"struct_name": "InputEvent"}
+    assert candidates[0]["evidence"]["classification"] == "prefix_extension"
+
+
+def test_listing_struct_pointer_candidates_skip_already_projected_seed() -> None:
+    existing = {("A0", "struct_ptr"): {"kind": "struct_ptr", "register": "A0", "struct_name": "InputEvent"}}
+
+    candidates = reversing_loop._listing_struct_pointer_candidates(
+        [_struct_pointer_row()],
+        existing_register_seeds=existing,
+    )
+
+    assert candidates == []
+
+
+def test_run_one_uses_listing_struct_pointer_candidate_when_inspect_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = []
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/navigation"):
+            return {"data": {"groups": {}}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_struct_pointer_row()]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "semantic.register.struct_ptr"
+    assert report["action"]["context"]["element_id"] == "row-1:register:0:operand"
+    assert report["action"]["parameters"] == {"struct_name": "InputEvent"}
+
+
 def test_semantic_library_base_candidate_skips_already_projected_seed() -> None:
     candidate = {
         "id": "semantic-library-base",
@@ -2578,6 +2627,34 @@ def _byte_immediate_row(*, opcode: str = "subi.b", width_bits: int = 8) -> dict[
             ],
             "operand_accesses": ["immediate", "register_write"],
             "operand_registers": [None, "D1"],
+        }
+    )
+    return row
+
+
+def _struct_pointer_row() -> dict[str, object]:
+    row = _listing_row(text="\tmove.w 36(a0),d0\n", end_offset=2)
+    row.update(
+        {
+            "opcode_or_directive": "move.w",
+            "operand_text": "36(a0),d0",
+            "operand_parts": [
+                {"kind": "register", "operand_index": 0, "register": "A0", "metadata": {}},
+                {"kind": "register", "operand_index": 1, "register": "D0", "metadata": {}},
+            ],
+            "operand_accesses": ["memory_read", "register_write"],
+            "operand_registers": ["A0", "D0"],
+            "unresolved_typed_accesses": [
+                {
+                    "operand_index": 0,
+                    "base_register": "A0",
+                    "displacement": 36,
+                    "struct_size": 22,
+                    "root_struct_name": "InputEvent",
+                    "refined_struct_name": "DerivedEvent",
+                    "classification": "prefix_extension",
+                }
+            ],
         }
     )
     return row

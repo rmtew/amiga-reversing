@@ -995,6 +995,12 @@ def _inspect_report_with_listing_candidates(
             existing_data_roles=_existing_data_seed_roles(inspect_report),
         )
     )
+    candidates.extend(
+        _listing_struct_pointer_candidates(
+            rows if isinstance(rows, list) else [],
+            existing_register_seeds=_existing_register_seed_map(inspect_report),
+        )
+    )
     try:
         navigation = server.route_request(
             "GET",
@@ -1177,6 +1183,110 @@ def _listing_data_symbol_candidates(
                 }
             )
     return candidates
+
+
+def _listing_struct_pointer_candidates(
+    rows: list[object],
+    *,
+    existing_register_seeds: dict[tuple[str, str], dict[str, object]] | None = None,
+) -> list[dict[str, object]]:
+    existing = existing_register_seeds or {}
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        element_row = dict(row)
+        if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
+            element_row["stable_key"] = element_row["row_key"]
+        contexts = listing_element_contexts(element_row)
+        register_contexts = [
+            context
+            for context in contexts
+            if context.get("element_kind") == "register" and isinstance(context.get("register"), str)
+        ]
+        for context in contexts:
+            if context.get("element_kind") != "typed_gap":
+                continue
+            register = context.get("base_register")
+            struct_name = context.get("root_struct_name") or context.get("refined_struct_name")
+            operand_index = context.get("operand_index")
+            if not isinstance(register, str) or not isinstance(struct_name, str) or not struct_name:
+                continue
+            register = register.upper()
+            register_context = next(
+                (
+                    candidate_context
+                    for candidate_context in register_contexts
+                    if str(candidate_context.get("register")).upper() == register
+                    and candidate_context.get("operand_index") == operand_index
+                ),
+                None,
+            )
+            if register_context is None:
+                continue
+            current = existing.get((register, "struct_ptr"), {})
+            if current.get("struct_name") == struct_name:
+                continue
+            element_id = register_context.get("element_id")
+            row_key = cast(dict[str, object], locator).get("row_key")
+            if not isinstance(element_id, str):
+                continue
+            candidate_id = f"struct-ptr:{row_key}:{operand_index}:{register}:{struct_name}"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "kind": "register_semantic",
+                    "durable_id": f"register_seed:{register}:struct_ptr",
+                    "locator": dict(cast(dict[str, object], locator)),
+                    "element_id": element_id,
+                    "element_kind": "register",
+                    "operand_index": operand_index,
+                    "register": register,
+                    "base_register": register,
+                    "evidence": {
+                        "source": "listing",
+                        "evidence_kind": "unresolved_typed_access",
+                        "classification": context.get("classification"),
+                        "displacement": context.get("displacement"),
+                        "root_struct_name": context.get("root_struct_name"),
+                        "refined_struct_name": context.get("refined_struct_name"),
+                    },
+                    "current_metadata": dict(current),
+                    "expected_rendered_source_improvement": f"treat {register} as {struct_name} struct pointer",
+                    "suggested_action_kind": "semantic.register.struct_ptr",
+                    "suggested_action_kinds": ["semantic.register.struct_ptr"],
+                    "parameters": {"struct_name": struct_name},
+                    "default_verifier": "round_trip",
+                    "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+                    "confidence": "high",
+                    "rationale": "typed-access analysis found a base register with unresolved struct field usage",
+                    "actionable": True,
+                    "stop_reason": None,
+                }
+            )
+    return candidates
+
+
+def _existing_register_seed_map(inspect_report: dict[str, object]) -> dict[tuple[str, str], dict[str, object]]:
+    target_state = inspect_report.get("target_state")
+    project = target_state.get("project") if isinstance(target_state, dict) else None
+    manual_state = project.get("manual_state") if isinstance(project, dict) else None
+    register_seeds = manual_state.get("register_seeds") if isinstance(manual_state, dict) else None
+    result: dict[tuple[str, str], dict[str, object]] = {}
+    if not isinstance(register_seeds, list | tuple):
+        return result
+    for seed in register_seeds:
+        if not isinstance(seed, dict):
+            continue
+        register = seed.get("register")
+        kind = seed.get("kind")
+        if isinstance(register, str) and isinstance(kind, str):
+            result[(register.upper(), kind)] = dict(seed)
+    return result
 
 
 def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:

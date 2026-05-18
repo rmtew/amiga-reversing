@@ -178,6 +178,11 @@ API-derived app-slot regions can describe the same durable RSSET identity.
 Autonomous candidates must de-dupe by `(layout_name, base_symbol, offset,
 symbol)` so the planner does not repeat equivalent edits.
 
+Implementation observation from `014-010`: autonomous struct-pointer register
+seeds need a concrete register element, not just a typed-gap element, because
+`semantic.register.struct_ptr` is exposed and executed through register element
+context.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
