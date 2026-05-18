@@ -157,6 +157,7 @@ def test_effective_metadata_includes_manual_representation_without_classifying_d
             "source_locator": "ManualRepresentation:repr-1",
             "source_path": None,
             "style": "character",
+            "symbol": None,
         }
     ]
 
