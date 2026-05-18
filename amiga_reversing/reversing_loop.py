@@ -121,7 +121,11 @@ def run_one_iteration(
             action_result={"status": "not_run"},
             verification={"status": "not_run", "layers": []},
             workflow_profile=None,
-            next_recommendation={"recommendation": "stop", "reason": "no locator-backed command candidate"},
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification={"status": "not_run", "layers": []},
+                evidence={"kind": "missing_domain_judgment", "name": "no locator-backed command candidate"},
+            ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -136,7 +140,10 @@ def run_one_iteration(
             action_result={"status": "dry_run"},
             verification={"status": "not_run", "layers": []},
             workflow_profile=None,
-            next_recommendation={"recommendation": "continue", "reason": "dry-run selected a safe command action"},
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification={"status": "not_run", "layers": []},
+            ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -160,7 +167,11 @@ def run_one_iteration(
             action_result={"status": "blocked"},
             verification=verification,
             workflow_profile=None,
-            next_recommendation={"recommendation": "stop", "reason": "output-affecting action has no verifier"},
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "unavailable_oracle", "name": "round_trip"},
+            ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -178,7 +189,11 @@ def run_one_iteration(
             action_result={"status": "blocked", "availability": availability},
             verification={"status": "failed", "layers": [{"layer": "command_availability", "status": "failed"}]},
             workflow_profile=None,
-            next_recommendation={"recommendation": "stop", "reason": "selected command is not available"},
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification={"status": "failed", "layers": [{"layer": "command_availability", "status": "failed"}]},
+                evidence={"kind": "api_gap", "name": "command_availability"},
+            ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
@@ -207,10 +222,10 @@ def run_one_iteration(
         },
         verification=verification,
         workflow_profile=cast(dict[str, object] | None, workflow_profile),
-        next_recommendation=(
-            {"recommendation": "continue", "reason": "manual command executed and verified"}
-            if verification["status"] == "passed"
-            else {"recommendation": "stop", "reason": "verification failed"}
+        next_recommendation=recommend_next_step(
+            inspect_report=inspect_report,
+            verification=verification,
+            workflow_profile=cast(dict[str, object] | None, workflow_profile),
         ),
     )
     return write_iteration_report(target_id, report, project_root=project_root)
@@ -286,6 +301,65 @@ def write_iteration_report(
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
     _atomic_write_json(paths["latest"], payload)
     return payload
+
+
+def profile_summary(workflow_profile: dict[str, object] | None) -> dict[str, object]:
+    if workflow_profile is None:
+        return {"available": False, "workflow_id": None, "spans": []}
+    spans = workflow_profile.get("spans")
+    span_payloads: list[dict[str, object]] = []
+    if isinstance(spans, list):
+        for span in spans:
+            if not isinstance(span, dict):
+                continue
+            name = span.get("name")
+            if not isinstance(name, str) or not name:
+                continue
+            seconds = span.get("seconds")
+            span_payloads.append(
+                {
+                    "name": name,
+                    "seconds": seconds if isinstance(seconds, int | float) else None,
+                    "module": span.get("module") if isinstance(span.get("module"), str) else None,
+                }
+            )
+    return {
+        "available": True,
+        "workflow_id": workflow_profile.get("workflow_id"),
+        "spans": span_payloads,
+        "top_spans": sorted(
+            span_payloads,
+            key=lambda span: span["seconds"] if isinstance(span.get("seconds"), int | float) else -1,
+            reverse=True,
+        )[:5],
+    }
+
+
+def recommend_next_step(
+    *,
+    inspect_report: dict[str, object],
+    verification: dict[str, object],
+    workflow_profile: dict[str, object] | None = None,
+    evidence: dict[str, object] | None = None,
+) -> dict[str, object]:
+    hygiene = inspect_report.get("hygiene")
+    if isinstance(hygiene, dict) and hygiene.get("unknown_files"):
+        return {"recommendation": "stop", "reason": "unknown target-local files require review"}
+    evidence_kind = evidence.get("kind") if isinstance(evidence, dict) else None
+    evidence_name = evidence.get("name") if isinstance(evidence, dict) else None
+    if evidence_kind in {"unavailable_oracle", "missing_domain_judgment"}:
+        return {"recommendation": "stop", "reason": str(evidence_name or evidence_kind), "evidence": evidence}
+    if evidence_kind == "additional_verification_required":
+        return {"recommendation": "verify", "reason": str(evidence_name or evidence_kind), "evidence": evidence}
+    if evidence_kind in {"profile_span", "api_gap", "state_contract", "blocking_duplication"} and evidence_name:
+        return {"recommendation": "refactor", "reason": str(evidence_name), "evidence": evidence}
+    if verification.get("status") == "failed":
+        return {"recommendation": "stop", "reason": "verification failed", "verification": verification}
+    return {
+        "recommendation": "continue",
+        "reason": "verification passed or no mutation was executed",
+        "profile_summary": profile_summary(workflow_profile),
+    }
 
 
 def _project_state_payload(target_id: str, project_root: Path) -> dict[str, object]:
@@ -613,6 +687,7 @@ def _iteration_report(
         "action_result": action_result,
         "verification": verification,
         "workflow_profile": workflow_profile,
+        "profile_summary": profile_summary(workflow_profile),
         "next": next_recommendation,
     }
 

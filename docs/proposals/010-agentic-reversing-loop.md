@@ -1126,3 +1126,8 @@ to repeat the loop safely.
   the affected locator is reported by command execution. Verification failures
   name the layer and force a stop recommendation; output-affecting actions are
   blocked unless a round-trip verifier is available.
+- 010-008 added profile summaries and evidence-backed next-step recommendations.
+  Reports now expose sorted workflow span summaries. The harness recommends
+  `continue`, `verify`, `refactor`, or `stop`; `refactor` requires a named span,
+  API/state contract gap, or blocking duplication, while unsafe hygiene and
+  verification failures stop the loop.

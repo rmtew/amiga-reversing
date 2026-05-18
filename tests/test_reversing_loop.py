@@ -307,6 +307,55 @@ def test_output_affecting_action_requires_round_trip_verifier(
     assert report["next"]["recommendation"] == "stop"
 
 
+def test_continue_recommendation_when_verification_passes() -> None:
+    recommendation = reversing_loop.recommend_next_step(
+        inspect_report={"hygiene": {"unknown_files": []}},
+        verification={"status": "passed", "layers": []},
+        workflow_profile={"workflow_id": "manual_command_execution", "spans": []},
+    )
+
+    assert recommendation["recommendation"] == "continue"
+
+
+def test_refactor_recommendation_requires_evidence() -> None:
+    without_evidence = reversing_loop.recommend_next_step(
+        inspect_report={"hygiene": {"unknown_files": []}},
+        verification={"status": "passed", "layers": []},
+    )
+    with_evidence = reversing_loop.recommend_next_step(
+        inspect_report={"hygiene": {"unknown_files": []}},
+        verification={"status": "passed", "layers": []},
+        evidence={"kind": "profile_span", "name": "locator_resolution"},
+    )
+
+    assert without_evidence["recommendation"] != "refactor"
+    assert with_evidence["recommendation"] == "refactor"
+
+
+def test_stop_recommendation_for_unknown_target_files() -> None:
+    recommendation = reversing_loop.recommend_next_step(
+        inspect_report={"hygiene": {"unknown_files": ["notes.json"]}},
+        verification={"status": "passed", "layers": []},
+    )
+
+    assert recommendation["recommendation"] == "stop"
+
+
+def test_profile_summary_shape() -> None:
+    summary = reversing_loop.profile_summary(
+        {
+            "workflow_id": "manual_command_execution",
+            "spans": [
+                {"name": "small", "seconds": 0.1, "module": "server"},
+                {"name": "large", "seconds": 1.2, "module": "listing_projection"},
+            ],
+        }
+    )
+
+    assert summary["workflow_id"] == "manual_command_execution"
+    assert summary["top_spans"][0]["name"] == "large"
+
+
 def _inspect_with_locator() -> dict[str, object]:
     locator = {
         "target_id": "demo",

@@ -75,3 +75,11 @@ Stop and ask the user when:
 
 Summaries should cite the latest iteration report, verification layers, profile
 spans, and next recommendation.
+
+## Recommendations
+
+- `continue`: proceed to the next high-confidence candidate.
+- `verify`: run the named additional proof before another mutation.
+- `refactor`: change support code only for the named span/API/state/duplication
+  trigger, then rerun the original iteration.
+- `stop`: report the named blocker and wait for user input or tool recovery.
