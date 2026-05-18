@@ -251,6 +251,11 @@ Implementation observation from `014-005`/`014-010`:
 semantic-hint state. Their verifier should check the reloaded hint and
 round-trip instead of affected locators.
 
+Implementation observation from `014-006`/`014-014`:
+`runtime_address_refs` without a `data_class` can still support conservative
+global naming when they carry a stable runtime address; use
+`runtime_address_XXXXXXXX` rather than dropping the candidate.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

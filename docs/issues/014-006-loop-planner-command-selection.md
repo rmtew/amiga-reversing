@@ -75,6 +75,8 @@ Progress:
   `data_symbol.rename` candidates, beyond referenced data use-sites.
 - Generic `run-one` now mines listing LVO API-call rows into autonomous
   `semantic.library_base.*` candidates.
+- Autonomous referenced-data rename candidates now also use stable runtime
+  addresses when `runtime_address_refs` have no data class.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

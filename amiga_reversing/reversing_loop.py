@@ -1312,10 +1312,14 @@ def _listing_data_symbol_candidates(
                 not isinstance(element_id, str)
                 or not isinstance(target_hunk, int)
                 or not isinstance(target_addr, int)
-                or not isinstance(data_class, str)
             ):
                 continue
-            name = _data_ref_symbol_name(data_class, context.get("runtime_address"), target_hunk, target_addr)
+            name = _data_ref_symbol_name(
+                data_class if isinstance(data_class, str) else "",
+                context.get("runtime_address"),
+                target_hunk,
+                target_addr,
+            )
             if name is None or (isinstance(text, str) and name in text):
                 continue
             context_symbol = context.get("symbol")
@@ -1722,10 +1726,12 @@ def _ascii_string_from_row_bytes(value: object) -> str | None:
 
 def _data_ref_symbol_name(data_class: str, runtime_address: object, target_hunk: int, target_addr: int) -> str | None:
     prefix = _symbol_name_fragment(data_class)
+    if isinstance(runtime_address, int) and not isinstance(runtime_address, bool):
+        if prefix:
+            return f"{prefix}_{runtime_address:08X}"
+        return f"runtime_address_{runtime_address:08X}"
     if not prefix:
         return None
-    if isinstance(runtime_address, int) and not isinstance(runtime_address, bool):
-        return f"{prefix}_{runtime_address:08X}"
     return f"{prefix}_h{target_hunk}_{target_addr:08X}"
 
 

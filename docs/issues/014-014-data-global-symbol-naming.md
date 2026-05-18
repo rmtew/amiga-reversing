@@ -41,6 +41,9 @@ Current evidence:
   effective target metadata as well as Manual Action Log projections.
 - Autonomous data-symbol rename candidates now include row-level `data_class`
   evidence for data definitions, not only referenced data use-sites.
+- Autonomous referenced-data rename candidates now generate
+  `runtime_address_XXXXXXXX` names from stable runtime-address references when
+  no data class is available.
 - Generic `run-one` now verifies `data_symbol.remove` by checking the reloaded
   suppressed seeded item state rather than affected row metadata.
 - Durable data/global symbol edit, rename-existing-symbol, broader global, and
