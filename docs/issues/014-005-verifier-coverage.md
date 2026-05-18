@@ -94,6 +94,12 @@ Current evidence:
   `semantic.equate.*` execution now verifies Manual Action Log replay, reloaded
   semantic hint state, and exact round-trip instead of accepting affected-row
   metadata alone.
+- Generic `run-one` row/range/review seed creation and review seed removal now
+  verify Manual Action Log replay, reloaded manual seed state or removed-seed
+  absence, and exact round-trip.
+- Manual-seed verifiers derive expected seeds or removed seed ids from executed
+  durable action payloads, so matching project state alone cannot satisfy a
+  missing or mismatched action result.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported

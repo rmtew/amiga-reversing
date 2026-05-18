@@ -104,7 +104,7 @@ def test_inspect_candidates_include_durable_identity_or_locator(
     assert candidate["locator"] == {"section_index": 0, "start_offset": 0x10, "end_offset": 0x12}
     assert candidate["evidence"]["has_xrefs"] is True
     assert candidate["confidence"] == "high"
-    assert candidate["default_verifier"] == "round_trip"
+    assert candidate["default_verifier"] == "manual_seed_state"
 
 
 def test_inspect_unsafe_hygiene_blocks_mutation_readiness(
@@ -355,9 +355,9 @@ def test_output_affecting_action_runs_round_trip_layer(
         "work_item": inspect_report["candidate_work"][0],
         "command": {
             "kind": "command",
-            "command_id": "row.seed.code",
-            "context": {"kind": "row", "locator": inspect_report["candidate_work"][0]["locator"]},
-            "parameters": {},
+            "command_id": "target.custom_struct.add",
+            "context": {"kind": "target"},
+            "parameters": {"name": "InputEvent", "size": 22},
             "output_affecting": True,
         },
     }
@@ -366,7 +366,7 @@ def test_output_affecting_action_runs_round_trip_layer(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET":
-            return {"data": {"commands": [{"command_id": "row.seed.code"}]}}
+            return {"data": {"commands": [{"command_id": "target.custom_struct.add"}]}}
         _write_manual_log(tmp_path)
         return {"data": _executed_command_payload()}
 
@@ -428,6 +428,62 @@ def test_target_command_verification_accepts_local_effect_projection(
         "effect_kind": "custom_struct",
     }
     assert report["verification"]["layers"][-1]["layer"] == "round_trip"
+
+
+def test_run_one_manual_seed_executes_with_seed_state_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": inspect_report["candidate_work"][0],
+        "command": {
+            "kind": "command",
+            "command_id": "row.seed.data.string",
+            "context": {"kind": "row", "locator": inspect_report["candidate_work"][0]["locator"]},
+            "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
+            "output_affecting": True,
+        },
+    }
+    seed = {
+        "seed_id": "catalog-seed-1",
+        "kind": "data",
+        "mode": "required",
+        "hunk": 0,
+        "addr": 0,
+        "end": 4,
+        "data_role": "string",
+        "unit": "byte",
+        "encoding": "ascii",
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "row.seed.data.string"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "row.seed.data.string"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_manual_seed_payload(tmp_path, seed)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert report["verification"]["layers"][1]["matching_manual_seeds"] == [seed]
+    assert report["action"]["command_id"] == "row.seed.data.string"
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
@@ -710,6 +766,59 @@ def test_rsset_region_verifier_requires_action_payload(
 
     assert verification["status"] == "failed"
     assert verification["layers"][1]["message"] == "missing RSSET layout region payload"
+
+
+def test_manual_seed_verifier_requires_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    seed = {"seed_id": "catalog-seed-1", "kind": "data", "mode": "required", "hunk": 0, "addr": 0}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+    durable_result = _executed_command_payload()
+    durable_result["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "row.seed.data.raw",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "missing manual seed payload"
+
+
+def test_manual_seed_remove_verifier_checks_removed_seed_absent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": []}),
+    )
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "review.seed.remove",
+        _executed_manual_seed_remove_payload(tmp_path, "data-as-code"),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["removed_seed_ids"] == ["data-as-code"]
 
 
 def test_rsset_region_verifier_rejects_mismatched_payload_identity(
@@ -3123,7 +3232,7 @@ def test_range_seed_command_candidate_uses_range_context_and_verifier() -> None:
         "parameters": {"seed_kind": "data", "data_role": "string", "unit": "byte", "encoding": "ascii"},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "manual_seed_state"
     assert selected is not None
     assert selected["command"]["command_id"] == "range.seed.data.string"
 
@@ -3154,7 +3263,7 @@ def test_review_data_role_seed_candidate_uses_review_item_context() -> None:
         "parameters": {"name": "manual_gap"},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "manual_seed_state"
 
 
 def test_review_label_candidate_uses_review_item_context_and_round_trip_verifier() -> None:
@@ -3212,7 +3321,7 @@ def test_review_seed_remove_candidate_uses_review_item_context() -> None:
         "parameters": {"seed_id": "data-as-code"},
         "output_affecting": True,
     }
-    assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+    assert reversing_loop._candidate_verifier(candidate, command) == "manual_seed_state"
 
 
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
@@ -4156,6 +4265,26 @@ def _executed_rsset_region_payload(
             }
         ],
     }
+    return payload
+
+
+def _executed_manual_seed_payload(tmp_path: Path, seed: dict[str, object]) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"seed": dict(seed)}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {"status": "applied", "refresh": {"mode": "project"}}
+    return payload
+
+
+def _executed_manual_seed_remove_payload(tmp_path: Path, seed_id: str) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {"action_id": "manual-1", "payload": {"seed_id": seed_id}}
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {"status": "applied", "refresh": {"mode": "project"}}
     return payload
 
 

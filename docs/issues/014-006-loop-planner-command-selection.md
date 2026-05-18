@@ -68,6 +68,8 @@ Progress:
   target-equate commands rather than a generic round-trip label.
 - Planner verifier summaries now report `rsset_region_state` for target RSSET
   and selected app-slot commands rather than a generic round-trip label.
+- Planner verifier summaries now report `manual_seed_state` for row/range/review
+  seed creation and review seed removal rather than a generic round-trip label.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
 - Generic `run-one` now mines source descriptor entrypoint evidence into an

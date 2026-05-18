@@ -2747,7 +2747,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
     if any(action == "semantic.register.struct_ptr" or action.startswith(_SEMANTIC_COMMAND_PREFIXES) for action in actions):
         return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.", "range.seed.")) for action in actions):
-        return "round_trip"
+        return "manual_seed_state"
     return None
 
 
@@ -2860,6 +2860,13 @@ def _verify_manual_mutation(
         return _verify_struct_pointer_register_seed_mutation(
             target_id,
             command,
+            durable_result,
+            project_root=project_root,
+        )
+    if isinstance(command_id, str) and command_id.startswith(("row.seed.", "range.seed.", "review.seed.")):
+        return _verify_manual_seed_mutation(
+            target_id,
+            str(command_id),
             durable_result,
             project_root=project_root,
         )
@@ -3149,6 +3156,146 @@ def _verify_project_suppressed_seeded_item(
 
 def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr"))
+
+
+def _verify_manual_seed_mutation(
+    target_id: str,
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected_seeds = _manual_seeds_from_durable_result(durable_result)
+    removed_seed_ids = _manual_seed_removals_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_manual_seed_state(
+            target_id,
+            command_id,
+            expected_seeds,
+            removed_seed_ids,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _manual_seeds_from_durable_result(durable_result: dict[str, object]) -> list[dict[str, object]]:
+    seeds: list[dict[str, object]] = []
+    action = durable_result.get("action")
+    seed = _manual_seed_from_action(action)
+    if seed is not None:
+        seeds.append(seed)
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            seed = _manual_seed_from_action(raw_action)
+            if seed is not None:
+                seeds.append(seed)
+    return seeds
+
+
+def _manual_seed_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    seed = action.get("seed")
+    if isinstance(seed, dict):
+        return cast(dict[str, object], seed)
+    payload = action.get("payload")
+    seed = payload.get("seed") if isinstance(payload, dict) else None
+    if isinstance(seed, dict):
+        return cast(dict[str, object], seed)
+    return None
+
+
+def _manual_seed_removals_from_durable_result(durable_result: dict[str, object]) -> list[str]:
+    seed_ids: list[str] = []
+    action = durable_result.get("action")
+    seed_id = _manual_seed_removal_from_action(action)
+    if seed_id is not None:
+        seed_ids.append(seed_id)
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            seed_id = _manual_seed_removal_from_action(raw_action)
+            if seed_id is not None:
+                seed_ids.append(seed_id)
+    return seed_ids
+
+
+def _manual_seed_removal_from_action(action: object) -> str | None:
+    if not isinstance(action, dict):
+        return None
+    seed_id = action.get("seed_id")
+    if isinstance(seed_id, str) and seed_id:
+        return seed_id
+    payload = action.get("payload")
+    seed_id = payload.get("seed_id") if isinstance(payload, dict) else None
+    if isinstance(seed_id, str) and seed_id:
+        return seed_id
+    return None
+
+
+def _verify_project_manual_seed_state(
+    target_id: str,
+    command_id: str,
+    expected_seeds: list[dict[str, object]],
+    removed_seed_ids: list[str],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
+    if not isinstance(seeds, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual seeds were not reloaded"}
+    seed_items = [seed for seed in seeds if isinstance(seed, dict)]
+    if command_id == "review.seed.remove":
+        if not removed_seed_ids:
+            return {"layer": "semantic_reload", "status": "failed", "message": "missing removed manual seed id payload"}
+        remaining = [seed for seed in seed_items if seed.get("seed_id") in set(removed_seed_ids)]
+        return {
+            "layer": "semantic_reload",
+            "status": "passed" if not remaining else "failed",
+            "removed_seed_ids": removed_seed_ids,
+            "remaining_manual_seeds": remaining,
+        }
+    if not expected_seeds:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing manual seed payload"}
+    matches = [
+        expected
+        for expected in expected_seeds
+        if any(_manual_seed_matches(actual, expected) for actual in seed_items)
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if len(matches) == len(expected_seeds) else "failed",
+        "expected_manual_seeds": expected_seeds,
+        "matching_manual_seeds": matches,
+    }
+
+
+def _manual_seed_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in (
+        "seed_id",
+        "kind",
+        "mode",
+        "hunk",
+        "addr",
+        "end",
+        "name",
+        "data_role",
+        "unit",
+        "encoding",
+    ):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return "seed_id" in expected
 
 
 def _verify_execution_view_mutation(
