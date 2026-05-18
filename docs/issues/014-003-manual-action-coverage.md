@@ -24,6 +24,11 @@ Acceptance criteria:
   structure fields, API/register semantics, correction/suppression, and
   immediate representation are either implemented or split into child issues.
 
+Current progress:
+- `remove_manual_seed` replay exists and is now reachable from
+  `manual_seed_conflict` review items through the command catalog, using the
+  conflict item's durable `seed_ids`.
+
 Child issues:
 - `014-007-data-role-command-coverage.md`
 - `014-008-immediate-representation-verification.md`

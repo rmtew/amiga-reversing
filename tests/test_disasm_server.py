@@ -1312,6 +1312,42 @@ def test_route_manual_action_catalog_returns_review_item_actions(monkeypatch: py
     ]
 
 
+def test_route_manual_action_catalog_returns_manual_seed_conflict_remove_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        review_state=ReviewState.BLOCKED,
+        review_items=(
+            {
+                "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
+                "item_id": "manual_seed_conflict:data-as-code:entry",
+                "scope": "range",
+                "state": ReviewItemState.OPEN,
+                "review_blocker": True,
+                "seed_ids": ["data-as-code"],
+                "hunk": 0,
+                "start": 0,
+                "end": 2,
+                "message": "Required manual seed data-as-code conflicts",
+            },
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        {"context": ["review-item"], "item_id": ["manual_seed_conflict:data-as-code:entry"]},
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
+    remove_action = next(action for action in actions if action["action_id"] == "review.seed.remove")
+
+    assert remove_action["parameters"] == {"seed_id": "data-as-code"}
+    assert remove_action["parameter_schema"]["properties"]["seed_id"]["enum"] == ["data-as-code"]
+    assert remove_action["interaction_schema"]["type"] == "form"
+
+
 def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
 
@@ -2708,6 +2744,64 @@ def test_route_manual_action_catalog_execute_appends_valid_log_action(
     assert named_seed["addr"] == 4
     assert named_seed["end"] == 8
     assert appended_actions == [action, named_action]
+
+
+def test_route_manual_action_catalog_execute_removes_manual_seed_from_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project = replace(
+        _binary_project("bloodwych", ready=True),
+        review_state=ReviewState.BLOCKED,
+        review_items=(
+            {
+                "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
+                "item_id": "manual_seed_conflict:data-as-code:entry",
+                "scope": "range",
+                "state": ReviewItemState.OPEN,
+                "review_blocker": True,
+                "seed_ids": ["data-as-code"],
+                "hunk": 0,
+                "start": 0,
+                "end": 2,
+                "message": "Required manual seed data-as-code conflicts",
+            },
+        ),
+    )
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "review.seed.remove",
+            "context": {"kind": "review_item", "item_id": "manual_seed_conflict:data-as-code:entry"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+
+    assert action["kind"] == "remove_manual_seed"
+    assert action["payload"] == {"seed_id": "data-as-code"}
+    assert application["status"] == "applied"
+    assert application["refresh"] == {"mode": "project"}
+    assert appended_actions == [action]
 
 
 def test_route_manual_action_catalog_execute_appends_label_rename_action(

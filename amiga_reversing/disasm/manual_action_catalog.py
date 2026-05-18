@@ -78,6 +78,8 @@ def review_item_action_catalog(item: Mapping[str, object]) -> list[dict[str, obj
         )
         actions.append(_resolution("review.resolve.acknowledged", "Acknowledge", item, "acknowledged"))
     elif kind in {"manual_seed_conflict", "label_scope_conflict"}:
+        if kind == "manual_seed_conflict":
+            actions.append(_seed_remove_action(item))
         if kind == "label_scope_conflict":
             actions.extend(
                 [
@@ -499,6 +501,8 @@ def review_item_catalog_manual_payload(
         params.update(parameters)
     if ui_action == "create_manual_seed":
         return "create_manual_seed", {"seed": _seed_payload(item, params)}
+    if ui_action == "remove_manual_seed":
+        return "remove_manual_seed", {"seed_id": _manual_seed_id(item, params)}
     if ui_action == "resolve_review_item":
         disposition = str(params.get("disposition") or "acknowledged")
         return "resolve_review_item", {"resolution": _resolution_payload(item, disposition)}
@@ -688,6 +692,17 @@ def _data_name_parameter_schema() -> dict[str, object]:
     }
 
 
+def _seed_id_parameter_schema(seed_ids: list[str]) -> dict[str, object]:
+    property_schema: dict[str, object] = {"type": "string"}
+    if seed_ids:
+        property_schema["enum"] = seed_ids
+    return {
+        "type": "object",
+        "properties": {"seed_id": property_schema},
+        "required": ["seed_id"],
+    }
+
+
 def _representation_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -711,6 +726,26 @@ def _review_note_id(item: Mapping[str, object], params: Mapping[str, object]) ->
     if isinstance(note_id, str) and note_id:
         return note_id
     raise ValueError("note_id parameter is required")
+
+
+def _manual_seed_ids(item: Mapping[str, object]) -> list[str]:
+    raw_seed_ids = item.get("seed_ids")
+    if isinstance(raw_seed_ids, list | tuple):
+        return [seed_id for seed_id in raw_seed_ids if isinstance(seed_id, str) and seed_id]
+    seed_id = item.get("seed_id")
+    if isinstance(seed_id, str) and seed_id:
+        return [seed_id]
+    return []
+
+
+def _manual_seed_id(item: Mapping[str, object], params: Mapping[str, object]) -> str:
+    seed_id = params.get("seed_id")
+    if isinstance(seed_id, str) and seed_id:
+        return seed_id
+    seed_ids = _manual_seed_ids(item)
+    if len(seed_ids) == 1:
+        return seed_ids[0]
+    raise ValueError("seed_id parameter is required")
 
 
 def _review_note_edit_payload(note_id: str, params: Mapping[str, object]) -> dict[str, object]:
@@ -1266,6 +1301,21 @@ def _seed(
     if encoding is not None:
         parameters["encoding"] = encoding
     return _log_action(action_id, label, "create_manual_seed", item, parameters, parameter_schema)
+
+
+def _seed_remove_action(item: Mapping[str, object]) -> dict[str, object]:
+    seed_ids = _manual_seed_ids(item)
+    parameters: dict[str, object] = {}
+    if len(seed_ids) == 1:
+        parameters["seed_id"] = seed_ids[0]
+    return _log_action(
+        "review.seed.remove",
+        "Remove manual seed",
+        "remove_manual_seed",
+        item,
+        parameters,
+        _seed_id_parameter_schema(seed_ids),
+    )
 
 
 def _resolution(action_id: str, label: str, item: Mapping[str, object], disposition: str) -> dict[str, object]:

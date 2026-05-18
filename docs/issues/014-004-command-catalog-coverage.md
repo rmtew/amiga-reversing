@@ -22,10 +22,14 @@ Acceptance criteria:
 - Execution returns authoritative mutation details and workflow profile.
 - Missing command support is visible as a precise blocker to the loop.
 
+Current progress:
+- `manual_seed_conflict` review items expose `review.seed.remove`, parameterized
+  by durable Manual Action Log `seed_id`, and `/commands/execute` appends
+  `remove_manual_seed`.
+
 Required tests:
 Command catalog availability and execution tests for each supported action
 family.
 
 Cleanup / deletion:
 Delete after command exposure matches the supported manual-action matrix.
-

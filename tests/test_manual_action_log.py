@@ -244,6 +244,25 @@ def test_manual_action_log_replays_file_order_and_reports_sequence_inconsistency
     assert projection.active_action_ids == ("a1", "a2")
 
 
+def test_manual_action_log_remove_manual_seed_projects_seed_absent(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_seed", seed={"seed_id": "data-as-code", "kind": "data", "addr": 0}),
+            _action("a2", 2, "remove_manual_seed", seed_id="data-as-code"),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.seeds == ()
+    assert projection.review_state == "clear"
+    assert projection.active_action_ids == ("a1", "a2")
+
+
 def test_manual_action_log_undo_and_redo_project_action_activity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
