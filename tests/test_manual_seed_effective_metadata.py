@@ -1365,6 +1365,73 @@ def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path:
     assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] is None
 
 
+def test_effective_metadata_keeps_unrelated_existing_data_block_interpreted_ref(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    existing_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00002000",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x2000,
+        "target_locator": "h0:$00002000",
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+    }
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            data_block_layouts=(
+                DataBlockLayoutMetadata(
+                    layout_id="ptr-table",
+                    hunk=0,
+                    source_start=0x100,
+                    source_end=0x104,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata",
+                    elements=(
+                        DataBlockElementMetadata(
+                            layout_id="ptr-table",
+                            offset=0,
+                            width=4,
+                            kind=DataBlockElementKind.SCALAR,
+                            reference_interpretation=existing_ref,
+                            seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                            review_status=TargetMetadataReviewStatus.SEEDED,
+                            citation="target_metadata",
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "remove_manual_data_block_element_ref",
+                data_block_interpreted_ref={
+                    "data_block_ref_id": "ptr-table:0:absolute:h0:00003000",
+                    "layout_id": "ptr-table",
+                    "offset": 0,
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] == existing_ref
+
+
 def test_effective_metadata_removes_data_block_element_from_existing_layout(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

@@ -728,6 +728,37 @@ def _manual_data_block_reference_interpretations(
     return interpretations
 
 
+def _manual_data_block_reference_id(ref: Mapping[str, object]) -> str | None:
+    for field_name in ("data_block_ref_id", "interpreted_ref_id"):
+        value = ref.get(field_name)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _manual_data_block_reference_removals(
+    refs: tuple[dict[str, object], ...],
+) -> dict[tuple[str, int], set[str]]:
+    removals: dict[tuple[str, int], set[str]] = {}
+    for ref in refs:
+        key = _manual_data_block_element_key(ref)
+        ref_id = _manual_data_block_reference_id(ref)
+        if key is not None and ref_id is not None:
+            removals.setdefault(key, set()).add(ref_id)
+    return removals
+
+
+def _data_block_element_ref_is_removed(
+    element: DataBlockElementMetadata,
+    removals: Mapping[tuple[str, int], set[str]],
+) -> bool:
+    removed_ids = removals.get((element.layout_id, element.offset))
+    if not removed_ids or not isinstance(element.reference_interpretation, dict):
+        return False
+    ref_id = _manual_data_block_reference_id(element.reference_interpretation)
+    return ref_id in removed_ids
+
+
 def _data_block_element_span(layout: DataBlockLayoutMetadata, element: DataBlockElementMetadata) -> tuple[int, int]:
     return layout.source_start + element.offset, layout.source_start + element.offset + element.width
 
@@ -1026,18 +1057,16 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             )
             for layout in data_block_layouts
         ]
-    removed_data_block_interpreted_ref_keys = {
-        key
-        for ref in removed_data_block_interpreted_ref_projections
-        if (key := _manual_data_block_element_key(ref)) is not None
-    }
-    if removed_data_block_interpreted_ref_keys:
+    removed_data_block_interpreted_refs = _manual_data_block_reference_removals(
+        removed_data_block_interpreted_ref_projections
+    )
+    if removed_data_block_interpreted_refs:
         data_block_layouts = [
             replace(
                 layout,
                 elements=tuple(
                     replace(element, reference_interpretation=None)
-                    if (element.layout_id, element.offset) in removed_data_block_interpreted_ref_keys
+                    if _data_block_element_ref_is_removed(element, removed_data_block_interpreted_refs)
                     else element
                     for element in layout.elements
                 ),
