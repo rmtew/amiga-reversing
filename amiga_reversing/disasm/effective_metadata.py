@@ -471,6 +471,38 @@ def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStruct
     )
 
 
+def _manual_custom_struct_field_container_name(field: dict[str, object]) -> str | None:
+    return _manual_seed_text(field, "struct_name")
+
+
+def _manual_custom_struct_field_key(field: dict[str, object]) -> tuple[str, int] | None:
+    struct_name = _manual_custom_struct_field_container_name(field)
+    offset = _manual_seed_int(field, "offset")
+    if struct_name is None or offset is None or offset < 0:
+        return None
+    return struct_name, offset
+
+
+def _custom_struct_with_manual_field_projection(
+    struct: CustomStructMetadata,
+    field_projections: tuple[dict[str, object], ...],
+    removed_field_keys: set[tuple[str, int]],
+) -> CustomStructMetadata:
+    fields = [
+        field
+        for field in struct.fields
+        if (struct.name, field.offset) not in removed_field_keys
+    ]
+    for raw_field in field_projections:
+        if _manual_custom_struct_field_container_name(raw_field) != struct.name:
+            continue
+        field = _manual_custom_struct_field_to_metadata(raw_field)
+        if field is not None:
+            fields.append(field)
+    merged_fields = {field.offset: field for field in fields}
+    return replace(struct, fields=tuple(merged_fields.values()))
+
+
 def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetLayoutRegionMetadata | None:
     offset = _manual_seed_int(region, "offset")
     if offset is None or offset < 0 or offset > 0x7FFF:
@@ -564,6 +596,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     custom_struct_projections = projection.custom_structs
     removed_custom_struct_projections = projection.removed_custom_structs
+    custom_struct_field_projections = projection.custom_struct_fields
+    removed_custom_struct_field_projections = projection.removed_custom_struct_fields
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
     execution_view_projections = projection.execution_views
@@ -578,6 +612,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not suppressed_seeded_item_projections
         and not custom_struct_projections
         and not removed_custom_struct_projections
+        and not custom_struct_field_projections
+        and not removed_custom_struct_field_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
         and not execution_view_projections
@@ -672,6 +708,20 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         custom_struct = _manual_custom_struct_to_metadata(struct)
         if custom_struct is not None:
             custom_structs.append(custom_struct)
+    removed_custom_struct_field_keys = {
+        key
+        for field in removed_custom_struct_field_projections
+        if (key := _manual_custom_struct_field_key(field)) is not None
+    }
+    if custom_struct_field_projections or removed_custom_struct_field_keys:
+        custom_structs = [
+            _custom_struct_with_manual_field_projection(
+                struct,
+                custom_struct_field_projections,
+                removed_custom_struct_field_keys,
+            )
+            for struct in custom_structs
+        ]
     merged_custom_structs = {struct.name: struct for struct in custom_structs}
     for region in rsset_layout_region_projections:
         rsset_layout_region = _manual_rsset_layout_region_to_metadata(region)

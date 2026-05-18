@@ -108,6 +108,9 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_custom_struct_action(),
         _target_custom_struct_edit_action(),
         _target_custom_struct_remove_action(),
+        _target_custom_struct_field_action(),
+        _target_custom_struct_field_edit_action(),
+        _target_custom_struct_field_remove_action(),
         _target_rsset_layout_region_action(),
         _target_rsset_layout_region_edit_action(),
         _target_rsset_layout_region_rename_action(),
@@ -144,6 +147,12 @@ def target_catalog_manual_payload(
         return "create_manual_custom_struct", {"custom_struct": _custom_struct_payload(params)}
     if action.get("action") == "remove_manual_custom_struct":
         return "remove_manual_custom_struct", {"custom_struct": _custom_struct_identity_payload(params)}
+    if action.get("action") == "create_manual_custom_struct_field":
+        return "create_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_target_payload(params)}
+    if action.get("action") == "remove_manual_custom_struct_field":
+        return "remove_manual_custom_struct_field", {
+            "custom_struct_field": _custom_struct_field_identity_payload(params)
+        }
     if action.get("action") == "create_manual_rsset_layout_region":
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
@@ -1000,6 +1009,29 @@ def _custom_struct_identity_payload(params: Mapping[str, object]) -> dict[str, o
     return {"name": name.strip()}
 
 
+def _custom_struct_field_target_payload(params: Mapping[str, object]) -> dict[str, object]:
+    struct_name = params.get("struct_name")
+    if not isinstance(struct_name, str) or not struct_name.strip():
+        raise ValueError("create_manual_custom_struct_field requires parameter struct_name")
+    field = _custom_struct_field_payload(params)
+    field["struct_name"] = struct_name.strip()
+    return field
+
+
+def _custom_struct_field_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    struct_name = params.get("struct_name")
+    offset = _optional_int(params.get("offset"))
+    if not isinstance(struct_name, str) or not struct_name.strip():
+        raise ValueError("remove_manual_custom_struct_field requires parameter struct_name")
+    if offset is None or offset < 0:
+        raise ValueError("remove_manual_custom_struct_field requires offset")
+    field: dict[str, object] = {"struct_name": struct_name.strip(), "offset": offset}
+    name = params.get("name")
+    if isinstance(name, str) and name.strip():
+        field["name"] = name.strip()
+    return field
+
+
 def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, object]:
     offset = _optional_int(params.get("offset"))
     size = _optional_int(params.get("size"))
@@ -1245,6 +1277,36 @@ def _custom_struct_identity_parameter_schema() -> dict[str, object]:
         "type": "object",
         "properties": {"name": {"type": "string"}},
         "required": ["name"],
+    }
+
+
+def _custom_struct_field_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "struct_name": {"type": "string"},
+            "name": {"type": "string"},
+            "type": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
+            "size": {"type": "integer", "minimum": 1},
+            "available_since": {"type": "string", "default": "1.0"},
+            "struct": {"type": "string"},
+            "pointer_struct": {"type": "string"},
+            "named_base": {"type": "string"},
+        },
+        "required": ["struct_name", "name", "type", "offset", "size"],
+    }
+
+
+def _custom_struct_field_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "struct_name": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
+            "name": {"type": "string"},
+        },
+        "required": ["struct_name", "offset"],
     }
 
 
@@ -2172,6 +2234,33 @@ def _target_custom_struct_remove_action() -> dict[str, object]:
         "Remove custom struct",
         "remove_manual_custom_struct",
         _custom_struct_identity_parameter_schema(),
+    )
+
+
+def _target_custom_struct_field_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct_field.add",
+        "Add custom struct field",
+        "create_manual_custom_struct_field",
+        _custom_struct_field_parameter_schema(),
+    )
+
+
+def _target_custom_struct_field_edit_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct_field.edit",
+        "Edit custom struct field",
+        "create_manual_custom_struct_field",
+        _custom_struct_field_parameter_schema(),
+    )
+
+
+def _target_custom_struct_field_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct_field.remove",
+        "Remove custom struct field",
+        "remove_manual_custom_struct_field",
+        _custom_struct_field_identity_parameter_schema(),
     )
 
 

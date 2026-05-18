@@ -150,6 +150,8 @@ class ManualActionKind(StrEnum):
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
     CREATE_MANUAL_CUSTOM_STRUCT = "create_manual_custom_struct"
     REMOVE_MANUAL_CUSTOM_STRUCT = "remove_manual_custom_struct"
+    CREATE_MANUAL_CUSTOM_STRUCT_FIELD = "create_manual_custom_struct_field"
+    REMOVE_MANUAL_CUSTOM_STRUCT_FIELD = "remove_manual_custom_struct_field"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
     REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
@@ -184,6 +186,8 @@ class ManualActionLogProjection:
     suppressed_seeded_items: tuple[dict[str, object], ...]
     custom_structs: tuple[dict[str, object], ...]
     removed_custom_structs: tuple[dict[str, object], ...]
+    custom_struct_fields: tuple[dict[str, object], ...]
+    removed_custom_struct_fields: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
     removed_rsset_layout_regions: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
@@ -338,6 +342,8 @@ def _empty_projection(
         suppressed_seeded_items=(),
         custom_structs=(),
         removed_custom_structs=(),
+        custom_struct_fields=(),
+        removed_custom_struct_fields=(),
         rsset_layout_regions=(),
         removed_rsset_layout_regions=(),
         execution_views=(),
@@ -965,6 +971,16 @@ def _rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int]:
     )
 
 
+def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
+    struct_name = field.get("struct_name")
+    offset = _manual_seed_int(field, "offset")
+    if not isinstance(struct_name, str) or not struct_name:
+        raise ValueError("custom_struct_field requires struct_name")
+    if offset is None or offset < 0:
+        raise ValueError("custom_struct_field requires offset")
+    return struct_name, offset
+
+
 def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
     hunk = _manual_seed_int(symbol, "hunk")
     addr = _manual_seed_int(symbol, "addr")
@@ -1175,6 +1191,8 @@ def _project_actions(
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
     custom_structs: dict[str, dict[str, object]] = {}
     removed_custom_structs: dict[str, dict[str, object]] = {}
+    custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
+    removed_custom_struct_fields: dict[tuple[str, int], dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
@@ -1233,6 +1251,16 @@ def _project_actions(
                 raise ValueError("custom_struct requires name")
             custom_structs.pop(struct_name, None)
             removed_custom_structs[struct_name] = custom_struct
+        elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD:
+            field = _action_object(action, "custom_struct_field")
+            key = _custom_struct_field_key(field)
+            removed_custom_struct_fields.pop(key, None)
+            custom_struct_fields[key] = field
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD:
+            field = _action_object(action, "custom_struct_field")
+            key = _custom_struct_field_key(field)
+            custom_struct_fields.pop(key, None)
+            removed_custom_struct_fields[key] = field
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")
             key = _rsset_layout_region_key(region)
@@ -1295,6 +1323,8 @@ def _project_actions(
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
         custom_structs=tuple(custom_structs.values()),
         removed_custom_structs=tuple(removed_custom_structs.values()),
+        custom_struct_fields=tuple(custom_struct_fields.values()),
+        removed_custom_struct_fields=tuple(removed_custom_struct_fields.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
         removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
         execution_views=tuple(execution_views.values()),

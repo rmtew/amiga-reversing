@@ -322,6 +322,41 @@ def test_target_custom_struct_remove_command_payload() -> None:
     assert payload == {"custom_struct": {"name": "InputEvent"}}
 
 
+def test_target_custom_struct_field_add_and_edit_command_payloads() -> None:
+    for command_id in ("target.custom_struct_field.add", "target.custom_struct_field.edit"):
+        kind, payload = target_catalog_manual_payload(
+            command_id,
+            {
+                "struct_name": "InputEvent",
+                "name": "ie_Class",
+                "type": "UBYTE",
+                "offset": 4,
+                "size": 1,
+            },
+        )
+
+        assert kind == "create_manual_custom_struct_field"
+        assert payload == {
+            "custom_struct_field": {
+                "struct_name": "InputEvent",
+                "name": "ie_Class",
+                "type": "UBYTE",
+                "offset": 4,
+                "size": 1,
+            }
+        }
+
+
+def test_target_custom_struct_field_remove_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.custom_struct_field.remove",
+        {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+    )
+
+    assert kind == "remove_manual_custom_struct_field"
+    assert payload == {"custom_struct_field": {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"}}
+
+
 def test_target_rsset_layout_region_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.add",

@@ -1108,6 +1108,77 @@ def test_manual_action_log_removes_custom_struct_by_name(tmp_path: Path) -> None
     assert projection.removed_custom_structs == ({"name": "InputEvent"},)
 
 
+def test_manual_action_log_projects_custom_struct_field(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct_field",
+                custom_struct_field={
+                    "struct_name": "InputEvent",
+                    "name": "ie_Class",
+                    "type": "UBYTE",
+                    "offset": 4,
+                    "size": 1,
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.custom_struct_fields == (
+        {
+            "struct_name": "InputEvent",
+            "name": "ie_Class",
+            "type": "UBYTE",
+            "offset": 4,
+            "size": 1,
+        },
+    )
+
+
+def test_manual_action_log_removes_custom_struct_field_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct_field",
+                custom_struct_field={
+                    "struct_name": "InputEvent",
+                    "name": "ie_Class",
+                    "type": "UBYTE",
+                    "offset": 4,
+                    "size": 1,
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "remove_manual_custom_struct_field",
+                custom_struct_field={"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.custom_struct_fields == ()
+    assert projection.removed_custom_struct_fields == (
+        {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+    )
+
+
 def test_manual_action_log_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
