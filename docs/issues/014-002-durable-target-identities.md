@@ -21,10 +21,17 @@ Acceptance criteria:
   replay, command discovery, command execution, and verification.
 - Missing identity support is broken into implementation issues.
 
+Current observations:
+- `suppress_seeded_item` uses the durable tuple `(kind, hunk, addr)` for
+  Manual Action Log replay and effective metadata projection.
+- Command exposure for suppression remains blocked because listing/review
+  command contexts do not yet surface which rendered row or review item came
+  from a suppressible `seeded_entity`, `seeded_code_label`, or
+  `seeded_code_entrypoint` source.
+
 Required tests:
 Focused identity/locator tests for any new identity contracts.
 
 Cleanup / deletion:
 Delete after all required identity gaps are either implemented or split into
 specific issues.
-
