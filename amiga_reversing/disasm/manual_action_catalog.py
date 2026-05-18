@@ -106,6 +106,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
         _target_custom_struct_action(),
+        _target_custom_struct_edit_action(),
         _target_custom_struct_remove_action(),
         _target_rsset_layout_region_action(),
         _target_rsset_layout_region_edit_action(),
@@ -2151,6 +2152,15 @@ def _target_custom_struct_action() -> dict[str, object]:
     return _target_log_action(
         "target.custom_struct.add",
         "Add custom struct",
+        "create_manual_custom_struct",
+        _custom_struct_parameter_schema(),
+    )
+
+
+def _target_custom_struct_edit_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct.edit",
+        "Edit custom struct",
         "create_manual_custom_struct",
         _custom_struct_parameter_schema(),
     )
