@@ -849,6 +849,50 @@ def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
     assert report["planner"]["selected_command_id"] == "representation.character"
 
 
+def test_run_one_uses_listing_entrypoint_label_candidate_when_inspect_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+    inspect_report = {
+        "target_id": "demo",
+        "safe_to_mutate": True,
+        "candidate_work": [],
+        "verification_paths": [{"kind": "round_trip", "available": True}],
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if path.endswith("/listing") and not path.endswith("/listing/navigation"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            row_key="entry-label",
+                            kind="label",
+                            label="loc_0_00000002",
+                            start_offset=2,
+                            end_offset=2,
+                        )
+                    ]
+                }
+            }
+        if path.endswith("/listing/navigation"):
+            return {"data": {}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "label.rename"
+    assert report["action"]["parameters"] == {"name": "entrypoint"}
+    assert report["selected_work_item"]["candidate_id"] == "entrypoint-label:entry-label:entrypoint"
+
+
 def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -937,6 +981,22 @@ def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
 
     assert byte_candidates[0]["element_id"] == "row-1:immediate:0:48"
     assert long_candidates == []
+
+
+def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
+    _target(tmp_path)
+    _write_raw_source(tmp_path, entrypoint=2)
+    row = _listing_row(
+        row_key="entry-label",
+        kind="label",
+        label="already_named_entry",
+        start_offset=2,
+        end_offset=2,
+    )
+
+    candidates = reversing_loop._listing_entrypoint_label_candidates("demo", [row], project_root=tmp_path)
+
+    assert candidates == []
 
 
 def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:

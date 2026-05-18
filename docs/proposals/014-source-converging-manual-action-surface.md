@@ -193,6 +193,11 @@ option-specific. A candidate can have a valid lower-ranked catalog command even
 when the first selected command is unavailable, so non-dry execution must retry
 eligible alternates before reporting a command-coverage blocker.
 
+Implementation observation from `014-006`: source descriptor entrypoint evidence
+can drive a structured label rename before falling back to an entrypoint
+comment, but only when the current listing label is still generated and matches
+the same hunk/offset identity.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

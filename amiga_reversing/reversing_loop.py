@@ -628,7 +628,7 @@ def run_one_iteration(
         raise ValueError("run state is required")
     inspect_report = inspect_target(target_id, project_root=project_root)
     if not inspect_report.get("candidate_work") and inspect_report.get("safe_to_mutate") is True:
-        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
+        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report, project_root=project_root)
     iteration_id = _next_iteration_id(run_result.run_state)
     selected = _select_command_action(inspect_report)
     if (
@@ -638,7 +638,7 @@ def run_one_iteration(
         and _round_trip_verifier_available(inspect_report)
         and not inspect_report.get("listing_open")
     ):
-        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report)
+        inspect_report = _inspect_report_with_listing_candidates(target_id, inspect_report, project_root=project_root)
         selected = _select_command_action(inspect_report)
     if selected is None:
         report = _iteration_report(
@@ -990,6 +990,8 @@ def _open_and_wait_listing(target_id: str, *, timeout_seconds: float) -> dict[st
 def _inspect_report_with_listing_candidates(
     target_id: str,
     inspect_report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     listing_ready = _open_and_wait_listing(target_id, timeout_seconds=10.0)
     if listing_ready.get("status") != "ready":
@@ -1006,6 +1008,13 @@ def _inspect_report_with_listing_candidates(
     rows = data.get("rows") if isinstance(data, dict) else None
     existing_candidates = inspect_report.get("candidate_work")
     candidates = list(existing_candidates) if isinstance(existing_candidates, list) else []
+    candidates.extend(
+        _listing_entrypoint_label_candidates(
+            target_id,
+            rows if isinstance(rows, list) else [],
+            project_root=project_root,
+        )
+    )
     candidates.extend(
         _listing_representation_candidates(
             rows if isinstance(rows, list) else [],
@@ -1046,6 +1055,90 @@ def _inspect_report_with_listing_candidates(
         )
     )
     return {**inspect_report, "listing_open": listing_ready, "candidate_work": candidates}
+
+
+def _listing_entrypoint_label_candidates(
+    target_id: str,
+    rows: list[object],
+    *,
+    project_root: Path,
+) -> list[dict[str, object]]:
+    entrypoint = _source_entrypoint_evidence(target_id, project_root=project_root)
+    if entrypoint is None:
+        return []
+    section_index = entrypoint["section_index"]
+    offset = entrypoint["offset"]
+    if not isinstance(section_index, int) or not isinstance(offset, int):
+        return []
+    new_label = "entrypoint"
+    candidates: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        locator_payload = cast(dict[str, object], locator)
+        if row.get("kind") != "label" or not _row_covers_source_location(row, locator_payload, section_index, offset):
+            continue
+        current_label = row.get("label")
+        if not isinstance(current_label, str):
+            continue
+        parsed_label = _parse_generated_source_label_symbol(current_label)
+        if parsed_label != (section_index, offset):
+            continue
+        row_key = locator_payload.get("row_key")
+        element_id = f"{row_key}:label:{current_label}"
+        candidate_id = f"entrypoint-label:{row_key}:{new_label}"
+        candidates.append(
+            {
+                "id": candidate_id,
+                "candidate_id": candidate_id,
+                "kind": "entrypoint_label_name",
+                "durable_id": f"source_entrypoint_label:h{section_index}:${offset:08x}",
+                "locator": dict(locator_payload),
+                "element_id": element_id,
+                "evidence": {
+                    "source": "source_binary.json",
+                    "source_kind": entrypoint["source_kind"],
+                    "evidence_kind": entrypoint["evidence_kind"],
+                    "entrypoint": offset,
+                    "section_index": section_index,
+                    "row_key": row_key,
+                    "current_label": current_label,
+                    "new_label": new_label,
+                },
+                "current_metadata": {
+                    "label": current_label,
+                    "row_kind": row.get("kind"),
+                    "text": row.get("text"),
+                },
+                "expected_rendered_source_improvement": f"name source entrypoint label {new_label}",
+                "suggested_action_kind": "label.rename",
+                "suggested_action_kinds": ["label.rename"],
+                "new_label": new_label,
+                "default_verifier": "projected_label_name",
+                "verifier": {"kind": "projected_label_name", "requires_semantic_reload": True},
+                "confidence": "high",
+                "rationale": entrypoint["rationale"],
+                "actionable": True,
+                "stop_reason": None,
+            }
+        )
+    return candidates
+
+
+def _parse_generated_source_label_symbol(symbol: str) -> tuple[int, int] | None:
+    parts = symbol.split("_")
+    if len(parts) != 3 or parts[0] != "loc" or not parts[1].isdigit():
+        return None
+    hunk_text, addr_text = parts[1], parts[2]
+    if len(addr_text) != 8:
+        return None
+    try:
+        return int(hunk_text), int(addr_text, 16)
+    except ValueError:
+        return None
 
 
 def _listing_representation_candidates(

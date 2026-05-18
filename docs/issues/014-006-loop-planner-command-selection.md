@@ -64,6 +64,9 @@ Progress:
   available lower-ranked action from the same candidate.
 - Autonomous listing feeds now skip data names and data roles already present
   in effective target metadata, not only Manual Action Log projections.
+- Generic `run-one` now mines source descriptor entrypoint evidence into an
+  autonomous `label.rename` candidate when the listing still has the generated
+  source label at that address.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
