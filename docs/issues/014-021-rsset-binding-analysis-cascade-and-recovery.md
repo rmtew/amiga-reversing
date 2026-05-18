@@ -41,9 +41,9 @@ Chosen model:
 
 Owner identity:
 - `owner_action_id` must be a durable Manual Action Log identity, not a row
-  index, in-memory sequence number, or rendered text. If the existing log does
-  not already provide stable action ids, `014-002` must add one before binding
-  cleanup is implemented.
+  index, in-memory sequence number, or rendered text. Current Manual Action Log
+  records already persist stable `action_id` values and reject duplicate ids on
+  replay, so RSSET binding can use those action ids directly.
 - A created binding action stores its own `rsset_binding_id` in the append-only
   payload. Corrective actions reference that id rather than depending on log
   position.
@@ -198,9 +198,9 @@ Implementation ownership:
 - `014-011`: RSSET use-site binding model, Manual Action Log actions,
   effective metadata projection, command execution, selected-use rendering, and
   linked gap/field cleanup.
-- `014-002`: durable identity details for numeric use-site locators and
-  base-evidence ids, plus durable Manual Action Log owner ids if those are not
-  already first-class persisted action ids.
+- `014-002`: durable identity details for numeric use-site locators,
+  base-evidence ids, and any future non-MAL owner ids. Current MAL
+  `action_id` values are sufficient for binding owner ids.
 - `014-004`: command catalog exposure for report/bind/refine/unbind/type-clear.
 - `014-005`: replay, rendered-source, removal, exact round-trip, xref, and
   type-flow verifier gates.

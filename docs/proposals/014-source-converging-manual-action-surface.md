@@ -404,6 +404,12 @@ owner action ids. Same-displacement missed-use candidates, linked gaps, review
 items, xrefs, and type-flow facts must be removable by unbind or clear-type
 without deleting unrelated accepted RSSET fields.
 
+Implementation observation from `014-002`/`014-021`: Manual Action Log records
+already persist stable `action_id` values and replay rejects duplicates. RSSET
+binding cleanup can use those ids as `owner_action_id`; the remaining identity
+work is numeric use-site/base-evidence identity and cascade ownership on
+generated descendants.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

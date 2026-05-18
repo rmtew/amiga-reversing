@@ -45,6 +45,11 @@ Current observations:
   displacement, chosen `(layout_name, base_symbol)`, and base-evidence id.
   Implementation belongs in `014-011`; identity helpers must preserve operand
   index `0` and must not use row index or rendered text as identity.
+- Manual Action Log records already persist stable `action_id` values, reject
+  duplicate ids during replay, and expose active/inactive action ids after
+  undo/redo projection. RSSET binding cleanup can use those ids as
+  `owner_action_id`; no separate owner-id prerequisite is needed unless a
+  future cascade needs ids for non-MAL source facts.
 - Derived analysis facts need ownership identity too. Xrefs, type-flow facts,
   review items, symbolic projections, and other descendants of a manual action
   must be attributable to the source manual action or source fact so corrective
