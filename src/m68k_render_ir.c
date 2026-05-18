@@ -3854,6 +3854,18 @@ static void apply_manual_immediate_representations(const M68kRenderLookup *looku
     if (operand->symbol_ref.has_name != 0U || !operand_is_immediate_value_local(operand, &value)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
+    if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+        representation->symbol_id != 0U) {
+      const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
+      if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) continue;
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      operand->symbol_ref.name_is_generated = 0U;
+      operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+      operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+      snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+      continue;
+    }
     operand->manual_representation_style_id = representation->style_id;
   }
 }
@@ -9435,6 +9447,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
+  apply_manual_immediate_representations(lookup, section->section_index, candidate->offset, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
     &instruction, platform_comment, sizeof(platform_comment));
@@ -9444,7 +9457,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
   apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);
-  apply_manual_immediate_representations(lookup, section->section_index, candidate->offset, &instruction);
   mark_cross_org_pc_relative_displacement_exprs(lookup, section->section_index, candidate, &instruction);
   render_instruction = instruction;
   if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&

@@ -237,6 +237,8 @@ class M68kAnalysisManualRepresentation(ctypes.Structure):
         ("style_id", ctypes.c_uint8),
         ("has_operand_index", ctypes.c_uint8),
         ("operand_index", ctypes.c_uint8),
+        ("symbol_id", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint16),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),

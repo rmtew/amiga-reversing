@@ -143,6 +143,7 @@ static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
   { "binary", M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY },
   { "character", M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER },
   { "string", M68K_ANALYSIS_REPRESENTATION_STYLE_STRING },
+  { "symbol", M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL },
 };
 
 static uint8_t analysis_register_seed_kind_id_from_text_local(const char *kind) {
@@ -224,7 +225,8 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-  uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index);
+  uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
+  const char *symbol_name);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -811,12 +813,18 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
 }
 
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
-    uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index) {
+    uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
+    const char *symbol_name) {
   M68kAnalysisManualRepresentation *slot;
   uint16_t index;
+  uint16_t symbol_id = 0U;
   if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
       policy->manual_representation_count >= M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT) {
     return 0;
+  }
+  if (symbol_name != NULL && symbol_name[0] != '\0') {
+    symbol_id = amiga_os_name_id(M68K_PLATFORM_NAME_SYMBOL, symbol_name);
+    if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id) == NULL) return 0;
   }
   for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *existing = &policy->manual_representations[index];
@@ -824,7 +832,7 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
         existing->offset == offset && existing->size == size &&
         existing->has_operand_index == has_operand_index &&
         (!has_operand_index || existing->operand_index == operand_index)) {
-      return existing->style_id == style_id;
+      return existing->style_id == style_id && existing->symbol_id == symbol_id;
     }
   }
   slot = &policy->manual_representations[policy->manual_representation_count++];
@@ -836,6 +844,7 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   slot->section_index = section_index;
   slot->offset = offset;
   slot->size = size;
+  slot->symbol_id = symbol_id;
   return 1;
 }
 
@@ -3905,21 +3914,26 @@ static int append_metadata_manual_representation_local(const char *object_start,
   int has_hunk = 0;
   int has_operand_index = 0;
   char style[32];
+  char symbol[64];
   style[0] = '\0';
+  symbol[0] = '\0';
   if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
       !json_number_field_local(object_start, object_end, "end", &end, &has_end) ||
       !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
       !json_number_field_local(object_start, object_end, "operand_index", &operand_index, &has_operand_index) ||
-      !json_optional_string_field_local(object_start, object_end, "style", style, sizeof(style))) {
+      !json_optional_string_field_local(object_start, object_end, "style", style, sizeof(style)) ||
+      !json_optional_string_field_local(object_start, object_end, "symbol", symbol, sizeof(symbol))) {
     return 0;
   }
   if (!has_addr) return 1;
   style_id = analysis_representation_style_id_from_text_local(style);
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) return 1;
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && symbol[0] == '\0') return 1;
   if (has_end && end > addr) size = end - addr;
   if (has_operand_index && operand_index > 3U) return 1;
   return policy_add_manual_representation_local(policy, has_hunk ? hunk : 0U, addr, size, style_id,
-    has_operand_index ? 1U : 0U, (uint8_t)operand_index);
+    has_operand_index ? 1U : 0U, (uint8_t)operand_index,
+    style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ? symbol : NULL);
 }
 
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
@@ -4901,6 +4915,7 @@ static const char *manual_representation_style_name_local(uint8_t style_id) {
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY) return "binary";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) return "character";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) return "string";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) return "symbol";
   return "none";
 }
 
@@ -5852,6 +5867,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (representation->has_operand_index &&
         json_builder_appendf(builder, ",\"operand_index\":%u", (unsigned)representation->operand_index) != 0)
       return -1;
+    if (representation->symbol_id != 0U) {
+      const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
+      if (symbol_name != NULL && symbol_name[0] != '\0' &&
+          (json_builder_append(builder, ",\"symbol\":") != 0 ||
+           json_builder_append_json_string(builder, symbol_name) != 0))
+        return -1;
+    }
     if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]}");

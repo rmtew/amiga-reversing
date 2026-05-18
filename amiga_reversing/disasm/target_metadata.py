@@ -50,6 +50,7 @@ class ManualRepresentationStyle(StrEnum):
     BINARY = "binary"
     CHARACTER = "character"
     STRING = "string"
+    SYMBOL = "symbol"
 
 
 def _json_object(value: object, *, what: str = "JSON value") -> dict[str, object]:
@@ -725,6 +726,7 @@ class ManualRepresentationMetadata:
     hunk: int = 0
     element_kind: str | None = None
     operand_index: int | None = None
+    symbol: str | None = None
     source_id: str | None = None
     source_path: str | None = None
     source_locator: str | None = None
@@ -744,6 +746,7 @@ class ManualRepresentationMetadata:
         hunk = payload.get("hunk", 0)
         element_kind = payload.get("element_kind")
         operand_index = payload.get("operand_index")
+        symbol = payload.get("symbol")
         source_id = payload.get("source_id")
         source_path = payload.get("source_path")
         source_locator = payload.get("source_locator")
@@ -753,6 +756,7 @@ class ManualRepresentationMetadata:
         assert isinstance(citation, str)
         assert element_kind is None or isinstance(element_kind, str)
         assert operand_index is None or isinstance(operand_index, int)
+        assert symbol is None or isinstance(symbol, str)
         assert source_id is None or isinstance(source_id, str)
         assert source_path is None or isinstance(source_path, str)
         assert source_locator is None or isinstance(source_locator, str)
@@ -763,6 +767,7 @@ class ManualRepresentationMetadata:
             style=_manual_representation_style(style),
             element_kind=element_kind,
             operand_index=operand_index,
+            symbol=symbol,
             seed_origin=_target_metadata_seed_origin(seed_origin),
             review_status=_target_metadata_review_status(review_status),
             citation=citation,

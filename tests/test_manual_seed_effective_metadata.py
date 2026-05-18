@@ -161,6 +161,54 @@ def test_effective_metadata_includes_manual_representation_without_classifying_d
     ]
 
 
+def test_effective_metadata_projects_equate_semantic_hint_to_symbol_representation(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_semantic_hint",
+                semantic_hint={
+                    "semantic_hint_id": "hint-1",
+                    "hunk": 0,
+                    "addr": 0x300,
+                    "element_kind": "operand",
+                    "operand_index": 0,
+                    "domain": "equate",
+                    "symbol": "MEMF_CLEAR",
+                    "value": 0x10000,
+                    "namespace": "exec/memory.i",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x300,
+            "citation": "manual_action_log:hint-1",
+            "element_kind": "operand",
+            "end": None,
+            "hunk": 0,
+            "operand_index": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ManualSemanticHint:hint-1",
+            "source_path": None,
+            "style": "symbol",
+            "symbol": "MEMF_CLEAR",
+        }
+    ]
+
+
 def test_effective_metadata_includes_manual_register_seed_for_semantic_helper(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

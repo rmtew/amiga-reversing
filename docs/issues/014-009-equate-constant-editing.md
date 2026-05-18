@@ -7,9 +7,15 @@ Add target-local equate/constant add, edit, rename, remove, and use commands.
 Current evidence:
 - The source model supports constants/EQU.
 - The command catalog can suggest `semantic.equate.*` from NDK constants.
-- `create_manual_semantic_hint` is currently only projected in
-  `ManualActionLogProjection`; effective metadata and rendering do not consume
-  it, so equate hints are not yet source-converging.
+- `create_manual_semantic_hint` now projects NDK `domain="equate"` hints with
+  a known `symbol` into manual symbol representations, and rendering consumes
+  them as symbolic immediates with include coverage.
+
+Progress:
+- Known NDK equate use sites are source-converging: Manual Action Log hint ->
+  effective metadata -> rendered symbol -> exact direct rebuild.
+- Target-local equate identities and add/edit/rename/remove commands remain
+  open.
 
 Acceptance criteria:
 - Equates have durable target-local identities.

@@ -122,6 +122,11 @@ def _manual_representation_source_locator(representation: dict[str, object]) -> 
     return f"ManualRepresentation:{representation_id}"
 
 
+def _manual_semantic_hint_source_locator(hint: dict[str, object]) -> str:
+    hint_id = _manual_seed_text(hint, "semantic_hint_id") or "unnamed"
+    return f"ManualSemanticHint:{hint_id}"
+
+
 def _manual_action_citation(action_object: dict[str, object], id_field: str) -> str:
     action_id = _manual_seed_text(action_object, id_field) or "unnamed"
     return f"manual_action_log:{action_id}"
@@ -262,11 +267,38 @@ def _manual_representation_to_metadata(representation: dict[str, object]) -> Man
         style=style,
         element_kind=_manual_seed_text(representation, "element_kind"),
         operand_index=_manual_seed_int(representation, "operand_index"),
+        symbol=_manual_seed_text(representation, "symbol"),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(representation, "representation_id"),
         source_id="manual_action_log",
         source_locator=_manual_representation_source_locator(representation),
+    )
+
+
+def _manual_equate_hint_to_representation(hint: dict[str, object]) -> ManualRepresentationMetadata | None:
+    if _manual_seed_text(hint, "domain") != "equate":
+        return None
+    symbol = _manual_seed_text(hint, "symbol")
+    if symbol is None:
+        return None
+    parsed_range = _parse_manual_seed_range(hint)
+    if parsed_range is None:
+        return None
+    hunk, addr, end = parsed_range
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=hunk,
+        style=ManualRepresentationStyle.SYMBOL,
+        element_kind=_manual_seed_text(hint, "element_kind"),
+        operand_index=_manual_seed_int(hint, "operand_index"),
+        symbol=symbol,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(hint, "semantic_hint_id"),
+        source_id="manual_action_log",
+        source_locator=_manual_semantic_hint_source_locator(hint),
     )
 
 
@@ -322,8 +354,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     )
     comments = projection.comments
     representations = projection.representations
+    semantic_hints = projection.semantic_hints
     register_seed_projections = projection.register_seeds
-    if not required_seeds and not labels and not comments and not representations and not register_seed_projections:
+    if not required_seeds and not labels and not comments and not representations and not semantic_hints and not register_seed_projections:
         return metadata
     if metadata is None:
         metadata = TargetMetadata(target_type="program", entry_register_seeds=())
@@ -357,6 +390,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             entry_comments.append(entry_comment)
     for representation in representations:
         manual_representation = _manual_representation_to_metadata(representation)
+        if manual_representation is not None:
+            manual_representations.append(manual_representation)
+    for hint in semantic_hints:
+        manual_representation = _manual_equate_hint_to_representation(hint)
         if manual_representation is not None:
             manual_representations.append(manual_representation)
     for register_seed in register_seed_projections:

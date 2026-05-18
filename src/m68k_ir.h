@@ -264,7 +264,8 @@ typedef enum M68kAnalysisRepresentationStyle {
   M68K_ANALYSIS_REPRESENTATION_STYLE_HEX = 1,
   M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY = 2,
   M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER = 3,
-  M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4
+  M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL = 5
 } M68kAnalysisRepresentationStyle;
 
 typedef struct M68kAnalysisManualRepresentation {
@@ -272,6 +273,8 @@ typedef struct M68kAnalysisManualRepresentation {
   uint8_t style_id;
   uint8_t has_operand_index;
   uint8_t operand_index;
+  uint16_t symbol_id;
+  uint16_t reserved;
   uint32_t section_index;
   uint32_t offset;
   uint32_t size;

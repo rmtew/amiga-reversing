@@ -937,6 +937,8 @@ class _M68kAnalysisManualRepresentation(ctypes.Structure):
         ("style_id", ctypes.c_uint8),
         ("has_operand_index", ctypes.c_uint8),
         ("operand_index", ctypes.c_uint8),
+        ("symbol_id", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint16),
         ("section_index", ctypes.c_uint32),
         ("offset", ctypes.c_uint32),
         ("size", ctypes.c_uint32),
@@ -3008,6 +3010,96 @@ start:
         project_root=PROJECT_ROOT,
     )
     assert rebuilt == original
+
+
+def test_real_dll_equate_semantic_hint_renders_symbolic_immediate(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-equate-hint.bin"
+    source_text = """    SECTION section,code
+start:
+    move.l #$10000,d0
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-18T00:00:01+00:00",
+                "kind": "create_manual_semantic_hint",
+                "semantic_hint": {
+                    "semantic_hint_id": "hint-1",
+                    "hunk": 0,
+                    "addr": 0,
+                    "element_kind": "immediate",
+                    "operand_index": 0,
+                    "domain": "equate",
+                    "symbol": "MEMF_CLEAR",
+                    "value": 0x10000,
+                    "namespace": "exec/memory.i",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["manual_representations"] == [
+        {"section_index": 0, "offset": 0, "size": 1, "style": "symbol", "operand_index": 0, "symbol": "MEMF_CLEAR"}
+    ]
+    assert '    INCLUDE "exec/memory.i"\n' in rendered
+    assert "\tmove.l #MEMF_CLEAR,d0\n" in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_manual_register_seed_projects_library_base_into_rendering(tmp_path: Path) -> None:
