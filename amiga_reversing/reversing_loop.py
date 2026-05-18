@@ -2908,6 +2908,26 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return current.get("removed") is True
     if command_id.startswith("correction.suppress_seeded_item."):
         return current.get("suppressed") is True
+    if command_id.startswith("semantic.library_base."):
+        context = command.get("context")
+        library_name = command_id.removeprefix("semantic.library_base.")
+        return (
+            isinstance(context, dict)
+            and current.get("kind") == "library_base"
+            and current.get("register", "A6") == "A6"
+            and current.get("library_name") == library_name
+        )
+    if command_id == "semantic.register.struct_ptr":
+        context = command.get("context")
+        register = context.get("register") if isinstance(context, dict) else None
+        struct_name = parameters.get("struct_name")
+        return (
+            isinstance(register, str)
+            and isinstance(struct_name, str)
+            and current.get("kind") == "struct_ptr"
+            and current.get("register") == register
+            and current.get("struct_name") == struct_name
+        )
     if command_id.startswith("representation."):
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style

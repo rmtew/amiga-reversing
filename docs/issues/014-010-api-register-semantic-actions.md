@@ -33,7 +33,8 @@ Progress:
 - The loop planner now accepts explicit dynamic semantic command candidates for
   `semantic.library_base.*`, `semantic.lvo.*`, `semantic.struct_offset.*`,
   `semantic.equate.*`, and `semantic.register.struct_ptr`, routes them through
-  selected listing element context, and requires round-trip verification.
+  selected listing element context, skips already-projected library-base and
+  struct-pointer register seeds, and requires round-trip verification.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and higher-confidence struct-pointer candidate generation remain
   open.

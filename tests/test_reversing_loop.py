@@ -875,6 +875,64 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_round_trip_
     assert selected["command"]["command_id"] == "semantic.library_base.intuition.library"
 
 
+def test_semantic_library_base_candidate_skips_already_projected_seed() -> None:
+    candidate = {
+        "id": "semantic-library-base",
+        "candidate_id": "semantic-library-base",
+        "kind": "api_register_semantic",
+        "locator": _listing_locator(),
+        "element_id": "row-1:symbol:0:_LVOSetPointer",
+        "element_kind": "symbol",
+        "symbol": "_LVOSetPointer",
+        "base_register": "A6",
+        "api_library": "intuition.library",
+        "api_function": "SetPointer",
+        "suggested_action_kinds": ["semantic.library_base.intuition.library"],
+        "current_metadata": {
+            "kind": "library_base",
+            "register": "A6",
+            "library_name": "intuition.library",
+        },
+        "default_verifier": "round_trip",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
+def test_semantic_struct_pointer_candidate_skips_already_projected_seed() -> None:
+    candidate = {
+        "id": "semantic-struct-pointer",
+        "candidate_id": "semantic-struct-pointer",
+        "kind": "register_semantic",
+        "locator": _listing_locator(),
+        "element_id": "row-1:register:0:A1",
+        "element_kind": "register",
+        "register": "A1",
+        "suggested_action_kinds": ["semantic.register.struct_ptr"],
+        "parameters": {"struct_name": "IOStdReq"},
+        "current_metadata": {
+            "kind": "struct_ptr",
+            "register": "A1",
+            "struct_name": "IOStdReq",
+        },
+        "default_verifier": "round_trip",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
     candidate = {
         "command": {
