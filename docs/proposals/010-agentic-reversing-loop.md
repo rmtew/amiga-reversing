@@ -1095,3 +1095,9 @@ to repeat the loop safely.
   mutations, xref checks, verification by action class, evidence-backed
   refactor triggers, and stop conditions. No automated tests were required for
   this documentation-only slice.
+- 010-002 added a read-only target hygiene classifier in
+  `amiga_reversing.reversing_workspace` plus the stable
+  `python -m amiga_reversing.reversing_loop hygiene --target <target>` command.
+  The initial allowlist is deliberately conservative: source/import facts and
+  agent audit state are preserved, generated/obsolete/local manual state is
+  resettable later, and unknown files make automated cleanup unsafe.
