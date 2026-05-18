@@ -10,6 +10,7 @@ from amiga_reversing.disasm.manual_actions import (
     build_target_identity,
 )
 from amiga_reversing.disasm.target_metadata import (
+    CustomStructMetadata,
     ExecutionViewMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
@@ -897,6 +898,44 @@ def test_effective_metadata_applies_manual_custom_struct(tmp_path: Path) -> None
             "source": "manual_action_log",
         }
     ]
+
+
+def test_effective_metadata_removes_custom_struct_by_name(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            custom_structs=(
+                CustomStructMetadata(
+                    name="InputEvent",
+                    size=22,
+                    fields=(),
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "remove_manual_custom_struct",
+                custom_struct={"name": "InputEvent"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["custom_structs"] == []
 
 
 def test_effective_metadata_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:

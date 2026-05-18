@@ -7,14 +7,15 @@ typed gaps.
 
 Current evidence:
 - Target metadata supports `custom_structs`.
-- Manual Action Log now supports `create_manual_custom_struct`, and effective
-  metadata projects manual struct definitions into `custom_structs`.
-- Target command catalog exposes `target.custom_struct.add`, which emits
-  `create_manual_custom_struct` payloads with optional field definitions.
+- Manual Action Log now supports `create_manual_custom_struct` and
+  `remove_manual_custom_struct`, and effective metadata projects/removes manual
+  struct definitions in `custom_structs`.
+- Target command catalog exposes `target.custom_struct.add/remove`, which emit
+  name-keyed custom struct payloads.
 - Listing/navigation exposes typed accesses, unresolved typed accesses, type
   flow analysis, app-slot field gaps, and field paths.
-- No command catalog action exists for struct/field edit, rename, remove, or
-  typed-gap resolution.
+- No command catalog action exists for struct/field edit, rename, or typed-gap
+  resolution.
 - No field-level edit/remove/rename Manual Action Log actions exist yet.
 
 Acceptance criteria:

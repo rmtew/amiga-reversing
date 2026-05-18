@@ -106,6 +106,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
         _target_custom_struct_action(),
+        _target_custom_struct_remove_action(),
         _target_rsset_layout_region_action(),
         _target_rsset_layout_region_edit_action(),
         _target_rsset_layout_region_rename_action(),
@@ -140,6 +141,8 @@ def target_catalog_manual_payload(
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
     if action.get("action") == "create_manual_custom_struct":
         return "create_manual_custom_struct", {"custom_struct": _custom_struct_payload(params)}
+    if action.get("action") == "remove_manual_custom_struct":
+        return "remove_manual_custom_struct", {"custom_struct": _custom_struct_identity_payload(params)}
     if action.get("action") == "create_manual_rsset_layout_region":
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
     if action.get("action") == "remove_manual_rsset_layout_region":
@@ -989,6 +992,13 @@ def _custom_struct_payload(params: Mapping[str, object]) -> dict[str, object]:
     return struct
 
 
+def _custom_struct_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    name = params.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("remove_manual_custom_struct requires parameter name")
+    return {"name": name.strip()}
+
+
 def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, object]:
     offset = _optional_int(params.get("offset"))
     size = _optional_int(params.get("size"))
@@ -1226,6 +1236,14 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
             "available_since": {"type": "string", "default": "1.0"},
         },
         "required": ["name", "size"],
+    }
+
+
+def _custom_struct_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     }
 
 
@@ -2135,6 +2153,15 @@ def _target_custom_struct_action() -> dict[str, object]:
         "Add custom struct",
         "create_manual_custom_struct",
         _custom_struct_parameter_schema(),
+    )
+
+
+def _target_custom_struct_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.custom_struct.remove",
+        "Remove custom struct",
+        "remove_manual_custom_struct",
+        _custom_struct_identity_parameter_schema(),
     )
 
 

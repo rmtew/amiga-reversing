@@ -311,6 +311,16 @@ def test_target_custom_struct_add_command_payload() -> None:
     }
 
 
+def test_target_custom_struct_remove_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.custom_struct.remove",
+        {"name": "InputEvent"},
+    )
+
+    assert kind == "remove_manual_custom_struct"
+    assert payload == {"custom_struct": {"name": "InputEvent"}}
+
+
 def test_target_rsset_layout_region_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.rsset_region.add",

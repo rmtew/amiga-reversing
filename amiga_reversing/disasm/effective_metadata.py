@@ -563,6 +563,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     custom_struct_projections = projection.custom_structs
+    removed_custom_struct_projections = projection.removed_custom_structs
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
     execution_view_projections = projection.execution_views
@@ -576,6 +577,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not register_seed_projections
         and not suppressed_seeded_item_projections
         and not custom_struct_projections
+        and not removed_custom_struct_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
         and not execution_view_projections
@@ -605,6 +607,17 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             view
             for view in execution_views
             if (view.source_start, view.source_end, view.base_addr) not in removed_execution_view_keys
+        ]
+    removed_custom_struct_names = {
+        name
+        for struct in removed_custom_struct_projections
+        if (name := _manual_seed_text(struct, "name")) is not None
+    }
+    if removed_custom_struct_names:
+        custom_structs = [
+            struct
+            for struct in custom_structs
+            if struct.name not in removed_custom_struct_names
         ]
     removed_rsset_layout_region_keys = {
         key
