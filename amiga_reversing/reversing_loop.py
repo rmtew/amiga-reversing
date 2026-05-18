@@ -20,6 +20,7 @@ from amiga_reversing.disasm.effective_metadata import effective_target_metadata
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+from amiga_reversing.disasm.target_metadata import TargetMetadata
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
     inspect_target_hygiene,
@@ -1275,24 +1276,18 @@ def _listing_struct_pointer_candidates(
 def _existing_register_seed_map(inspect_report: dict[str, object]) -> dict[tuple[str, str], dict[str, object]]:
     target_state = inspect_report.get("target_state")
     result: dict[tuple[str, str], dict[str, object]] = {}
-    if isinstance(target_state, dict):
-        target_dir = target_state.get("target_dir")
-        if isinstance(target_dir, str):
-            try:
-                metadata = effective_target_metadata(Path(target_dir))
-            except (AssertionError, OSError, ValueError):
-                metadata = None
-            if metadata is not None:
-                for seed in metadata.entry_register_seeds:
-                    result[(seed.register.upper(), seed.kind.value)] = {
-                        "entry_offset": seed.entry_offset,
-                        "register": seed.register,
-                        "kind": seed.kind.value,
-                        "note": seed.note,
-                        "library_name": seed.library_name,
-                        "struct_name": seed.struct_name,
-                        "context_name": seed.context_name,
-                    }
+    metadata = _effective_target_metadata_from_report(inspect_report)
+    if metadata is not None:
+        for seed in metadata.entry_register_seeds:
+            result[(seed.register.upper(), seed.kind.value)] = {
+                "entry_offset": seed.entry_offset,
+                "register": seed.register,
+                "kind": seed.kind.value,
+                "note": seed.note,
+                "library_name": seed.library_name,
+                "struct_name": seed.struct_name,
+                "context_name": seed.context_name,
+            }
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     register_seeds = manual_state.get("register_seeds") if isinstance(manual_state, dict) else None
@@ -1306,6 +1301,17 @@ def _existing_register_seed_map(inspect_report: dict[str, object]) -> dict[tuple
         if isinstance(register, str) and isinstance(kind, str):
             result[(register.upper(), kind)] = dict(seed)
     return result
+
+
+def _effective_target_metadata_from_report(inspect_report: dict[str, object]) -> TargetMetadata | None:
+    target_state = inspect_report.get("target_state")
+    target_dir = target_state.get("target_dir") if isinstance(target_state, dict) else None
+    if not isinstance(target_dir, str):
+        return None
+    try:
+        return effective_target_metadata(Path(target_dir))
+    except (AssertionError, OSError, ValueError):
+        return None
 
 
 def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
@@ -1589,10 +1595,29 @@ def _rsset_region_key(region: dict[str, object]) -> tuple[str, str, int]:
 
 def _existing_rsset_region_map(inspect_report: dict[str, object]) -> dict[tuple[str, str, int], dict[str, object]]:
     target_state = inspect_report.get("target_state")
+    result: dict[tuple[str, str, int], dict[str, object]] = {}
+    metadata = _effective_target_metadata_from_report(inspect_report)
+    if metadata is not None:
+        for region in metadata.rsset_layout_regions:
+            payload = {
+                "offset": region.offset,
+                "size": region.size,
+                "layout_name": region.layout_name,
+                "base_symbol": region.base_symbol,
+                "sizeof_symbol": region.sizeof_symbol,
+                "symbol": region.symbol,
+                "struct_name": region.struct_name,
+                "pointer_struct": region.pointer_struct,
+                "storage_kind": None if region.storage_kind is None else region.storage_kind.value,
+                "semantic_type": region.semantic_type,
+                "parser_role": region.parser_role,
+                "parser_routine": region.parser_routine,
+                "parse_order": region.parse_order,
+            }
+            result[_rsset_region_key(payload)] = payload
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     regions = manual_state.get("rsset_layout_regions") if isinstance(manual_state, dict) else None
-    result: dict[tuple[str, str, int], dict[str, object]] = {}
     if not isinstance(regions, list | tuple):
         return result
     for region in regions:

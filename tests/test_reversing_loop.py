@@ -20,7 +20,11 @@ from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
+    RssetLayoutRegionMetadata,
+    RssetLayoutStorageKind,
     TargetMetadata,
+    TargetMetadataReviewStatus,
+    TargetMetadataSeedOrigin,
     write_target_metadata,
 )
 
@@ -1090,6 +1094,46 @@ def test_listing_rsset_region_candidates_skip_already_projected_suggestion() -> 
     assert inspect_report["planner"]["skipped_candidates"][0]["stop_reason"] == (
         "candidate already satisfied in projected semantic state"
     )
+
+
+def test_existing_rsset_region_map_reads_effective_target_metadata(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            rsset_layout_regions=(
+                RssetLayoutRegionMetadata(
+                    offset=0x100,
+                    size=22,
+                    layout_name="app",
+                    base_symbol="__amiga_app_base__",
+                    symbol="app_input_event",
+                    struct_name="InputEvent",
+                    storage_kind=RssetLayoutStorageKind.STRUCT_INSTANCE,
+                    parser_role="input_event",
+                    parser_routine="parse_input_event",
+                    parse_order=1,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    existing = reversing_loop._existing_rsset_region_map(inspect_report)
+    candidates = reversing_loop._listing_rsset_region_candidates(
+        _rsset_suggestion_navigation_payload(),
+        existing_regions=existing,
+    )
+
+    assert existing[("app", "__amiga_app_base__", 0x100)]["symbol"] == "app_input_event"
+    assert candidates[0]["suggested_action_kinds"] == ["target.rsset_region.edit"]
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+    assert reversing_loop._candidate_already_satisfied(candidates[0], command)
 
 
 def test_listing_rsset_region_candidates_use_platform_api_regions_without_suggestions() -> None:

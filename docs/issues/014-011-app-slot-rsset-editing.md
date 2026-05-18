@@ -39,6 +39,9 @@ Current evidence:
 - The autonomous RSSET feed also uses high-confidence `app-slot-regions` from
   platform API argument analysis when no separate suggestion exists, de-duping
   identical suggestion/region candidates.
+- Autonomous RSSET candidate skipping now reads effective target metadata as
+  well as Manual Action Log projections, so seeded layout regions are not
+  repeated.
 - Broader autonomous candidate production remains open.
 
 Acceptance criteria:
