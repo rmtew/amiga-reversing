@@ -45,6 +45,9 @@ Progress:
   durable review item ids, and requires round-trip verification for label edits.
 - Planner now skips already-satisfied target-local equate candidates from
   projected target-equate metadata.
+- Planner already-satisfied checks now treat rename candidates with
+  `previous_name` as satisfied when projected metadata has the requested new
+  name.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

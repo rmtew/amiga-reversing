@@ -1025,6 +1025,25 @@ def test_target_custom_struct_candidate_skips_already_projected_field() -> None:
     )
 
 
+def test_target_custom_struct_rename_skips_projected_new_name() -> None:
+    candidate = {
+        "id": "custom-struct-rename",
+        "candidate_id": "custom-struct-rename",
+        "kind": "custom_struct",
+        "suggested_action_kinds": ["target.custom_struct.rename"],
+        "parameters": {"previous_name": "InputEvent", "name": "GameInput"},
+        "current_metadata": {"name": "GameInput"},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_typed_field_command_candidate_uses_selected_element_context() -> None:
     candidate = {
         "id": "typed-gap-field",
@@ -1185,6 +1204,25 @@ def test_target_equate_candidate_skips_already_projected_equate() -> None:
         "suggested_action_kinds": ["target.equate.add"],
         "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
         "current_metadata": {"name": "PLAYER_START_LIVES", "value": 3},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
+def test_target_equate_rename_skips_projected_new_name() -> None:
+    candidate = {
+        "id": "target-equate-rename",
+        "candidate_id": "target-equate-rename",
+        "kind": "target_equate",
+        "suggested_action_kinds": ["target.equate.rename"],
+        "parameters": {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"},
+        "current_metadata": {"name": "PLAYER_INITIAL_LIVES"},
         "confidence": "high",
         "actionable": True,
     }

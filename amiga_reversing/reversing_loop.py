@@ -2886,12 +2886,18 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
         return current.get("removed") is True
-    if command_id in {"target.equate.add", "target.equate.edit", "target.equate.rename"}:
+    if command_id in {"target.equate.add", "target.equate.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "target.equate.rename":
+        name = parameters.get("name")
+        return isinstance(name, str) and current.get("name") == name
     if command_id == "target.equate.remove":
         return current.get("removed") is True
-    if command_id in {"target.custom_struct.add", "target.custom_struct.edit", "target.custom_struct.rename"}:
+    if command_id in {"target.custom_struct.add", "target.custom_struct.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "target.custom_struct.rename":
+        name = parameters.get("name")
+        return isinstance(name, str) and current.get("name") == name
     if command_id == "target.custom_struct.remove":
         return current.get("removed") is True
     if command_id in {
