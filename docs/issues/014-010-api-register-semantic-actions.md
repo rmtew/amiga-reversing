@@ -13,14 +13,18 @@ Current evidence:
 - `semantic.lvo.*` commands append semantic hints; LVO hints for immediate
   operands now project to `_LVO*` symbol representations and render with NDK
   includes.
-- `semantic.struct_offset.*` commands append semantic hints, but struct-offset
-  hints are not consumed by effective metadata/rendering.
+- `semantic.struct_offset.*` commands append semantic hints; struct-offset
+  hints for immediate operands now project to NDK field symbol representations
+  and render with includes.
 
 Progress:
 - Known LVO immediate constants are source-converging: Manual Action Log hint ->
   effective metadata -> rendered `_LVO*` symbol -> exact direct rebuild.
+- Known struct-offset immediate constants are source-converging: Manual Action
+  Log hint -> effective metadata -> rendered field symbol -> exact direct
+  rebuild.
 - API call semantics, evidence-scoped register lifetimes, struct pointers, and
-  struct-offset hint consumption remain open.
+  typed field access semantics remain open.
 
 Acceptance criteria:
 - Register/base identities cover entry-scoped and evidence-scoped lifetimes.

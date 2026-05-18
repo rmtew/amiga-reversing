@@ -290,6 +290,13 @@ def _manual_semantic_hint_symbol(hint: dict[str, object]) -> str | None:
         if function is None:
             return None
         return function if function.startswith("_LVO") else f"_LVO{function}"
+    if domain == "struct_offset":
+        field = _manual_seed_text(hint, "field")
+        if field is None and "." in symbol:
+            field = symbol.rsplit(".", 1)[-1]
+        if field is None:
+            return None
+        return field.upper()
     return None
 
 
