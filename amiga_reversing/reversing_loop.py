@@ -3212,6 +3212,22 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
     }
 
 
+def _select_candidate_command(
+    candidate: dict[str, object],
+    options: list[dict[str, object]],
+) -> tuple[dict[str, object] | None, str | None]:
+    if not options:
+        return None, _candidate_skip_reason(candidate, None)
+    first_skip_reason: str | None = None
+    for option in options:
+        skip_reason = _candidate_skip_reason(candidate, option)
+        if skip_reason is None:
+            return option, None
+        if first_skip_reason is None:
+            first_skip_reason = skip_reason
+    return options[0], first_skip_reason
+
+
 def _command_id_affects_output(command_id: str) -> bool:
     return command_id != "comment.edit"
 
@@ -3238,13 +3254,12 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
         if not isinstance(candidate, dict):
             continue
         options = _candidate_command_options(candidate)
-        command = options[0] if options else None
+        command, skip_reason = _select_candidate_command(candidate, options)
         score = _candidate_score(candidate, command)
         checked = dict(candidate)
         checked["planner_score"] = score
         checked["candidate_commands"] = [_command_summary(option, candidate) for option in options]
         ranked.append(checked)
-        skip_reason = _candidate_skip_reason(candidate, command)
         if skip_reason is not None:
             checked["stop_reason"] = skip_reason
             skipped.append(checked)

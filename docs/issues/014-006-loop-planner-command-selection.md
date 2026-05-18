@@ -56,6 +56,9 @@ Progress:
 - Generic `run-one` also treats an inspect-selected `comment.edit` as
   provisional until listing-derived candidates have been mined once, keeping
   comments as fallback-only work.
+- Planner candidate selection now evaluates alternate command options for a
+  candidate, so an unverified higher-ranked command does not hide a supported
+  lower option from the same evidence.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

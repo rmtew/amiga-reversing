@@ -601,6 +601,33 @@ def test_planner_reports_candidate_specific_verifier(
     assert command["verifier"] == "projection_metadata"
 
 
+def test_planner_uses_next_candidate_command_when_first_option_is_unverified() -> None:
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "multi-command",
+            "candidate_id": "multi-command",
+            "kind": "execution_view",
+            "suggested_action_kinds": ["target.custom_struct.add", "target.execution_view.add"],
+            "parameters": {
+                "source_start": 0x20,
+                "source_end": 0x80,
+                "base_addr": 0x4000,
+                "name": "stage_code",
+            },
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+
+    selected = reversing_loop._select_command_action(inspect_report)
+
+    assert selected is not None
+    assert selected["command"]["command_id"] == "target.execution_view.add"
+    assert inspect_report["planner"]["selected_command_id"] == "target.execution_view.add"
+
+
 def test_planner_selects_rsset_region_add_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

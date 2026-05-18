@@ -183,6 +183,11 @@ seeds need a concrete register element, not just a typed-gap element, because
 `semantic.register.struct_ptr` is exposed and executed through register element
 context.
 
+Implementation observation from `014-006`: planner candidates can expose more
+than one command option. Selection must evaluate each option's verifier and
+durable context, otherwise one unverified option can hide a valid supported
+action from the same evidence.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
