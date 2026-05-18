@@ -2716,6 +2716,8 @@ def _verify_manual_mutation(
         )
     if command_id == "data_symbol.rename":
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
+    if command_id == "data_symbol.remove":
+        return _verify_data_symbol_remove_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("semantic.library_base."):
         return _verify_library_base_register_seed_mutation(
             target_id,
@@ -2756,6 +2758,91 @@ def _verify_data_symbol_rename_mutation(
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _verify_data_symbol_remove_mutation(
+    target_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _suppressed_seeded_item_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_suppressed_seeded_item(target_id, expected, project_root=project_root),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _suppressed_seeded_item_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") != "seeded_item_suppression":
+                continue
+            item = effect.get("suppressed_seeded_item")
+            if isinstance(item, dict):
+                return cast(dict[str, object], item)
+    action = durable_result.get("action")
+    item = _suppressed_seeded_item_from_action(action)
+    if item is not None:
+        return item
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            item = _suppressed_seeded_item_from_action(raw_action)
+            if item is not None:
+                return item
+    return None
+
+
+def _suppressed_seeded_item_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    item = action.get("suppressed_seeded_item")
+    if isinstance(item, dict):
+        return cast(dict[str, object], item)
+    payload = action.get("payload")
+    item = payload.get("suppressed_seeded_item") if isinstance(payload, dict) else None
+    if isinstance(item, dict):
+        return cast(dict[str, object], item)
+    return None
+
+
+def _verify_project_suppressed_seeded_item(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing suppressed seeded item payload"}
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    suppressed = manual_state.get("suppressed_seeded_items") if isinstance(manual_state, dict) else None
+    if isinstance(suppressed, dict):
+        items = [item for item in suppressed.values() if isinstance(item, dict)]
+    elif isinstance(suppressed, list | tuple):
+        items = [item for item in suppressed if isinstance(item, dict)]
+    else:
+        return {"layer": "semantic_reload", "status": "failed", "message": "suppressed seeded items were not reloaded"}
+    matches = [item for item in items if _suppressed_seeded_item_matches(item, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_suppressed_seeded_item": expected,
+        "matching_suppressed_seeded_items": matches,
+    }
+
+
+def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    return all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr"))
 
 
 def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object]) -> dict[str, object]:

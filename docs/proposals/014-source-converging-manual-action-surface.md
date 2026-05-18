@@ -235,6 +235,10 @@ Implementation observation from `014-005`/`014-010`:
 check the reloaded library-base seed and round-trip instead of affected
 locators.
 
+Implementation observation from `014-005`/`014-014`:
+`data_symbol.remove` produces suppressed seeded item state. Its verifier should
+check that reloaded suppression and round-trip instead of affected locators.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

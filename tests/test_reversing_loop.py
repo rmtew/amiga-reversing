@@ -1066,6 +1066,55 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    candidate = _data_symbol_remove_candidate(suppressed=False)
+    candidate["parameters"] = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    inspect_report["candidate_work"] = [candidate]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "suppressed_seeded_items": [
+                    {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+                ]
+            },
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "data_symbol.remove"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "data_symbol.remove"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_seeded_item_suppression_payload(tmp_path)}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "semantic_reload",
+        "round_trip",
+    ]
+    assert report["action"]["command_id"] == "data_symbol.remove"
+    assert report["action_result"]["status"] == "executed"
+
+
 def test_run_one_library_base_executes_with_register_seed_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3475,6 +3524,31 @@ def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
     return {
         "action": {"action_id": "manual-1"},
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [_listing_locator()],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {
+            "workflow_id": "manual_command_execution",
+            "spans": [{"name": "locator_resolution", "seconds": 0.01, "module": "listing_projection"}],
+        },
+    }
+
+
+def _executed_seeded_item_suppression_payload(tmp_path: Path) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    suppressed_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    return {
+        "action": {"action_id": "manual-1", "payload": {"suppressed_seeded_item": suppressed_item}},
+        "application": {
+            "local_effects": [
+                {"kind": "seeded_item_suppression", "suppressed_seeded_item": suppressed_item},
+            ]
+        },
         "mutation": {
             "durable_action_id": "manual-1",
             "manual_action_log_count": state["count"],
