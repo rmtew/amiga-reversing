@@ -44,10 +44,12 @@ _COMMAND_RANK = {
     "row.seed.data.scalar_table": 85,
     "row.seed.data.pointer_table": 85,
     "data_symbol.rename": 82,
+    "target.rsset_region.add": 80,
     "representation.choose": 75,
     "representation.hex": 75,
     "representation.binary": 75,
     "representation.character": 75,
+    "target.rsset_region.remove": 66,
     "data_symbol.remove": 65,
     "comment.edit": 10,
 }
@@ -1815,6 +1817,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "projection_metadata"
     if any(action.startswith("data_symbol.") for action in actions):
         return "round_trip"
+    if any(action.startswith("target.rsset_region.") for action in actions):
+        return "round_trip"
     if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
         return "round_trip"
     return None
@@ -2200,6 +2204,14 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": parameter_payload,
             "output_affecting": True,
         }
+    if action in {"target.rsset_region.add", "target.rsset_region.remove"}:
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "target"},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action.startswith("representation."):
         context = _representation_context_from_candidate(candidate)
         representation = parameter_payload.get("representation") or action.removeprefix("representation.")
@@ -2296,6 +2308,10 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":
         return current.get("suppressed") is True
+    if command_id == "target.rsset_region.add":
+        return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "target.rsset_region.remove":
+        return current.get("removed") is True
     if command_id.startswith("representation."):
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style

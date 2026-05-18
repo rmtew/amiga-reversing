@@ -420,6 +420,94 @@ def test_planner_selects_data_symbol_remove_candidate(
     assert report["planner"]["selected_command_id"] == "data_symbol.remove"
 
 
+def test_planner_selects_rsset_region_add_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _rsset_region_candidate(current_symbol="work_0004", new_symbol="work_flags"),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "target.rsset_region.add"
+    assert report["action"]["context"] == {"kind": "target"}
+    assert report["action"]["parameters"]["symbol"] == "work_flags"
+    assert report["planner"]["selected_command_id"] == "target.rsset_region.add"
+
+
+def test_planner_skips_already_satisfied_rsset_region_add(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        _rsset_region_candidate(current_symbol="work_flags", new_symbol="work_flags"),
+        inspect_report["candidate_work"][0],
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "comment.edit"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "rsset-region-candidate"
+    assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
+def test_planner_selects_rsset_region_remove_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _rsset_region_remove_candidate(removed=False),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "target.rsset_region.remove"
+    assert report["action"]["context"] == {"kind": "target"}
+    assert report["action"]["parameters"] == {
+        "offset": 4,
+        "layout_name": "work",
+        "base_symbol": "__game_work_base__",
+    }
+    assert report["planner"]["selected_command_id"] == "target.rsset_region.remove"
+
+
+def test_planner_skips_already_satisfied_rsset_region_remove(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        _rsset_region_remove_candidate(removed=True),
+        inspect_report["candidate_work"][0],
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "comment.edit"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "rsset-region-remove-candidate"
+    assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
 def test_planner_selects_review_seed_command_from_inspect_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1193,6 +1281,49 @@ def _data_symbol_remove_candidate(*, suppressed: bool) -> dict[str, object]:
         "current_metadata": {"name": "wrong_data", "suppressed": suppressed},
         "expected_rendered_source_improvement": "remove wrong seeded data symbol wrong_data",
         "suggested_action_kinds": ["data_symbol.remove"],
+        "default_verifier": "round_trip",
+        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+
+def _rsset_region_candidate(*, current_symbol: str, new_symbol: str) -> dict[str, object]:
+    parameters = {
+        "offset": 4,
+        "size": 2,
+        "layout_name": "work",
+        "base_symbol": "__game_work_base__",
+        "sizeof_symbol": "work_SIZEOF",
+        "symbol": new_symbol,
+        "storage_kind": "scalar",
+    }
+    return {
+        "id": "rsset-region-candidate",
+        "candidate_id": "rsset-region-candidate",
+        "kind": "rsset_layout_region",
+        "evidence": {"source": "app_slot_analysis", "previous_symbol": current_symbol},
+        "current_metadata": {**parameters, "symbol": current_symbol},
+        "expected_rendered_source_improvement": f"rename RSSET region field {current_symbol} to {new_symbol}",
+        "suggested_action_kinds": ["target.rsset_region.add"],
+        "parameters": parameters,
+        "default_verifier": "round_trip",
+        "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
+        "confidence": "high",
+        "actionable": True,
+    }
+
+
+def _rsset_region_remove_candidate(*, removed: bool) -> dict[str, object]:
+    return {
+        "id": "rsset-region-remove-candidate",
+        "candidate_id": "rsset-region-remove-candidate",
+        "kind": "rsset_layout_region_remove",
+        "evidence": {"source": "app_slot_analysis", "symbol": "wrong_flags"},
+        "current_metadata": {"symbol": "wrong_flags", "removed": removed},
+        "expected_rendered_source_improvement": "remove wrong RSSET region field wrong_flags",
+        "suggested_action_kinds": ["target.rsset_region.remove"],
+        "parameters": {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
         "default_verifier": "round_trip",
         "verifier": {"kind": "round_trip", "requires_semantic_reload": True},
         "confidence": "high",

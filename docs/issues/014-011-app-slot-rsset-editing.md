@@ -22,6 +22,9 @@ Current evidence:
   field, rewrites a base-relative reference, and direct-rebuilds exactly; removal
   coverage proves source refs return to raw displacement and direct-rebuild
   exactly.
+- Loop planner recognizes explicit `target.rsset_region.add/remove` candidates,
+  requires round-trip verification, and skips already-satisfied projected
+  add/remove state.
 - App-slot rename/edit/remove, RSSET edit/rename, parser-role edits, and
   autonomous candidate production remain open.
 
