@@ -1390,6 +1390,16 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
         "name",
     ]
     assert execution_view_action["interaction_schema"]["type"] == "form"
+    execution_view_edit_action = next(action for action in actions if action["action_id"] == "target.execution_view.edit")
+    assert execution_view_edit_action["category"] == "target_metadata"
+    assert execution_view_edit_action["appends_to_manual_action_log"] is True
+    assert execution_view_edit_action["action"] == "create_manual_execution_view"
+    assert execution_view_edit_action["parameter_schema"]["required"] == [
+        "source_start",
+        "source_end",
+        "base_addr",
+        "name",
+    ]
     execution_view_remove_action = next(
         action for action in actions if action["action_id"] == "target.execution_view.remove"
     )
@@ -1760,7 +1770,9 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+@pytest.mark.parametrize("command_id", ["target.execution_view.add", "target.execution_view.edit"])
 def test_route_manual_action_catalog_execute_appends_execution_view_action(
+    command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1786,7 +1798,7 @@ def test_route_manual_action_catalog_execute_appends_execution_view_action(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "target.execution_view.add",
+            "command_id": command_id,
             "context": {"kind": "target"},
             "parameters": {
                 "source_start": 0x20,
