@@ -1174,3 +1174,18 @@ No round-trip verification was required for the implemented tracer mutation
 because it is a comment action and output-affecting actions are blocked unless a
 round-trip verifier is available. No CDP smoke was required because no
 browser/debug behavior changed.
+
+## Follow-Up Observation
+
+A real `amiga_hunk_genam` comment iteration exposed one important operational
+detail: listing row locators require a listing artifact opened in the same
+Python/server process that fetches rows and executes commands. A fresh CLI
+process running `inspect` cannot see process-local projection rows unless it
+also opens and waits for the listing artifact. For now, arbitrary comment
+iterations should follow the same-process listing workflow documented in
+`docs/agents/reversing-loop.md`.
+
+The same run also showed that `manual_actions.jsonl` is local/ignored project
+state. Committing only a `.project.json` timestamp after a manual command is not
+a meaningful durable code commit; the agent must summarize Manual Action Log
+changes in reports unless the run also changes tracked support code or docs.

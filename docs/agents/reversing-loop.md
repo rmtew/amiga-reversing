@@ -36,6 +36,25 @@ private mutation path.
 - Append through the Manual Action Log command path.
 - Undo by appending a corrective action, or by explicit `clean-run`/`reimport`.
 - Do not write retired target UI state or delete manual history as rollback.
+- Do not treat a `.project.json` timestamp-only change as meaningful progress;
+  Manual Action Log state is local/ignored and must be summarized in reports.
+
+## Real Listing Comment Iteration
+
+For a real locator-backed comment iteration, use one Python/server process for
+listing access and command execution. Listing locators are available only after
+the listing artifact is opened, and that artifact is process-local.
+
+1. Run hygiene.
+2. Open the listing with `POST /api/projects/<target>/listing/open`.
+3. Wait for listing status to become ready in the same process.
+4. Fetch a real row locator from `/listing`.
+5. Confirm `/commands` exposes `comment.edit` for that locator.
+6. Execute only `comment.edit` through `/commands/execute`.
+7. Verify Manual Action Log count/head hash, semantic reload, projected
+   `comment_text`, `workflow_profile`, and `agent/` report output.
+8. Do not rely on `reversing_loop inspect` alone for arbitrary comment
+   opportunities; current inspect candidates come from review items.
 
 ## Verification
 
