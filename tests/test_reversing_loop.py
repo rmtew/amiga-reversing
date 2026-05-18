@@ -428,6 +428,11 @@ def test_output_affecting_action_runs_round_trip_layer(
             {"kind": "row"},
             {"layout_id": "ascii-hex", "offset": 0, "reference_kind": "absolute"},
         ),
+        (
+            "row.data_block.element.clear_ref",
+            {"kind": "row"},
+            {"layout_id": "ascii-hex", "offset": 0, "data_block_ref_id": "ascii-hex:0:absolute:h0:00002000"},
+        ),
     ],
 )
 def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_verifier(
