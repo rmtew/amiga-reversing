@@ -34,6 +34,11 @@ Current evidence:
   `rsset.binding.bind`, and `rsset.binding.unbind`. Bind-only records the
   selected use and linked-gap/raw render state without inventing an unlinked
   `RS.*` field.
+- Native listing JSON now emits raw address-register displacement operands as
+  selectable `operand_parts` with `base_register`, `displacement`, and
+  `operand_index`. Real GenAm coverage proves `sf.b $0102(a6)` has no
+  `app_slot_refs`, still exposes a selectable displacement element, and offers
+  `rsset.binding.report/bind`.
 - Planned refinement actions remain `create_manual_rsset_binding_type_refinement`
   and `remove_manual_rsset_binding_type_refinement`; planned refinement command
   ids remain `rsset.binding.bind_refine`, `rsset.binding.type_refine`, and

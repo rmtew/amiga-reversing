@@ -416,6 +416,13 @@ selected use-site and exposes linked-gap/raw render state; symbolic selected-use
 rendering is still gated on an existing field or a later bind-refine field
 action.
 
+Implementation observation from `014-011`: command-catalog support for raw
+numeric RSSET operands depends on native listing JSON exposing them as
+selectable operand parts. GenAm `$0102(a6)` had access metadata but no
+`operand_parts`, so the first real smoke required emitting raw
+address-register displacement operands with `base_register`, `displacement`,
+and `operand_index`.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
