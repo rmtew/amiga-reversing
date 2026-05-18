@@ -2501,10 +2501,14 @@ def _manual_action_application_payload(
         item = action_payload.get("suppressed_seeded_item")
         if isinstance(item, Mapping):
             local_effects.append({"kind": "seeded_item_suppression", "suppressed_seeded_item": dict(item)})
-    elif kind in {"create_manual_target_equate", "rename_manual_target_equate", "remove_manual_target_equate"}:
+    elif kind in {"create_manual_target_equate", "rename_manual_target_equate"}:
         equate = action_payload.get("target_equate")
         if isinstance(equate, Mapping):
             local_effects.append({"kind": "target_equate", "target_equate": dict(equate)})
+    elif kind == "remove_manual_target_equate":
+        equate = action_payload.get("target_equate")
+        if isinstance(equate, Mapping):
+            local_effects.append({"kind": "target_equate_remove", "target_equate": dict(equate)})
     elif kind == "create_manual_rsset_layout_region":
         region = action_payload.get("rsset_layout_region")
         if isinstance(region, Mapping):

@@ -45,6 +45,9 @@ Current progress:
   `/commands/execute` appends `rename_data_symbol` as a manual named data seed.
 - Rows backed by `target_seeded_metadata.json` seeded entities expose
   `data_symbol.remove`, and `/commands/execute` appends `suppress_seeded_item`.
+- Target context exposes `target.equate.add/rename/remove`;
+  `/commands/execute` appends the matching Manual Action Log entry and returns
+  distinct local mutation details for remove.
 - Target context exposes `target.custom_struct.*` and
   `target.custom_struct_field.*`; `/commands/execute` appends the matching
   custom struct/field Manual Action Log entry and returns local mutation

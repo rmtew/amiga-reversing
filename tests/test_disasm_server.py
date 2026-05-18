@@ -1830,6 +1830,76 @@ def test_route_manual_action_catalog_execute_appends_target_equate_action(
 
 
 @pytest.mark.parametrize(
+    ("command_id", "parameters", "action_kind", "local_effect_kind", "expected_equate"),
+    [
+        (
+            "target.equate.rename",
+            {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"},
+            "rename_manual_target_equate",
+            "target_equate",
+            {
+                "target_equate_id": "catalog-target-equate-PLAYER_START_LIVES",
+                "previous_name": "PLAYER_START_LIVES",
+                "name": "PLAYER_INITIAL_LIVES",
+            },
+        ),
+        (
+            "target.equate.remove",
+            {"name": "PLAYER_START_LIVES"},
+            "remove_manual_target_equate",
+            "target_equate_remove",
+            {
+                "target_equate_id": "catalog-target-equate-PLAYER_START_LIVES",
+                "name": "PLAYER_START_LIVES",
+            },
+        ),
+    ],
+)
+def test_route_manual_action_catalog_execute_returns_target_equate_local_effect(
+    command_id: str,
+    parameters: dict[str, object],
+    action_kind: str,
+    local_effect_kind: str,
+    expected_equate: dict[str, object],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {"command_id": command_id, "context": {"kind": "target"}, "parameters": parameters},
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    target_equate = cast(dict[str, object], cast(dict[str, object], action["payload"])["target_equate"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == action_kind
+    assert target_equate == expected_equate
+    assert application["status"] == "applied"
+    assert local_effect == {"kind": local_effect_kind, "target_equate": target_equate}
+    assert appended_actions == [action]
+
+
+@pytest.mark.parametrize(
     ("command_id", "parameters", "action_kind", "payload_key", "local_effect_kind", "expected_payload"),
     [
         (
