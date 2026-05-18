@@ -16,6 +16,8 @@ Current evidence:
   seeded-entity metadata during effective metadata merge.
 - Rows backed by `target_seeded_metadata.json` seeded entities expose
   `data_symbol.rename`, and `/commands/execute` appends `rename_data_symbol`.
+- Seeded-entity rename now has rendered-source and exact direct-rebuild verifier
+  coverage for the definition name path.
 - Durable data/global symbol edit, rename, remove, rename-existing-symbol,
   referenced-use-site, and loop-planner workflows remain open beyond seeded
   data-entity rename.

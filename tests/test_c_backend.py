@@ -54,7 +54,14 @@ from amiga_reversing.disasm.project_paths import (
     ProjectPaths,
     resolve_project_paths,
 )
-from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
+from amiga_reversing.disasm.target_metadata import (
+    SeededEntityMetadata,
+    TargetMetadata,
+    TargetMetadataReviewStatus,
+    TargetMetadataSeedOrigin,
+    write_target_metadata,
+    write_target_seeded_metadata,
+)
 from src.tests._platform_backend_test_utils import (
     M68kDiagList,
     make_synthetic_atari_prg,
@@ -2682,6 +2689,114 @@ after_data:
         in rendered
     )
     assert "\tdc.b $00\nloc_0_00000008:\n\trts\n" in rendered
+
+
+def test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-symbol-rename.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b "TEXT",$00,$00
+after_data:
+    rts
+    dc.w 0
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=2,
+                    end=7,
+                    hunk=0,
+                    name="seeded_text",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="test seeded data label",
+                    source_id="fixture",
+                    source_path="tests/test_c_backend.py",
+                    source_locator="test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity",
+                    type="data",
+                    subtype="string",
+                    unit="byte",
+                    encoding="ascii",
+                ),
+            ),
+        ),
+    )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {
+                "record": "manual_action_log_header",
+                "version": 1,
+                "target_identity": build_target_identity(source),
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-18T00:00:01+00:00",
+                "kind": "rename_data_symbol",
+                "data_symbol": {
+                    "data_symbol_id": "data-symbol:h0:00000002",
+                    "hunk": 0,
+                    "addr": 2,
+                    "end": 7,
+                    "name": "renamed_text",
+                    "previous_name": "seeded_text",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert 'renamed_text:\n\tdc.b "TEXT",$00\t; string\n' in rendered
+    assert "seeded_text:" not in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_refused"] is False
+    assert direct_profile["direct_rebuild_exact"] is True
 
 
 @pytest.mark.parametrize(

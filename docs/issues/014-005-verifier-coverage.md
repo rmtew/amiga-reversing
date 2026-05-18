@@ -24,7 +24,11 @@ Acceptance criteria:
 Required tests:
 Positive and negative verifier tests for each implemented action family.
 
+Current evidence:
+- Seeded data-symbol rename has rendered definition-name plus exact
+  direct-rebuild coverage in
+  `test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity`.
+
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported
 actions.
-
