@@ -1035,6 +1035,42 @@ def test_manual_action_log_projects_rsset_layout_region(tmp_path: Path) -> None:
     )
 
 
+def test_manual_action_log_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_rsset_layout_region",
+                rsset_layout_region={
+                    "rsset_layout_region_id": "work-counter",
+                    "offset": 4,
+                    "layout_name": "work",
+                    "base_symbol": "__game_work_base__",
+                    "symbol": "work_counter",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "remove_manual_rsset_layout_region",
+                rsset_layout_region={"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.rsset_layout_regions == ()
+    assert projection.removed_rsset_layout_regions == (
+        {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
+    )
+
+
 def test_manual_action_log_removes_execution_view_by_identity(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

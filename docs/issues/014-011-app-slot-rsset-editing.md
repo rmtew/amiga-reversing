@@ -15,10 +15,15 @@ Current evidence:
   `(layout_name, base_symbol, offset)` identity.
 - Target command catalog exposes `target.rsset_region.add`; command execution
   appends the action and reports a local RSSET-region effect.
+- Target command catalog exposes `target.rsset_region.remove`; Manual Action
+  Log removal filters manual/seeded effective regions by the same durable
+  identity.
 - Render/rebuild coverage proves a manual named RSSET region emits the RSSET
-  field, rewrites a base-relative reference, and direct-rebuilds exactly.
-- App-slot rename/edit/remove, RSSET remove, parser-role edits, and autonomous
-  candidate production remain open.
+  field, rewrites a base-relative reference, and direct-rebuilds exactly; removal
+  coverage proves source refs return to raw displacement and direct-rebuild
+  exactly.
+- App-slot rename/edit/remove, RSSET edit/rename, parser-role edits, and
+  autonomous candidate production remain open.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

@@ -11,6 +11,8 @@ from amiga_reversing.disasm.manual_actions import (
 )
 from amiga_reversing.disasm.target_metadata import (
     ExecutionViewMetadata,
+    RssetLayoutRegionMetadata,
+    RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
     SeededEntityMetadata,
     TargetMetadata,
@@ -835,6 +837,48 @@ def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -
             "symbol": "work_counter",
         }
     ]
+
+
+def test_effective_metadata_removes_rsset_layout_region_by_identity(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            rsset_layout_regions=(
+                RssetLayoutRegionMetadata(
+                    offset=4,
+                    size=2,
+                    layout_name="work",
+                    base_symbol="__game_work_base__",
+                    sizeof_symbol="work_SIZEOF",
+                    symbol="work_counter",
+                    storage_kind=RssetLayoutStorageKind.SCALAR,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="target_metadata:test",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "remove_manual_rsset_layout_region",
+                rsset_layout_region={"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["rsset_layout_regions"] == []
 
 
 def test_effective_metadata_removes_execution_view_by_identity(tmp_path: Path) -> None:

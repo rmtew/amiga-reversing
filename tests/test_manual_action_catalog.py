@@ -216,3 +216,23 @@ def test_target_rsset_layout_region_command_payload() -> None:
             "storage_kind": "scalar",
         }
     }
+
+
+def test_target_rsset_layout_region_remove_command_payload() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.rsset_region.remove",
+        {
+            "offset": 4,
+            "layout_name": "work",
+            "base_symbol": "__game_work_base__",
+        },
+    )
+
+    assert kind == "remove_manual_rsset_layout_region"
+    assert payload == {
+        "rsset_layout_region": {
+            "offset": 4,
+            "layout_name": "work",
+            "base_symbol": "__game_work_base__",
+        }
+    }

@@ -449,6 +449,17 @@ def _manual_rsset_layout_region_to_metadata(region: dict[str, object]) -> RssetL
     )
 
 
+def _manual_rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str, int] | None:
+    offset = _manual_seed_int(region, "offset")
+    if offset is None or offset < 0:
+        return None
+    return (
+        _manual_seed_text(region, "layout_name") or "app",
+        _manual_seed_text(region, "base_symbol") or "__amiga_app_base__",
+        offset,
+    )
+
+
 def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] | None:
     source_start = _manual_seed_int(view, "source_start")
     source_end = _manual_seed_int(view, "source_end")
@@ -495,6 +506,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     register_seed_projections = projection.register_seeds
     suppressed_seeded_item_projections = projection.suppressed_seeded_items
     rsset_layout_region_projections = projection.rsset_layout_regions
+    removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -506,6 +518,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not register_seed_projections
         and not suppressed_seeded_item_projections
         and not rsset_layout_region_projections
+        and not removed_rsset_layout_region_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -532,6 +545,18 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             view
             for view in execution_views
             if (view.source_start, view.source_end, view.base_addr) not in removed_execution_view_keys
+        ]
+    removed_rsset_layout_region_keys = {
+        key
+        for region in removed_rsset_layout_region_projections
+        if (key := _manual_rsset_layout_region_key(region)) is not None
+    }
+    if removed_rsset_layout_region_keys:
+        rsset_layout_regions = [
+            region
+            for region in rsset_layout_regions
+            if (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset)
+            not in removed_rsset_layout_region_keys
         ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")

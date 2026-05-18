@@ -6654,6 +6654,122 @@ def test_real_dll_manual_rsset_layout_region_renders_source_and_rebuilds(tmp_pat
     assert direct_profile["direct_rebuild_exact"] is True
 
 
+def test_real_dll_manual_rsset_layout_region_remove_restores_raw_reference(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-rsset-remove.hunk"
+    source_text = "    SECTION section_0,code\nstart:\n    move.w d0,$0004(a2)\n    rts\n    dc.w $0000\n"
+    binary_path.write_bytes(
+        assemble_platform_source_text_with_c_backend(
+            "amiga-hunk",
+            source_text,
+            include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+            target_cpu="any",
+            project_root=PROJECT_ROOT,
+        )[0]
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    (target_dir / "target_metadata.json").write_text(
+        json.dumps(
+            {
+                "target_type": "program",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "rsset_layout_regions": [
+                    {
+                        "offset": 4,
+                        "size": 2,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "sizeof_symbol": "work_SIZEOF",
+                        "symbol": "work_flags",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "scalar",
+                        "semantic_type": None,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "target_metadata:test",
+                    }
+                ],
+                "execution_views": [],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_register_seed",
+                "register_seed": {
+                    "register_seed_id": "a2-work-base",
+                    "entry_offset": 0,
+                    "register": "A2",
+                    "kind": "struct_ptr",
+                    "note": "__game_work_base__",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a2",
+                "sequence": 2,
+                "created_at": "2026-05-13T00:00:02+00:00",
+                "kind": "remove_manual_rsset_layout_region",
+                "rsset_layout_region": {"offset": 4, "layout_name": "work", "base_symbol": "__game_work_base__"},
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "work_flags RS.W 1\n" not in rendered
+    assert "\tmove.w d0,$0004(a2)\n" in rendered
+    assert rebuilt == binary_path.read_bytes()
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
 def test_real_dll_assembles_source_path_with_profile(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     source_path = tmp_path / "minimal.s"

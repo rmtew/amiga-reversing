@@ -149,6 +149,7 @@ class ManualActionKind(StrEnum):
     REMOVE_MANUAL_SEMANTIC_HINT = "remove_manual_semantic_hint"
     SUPPRESS_SEEDED_ITEM = "suppress_seeded_item"
     CREATE_MANUAL_RSSET_LAYOUT_REGION = "create_manual_rsset_layout_region"
+    REMOVE_MANUAL_RSSET_LAYOUT_REGION = "remove_manual_rsset_layout_region"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -180,6 +181,7 @@ class ManualActionLogProjection:
     semantic_hints: tuple[dict[str, object], ...]
     suppressed_seeded_items: tuple[dict[str, object], ...]
     rsset_layout_regions: tuple[dict[str, object], ...]
+    removed_rsset_layout_regions: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -331,6 +333,7 @@ def _empty_projection(
         semantic_hints=(),
         suppressed_seeded_items=(),
         rsset_layout_regions=(),
+        removed_rsset_layout_regions=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -1165,6 +1168,7 @@ def _project_actions(
     semantic_hints: dict[str, dict[str, object]] = {}
     suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
     rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
+    removed_rsset_layout_regions: dict[tuple[str, str, int], dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1212,7 +1216,14 @@ def _project_actions(
             suppressed_seeded_items[_suppressed_seeded_item_key(item)] = item
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")
-            rsset_layout_regions[_rsset_layout_region_key(region)] = region
+            key = _rsset_layout_region_key(region)
+            removed_rsset_layout_regions.pop(key, None)
+            rsset_layout_regions[key] = region
+        elif action.kind is ManualActionKind.REMOVE_MANUAL_RSSET_LAYOUT_REGION:
+            region = _action_object(action, "rsset_layout_region")
+            key = _rsset_layout_region_key(region)
+            rsset_layout_regions.pop(key, None)
+            removed_rsset_layout_regions[key] = region
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
@@ -1264,6 +1275,7 @@ def _project_actions(
         semantic_hints=tuple(semantic_hints.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items.values()),
         rsset_layout_regions=tuple(rsset_layout_regions.values()),
+        removed_rsset_layout_regions=tuple(removed_rsset_layout_regions.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),

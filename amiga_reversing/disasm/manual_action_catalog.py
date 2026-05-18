@@ -106,6 +106,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_execution_view_action(),
         _target_execution_view_remove_action(),
         _target_rsset_layout_region_action(),
+        _target_rsset_layout_region_remove_action(),
         _target_transient("navigation.history_back", "History Back", "history_back", "Alt+Left"),
         _target_transient("navigation.history_forward", "History Forward", "history_forward", "Alt+Right"),
         _target_transient("navigation.follow_reference", "Follow Reference", "follow_reference", "Right"),
@@ -136,6 +137,8 @@ def target_catalog_manual_payload(
         return "remove_manual_execution_view", {"execution_view": _execution_view_identity_payload(params)}
     if action.get("action") == "create_manual_rsset_layout_region":
         return "create_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_payload(params)}
+    if action.get("action") == "remove_manual_rsset_layout_region":
+        return "remove_manual_rsset_layout_region", {"rsset_layout_region": _rsset_layout_region_identity_payload(params)}
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
@@ -916,6 +919,18 @@ def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, obje
     return region
 
 
+def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[str, object]:
+    offset = _optional_int(params.get("offset"))
+    if offset is None or offset < 0 or offset > 0x7FFF:
+        raise ValueError("remove_manual_rsset_layout_region requires offset in range")
+    region: dict[str, object] = {"offset": offset}
+    for field_name in ("layout_name", "base_symbol"):
+        value = params.get(field_name)
+        if isinstance(value, str) and value.strip():
+            region[field_name] = value.strip()
+    return region
+
+
 def _review_note_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
@@ -1019,6 +1034,18 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
             "semantic_type": {"type": "string"},
         },
         "required": ["offset", "symbol"],
+    }
+
+
+def _rsset_layout_region_identity_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "offset": {"type": "integer", "minimum": 0},
+            "layout_name": {"type": "string", "default": "app"},
+            "base_symbol": {"type": "string"},
+        },
+        "required": ["offset"],
     }
 
 
@@ -1891,6 +1918,15 @@ def _target_rsset_layout_region_action() -> dict[str, object]:
         "Add RSSET region",
         "create_manual_rsset_layout_region",
         _rsset_layout_region_parameter_schema(),
+    )
+
+
+def _target_rsset_layout_region_remove_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.rsset_region.remove",
+        "Remove RSSET region",
+        "remove_manual_rsset_layout_region",
+        _rsset_layout_region_identity_parameter_schema(),
     )
 
 
