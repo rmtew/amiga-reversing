@@ -358,6 +358,37 @@ def test_planner_skips_already_satisfied_projected_candidate(
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
 
 
+def test_planner_selects_review_seed_command_from_inspect_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    item = {
+        "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
+        "scope": ReviewItemScope.RANGE,
+        "state": ReviewItemState.OPEN,
+        "item_id": "orphan:h0:$00000010-$00000012",
+        "hunk": 0,
+        "start": 0x10,
+        "end": 0x12,
+        "ref_count": 2,
+        "message": "orphan code",
+        "suggested_actions": [{"action": "create_manual_seed"}],
+    }
+    monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "review.seed.code"
+    assert report["action"]["context"] == {
+        "kind": "review_item",
+        "item_id": "orphan:h0:$00000010-$00000012",
+        "review_item_kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
+    }
+    assert report["selected_work_item"]["durable_id"] == "orphan:h0:$00000010-$00000012"
+    assert report["planner"]["selected_command_id"] == "review.seed.code"
+
+
 def test_representation_command_requires_round_trip_verifier_even_without_flag(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

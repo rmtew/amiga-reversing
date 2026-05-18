@@ -14,6 +14,9 @@ Progress:
 - Planner skips candidates already satisfied by projected semantic/current
   metadata, including already-selected literal representations.
 - Command availability failures now name the selected missing catalog command.
+- Generic inspect review candidates with `create_manual_seed` suggestions now
+  map to review-item catalog commands such as `review.seed.code` and
+  `review.seed.data.raw`, using the durable review item id.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -40,10 +43,10 @@ failure, and GenAm-style non-comment smoke.
 
 Remaining work:
 - Feed real listing/navigation representation and seed candidates into generic
-  inspect, not only tests or specialized listing-backed paths.
+  inspect beyond current review-item seed candidates.
 - Run and document a GenAm non-comment smoke through the command catalog.
-- Extend planner tests across row seed and label paths, including missing
-  command/verifier blockers.
+- Extend planner tests across listing row seed and label paths, including
+  missing command/verifier blockers.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

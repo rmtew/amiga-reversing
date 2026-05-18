@@ -28,6 +28,11 @@ PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
 _COMMAND_RANK = {
     "label.rename": 100,
+    "review.seed.code": 92,
+    "review.seed.data.raw": 87,
+    "review.seed.data.string": 87,
+    "review.seed.data.scalar_table": 87,
+    "review.seed.data.pointer_table": 87,
     "row.seed.code": 90,
     "row.seed.data.raw": 85,
     "row.seed.data.byte": 85,
@@ -1660,7 +1665,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "projected_label_name"
     if "comment.edit" in actions:
         return "projection_metadata"
-    if any(action == "create_manual_seed" or action.startswith("row.seed.") for action in actions):
+    if any(action == "create_manual_seed" or action.startswith(("row.seed.", "review.seed.")) for action in actions):
         return "round_trip"
     return None
 
@@ -1947,10 +1952,24 @@ def _candidate_command_options(candidate: dict[str, object]) -> list[dict[str, o
     for raw_action in actions:
         if not isinstance(raw_action, str):
             continue
-        command = _command_from_candidate_action(candidate, raw_action)
-        if command is not None:
-            options.append(command)
+        for action in _planner_command_ids_for_action(candidate, raw_action):
+            command = _command_from_candidate_action(candidate, action)
+            if command is not None:
+                options.append(command)
     return sorted(options, key=lambda command: _command_rank(str(command.get("command_id") or "")), reverse=True)
+
+
+def _planner_command_ids_for_action(candidate: dict[str, object], action: str) -> list[str]:
+    if action != "create_manual_seed":
+        return [action]
+    review_kind = candidate.get("review_item_kind")
+    if review_kind == "orphan_code_candidate":
+        return ["review.seed.code"]
+    if review_kind == "unreconciled_data_range":
+        return ["review.seed.data.raw"]
+    if review_kind == "suspicious_instruction_decode":
+        return ["review.seed.data.raw"]
+    return []
 
 
 def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object] | None:
@@ -1972,6 +1991,19 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
     locator = candidate.get("locator")
     parameters = candidate.get("parameters")
     parameter_payload = dict(parameters) if isinstance(parameters, dict) else {}
+    if action.startswith("review.seed."):
+        item_id = candidate.get("durable_id") or candidate.get("candidate_id") or candidate.get("id")
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {
+                "kind": "review_item",
+                "item_id": item_id,
+                "review_item_kind": candidate.get("review_item_kind"),
+            },
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
     if action == "comment.edit":
         return {
             "kind": "command",
