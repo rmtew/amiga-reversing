@@ -996,6 +996,35 @@ def test_target_execution_view_command_candidate_uses_target_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
 
 
+def test_target_execution_view_candidate_skips_already_projected_view() -> None:
+    candidate = {
+        "id": "execution-view",
+        "candidate_id": "execution-view",
+        "kind": "execution_view",
+        "suggested_action_kinds": ["target.execution_view.add"],
+        "parameters": {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        },
+        "current_metadata": {
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_target_equate_command_candidate_uses_target_context() -> None:
     candidate = {
         "id": "target-equate",
@@ -1040,6 +1069,25 @@ def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_
         "output_affecting": True,
     }
     assert reversing_loop._candidate_verifier(candidate, command) == "round_trip"
+
+
+def test_correction_suppress_seeded_item_skips_already_projected_suppression() -> None:
+    candidate = {
+        "id": "suppress-seeded-entity",
+        "candidate_id": "suppress-seeded-entity",
+        "kind": "seeded_item_correction",
+        "locator": _listing_locator(kind="data"),
+        "suggested_action_kinds": ["correction.suppress_seeded_item.seeded_entity"],
+        "current_metadata": {"suppressed": True},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
 
 
 def test_app_slot_command_candidate_uses_selected_element_context() -> None:

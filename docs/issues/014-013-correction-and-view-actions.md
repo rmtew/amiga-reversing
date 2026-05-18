@@ -30,7 +30,8 @@ Current evidence:
 - The loop planner now accepts explicit `target.execution_view.*` and
   `correction.suppress_seeded_item.*` command candidates, routes execution
   views through target context and seeded-item suppressions through row context,
-  and requires round-trip verification.
+  skips already-projected execution views/suppressions, and requires round-trip
+  verification.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
