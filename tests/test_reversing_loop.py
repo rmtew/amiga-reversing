@@ -821,6 +821,56 @@ def test_manual_seed_remove_verifier_checks_removed_seed_absent(
     assert verification["layers"][1]["removed_seed_ids"] == ["data-as-code"]
 
 
+def test_manual_seed_verifier_rejects_mismatched_payload_field(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "seeds": [
+                    {
+                        "seed_id": "catalog-seed-1",
+                        "kind": "data",
+                        "mode": "required",
+                        "hunk": 0,
+                        "addr": 0,
+                        "end": 4,
+                        "row_indexes": [1, 2],
+                    }
+                ]
+            },
+        ),
+    )
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "range.seed.data.raw",
+        _executed_manual_seed_payload(
+            tmp_path,
+            {
+                "seed_id": "catalog-seed-1",
+                "kind": "data",
+                "mode": "required",
+                "hunk": 0,
+                "addr": 0,
+                "end": 4,
+                "row_indexes": [1],
+            },
+        ),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["matching_manual_seeds"] == []
+
+
 def test_rsset_region_verifier_rejects_mismatched_payload_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

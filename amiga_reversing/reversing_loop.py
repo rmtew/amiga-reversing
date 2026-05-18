@@ -3281,21 +3281,7 @@ def _verify_project_manual_seed_state(
 
 
 def _manual_seed_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
-    for key in (
-        "seed_id",
-        "kind",
-        "mode",
-        "hunk",
-        "addr",
-        "end",
-        "name",
-        "data_role",
-        "unit",
-        "encoding",
-    ):
-        if key in expected and actual.get(key) != expected.get(key):
-            return False
-    return "seed_id" in expected
+    return "seed_id" in expected and all(actual.get(key) == value for key, value in expected.items())
 
 
 def _verify_execution_view_mutation(
