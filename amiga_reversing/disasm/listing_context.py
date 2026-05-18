@@ -22,6 +22,7 @@ def listing_element_contexts(row: Mapping[str, object]) -> list[dict[str, object
     _append_operand_contexts(contexts, row)
     _append_app_slot_contexts(contexts, row)
     _append_typed_access_contexts(contexts, row)
+    _append_runtime_address_ref_contexts(contexts, row)
     _append_data_literal_context(contexts, row)
     _append_label_context(contexts, row)
     _append_comment_context(contexts, row)
@@ -184,6 +185,32 @@ def _append_typed_access_contexts(contexts: list[dict[str, object]], row: Mappin
             if isinstance(refinement_applied, bool):
                 context["refinement_applied"] = refinement_applied
             contexts.append(context)
+
+
+def _append_runtime_address_ref_contexts(contexts: list[dict[str, object]], row: Mapping[str, object]) -> None:
+    for raw_ref in _mapping_sequence(row.get("runtime_address_refs") or row.get("runtimeAddressRefs")):
+        target_hunk = _optional_int(_first_present(raw_ref, "target_section_index", "targetSectionIndex"))
+        target_addr = _optional_int(_first_present(raw_ref, "target_offset", "targetOffset"))
+        if target_hunk is None or target_addr is None:
+            continue
+        operand_index = _optional_int(_first_present(raw_ref, "operand_index", "operandIndex"))
+        token = f"data_ref:{operand_index if operand_index is not None else ''}:{target_hunk}:{target_addr:08X}"
+        context = _element_base(row, "data_ref", token)
+        context["role"] = "reference"
+        context["access"] = "reference"
+        context["target_hunk"] = target_hunk
+        context["target_addr"] = target_addr
+        if operand_index is not None:
+            context["operand_index"] = operand_index
+        size = _optional_int(raw_ref.get("size"))
+        if size is not None and size > 0:
+            context["target_end"] = target_addr + size
+            context["size"] = size
+        _copy_optional_int(context, raw_ref, "runtime_address", "runtimeAddress")
+        data_class = _str_or_none(raw_ref.get("data_class") or raw_ref.get("dataClass"))
+        if data_class:
+            context["data_class"] = data_class
+        contexts.append(context)
 
 
 def _append_data_literal_context(contexts: list[dict[str, object]], row: Mapping[str, object]) -> None:

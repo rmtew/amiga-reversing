@@ -24,12 +24,15 @@ Current evidence:
 - Ordinary data rows now expose `data_symbol.rename`, projecting a manual named
   data seed by hunk/source range with rendered-source/exact direct-rebuild
   coverage.
+- Listing elements backed by internal `runtime_address_refs` now expose
+  `data_symbol.rename` for referenced data use-sites, projecting the referenced
+  target hunk/offset/size into the same durable data-symbol identity.
 - Loop planner recognizes explicit data-symbol rename/remove candidates and
   skips already-satisfied projected names/removals; autonomous candidate
   production is still absent.
-- Durable data/global symbol edit, rename-existing-symbol, referenced-use-site,
-  and autonomous candidate workflows remain open beyond seeded data-entity
-  rename/remove.
+- Durable data/global symbol edit, rename-existing-symbol, broader global, and
+  autonomous candidate workflows remain open beyond seeded data-entity
+  rename/remove and referenced data use-sites.
 - The proposal goal includes clearer global and data names.
 
 Acceptance criteria:

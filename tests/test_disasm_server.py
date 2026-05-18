@@ -39,6 +39,7 @@ from tests.listing_types_fixtures import (
     ListingRow,
     PlatformTypedAccess,
     PlatformUnresolvedTypedAccess,
+    RuntimeAddressRef,
     SemanticOperand,
     SymbolOperandMetadata,
 )
@@ -5323,6 +5324,98 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
         "previous_name": "seeded_data",
         "source_locator": "$.seeded_entities[0]",
         "name": "player_table",
+    }
+    assert local_effect == {"kind": "data_symbol_rename", "data_symbol": data_symbol}
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
+
+
+def test_route_manual_action_catalog_execute_renames_referenced_data_symbol(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="lea $120(pc),a0\n",
+            section_index=0,
+            start_offset=0x20,
+            end_offset=0x24,
+            addr=0x20,
+            stable_key="code-row",
+            runtime_address_refs=(
+                RuntimeAddressRef(
+                    offset=0x20,
+                    operand_index=0,
+                    target_section_index=1,
+                    target_offset=0x120,
+                    runtime_address=0x40120,
+                    confidence=2,
+                    data_class="bitmap",
+                    size=0x20,
+                ),
+            ),
+        )
+    ]
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    element_id = "code-row:data_ref:0:1:00000120"
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], element_id),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    rename_action = next(action for action in actions if action["action_id"] == "data_symbol.rename")
+    assert rename_action["parameters"] == {
+        "source": "data_ref",
+        "hunk": 1,
+        "addr": 0x120,
+        "end": 0x140,
+        "data_class": "bitmap",
+    }
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "data_symbol.rename",
+            "context": _element_command_context(rows[0], element_id),
+            "parameters": {"name": "player_bitmap"},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    data_symbol = cast(dict[str, object], cast(dict[str, object], action["payload"])["data_symbol"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+    local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
+
+    assert action["kind"] == "rename_data_symbol"
+    assert data_symbol == {
+        "data_symbol_id": "data-symbol:h1:00000120",
+        "hunk": 1,
+        "addr": 0x120,
+        "end": 0x140,
+        "data_class": "bitmap",
+        "name": "player_bitmap",
     }
     assert local_effect == {"kind": "data_symbol_rename", "data_symbol": data_symbol}
     assert appended_actions == [action]

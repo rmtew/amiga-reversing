@@ -313,6 +313,20 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
+    if element_kind == "data_ref":
+        identity = _data_ref_symbol_identity(context)
+        if identity is not None:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.rename",
+                    "Rename referenced data symbol",
+                    "rename_data_symbol",
+                    context,
+                    identity,
+                    _data_name_parameter_schema(),
+                    "F2",
+                )
+            )
     if element_kind == "label":
         actions.append(
             _context_log_action(
@@ -921,6 +935,21 @@ def _row_data_symbol_identity(row: Mapping[str, object]) -> dict[str, object] | 
     return identity
 
 
+def _data_ref_symbol_identity(context: Mapping[str, object]) -> dict[str, object] | None:
+    hunk = _optional_int(context.get("target_hunk"))
+    addr = _optional_int(context.get("target_addr"))
+    if hunk is None or addr is None:
+        return None
+    identity: dict[str, object] = {"source": "data_ref", "hunk": hunk, "addr": addr}
+    end = _optional_int(context.get("target_end"))
+    if end is not None and end > addr:
+        identity["end"] = end
+    data_class = context.get("data_class")
+    if isinstance(data_class, str) and data_class:
+        identity["data_class"] = data_class
+    return identity
+
+
 def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
     hunk = _optional_int(params.get("hunk"))
     addr = _optional_int(params.get("addr"))
@@ -944,7 +973,7 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
             if "source_locator" in item:
                 symbol["source_locator"] = item["source_locator"]
             return symbol
-    if row.get("kind") == "data":
+    if row.get("kind") == "data" or params.get("source") == "data_ref":
         name = _data_seed_name(params)
         if name is None:
             raise ValueError("rename_data_symbol requires parameter name")
@@ -960,8 +989,11 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
         previous_name = params.get("previous_name")
         if isinstance(previous_name, str) and previous_name:
             symbol["previous_name"] = previous_name
+        data_class = params.get("data_class")
+        if isinstance(data_class, str) and data_class:
+            symbol["data_class"] = data_class
         return symbol
-    raise ValueError("rename_data_symbol requires a data row or seeded data entity on the selected row")
+    raise ValueError("rename_data_symbol requires a data row, data ref, or seeded data entity on the selected row")
 
 
 def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:

@@ -147,6 +147,57 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
     }
 
 
+def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x20,
+        "end_offset": 0x24,
+        "stable_key": "code-row",
+        "runtime_address_refs": [
+            {
+                "offset": 0x20,
+                "operand_index": 0,
+                "target_section_index": 1,
+                "target_offset": 0x120,
+                "runtime_address": 0x40120,
+                "confidence": 2,
+                "data_class": "bitmap",
+                "size": 0x20,
+            }
+        ],
+    }
+    selector = {"element_kind": "data_ref", "operand_index": 0}
+
+    actions = listing_element_action_catalog(row, selector)
+    rename_action = next(action for action in actions if action["action_id"] == "data_symbol.rename")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename",
+        element_context=selector,
+        parameters={"name": "player_bitmap"},
+    )
+
+    assert rename_action["parameters"] == {
+        "source": "data_ref",
+        "hunk": 1,
+        "addr": 0x120,
+        "end": 0x140,
+        "data_class": "bitmap",
+    }
+    assert kind == "rename_data_symbol"
+    assert payload == {
+        "data_symbol": {
+            "data_symbol_id": "data-symbol:h1:00000120",
+            "hunk": 1,
+            "addr": 0x120,
+            "end": 0x140,
+            "data_class": "bitmap",
+            "name": "player_bitmap",
+        }
+    }
+
+
 def test_app_slot_rename_command_uses_selected_slot_displacement() -> None:
     row = {
         "kind": "instruction",

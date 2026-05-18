@@ -130,6 +130,8 @@ def serialize_row(row: ListingRow) -> SerializedRow:
         serialized["operand_registers"] = list(row.operand_registers)
     if row.app_slot_refs:
         serialized["app_slot_refs"] = [serialize_app_slot_ref(ref) for ref in row.app_slot_refs]
+    if row.runtime_address_refs:
+        serialized["runtime_address_refs"] = [_dataclass_dict(ref) for ref in row.runtime_address_refs]
     if row.typed_accesses:
         serialized["typed_accesses"] = [serialize_typed_access(access) for access in row.typed_accesses]
     if row.unresolved_typed_accesses:
