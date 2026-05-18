@@ -941,6 +941,32 @@ def test_target_custom_struct_command_candidate_uses_target_context_and_requires
     assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
 
 
+def test_target_custom_struct_candidate_skips_already_projected_field() -> None:
+    field = {
+        "struct_name": "InputEvent",
+        "name": "ie_Code",
+        "type": "UWORD",
+        "offset": 6,
+        "size": 2,
+    }
+    candidate = {
+        "id": "custom-struct-field",
+        "candidate_id": "custom-struct-field",
+        "kind": "custom_struct_field",
+        "suggested_action_kinds": ["target.custom_struct_field.add"],
+        "parameters": field,
+        "current_metadata": field,
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_typed_field_command_candidate_uses_selected_element_context() -> None:
     candidate = {
         "id": "typed-gap-field",
@@ -983,6 +1009,29 @@ def test_typed_field_command_candidate_uses_selected_element_context() -> None:
     }
     assert reversing_loop._candidate_verifier(candidate, command) is None
     assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
+
+
+def test_typed_field_candidate_skips_already_projected_field() -> None:
+    field = {"name": "de_Code", "type": "UWORD", "size": 2}
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": field,
+        "current_metadata": field,
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
 
 
 def test_target_execution_view_command_candidate_uses_target_context() -> None:

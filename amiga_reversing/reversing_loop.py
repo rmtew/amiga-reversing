@@ -2815,12 +2815,12 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
         return str(existing) if isinstance(existing, str) and existing else "candidate is not actionable"
     if command is None:
         return "no supported source-converging command"
+    if _candidate_already_satisfied(candidate, command):
+        return "candidate already satisfied in projected semantic state"
     if _candidate_verifier(candidate, command) is None:
         return "missing action-specific verifier"
     if not _command_context_complete(command):
         return "missing durable command context"
-    if _candidate_already_satisfied(candidate, command):
-        return "candidate already satisfied in projected semantic state"
     return None
 
 
@@ -2885,6 +2885,22 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     if command_id in {"target.equate.add", "target.equate.edit", "target.equate.rename"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.equate.remove":
+        return current.get("removed") is True
+    if command_id in {"target.custom_struct.add", "target.custom_struct.edit", "target.custom_struct.rename"}:
+        return all(current.get(key) == value for key, value in parameters.items())
+    if command_id == "target.custom_struct.remove":
+        return current.get("removed") is True
+    if command_id in {
+        "target.custom_struct_field.add",
+        "target.custom_struct_field.edit",
+        "target.custom_struct_field.rename",
+        "typed_gap.field.add",
+        "typed_gap.field.edit",
+        "typed_access.field.edit",
+        "typed_access.field.rename",
+    }:
+        return all(current.get(key) == value for key, value in parameters.items())
+    if command_id in {"target.custom_struct_field.remove", "typed_access.field.remove"}:
         return current.get("removed") is True
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())

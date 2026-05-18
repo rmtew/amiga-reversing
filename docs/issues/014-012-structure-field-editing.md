@@ -26,7 +26,8 @@ Current evidence:
 - The loop planner builds explicit `target.custom_struct.*`,
   `target.custom_struct_field.*`, `typed_gap.field.*`, and
   `typed_access.field.*` command candidates and routes typed field commands
-  through selected listing element context, but now blocks them as missing an
+  through selected listing element context. It skips already-projected
+  struct/field candidates, but blocks unproven changes as missing an
   action-specific verifier until rendered custom-field paths are proven.
 - No verifier proves rendered typed field paths from custom struct metadata yet.
 
