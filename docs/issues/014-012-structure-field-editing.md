@@ -62,6 +62,9 @@ Current evidence:
   `source_evidence_id` in the Manual Action Log payload, and verify manual-log
   replay, projected custom-field state, rendered typed access, provenance
   evidence, and exact round-trip.
+- Projected custom-field state now stamps `owner_action_id` for create/rename
+  and `cleanup_action_id` for remove, and the semantic reload verifier requires
+  consumed provenance and owner fields to match the reloaded projection.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.

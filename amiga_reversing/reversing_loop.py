@@ -3692,6 +3692,14 @@ def _verify_custom_struct_field_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     expected = _custom_struct_field_from_durable_result(durable_result)
+    if expected is not None and expected.get("source_evidence_id") is not None:
+        expected = dict(expected)
+        action_id = _durable_action_id(durable_result)
+        if isinstance(action_id, str) and action_id:
+            if command_id.endswith(".remove"):
+                expected.setdefault("cleanup_action_id", action_id)
+            else:
+                expected.setdefault("owner_action_id", action_id)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_custom_struct_field(target_id, command_id, expected, project_root=project_root),
@@ -3721,11 +3729,11 @@ def _custom_struct_field_from_action(action: object) -> dict[str, object] | None
         return None
     field = action.get("custom_struct_field")
     if isinstance(field, dict):
-        return cast(dict[str, object], field)
+        return dict(cast(dict[str, object], field))
     payload = action.get("payload")
     field = payload.get("custom_struct_field") if isinstance(payload, dict) else None
     if isinstance(field, dict):
-        return cast(dict[str, object], field)
+        return dict(cast(dict[str, object], field))
     return None
 
 
@@ -3775,6 +3783,21 @@ def _custom_struct_field_matches(actual: dict[str, object], expected: dict[str, 
     if not all(actual.get(key) == expected.get(key) for key in required_keys):
         return False
     for key in ("name", "type", "size"):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+        "owner_action_id",
+        "cleanup_action_id",
+    ):
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return True

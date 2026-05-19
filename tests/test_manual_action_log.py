@@ -1612,6 +1612,7 @@ def test_manual_action_log_projects_custom_struct_field(tmp_path: Path) -> None:
             "type": "UBYTE",
             "offset": 4,
             "size": 1,
+            "owner_action_id": "a1",
         },
     )
 
@@ -1648,7 +1649,13 @@ def test_manual_action_log_removes_custom_struct_field_by_identity(tmp_path: Pat
 
     assert projection.custom_struct_fields == ()
     assert projection.removed_custom_struct_fields == (
-        {"struct_name": "InputEvent", "offset": 4, "name": "ie_Class"},
+        {
+            "struct_name": "InputEvent",
+            "offset": 4,
+            "name": "ie_Class",
+            "owner_action_id": "a1",
+            "cleanup_action_id": "a2",
+        },
     )
 
 
@@ -1689,10 +1696,11 @@ def test_manual_action_log_renames_custom_struct_field_by_identity(tmp_path: Pat
             "type": "UBYTE",
             "offset": 4,
             "size": 1,
+            "owner_action_id": "a2",
         },
     )
     assert projection.renamed_custom_struct_fields == (
-        {"struct_name": "InputEvent", "offset": 4, "name": "ie_Code"},
+        {"struct_name": "InputEvent", "offset": 4, "name": "ie_Code", "owner_action_id": "a2"},
     )
 
 

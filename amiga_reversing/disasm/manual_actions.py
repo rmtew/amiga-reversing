@@ -1610,26 +1610,32 @@ def _project_actions(
             custom_structs.pop(struct_name, None)
             removed_custom_structs[struct_name] = custom_struct
         elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD:
-            field = _action_object(action, "custom_struct_field")
+            field = dict(_action_object(action, "custom_struct_field"))
             key = _custom_struct_field_key(field)
+            field["owner_action_id"] = action.action_id
             removed_custom_struct_fields.pop(key, None)
             custom_struct_fields[key] = field
         elif action.kind is ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD:
-            field = _action_object(action, "custom_struct_field")
+            field = dict(_action_object(action, "custom_struct_field"))
             key = _custom_struct_field_key(field)
             name = field.get("name")
             if not isinstance(name, str) or not name:
                 raise ValueError("custom_struct_field rename requires name")
+            field["owner_action_id"] = action.action_id
             existing = custom_struct_fields.get(key)
             if existing is not None:
                 updated = dict(existing)
                 updated["name"] = name
+                updated["owner_action_id"] = action.action_id
                 custom_struct_fields[key] = updated
             renamed_custom_struct_fields[key] = field
         elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD:
-            field = _action_object(action, "custom_struct_field")
+            field = dict(_action_object(action, "custom_struct_field"))
             key = _custom_struct_field_key(field)
-            custom_struct_fields.pop(key, None)
+            existing = custom_struct_fields.pop(key, None)
+            if isinstance(existing, dict) and isinstance(existing.get("owner_action_id"), str):
+                field["owner_action_id"] = existing["owner_action_id"]
+            field["cleanup_action_id"] = action.action_id
             removed_custom_struct_fields[key] = field
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")

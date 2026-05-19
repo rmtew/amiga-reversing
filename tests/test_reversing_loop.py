@@ -511,7 +511,10 @@ def test_typed_field_command_with_accepted_evidence_executes_and_verifies(
     monkeypatch.setattr(
         reversing_loop.projects,
         "get_project",
-        lambda target_id, project_root: replace(_project(()), manual_state={"custom_struct_fields": [field]}),
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"custom_struct_fields": [{**field, "owner_action_id": "manual-1"}]},
+        ),
     )
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -551,6 +554,94 @@ def test_typed_field_command_with_accepted_evidence_executes_and_verifies(
         "rendered_source",
         "round_trip",
     ]
+
+
+def test_custom_struct_field_verifier_rejects_mismatched_consumed_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    field = {
+        "struct_name": "DerivedEvent",
+        "offset": 36,
+        "name": "de_Code",
+        "type": "UWORD",
+        "size": 2,
+        **_accepted_struct_pointer_evidence(),
+    }
+    reloaded_field = {**field, "source_evidence_id": "prov-other", "owner_action_id": "manual-1"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"custom_struct_fields": [reloaded_field]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_custom_struct_field(
+        "demo",
+        "typed_gap.field.add",
+        {**field, "owner_action_id": "manual-1"},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matching_custom_struct_fields"] == []
+
+
+def test_custom_struct_field_remove_verifier_matches_cleanup_action_not_owner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    field = {
+        "struct_name": "DerivedEvent",
+        "offset": 36,
+        "name": "de_Code",
+        **_accepted_struct_pointer_evidence(),
+    }
+    removed_field = {
+        **field,
+        "owner_action_id": "manual-create",
+        "cleanup_action_id": "manual-remove",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_custom_struct_fields": [removed_field]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_projected_custom_struct_field_rendered_source",
+        lambda target_id, command, command_id, expected: {"layer": "rendered_source", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_custom_struct_field_mutation(
+        "demo",
+        {"command_id": "typed_access.field.remove"},
+        "typed_access.field.remove",
+        {"action": {"action_id": "manual-remove", "payload": {"custom_struct_field": field}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_custom_struct_field"]["cleanup_action_id"] == "manual-remove"
+    assert "owner_action_id" not in semantic_layer["expected_custom_struct_field"]
 
 
 def test_provenance_backed_mutation_verifier_requires_accepted_evidence() -> None:

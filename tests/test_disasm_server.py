@@ -2139,7 +2139,17 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == action_kind
-    assert field == expected_field
+    for key, value in expected_field.items():
+        assert field[key] == value
+    assert field["source_family"] == "struct_pointer"
+    assert field["source_evidence_status"] == "analysis_proven"
+    assert field["confidence"] == "high"
+    assert field["conflicts"] == []
+    assert isinstance(field["source_evidence_id"], str)
+    assert field["source_evidence_id"].startswith("prov-bloodwych-struct_pointer-analysis_proven")
+    path_scope = cast(dict[str, object], field["path_lifetime_scope"])
+    assert path_scope["kind"] == "selected_use"
+    assert path_scope["addr"] == row.addr
     assert application["status"] == "applied"
     assert local_effect == {"kind": "custom_struct_field", "custom_struct_field": field}
     assert appended_actions == [action]
