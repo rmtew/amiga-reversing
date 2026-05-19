@@ -5569,15 +5569,6 @@ def _verify_execution_view_mutation(
 
 
 def _execution_view_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") not in {"execution_view", "execution_view_remove"}:
-                continue
-            view = effect.get("execution_view")
-            if isinstance(view, dict):
-                return cast(dict[str, object], view)
     action = durable_result.get("action")
     view = _execution_view_from_action(action)
     if view is not None:
@@ -5588,6 +5579,15 @@ def _execution_view_from_durable_result(durable_result: dict[str, object]) -> di
             view = _execution_view_from_action(raw_action)
             if view is not None:
                 return view
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") not in {"execution_view", "execution_view_remove"}:
+                continue
+            view = effect.get("execution_view")
+            if isinstance(view, dict):
+                return cast(dict[str, object], view)
     return None
 
 
@@ -5650,7 +5650,7 @@ def _execution_view_matches(actual: dict[str, object], expected: dict[str, objec
     for key in ("source_start", "source_end", "base_addr"):
         if key not in expected or actual.get(key) != expected.get(key):
             return False
-    for key in ("name", "comment", "owner_action_id", "cleanup_action_id"):
+    for key in ("execution_view_id", "name", "comment", "owner_action_id", "cleanup_action_id"):
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return True

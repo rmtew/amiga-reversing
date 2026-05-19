@@ -62,6 +62,10 @@ Current evidence:
 - Execution-view catalog add/edit/remove payloads preserve an explicit
   `execution_view_id` when a candidate or UI supplies one, while retaining the
   `(source_start, source_end, base_addr)` tuple as the deterministic replay key.
+- Execution-view semantic reload verification now treats an explicit
+  `execution_view_id` as part of the expected identity and derives that
+  expected state from the durable action payload before local effects, so a
+  same-range different view cannot satisfy add/edit/remove proof.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
 - Provenance-backed `manual_override` writes now require and preserve cleanup

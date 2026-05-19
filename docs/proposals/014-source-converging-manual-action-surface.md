@@ -1268,6 +1268,12 @@ replacement/removal, but command payloads must also preserve an explicit
 edit/remove can silently replace a durable target-local display identity with a
 catalog-regenerated one.
 
+Follow-up observation from `014-013`: preserving `execution_view_id` in the
+payload is not enough unless semantic reload compares it. The durable Manual
+Action Log append should provide expected view identity before local-effect
+echoes, so a same-range view with a different explicit id cannot satisfy
+execution-view add/edit/remove verification.
+
 Implementation observation from `014-010`: first-slice provenance can report
 LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw
 base-relative unknowns from listing context, but deeper C flow definitions are
