@@ -1120,6 +1120,13 @@ field writes before command availability/execution, not only after durable
 payload verification. Otherwise a forced selected command could create a field
 from exploratory typed-gap context and fail only after mutation.
 
+Implementation observation from `014-012`: selected typed-field rename proof
+must use the previous name from command context to reject stale selected-row
+typed accesses after render; absence of that previous name is a verifier
+failure, not a successful rename proof. This is still only selected-row proof;
+propagated typed-access descendants need owner-scoped cleanup before broad
+rename/remove cascades are safe.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

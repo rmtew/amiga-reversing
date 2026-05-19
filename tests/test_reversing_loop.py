@@ -644,6 +644,139 @@ def test_custom_struct_field_remove_verifier_matches_cleanup_action_not_owner(
     assert "owner_action_id" not in semantic_layer["expected_custom_struct_field"]
 
 
+def test_custom_struct_field_rename_render_verifier_accepts_clean_selected_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.rename",
+        "context": {
+            "locator": _listing_locator(),
+            "operand_index": 0,
+            "field_name": "LIB_VERSION",
+        },
+        "parameters": {"name": "LIB_REVISION"},
+    }
+    expected = {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"}
+    row = _listing_row(text="\tmove.w LIB_REVISION(a0),d0\n", start_offset=0, end_offset=2)
+    row["typed_accesses"] = [
+        {
+            "operand_index": 0,
+            "displacement": 20,
+            "owner_struct_name": "Library",
+            "field_name": "LIB_REVISION",
+            "field_expr": "LIB_REVISION",
+        }
+    ]
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.rename",
+        expected,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["matched_tokens"] == ["LIB_REVISION"]
+    assert verification["stale_typed_accesses"] == []
+
+
+def test_custom_struct_field_rename_render_verifier_rejects_stale_selected_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.rename",
+        "context": {
+            "locator": _listing_locator(),
+            "operand_index": 0,
+            "field_name": "LIB_VERSION",
+        },
+        "parameters": {"name": "LIB_REVISION"},
+    }
+    expected = {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"}
+    row = _listing_row(text="\tmove.w LIB_REVISION(a0),d0\n", start_offset=0, end_offset=2)
+    row["typed_accesses"] = [
+        {
+            "operand_index": 0,
+            "displacement": 20,
+            "owner_struct_name": "Library",
+            "field_name": "LIB_REVISION",
+            "field_expr": "LIB_REVISION",
+        },
+        {
+            "operand_index": 0,
+            "displacement": 20,
+            "owner_struct_name": "Library",
+            "field_name": "LIB_VERSION",
+            "field_expr": "LIB_VERSION",
+        },
+    ]
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.rename",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matched_tokens"] == ["LIB_REVISION"]
+    assert verification["stale_tokens"] == []
+    assert [access["field_name"] for access in verification["stale_typed_accesses"]] == ["LIB_VERSION"]
+
+
+def test_custom_struct_field_rename_render_verifier_requires_previous_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.rename",
+        "context": {
+            "locator": _listing_locator(),
+            "operand_index": 0,
+        },
+        "parameters": {"name": "LIB_REVISION"},
+    }
+    expected = {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"}
+    row = _listing_row(text="\tmove.w LIB_REVISION(a0),d0\n", start_offset=0, end_offset=2)
+    row["typed_accesses"] = [
+        {
+            "operand_index": 0,
+            "displacement": 20,
+            "owner_struct_name": "Library",
+            "field_name": "LIB_REVISION",
+            "field_expr": "LIB_REVISION",
+        }
+    ]
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.rename",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["message"] == "previous custom struct field name missing for rename proof"
+    assert verification["matching_typed_accesses"]
+
+
 def test_provenance_backed_mutation_verifier_requires_accepted_evidence() -> None:
     command = {
         "command_id": "row.data_block.element.interpret_ref",

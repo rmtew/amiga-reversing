@@ -67,6 +67,9 @@ Current evidence:
 - Projected custom-field state now stamps `owner_action_id` for create/rename
   and `cleanup_action_id` for remove, and the semantic reload verifier requires
   consumed provenance and owner fields to match the reloaded projection.
+- Selected typed-field rename verification now proves the selected row renders
+  the new field and no longer exposes the previous field name/access; rename
+  proof fails when the command does not carry the previous field name.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.
@@ -119,7 +122,8 @@ Acceptance criteria:
   custom struct/field metadata, C semantic reload, rendered field path at the
   selected access, exact round-trip, and cleanup of propagated typed accesses
   by `owner_action_id` on remove/rename/clear. Selected-row typed-field proof
-  exists; propagated descendant cleanup remains open.
+  now includes stale previous-name/access rejection for rename; propagated
+  descendant cleanup remains open.
 - Manual actions replay into effective metadata and rendered field references.
 - Commands cover typed-access and field-gap contexts.
 - Loop planner support covers explicit target custom-struct and typed-field

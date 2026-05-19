@@ -4530,6 +4530,63 @@ def _verify_projected_custom_struct_field_rendered_source(
             "affected_rendered_text": affected_rendered_text,
             "rendered_text": rendered_text,
         }
+    if command_id.endswith(".rename"):
+        previous_name = _custom_struct_field_previous_name(command, expected)
+        if not previous_name:
+            expected_tokens = [token for token in (stale_name,) if isinstance(token, str) and token]
+            matched_tokens = [
+                token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+            ]
+            return {
+                "layer": "rendered_source",
+                "status": "failed",
+                "source_offset": source_offset,
+                "message": "previous custom struct field name missing for rename proof",
+                "expected_tokens": expected_tokens,
+                "matched_tokens": matched_tokens,
+                "stale_previous_name": previous_name,
+                "stale_tokens": [],
+                "stale_typed_accesses": [],
+                "matching_typed_accesses": matching_accesses,
+                "affected_rendered_text": affected_rendered_text,
+                "rendered_text": rendered_text,
+            }
+        previous_expected = dict(expected)
+        previous_expected["name"] = previous_name
+        stale_accesses = [
+            access
+            for row in affected_rows
+            for access in _mapping_sequence(row.get("typed_accesses"))
+            if _custom_struct_field_render_access_matches(access, previous_expected, command)
+        ]
+        stale_tokens = (
+            [previous_name]
+            if previous_name
+            and previous_name != stale_name
+            and _rendered_source_contains_token(affected_rendered_text, previous_name)
+            else []
+        )
+        expected_tokens = [token for token in (stale_name,) if isinstance(token, str) and token]
+        matched_tokens = [
+            token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+        ]
+        return {
+            "layer": "rendered_source",
+            "status": (
+                "passed"
+                if matching_accesses and len(matched_tokens) == len(expected_tokens) and not stale_accesses and not stale_tokens
+                else "failed"
+            ),
+            "source_offset": source_offset,
+            "expected_tokens": expected_tokens,
+            "matched_tokens": matched_tokens,
+            "stale_previous_name": previous_name,
+            "stale_tokens": stale_tokens,
+            "stale_typed_accesses": stale_accesses,
+            "matching_typed_accesses": matching_accesses,
+            "affected_rendered_text": affected_rendered_text,
+            "rendered_text": rendered_text,
+        }
     expected_tokens = [token for token in (stale_name,) if isinstance(token, str) and token]
     matched_tokens = [
         token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)
@@ -4544,6 +4601,19 @@ def _verify_projected_custom_struct_field_rendered_source(
         "affected_rendered_text": affected_rendered_text,
         "rendered_text": rendered_text,
     }
+
+
+def _custom_struct_field_previous_name(command: dict[str, object], expected: dict[str, object]) -> str | None:
+    context = command.get("context")
+    parameters = command.get("parameters")
+    for source in (context, parameters):
+        if not isinstance(source, dict):
+            continue
+        for key in ("previous_name", "field_name"):
+            value = source.get(key)
+            if isinstance(value, str) and value and value != expected.get("name"):
+                return value
+    return None
 
 
 def _custom_struct_field_render_location(command: dict[str, object]) -> tuple[int, int] | None:
