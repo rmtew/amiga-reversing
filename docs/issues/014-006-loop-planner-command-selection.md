@@ -160,6 +160,10 @@ Progress:
   unordered dependency set, so projected effective metadata with equivalent
   struct-pointer lineage is skipped instead of repeated due only to replay
   ordering.
+- Data-block bind-type already-satisfied checks now compare the active
+  effective type binding, including bound type/domain and consumed provenance,
+  so an explicit candidate does not repeat a binding already present in
+  metadata.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

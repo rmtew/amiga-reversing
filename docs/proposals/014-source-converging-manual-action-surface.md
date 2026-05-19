@@ -1099,6 +1099,11 @@ width)` against the refreshed catalog entry. The command catalog does not choose
 the bound type or provenance evidence, but it must still prevent a stale
 type-binding candidate from executing against a different data-block element.
 
+Follow-up observation from `014-006`/`014-019`: already-satisfied checks for
+data-block bind-type need the active effective `type_binding`, not just the row
+coordinate. The skip decision should compare bound type/domain and consumed
+provenance, with parent evidence treated as a dependency set.
+
 Implementation observation from the `014-018` guard slice: interpreted data
 references must not become output-affecting from target intent alone. Durable
 actions carry decoded selected source bytes as `source_value`, and replay must

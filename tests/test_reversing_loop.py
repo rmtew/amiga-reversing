@@ -6599,6 +6599,54 @@ def test_data_block_type_command_does_not_accept_cleanup_scope_as_consumed_evide
     assert reversing_loop._candidate_verifier({}, command) is None
 
 
+def test_data_block_type_skip_uses_active_binding_and_parent_evidence_set() -> None:
+    evidence = {
+        "source_evidence_id": "prov-demo-data-block-pointer",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+    }
+    candidate = {
+        "id": "data-block-type",
+        "candidate_id": "data-block-type",
+        "kind": "data_block_type_binding",
+        "current_metadata": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "type_binding": {
+                "binding_kind": "custom_struct",
+                "bound_type_id": "InputEvent",
+                **evidence,
+                "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+            },
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.bind_type",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "binding_kind": "custom_struct",
+            "type_id": "InputEvent",
+            "requires_source_evidence": True,
+            **evidence,
+        },
+        "output_affecting": True,
+    }
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_typed_field_candidate_skips_already_projected_field() -> None:
     field = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code", "type": "UWORD", "size": 2}
     candidate = {

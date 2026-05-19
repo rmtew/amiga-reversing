@@ -4067,6 +4067,8 @@ def _data_block_element_matches(actual: dict[str, object], expected: dict[str, o
 def _data_block_element_value_matches(key: str, actual: object, expected: object) -> bool:
     if key in {"type_binding", "previous_type_binding"}:
         return _provenance_reference_values_match(actual, expected)
+    if key == "parent_evidence_ids":
+        return _provenance_identity_values_match(key, actual, expected)
     return actual == expected
 
 
@@ -6882,6 +6884,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return all(_custom_struct_field_identity_value_matches(key, current.get(key), value) for key, value in parameters.items())
     if command_id in {"target.custom_struct_field.remove", "typed_access.field.remove"}:
         return current.get("removed") is True
+    if command_id == "row.data_block.element.bind_type":
+        return _data_block_type_binding_already_satisfied(current, parameters)
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.execution_view.remove":
@@ -6914,6 +6918,38 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style
     return False
+
+
+def _data_block_type_binding_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    for key in ("layout_id", "offset", "width"):
+        if key in parameters and current.get(key) != parameters.get(key):
+            return False
+    binding = current.get("type_binding")
+    if not isinstance(binding, dict):
+        return False
+    bound_type_id = parameters.get("bound_type_id") or parameters.get("type_id")
+    if isinstance(bound_type_id, str) and binding.get("bound_type_id") != bound_type_id:
+        return False
+    bound_domain_id = parameters.get("bound_domain_id") or parameters.get("domain_id")
+    if isinstance(bound_domain_id, str) and binding.get("bound_domain_id") != bound_domain_id:
+        return False
+    for key in (
+        "binding_kind",
+        "array_count",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    ):
+        if key in parameters and not _data_block_element_value_matches(key, binding.get(key), parameters.get(key)):
+            return False
+    return True
 
 
 def _semantic_hint_already_satisfied(current: dict[str, object], command: dict[str, object]) -> bool:

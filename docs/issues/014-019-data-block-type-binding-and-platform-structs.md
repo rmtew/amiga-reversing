@@ -69,6 +69,9 @@ Current implementation:
   to match the selected data-block element identity `(layout_id, offset,
   width)`. A stale type-binding candidate can no longer borrow availability
   from a different element row.
+- Planner already-satisfied checks now skip bind-type candidates whose active
+  effective data-block element already carries the same type/domain binding and
+  consumed provenance, including unordered `parent_evidence_ids`.
 - Clear-type availability also compares the selected active binding id,
   binding kind, bound type/domain, owner action, and consumed provenance fields
   when the command carries them, preventing stale cleanup against a later
