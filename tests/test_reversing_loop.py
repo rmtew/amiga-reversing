@@ -4736,6 +4736,48 @@ def test_seeded_item_suppression_verifier_prefers_action_payload_over_local_effe
     assert semantic_layer["expected_suppressed_seeded_item"]["addr"] == 0x100
 
 
+def test_seeded_item_suppression_verifier_rejects_local_effect_without_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    local_effect_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x104}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"suppressed_seeded_items": [local_effect_item]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_seeded_item_suppression_mutation(
+        "demo",
+        {
+            "application": {
+                "local_effects": [
+                    {"kind": "seeded_item_suppression", "suppressed_seeded_item": local_effect_item}
+                ]
+            },
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["message"] == "missing suppressed seeded item payload"
+
+
 def test_run_one_execution_view_executes_with_view_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -4961,6 +5003,47 @@ def test_execution_view_verifier_prefers_action_payload_over_local_effect(
     assert verification["status"] == "passed"
     semantic_layer = verification["layers"][1]
     assert semantic_layer["expected_execution_view"]["execution_view_id"] == "stage-a"
+
+
+def test_execution_view_verifier_requires_durable_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    local_effect_view = {**_execution_view_payload(), "execution_view_id": "stage-b"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"execution_views": [{**local_effect_view, "owner_action_id": "manual-1"}]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_execution_view_mutation(
+        "demo",
+        "target.execution_view.add",
+        {
+            "application": {
+                "local_effects": [{"kind": "execution_view", "execution_view": local_effect_view}],
+            },
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["message"] == "missing execution view payload"
 
 
 def test_execution_view_remove_verifier_requires_cleanup_action(

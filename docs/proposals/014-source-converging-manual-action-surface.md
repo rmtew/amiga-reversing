@@ -1255,11 +1255,12 @@ different source family/status, path/lifetime scope, parent evidence set,
 conflict list, or override cleanup fields, the correction boundary has not been
 proven.
 
-Follow-up observation from `014-013`: seeded-item suppression verification has
-the same durable-action-first requirement as execution views and semantic
+Implementation observation from `014-013`: seeded-item suppression verification
+has the same durable-action-first requirement as execution views and semantic
 hints. Local-effect echoes can confirm UI feedback, but the expected correction
-identity must come from the Manual Action Log payload so a mismatched response
-cannot hide which analyzer/imported fact was actually suppressed.
+identity must come from the Manual Action Log payload; local-effect-only
+responses now fail as missing durable payloads instead of proving which
+analyzer/imported fact was suppressed.
 
 Implementation observation from `014-013`: execution views are correction/view
 state but still need action ownership in the Manual Action Log projection.
@@ -1274,11 +1275,12 @@ replacement/removal, but command payloads must also preserve an explicit
 edit/remove can silently replace a durable target-local display identity with a
 catalog-regenerated one.
 
-Follow-up observation from `014-013`: preserving `execution_view_id` in the
-payload is not enough unless semantic reload compares it. The durable Manual
-Action Log append should provide expected view identity before local-effect
+Implementation observation from `014-013`: preserving `execution_view_id` in
+the payload is not enough unless semantic reload compares it. The durable
+Manual Action Log append provides expected view identity before local-effect
 echoes, so a same-range view with a different explicit id cannot satisfy
-execution-view add/edit/remove verification.
+execution-view add/edit/remove verification; local-effect-only responses fail as
+missing durable payloads.
 
 Implementation observation from `014-010`: first-slice provenance can report
 LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw

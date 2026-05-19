@@ -70,6 +70,10 @@ Current evidence:
   `execution_view_id` as part of the expected identity and derives that
   expected state from the durable action payload before local effects, so a
   same-range different view cannot satisfy add/edit/remove proof.
+- Seeded-item suppression and execution-view verifiers now reject local-effect
+  only responses as missing durable payloads; local effects can no longer supply
+  the expected correction/view identity when the Manual Action Log action is
+  absent.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
 - Provenance-backed `manual_override` writes now require and preserve cleanup

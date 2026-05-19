@@ -5291,15 +5291,6 @@ def _suppressed_seeded_item_from_durable_result(durable_result: dict[str, object
             item = _suppressed_seeded_item_from_action(raw_action)
             if item is not None:
                 return item
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") != "seeded_item_suppression":
-                continue
-            item = effect.get("suppressed_seeded_item")
-            if isinstance(item, dict):
-                return cast(dict[str, object], item)
     return None
 
 
@@ -5671,15 +5662,6 @@ def _execution_view_from_durable_result(durable_result: dict[str, object]) -> di
             view = _execution_view_from_action(raw_action)
             if view is not None:
                 return view
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") not in {"execution_view", "execution_view_remove"}:
-                continue
-            view = effect.get("execution_view")
-            if isinstance(view, dict):
-                return cast(dict[str, object], view)
     return None
 
 
