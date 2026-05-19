@@ -3214,7 +3214,11 @@ def _verify_consumed_provenance_evidence(
         if key == "source_evidence_id":
             continue
         expected_key = f"expected_{key}"
-        if expected_key in evidence and evidence.get(key) != evidence.get(expected_key):
+        if expected_key in evidence and not _provenance_identity_values_match(
+            key,
+            evidence.get(key),
+            evidence.get(expected_key),
+        ):
             failures.append(f"durable {key} does not match consumed command evidence")
     if not isinstance(source_family, str) or source_family in {"", "unknown", "conflicting"}:
         failures.append("missing accepted source_family")
@@ -7058,9 +7062,24 @@ def _catalog_entry_parameters_match(
     for key in required_keys:
         command_value = command_parameters.get(key)
         entry_value = entry_parameters.get(key)
-        if entry_value is None or entry_value != command_value:
+        if entry_value is None or not _provenance_identity_values_match(key, entry_value, command_value):
             return False
     return True
+
+
+def _provenance_identity_values_match(key: str, left: object, right: object) -> bool:
+    if key == "parent_evidence_ids":
+        left_ids = _normalise_parent_evidence_ids(left)
+        right_ids = _normalise_parent_evidence_ids(right)
+        return left_ids is not None and right_ids is not None and left_ids == right_ids
+    return left == right
+
+
+def _normalise_parent_evidence_ids(value: object) -> tuple[str, ...] | None:
+    if not isinstance(value, list | tuple):
+        return None
+    ids = {item for item in value if isinstance(item, str) and item}
+    return tuple(sorted(ids))
 
 
 def _catalog_entry_provenance_identity_keys(command: dict[str, object], base_keys: tuple[str, ...]) -> tuple[str, ...]:

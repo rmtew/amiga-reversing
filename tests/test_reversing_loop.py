@@ -899,6 +899,41 @@ def test_provenance_backed_mutation_verifier_rejects_mismatched_command_scope() 
     assert "durable parent_evidence_ids does not match consumed command evidence" in provenance_layer["failures"]
 
 
+def test_provenance_backed_mutation_verifier_treats_parent_evidence_ids_as_set() -> None:
+    command = {
+        "command_id": "row.data_block.element.bind_type",
+        "parameters": {
+            "source_evidence_id": "prov-command",
+            "source_family": "data_block_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": {"kind": "global"},
+            "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+        },
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "data_block_element": {
+                    "type_binding": {
+                        "source_evidence_id": "prov-command",
+                        "source_family": "data_block_pointer",
+                        "source_evidence_status": "analysis_proven",
+                        "path_lifetime_scope": {"kind": "global"},
+                        "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+                    }
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    assert report["status"] == "passed"
+    assert report["layers"][1]["status"] == "passed"
+
+
 def test_provenance_backed_mutation_verifier_rejects_mismatched_context_evidence() -> None:
     command = {
         "command_id": "typed_gap.field.add",
@@ -1587,7 +1622,7 @@ def test_data_block_type_availability_requires_matching_source_evidence() -> Non
         "source_family": "data_block_pointer",
         "source_evidence_status": "analysis_proven",
         "path_lifetime_scope": {"kind": "global"},
-        "parent_evidence_ids": ["prov-table-base"],
+        "parent_evidence_ids": ["prov-table-base", "prov-root"],
     }
     command = {
         "command_id": "row.data_block.element.bind_type",
@@ -1621,7 +1656,7 @@ def test_data_block_type_availability_requires_matching_source_evidence() -> Non
     availability_parameters["parent_evidence_ids"] = ["prov-other-base"]
     assert reversing_loop._available_catalog_command(command, availability) is None
 
-    availability_parameters["parent_evidence_ids"] = evidence["parent_evidence_ids"]
+    availability_parameters["parent_evidence_ids"] = ["prov-root", "prov-table-base"]
 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 

@@ -192,6 +192,10 @@ Current evidence:
   evidence as consumed write evidence. `base_evidence_refs`, `conflicts`, and
   `cleanup_scope` may document inputs or cleanup, but the durable action payload
   itself must carry the consumed `source_evidence_id`.
+- Generic provenance verifier and catalog identity matching now treat
+  `parent_evidence_ids` as an unordered dependency set, so equivalent accepted
+  evidence is not rejected only because the command and durable payload list
+  parent ids in different orders.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,

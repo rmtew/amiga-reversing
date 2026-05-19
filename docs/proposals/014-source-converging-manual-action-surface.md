@@ -1136,6 +1136,12 @@ values must include every parent evidence id; otherwise two path-specific
 accepted base classifications that share the first parent can collapse to one
 consumable write authority.
 
+Implementation observation from `014-005`/`014-006`: because parent provenance
+identity is a dependency set, verifier and catalog matching must compare
+`parent_evidence_ids` without depending on list order. Ordering differences
+between command payloads, refreshed catalog entries, and durable replay should
+not make equivalent accepted evidence look stale.
+
 Implementation observation from `014-010`/`014-002`: path/lifetime scope is
 part of provenance identity, not just a report annotation. Evidence ids must
 include the full normalized scope payload, because two same-subject definitions
