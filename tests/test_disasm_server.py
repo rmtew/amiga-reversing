@@ -4154,6 +4154,13 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         "layout_name": "app",
         "base_symbol": "__amiga_app_base__",
         "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": "prov-manual-rsset-a6",
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "manual_override",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2, "operand_index": 0},
+        "confidence": "high",
+        "conflicts": [{"source_evidence_id": "prov-stale-base"}],
+        "parent_evidence_ids": ["prov-parent-a6"],
         "contradicted_evidence_id": "prov-stale-base",
         "reason": "selected use overrides stale base proof",
         "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-stale-base"},
@@ -4271,9 +4278,11 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     accepted_base_ref = report_action["report"]["base_evidence_refs"][0]
     assert accepted_base_ref["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
     assert accepted_base_ref["source_family"] == "rsset_app_base"
-    assert accepted_base_ref["status"] == "path_specific"
+    assert accepted_base_ref["status"] == "manual_override"
+    assert accepted_base_ref["source_evidence_id"] == "prov-manual-rsset-a6"
     assert accepted_base_ref["accepted"] is True
-    assert accepted_base_ref["parent_evidence_ids"] == ["selected-base:A6:__amiga_app_base__"]
+    assert accepted_base_ref["parent_evidence_ids"] == ["prov-parent-a6"]
+    assert accepted_base_ref["conflicts"] == [{"source_evidence_id": "prov-stale-base"}]
     assert accepted_base_ref["contradicted_evidence_id"] == "prov-stale-base"
     assert accepted_base_ref["reason"] == "selected use overrides stale base proof"
     assert accepted_base_ref["cleanup_scope"] == {
@@ -4315,8 +4324,10 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert binding["render_state"] == "linked_gap_or_raw"
     assert binding["source_evidence_id"] == accepted_base_ref["source_evidence_id"]
     assert binding["source_family"] == "rsset_app_base"
-    assert binding["source_evidence_status"] == "path_specific"
+    assert binding["source_evidence_status"] == "manual_override"
     assert binding["path_lifetime_scope"] == accepted_base_ref["path_lifetime_scope"]
+    assert binding["parent_evidence_ids"] == ["prov-parent-a6"]
+    assert binding["conflicts"] == [{"source_evidence_id": "prov-stale-base"}]
     assert binding["contradicted_evidence_id"] == "prov-stale-base"
     assert binding["reason"] == "selected use overrides stale base proof"
     assert binding["cleanup_scope"] == accepted_base_ref["cleanup_scope"]

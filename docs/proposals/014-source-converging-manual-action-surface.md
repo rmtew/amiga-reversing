@@ -1172,6 +1172,13 @@ can safely consume those refs. The same applies to `cleanup_scope`, otherwise a
 manual override can preserve the contradicted evidence id while losing the
 owned-descendant cleanup boundary.
 
+Implementation observation from `014-011`: explicit selected-use provenance
+must win over regenerated RSSET base evidence. When a command context already
+carries accepted/manual `source_evidence_id`, source family/status, scope,
+conflicts, and parent ids, `rsset.binding.report` and bind/unbind payloads must
+replay that exact evidence boundary rather than deriving a fresh
+`path_specific` id from `base_evidence_id`.
+
 Implementation observation from `014-006`/`014-011`: planner command
 availability for RSSET binding must require and compare evidence-bearing
 identity parameters, not just `command_id`. A selected row can expose

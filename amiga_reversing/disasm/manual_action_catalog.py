@@ -611,6 +611,35 @@ def _provenance_classification(
     context: Mapping[str, object],
     subject: Mapping[str, object],
 ) -> dict[str, object]:
+    explicit_source_evidence_id = context.get("source_evidence_id")
+    explicit_source_family = context.get("source_family")
+    explicit_status = context.get("source_evidence_status") or context.get("status")
+    if (
+        isinstance(explicit_source_evidence_id, str)
+        and explicit_source_evidence_id.strip()
+        and isinstance(explicit_source_family, str)
+        and explicit_source_family.strip()
+        and isinstance(explicit_status, str)
+        and explicit_status.strip()
+    ):
+        explicit_scope = context.get("path_lifetime_scope")
+        explicit_conflicts = context.get("conflicts")
+        explicit_parent_ids = context.get("parent_evidence_ids")
+        confidence = context.get("confidence")
+        return {
+            "source_family": explicit_source_family.strip(),
+            "status": explicit_status.strip(),
+            "path_lifetime_scope": (
+                dict(explicit_scope) if isinstance(explicit_scope, Mapping) else _provenance_scope(context, "selected_use")
+            ),
+            "confidence": confidence.strip() if isinstance(confidence, str) and confidence.strip() else "medium",
+            "origin_kind": "explicit_source_evidence",
+            "conflicts": list(explicit_conflicts) if isinstance(explicit_conflicts, list) else [],
+            "parent_evidence_ids": [item for item in explicit_parent_ids if isinstance(item, str) and item]
+            if isinstance(explicit_parent_ids, list)
+            else [],
+            "explicit_source_evidence_id": explicit_source_evidence_id.strip(),
+        }
     base_evidence_id = context.get("base_evidence_id")
     if isinstance(base_evidence_id, str) and base_evidence_id.strip():
         return {
@@ -689,6 +718,9 @@ def _provenance_source_evidence_id(
     subject: Mapping[str, object],
     classification: Mapping[str, object],
 ) -> str:
+    explicit = classification.get("explicit_source_evidence_id")
+    if isinstance(explicit, str) and explicit:
+        return explicit
     target = _id_token(str(subject.get("target") or "target"))
     family = _id_token(str(classification.get("source_family") or "unknown"))
     status = _id_token(str(classification.get("status") or "unknown"))
@@ -2703,7 +2735,7 @@ def _rsset_use_site_binding_payload(
         binding["path_lifetime_scope"] = accepted_ref.get("path_lifetime_scope")
         binding["confidence"] = accepted_ref.get("confidence")
         binding["conflicts"] = accepted_ref.get("conflicts", [])
-        for key in ("contradicted_evidence_id", "reason", "cleanup_scope"):
+        for key in ("parent_evidence_ids", "contradicted_evidence_id", "reason", "cleanup_scope"):
             if key in accepted_ref:
                 binding[key] = accepted_ref[key]
     width_bytes = _optional_int(context.get("width_bytes"))

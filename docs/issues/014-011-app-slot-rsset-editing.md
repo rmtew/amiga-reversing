@@ -148,6 +148,11 @@ Current evidence:
   through report output, bind/unbind durable payloads, and semantic reload
   comparison, so manual override bindings keep the same cleanup boundary as the
   contradicted base evidence they consume.
+- RSSET provenance reports now prefer explicit accepted selected-use provenance
+  over regenerating a `path_specific` id from `base_evidence_id`. Manual
+  classification/override status, path/lifetime scope, conflicts, and
+  `parent_evidence_ids` survive into `base_evidence_refs` and the top-level
+  binding payload for verifier comparison.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
