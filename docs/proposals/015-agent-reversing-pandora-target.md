@@ -376,6 +376,32 @@ the intended location.
 * Next recommendation: continue typed data-block renames while they remain
   data-class backed; inspect representation candidates before executing them.
 
+### 015-005: Block data-ref rename churn and same-start duplicates
+
+* Candidate: next Pandora dry-run after `blitter_source_00077D00`.
+* Evidence: the planner first selected `data_symbol.rename_existing` at the
+  already named `$00057D00`, changing `blitter_source_00077D00` to
+  `blitter_destination_00077D00` from another use-site. After blocking that,
+  it exposed the earlier copper-list rename as an open-ended same-start symbol
+  that the row-backed candidate did not recognize.
+* Command: changed data-ref candidates to skip conflicting existing names, and
+  changed data-symbol existing-name lookup to treat an open-ended same-start
+  data symbol as owning that address.
+* Verifier: `tests\test_reversing_loop.py -q` passed with 281 tests, focused
+  `ruff` passed, and Pandora dry-run now selects row-backed
+  `data_symbol.rename_existing` for hunk 0 `$000009EA` to
+  `copper_list_000209EA`.
+* Timing: focused pytest 2.69s; final dry-run 7.3s.
+* Result: the loop no longer churns an existing symbol between conflicting
+  use-site data classes and no longer proposes duplicate same-start data symbols
+  when an open-ended manual symbol already exists.
+* Review: this corrects a real oversight found during post-commit iteration.
+  The earlier data-ref copper-list action preserved exact round-trip but did
+  not visibly improve the rendered label; the next mutation should use the
+  row-backed data definition candidate instead.
+* Next recommendation: execute the row-backed `copper_list_000209EA` correction
+  and require exact round-trip plus visible projected label/source improvement.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found

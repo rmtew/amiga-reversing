@@ -1365,7 +1365,7 @@ def _listing_data_symbol_candidates(
                 target_end = locator_dict.get("end_offset")
                 name = _data_ref_symbol_name(data_class, row.get("runtime_address"), hunk, addr)
                 text = row.get("text")
-                existing_name = existing.get(_data_symbol_identity_key(hunk, addr, target_end))
+                existing_name = _existing_data_symbol_name(existing, hunk, addr, target_end)
                 row_symbol = row.get("symbol") or row.get("label")
                 if existing_name is None and isinstance(row_symbol, str) and row_symbol:
                     existing_name = row_symbol
@@ -1436,10 +1436,12 @@ def _listing_data_symbol_candidates(
                 continue
             context_symbol = context.get("symbol")
             target_end = context.get("target_end")
-            existing_name = existing.get(_data_symbol_identity_key(target_hunk, target_addr, target_end))
+            existing_name = _existing_data_symbol_name(existing, target_hunk, target_addr, target_end)
             if existing_name is None and isinstance(context_symbol, str) and context_symbol:
                 existing_name = context_symbol
             if existing_name == name:
+                continue
+            if isinstance(existing_name, str):
                 continue
             row_key = cast(dict[str, object], locator).get("row_key")
             operand_index = context.get("operand_index")
@@ -1489,6 +1491,15 @@ def _listing_data_symbol_candidates(
 
 def _data_symbol_identity_key(hunk: int, addr: int, end: object) -> tuple[int, int, int | None]:
     return (hunk, addr, end if isinstance(end, int) else None)
+
+
+def _existing_data_symbol_name(
+    existing: dict[tuple[int, int, int | None], str], hunk: int, addr: int, end: object
+) -> str | None:
+    exact = existing.get(_data_symbol_identity_key(hunk, addr, end))
+    if exact is not None:
+        return exact
+    return existing.get(_data_symbol_identity_key(hunk, addr, None))
 
 
 def _listing_struct_pointer_candidates(
