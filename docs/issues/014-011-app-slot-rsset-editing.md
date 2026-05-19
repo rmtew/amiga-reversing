@@ -181,6 +181,10 @@ Current evidence:
   bind-only `linked_gap_or_raw` state must still show the raw displacement plus
   the matching `app_slot_refs` link, and unbind must show the raw displacement
   without the stale selected-use ref.
+- Renderable RSSET binds now require the selected source text to contain the
+  linked app-slot/RSSET symbol and no longer contain the raw displacement token.
+  Listing `app_slot_refs` alone are projection metadata and cannot prove that
+  source rendering actually converged.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

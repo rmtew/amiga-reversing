@@ -6516,6 +6516,63 @@ def test_rsset_binding_render_verifier_requires_ref_only_selected_use(
     assert verification["status"] == "passed"
 
 
+def test_rsset_binding_render_verifier_rejects_raw_render_with_metadata_ref(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {"context": {"kind": "element", "locator": _listing_locator(), "element_id": "row-1:displacement:0"}}
+    expected = {
+        "rsset_use_site_binding_id": "bind-selected-field",
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "operand_index": 0,
+    }
+    rows: list[dict[str, object]] = [
+        {
+            **_listing_locator(),
+            "text": "\tmove.b d0,$0102(a6)",
+            "app_slot_refs": [
+                {
+                    "symbol": "app_0102",
+                    "base_register": "A6",
+                    "displacement": 0x0102,
+                    "operand_index": 0,
+                }
+            ],
+        }
+    ]
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        assert method == "GET"
+        assert path == "/api/projects/demo/listing"
+        return {"data": {"rows": rows}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.bind",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matching_app_slot_refs"]
+    assert verification["matched_raw_tokens"] == ["$0102(a6)"]
+    assert verification["matched_render_tokens"] == []
+
+    rows[0]["text"] = "\tmove.b d0,app_0102(a6)"
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.bind",
+        expected,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["matched_render_tokens"] == ["app_0102"]
+
+
 def test_rsset_unbind_render_verifier_requires_raw_without_linked_ref(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

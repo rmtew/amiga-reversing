@@ -3728,6 +3728,10 @@ def _verify_projected_rsset_binding_rendered_source(
     ]
     raw_tokens = _rsset_binding_raw_displacement_tokens(expected)
     matched_raw_tokens = [token for token in raw_tokens if _rendered_source_contains_token(affected_rendered_text, token)]
+    render_tokens = _rsset_binding_render_tokens(matching_refs)
+    matched_render_tokens = [
+        token for token in render_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+    ]
     removed = command_id.endswith(".unbind")
     ref_only = expected.get("render_state") == "linked_gap_or_raw"
     if removed:
@@ -3735,7 +3739,7 @@ def _verify_projected_rsset_binding_rendered_source(
     elif ref_only:
         status = "passed" if matching_refs and matched_raw_tokens else "failed"
     else:
-        status = "passed" if matching_refs else "failed"
+        status = "passed" if matching_refs and matched_render_tokens and not matched_raw_tokens else "failed"
     return {
         "layer": "rendered_source",
         "status": status,
@@ -3743,6 +3747,8 @@ def _verify_projected_rsset_binding_rendered_source(
         "matching_app_slot_refs": matching_refs,
         "expected_raw_tokens": raw_tokens,
         "matched_raw_tokens": matched_raw_tokens,
+        "expected_render_tokens": render_tokens,
+        "matched_render_tokens": matched_render_tokens,
         "affected_rendered_text": affected_rendered_text,
     }
 
@@ -3768,6 +3774,15 @@ def _rsset_binding_raw_displacement_tokens(expected: dict[str, object]) -> list[
         tokens.extend(f"{displacement}({register})" for register in registers)
         for width in (0, 2, 4, 8):
             tokens.extend(f"${displacement:0{width}X}({register})" for register in registers)
+    return list(dict.fromkeys(tokens))
+
+
+def _rsset_binding_render_tokens(matching_refs: list[dict[str, object]]) -> list[str]:
+    tokens: list[str] = []
+    for ref in matching_refs:
+        symbol = ref.get("symbol")
+        if isinstance(symbol, str) and symbol:
+            tokens.append(symbol)
     return list(dict.fromkeys(tokens))
 
 
