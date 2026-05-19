@@ -6755,13 +6755,31 @@ def _available_catalog_command(command: dict[str, object], availability: dict[st
 
 def _catalog_entry_matches_command_identity(command: dict[str, object], entry: dict[str, object]) -> bool:
     command_id = command.get("command_id")
-    if command_id not in {"rsset.binding.bind", "rsset.binding.unbind"}:
-        return True
+    if command_id in {"rsset.binding.bind", "rsset.binding.unbind"}:
+        return _catalog_entry_parameters_match(
+            command,
+            entry,
+            ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index"),
+        )
+    if isinstance(command_id, str) and _is_typed_field_command_id(command_id):
+        return _catalog_entry_parameters_match(
+            command,
+            entry,
+            ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
+        )
+    return True
+
+
+def _catalog_entry_parameters_match(
+    command: dict[str, object],
+    entry: dict[str, object],
+    required_keys: tuple[str, ...],
+) -> bool:
     command_parameters = command.get("parameters")
     entry_parameters = entry.get("parameters")
     if not isinstance(command_parameters, dict) or not isinstance(entry_parameters, dict):
         return False
-    for key in ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index"):
+    for key in required_keys:
         command_value = command_parameters.get(key)
         entry_value = entry_parameters.get(key)
         if entry_value is None or entry_value != command_value:

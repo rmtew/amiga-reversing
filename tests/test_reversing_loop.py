@@ -519,7 +519,7 @@ def test_typed_field_command_with_accepted_evidence_executes_and_verifies(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "typed_gap.field.add"}]}}
+            return {"data": {"commands": [{"command_id": "typed_gap.field.add", "parameters": dict(field)}]}}
         if method == "POST" and path.endswith("/commands/execute"):
             _write_manual_log(tmp_path)
             return {"data": _executed_custom_struct_field_payload(tmp_path, field)}
@@ -5278,6 +5278,47 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
         **evidence,
     }
     assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
+
+
+def test_typed_field_availability_requires_matching_source_evidence() -> None:
+    evidence = _accepted_struct_pointer_evidence()
+    command = {
+        "command_id": "typed_gap.field.add",
+        "parameters": {
+            "struct_name": "DerivedEvent",
+            "offset": 36,
+            "name": "de_Code",
+            "type": "UWORD",
+            "size": 2,
+            **evidence,
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "typed_gap.field.add",
+                "parameters": {
+                    "struct_name": "DerivedEvent",
+                    "offset": 36,
+                    **evidence,
+                    "source_evidence_id": "prov-other",
+                },
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters = cast(dict[str, object], command["parameters"])
+    del command_parameters["source_evidence_id"]
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters["source_evidence_id"] = evidence["source_evidence_id"]
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters["source_evidence_id"] = evidence["source_evidence_id"]
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
 def test_typed_field_command_does_not_accept_cleanup_scope_as_consumed_evidence() -> None:

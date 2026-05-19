@@ -70,6 +70,11 @@ Current evidence:
 - Selected typed-field rename verification now proves the selected row renders
   the new field and no longer exposes the previous field name/access; rename
   proof fails when the command does not carry the previous field name.
+- Planner command availability for `typed_gap.field.*` and
+  `typed_access.field.*` now requires the refreshed catalog entry to match the
+  selected struct, offset, and consumed `struct_pointer` provenance identity.
+  A stale typed-field candidate can no longer borrow availability from a
+  same-command action exposed by a different typed access/gap.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.
@@ -124,6 +129,10 @@ Acceptance criteria:
   by `owner_action_id` on remove/rename/clear. Selected-row typed-field proof
   now includes stale previous-name/access rejection for rename; propagated
   descendant cleanup remains open.
+- Availability checks already enforce selected struct/offset/provenance
+  identity for typed-field writes. Future propagated typed-access feeds must
+  preserve that invariant and add explicit owner-scoped cleanup proof before
+  widening beyond selected rows.
 - Manual actions replay into effective metadata and rendered field references.
 - Commands cover typed-access and field-gap contexts.
 - Loop planner support covers explicit target custom-struct and typed-field

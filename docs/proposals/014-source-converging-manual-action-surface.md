@@ -1139,6 +1139,12 @@ field writes before command availability/execution, not only after durable
 payload verification. Otherwise a forced selected command could create a field
 from exploratory typed-gap context and fail only after mutation.
 
+Implementation observation from `014-006`/`014-012`: typed-field catalog
+availability must compare selected struct/offset and consumed
+`struct_pointer` evidence identity, not just `typed_gap.field.*` or
+`typed_access.field.*` command ids. Stale typed-field candidates must not borrow
+availability from a different typed access/gap on the same row.
+
 Implementation observation from `014-012`: selected typed-field rename proof
 must use the previous name from command context to reject stale selected-row
 typed accesses after render; absence of that previous name is a verifier
