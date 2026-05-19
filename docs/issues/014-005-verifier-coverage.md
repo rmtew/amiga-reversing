@@ -240,8 +240,11 @@ Remaining work:
   family issue (`014-010`, `014-011`, `014-012`, `014-013`, `014-014`,
   `014-017`, `014-018`, `014-019`, `014-020`). `014-016` only needs replay and
   metadata invariants until rendering/command slices depend on it.
-- Keep custom struct and typed-field commands blocked until rendered custom
-  field paths and their verifier are proven in `014-012`.
+- Selected typed-field commands are verifier-backed in `014-012` when they
+  carry accepted struct-pointer provenance and selected row context. Keep
+  target-wide custom-struct/custom-field metadata commands and propagated
+  typed-access cleanup blocked until their rendered-source or owner-scoped
+  descendant verifiers are proven.
 - Scalar data-block layout/element commands are verifier-backed in `014-017`,
   and supported absolute byte/word/long interpreted refs are verifier-backed in
   `014-018`. Keep broader reference kinds, gap-specific follow-ups, target-side
