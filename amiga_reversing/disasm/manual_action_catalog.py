@@ -2990,7 +2990,7 @@ def _typed_field_parameter_schema() -> dict[str, object]:
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
             "named_base": {"type": "string"},
-            "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
+            **_source_evidence_parameter_properties(),
         },
         "required": ["name", "type", "size"],
     }
@@ -2999,8 +2999,39 @@ def _typed_field_parameter_schema() -> dict[str, object]:
 def _typed_field_rename_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
-        "properties": {"name": {"type": "string"}},
+        "properties": {"name": {"type": "string"}, **_source_evidence_parameter_properties()},
         "required": ["name"],
+    }
+
+
+def _source_evidence_parameter_properties() -> dict[str, object]:
+    return {
+        "source_evidence_id": {"type": "string"},
+        "source_family": {
+            "type": "string",
+            "enum": [
+                "rsset_app_base",
+                "library_base",
+                "struct_pointer",
+                "data_block_pointer",
+                "hardware_base",
+                "allocation_or_local",
+                "constant_or_equ",
+                "unknown",
+                "conflicting",
+            ],
+        },
+        "source_evidence_status": {
+            "type": "string",
+            "enum": ["analysis_proven", "path_specific", "manual_classified", "manual_override"],
+        },
+        "path_lifetime_scope": {"type": "object"},
+        "confidence": {"type": "string", "enum": ["high", "medium", "low", "manual"]},
+        "conflicts": {"type": "array", "items": {"type": "object"}},
+        "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
+        "contradicted_evidence_id": {"type": "string"},
+        "reason": {"type": "string"},
+        "cleanup_scope": {"type": "object"},
     }
 
 

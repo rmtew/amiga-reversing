@@ -1234,6 +1234,13 @@ chosen by the planner or UI. For semantic/type writes, command context evidence
 must win over row-local regenerated evidence whenever it carries
 `source_evidence_id`.
 
+Implementation observation from `014-012`: provenance-backed typed-field
+commands need their public parameter schemas to expose the same evidence
+boundary enforced by planner availability and verification. The schema is part
+of the command contract; hiding path/lifetime scope, conflicts, parent evidence
+ids, override reason, or cleanup scope invites callers to send under-specified
+writes that can only fail after selection.
+
 Implementation observation from `014-019`: the same parent-evidence boundary
 applies to data-block type bindings. A binding-owned descendant can carry the
 right type-binding owner while still being derived from the wrong upstream

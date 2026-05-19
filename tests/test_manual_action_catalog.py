@@ -927,6 +927,7 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
 
     actions = listing_element_action_catalog(row, selector)
     rename_action = next(action for action in actions if action["action_id"] == "typed_access.field.rename")
+    rename_schema_properties = rename_action["parameter_schema"]["properties"]
     rename_kind, rename_payload = listing_catalog_manual_payload(
         row,
         "typed_access.field.rename",
@@ -952,6 +953,18 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
         "source_family": "struct_pointer",
         "source_evidence_status": "analysis_proven",
     }
+    assert {
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    }.issubset(rename_schema_properties)
     assert rename_kind == "rename_manual_custom_struct_field"
     assert rename_payload == {
         "custom_struct_field": {
