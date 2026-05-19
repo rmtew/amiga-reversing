@@ -6344,6 +6344,8 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
 def _command_boundary_context(command_id: str, context: dict[str, object]) -> dict[str, object]:
     if command_id in {"data_symbol.rename", "data_symbol.rename_existing", "data_symbol.remove"}:
         return {key: context[key] for key in ("kind", "locator", "element_id") if key in context}
+    if command_id == "target.equate.represent":
+        return {key: context[key] for key in ("kind",) if key in context}
     return dict(context)
 
 

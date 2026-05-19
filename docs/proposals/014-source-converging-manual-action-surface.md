@@ -641,6 +641,11 @@ path lifetime scope can be ignored by catalog execution but still pollute
 already-satisfied checks, making presentation-only EQU edits look like accepted
 provenance writes or never-satisfied commands.
 
+Implementation observation from `014-020`: embedded EQU definition display
+commands need the same boundary on context as on parameters. Keep only target
+scope for `target.equate.represent`; any `constant_or_equ` evidence remains
+input for semantic/equate commands, not the display-style action.
+
 Implementation observation from `014-012`: round-trip exactness alone is not a
 valid verifier for custom-struct commands while action-specific rendered-field
 proof is missing. The loop should surface a missing action-specific verifier

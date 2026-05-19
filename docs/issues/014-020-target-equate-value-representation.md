@@ -69,6 +69,10 @@ Implemented support:
 - Planner command normalization strips provenance/report fields from
   `target.equate.represent` parameters, so display-style commands cannot become
   accepted evidence or remain unsatisfied because of ignored metadata.
+- Embedded `target.equate.represent` command normalization strips
+  provenance/report fields from command context as well; the display action
+  keeps only target scope and does not carry accepted `constant_or_equ`
+  evidence.
 - Implementation finding: storing unbounded expression text in every C policy
   equate slot can overflow existing stack-heavy policy tests. The C expression field is
   deliberately bounded inline storage until the broader policy struct moves

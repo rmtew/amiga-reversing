@@ -6007,7 +6007,11 @@ def test_embedded_target_equate_representation_command_strips_provenance_paramet
         "kind": "target_equate_representation",
         "command": {
             "command_id": "target.equate.represent",
-            "context": {"kind": "target"},
+            "context": {
+                "kind": "target",
+                "source_evidence_id": "prov-constant",
+                "source_family": "constant_or_equ",
+            },
             "parameters": {
                 "name": "ASCII_SPACE",
                 "value": 32,
@@ -6023,6 +6027,7 @@ def test_embedded_target_equate_representation_command_strips_provenance_paramet
 
     command = reversing_loop._candidate_command_options(candidate)[0]
 
+    assert command["context"] == {"kind": "target"}
     assert command["parameters"] == {
         "name": "ASCII_SPACE",
         "value": 32,
