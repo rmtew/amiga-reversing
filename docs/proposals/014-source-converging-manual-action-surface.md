@@ -930,6 +930,12 @@ identity. Exclusion must use the command family's identity parameters and, for
 planner-to-planner comparison, the union of identity keys present on either
 command.
 
+Implementation observation from full-suite workflow harnesses: command locator
+resolution should require row/window artifact support, but navigation payloads
+are optional overlays. Requiring navigation for every artifact blocks
+row-scoped command execution in lightweight harnesses before planner/verifier
+policy can run.
+
 Implementation observation from `014-006`/`014-013`: ranged suppression
 availability must treat `end` as required when either the selected command or
 the refreshed catalog entry carries it. A stale unranged candidate should not

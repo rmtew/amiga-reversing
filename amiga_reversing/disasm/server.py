@@ -2224,7 +2224,9 @@ def _resolve_command_locator(
                 artifact=artifact,
                 locator_payload=locator,
             )
-            navigation, _navigation_profile = artifact.navigation_payload()
+            navigation_payload = getattr(artifact, "navigation_payload", None)
+            if callable(navigation_payload):
+                navigation, _navigation_profile = navigation_payload()
         finally:
             if workflow_profile is not None:
                 workflow_profile.add_span(
