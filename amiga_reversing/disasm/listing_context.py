@@ -7,6 +7,7 @@ def listing_row_context(row: Mapping[str, object]) -> dict[str, object]:
     context: dict[str, object] = {
         "kind": "row",
         "row_index": _optional_int(row.get("row_index")),
+        "row_key": _str_or_none(row.get("row_key") or row.get("rowKey")),
         "row_kind": _str_or_none(row.get("kind")),
         "stable_key": _str_or_none(row.get("stable_key") or row.get("stableKey")),
         "hunk": _optional_int(_first_present(row, "section_index", "sectionIndex")),
@@ -251,7 +252,8 @@ def _element_base(row: Mapping[str, object], element_kind: str, token: str) -> d
     context = listing_row_context(row)
     context["kind"] = "element"
     context["element_kind"] = element_kind
-    context["element_id"] = f"{context.get('stable_key') or context.get('row_index') or 'row'}:{token}"
+    row_identity = context.get("stable_key") or context.get("row_key") or context.get("row_index") or "row"
+    context["element_id"] = f"{row_identity}:{token}"
     return context
 
 

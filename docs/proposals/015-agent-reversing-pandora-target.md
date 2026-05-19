@@ -311,6 +311,29 @@ the intended location.
 * Next recommendation: run Pandora `clean-run` once to establish the trial
   baseline, then inspect candidates using normal loop/query surfaces.
 
+### 015-002: Listing element IDs from normalized rows
+
+* Candidate: RSSET/app-base provenance report for raw A6 displacement
+  `$01D8(a6)` at source offset `$00000552`.
+* Evidence: normalized listing rows exposed `row_key` but
+  `listing_element_contexts` built `row:displacement:...` element ids. The
+  `/commands` element-context route rejected that advertised id; manually
+  substituting the row key made the same command catalog available.
+* Command: fixed listing element identity formation to prefer normalized
+  `row_key`.
+* Verifier: `tests\test_listing_context.py -q` passed, focused `ruff` passed,
+  and the original Pandora element catalog probe now accepts
+  `s0:00000552:instruction:338:displacement:1:operand`.
+* Timing: focused pytest 0.04s; Pandora listing open/query about 5s.
+* Result: element-context command discovery is now usable from normalized
+  listing rows. The `$01D8(a6)` catalog exposes read-only provenance reports
+  and `rsset.binding.report`, but no bind command yet.
+* Review: this fixes a durable command-surface identity mismatch. It does not
+  mutate Pandora source or Manual Action Log state; round-trip verification was
+  not required.
+* Next recommendation: run the report-only provenance/RSSET command for the A6
+  cluster and stop if it lacks accepted base evidence for a safe binding.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
