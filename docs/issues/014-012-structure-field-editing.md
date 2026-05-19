@@ -75,6 +75,10 @@ Current evidence:
   selected struct, offset, and consumed `struct_pointer` provenance identity.
   A stale typed-field candidate can no longer borrow availability from a
   same-command action exposed by a different typed access/gap.
+- Typed-field payloads, candidate commands, catalog availability checks, and
+  custom-field semantic reload verification now preserve and compare
+  `parent_evidence_ids`, so derived struct-pointer authority cannot silently
+  lose the dependency set it consumed.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.

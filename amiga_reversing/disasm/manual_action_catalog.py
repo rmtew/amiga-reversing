@@ -522,6 +522,7 @@ def _provenance_report(context: Mapping[str, object], row: Mapping[str, object])
         "source_evidence_id": source_evidence_id,
         "confidence": classification["confidence"],
         "conflicts": classification["conflicts"],
+        "parent_evidence_ids": classification.get("parent_evidence_ids", []),
         "possible_actions": possible_actions,
         "consumers": _provenance_consumers(context),
     }
@@ -2805,6 +2806,7 @@ def _attach_custom_struct_field_evidence(
             "path_lifetime_scope": report.get("path_lifetime_scope"),
             "confidence": report.get("confidence"),
             "conflicts": report.get("conflicts"),
+            "parent_evidence_ids": report.get("parent_evidence_ids"),
         }
     for key in (
         "source_evidence_id",
@@ -2813,6 +2815,7 @@ def _attach_custom_struct_field_evidence(
         "path_lifetime_scope",
         "confidence",
         "conflicts",
+        "parent_evidence_ids",
         "contradicted_evidence_id",
         "reason",
         "cleanup_scope",
@@ -2899,6 +2902,7 @@ def _typed_field_parameter_schema() -> dict[str, object]:
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
             "named_base": {"type": "string"},
+            "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["name", "type", "size"],
     }
@@ -3058,6 +3062,7 @@ def _custom_struct_field_parameter_schema() -> dict[str, object]:
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
             "named_base": {"type": "string"},
+            "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["struct_name", "name", "type", "offset", "size"],
     }

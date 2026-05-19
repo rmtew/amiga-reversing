@@ -2145,6 +2145,7 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     assert field["source_evidence_status"] == "analysis_proven"
     assert field["confidence"] == "high"
     assert field["conflicts"] == []
+    assert field["parent_evidence_ids"] == []
     assert isinstance(field["source_evidence_id"], str)
     assert field["source_evidence_id"].startswith("prov-bloodwych-struct_pointer-analysis_proven")
     path_scope = cast(dict[str, object], field["path_lifetime_scope"])

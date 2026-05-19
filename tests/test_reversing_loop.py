@@ -568,8 +568,9 @@ def test_custom_struct_field_verifier_rejects_mismatched_consumed_evidence(
         "type": "UWORD",
         "size": 2,
         **_accepted_struct_pointer_evidence(),
+        "parent_evidence_ids": ["prov-parent-a"],
     }
-    reloaded_field = {**field, "source_evidence_id": "prov-other", "owner_action_id": "manual-1"}
+    reloaded_field = {**field, "parent_evidence_ids": ["prov-parent-b"], "owner_action_id": "manual-1"}
     monkeypatch.setattr(
         reversing_loop.projects,
         "get_project",
@@ -5412,7 +5413,7 @@ def test_typed_field_command_candidate_uses_selected_element_context() -> None:
 
 
 def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> None:
-    evidence = _accepted_struct_pointer_evidence()
+    evidence = {**_accepted_struct_pointer_evidence(), "parent_evidence_ids": ["prov-base-a0"]}
     candidate = {
         "id": "typed-gap-field",
         "candidate_id": "typed-gap-field",
@@ -5447,7 +5448,7 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
 
 
 def test_typed_field_availability_requires_matching_source_evidence() -> None:
-    evidence = _accepted_struct_pointer_evidence()
+    evidence = {**_accepted_struct_pointer_evidence(), "parent_evidence_ids": ["prov-base-a0"]}
     command = {
         "command_id": "typed_gap.field.add",
         "parameters": {
@@ -5488,6 +5489,11 @@ def test_typed_field_availability_requires_matching_source_evidence() -> None:
     assert reversing_loop._available_catalog_command(command, availability) is None
 
     availability_parameters["path_lifetime_scope"] = evidence["path_lifetime_scope"]
+
+    availability_parameters["parent_evidence_ids"] = ["prov-other-base"]
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters["parent_evidence_ids"] = evidence["parent_evidence_ids"]
 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
