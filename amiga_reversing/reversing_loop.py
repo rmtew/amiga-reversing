@@ -3740,6 +3740,12 @@ def _verify_data_block_type_binding_mutation(
             expected,
             project_root=project_root,
         ),
+        _verify_projected_data_block_type_binding_descendants(
+            target_id,
+            command_id,
+            expected,
+            project_root=project_root,
+        ),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -4444,6 +4450,51 @@ def _verify_projected_data_block_type_binding_rendered_source(
         "matched_tokens": matched_tokens,
         "affected_rendered_text": affected_rendered_text,
         "rendered_text": rendered_text,
+    }
+
+
+def _verify_projected_data_block_type_binding_descendants(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "type_binding_descendants", "status": "failed", "message": "missing data block type-binding payload"}
+    binding = expected.get("previous_type_binding") if command_id.endswith(".clear_type") else expected.get("type_binding")
+    if not isinstance(binding, dict):
+        return {"layer": "type_binding_descendants", "status": "failed", "message": "missing type binding state"}
+    binding_id = binding.get("type_binding_id")
+    if not isinstance(binding_id, str) or not binding_id:
+        return {"layer": "type_binding_descendants", "status": "failed", "message": "missing type binding id"}
+    try:
+        target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+        metadata = effective_target_metadata(target_dir)
+    except Exception as exc:
+        return {"layer": "type_binding_descendants", "status": "failed", "message": str(exc)}
+    entities = metadata.seeded_entities if metadata is not None else ()
+    descendants = [
+        {
+            "hunk": entity.hunk,
+            "addr": entity.addr,
+            "end": entity.end,
+            "name": entity.name,
+            "struct_name": entity.struct_name,
+            "field_name": entity.field_name,
+            "value_domain": entity.value_domain,
+            "source_id": entity.source_id,
+            "source_locator": entity.source_locator,
+        }
+        for entity in entities
+        if entity.source_id == "manual_action_log" and entity.source_locator == binding_id
+    ]
+    cleared = command_id.endswith(".clear_type")
+    return {
+        "layer": "type_binding_descendants",
+        "status": "passed" if (not descendants if cleared else bool(descendants)) else "failed",
+        "type_binding_id": binding_id,
+        "matching_seeded_entities": descendants,
     }
 
 

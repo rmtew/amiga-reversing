@@ -35,6 +35,10 @@ Current implementation:
   rendered type token presence/absence, provenance consumption where present,
   matching type-binding `owner_action_id`, matching clear-type
   `cleanup_action_id`, and exact round-trip.
+- Bind/clear verification now checks generated structured-data seeded entities
+  by `source_id=manual_action_log` and `source_locator=type_binding_id`, proving
+  active bindings have binding-owned rendered descendants and clear-type removes
+  descendants from the cleared binding id.
 - Effective metadata expands accepted custom-struct data-block bindings into
   typed structured-data field entities. The C policy loader now preserves
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and
@@ -49,8 +53,8 @@ Current implementation:
 - Scalar enum/equate domain bindings project `value_domain` onto the bound
   element's structured-data item so known values render symbolically, with exact
   rebuild proof.
-- Generated type-flow facts/review items and owner-scoped descendant cleanup
-  remain open beyond active binding owner and clear-type cleanup verification.
+- Generated type-flow facts/review items remain open beyond active binding
+  owner, binding-owned seeded descendants, and clear-type cleanup verification.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.
