@@ -1359,6 +1359,12 @@ active binding identity and provenance lineage too. Cleanup is selected against
 the existing binding, so hiding `type_binding_id`, owner action, or consumed
 evidence from the command surface makes the verifier's cleanup target invisible.
 
+Implementation observation from `014-006`/`014-019`: data-block clear-type
+availability must compare the active binding cleanup identity when the command
+carries it, not only the element coordinate. Rebinding the same element to a new
+type should make a stale clear command unavailable unless the binding id, owner,
+and consumed provenance lineage still match.
+
 Implementation observation from `014-014`: data-symbol removal is not a single
 cleanup shape. Generated seeded entities should be suppressed by their selected
 seeded-item identity, including range/end when available, but source-owned manual data-symbol names must remove their `ManualSeed:*`

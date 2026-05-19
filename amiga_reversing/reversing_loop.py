@@ -6931,12 +6931,14 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
                 ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
             ),
         )
-    if command_id in {"row.data_block.element.bind_type", "row.data_block.element.clear_type"}:
+    if command_id == "row.data_block.element.bind_type":
         return _catalog_entry_parameters_match(
             command,
             entry,
             _catalog_entry_provenance_identity_keys(command, ("layout_id", "offset", "width")),
         )
+    if command_id == "row.data_block.element.clear_type":
+        return _catalog_entry_parameters_match(command, entry, _data_block_type_clear_identity_keys(command))
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _catalog_entry_parameters_match(command, entry, _suppressed_seeded_item_identity_keys(command, entry))
     if command_id == "data_symbol.remove":
@@ -6983,6 +6985,19 @@ def _catalog_entry_provenance_identity_keys(command: dict[str, object], base_key
         return base_keys
     provenance_keys = tuple(key for key in _PROVENANCE_COMMAND_IDENTITY_KEYS if key in parameters and key not in base_keys)
     return (*base_keys, *provenance_keys)
+
+
+def _data_block_type_clear_identity_keys(command: dict[str, object]) -> tuple[str, ...]:
+    parameters = command.get("parameters")
+    base_keys = ("layout_id", "offset", "width")
+    if not isinstance(parameters, dict):
+        return base_keys
+    binding_keys = tuple(
+        key
+        for key in ("type_binding_id", "binding_kind", "bound_type_id", "bound_domain_id", "owner_action_id")
+        if key in parameters
+    )
+    return _catalog_entry_provenance_identity_keys(command, (*base_keys, *binding_keys))
 
 
 def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:

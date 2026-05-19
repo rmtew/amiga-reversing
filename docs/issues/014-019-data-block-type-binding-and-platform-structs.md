@@ -65,6 +65,10 @@ Current implementation:
   to match the selected data-block element identity `(layout_id, offset,
   width)`. A stale type-binding candidate can no longer borrow availability
   from a different element row.
+- Clear-type availability also compares the selected active binding id,
+  binding kind, bound type/domain, owner action, and consumed provenance fields
+  when the command carries them, preventing stale cleanup against a later
+  binding on the same data-block element.
 - Effective metadata expands accepted custom-struct data-block bindings into
   typed structured-data field entities. The C policy loader now preserves
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and

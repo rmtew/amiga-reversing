@@ -1626,6 +1626,65 @@ def test_data_block_type_availability_requires_matching_source_evidence() -> Non
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
+def test_data_block_clear_type_availability_requires_matching_binding_identity() -> None:
+    evidence = {
+        "source_evidence_id": "prov-1",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+        "parent_evidence_ids": ["prov-table-base"],
+    }
+    command = {
+        "command_id": "row.data_block.element.clear_type",
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "type_binding_id": "events:30:4:platform_struct:Node",
+            "binding_kind": "platform_struct",
+            "bound_type_id": "Node",
+            "owner_action_id": "manual-bind",
+            **evidence,
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "row.data_block.element.clear_type",
+                "parameters": {
+                    "layout_id": "events",
+                    "offset": 0x30,
+                    "width": 4,
+                    "type_binding_id": "events:30:4:custom_struct:InputEvent",
+                    "binding_kind": "custom_struct",
+                    "bound_type_id": "InputEvent",
+                    "owner_action_id": "manual-other",
+                    **evidence,
+                },
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters.update(
+        {
+            "type_binding_id": "events:30:4:platform_struct:Node",
+            "binding_kind": "platform_struct",
+            "bound_type_id": "Node",
+            "owner_action_id": "manual-bind",
+            "parent_evidence_ids": ["prov-other-base"],
+        }
+    )
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters["parent_evidence_ids"] = evidence["parent_evidence_ids"]
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
+
+
 def test_data_block_type_binding_verifier_requires_binding_owner_action(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
