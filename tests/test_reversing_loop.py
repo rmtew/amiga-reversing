@@ -9233,6 +9233,25 @@ def test_range_command_availability_query_uses_range_context() -> None:
     }
 
 
+def test_command_availability_returns_error_for_stale_locator(monkeypatch: pytest.MonkeyPatch) -> None:
+    def route_request(method: str, path: str, query: dict[str, list[str]]) -> dict[str, object]:
+        raise reversing_loop.server.CommandContractError("missing_locator", "locator row_key is not in current projection")
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    availability = reversing_loop._command_availability(
+        "demo",
+        {"kind": "row", "locator": _listing_locator()},
+    )
+
+    assert availability == {
+        "error": {
+            "code": "missing_locator",
+            "message": "locator row_key is not in current projection",
+        }
+    }
+
+
 def test_command_availability_query_preserves_provenance_context() -> None:
     locator = _listing_locator()
     scope = {"kind": "selected_use", "hunk": 0, "addr": 0x20}

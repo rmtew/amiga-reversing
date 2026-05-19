@@ -8313,11 +8313,14 @@ def _is_full_listing_locator(value: object) -> bool:
 
 
 def _command_availability(target_id: str, context: dict[str, object]) -> dict[str, object]:
-    payload = server.route_request(
-        "GET",
-        f"/api/projects/{target_id}/commands",
-        _command_query_from_context(context),
-    )
+    try:
+        payload = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/commands",
+            _command_query_from_context(context),
+        )
+    except server.CommandContractError as exc:
+        return {"error": {"code": exc.code, "message": str(exc)}}
     data = payload.get("data")
     return dict(data) if isinstance(data, dict) else {}
 

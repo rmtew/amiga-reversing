@@ -402,6 +402,23 @@ the intended location.
 * Next recommendation: execute the row-backed `copper_list_000209EA` correction
   and require exact round-trip plus visible projected label/source improvement.
 
+### 015-006: Stale locator availability should not crash fallback
+
+* Candidate: executing the row-backed `copper_list_000209EA` correction after
+  dry-run.
+* Evidence: `run-one` crashed while checking alternate command availability:
+  `/commands` raised `missing_locator` for a stale row key from the candidate
+  list instead of returning an unavailable command.
+* Command: changed command availability probing to return an error payload for
+  `CommandContractError`, letting planner fallback continue or block cleanly.
+* Verifier: `tests\test_reversing_loop.py -q` passed with 282 tests, focused
+  `ruff` passed.
+* Timing: focused pytest 2.46s.
+* Result: stale locator candidates are treated as unavailable instead of
+  aborting the reversing loop.
+* Review: support fix only; no Pandora mutation occurred.
+* Next recommendation: rerun the row-backed typed data correction.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
