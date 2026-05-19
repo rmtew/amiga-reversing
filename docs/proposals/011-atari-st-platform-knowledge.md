@@ -140,12 +140,20 @@ Optional or required local Atari ST sources currently used or referenced:
 ```text
 resources/platform_atari_st/GEMDOS.TXT
 resources/platform_atari_st/GEM_0042.pdf
-resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf
 resources/platform_atari_st/atari_st_disassembly_hints.json
 resources/platform_atari_st/atari_st_hardware_registers.md
 resources/platform_atari_st/atari_st_programming_notes.md
 resources/clone_atari_st/emutos
 resources/clone_atari_st/hatari
+```
+
+Committed Atari ST reference Markdown sources:
+
+```text
+ext/docs_atari_st/AnatomyOfTheAtariSt.md
+ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.md
+ext/docs_atari_st/FirstAtariStBook.md
+ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.md
 ```
 
 These Atari ST local source requirements are not yet documented in
@@ -175,6 +183,13 @@ uv run python src\scripts\kb\pdf_to_markdown.py `
 
 For text-layer PDFs, the same tool can emit page-cited Markdown. For scans, run
 OCR first and keep the OCR output local unless redistribution is allowed.
+Final committed Markdown and per-document source metadata live in
+`ext/docs_atari_st/` and are checked by:
+
+```powershell
+uv run atari-platform-kb report
+uv run atari-platform-kb check
+```
 
 Current OS generation starts in:
 

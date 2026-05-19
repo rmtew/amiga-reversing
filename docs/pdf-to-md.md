@@ -426,6 +426,9 @@ for each source page:
 ```
 
 The source-page marker must remain stable even when the page body is replaced.
+If a validated amendment recovers a page that had no baseline text, the assembly
+step appends that page with its original source-page marker and records the
+final marker count in metadata.
 
 ## Source Inventory
 

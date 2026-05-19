@@ -23,7 +23,7 @@
   "sha256": {
     "source_pdf": "556cd0559692e47d6f60acf7088017c1ffa92cec862d11971294b1f6184035bf",
     "ocr_pdf": null,
-    "final_md": "9253db1b16f4341cae34a4574776e3569acfc5a773c340a8a231ed9c01adc41e"
+    "final_md": "336e3208dee51dc2be00c6662b62fa9b4be313db8e261b6b7a33ab1c53ff3990"
   },
   "conversion": {
     "ocr_tool": null,
@@ -46,7 +46,8 @@
       405
     ],
     "image_blocks": 405,
-    "needs_ocr": false
+    "needs_ocr": false,
+    "final_markdown_page_markers": 402
   },
   "amendments": [
     {
@@ -54,9 +55,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_001.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as title/back-matter readability repair; not used for structured facts."
     },
     {
       "page": 2,
@@ -117,9 +120,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_404.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as title/back-matter readability repair; not used for structured facts."
     },
     {
       "page": 405,
@@ -163,5 +168,13 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "9253db1b16f4341cae34a4574776e3569acfc5a773c340a8a231ed9c01adc41e"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [
+      1,
+      404
+    ],
+    "final_md_sha256_after": "336e3208dee51dc2be00c6662b62fa9b4be313db8e261b6b7a33ab1c53ff3990"
   }
 }
