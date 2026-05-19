@@ -168,6 +168,10 @@ Current evidence:
   status (`analysis_proven`, `path_specific`, `manual_classified`, or
   `manual_override`), explicit path/lifetime scope, owner action identity, and
   conflict handling. Command-only `source_evidence_id` is a verifier failure.
+- When a selected command carries `source_evidence_id`, the provenance verifier
+  now requires the executed durable payload to carry the same evidence id, so a
+  mutation cannot satisfy one requested evidence path with a different durable
+  accepted path.
 - Manual overrides in the provenance verifier require both
   `contradicted_evidence_id` and `reason`; unresolved, unknown, or conflicting
   evidence cannot satisfy a provenance-backed write.

@@ -3099,12 +3099,27 @@ def _consumed_provenance_evidence(
     durable_result: dict[str, object],
 ) -> dict[str, object] | None:
     durable_evidence = _find_source_evidence_payload(durable_result)
+    command_evidence_id = _command_consumed_source_evidence_id(command)
     if durable_evidence is not None:
-        return durable_evidence
-    command_evidence = _find_source_evidence_payload(command)
-    if command_evidence is None:
+        evidence = dict(durable_evidence)
+        if isinstance(command_evidence_id, str) and command_evidence_id:
+            evidence["expected_source_evidence_id"] = command_evidence_id
+        return evidence
+    if command_evidence_id is None:
         return None
-    return {"source_evidence_id": command_evidence.get("source_evidence_id"), "missing_durable_payload": True}
+    return {"source_evidence_id": command_evidence_id, "missing_durable_payload": True}
+
+
+def _command_consumed_source_evidence_id(command: dict[str, object]) -> str | None:
+    evidence_id = command.get("source_evidence_id")
+    if isinstance(evidence_id, str) and evidence_id:
+        return evidence_id
+    parameters = command.get("parameters")
+    if isinstance(parameters, dict):
+        evidence_id = parameters.get("source_evidence_id")
+        if isinstance(evidence_id, str) and evidence_id:
+            return evidence_id
+    return None
 
 
 def _find_source_evidence_payload(value: object) -> dict[str, object] | None:
@@ -3139,6 +3154,9 @@ def _verify_consumed_provenance_evidence(
         failures.append("durable action payload missing consumed source_evidence_id")
     if not isinstance(evidence_id, str) or not evidence_id:
         failures.append("missing source_evidence_id")
+    expected_evidence_id = evidence.get("expected_source_evidence_id")
+    if isinstance(expected_evidence_id, str) and expected_evidence_id and evidence_id != expected_evidence_id:
+        failures.append("durable source_evidence_id does not match consumed command evidence")
     if not isinstance(source_family, str) or source_family in {"", "unknown", "conflicting"}:
         failures.append("missing accepted source_family")
     if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
@@ -3162,6 +3180,7 @@ def _verify_consumed_provenance_evidence(
         "layer": "provenance_evidence",
         "status": "failed" if failures else "passed",
         "source_evidence_id": evidence_id,
+        "expected_source_evidence_id": expected_evidence_id,
         "source_family": source_family,
         "source_evidence_status": status,
         "path_lifetime_scope": scope,

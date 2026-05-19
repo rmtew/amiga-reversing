@@ -699,6 +699,63 @@ def test_provenance_backed_mutation_verifier_accepts_scoped_evidence() -> None:
     assert provenance_layer["owner_action_id"] == "action-1"
 
 
+def test_provenance_backed_mutation_verifier_rejects_mismatched_command_evidence() -> None:
+    command = {
+        "command_id": "row.data_block.element.interpret_ref",
+        "parameters": {"source_evidence_id": "prov-command"},
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "data_block_interpreted_ref": {
+                    "source_evidence_id": "prov-durable",
+                    "source_family": "rsset_app_base",
+                    "source_evidence_status": "path_specific",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["source_evidence_id"] == "prov-durable"
+    assert provenance_layer["expected_source_evidence_id"] == "prov-command"
+    assert "durable source_evidence_id does not match consumed command evidence" in provenance_layer["failures"]
+
+
+def test_provenance_backed_mutation_verifier_ignores_cleanup_scope_evidence_id_as_consumed() -> None:
+    command = {
+        "command_id": "typed_gap.field.add",
+        "parameters": {"cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-old"}},
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "source_evidence_id": "prov-new",
+                    "source_family": "struct_pointer",
+                    "source_evidence_status": "analysis_proven",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "passed"
+    assert provenance_layer["source_evidence_id"] == "prov-new"
+    assert provenance_layer["expected_source_evidence_id"] is None
+
+
 def test_provenance_backed_mutation_verifier_requires_override_cleanup_scope() -> None:
     command = {"command_id": "typed_gap.field.add"}
     durable_result = {

@@ -1044,6 +1044,12 @@ missing path/lifetime scope, missing source family/status, and generated
 descendants without `owner_action_id`; family commands must persist those fields
 before planner execution can consume generic provenance broadly.
 
+Implementation observation from `014-005`: consumed provenance identity must be
+checked across the write boundary. If a selected command names
+`source_evidence_id`, the durable action payload must replay that same id; an
+otherwise accepted durable evidence payload with a different id is a verifier
+failure, not proof that the requested evidence path was consumed.
+
 Implementation observation from `014-013`: `manual_override` provenance evidence
 is a correction boundary, not just another accepted status. The command payload
 and durable replay must carry `contradicted_evidence_id`, reason, path/lifetime
