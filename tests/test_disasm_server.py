@@ -2233,6 +2233,113 @@ def test_route_manual_action_catalog_execute_typed_field_preserves_context_evide
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_execute_data_block_type_preserves_context_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    row = {
+        "row_id": "r0",
+        "row_key": "data-row",
+        "stable_key": "data-row",
+        "kind": "data",
+        "text": "dc.l $00000000\n",
+        "addr": 0x20,
+        "section_index": 0,
+        "start_offset": 0x20,
+        "end_offset": 0x24,
+        "bytes": "00000000",
+        "active_data_block_layout": {
+            "layout_id": "event_table",
+            "hunk": 0,
+            "source_start": 0x20,
+            "source_end": 0x24,
+        },
+    }
+    context = _row_command_context(row) | {
+        "source_evidence_id": "prov-selected-data-block",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "manual_classified",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x20},
+        "confidence": "medium",
+        "conflicts": [],
+        "parent_evidence_ids": ["prov-table-base"],
+    }
+    appended_actions: list[dict[str, object]] = []
+
+    class DataBlockListingArtifact:
+        rows = [row]
+
+        def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return {"groups": {}, "app_slot_analysis": {}}, {}
+
+        def close(self) -> None:
+            return None
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", DataBlockListingArtifact())
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    catalog_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _row_command_query(row)
+        | {
+            "source_evidence_id": ["prov-selected-data-block"],
+            "source_family": ["data_block_pointer"],
+            "source_evidence_status": ["manual_classified"],
+            "path_lifetime_scope": [json.dumps({"kind": "selected_use", "hunk": 0, "addr": 0x20})],
+            "confidence": ["medium"],
+            "conflicts": [json.dumps([])],
+            "parent_evidence_ids": [json.dumps(["prov-table-base"])],
+        },
+    )
+    commands = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
+    bind_command = next(command for command in commands if command["command_id"] == "row.data_block.element.bind_type")
+    bind_parameters = cast(dict[str, object], bind_command["parameters"])
+    assert bind_parameters["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0x20}
+    assert bind_parameters["parent_evidence_ids"] == ["prov-table-base"]
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "row.data_block.element.bind_type",
+            "context": context,
+            "parameters": {
+                "layout_id": "event_table",
+                "offset": 0,
+                "width": 4,
+                "binding_kind": "platform_struct",
+                "type_id": "InputEvent",
+                "requires_source_evidence": True,
+            },
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    element = cast(dict[str, object], cast(dict[str, object], action["payload"])["data_block_element"])
+    binding = cast(dict[str, object], element["type_binding"])
+
+    assert binding["source_evidence_id"] == "prov-selected-data-block"
+    assert binding["source_evidence_status"] == "manual_classified"
+    assert binding["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0x20}
+    assert binding["parent_evidence_ids"] == ["prov-table-base"]
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_manual_action_pending_range_preserves_subject_row_index_zero() -> None:
     pending = disasm_server._manual_action_pending_range(
         {"seed": {"row_index": 0, "hunk": 0, "addr": 4, "end": 6}},

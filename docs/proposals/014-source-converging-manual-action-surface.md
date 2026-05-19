@@ -1229,6 +1229,13 @@ right type-binding owner while still being derived from the wrong upstream
 pointer/base dependency set unless `parent_evidence_ids` survive the bind
 payload and semantic reload comparison.
 
+Implementation observation from `014-019`: row-scoped data-block binding has
+the same selected-context re-resolution risk as typed-field editing. Selected
+`data_block_pointer` evidence must be copied through command context
+re-selection and merged into bind parameters before execution; otherwise the
+durable type binding can silently fall back to regenerated or missing
+provenance.
+
 Implementation observation from `014-014`: data-symbol removal is not a single
 cleanup shape. Generated seeded entities should be suppressed by hunk/address,
 but source-owned manual data-symbol names must remove their `ManualSeed:*`

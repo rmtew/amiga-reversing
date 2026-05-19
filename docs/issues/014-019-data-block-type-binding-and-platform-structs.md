@@ -28,6 +28,10 @@ Current implementation:
 - Bind payloads now preserve `parent_evidence_ids` with consumed source
   evidence, and catalog availability plus semantic reload verification compare
   that parent dependency set.
+- Row-scoped data-block type binding now preserves selected provenance carried
+  on row command context through command re-selection and execution parameter
+  merge, so manual-classified `data_block_pointer` evidence is not dropped or
+  regenerated before the durable bind payload.
 - Manual Action Log replay stamps `type_binding.owner_action_id` from the
   append action. Clear-type payloads preserve `previous_type_binding` for stale
   render checks and stamp `previous_type_binding.cleanup_action_id` from the

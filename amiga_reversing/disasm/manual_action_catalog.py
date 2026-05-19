@@ -180,8 +180,45 @@ def target_catalog_manual_payload(
     raise ValueError(f"Catalog action has no Manual Action Log execution: {action_id}")
 
 
-def listing_row_action_catalog(row: Mapping[str, object]) -> list[dict[str, object]]:
+_SOURCE_EVIDENCE_STRING_KEYS = (
+    "source_evidence_id",
+    "source_family",
+    "source_evidence_status",
+    "confidence",
+    "contradicted_evidence_id",
+    "reason",
+)
+_SOURCE_EVIDENCE_OBJECT_KEYS = (
+    "path_lifetime_scope",
+    "conflicts",
+    "parent_evidence_ids",
+    "cleanup_scope",
+)
+_SOURCE_EVIDENCE_KEYS = (*_SOURCE_EVIDENCE_STRING_KEYS, *_SOURCE_EVIDENCE_OBJECT_KEYS)
+
+
+def _copy_source_evidence_context(target: dict[str, object], source: Mapping[str, object]) -> None:
+    for key in _SOURCE_EVIDENCE_STRING_KEYS:
+        value = source.get(key)
+        if isinstance(value, str) and value.strip():
+            target[key] = value.strip()
+    for key in _SOURCE_EVIDENCE_OBJECT_KEYS:
+        value = source.get(key)
+        if isinstance(value, dict | list):
+            target[key] = value
+
+
+def _source_evidence_parameters(source: Mapping[str, object]) -> dict[str, object]:
+    return {key: value for key in _SOURCE_EVIDENCE_KEYS if (value := source.get(key)) is not None}
+
+
+def listing_row_action_catalog(
+    row: Mapping[str, object],
+    context_overrides: Mapping[str, object] | None = None,
+) -> list[dict[str, object]]:
     context = listing_row_context(row)
+    if context_overrides is not None:
+        _copy_source_evidence_context(context, context_overrides)
     actions = [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
         _context_log_action(
@@ -288,24 +325,11 @@ def listing_element_action_catalog(
     target = element_selector.get("target")
     if isinstance(target, str) and target.strip():
         context["target"] = target.strip()
-    for key in (
-        "layout_name",
-        "base_symbol",
-        "base_evidence_id",
-        "source_evidence_id",
-        "source_family",
-        "source_evidence_status",
-        "confidence",
-        "contradicted_evidence_id",
-        "reason",
-    ):
+    for key in ("layout_name", "base_symbol", "base_evidence_id"):
         value = element_selector.get(key)
         if isinstance(value, str) and value.strip():
             context[key] = value.strip()
-    for key in ("path_lifetime_scope", "conflicts", "parent_evidence_ids", "cleanup_scope"):
-        value = element_selector.get(key)
-        if isinstance(value, dict | list):
-            context[key] = value
+    _copy_source_evidence_context(context, element_selector)
     same_displacement_uses = element_selector.get("same_displacement_uses")
     if isinstance(same_displacement_uses, list):
         context["same_displacement_uses"] = same_displacement_uses
@@ -1260,6 +1284,12 @@ def _data_block_element_schema_with_inferred_identity(
 def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     defaults = _data_block_element_context([row])
     ref_defaults = _data_block_element_ref_context(row)
+    type_binding_defaults = {
+        key: value
+        for key, value in defaults.items()
+        if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
+    }
+    type_binding_defaults.update(_source_evidence_parameters(context))
     return [
         _context_log_action(
             "row.data_block.element.set",
@@ -1310,11 +1340,7 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
             "Bind data-block element type",
             "set_manual_data_block_element",
             context,
-            {
-                key: value
-                for key, value in defaults.items()
-                if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
-            },
+            type_binding_defaults,
             _data_block_element_type_binding_parameter_schema(defaults),
         ),
         _context_log_action(
@@ -1510,12 +1536,13 @@ def listing_catalog_manual_payload(
     action_id: str,
     *,
     element_context: Mapping[str, object] | None = None,
+    row_context: Mapping[str, object] | None = None,
     parameters: Mapping[str, object] | None = None,
 ) -> tuple[str, dict[str, object]]:
     actions = (
         listing_element_action_catalog(row, element_context)
         if element_context
-        else listing_row_action_catalog(row)
+        else listing_row_action_catalog(row, row_context)
     )
     action = _catalog_action(actions, action_id)
     if action.get("appends_to_manual_action_log") is not True:

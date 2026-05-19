@@ -194,6 +194,12 @@ _SOURCE_EVIDENCE_QUERY_KEYS = (
     "contradicted_evidence_id",
     "reason",
 )
+_SOURCE_EVIDENCE_JSON_QUERY_KEYS = (
+    "path_lifetime_scope",
+    "conflicts",
+    "parent_evidence_ids",
+    "cleanup_scope",
+)
 _COMMAND_AVAILABILITY_CACHE: dict[str, dict[str, object]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
@@ -1836,7 +1842,7 @@ def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> 
     elif context_kind == "range":
         actions = listing_range_action_catalog(rows)
     elif context_kind == "row":
-        actions = listing_row_action_catalog(rows[0])
+        actions = listing_row_action_catalog(rows[0], context)
     elif context_kind == "element":
         actions = listing_element_action_catalog(rows[0], context)
     else:
@@ -1855,7 +1861,11 @@ def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> 
 def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
     kind = context.get("kind")
     if kind == "row":
-        return {"kind": "row", "locator": context["locator"]}
+        public = {"kind": "row", "locator": context["locator"]}
+        for key in _SOURCE_EVIDENCE_CONTEXT_KEYS:
+            if key in context:
+                public[key] = context[key]
+        return public
     if kind == "element":
         public = {
             "kind": "element",
@@ -1982,6 +1992,7 @@ def _command_context_from_query(
         locator = _query_locator(query)
         row, projection_hash = _resolve_command_locator(project_name, locator)
         command_context = {"kind": "row", "locator": locator, "projection_hash": projection_hash}
+        _copy_rsset_binding_context_from_query(command_context, query)
         return command_context, [row]
     if context == "element":
         locator = _query_locator(query)
@@ -2035,7 +2046,9 @@ def _command_context_from_body(
     if kind == "row":
         locator = raw_context.get("locator")
         row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
-        return {"kind": "row", "locator": locator, "projection_hash": projection_hash}, [row]
+        row_context = {"kind": "row", "locator": locator, "projection_hash": projection_hash}
+        _copy_rsset_binding_context(row_context, raw_context)
+        return row_context, [row]
     if kind == "element":
         locator = raw_context.get("locator")
         element_id = raw_context.get("element_id")
@@ -2117,6 +2130,16 @@ def _copy_rsset_binding_context_from_query(target: dict[str, object], query: Map
         value = _first_query_value(query, key)
         if value:
             values[key] = value
+    for key in _SOURCE_EVIDENCE_JSON_QUERY_KEYS:
+        value = _first_query_value(query, key)
+        if not value:
+            continue
+        try:
+            decoded = json.loads(value)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(decoded, dict | list):
+            values[key] = decoded
     _copy_rsset_binding_context(target, values)
 
 
@@ -2337,7 +2360,16 @@ def _execute_command(project_name: str, body: Mapping[str, object] | None) -> di
 def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list[str]]:
     kind = context.get("kind")
     if kind == "row":
-        return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+        query = {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+        for key in _SOURCE_EVIDENCE_QUERY_KEYS:
+            value = context.get(key)
+            if isinstance(value, str) and value:
+                query[key] = [value]
+        for key in _SOURCE_EVIDENCE_JSON_QUERY_KEYS:
+            value = context.get(key)
+            if isinstance(value, dict | list):
+                query[key] = [json.dumps(value, sort_keys=True, separators=(",", ":"))]
+        return query
     if kind == "element":
         query = {
             "context": ["element"],
@@ -2355,12 +2387,32 @@ def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list
             value = context.get(key)
             if isinstance(value, str) and value:
                 query[key] = [value]
+        for key in _SOURCE_EVIDENCE_JSON_QUERY_KEYS:
+            value = context.get(key)
+            if isinstance(value, dict | list):
+                query[key] = [json.dumps(value, sort_keys=True, separators=(",", ":"))]
         return query
     if kind == "range":
         return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
     if kind == "review_item":
         return {"context": ["review-item"], "item_id": [str(context["item_id"])]}
     return {"context": ["target"]}
+
+
+def _parameters_with_source_evidence(
+    parameters: dict[str, object] | None,
+    context: Mapping[str, object],
+) -> dict[str, object] | None:
+    if not any(key in context for key in _SOURCE_EVIDENCE_CONTEXT_KEYS):
+        return parameters
+    merged = dict(parameters or {})
+    if isinstance(merged.get("source_evidence_id"), str):
+        return merged
+    for key in _SOURCE_EVIDENCE_CONTEXT_KEYS:
+        value = context.get(key)
+        if value is not None:
+            merged[key] = value
+    return merged
 
 
 def _execute_manual_action_command(
@@ -2385,10 +2437,13 @@ def _execute_manual_action_command(
         action_payloads = [(kind, action_payload)]
     elif context_kind in {"row", "element"}:
         element_context = context if context_kind == "element" else None
+        if context_kind == "row":
+            parameters = _parameters_with_source_evidence(parameters, context)
         kind, action_payload = listing_catalog_manual_payload(
             rows[0],
             action_id,
             element_context=element_context,
+            row_context=context if context_kind == "row" else None,
             parameters=parameters,
         )
         action_payloads = [(kind, action_payload)]
