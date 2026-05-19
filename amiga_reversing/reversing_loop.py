@@ -5156,6 +5156,17 @@ def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[st
     return "end" not in expected or actual.get("end") == expected.get("end")
 
 
+def _suppressed_seeded_item_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    if current.get("suppressed") is not True:
+        return False
+    if not all(key in parameters for key in ("kind", "hunk", "addr")):
+        return False
+    if "end" in current and "end" not in parameters:
+        return False
+    expected = {key: parameters[key] for key in ("kind", "hunk", "addr", "end") if key in parameters}
+    return _suppressed_seeded_item_matches(current, expected)
+
+
 def _verify_manual_seed_mutation(
     target_id: str,
     command_id: str,
@@ -6932,7 +6943,9 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     if command_id == "target.execution_view.remove":
         return current.get("removed") is True
     if command_id.startswith("correction.suppress_seeded_item."):
-        return current.get("suppressed") is True
+        suppression_parameters = dict(parameters)
+        suppression_parameters.setdefault("kind", command_id.removeprefix("correction.suppress_seeded_item."))
+        return _suppressed_seeded_item_already_satisfied(current, suppression_parameters)
     if command_id.startswith(("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")):
         return _semantic_hint_already_satisfied(current, command)
     if command_id.startswith("semantic.library_base."):

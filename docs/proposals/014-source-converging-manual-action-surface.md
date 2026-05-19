@@ -930,6 +930,12 @@ availability must treat `end` as required when either the selected command or
 the refreshed catalog entry carries it. A stale unranged candidate should not
 borrow authority from a current ranged suppressible item at the same address.
 
+Follow-up observation from `014-006`/`014-013`: seeded-item correction
+already-satisfied checks need the same `(kind, hunk, addr[, end])` identity as
+availability and semantic reload. A projected suppressed flag proves only that
+something was suppressed; it is not enough to hide another target-specific
+correction candidate.
+
 Implementation observation from `014-005`/`014-013`:
 Execution-view commands produce target runtime view state; their verifier should
 check the reloaded execution view or removed-view identity plus round-trip

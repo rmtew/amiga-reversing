@@ -51,6 +51,9 @@ Current evidence:
   identity `(kind, hunk, addr[, end])`; if either side carries `end`, both must
   match it. A stale correction candidate can no longer borrow availability from
   a different suppressible seeded item or broader same-address range on the row.
+- Planner already-satisfied checks for `correction.suppress_seeded_item.*` now
+  use that same suppression identity instead of a bare suppressed flag, so a
+  stale same-row suppression cannot hide a different seeded-item correction.
 - Generic `run-one` now verifies `target.execution_view.*` execution by checking
   reloaded execution-view state, including owner/cleanup action ids, rather
   than target local-effect metadata.

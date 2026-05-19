@@ -7217,7 +7217,8 @@ def test_correction_suppress_seeded_item_skips_already_projected_suppression() -
         "kind": "seeded_item_correction",
         "locator": _listing_locator(kind="data"),
         "suggested_action_kinds": ["correction.suppress_seeded_item.seeded_entity"],
-        "current_metadata": {"suppressed": True},
+        "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104},
+        "current_metadata": {"suppressed": True, "kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104},
         "confidence": "high",
         "actionable": True,
     }
@@ -7227,6 +7228,10 @@ def test_correction_suppress_seeded_item_skips_already_projected_suppression() -
         reversing_loop._candidate_skip_reason(candidate, command)
         == "candidate already satisfied in projected semantic state"
     )
+
+    cast(dict[str, object], candidate["current_metadata"])["end"] = 0x108
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
 
 
 def test_app_slot_command_candidate_uses_selected_element_context() -> None:
