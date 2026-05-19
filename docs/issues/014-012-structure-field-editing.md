@@ -70,6 +70,8 @@ Current evidence:
 - Selected typed-field execution now also rejects a payload struct name that
   differs from the selected typed access/gap owner or refined struct before
   command availability or mutation.
+- Selected typed-field execution now rejects a field shape whose offset/size
+  runs past the selected struct size when that struct size is known.
 - Projected custom-field state now stamps `owner_action_id` for create/rename
   and `cleanup_action_id` for remove, and the semantic reload verifier requires
   consumed provenance and owner fields to match the reloaded projection.

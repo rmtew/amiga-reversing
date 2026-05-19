@@ -6347,6 +6347,7 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
         "field_expr",
         "classification",
         "access",
+        "struct_size",
         "width_bits",
         "width_bytes",
         "source_evidence_id",
@@ -6635,7 +6636,17 @@ def _typed_field_command_shape_mismatch(command: dict[str, object]) -> bool:
     width_bits = context.get("width_bits")
     if isinstance(size, int) and not isinstance(size, bool) and isinstance(width_bits, int) and not isinstance(width_bits, bool):
         return size * 8 != width_bits
-    return False
+    selected_offset = offset if isinstance(offset, int) and not isinstance(offset, bool) else context_offset
+    struct_size = context.get("struct_size")
+    return (
+        isinstance(selected_offset, int)
+        and not isinstance(selected_offset, bool)
+        and isinstance(size, int)
+        and not isinstance(size, bool)
+        and isinstance(struct_size, int)
+        and not isinstance(struct_size, bool)
+        and selected_offset + size > struct_size
+    )
 
 
 def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:

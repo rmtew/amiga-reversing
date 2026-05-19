@@ -944,6 +944,8 @@ field size that does not match the observed access before command execution.
 The same selected-shape gate must compare the command payload struct name
 against the selected typed access/gap owner or refined struct so stale
 parameters cannot retarget a proven access to a different struct.
+When the selected struct size is known, the same gate must also reject
+offset/size pairs that would run past that struct boundary.
 
 Implementation observation from `014-006`: loop command-availability queries
 must preserve the selected command context exactly. Range commands use
