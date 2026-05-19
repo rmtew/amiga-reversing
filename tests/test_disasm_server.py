@@ -4085,6 +4085,7 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert accepted_base_ref["source_family"] == "rsset_app_base"
     assert accepted_base_ref["status"] == "path_specific"
     assert accepted_base_ref["accepted"] is True
+    assert accepted_base_ref["parent_evidence_ids"] == ["selected-base:A6:__amiga_app_base__"]
     assert accepted_base_ref["path_lifetime_scope"]["kind"] == "selected_use"
     assert report_action["report"]["verifier_readiness"]["replay"] == "ready"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"

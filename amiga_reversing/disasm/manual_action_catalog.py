@@ -2558,9 +2558,9 @@ def _rsset_base_evidence_refs(
     definitions = report.get("definitions")
     definition = definitions[0] if isinstance(definitions, list) and definitions and isinstance(definitions[0], dict) else {}
     parent_ids = definition.get("parent_evidence_ids") if isinstance(definition, dict) else None
-    parent_evidence_id = None
+    parent_evidence_ids: list[str] = []
     if isinstance(parent_ids, list):
-        parent_evidence_id = next((item for item in parent_ids if isinstance(item, str) and item), None)
+        parent_evidence_ids = [item for item in parent_ids if isinstance(item, str) and item]
     source_family = report.get("source_family")
     status = report.get("status")
     source_evidence_id = report.get("source_evidence_id")
@@ -2587,12 +2587,13 @@ def _rsset_base_evidence_refs(
         "origin_hunk": definition.get("origin_hunk") if isinstance(definition, dict) else None,
         "origin_offset": definition.get("origin_addr") if isinstance(definition, dict) else None,
         "origin_register": definition.get("register") if isinstance(definition, dict) else None,
-        "parent_evidence_id": parent_evidence_id,
         "layout_name": params.get("layout_name"),
         "base_symbol": params.get("base_symbol"),
         "conflicts": report.get("conflicts"),
         "accepted": accepted,
     }
+    if parent_evidence_ids:
+        ref["parent_evidence_ids"] = parent_evidence_ids
     if isinstance(subject, Mapping):
         ref["subject"] = {
             key: subject.get(key)

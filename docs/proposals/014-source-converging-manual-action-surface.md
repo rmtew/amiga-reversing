@@ -1075,6 +1075,11 @@ values must include every parent evidence id; otherwise two path-specific
 accepted base classifications that share the first parent can collapse to one
 consumable write authority.
 
+Implementation observation from `014-011`: RSSET `base_evidence_refs` should
+carry `parent_evidence_ids` as the durable dependency set. A single parent id
+field loses proof shape once register/base provenance depends on multiple
+definitions, overrides, or flow joins.
+
 Implementation observation from `014-005`: provenance-backed writes need a
 generic verifier layer in addition to family-specific state/render checks. The
 layer should fail command-only evidence, unresolved or conflicting evidence,

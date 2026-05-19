@@ -139,6 +139,8 @@ Current evidence:
   `base_evidence_id`, displacement, and operand index. This keeps raw or stale
   same-command candidates from borrowing availability from a different proven
   RSSET binding action on the same row.
+- RSSET `base_evidence_refs` now preserve `parent_evidence_ids` as a set instead
+  of collapsing provenance dependencies to one parent pointer.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
@@ -196,7 +198,7 @@ Remaining work:
 - `base_evidence_refs` consumer shape should include operand index, base
   register, displacement, source family, status, `source_evidence_id`,
   `base_evidence_id`, path/lifetime scope, confidence, origin kind, origin
-  hunk/offset/register, optional parent evidence id, optional contradicted
+  hunk/offset/register, optional parent evidence ids, optional contradicted
   evidence id, layout name, and base symbol.
 - Same-flow/same-displacement candidates require the same accepted
   `base_evidence_id` or a verifier-proven equivalent flow identity. Matching
