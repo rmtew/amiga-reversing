@@ -873,6 +873,12 @@ the expected region from the executed durable action payload, then check the
 reloaded region/removal projection and round-trip, not only the command's
 local-effect echo.
 
+Implementation observation from `014-005`/`014-011`: RSSET/app-slot region
+reload proof must reject sparse durable payloads before matching by offset.
+Target region add/edit/rename actions need at least `offset` and `symbol`;
+selected app-slot rename/edit also needs `size`; otherwise a same-offset region
+can mask a stale symbol or width.
+
 Implementation observation from `014-006`/`014-011`: the first real GenAm
 autonomous RSSET smoke proves the `app-slot-suggestions` feed through
 `target.rsset_region.add`, Manual Action Log replay, reloaded RSSET metadata,

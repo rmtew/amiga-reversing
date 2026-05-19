@@ -97,6 +97,10 @@ Current evidence:
   executed durable RSSET-region action payload against reloaded
   `rsset_layout_regions` or `removed_rsset_layout_regions`, then exact
   round-trip.
+- RSSET/app-slot region verification now rejects sparse durable payloads before
+  matching reloaded state: target region add/edit/rename requires `offset` and
+  `symbol`, selected app-slot rename/edit also requires `size`, and removal
+  remains keyed by `offset`.
 - Generic loop execution verifies RSSET binding commands by matching the
   durable binding payload against reloaded `rsset_use_site_bindings` or
   `removed_rsset_use_site_bindings`, including binding owner/cleanup action

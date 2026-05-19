@@ -3696,6 +3696,15 @@ def _verify_project_rsset_region(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing RSSET layout region payload"}
+    missing_identity_fields = _rsset_region_missing_required_payload_fields(command_id, expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "RSSET layout region payload missing mutation identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_rsset_layout_region": expected,
+        }
     key = "removed_rsset_layout_regions" if command_id.endswith(".remove") else "rsset_layout_regions"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -3735,6 +3744,16 @@ def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "offset" in expected
+
+
+def _rsset_region_missing_required_payload_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    if command_id in {"app_slot.rename", "app_slot.edit"}:
+        fields = ["offset", "size", "symbol"]
+    elif command_id.endswith(".remove"):
+        fields = ["offset"]
+    else:
+        fields = ["offset", "symbol"]
+    return [field for field in fields if field not in expected]
 
 
 def _verify_rsset_binding_mutation(

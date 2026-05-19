@@ -3958,6 +3958,63 @@ def test_rsset_region_verifier_rejects_mismatched_payload_identity(
     assert verification["layers"][1]["matching_rsset_layout_regions"] == []
 
 
+def test_rsset_region_verifier_rejects_sparse_add_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    region = {
+        "offset": 4,
+        "layout_name": "work",
+        "base_symbol": "__game_work_base__",
+        "symbol": "work_flags",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"rsset_layout_regions": [region]}),
+    )
+
+    verification = reversing_loop._verify_rsset_region_mutation(
+        "demo",
+        "target.rsset_region.add",
+        _executed_rsset_region_payload(tmp_path, {"offset": 4}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "RSSET layout region payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == ["symbol"]
+
+
+def test_app_slot_region_verifier_rejects_sparse_rename_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    region = {"offset": 0x102, "size": 1, "symbol": "app_input_event"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"rsset_layout_regions": [region]}),
+    )
+
+    verification = reversing_loop._verify_rsset_region_mutation(
+        "demo",
+        "app_slot.rename",
+        _executed_rsset_region_payload(tmp_path, {"offset": 0x102, "symbol": "app_input_event"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "RSSET layout region payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == ["size"]
+
+
 def test_target_command_verification_rejects_wrong_local_effect() -> None:
     command = {
         "kind": "command",

@@ -158,6 +158,10 @@ Current evidence:
 - RSSET/app-slot verifiers derive the expected region from the executed durable
   action payload, so matching project state plus a local-effect echo cannot hide
   a missing or mismatched action result.
+- RSSET/app-slot region verifiers now reject sparse durable payloads before
+  reload matching. Target RSSET add/edit/rename payloads must carry at least
+  `offset` and `symbol`; selected app-slot rename/edit payloads must also carry
+  `size`; removals remain keyed by `offset`.
 - RSSET binding verifiers now prove Manual Action Log replay, reloaded
   selected-use binding/removal state with owner/cleanup and consumed
   `base_evidence_refs`, selected-use rendered/ref-only cleanup state, and exact
