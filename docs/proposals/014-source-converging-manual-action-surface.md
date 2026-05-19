@@ -657,6 +657,11 @@ evidence. Direct command/parameter `source_evidence_id` is the write input;
 nested cleanup scopes may mention older evidence but cannot satisfy the accepted
 provenance prerequisite for typed-field or data-block type writes.
 
+Implementation observation from `014-005`: the same cleanup/evidence boundary
+applies to executed durable results. A nested `cleanup_scope.source_evidence_id`
+records which old descendants are being removed; it is not consumed provenance
+for the new mutation and must not trigger the generic provenance layer.
+
 Implementation observation from `014-006`: already-satisfied checks for rename
 commands must compare projected state to the requested new identity. Comparing
 all command parameters treats `previous_name` as required future state and can

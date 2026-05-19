@@ -889,6 +889,28 @@ def test_provenance_backed_mutation_verifier_ignores_cleanup_scope_evidence_id_a
     assert provenance_layer["expected_source_evidence_id"] is None
 
 
+def test_provenance_backed_mutation_verifier_ignores_durable_cleanup_scope_as_consumed() -> None:
+    command = {"command_id": "typed_access.field.remove"}
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "struct_name": "InputEvent",
+                    "offset": 0x24,
+                    "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-old"},
+                    "cleanup_action_id": "action-1",
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    assert report == verification
+
+
 def test_provenance_backed_mutation_verifier_requires_override_cleanup_scope() -> None:
     command = {"command_id": "typed_gap.field.add"}
     durable_result = {

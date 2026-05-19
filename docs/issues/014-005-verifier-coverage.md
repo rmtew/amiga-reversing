@@ -176,6 +176,11 @@ Current evidence:
 - Manual overrides in the provenance verifier require both
   `contradicted_evidence_id` and `reason`; unresolved, unknown, or conflicting
   evidence cannot satisfy a provenance-backed write.
+- The generic provenance verifier now ignores nested durable `cleanup_scope`
+  evidence ids when searching for consumed provenance, matching the existing
+  command-side cleanup/evidence boundary. Cleanup-only mutations must be proven
+  by their family cleanup verifier, not by treating old evidence as new consumed
+  evidence.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,

@@ -3142,7 +3142,9 @@ def _find_source_evidence_payload(value: object) -> dict[str, object] | None:
         evidence_id = value.get("source_evidence_id")
         if isinstance(evidence_id, str) and evidence_id:
             return cast(dict[str, object], value)
-        for child in value.values():
+        for key, child in value.items():
+            if key == "cleanup_scope":
+                continue
             found = _find_source_evidence_payload(child)
             if found is not None:
                 return found
