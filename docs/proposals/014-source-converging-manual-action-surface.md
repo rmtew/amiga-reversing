@@ -894,6 +894,11 @@ source-identity shape used by the command itself: data symbol kind plus
 hunk/address/end where available. Otherwise a short data seed or a non-data
 seeded entity at the same address can hide a distinct source naming candidate.
 
+Follow-up observation from `014-006`/`014-014`: data-symbol remove
+already-satisfied checks need the cleanup identity selected by the command, not
+just `removed` or `suppressed`. Manual data-symbol cleanup is keyed by
+`seed_id`; generated seeded-item cleanup is keyed by `(kind, hunk, addr[, end])`.
+
 Implementation observation from `014-014`: effective metadata projection has
 the same identity requirement. Same-address seeded entities with different
 source ranges or entity types must remain separate; only exact

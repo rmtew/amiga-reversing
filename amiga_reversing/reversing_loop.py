@@ -5167,6 +5167,13 @@ def _suppressed_seeded_item_already_satisfied(current: dict[str, object], parame
     return _suppressed_seeded_item_matches(current, expected)
 
 
+def _data_symbol_remove_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    seed_id = parameters.get("seed_id")
+    if isinstance(seed_id, str):
+        return current.get("removed") is True and current.get("seed_id") == seed_id
+    return _suppressed_seeded_item_already_satisfied(current, parameters)
+
+
 def _verify_manual_seed_mutation(
     target_id: str,
     command_id: str,
@@ -6893,9 +6900,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         name = parameters.get("name")
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":
-        if isinstance(parameters.get("seed_id"), str):
-            return current.get("removed") is True
-        return current.get("suppressed") is True
+        return _data_symbol_remove_already_satisfied(current, parameters)
     if command_id in {"app_slot.rename", "app_slot.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "app_slot.remove":

@@ -175,6 +175,10 @@ Progress:
   identity `(kind, hunk, addr[, end])` instead of only projected suppressed
   state, so broader same-row corrections do not hide narrower target-specific
   suppressions.
+- Data-symbol remove already-satisfied checks now compare the cleanup identity
+  shape selected by the command, either manual `seed_id` or generated
+  seeded-item `(kind, hunk, addr[, end])`, instead of broad removed/suppressed
+  flags.
 - RSSET bind already-satisfied checks now compare the active selected-use
   binding identity and consumed `base_evidence_refs`, so explicit bind
   candidates do not repeat an already-projected RSSET use-site binding.

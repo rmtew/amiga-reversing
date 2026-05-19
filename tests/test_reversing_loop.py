@@ -3641,13 +3641,39 @@ def test_data_symbol_remove_candidate_keeps_manual_seed_identity() -> None:
 def test_planner_skips_already_satisfied_manual_data_symbol_remove() -> None:
     candidate = _data_symbol_remove_candidate(suppressed=False)
     candidate["parameters"] = {"seed_id": "data-symbol:h0:00000100"}
-    candidate["current_metadata"] = {"removed": True}
+    candidate["current_metadata"] = {"removed": True, "seed_id": "data-symbol:h0:00000100"}
     command = reversing_loop._candidate_command_options(candidate)[0]
 
     assert (
         reversing_loop._candidate_skip_reason(candidate, command)
         == "candidate already satisfied in projected semantic state"
     )
+
+    cast(dict[str, object], candidate["current_metadata"])["seed_id"] = "data-symbol:h0:00000200"
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
+
+
+def test_planner_skips_already_satisfied_generated_data_symbol_remove_by_identity() -> None:
+    candidate = _data_symbol_remove_candidate(suppressed=False)
+    candidate["parameters"] = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
+    candidate["current_metadata"] = {
+        "suppressed": True,
+        "kind": "seeded_entity",
+        "hunk": 0,
+        "addr": 0x100,
+        "end": 0x104,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+    cast(dict[str, object], candidate["current_metadata"])["end"] = 0x108
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
 
 
 def test_planner_selects_data_symbol_remove_candidate(

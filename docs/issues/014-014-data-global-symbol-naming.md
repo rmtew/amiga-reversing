@@ -92,6 +92,10 @@ Current evidence:
   selected `seed_id`, while generated seeded-entity removals require the selected
   suppression identity, including `end` when the catalog row has a ranged seeded
   entity.
+- Planner already-satisfied checks for `data_symbol.remove` now use the same
+  cleanup identity shape: selected manual `seed_id` for Manual Action Log owned
+  data symbols, or generated seeded-item `(kind, hunk, addr[, end])`
+  suppression identity.
 - Data-symbol rename command execution now honors the selected seeded-entity
   `end` when building the durable payload, so a same-address generated range
   cannot be renamed by accident when the operator selected a different range.
