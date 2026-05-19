@@ -3093,10 +3093,13 @@ def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
         "parameters": dict(interpreted_ref),
         "output_affecting": True,
     }
+    project_ref = (
+        {**interpreted_ref, "cleanup_action_id": "manual-1"} if command_id.endswith(".clear_ref") else interpreted_ref
+    )
     monkeypatch.setattr(
         reversing_loop.projects,
         "get_project",
-        lambda target_id, project_root: replace(_project(()), manual_state={state_key: [interpreted_ref]}),
+        lambda target_id, project_root: replace(_project(()), manual_state={state_key: [project_ref]}),
     )
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
@@ -3208,6 +3211,67 @@ def test_data_block_interpreted_ref_verifier_rejects_sparse_interpret_payload(
         reversing_loop._project_data_block_interpreted_ref_state_match(
             "demo",
             "row.data_block.element.interpret_ref",
+            sparse_ref,
+            project_root=tmp_path,
+        )
+        is None
+    )
+
+
+def test_data_block_interpreted_ref_verifier_rejects_sparse_clear_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00000020",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x20,
+        "target_locator": {"hunk": 0, "offset": 0x20},
+        "source_value": 0x20,
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+        "cleanup_action_id": "manual-1",
+    }
+    sparse_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00000020",
+        "layout_id": "ptr-table",
+        "offset": 0,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_data_block_interpreted_refs": [interpreted_ref]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_data_block_interpreted_ref(
+        "demo",
+        "row.data_block.element.clear_ref",
+        sparse_ref,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["message"] == "interpreted ref payload missing selected reference identity"
+    assert verification["missing_identity_fields"] == [
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+        "cleanup_action_id",
+    ]
+    assert (
+        reversing_loop._project_data_block_interpreted_ref_state_match(
+            "demo",
+            "row.data_block.element.clear_ref",
             sparse_ref,
             project_root=tmp_path,
         )

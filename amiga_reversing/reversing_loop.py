@@ -4544,6 +4544,8 @@ def _verify_data_block_interpreted_ref_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     expected = _data_block_interpreted_ref_from_durable_result(durable_result)
+    if expected is not None and command_id.endswith(".clear_ref"):
+        expected = _data_block_interpreted_ref_with_expected_cleanup_action_id(expected, durable_result)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_data_block_interpreted_ref(target_id, command_id, expected, project_root=project_root),
@@ -4592,6 +4594,18 @@ def _data_block_interpreted_ref_from_action(action: object) -> dict[str, object]
     if isinstance(ref, dict):
         return cast(dict[str, object], ref)
     return None
+
+
+def _data_block_interpreted_ref_with_expected_cleanup_action_id(
+    ref: dict[str, object],
+    durable_result: dict[str, object],
+) -> dict[str, object]:
+    action_id = _durable_action_id(durable_result)
+    if not isinstance(action_id, str) or not action_id:
+        return ref
+    expected = dict(ref)
+    expected.setdefault("cleanup_action_id", action_id)
+    return expected
 
 
 def _verify_project_data_block_interpreted_ref(
@@ -4672,18 +4686,19 @@ def _data_block_interpreted_ref_missing_required_identity_fields(
     command_id: str,
     expected: dict[str, object],
 ) -> list[str]:
-    fields = ["data_block_ref_id", "layout_id", "offset"]
-    if not command_id.endswith(".clear_ref"):
-        fields.extend(
-            [
-                "width",
-                "reference_kind",
-                "target_hunk",
-                "target_offset",
-                "target_locator",
-                "source_value",
-            ]
-        )
+    fields = [
+        "data_block_ref_id",
+        "layout_id",
+        "offset",
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+    ]
+    if command_id.endswith(".clear_ref"):
+        fields.append("cleanup_action_id")
     return [
         field
         for field in fields

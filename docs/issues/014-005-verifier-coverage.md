@@ -303,6 +303,10 @@ Remaining work:
   `target_hunk`, `target_offset`, `target_locator`, and `source_value`, so a
   matching ref id cannot borrow stale target/source identity from reloaded
   state.
+- Data-block interpreted-ref clear verification now applies the same selected
+  reference identity requirement and also checks `cleanup_action_id`, so stale
+  clear payloads cannot borrow an existing removed ref's source/target identity
+  or cleanup ownership.
 - Target-equate definition representation is implemented in `014-020`; broader
   semantic/equate provenance remains separate from display-style verification.
 - Keep RSSET bind-refine/type-refine, same-flow propagation, generated

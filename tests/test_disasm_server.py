@@ -3373,6 +3373,14 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
                 "layout_id": "ascii-hex",
                 "offset": 0x30,
                 "data_block_ref_id": "ascii-hex:30:absolute:h0:00000041",
+                "width": 1,
+                "reference_kind": "absolute",
+                "target_hunk": 0,
+                "target_offset": 0x41,
+                "target_locator": {"hunk": 0, "offset": 0x41},
+                "source_value": 0x41,
+                "confidence": "manual",
+                "xref_generation_mode": "bidirectional",
             },
         },
     )
@@ -3386,6 +3394,14 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
         "data_block_ref_id": "ascii-hex:30:absolute:h0:00000041",
         "layout_id": "ascii-hex",
         "offset": 0x30,
+        "width": 1,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x41,
+        "target_locator": {"hunk": 0, "offset": 0x41},
+        "source_value": 0x41,
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
     }
     assert clear_effect["kind"] == "data_block_interpreted_ref_remove"
     assert appended_actions == [

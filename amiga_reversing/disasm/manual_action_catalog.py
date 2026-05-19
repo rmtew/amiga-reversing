@@ -1329,17 +1329,32 @@ def _data_block_element_ref_remove_parameter_schema(defaults: Mapping[str, objec
                 "layout_id": {"type": "string"},
                 "offset": {"type": "integer", "minimum": 0},
                 "data_block_ref_id": {"type": "string"},
+                "width": {"type": "integer", "minimum": 1},
                 "reference_kind": {"type": "string", "enum": ["absolute"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
+                "target_locator": {"type": "object"},
+                "source_value": {"type": "integer", "minimum": 0},
+                "confidence": {"type": "string", "enum": ["manual", "high", "medium", "low"]},
+                "xref_generation_mode": {"type": "string", "enum": ["bidirectional", "source_only", "none"]},
             },
-            "required": ["layout_id", "offset", "data_block_ref_id"],
+            "required": [
+                "layout_id",
+                "offset",
+                "data_block_ref_id",
+                "width",
+                "reference_kind",
+                "target_hunk",
+                "target_offset",
+                "target_locator",
+                "source_value",
+            ],
         },
         defaults,
     )
     required = schema.get("required")
-    if isinstance(required, list) and defaults and "data_block_ref_id" in defaults:
-        schema["required"] = [key for key in required if key != "data_block_ref_id"]
+    if isinstance(required, list) and defaults:
+        schema["required"] = [key for key in required if key not in defaults]
     return schema
 
 
@@ -1408,7 +1423,24 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
             {
                 key: value
                 for key, value in ref_defaults.items()
-                if key in {"layout_id", "offset", "data_block_ref_id", "reference_kind", "target_hunk", "target_offset"}
+                if key
+                in {
+                    "layout_id",
+                    "offset",
+                    "data_block_ref_id",
+                    "width",
+                    "reference_kind",
+                    "target_hunk",
+                    "target_offset",
+                    "target_locator",
+                    "source_value",
+                    "confidence",
+                    "xref_generation_mode",
+                    "signed",
+                    "scale",
+                    "base_evidence_id",
+                    "source_evidence_id",
+                }
             },
             _data_block_element_ref_remove_parameter_schema(ref_defaults),
         ),
@@ -3812,7 +3844,21 @@ def _data_block_element_ref_context(row: Mapping[str, object]) -> dict[str, obje
     if ref is None:
         return context
     merged = dict(context)
-    for key in ("data_block_ref_id", "reference_kind", "target_hunk", "target_offset"):
+    for key in (
+        "data_block_ref_id",
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+        "confidence",
+        "xref_generation_mode",
+        "signed",
+        "scale",
+        "base_evidence_id",
+        "source_evidence_id",
+    ):
         value = ref.get(key)
         if value is not None:
             merged[key] = value
@@ -4116,10 +4162,39 @@ def _data_block_element_ref_remove_payload(
     if not ref_id:
         raise ValueError("remove_manual_data_block_element_ref requires data_block_ref_id")
     ref: dict[str, object] = {"data_block_ref_id": ref_id, "layout_id": layout_id, "offset": offset}
-    for field_name in ("reference_kind", "target_hunk", "target_offset"):
+    for field_name in (
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+        "confidence",
+        "xref_generation_mode",
+        "signed",
+        "scale",
+        "base_evidence_id",
+        "source_evidence_id",
+    ):
         value = params.get(field_name) if field_name in params else context.get(field_name)
         if value is not None:
             ref[field_name] = value
+    missing = [
+        field_name
+        for field_name in (
+            "width",
+            "reference_kind",
+            "target_hunk",
+            "target_offset",
+            "target_locator",
+            "source_value",
+        )
+        if field_name not in ref
+    ]
+    if missing:
+        raise ValueError(
+            "remove_manual_data_block_element_ref requires selected reference identity: " + ", ".join(missing)
+        )
     return ref
 
 

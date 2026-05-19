@@ -76,6 +76,9 @@ Implemented tests:
   element offset, width, reference kind, target hunk/offset/locator, and decoded
   `source_value` so render/xref verification cannot borrow stale identity from
   an existing ref.
+- Clear-ref command payloads now preserve that same selected reference identity,
+  and semantic reload requires the matching `cleanup_action_id` from the durable
+  action before removed-state matching.
 
 Remaining:
 - Broader reference kinds beyond locally proven absolute byte/word/long refs are

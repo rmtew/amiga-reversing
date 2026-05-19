@@ -611,9 +611,14 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
             "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
             "layout_id": "ptr-table",
             "offset": 0x30,
+            "width": 2,
             "reference_kind": "absolute",
             "target_hunk": 0,
             "target_offset": 0x2000,
+            "target_locator": {"hunk": 0, "offset": 0x2000},
+            "source_value": 0x2000,
+            "confidence": "manual",
+            "xref_generation_mode": "bidirectional",
         },
     }
 
@@ -640,9 +645,14 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
         "layout_id": "ptr-table",
         "offset": 0x30,
         "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
+        "width": 2,
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x2000,
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "source_value": 0x2000,
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
     }
     assert clear_action["parameters"]["data_block_ref_id"] == "ptr-table:30:absolute:h0:00002000"
     assert clear_action["parameter_schema"]["required"] == []
@@ -668,9 +678,14 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
             "data_block_ref_id": "ptr-table:30:absolute:h0:00002000",
             "layout_id": "ptr-table",
             "offset": 0x30,
+            "width": 2,
             "reference_kind": "absolute",
             "target_hunk": 0,
             "target_offset": 0x2000,
+            "target_locator": {"hunk": 0, "offset": 0x2000},
+            "source_value": 0x2000,
+            "confidence": "manual",
+            "xref_generation_mode": "bidirectional",
         }
     }
 

@@ -1207,6 +1207,13 @@ width, reference kind, target hunk/offset/locator, and decoded `source_value`;
 otherwise rendered-source and xref layers can borrow stale identity from a
 reloaded ref with the same id.
 
+Implementation observation from `014-005`/`014-018`: interpreted-ref clear uses
+the same identity boundary as create plus cleanup ownership. The command payload
+must carry the selected reference identity, and verification stamps the durable
+action id as `cleanup_action_id` before matching removed state; otherwise a
+stale clear can suppress a different symbolic/xref projection at the same
+layout element.
+
 Implementation observation from the `014-018` symbolic-render slice: C rendering
 had separate byte, word, and long data directive paths. Supporting symbolic
 interpreted refs required the word/long structured-data path to consume exact
