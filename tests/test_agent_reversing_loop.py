@@ -196,6 +196,7 @@ def test_agent_real_genam_autonomous_rsset_candidate_converges_source(
     monkeypatch.setattr(c_backend, "resolve_project_paths", resolve_temp_paths)
     monkeypatch.setattr(reversing_loop, "_listing_entrypoint_label_candidates", lambda *args, **kwargs: [])
     monkeypatch.setattr(reversing_loop, "_listing_data_symbol_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_data_role_candidates", lambda *args, **kwargs: [])
 
     report = reversing_loop.run_one_iteration(project_id, mode="clean-run", project_root=project_root)
 
