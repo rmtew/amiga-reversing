@@ -3147,6 +3147,11 @@ def _command_source_evidence_payload(command: dict[str, object]) -> dict[str, ob
         evidence_id = parameters.get("source_evidence_id")
         if isinstance(evidence_id, str) and evidence_id:
             return cast(dict[str, object], parameters)
+    context = command.get("context")
+    if isinstance(context, dict):
+        evidence_id = context.get("source_evidence_id")
+        if isinstance(evidence_id, str) and evidence_id:
+            return cast(dict[str, object], context)
     return None
 
 

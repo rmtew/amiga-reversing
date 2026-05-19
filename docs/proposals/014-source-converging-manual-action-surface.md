@@ -1103,6 +1103,13 @@ checked across the write boundary. If a selected command names
 otherwise accepted durable evidence payload with a different id is a verifier
 failure, not proof that the requested evidence path was consumed.
 
+Implementation observation from `014-005`: selected element context can be the
+only command-side carrier for accepted provenance while parameters remain
+command-specific. Generic provenance verification must treat context-carried
+`source_evidence_id` as consumed command evidence when parameters do not carry
+one, or stale selected-use contexts can escape the write-boundary evidence
+match.
+
 Implementation observation from `014-013`: `manual_override` provenance evidence
 is a correction boundary, not just another accepted status. The command payload
 and durable replay must carry `contradicted_evidence_id`, reason, path/lifetime

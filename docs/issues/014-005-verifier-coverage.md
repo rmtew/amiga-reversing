@@ -173,6 +173,9 @@ Current evidence:
   now requires the executed durable payload to carry the same evidence id, so a
   mutation cannot satisfy one requested evidence path with a different durable
   accepted path.
+- Selected command context is also treated as consumed provenance evidence when
+  parameters do not carry `source_evidence_id`, so context-backed semantic/type
+  writes cannot bypass the durable evidence match.
 - Manual overrides in the provenance verifier require both
   `contradicted_evidence_id` and `reason`; unresolved, unknown, or conflicting
   evidence cannot satisfy a provenance-backed write.

@@ -899,6 +899,42 @@ def test_provenance_backed_mutation_verifier_rejects_mismatched_command_scope() 
     assert "durable parent_evidence_ids does not match consumed command evidence" in provenance_layer["failures"]
 
 
+def test_provenance_backed_mutation_verifier_rejects_mismatched_context_evidence() -> None:
+    command = {
+        "command_id": "typed_gap.field.add",
+        "context": {
+            "source_evidence_id": "prov-context",
+            "source_family": "struct_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+            "parent_evidence_ids": ["prov-context-parent"],
+        },
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "source_evidence_id": "prov-durable",
+                    "source_family": "struct_pointer",
+                    "source_evidence_status": "analysis_proven",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                    "parent_evidence_ids": ["prov-context-parent"],
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["source_evidence_id"] == "prov-durable"
+    assert provenance_layer["expected_source_evidence_id"] == "prov-context"
+    assert "durable source_evidence_id does not match consumed command evidence" in provenance_layer["failures"]
+
+
 def test_provenance_backed_mutation_verifier_ignores_cleanup_scope_evidence_id_as_consumed() -> None:
     command = {
         "command_id": "typed_gap.field.add",
