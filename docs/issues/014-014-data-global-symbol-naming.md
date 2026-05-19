@@ -38,10 +38,10 @@ Current evidence:
 - Manual data-symbol rename now has rendered-source and exact direct-rebuild
   verifier coverage for an instruction use-site reference to the renamed data
   definition.
-- Loop planner recognizes explicit data-symbol rename/remove candidates and
-  skips already-satisfied projected names/removals. It also mines internal
-  `data_ref` listing elements into autonomous referenced-data rename
-  candidates.
+- Loop planner recognizes explicit data-symbol add/edit/rename/remove
+  candidates and skips already-satisfied projected names/removals. It also
+  mines internal `data_ref` listing elements into autonomous referenced-data
+  rename candidates.
 - Autonomous referenced-data rename candidates now skip names already present in
   effective target metadata as well as Manual Action Log projections.
 - Autonomous data-symbol rename candidates now include row-level `data_class`
@@ -100,9 +100,9 @@ Current evidence:
 - Seeded-entity suppression projection now carries optional `end` and effective
   metadata applies ranged suppressions exactly, so suppressing one generated
   seeded data range does not remove a same-address range with a different end.
-- Durable data/global symbol edit, broader global, and expanded autonomous
-  candidate workflows remain open beyond seeded data-entity rename/remove,
-  rename-existing-symbol, and internal referenced data use-sites.
+- Broader global data-symbol workflows and expanded autonomous candidate
+  workflows remain open beyond seeded data-entity rename/remove,
+  add/edit/rename-existing-symbol, and internal referenced data use-sites.
 - Data symbols created or consumed by manual interpretation of values inside
   opaque data blocks are tracked by the data-block investigation in `014-015`,
   with interpreted-reference facts in `014-018` and type/domain binding in
