@@ -377,7 +377,14 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
     bind_kind, bind_payload = listing_catalog_manual_payload(
         row,
         "row.data_block.element.bind_type",
-        parameters={"binding_kind": "platform_struct", "type_id": "Node"},
+        parameters={
+            "binding_kind": "platform_struct",
+            "type_id": "Node",
+            "source_evidence_id": "prov-node-table",
+            "source_family": "data_block_pointer",
+            "source_evidence_status": "analysis_proven",
+            "parent_evidence_ids": ["prov-table-base"],
+        },
     )
     clear_kind, clear_payload = listing_catalog_manual_payload(row, "row.data_block.element.clear_type")
 
@@ -400,6 +407,10 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
                 "element_width": 4,
                 "binding_kind": "platform_struct",
                 "bound_type_id": "Node",
+                "source_evidence_id": "prov-node-table",
+                "source_family": "data_block_pointer",
+                "source_evidence_status": "analysis_proven",
+                "parent_evidence_ids": ["prov-table-base"],
             },
         }
     }
@@ -888,6 +899,7 @@ def test_typed_gap_field_add_command_uses_gap_identity() -> None:
             "path_lifetime_scope": add_action["parameters"]["path_lifetime_scope"],
             "confidence": "high",
             "conflicts": [],
+            "parent_evidence_ids": [],
         }
     }
 
@@ -952,6 +964,7 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
             "path_lifetime_scope": rename_action["parameters"]["path_lifetime_scope"],
             "confidence": "high",
             "conflicts": [],
+            "parent_evidence_ids": [],
         }
     }
     assert remove_kind == "remove_manual_custom_struct_field"
@@ -966,6 +979,7 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
             "path_lifetime_scope": rename_action["parameters"]["path_lifetime_scope"],
             "confidence": "high",
             "conflicts": [],
+            "parent_evidence_ids": [],
         }
     }
 

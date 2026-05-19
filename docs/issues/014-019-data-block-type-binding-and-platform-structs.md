@@ -25,6 +25,9 @@ Current implementation:
 - Bind payloads carry durable `type_binding` identity: layout id, element
   offset/width, binding kind, bound type/domain id, optional array count, and
   consumed source evidence when supplied.
+- Bind payloads now preserve `parent_evidence_ids` with consumed source
+  evidence, and catalog availability plus semantic reload verification compare
+  that parent dependency set.
 - Manual Action Log replay stamps `type_binding.owner_action_id` from the
   append action. Clear-type payloads preserve `previous_type_binding` for stale
   render checks and stamp `previous_type_binding.cleanup_action_id` from the
@@ -107,7 +110,7 @@ Acceptance criteria:
 - Availability checks already enforce selected data-block element identity for
   bind/clear commands. Future type-flow/review propagation must preserve that
   element identity plus the type-binding owner id and consumed
-  `source_evidence_id`.
+  `source_evidence_id`/`parent_evidence_ids`.
 - Replay reloads type bindings and domains exactly.
 - Type-flow verifier proves supported propagated facts or expected review
   items.
