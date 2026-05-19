@@ -6425,6 +6425,8 @@ def test_command_availability_query_preserves_provenance_context() -> None:
             "confidence": "medium",
             "conflicts": conflicts,
             "parent_evidence_ids": parents,
+            "contradicted_evidence_id": "prov-old",
+            "reason": "target-specific pointer proof",
             "cleanup_scope": cleanup_scope,
         }
     ) == {
@@ -6434,6 +6436,8 @@ def test_command_availability_query_preserves_provenance_context() -> None:
         "source_family": ["data_block_pointer"],
         "source_evidence_status": ["manual_classified"],
         "confidence": ["medium"],
+        "contradicted_evidence_id": ["prov-old"],
+        "reason": ["target-specific pointer proof"],
         "path_lifetime_scope": [json.dumps(scope, sort_keys=True, separators=(",", ":"))],
         "conflicts": [json.dumps(conflicts, sort_keys=True, separators=(",", ":"))],
         "parent_evidence_ids": [json.dumps(parents, sort_keys=True, separators=(",", ":"))],

@@ -68,6 +68,9 @@ Current evidence:
   consumed provenance boundary beyond `source_evidence_id`, including source
   family/status, path/lifetime scope, conflicts, parent evidence ids, and
   override cleanup fields.
+- Row-scoped command availability queries now preserve manual-override
+  `contradicted_evidence_id` and `reason`, so correction-boundary writes do
+  not lose those fields before refreshed catalog matching.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

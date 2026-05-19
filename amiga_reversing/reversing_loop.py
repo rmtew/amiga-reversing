@@ -7068,7 +7068,14 @@ def _command_query_from_context(context: dict[str, object]) -> dict[str, list[st
 
 
 def _copy_provenance_context_to_query(query: dict[str, list[str]], context: dict[str, object]) -> None:
-    for key in ("source_evidence_id", "source_family", "source_evidence_status", "confidence"):
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "confidence",
+        "contradicted_evidence_id",
+        "reason",
+    ):
         value = context.get(key)
         if isinstance(value, str) and value:
             query[key] = [value]

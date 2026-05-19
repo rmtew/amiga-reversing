@@ -1313,6 +1313,9 @@ same accepted evidence/status/scope, parent ids, conflicts, override fields,
 and cleanup scope as the selected candidate; otherwise the server can only
 return row-local/regenerated catalog entries and the planner cannot correctly
 distinguish unavailable evidence from stale or mismatched evidence.
+This includes row-scoped commands; `contradicted_evidence_id` and `reason`
+cannot be preserved only for element-scoped commands without weakening manual
+override correction proof.
 
 ## Principles
 
