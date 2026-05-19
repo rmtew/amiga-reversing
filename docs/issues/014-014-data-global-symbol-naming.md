@@ -50,6 +50,12 @@ Current evidence:
   data-symbol kind plus hunk/address/end identity, so a non-data seeded entity
   or different-sized data seed at the same address does not hide a distinct
   naming candidate.
+- Effective metadata projection now merges seeded data-symbol entities by
+  hunk/address/end/type identity, preventing a same-address manual rename from
+  replacing a distinct generated data range.
+- Exact-identity data-symbol rename projection now preserves existing typed
+  entity fields such as struct/field/c-type/value-domain metadata instead of
+  turning a naming override into semantic metadata loss.
 - Autonomous referenced-data rename candidates now generate
   `runtime_address_XXXXXXXX` names from stable runtime-address references when
   no data class is available.

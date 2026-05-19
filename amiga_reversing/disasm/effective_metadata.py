@@ -391,18 +391,33 @@ def _merge_seeded_entity_projection(
         source_id=override.source_id if override.source_id is not None else existing.source_id,
         source_path=override.source_path if override.source_path is not None else existing.source_path,
         source_locator=override.source_locator if override.source_locator is not None else existing.source_locator,
+        struct_name=override.struct_name if override.struct_name is not None else existing.struct_name,
+        field_name=override.field_name if override.field_name is not None else existing.field_name,
+        field_type=override.field_type if override.field_type is not None else existing.field_type,
+        c_type=override.c_type if override.c_type is not None else existing.c_type,
+        pointer_struct=override.pointer_struct if override.pointer_struct is not None else existing.pointer_struct,
+        value_domain=override.value_domain if override.value_domain is not None else existing.value_domain,
     )
+
+
+def _seeded_entity_projection_key(entity: SeededEntityMetadata) -> tuple[int, int, int | None, str | None]:
+    return (entity.hunk, entity.addr, entity.end, entity.type)
+
+
+def _seeded_entity_projection_sort_key(key: tuple[int, int, int | None, str | None]) -> tuple[int, int, int, str]:
+    hunk, addr, end, entity_type = key
+    return (hunk, addr, -1 if end is None else end, entity_type or "")
 
 
 def _merge_projected_seeded_entities(
     entities: list[SeededEntityMetadata],
 ) -> tuple[SeededEntityMetadata, ...]:
-    merged: dict[tuple[int, int], SeededEntityMetadata] = {}
+    merged: dict[tuple[int, int, int | None, str | None], SeededEntityMetadata] = {}
     for entity in entities:
-        key = (entity.hunk, entity.addr)
+        key = _seeded_entity_projection_key(entity)
         existing = merged.get(key)
         merged[key] = entity if existing is None else _merge_seeded_entity_projection(existing, entity)
-    return tuple(merged[key] for key in sorted(merged))
+    return tuple(merged[key] for key in sorted(merged, key=_seeded_entity_projection_sort_key))
 
 
 def _manual_execution_view_to_metadata(view: dict[str, object]) -> ExecutionViewMetadata | None:

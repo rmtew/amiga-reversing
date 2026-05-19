@@ -885,6 +885,13 @@ source-identity shape used by the command itself: data symbol kind plus
 hunk/address/end where available. Otherwise a short data seed or a non-data
 seeded entity at the same address can hide a distinct source naming candidate.
 
+Implementation observation from `014-014`: effective metadata projection has
+the same identity requirement. Same-address seeded entities with different
+source ranges or entity types must remain separate; only exact
+hunk/address/end/type matches should merge as overrides. Exact naming overrides
+also need to preserve existing typed entity metadata, because a source-identity
+rename must not erase semantic/type facts owned by another action.
+
 Implementation observation from `014-005`/`014-013`:
 Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and

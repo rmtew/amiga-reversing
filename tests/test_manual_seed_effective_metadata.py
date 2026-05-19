@@ -110,20 +110,26 @@ def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_pat
     assert payload["seeded_entities"] == [
         {
             "addr": 0x300,
+            "c_type": None,
             "citation": "manual_action_log:text-table",
             "comment": "mode=required, data_role=string, unit=byte, encoding=ascii",
             "end": 0x320,
+            "field_name": None,
+            "field_type": None,
             "hunk": 1,
             "name": "manual_text",
+            "pointer_struct": None,
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "source_id": "manual_action_log",
             "source_locator": "ManualSeed:text-table",
             "source_path": None,
+            "struct_name": None,
             "subtype": "string",
             "type": "data",
             "unit": "byte",
             "encoding": "ascii",
+            "value_domain": None,
         }
     ]
 
@@ -811,6 +817,12 @@ def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path
                     type="data",
                     subtype="pointer_table",
                     unit="long",
+                    struct_name="Node",
+                    field_name="LN_SUCC",
+                    field_type="APTR",
+                    c_type="struct Node *",
+                    pointer_struct="Node",
+                    value_domain="node_ref",
                     seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
                     review_status=TargetMetadataReviewStatus.SEEDED,
                     citation="seeded",
@@ -846,27 +858,83 @@ def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path
     assert payload["seeded_entities"] == [
         {
             "addr": 0x100,
-            "c_type": None,
+            "c_type": "struct Node *",
             "citation": "manual_action_log:data-symbol:h0:00000100",
             "comment": "generated",
             "encoding": None,
             "end": 0x104,
-            "field_name": None,
-            "field_type": None,
+            "field_name": "LN_SUCC",
+            "field_type": "APTR",
             "hunk": 0,
             "name": "player_table",
-            "pointer_struct": None,
+            "pointer_struct": "Node",
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "source_id": "manual_action_log",
             "source_locator": "ManualSeed:data-symbol:h0:00000100",
             "source_path": "source.asm",
-            "struct_name": None,
+            "struct_name": "Node",
             "subtype": "pointer_table",
             "type": "data",
             "unit": "long",
-            "value_domain": None,
+            "value_domain": "node_ref",
         }
+    ]
+
+
+def test_effective_metadata_keeps_same_address_data_symbols_with_different_ranges(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x100,
+                    end=0x102,
+                    hunk=0,
+                    name="short_data",
+                    type="data",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="ShortData",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "rename_data_symbol",
+                data_symbol={
+                    "data_symbol_id": "data-symbol:h0:00000100:00000104",
+                    "hunk": 0,
+                    "addr": 0x100,
+                    "end": 0x104,
+                    "name": "long_data",
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert [
+        (entity["hunk"], entity["addr"], entity["end"], entity["type"], entity["name"])
+        for entity in payload["seeded_entities"]
+    ] == [
+        (0, 0x100, 0x102, "data", "short_data"),
+        (0, 0x100, 0x104, "data", "long_data"),
     ]
 
 
@@ -1139,37 +1207,49 @@ def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_p
     assert payload["seeded_entities"] == [
         {
             "addr": 0x1442,
+            "c_type": None,
             "citation": "manual_action_log:ascii-hex:0",
             "comment": "lookup_table",
             "encoding": None,
             "end": 0x1472,
+            "field_name": None,
+            "field_type": None,
             "hunk": 0,
             "name": "ascii_hex_digit_value",
+            "pointer_struct": None,
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "source_id": None,
             "source_locator": None,
             "source_path": None,
+            "struct_name": None,
             "subtype": "lookup_table",
             "type": "data",
             "unit": "byte",
+            "value_domain": None,
         },
         {
             "addr": 0x1472,
+            "c_type": None,
             "citation": "manual_action_log:ascii-hex:0x30",
             "comment": "lookup_table",
             "encoding": None,
             "end": 0x147C,
+            "field_name": None,
+            "field_type": None,
             "hunk": 0,
             "name": "digits",
+            "pointer_struct": None,
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "source_id": None,
             "source_locator": None,
             "source_path": None,
+            "struct_name": None,
             "subtype": "lookup_table",
             "type": "data",
             "unit": "byte",
+            "value_domain": None,
         },
     ]
     assert payload["manual_representations"] == [
