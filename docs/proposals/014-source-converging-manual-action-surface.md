@@ -611,6 +611,13 @@ element kind, and operand index before accepting semantic reload or rendered
 text; otherwise a stale hex/binary/character action can satisfy a different
 requested display change.
 
+Implementation observation from `014-005`/`014-009`/`014-020`: target-equate
+verification must reject sparse durable payloads before matching reloaded
+state. Add/edit must prove `name` and `value`, rename must prove both
+`previous_name` and `name`, and definition-display changes must prove `name`,
+`value`, and `value_representation` plus `value_expression` for symbolic
+renders.
+
 Implementation observation from `014-007`: structured data role comments are
 source-converging metadata, not display-only notes. The C policy comment buffer
 must be large enough for `mode`, `data_role`, `unit`, and optional `encoding`;

@@ -3520,6 +3520,15 @@ def _verify_project_target_equate(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing target equate payload"}
+    missing_identity_fields = _target_equate_missing_required_payload_fields(command_id, expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "target equate payload missing mutation identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_target_equate": expected,
+        }
     key = "removed_target_equates" if command_id == "target.equate.remove" else "target_equates"
     if command_id == "target.equate.rename":
         key = "renamed_target_equates"
@@ -3546,6 +3555,22 @@ def _target_equate_matches(actual: dict[str, object], expected: dict[str, object
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "name" in expected
+
+
+def _target_equate_missing_required_payload_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    if command_id in {"target.equate.add", "target.equate.edit"}:
+        fields = ["name", "value"]
+    elif command_id == "target.equate.represent":
+        fields = ["name", "value", "value_representation"]
+        if expected.get("value_representation") == "symbol":
+            fields.append("value_expression")
+    elif command_id == "target.equate.rename":
+        fields = ["previous_name", "name"]
+    elif command_id == "target.equate.remove":
+        fields = ["name"]
+    else:
+        fields = ["name"]
+    return [field for field in fields if field not in expected]
 
 
 def _target_equate_payload_has_definition_representation(expected: dict[str, object] | None) -> bool:

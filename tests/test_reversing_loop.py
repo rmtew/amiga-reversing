@@ -3338,6 +3338,66 @@ def test_target_equate_rename_verifier_checks_renamed_equate_state(
     assert verification["layers"][1]["state_key"] == "renamed_target_equates"
 
 
+def test_target_equate_add_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [{"name": "PLAYER_START_LIVES", "value": 5}]},
+        ),
+    )
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.add",
+        _executed_target_equate_payload(tmp_path, {"name": "PLAYER_START_LIVES"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "target equate payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == ["value"]
+
+
+def test_target_equate_rename_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "renamed_target_equates": [
+                    {"previous_name": "PLAYER_START_LIVES", "name": "PLAYER_INITIAL_LIVES"}
+                ]
+            },
+        ),
+    )
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.rename",
+        _executed_target_equate_payload(tmp_path, {"name": "PLAYER_INITIAL_LIVES"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "target equate payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == ["previous_name"]
+
+
 def test_target_equate_representation_verifier_checks_rendered_definition(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3391,6 +3451,34 @@ def test_target_equate_representation_verifier_checks_rendered_definition(
     assert verification["status"] == "passed"
     assert verification["layers"][2]["layer"] == "rendered_source"
     assert verification["layers"][2]["expected_operand"] == "40+2"
+
+
+def test_target_equate_representation_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [{"name": "PLAYER_START_LIVES", "value": 42}]},
+        ),
+    )
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.represent",
+        _executed_target_equate_payload(tmp_path, {"name": "PLAYER_START_LIVES", "value": 42}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "target equate payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == ["value_representation"]
 
 
 def test_target_equate_verifier_requires_action_payload(

@@ -139,6 +139,11 @@ Current evidence:
 - Target-equate verifiers derive the expected equate from the executed durable
   action payload, so matching project state plus a local-effect echo cannot hide
   a missing or mismatched action result.
+- Target-equate verifiers now reject sparse durable payloads before reload
+  matching. Add/edit payloads must carry `name` and `value`; rename payloads
+  must carry `previous_name` and `name`; representation payloads must carry
+  `name`, `value`, and `value_representation`, with `value_expression` required
+  for symbolic definition display.
 - Target-equate definition representation is verified as display metadata:
   reloaded target-equate state, rendered `EQU` value text, and exact rebuild
   prove `target.equate.represent` without creating provenance/type-flow facts.

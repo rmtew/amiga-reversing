@@ -66,6 +66,10 @@ Implemented support:
 - Exact direct rebuild remains the verifier for symbolic-expression correctness;
   changing definition display does not create provenance, semantic hints, or
   type-flow descendants.
+- Loop verification now rejects sparse representation payloads before reload
+  matching: `target.equate.represent` must carry `name`, `value`, and
+  `value_representation`, and symbolic display must also carry
+  `value_expression`.
 - Planner command normalization strips provenance/report fields from
   `target.equate.represent` parameters, so display-style commands cannot become
   accepted evidence or remain unsatisfied because of ignored metadata.

@@ -21,6 +21,9 @@ Progress:
   accepts explicit target-equate candidates with target context, verifies
   the durable action payload against reloaded target-equate/rename/removal
   state, and requires exact round-trip.
+- Target-equate semantic reload verification rejects sparse durable payloads:
+  add/edit must include `name` and `value`, rename must include both old and new
+  names, and removal remains keyed by `name`.
 - C policy parsing now loads target-local equates before manual symbolic
   representations, emits rendered `EQU` definitions, and can render immediate
   use sites with those symbols. Focused C-backend coverage proves exact direct
