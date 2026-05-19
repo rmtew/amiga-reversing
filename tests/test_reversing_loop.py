@@ -3159,7 +3159,12 @@ def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> N
         "kind": "data_symbol_name",
         "command": {
             "command_id": "data_symbol.rename_existing",
-            "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+            "context": {
+                "kind": "row",
+                "locator": _listing_locator(kind="data"),
+                "source_evidence_id": "xref-1",
+                "source_family": "runtime_address_ref",
+            },
             "parameters": {
                 "name": "player_table",
                 "previous_name": "auto_data",
@@ -3176,6 +3181,7 @@ def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> N
 
     command = reversing_loop._candidate_command_options(candidate)[0]
 
+    assert command["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
     assert command["parameters"] == {"name": "player_table"}
     assert reversing_loop._candidate_verifier(candidate, command) == "projected_data_symbol_name"
 

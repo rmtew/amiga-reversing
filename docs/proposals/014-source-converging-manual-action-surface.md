@@ -869,6 +869,11 @@ strip xref/source-family evidence before execution; the catalog row/element
 context supplies source identity, while separate semantic commands own any
 accepted provenance or type-flow descendants.
 
+Implementation observation from `014-014`: embedded data-symbol command context
+needs the same boundary as parameters. Keep only the selected row/element source
+locator in planner-normalized commands; xref/provenance reports can rank the
+candidate but must not travel as accepted evidence on the naming command.
+
 Implementation observation from `014-005`/`014-013`:
 Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and

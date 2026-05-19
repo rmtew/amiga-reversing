@@ -6015,6 +6015,7 @@ def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object
     parameters = command.get("parameters")
     normalized = dict(command)
     normalized["kind"] = "command"
+    normalized["context"] = _command_boundary_context(command_id, context)
     normalized["parameters"] = _command_boundary_parameters(command_id, parameters)
     if _command_id_is_report_only(command_id):
         normalized["effect"] = str(command.get("effect") or "inspection")
@@ -6338,6 +6339,12 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
     if command_id == "target.equate.remove":
         return {key: payload[key] for key in ("name",) if key in payload}
     return payload
+
+
+def _command_boundary_context(command_id: str, context: dict[str, object]) -> dict[str, object]:
+    if command_id in {"data_symbol.rename", "data_symbol.rename_existing", "data_symbol.remove"}:
+        return {key: context[key] for key in ("kind", "locator", "element_id") if key in context}
+    return dict(context)
 
 
 def _typed_field_parameters_from_candidate(

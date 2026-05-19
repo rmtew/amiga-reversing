@@ -60,6 +60,9 @@ Current evidence:
   data-symbol rename/remove parameter payloads; rename parameters carry only
   the requested name, and remove parameters carry only selected seeded-item or
   manual-seed identity.
+- Embedded data-symbol command normalization also strips report/provenance
+  fields from command context; source identity is carried by the selected row
+  or element locator, not by accepted provenance evidence.
 - `data_symbol.remove` now preserves the source-identity boundary for
   Manual Action Log owned data symbols: rows whose effective symbol comes from
   `ManualSeed:*` remove that manual seed, while generated seeded entities still
