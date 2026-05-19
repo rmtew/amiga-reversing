@@ -229,6 +229,8 @@ static int policy_add_rsset_use_site_binding_local(M68kAnalysisPolicy *policy, u
   uint32_t offset, uint8_t operand_index, const char *base_register, uint32_t displacement,
   const char *layout_name, const char *base_symbol, const char *base_evidence_id,
   const char *binding_id, const char *owner_action_id);
+static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
+  const char *fields_start, const char *fields_end);
 static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
@@ -716,6 +718,119 @@ static int append_metadata_rsset_layout_region_local(const char *object_start, c
       layout_name, base_symbol, sizeof_symbol, symbol, struct_name, pointer_struct, has_flags ? (uint8_t)flags : 0U,
       storage_kind_id, storage_kind, semantic_type);
   }
+}
+
+static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_struct,
+    const char *object_start, const char *object_end) {
+  M68kAnalysisCustomStructField *field;
+  uint32_t offset = 0U;
+  uint32_t size = 0U;
+  int has_offset = 0;
+  int has_size = 0;
+  char name[64];
+  char type_name[64];
+  char struct_name[64];
+  char pointer_struct[64];
+  char named_base[64];
+  if (custom_struct == NULL || custom_struct->field_count >= M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT)
+    return 0;
+  name[0] = '\0';
+  type_name[0] = '\0';
+  struct_name[0] = '\0';
+  pointer_struct[0] = '\0';
+  named_base[0] = '\0';
+  if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "type", type_name, sizeof(type_name)) ||
+      !json_number_field_local(object_start, object_end, "offset", &offset, &has_offset) ||
+      !json_number_field_local(object_start, object_end, "size", &size, &has_size) ||
+      !json_optional_string_field_local(object_start, object_end, "struct", struct_name, sizeof(struct_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "pointer_struct", pointer_struct,
+        sizeof(pointer_struct)) ||
+      !json_optional_string_field_local(object_start, object_end, "named_base", named_base, sizeof(named_base))) {
+    return 0;
+  }
+  if (name[0] == '\0' || !has_offset || !has_size || size == 0U || size > UINT16_MAX) return 0;
+  field = &custom_struct->fields[custom_struct->field_count++];
+  memset(field, 0, sizeof(*field));
+  field->offset = offset;
+  field->size = size;
+  if (!copy_policy_text(field->name, sizeof(field->name), name) ||
+      !copy_policy_text(field->type_name, sizeof(field->type_name), type_name) ||
+      !copy_policy_text(field->struct_name, sizeof(field->struct_name), struct_name) ||
+      !copy_policy_text(field->pointer_struct, sizeof(field->pointer_struct), pointer_struct) ||
+      !copy_policy_text(field->named_base, sizeof(field->named_base), named_base)) {
+    return 0;
+  }
+  return 1;
+}
+
+static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
+    const char *fields_start, const char *fields_end) {
+  M68kAnalysisCustomStruct *custom_struct;
+  const char *cursor;
+  uint16_t index;
+  if (policy == NULL || name == NULL || name[0] == '\0' || size == 0U ||
+      policy->custom_struct_count >= M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT) {
+    return 0;
+  }
+  if (policy->custom_structs == NULL) {
+    policy->custom_structs = (M68kAnalysisCustomStruct *)calloc(M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT,
+      sizeof(*policy->custom_structs));
+    if (policy->custom_structs == NULL) return 0;
+    policy->custom_struct_capacity = M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT;
+    policy->custom_struct_owner = 1U;
+  }
+  if (policy->custom_struct_count >= policy->custom_struct_capacity) return 0;
+  for (index = 0U; index < policy->custom_struct_count; ++index) {
+    if (strcmp(policy->custom_structs[index].name, name) == 0) return 1;
+  }
+  custom_struct = &policy->custom_structs[policy->custom_struct_count++];
+  memset(custom_struct, 0, sizeof(*custom_struct));
+  custom_struct->size = size;
+  if (!copy_policy_text(custom_struct->name, sizeof(custom_struct->name), name)) return 0;
+  cursor = fields_start;
+  while (cursor != NULL && cursor < fields_end) {
+    const char *field_end;
+    const char *field_start = json_next_object_local(cursor, fields_end, &field_end);
+    if (field_start == NULL) break;
+    if (!append_custom_struct_field_local(custom_struct, field_start, field_end)) return 0;
+    cursor = field_end;
+  }
+  return 1;
+}
+
+static int append_metadata_custom_struct_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  const char *fields_end = NULL;
+  const char *fields_start;
+  const char *fields_value;
+  const char *cursor;
+  int depth = 0;
+  uint32_t size = 0U;
+  int has_size = 0;
+  char name[64];
+  name[0] = '\0';
+  if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_number_field_local(object_start, object_end, "size", &size, &has_size)) {
+    return 0;
+  }
+  fields_value = json_find_key_local(object_start, object_end, "fields");
+  fields_value = fields_value != NULL ? json_skip_ws_local(fields_value, object_end) : NULL;
+  if (fields_value == NULL || fields_value >= object_end || *fields_value != '[') return 0;
+  fields_start = fields_value + 1;
+  for (cursor = fields_value; cursor < object_end; ++cursor) {
+    if (*cursor == '[') ++depth;
+    else if (*cursor == ']') {
+      --depth;
+      if (depth == 0) {
+        fields_end = cursor;
+        break;
+      }
+    }
+  }
+  if (name[0] == '\0' || !has_size || fields_start == NULL) return 0;
+  if (fields_end == NULL) return 0;
+  return policy_add_custom_struct_local(policy, name, size, fields_start, fields_end);
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
@@ -4995,6 +5110,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "custom_structs", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_custom_struct_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata custom struct");
+      return -1;
+    }
+    cursor = object_end;
+  }
   cursor = json_find_array_local(text, "manual_representations", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -5988,13 +6114,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         "\"entry_point_count\":%u,\"register_seed_count\":%u,"
         "\"structured_data_item_count\":%u,\"named_label_count\":%u,\"entry_comment_count\":%u,"
         "\"runtime_range_count\":%u,\"runtime_entry_point_count\":%u,\"rsset_layout_region_count\":%u,"
-        "\"manual_representation_count\":%u",
+        "\"manual_representation_count\":%u,\"custom_struct_count\":%u",
         (unsigned)policy->max_cpu, policy->disable_implicit_entry_points ? "false" : "true",
         (unsigned)policy->entry_point_count, (unsigned)policy->register_seed_count,
         (unsigned)policy->structured_data_item_count, (unsigned)policy->named_label_count,
         (unsigned)policy->entry_comment_count, (unsigned)policy->runtime_range_count,
         (unsigned)policy->runtime_entry_point_count, (unsigned)policy->rsset_layout_region_count,
-        (unsigned)policy->manual_representation_count) != 0)
+        (unsigned)policy->manual_representation_count, (unsigned)policy->custom_struct_count) != 0)
     return -1;
   if (json_builder_append(builder, ",\"entrypoints\":[") != 0) return -1;
   for (index = 0U; index < policy->entry_point_count && index < M68K_ANALYSIS_ENTRY_POINT_LIMIT; ++index) {
@@ -6172,6 +6298,36 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
     if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
       return -1;
+  }
+  if (json_builder_append(builder, "],\"custom_structs\":[") != 0) return -1;
+  for (index = 0U; policy->custom_structs != NULL && index < policy->custom_struct_count &&
+       index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++index) {
+    const M68kAnalysisCustomStruct *custom_struct = &policy->custom_structs[index];
+    uint16_t field_index;
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"name\":") != 0 ||
+        json_builder_append_json_string(builder, custom_struct->name) != 0 ||
+        json_builder_appendf(builder, ",\"size\":%u,\"fields\":[", (unsigned)custom_struct->size) != 0)
+      return -1;
+    for (field_index = 0U; field_index < custom_struct->field_count &&
+         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
+      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
+      if (field_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_append(builder, "{\"name\":") != 0 ||
+          json_builder_append_json_string(builder, field->name) != 0 ||
+          json_builder_append(builder, ",\"type\":") != 0 ||
+          append_nullable_text_json_local(builder, field->type_name) != 0 ||
+          json_builder_appendf(builder, ",\"offset\":%u,\"size\":%u,\"struct\":",
+            (unsigned)field->offset, (unsigned)field->size) != 0 ||
+          append_nullable_text_json_local(builder, field->struct_name) != 0 ||
+          json_builder_append(builder, ",\"pointer_struct\":") != 0 ||
+          append_nullable_text_json_local(builder, field->pointer_struct) != 0 ||
+          json_builder_append(builder, ",\"named_base\":") != 0 ||
+          append_nullable_text_json_local(builder, field->named_base) != 0 ||
+          json_builder_append(builder, "}") != 0)
+        return -1;
+    }
+    if (json_builder_append(builder, "]}") != 0) return -1;
   }
   if (json_builder_append(builder, "],\"target_equates\":[") != 0) return -1;
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
@@ -7488,6 +7644,7 @@ oom:
 static void platform_file_workflow_destroy(PlatformFileWorkflow *workflow) {
   if (workflow == NULL) return;
   if (workflow->analysis != NULL) m68k_ir_source_analysis_destroy(workflow->analysis);
+  if (workflow->analysis_policy != NULL) m68k_analysis_policy_destroy(workflow->analysis_policy);
   if (workflow->object_loaded) m68k_object_destroy(&workflow->object);
   arena_destroy(workflow->arena);
   memset(workflow, 0, sizeof(*workflow));
@@ -7507,8 +7664,9 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
     return result;
   }
   if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
-  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
   if (m68k_facts_v2_collect_source_analysis_profile(object, workflow.analysis_policy, workflow.profile,
       workflow.analysis,
       m68k_diag_sink(&result.diagnostics)) != 0) {
@@ -7544,8 +7702,9 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
   memset(&result, 0, sizeof(result));
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
-  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
   if (load_object_from_path(backend, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
   workflow.object_loaded = 1U;
@@ -7571,8 +7730,9 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
   memset(&result, 0, sizeof(result));
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
-  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
   if (load_raw_object_from_path(platform_name, path, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
   workflow.object_loaded = 1U;
@@ -7599,8 +7759,9 @@ PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *b
   memset(&result, 0, sizeof(result));
   memset(&workflow, 0, sizeof(workflow));
   if (platform_file_workflow_create(&workflow, &result.diagnostics) != 0) return result;
-  if (analysis_policy != NULL) *workflow.analysis_policy = *analysis_policy;
-  else m68k_analysis_policy_init_default(workflow.analysis_policy);
+  if (analysis_policy != NULL) {
+    if (m68k_analysis_policy_copy(workflow.analysis_policy, analysis_policy) != 0) goto cleanup;
+  } else m68k_analysis_policy_init_default(workflow.analysis_policy);
   if (load_object_from_buffer(backend, data, size, &workflow.object, m68k_diag_sink(&result.diagnostics)) != 0)
     goto cleanup;
   workflow.object_loaded = 1U;

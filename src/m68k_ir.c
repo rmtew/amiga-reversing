@@ -360,6 +360,33 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   policy->max_cpu = M68K_ASM_CPU_68060;
 }
 
+void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
+  if (policy == NULL) return;
+  if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
+  policy->custom_structs = NULL;
+  policy->custom_struct_count = 0U;
+  policy->custom_struct_capacity = 0U;
+  policy->custom_struct_owner = 0U;
+}
+
+int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src) {
+  uint16_t custom_struct_count;
+  M68kAnalysisCustomStruct *custom_structs = NULL;
+  if (dest == NULL || src == NULL) return -1;
+  custom_struct_count = src->custom_struct_count;
+  if (custom_struct_count != 0U) {
+    if (src->custom_structs == NULL || custom_struct_count > M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT) return -1;
+    custom_structs = (M68kAnalysisCustomStruct *)calloc(custom_struct_count, sizeof(*custom_structs));
+    if (custom_structs == NULL) return -1;
+    memcpy(custom_structs, src->custom_structs, (size_t)custom_struct_count * sizeof(*custom_structs));
+  }
+  *dest = *src;
+  dest->custom_structs = custom_structs;
+  dest->custom_struct_capacity = custom_struct_count;
+  dest->custom_struct_owner = custom_struct_count != 0U ? 1U : 0U;
+  return 0;
+}
+
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings) {
   if (findings == NULL) return;
 
@@ -2204,6 +2231,7 @@ void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis) {
   for (index = 0; index < source_analysis->section_count; ++index) {
     m68k_ir_section_analysis_destroy(&source_analysis->sections[index]);
   }
+  m68k_analysis_policy_destroy(&source_analysis->policy);
   arena_destroy(source_analysis->arena);
   memset(source_analysis, 0, sizeof(*source_analysis));
 }

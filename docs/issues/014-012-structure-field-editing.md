@@ -5,6 +5,18 @@ Scope:
 Add manual editing for custom structs, fields, typed accesses, and unresolved
 typed gaps.
 
+Post-`014-022` split:
+This issue consumes generic provenance from `014-010` when typed access or gap
+edits depend on where a base/register value came from. It owns custom
+struct/field resolver and rendered typed-field proof, not the generic
+provenance model itself.
+
+Accepted review state:
+Typed-field writes consume accepted `struct_pointer` provenance and must not
+execute from exploratory reports alone. This issue owns C resolver/render
+support, type-shape checks, rendered-field verification, and cleanup of owned
+propagated typed accesses.
+
 Current evidence:
 - Target metadata supports `custom_structs`.
 - Manual Action Log now supports `create_manual_custom_struct`,
@@ -39,11 +51,18 @@ Current evidence:
 - That pre-execution block is covered for target custom-struct commands,
   target custom-struct-field commands, typed-gap field commands, and typed-access
   field commands.
-- The C analysis policy currently imports target metadata for register seeds,
-  seeded entities, target equates, manual representations, execution views,
-  absolute labels, and Amiga RSSET layout regions, but has no `custom_structs`
-  import into the typed-reference resolver.
-- No verifier proves rendered typed field paths from custom struct metadata yet.
+- The C analysis policy imports target metadata `custom_structs`, deep-copies
+  heap-owned custom-struct policy state, and emits custom structs in effective
+  policy JSON.
+- Register-seed-backed custom struct fields now resolve through the C typed
+  resolver and render field paths such as `player_score(a0)` in source/listing
+  output.
+- No action-specific verifier proves rendered typed field paths from Manual
+  Action Log replay yet, so typed-field writes remain blocked until accepted
+  provenance, rendered-field proof, and owned cleanup are wired together.
+- Custom target struct names currently share the resolver namespace with
+  platform structs; platform names win on collision. Add explicit namespace
+  handling later if target structs need to shadow platform/NDK names.
 - Applying custom or platform structs inside arbitrary data blocks, and mixing
   those fields with ad hoc layout elements or interpreted references, is tracked
   by the `014-015-data-block-layout-and-reference-interpretation.md`
@@ -60,10 +79,34 @@ Current evidence:
   custom/platform type compatibility. A `rsset.binding.type_refine` command must
   block until rendered typed-field paths are proven and the chosen type shape
   reconciles with the bound field size and observed accesses.
+- Post-`014-022` provenance decisions require typed-field descendants to record
+  both consumed provenance `source_evidence_id` and field/edit `owner_action_id`
+  when they differ. Path-specific or conflicting provenance must block broad
+  typed-field propagation until a path/lifetime scope or manual classification
+  is selected.
 
 Acceptance criteria:
 - Struct and field identities are stable by namespace/name/offset and survive
   projection rebuilds.
+- Typed field application can consume accepted provenance evidence for
+  `struct_pointer` sources without re-solving provenance locally.
+- Typed field edits consume `struct_pointer` provenance by requiring the
+  selected typed access/gap or candidate to name an accepted
+  `source_evidence_id`, owner struct/type identity, path/lifetime scope, field
+  offset, observed access width, and existing field/gap state. Exploratory
+  provenance reports can suggest a field edit but cannot execute it.
+- C resolver/render path to prove before unblocking loop execution: import
+  `custom_structs` into the analysis policy, resolve custom fields alongside
+  platform/NDK fields, render selected and propagated custom field paths, and
+  expose unresolved/conflicting typed accesses when shape reconciliation fails.
+- Type-shape compatibility checks must compare selected field offset, access
+  width, storage kind, nested struct/array shape, platform/custom namespace,
+  and existing field overlap. Mismatches block propagation or create review
+  feedback; they must not silently emit typed facts.
+- Rendered-field verifier must prove Manual Action Log replay, effective
+  custom struct/field metadata, C semantic reload, rendered field path at the
+  selected access, exact round-trip, and cleanup of propagated typed accesses
+  by `owner_action_id` on remove/rename/clear.
 - Manual actions replay into effective metadata and rendered field references.
 - Commands cover typed-access and field-gap contexts.
 - Loop planner support covers explicit target custom-struct and typed-field

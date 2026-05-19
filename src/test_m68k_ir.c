@@ -3571,8 +3571,8 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68kFactsV2Profile profile;
   M68kRenderPlan source_plan;
   M68kRenderPlan listing_plan;
-  M68kSourceAnalysisIR source_analysis;
-  M68kSourceAnalysisIR listing_analysis;
+  M68kSourceAnalysisIR *source_analysis = NULL;
+  M68kSourceAnalysisIR *listing_analysis = NULL;
   char *source = NULL;
   char *plan_source = NULL;
   M68kFactsV2Profile listing_profile;
@@ -3589,9 +3589,12 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   section.data = bytes;
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
+  source_analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*source_analysis));
+  listing_analysis = (M68kSourceAnalysisIR *)calloc(1U, sizeof(*listing_analysis));
+  M68K_C_ASSERT(source_analysis != NULL && listing_analysis != NULL);
   m68k_analysis_policy_init_default(&policy);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, &source,
-    &source_plan, &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+    &source_plan, &profile, source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&source_plan, &plan_source));
   M68K_C_ASSERT_STR(source, plan_source);
@@ -3622,15 +3625,17 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
-    &listing_plan, &listing_profile, &listing_analysis, 1U, m68k_diag_sink(NULL)));
+    &listing_plan, &listing_profile, listing_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(listing_plan.row_count != 0U);
   M68K_C_ASSERT_U32(listing_profile.asm_source_bytes, listing_profile.asm_source_plan_bytes);
   M68K_C_ASSERT_U32(listing_profile.asm_source_lines, listing_profile.asm_source_plan_lines);
   m68k_render_plan_destroy(&listing_plan);
-  m68k_ir_source_analysis_destroy(&listing_analysis);
+  m68k_ir_source_analysis_destroy(listing_analysis);
+  free(listing_analysis);
   m68k_render_plan_free_text(plan_source);
   m68k_render_plan_destroy(&source_plan);
-  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_ir_source_analysis_destroy(source_analysis);
+  free(source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;

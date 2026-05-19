@@ -54,6 +54,9 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
+#define M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT 64U
+#define M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT 32U
+#define M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE 0x8000U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -302,6 +305,24 @@ typedef struct M68kAnalysisTargetEquate {
   int32_t value;
 } M68kAnalysisTargetEquate;
 
+typedef struct M68kAnalysisCustomStructField {
+  char name[64];
+  char type_name[64];
+  uint32_t offset;
+  uint32_t size;
+  char struct_name[64];
+  char pointer_struct[64];
+  char named_base[64];
+} M68kAnalysisCustomStructField;
+
+typedef struct M68kAnalysisCustomStruct {
+  char name[64];
+  uint32_t size;
+  uint16_t field_count;
+  uint16_t reserved;
+  M68kAnalysisCustomStructField fields[M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT];
+} M68kAnalysisCustomStruct;
+
 typedef struct M68kAnalysisManualRuntimeAddressRef {
   uint8_t has_section_index;
   uint8_t has_target;
@@ -337,6 +358,10 @@ typedef struct M68kAnalysisPolicy {
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
   uint16_t manual_runtime_address_ref_count;
+  uint16_t custom_struct_count;
+  uint16_t custom_struct_capacity;
+  uint8_t custom_struct_owner;
+  uint8_t reserved1[1];
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -350,6 +375,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
+  M68kAnalysisCustomStruct *custom_structs;
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {
@@ -1299,6 +1325,8 @@ void m68k_render_policy_init_default(M68kRenderPolicy *policy);
 void m68k_render_policy_init_for_syntax(M68kRenderPolicy *policy, uint8_t syntax_mode);
 int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
+void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);

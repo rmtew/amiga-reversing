@@ -997,6 +997,28 @@ class _M68kAnalysisManualRuntimeAddressRef(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisCustomStructField(ctypes.Structure):
+    _fields_ = [
+        ("name", ctypes.c_char * 64),
+        ("type_name", ctypes.c_char * 64),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("struct_name", ctypes.c_char * 64),
+        ("pointer_struct", ctypes.c_char * 64),
+        ("named_base", ctypes.c_char * 64),
+    ]
+
+
+class _M68kAnalysisCustomStruct(ctypes.Structure):
+    _fields_ = [
+        ("name", ctypes.c_char * 64),
+        ("size", ctypes.c_uint32),
+        ("field_count", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint16),
+        ("fields", _M68kAnalysisCustomStructField * 32),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -1015,6 +1037,10 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
         ("manual_runtime_address_ref_count", ctypes.c_uint16),
+        ("custom_struct_count", ctypes.c_uint16),
+        ("custom_struct_capacity", ctypes.c_uint16),
+        ("custom_struct_owner", ctypes.c_uint8),
+        ("reserved1", ctypes.c_uint8 * 1),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 64),
@@ -1028,6 +1054,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("manual_representations", _M68kAnalysisManualRepresentation * 128),
         ("target_equates", _M68kAnalysisTargetEquate * 128),
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
+        ("custom_structs", ctypes.POINTER(_M68kAnalysisCustomStruct)),
     ]
 
 
@@ -7675,6 +7702,23 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
                         "citation": "test",
                     }
                 ],
+                "custom_structs": [
+                    {
+                        "name": "Player",
+                        "size": 16,
+                        "fields": [
+                            {
+                                "name": "player_score",
+                                "type": "long",
+                                "offset": 8,
+                                "size": 4,
+                                "struct": None,
+                                "pointer_struct": None,
+                                "named_base": None,
+                            }
+                        ],
+                    }
+                ],
                 "resident": {"name": "icon.library", "version": 40, "offset": 0, "hunk": 0},
             }
         ),
@@ -7706,6 +7750,14 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert generic_policy.entry_comments[0].comment == b"loop head"
     assert generic_policy.entry_comments[1].offset == 0x2A
     assert generic_policy.entry_comments[1].comment == b"manual note"
+    assert generic_policy.custom_struct_count == 1
+    assert generic_policy.custom_structs[0].name == b"Player"
+    assert generic_policy.custom_structs[0].size == 16
+    assert generic_policy.custom_structs[0].field_count == 1
+    assert generic_policy.custom_structs[0].fields[0].name == b"player_score"
+    assert generic_policy.custom_structs[0].fields[0].type_name == b"long"
+    assert generic_policy.custom_structs[0].fields[0].offset == 8
+    assert generic_policy.custom_structs[0].fields[0].size == 4
 
     amiga_policy = _M68kAnalysisPolicy()
     amiga_diagnostics = M68kDiagList()
@@ -7729,7 +7781,91 @@ def test_generic_metadata_loader_omits_platform_specific_data(tmp_path: Path) ->
     assert amiga_policy.rsset_layout_regions[1].base_symbol == b"__game_work_base__"
     assert amiga_policy.rsset_layout_regions[1].sizeof_symbol == b"work_SIZEOF"
     assert amiga_policy.rsset_layout_regions[1].symbol == b"work_counter"
+    assert amiga_policy.custom_struct_count == 1
+    assert amiga_policy.custom_structs[0].fields[0].name == b"player_score"
     assert amiga_policy.named_label_count > 0
+
+
+def test_real_dll_custom_struct_seed_renders_typed_field(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "custom_struct.bin"
+    binary_path.write_bytes(bytes.fromhex("202800084e75"))
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata = {
+        "target_type": "raw_binary",
+        "entry_register_seeds": [
+            {
+                "entry_offset": None,
+                "hunk": 0,
+                "register": "A0",
+                "kind": "struct_ptr",
+                "note": "GamePlayer",
+                "struct_name": "GamePlayer",
+                "context_name": None,
+            }
+        ],
+        "custom_structs": [
+            {
+                "name": "GamePlayer",
+                "size": 16,
+                "fields": [
+                    {
+                        "name": "player_score",
+                        "type": "long",
+                        "offset": 8,
+                        "size": 4,
+                        "struct": None,
+                        "pointer_struct": None,
+                        "named_base": None,
+                    }
+                ],
+            }
+        ],
+    }
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind=BinarySourceKind.RAW_BINARY,
+            path=binary_path,
+            address_model=RawAddressModel.LOCAL_OFFSET,
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "custom_struct.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+
+    typed_accesses = combined["analysis"]["sections"][0]["recovered_platform_typed_accesses"]
+    assert typed_accesses == [
+        {
+            "offset": 0,
+            "operand_index": 0,
+            "base_register": "A0",
+            "displacement": 8,
+            "field_offset": 8,
+            "struct_size": 16,
+            "field_size": 4,
+            "root_struct_name": "GamePlayer",
+            "owner_struct_name": "GamePlayer",
+            "field_name": "player_score",
+            "field_expr": "player_score",
+            "inherited": 0,
+            "nested": 0,
+            "type_provenance_kind_id": 11,
+            "type_provenance_kind": "policy_seed",
+            "type_provenance_section": 0,
+            "type_provenance_offset": 0,
+        }
+    ]
+    assert any("player_score(a0)" in row["text"] for row in combined["listing"]["rows"])
+    assert any(
+        access["field_name"] == "player_score"
+        for row in combined["listing"]["rows"]
+        for access in row.get("typed_accesses", [])
+    )
 
 
 def test_real_dll_metadata_named_rsset_layout_preserves_explicit_size(tmp_path: Path) -> None:

@@ -9722,7 +9722,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   if (out_source_analysis != NULL) {
     if (m68k_ir_source_analysis_create(out_source_analysis) != 0) goto cleanup;
     out_source_analysis->file_kind = object->platform_file_kind;
-    if (policy != NULL) out_source_analysis->policy = *policy;
+    if (policy != NULL && m68k_analysis_policy_copy(&out_source_analysis->policy, policy) != 0) goto cleanup;
   }
   phase_start = clock();
   if (render_lookup_build(&lookup, object, decode, facts, policy) != 0) goto cleanup;
