@@ -76,7 +76,7 @@ Current audit result:
 | API/LVO/register semantics | Semantic/type | LVO rows, NDK library/function metadata, selected register/memory operand contexts, typed-access analysis | `create/remove_manual_semantic_hint`, `create/remove_manual_register_seed` | Consumes API/register evidence and can seed library bases, struct pointers, LVO/field symbols, typed args/returns, and stored state. | Register seed/hint id; future propagated args/returns/type-flow need owner identity and cleanup. | Semantic hint or register-seed state plus exact round-trip; broader type-flow verifier missing. | Evidence-scoped register lifetimes and API arg/return propagation in `014-010`. |
 | RSSET/app-slot regions and bindings | Semantic/type plus layout | App-slot refs, app-slot analysis, RSSET regions/gaps, raw displacement operand parts, register/base evidence | `create/remove_manual_rsset_layout_region`, `create/remove_manual_rsset_use_site_binding`; refine/type actions planned | Regions render `RS.*`; binding links selected numeric uses to a proven base/layout. Flow-equivalent same-displacement candidates are planned, not automatic. | Region identity `(layout_name, base_symbol, offset)`; binding id plus `owner_action_id` and future cascade ids for same-displacement/xref/type descendants. | RSSET region/binding state and exact round-trip; selected-use render only when existing field matches. | Flow-derived `base_evidence_id`, bind-refine, linked gaps, owned cascades. |
 | Custom structs and typed fields | Semantic/type | Custom struct metadata, typed gaps/accesses, NDK/platform structs, unresolved typed access analysis | `create/rename/remove_manual_custom_struct(_field)` via target/typed commands | Effective metadata can store structs/fields; the C resolver now consumes register-seed-backed custom structs for rendered field paths. | Struct name and `(struct_name, offset)` field identity; selected typed-field writes carry consumed `struct_pointer` provenance; propagated typed accesses need owner identity. | Selected typed-field commands now prove accepted provenance, metadata replay, rendered selected access, and exact round-trip. Target-wide metadata commands and propagated cleanup remain blocked. | Type-shape and cleanup in `014-012`. |
-| Data-block type/platform binding | Semantic/type | Data-block layouts/elements, custom/platform structs, enum/equate domains, parsed include data | Planned type/domain binding actions | Should propagate typed facts, rendered nested fields, review items, and interpreted field refs only after type shape reconciles. | Layout id + element offset + type-binding id; all derived facts owner-scoped. | Missing type-flow/review cleanup verifier. | `014-019` model and verifier proof. |
+| Data-block type/platform binding | Semantic/type | Data-block layouts/elements, custom/platform structs, enum/equate domains, parsed include data | Row bind/clear type commands for element-scoped bindings; nested/platform expansion remains planned | Should propagate typed facts, rendered nested fields, review items, and interpreted field refs only after type shape reconciles. | Layout id + element offset + type-binding id; active bindings stamp `owner_action_id`; all derived facts owner-scoped. | Bind/clear loop path verifies reload, rendered bound-type token proof, accepted consumed provenance where present, and exact round-trip; generated type-flow/review cleanup verifier remains missing. | `014-019` model and verifier proof. |
 | Corrections and execution views | Correction/view | Suppressible seeded metadata, target corrections, runtime/execution view evidence, reproduction mismatches | `suppress_seeded_item`, `create/remove_manual_execution_view` | Correct target-specific facts or runtime mapping. Importer/analyzer class bugs must remain upstream bugs. | Suppression `(kind,hunk,addr)` or execution-view identity; cleanup must not remove unrelated facts. | Suppressed-item or execution-view state plus exact round-trip. | Broader reproduction/view correction commands in `014-013`. |
 | Planner/autonomous feeds | Candidate surface | Inspect candidates, listing pages, navigation analysis, effective metadata, command availability | No private action; must route to catalog commands | Candidate feeds may propose only supported, verifier-backed edits. Report-only feeds are valid for unsupported semantic/type families. | Already-satisfied skips must use projected/effective state; generated candidates need source evidence identity. | Action-specific verifier required before non-dry execution. | Audit every new feed against this table before widening. |
 
@@ -287,6 +287,13 @@ Initial semantic/type reconciliation findings:
   the same as analysis reconciliation: custom structs and data-block type
   bindings still need C resolver/render consumption and verifiers before broad
   execution.
+- `014-019` now has a first gated data-block type-binding surface: row
+  bind/clear commands store durable element-scoped `type_binding` identity,
+  replay stamps the binding owner action, and loop execution requires semantic
+  reload, rendered bound-type token proof, exact round-trip, and accepted
+  provenance when a value source is consumed. Nested/platform expansion and
+  generated type-flow/review cleanup remain open until renderer and descendant
+  ownership proofs exist.
 - The C render/analysis lookup carries typed and platform flow state through a
   control-flow graph. Register seeds are applied at entry or seed offsets;
   platform state tracks app/library/hardware bases; typed state tracks struct
@@ -466,8 +473,9 @@ Post-review issue split checklist:
   consumption, type-shape compatibility, rendered verifier, and propagated
   typed-access cleanup.
 - `014-019`: keep data-block type/platform binding separate from scalar
-  layout/ref work; require type/domain identity, nested rendering, generated
-  review/type-flow ownership, and removal verification.
+  layout/ref work; first bind/clear support is identity/provenance/render
+  gated; nested rendering, generated review/type-flow ownership, and removal
+  verification for descendants remain the next boundary.
 - `014-013`, `014-014`, and `014-020`: preserve the non-semantic boundaries for
   corrections/views, data/global symbol workflows, and EQU definition display
   style unless those actions emit semantic facts.

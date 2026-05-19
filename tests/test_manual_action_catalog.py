@@ -232,6 +232,75 @@ def test_data_block_element_commands_infer_active_layout_identity() -> None:
     }
 
 
+def test_data_block_type_binding_commands_preserve_element_identity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x1430,
+        "end_offset": 0x1434,
+        "active_data_block_layout": {
+            "layout_id": "events",
+            "hunk": 0,
+            "source_start": 0x1400,
+            "source_end": 0x1480,
+        },
+        "active_data_block_element": {
+            "data_block_element_id": "events:30",
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "kind": "scalar",
+            "name": "event_ptr",
+            "representation": "hex",
+            "type_binding": {
+                "type_binding_id": "events:30:4:custom_struct:InputEvent",
+                "layout_id": "events",
+                "element_offset": 0x30,
+                "element_width": 4,
+                "binding_kind": "custom_struct",
+                "bound_type_id": "InputEvent",
+            },
+        },
+    }
+
+    actions = listing_row_action_catalog(row)
+    bind_action = next(action for action in actions if action["action_id"] == "row.data_block.element.bind_type")
+    clear_action = next(action for action in actions if action["action_id"] == "row.data_block.element.clear_type")
+    bind_kind, bind_payload = listing_catalog_manual_payload(
+        row,
+        "row.data_block.element.bind_type",
+        parameters={"binding_kind": "platform_struct", "type_id": "Node"},
+    )
+    clear_kind, clear_payload = listing_catalog_manual_payload(row, "row.data_block.element.clear_type")
+
+    assert bind_action["parameters"]["kind"] == "scalar"
+    assert clear_action["parameter_schema"]["required"] == []
+    assert bind_kind == "set_manual_data_block_element"
+    assert bind_payload == {
+        "data_block_element": {
+            "data_block_element_id": "events:30",
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "kind": "platform_struct",
+            "name": "event_ptr",
+            "representation": "hex",
+            "type_binding": {
+                "type_binding_id": "events:30:4:platform_struct:Node",
+                "layout_id": "events",
+                "element_offset": 0x30,
+                "element_width": 4,
+                "binding_kind": "platform_struct",
+                "bound_type_id": "Node",
+            },
+        }
+    }
+    assert clear_kind == "set_manual_data_block_element"
+    assert clear_payload["data_block_element"]["kind"] == "scalar"
+    assert clear_payload["data_block_element"]["previous_type_binding"]["bound_type_id"] == "InputEvent"
+    assert "type_binding" not in clear_payload["data_block_element"]
+
+
 def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
     row = {
         "kind": "data",

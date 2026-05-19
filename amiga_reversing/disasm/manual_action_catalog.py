@@ -1027,7 +1027,7 @@ def _data_block_element_parameter_schema(defaults: Mapping[str, object] | None =
                 "width": {"type": "integer", "minimum": 1},
                 "kind": {
                     "type": "string",
-                    "enum": ["scalar", "array", "padding", "gap", "raw"],
+                    "enum": ["scalar", "array", "struct", "platform_struct", "padding", "gap", "raw"],
                 },
                 "name": {"type": "string"},
                 "array_count": {"type": "integer", "minimum": 1},
@@ -1097,6 +1097,66 @@ def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | No
     )
 
 
+def _data_block_element_type_binding_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "width": {"type": "integer", "minimum": 1},
+                "kind": {"type": "string", "enum": ["struct", "platform_struct", "scalar", "array"]},
+                "binding_kind": {
+                    "type": "string",
+                    "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"],
+                },
+                "type_binding_id": {"type": "string"},
+                "type_id": {"type": "string"},
+                "domain_id": {"type": "string"},
+                "name": {"type": "string"},
+                "array_count": {"type": "integer", "minimum": 1},
+                "array_stride": {"type": "integer", "minimum": 1},
+                "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+                "source_evidence_id": {"type": "string"},
+                "source_family": {
+                    "type": "string",
+                    "enum": ["data_block_pointer", "struct_pointer", "constant_or_equ", "rsset_app_base"],
+                },
+                "source_evidence_status": {
+                    "type": "string",
+                    "enum": ["analysis_proven", "path_specific", "manual_classified", "manual_override"],
+                },
+                "requires_source_evidence": {"type": "boolean"},
+            },
+            "required": ["layout_id", "offset", "width", "binding_kind"],
+        },
+        defaults,
+    )
+
+
+def _data_block_element_type_clear_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
+    return _data_block_element_schema_with_inferred_identity(
+        {
+            "type": "object",
+            "properties": {
+                "layout_id": {"type": "string"},
+                "offset": {"type": "integer", "minimum": 0},
+                "width": {"type": "integer", "minimum": 1},
+                "kind": {
+                    "type": "string",
+                    "enum": ["scalar", "array", "struct", "platform_struct", "padding", "gap", "raw"],
+                },
+                "name": {"type": "string"},
+                "array_count": {"type": "integer", "minimum": 1},
+                "array_stride": {"type": "integer", "minimum": 1},
+                "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+            },
+            "required": ["layout_id", "offset", "width", "kind"],
+        },
+        defaults,
+    )
+
+
 def _data_block_element_ref_remove_parameter_schema(defaults: Mapping[str, object] | None = None) -> dict[str, object]:
     schema = _data_block_element_schema_with_inferred_identity(
         {
@@ -1128,7 +1188,7 @@ def _data_block_element_schema_with_inferred_identity(
     required = schema.get("required")
     if not isinstance(required, list):
         return schema
-    inferred = {key for key in ("layout_id", "offset", "width") if key in defaults}
+    inferred = {key for key in ("layout_id", "offset", "width", "kind") if key in defaults}
     schema["required"] = [key for key in required if key not in inferred]
     return schema
 
@@ -1180,6 +1240,30 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
                 if key in {"layout_id", "offset", "data_block_ref_id", "reference_kind", "target_hunk", "target_offset"}
             },
             _data_block_element_ref_remove_parameter_schema(ref_defaults),
+        ),
+        _context_log_action(
+            "row.data_block.element.bind_type",
+            "Bind data-block element type",
+            "set_manual_data_block_element",
+            context,
+            {
+                key: value
+                for key, value in defaults.items()
+                if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
+            },
+            _data_block_element_type_binding_parameter_schema(defaults),
+        ),
+        _context_log_action(
+            "row.data_block.element.clear_type",
+            "Clear data-block element type",
+            "set_manual_data_block_element",
+            context,
+            {
+                key: value
+                for key, value in defaults.items()
+                if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
+            },
+            _data_block_element_type_clear_parameter_schema(defaults),
         ),
     ]
 
@@ -1408,6 +1492,14 @@ def listing_catalog_manual_payload(
         }
     if ui_action == "create_manual_data_block_layout":
         return "create_manual_data_block_layout", {"data_block_layout": _data_block_layout_payload([row], params)}
+    if action_id == "row.data_block.element.bind_type":
+        return "set_manual_data_block_element", {
+            "data_block_element": _data_block_element_type_binding_payload([row], params)
+        }
+    if action_id == "row.data_block.element.clear_type":
+        return "set_manual_data_block_element", {
+            "data_block_element": _data_block_element_clear_type_payload([row], params)
+        }
     if ui_action == "set_manual_data_block_element":
         return "set_manual_data_block_element", {"data_block_element": _data_block_element_payload([row], params)}
     if ui_action == "remove_manual_data_block_element":
@@ -3151,7 +3243,23 @@ def _data_block_element_context(rows: list[Mapping[str, object]]) -> dict[str, o
         source_end = _optional_int(last.get("addr"))
     if hunk != layout_hunk or source_end is None or source_start < layout_start or source_end > layout_end:
         return {}
-    return {"layout_id": layout_id, "offset": source_start - layout_start, "width": source_end - source_start}
+    context: dict[str, object] = {"layout_id": layout_id, "offset": source_start - layout_start, "width": source_end - source_start}
+    active_element = _active_data_block_element(first, context)
+    if active_element is not None:
+        for key in (
+            "width",
+            "kind",
+            "name",
+            "array_count",
+            "array_stride",
+            "representation",
+            "type_binding",
+            "provenance",
+        ):
+            value = active_element.get(key)
+            if value is not None:
+                context[key] = value
+    return context
 
 
 def _active_data_block_layout(row: Mapping[str, object]) -> Mapping[str, object] | None:
@@ -3183,6 +3291,31 @@ def _active_data_block_layout(row: Mapping[str, object]) -> Mapping[str, object]
             and end <= layout_end
         ):
             matches.append(layout)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _active_data_block_element(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+) -> Mapping[str, object] | None:
+    for key in ("active_data_block_element", "data_block_element"):
+        element = row.get(key)
+        if isinstance(element, Mapping):
+            return element
+    elements = row.get("data_block_elements")
+    if not isinstance(elements, list | tuple):
+        return None
+    layout_id = context.get("layout_id")
+    offset = context.get("offset")
+    matches: list[Mapping[str, object]] = []
+    for element in elements:
+        if not isinstance(element, Mapping):
+            continue
+        if layout_id is not None and element.get("layout_id") != layout_id:
+            continue
+        if offset is not None and _optional_int(element.get("offset")) != offset:
+            continue
+        matches.append(element)
     return matches[0] if len(matches) == 1 else None
 
 
@@ -3262,6 +3395,74 @@ def _data_block_element_payload(rows: list[Mapping[str, object]], params: Mappin
         value = _optional_int(params.get(field_name))
         if value is not None:
             element[field_name] = value
+    return element
+
+
+def _data_block_element_type_binding_payload(
+    rows: list[Mapping[str, object]],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    element = _data_block_element_payload(rows, params)
+    binding_kind = str(params.get("binding_kind") or "").strip()
+    if binding_kind not in {"custom_struct", "platform_struct", "enum_domain", "equate_domain"}:
+        raise ValueError("bind data-block element type requires binding_kind")
+    type_id = str(params.get("type_id") or "").strip()
+    domain_id = str(params.get("domain_id") or "").strip()
+    bound_id_key = "bound_domain_id" if binding_kind.endswith("_domain") else "bound_type_id"
+    bound_id = domain_id if binding_kind.endswith("_domain") else type_id
+    if not bound_id:
+        raise ValueError("bind data-block element type requires type_id or domain_id")
+    width = cast(int, element["width"])
+    offset = cast(int, element["offset"])
+    layout_id = cast(str, element["layout_id"])
+    binding: dict[str, object] = {
+        "type_binding_id": str(
+            params.get("type_binding_id") or f"{layout_id}:{offset:X}:{width}:{binding_kind}:{bound_id}"
+        ),
+        "layout_id": layout_id,
+        "element_offset": offset,
+        "element_width": width,
+        "binding_kind": binding_kind,
+        bound_id_key: bound_id,
+    }
+    array_count = _optional_int(params.get("array_count") or element.get("array_count"))
+    if array_count is not None:
+        binding["array_count"] = array_count
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "requires_source_evidence",
+        "contradicted_evidence_id",
+        "reason",
+    ):
+        value = params.get(key)
+        if value is not None:
+            binding[key] = value
+    for key in ("path_lifetime_scope", "conflicts"):
+        value = params.get(key)
+        if isinstance(value, dict | list):
+            binding[key] = value
+    if binding_kind == "custom_struct":
+        element["kind"] = "struct"
+    elif binding_kind == "platform_struct":
+        element["kind"] = "platform_struct"
+    elif element.get("kind") == "raw":
+        element["kind"] = "scalar"
+    element["type_binding"] = binding
+    return element
+
+
+def _data_block_element_clear_type_payload(
+    rows: list[Mapping[str, object]],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    context = _data_block_element_context(rows)
+    element = _data_block_element_payload(rows, params)
+    previous = context.get("type_binding")
+    if isinstance(previous, Mapping):
+        element["previous_type_binding"] = dict(previous)
+    element.pop("type_binding", None)
     return element
 
 

@@ -2844,6 +2844,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
             "range.data_block.element.remove",
             "row.data_block.element.represent",
             "range.data_block.element.represent",
+            "row.data_block.element.bind_type",
+            "row.data_block.element.clear_type",
         }
         for action in actions
     ):
@@ -2985,7 +2987,17 @@ def _verify_manual_mutation(
         "range.data_block.element.remove",
         "row.data_block.element.represent",
         "range.data_block.element.represent",
+        "row.data_block.element.bind_type",
+        "row.data_block.element.clear_type",
     }:
+        if command_id in {"row.data_block.element.bind_type", "row.data_block.element.clear_type"}:
+            return _verify_data_block_type_binding_mutation(
+                target_id,
+                command,
+                str(command_id),
+                durable_result,
+                project_root=project_root,
+            )
         return _verify_data_block_element_mutation(
             target_id,
             command,
@@ -3559,6 +3571,31 @@ def _verify_data_block_element_mutation(
     return {"status": status, "layers": layers}
 
 
+def _verify_data_block_type_binding_mutation(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _data_block_element_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_data_block_element(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_data_block_type_binding_rendered_source(
+            target_id,
+            command,
+            command_id,
+            expected,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
 def _verify_custom_struct_field_mutation(
     target_id: str,
     command: dict[str, object],
@@ -4119,6 +4156,109 @@ def _verify_projected_data_block_rendered_source(
         "affected_rendered_text": affected_rendered_text,
         "rendered_text": rendered_text,
     }
+
+
+def _verify_projected_data_block_type_binding_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing data block type-binding payload"}
+    render_expected = _project_data_block_element_state_match(
+        target_id,
+        command_id,
+        expected,
+        project_root=project_root,
+    ) or expected
+    location = _data_block_render_location(target_id, command, render_expected, project_root=project_root)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "data block type-binding source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["8"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    rendered_text = "\n".join(
+        " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
+        for row in rows
+        if isinstance(row, dict)
+    )
+    affected_rendered_text = "\n".join(_data_block_rendered_source_text(row) for row in affected_rows)
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "affected listing row missing after reload",
+            "rendered_text": rendered_text,
+        }
+    expected_tokens = _data_block_type_binding_tokens(render_expected)
+    if command_id.endswith(".clear_type"):
+        if not expected_tokens:
+            return {
+                "layer": "rendered_source",
+                "status": "failed",
+                "source_offset": source_offset,
+                "message": "clear_type requires previous type-binding render token",
+                "affected_rendered_text": affected_rendered_text,
+                "rendered_text": rendered_text,
+            }
+        stale_tokens = [
+            token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+        ]
+        return {
+            "layer": "rendered_source",
+            "status": "passed" if not stale_tokens else "failed",
+            "source_offset": source_offset,
+            "stale_tokens": stale_tokens,
+            "affected_rendered_text": affected_rendered_text,
+            "rendered_text": rendered_text,
+        }
+    matched_tokens = [token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)]
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if expected_tokens and len(matched_tokens) == len(expected_tokens) else "failed",
+        "source_offset": source_offset,
+        "expected_tokens": expected_tokens,
+        "matched_tokens": matched_tokens,
+        "affected_rendered_text": affected_rendered_text,
+        "rendered_text": rendered_text,
+    }
+
+
+def _data_block_type_binding_tokens(expected: dict[str, object]) -> list[str]:
+    binding = expected.get("type_binding")
+    if not isinstance(binding, dict):
+        binding = expected.get("previous_type_binding")
+    if not isinstance(binding, dict):
+        return []
+    tokens = [
+        value
+        for value in (
+            binding.get("bound_type_id"),
+            binding.get("bound_domain_id"),
+        )
+        if isinstance(value, str) and value
+    ]
+    return list(dict.fromkeys(tokens))
 
 
 def _verify_projected_custom_struct_field_rendered_source(
@@ -5923,6 +6063,10 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
                 command
             ):
                 return None
+            if raw_command_id == "row.data_block.element.bind_type" and not _data_block_type_command_has_required_evidence(
+                command
+            ):
+                return None
     verifier = candidate.get("default_verifier")
     if isinstance(verifier, str) and verifier:
         if command_id is not None and not _candidate_advertises_command(candidate, command_id):
@@ -5946,6 +6090,31 @@ def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]
     scope = evidence.get("path_lifetime_scope")
     conflicts = evidence.get("conflicts")
     if source_family != "struct_pointer":
+        return False
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return False
+    if not isinstance(scope, dict) or not scope.get("kind"):
+        return False
+    if isinstance(conflicts, list) and conflicts and status != "manual_override":
+        return False
+    if status == "manual_override":
+        return bool(evidence.get("contradicted_evidence_id")) and bool(evidence.get("reason"))
+    return True
+
+
+def _data_block_type_command_has_required_evidence(command: dict[str, object]) -> bool:
+    params = command.get("parameters")
+    requires = params.get("requires_source_evidence") if isinstance(params, dict) else None
+    evidence = _find_source_evidence_payload(command)
+    if requires is not True and evidence is None:
+        return True
+    if evidence is None:
+        return False
+    source_family = evidence.get("source_family") or evidence.get("evidence_source_family")
+    status = evidence.get("source_evidence_status") or evidence.get("evidence_status") or evidence.get("status")
+    scope = evidence.get("path_lifetime_scope")
+    conflicts = evidence.get("conflicts")
+    if source_family not in {"data_block_pointer", "struct_pointer", "constant_or_equ", "rsset_app_base"}:
         return False
     if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
         return False

@@ -421,7 +421,16 @@ def test_output_affecting_action_runs_round_trip_layer(
         (
             "row.data_block.element.bind_type",
             {"kind": "row"},
-            {"layout_id": "ascii-hex", "offset": 0, "type_id": "InputEvent"},
+            {
+                "layout_id": "ascii-hex",
+                "offset": 0,
+                "type_id": "InputEvent",
+                "binding_kind": "custom_struct",
+                "requires_source_evidence": True,
+                "source_evidence_id": "prov-1",
+                "source_family": "struct_pointer",
+                "source_evidence_status": "reported",
+            },
         ),
     ],
 )
@@ -911,6 +920,164 @@ def test_run_one_data_block_element_executes_with_element_state_verifier(
     assert report["verification"]["layers"][2]["layer"] == "rendered_source"
     assert report["verification"]["layers"][2]["matched_tokens"] == ["digits", "dc.b", "'"]
     assert report["action"]["command_id"] == "row.data_block.element.set"
+
+
+def test_run_one_data_block_type_binding_requires_rendered_type_proof(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x24)
+    type_binding = {
+        "type_binding_id": "events:30:4:platform_struct:Node",
+        "layout_id": "events",
+        "element_offset": 0x30,
+        "element_width": 4,
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "source_evidence_id": "prov-1",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+        "owner_action_id": "manual-1",
+    }
+    element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "platform_struct",
+        "type_binding": type_binding,
+    }
+    selected = {
+        "work_item": {
+            "id": "data-block-type-binding",
+            "kind": "data_block_type_binding",
+            "locator": locator,
+            "suggested_action_kinds": ["row.data_block.element.bind_type"],
+            "confidence": "high",
+            "actionable": True,
+        },
+        "command": {
+            "kind": "command",
+            "command_id": "row.data_block.element.bind_type",
+            "context": {"kind": "row", "locator": locator},
+            "parameters": {
+                "layout_id": "events",
+                "offset": 0x30,
+                "width": 4,
+                "binding_kind": "platform_struct",
+                "type_id": "Node",
+                "source_evidence_id": "prov-1",
+                "source_family": "data_block_pointer",
+                "source_evidence_status": "analysis_proven",
+                "path_lifetime_scope": {"kind": "global"},
+                "requires_source_evidence": True,
+            },
+            "output_affecting": True,
+        },
+    }
+    assert reversing_loop._candidate_verifier(selected["work_item"], selected["command"]) == "data_block_element_state"
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_elements": [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "row.data_block.element.bind_type"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            assert isinstance(body, dict)
+            assert body["command_id"] == "row.data_block.element.bind_type"
+            _write_manual_log(tmp_path)
+            return {"data": _executed_data_block_element_payload(tmp_path, element)}
+        if method == "GET" and path.endswith("/listing"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            kind="data",
+                            text="event_node:\n\tNode.b $00,$00,$00,$00\n",
+                            start_offset=0x20,
+                            end_offset=0x24,
+                        )
+                    ]
+                }
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["verification"]["status"] == "passed", report["verification"]
+    assert report["verification"]["layers"][1]["source_evidence_id"] == "prov-1"
+    assert report["verification"]["layers"][3]["matched_tokens"] == ["Node"]
+    assert report["action"]["command_id"] == "row.data_block.element.bind_type"
+
+
+def test_data_block_clear_type_verifier_requires_previous_binding_token(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x24)
+    element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "scalar",
+    }
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.clear_type",
+        "context": {"kind": "row", "locator": locator},
+        "parameters": dict(element),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_elements": [element]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            kind="data",
+                            text="\tdc.l $00000000\n",
+                            start_offset=0x20,
+                            end_offset=0x24,
+                        )
+                    ]
+                }
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+    _write_manual_log(tmp_path)
+
+    report = reversing_loop._verify_data_block_type_binding_mutation(
+        "demo",
+        command,
+        "row.data_block.element.clear_type",
+        _executed_data_block_element_payload(tmp_path, element),
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "failed"
+    assert report["layers"][2]["message"] == "clear_type requires previous type-binding render token"
 
 
 @pytest.mark.parametrize(

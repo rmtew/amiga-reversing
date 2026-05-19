@@ -1165,7 +1165,36 @@ def _validated_data_block_element(element: dict[str, object], layouts: dict[str,
         raise ValueError("data_block_element array_count must be positive")
     if array_stride is not None and array_stride <= 0:
         raise ValueError("data_block_element array_stride must be positive")
+    type_binding = element.get("type_binding")
+    if type_binding is not None:
+        _validated_data_block_type_binding(type_binding, element)
     return dict(element)
+
+
+def _validated_data_block_type_binding(type_binding: object, element: dict[str, object]) -> None:
+    if not isinstance(type_binding, dict):
+        raise ValueError("data_block_element type_binding must be an object")
+    binding_kind = type_binding.get("binding_kind")
+    if binding_kind not in {"custom_struct", "platform_struct", "enum_domain", "equate_domain"}:
+        raise ValueError("data_block_element type_binding requires supported binding_kind")
+    bound_type_id = type_binding.get("bound_type_id")
+    bound_domain_id = type_binding.get("bound_domain_id")
+    if binding_kind in {"custom_struct", "platform_struct"} and (
+        not isinstance(bound_type_id, str) or not bound_type_id
+    ):
+        raise ValueError("data_block_element type_binding requires bound_type_id")
+    if binding_kind in {"enum_domain", "equate_domain"} and (
+        not isinstance(bound_domain_id, str) or not bound_domain_id
+    ):
+        raise ValueError("data_block_element type_binding requires bound_domain_id")
+    if type_binding.get("layout_id") != element.get("layout_id"):
+        raise ValueError("data_block_element type_binding layout_id must match element")
+    if _manual_seed_int(type_binding, "element_offset") != _manual_seed_int(element, "offset"):
+        raise ValueError("data_block_element type_binding element_offset must match element")
+    if _manual_seed_int(type_binding, "element_width") != _manual_seed_int(element, "width"):
+        raise ValueError("data_block_element type_binding element_width must match element")
+    if not isinstance(type_binding.get("type_binding_id"), str) or not type_binding.get("type_binding_id"):
+        raise ValueError("data_block_element type_binding requires type_binding_id")
 
 
 def _representation_data_block_element(action: _ManualAction, elements: dict[tuple[str, int], dict[str, object]]) -> dict[str, object]:
@@ -1687,6 +1716,12 @@ def _project_actions(
                     removed_data_block_interpreted_refs[ref_id] = removed_ref
         elif action.kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
             element = _validated_data_block_element(_action_object(action, "data_block_element"), data_block_layouts)
+            type_binding = element.get("type_binding")
+            if isinstance(type_binding, dict):
+                element = dict(element)
+                binding = dict(type_binding)
+                binding["owner_action_id"] = action.action_id
+                element["type_binding"] = binding
             element_key = _data_block_element_key(element)
             removed_data_block_elements.pop(element_key, None)
             data_block_elements[element_key] = element
