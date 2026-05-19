@@ -39,6 +39,11 @@ Current implementation:
   by `source_id=manual_action_log` and `source_locator=type_binding_id`, proving
   active bindings have binding-owned rendered descendants and clear-type removes
   descendants from the cleared binding id.
+- Planner command availability for `row.data_block.element.bind_type` and
+  `row.data_block.element.clear_type` now requires the refreshed catalog entry
+  to match the selected data-block element identity `(layout_id, offset,
+  width)`. A stale type-binding candidate can no longer borrow availability
+  from a different element row.
 - Effective metadata expands accepted custom-struct data-block bindings into
   typed structured-data field entities. The C policy loader now preserves
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and
@@ -99,6 +104,10 @@ Acceptance criteria:
 - Removal verifier must prove the binding is gone, all owned descendants are
   gone, unrelated scalar layout/interpreted refs/independent type bindings
   remain, and exact rebuild still passes.
+- Availability checks already enforce selected data-block element identity for
+  bind/clear commands. Future type-flow/review propagation must preserve that
+  element identity plus the type-binding owner id and consumed
+  `source_evidence_id`.
 - Replay reloads type bindings and domains exactly.
 - Type-flow verifier proves supported propagated facts or expected review
   items.

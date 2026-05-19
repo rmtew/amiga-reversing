@@ -1366,7 +1366,16 @@ def test_run_one_data_block_type_binding_requires_rendered_type_proof(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "row.data_block.element.bind_type"}]}}
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "row.data_block.element.bind_type",
+                            "parameters": {"layout_id": "events", "offset": 0x30, "width": 4},
+                        }
+                    ]
+                }
+            }
         if method == "POST" and path.endswith("/commands/execute"):
             assert isinstance(body, dict)
             assert body["command_id"] == "row.data_block.element.bind_type"
@@ -1395,6 +1404,40 @@ def test_run_one_data_block_type_binding_requires_rendered_type_proof(
     assert report["verification"]["layers"][1]["source_evidence_id"] == "prov-1"
     assert report["verification"]["layers"][3]["matched_tokens"] == ["Node"]
     assert report["action"]["command_id"] == "row.data_block.element.bind_type"
+
+
+def test_data_block_type_availability_requires_matching_element_identity() -> None:
+    command = {
+        "command_id": "row.data_block.element.bind_type",
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "binding_kind": "platform_struct",
+            "type_id": "Node",
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "row.data_block.element.bind_type",
+                "parameters": {"layout_id": "events", "offset": 0x34, "width": 4},
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters = cast(dict[str, object], command["parameters"])
+    del command_parameters["width"]
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters["width"] = 4
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters["offset"] = 0x30
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
 def test_data_block_type_binding_verifier_requires_binding_owner_action(

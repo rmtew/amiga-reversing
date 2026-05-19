@@ -6767,6 +6767,8 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
             entry,
             ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
         )
+    if command_id in {"row.data_block.element.bind_type", "row.data_block.element.clear_type"}:
+        return _catalog_entry_parameters_match(command, entry, ("layout_id", "offset", "width"))
     return True
 
 

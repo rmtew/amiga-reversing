@@ -1008,6 +1008,12 @@ least require active bindings to project seeded descendants with
 `source_locator=type_binding_id` and clear-type to remove descendants with the
 cleared binding id.
 
+Implementation observation from `014-006`/`014-019`: data-block type bind/clear
+availability must compare the selected element identity `(layout_id, offset,
+width)` against the refreshed catalog entry. The command catalog does not choose
+the bound type or provenance evidence, but it must still prevent a stale
+type-binding candidate from executing against a different data-block element.
+
 Implementation observation from the `014-018` guard slice: interpreted data
 references must not become output-affecting from target intent alone. Durable
 actions carry decoded selected source bytes as `source_value`, and replay must
