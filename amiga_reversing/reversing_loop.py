@@ -3111,14 +3111,22 @@ def _consumed_provenance_evidence(
 
 
 def _command_consumed_source_evidence_id(command: dict[str, object]) -> str | None:
+    evidence = _command_source_evidence_payload(command)
+    if evidence is None:
+        return None
+    evidence_id = evidence.get("source_evidence_id")
+    return evidence_id if isinstance(evidence_id, str) and evidence_id else None
+
+
+def _command_source_evidence_payload(command: dict[str, object]) -> dict[str, object] | None:
     evidence_id = command.get("source_evidence_id")
     if isinstance(evidence_id, str) and evidence_id:
-        return evidence_id
+        return command
     parameters = command.get("parameters")
     if isinstance(parameters, dict):
         evidence_id = parameters.get("source_evidence_id")
         if isinstance(evidence_id, str) and evidence_id:
-            return evidence_id
+            return cast(dict[str, object], parameters)
     return None
 
 
@@ -6322,7 +6330,7 @@ def _is_typed_field_command_id(command_id: str) -> bool:
 
 
 def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]) -> bool:
-    evidence = _find_source_evidence_payload(command)
+    evidence = _command_source_evidence_payload(command)
     if evidence is None:
         return False
     source_family = evidence.get("source_family") or evidence.get("evidence_source_family")
@@ -6391,7 +6399,7 @@ def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:
 def _data_block_type_command_has_required_evidence(command: dict[str, object]) -> bool:
     params = command.get("parameters")
     requires = params.get("requires_source_evidence") if isinstance(params, dict) else None
-    evidence = _find_source_evidence_payload(command)
+    evidence = _command_source_evidence_payload(command)
     if requires is not True and evidence is None:
         return True
     if evidence is None:

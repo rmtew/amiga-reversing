@@ -650,6 +650,12 @@ must run immediately before non-dry execution, not only during planner
 selection. Tests can force selections, and stale reports can carry commands
 whose verifier support has since been removed.
 
+Implementation observation from `014-006`/`014-012`/`014-019`:
+pre-execution provenance gates must distinguish consumed evidence from cleanup
+evidence. Direct command/parameter `source_evidence_id` is the write input;
+nested cleanup scopes may mention older evidence but cannot satisfy the accepted
+provenance prerequisite for typed-field or data-block type writes.
+
 Implementation observation from `014-006`: already-satisfied checks for rename
 commands must compare projected state to the requested new identity. Comparing
 all command parameters treats `previous_name` as required future state and can

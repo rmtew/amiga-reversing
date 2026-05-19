@@ -118,6 +118,9 @@ Progress:
   not executable edits. Report-only options are summarized with
   `execution_policy=report_only`, skipped before selection, and blocked again
   if a stale selected command or catalog entry reaches non-dry execution.
+- Provenance-backed planner gates now read only the command's direct consumed
+  evidence fields. Nested cleanup-scope evidence ids cannot satisfy typed-field
+  or data-block type write prerequisites.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

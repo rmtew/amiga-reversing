@@ -4861,6 +4861,36 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
     assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
 
 
+def test_typed_field_command_does_not_accept_cleanup_scope_as_consumed_evidence() -> None:
+    command = {
+        "kind": "command",
+        "command_id": "typed_gap.field.add",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(),
+            "element_id": "row-1:typed_gap:1:A0:36",
+            "element_kind": "typed_gap",
+            "operand_index": 1,
+            "base_register": "A0",
+            "displacement": 36,
+        },
+        "parameters": {
+            "struct_name": "DerivedEvent",
+            "offset": 36,
+            "name": "de_Code",
+            "type": "UWORD",
+            "size": 2,
+            "cleanup_scope": {
+                "kind": "owned_descendants",
+                **_accepted_struct_pointer_evidence(),
+            },
+        },
+        "output_affecting": True,
+    }
+
+    assert reversing_loop._candidate_verifier({}, command) is None
+
+
 def test_typed_field_command_rejects_selected_access_width_mismatch() -> None:
     evidence = _accepted_struct_pointer_evidence()
     candidate = {
@@ -5005,6 +5035,31 @@ def test_manual_override_data_block_type_requires_cleanup_scope_before_execution
 
     assert command["parameters"]["cleanup_scope"] == cleanup_scope
     assert reversing_loop._candidate_verifier(candidate, command) == "data_block_element_state"
+
+
+def test_data_block_type_command_does_not_accept_cleanup_scope_as_consumed_evidence() -> None:
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.bind_type",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {
+            "layout_id": "layout-1",
+            "offset": 0,
+            "binding_kind": "custom_struct",
+            "type_id": "InputEvent",
+            "requires_source_evidence": True,
+            "cleanup_scope": {
+                "kind": "owned_descendants",
+                "source_evidence_id": "prov-old",
+                "source_family": "data_block_pointer",
+                "source_evidence_status": "analysis_proven",
+                "path_lifetime_scope": {"kind": "global"},
+            },
+        },
+        "output_affecting": True,
+    }
+
+    assert reversing_loop._candidate_verifier({}, command) is None
 
 
 def test_typed_field_candidate_skips_already_projected_field() -> None:
