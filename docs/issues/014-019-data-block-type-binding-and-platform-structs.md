@@ -7,6 +7,17 @@ Bind data block elements to custom/platform types, enum/equate domains, arrays,
 nested structs, and type-flow effects. This follows scalar layout rendering and
 depends on rendered typed-field verifier proof from `014-012`.
 
+Post-`014-022` split:
+This issue consumes generic provenance from `014-010` for data-block pointer
+sources and uses the source-family/evidence model rather than inventing a
+separate type-binding provenance system.
+
+Accepted review state:
+Data-block type/platform binding consumes accepted provenance where value
+source matters and must not execute from exploratory reports alone. Generated
+type-flow/review descendants require consumed `source_evidence_id` plus
+type-binding `owner_action_id`.
+
 Current implementation:
 - Row catalog exposes `row.data_block.element.bind_type` and
   `row.data_block.element.clear_type` through the existing data-block element
@@ -22,8 +33,14 @@ Current implementation:
   `rsset_app_base` evidence with lifetime scope; verification proves reload,
   rendered type token presence/absence, provenance consumption where present,
   and exact round-trip.
-- Nested/platform field expansion, generated type-flow facts/review items, and
-  owner-scoped descendant cleanup remain open.
+- Effective metadata expands accepted custom-struct data-block bindings into
+  typed structured-data field entities. The C policy loader now preserves
+  `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and
+  `value_domain` from seeded entities so the existing renderer emits typed
+  field comments while exact bytes and round-trip stay unchanged.
+- Custom-struct expansion covers explicit gaps and arrays when the bound shape
+  fits the element width. Platform struct/domain expansion, generated type-flow
+  facts/review items, and owner-scoped descendant cleanup remain open.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.
@@ -43,9 +60,31 @@ Requirements:
   previous scalar/layout rendering remains valid.
 - Compose with RSSET/app-slot refinement where a layout element identifies a
   base-relative field.
+- Consume accepted `data_block_pointer`, `struct_pointer`, `constant_or_equ`,
+  or `rsset_app_base` provenance evidence where type binding depends on a
+  value's source. Generated type-flow/review descendants should carry consumed
+  `source_evidence_id` plus the type-binding `owner_action_id`.
+- Block propagation on path-specific/conflicting provenance until the user
+  selects a path/lifetime scope or records a manual classification/override.
 
 Acceptance criteria:
 - Render verifier proves custom/platform typed-field paths before loop use.
+- Type binding consumes accepted provenance evidence where applicable and does
+  not treat exploratory provenance reports as write authority.
+- Type/domain binding identity should include layout id, element offset,
+  element width/count, binding kind, bound custom/platform type or domain id,
+  consumed `source_evidence_id` when value source matters, and the generating
+  `owner_action_id`.
+- Nested/platform struct rendering must use parsed platform/KB ids or target
+  custom struct identities, not copied include text. Rendering should preserve
+  scalar layout bytes, expand fields only where type shape covers the element,
+  and keep gaps/padding explicit.
+- Generated type-flow/review descendants must be owner-scoped: propagated
+  pointer/base facts, nested field refs, interpreted field refs, xrefs, and
+  ambiguity review items carry the binding owner and consumed evidence id.
+- Removal verifier must prove the binding is gone, all owned descendants are
+  gone, unrelated scalar layout/interpreted refs/independent type bindings
+  remain, and exact rebuild still passes.
 - Replay reloads type bindings and domains exactly.
 - Type-flow verifier proves supported propagated facts or expected review
   items.

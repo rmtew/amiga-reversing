@@ -3479,6 +3479,133 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_data_block_custom_struct_binding_expands_fields_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-custom-struct.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.w $4AFC
+    dc.l $00000008
+after_data:
+    rts
+    nop
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    records = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a1",
+            "sequence": 1,
+            "created_at": "2026-05-18T00:00:01+00:00",
+            "kind": "create_manual_custom_struct",
+            "custom_struct": {
+                "custom_struct_id": "DataHeader",
+                "name": "DataHeader",
+                "size": 6,
+                "fields": [
+                    {"name": "magic", "type": "UWORD", "offset": 0, "size": 2},
+                    {"name": "next_offset", "type": "APTR", "offset": 2, "size": 4},
+                ],
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a2",
+            "sequence": 2,
+            "created_at": "2026-05-18T00:00:02+00:00",
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "header",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 8,
+                "name": "data_header",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a3",
+            "sequence": 3,
+            "created_at": "2026-05-18T00:00:03+00:00",
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "header:0",
+                "layout_id": "header",
+                "offset": 0,
+                "width": 6,
+                "kind": "struct",
+                "type_binding": {
+                    "type_binding_id": "header:0:6:custom_struct:DataHeader",
+                    "layout_id": "header",
+                    "element_offset": 0,
+                    "element_width": 6,
+                    "binding_kind": "custom_struct",
+                    "bound_type_id": "DataHeader",
+                    "owner_action_id": "a3",
+                },
+            },
+        },
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    typed_items = [
+        item for item in policy["structured_data_items"] if item.get("struct_name") == "DataHeader"
+    ]
+    assert [(item["offset"], item["size"], item["field_name"], item["field_type"]) for item in typed_items] == [
+        (2, 2, "magic", "UWORD"),
+        (4, 4, "next_offset", "APTR"),
+    ]
+    assert "UWORD magic" in rendered
+    assert "APTR next_offset" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
 def test_real_dll_data_block_interpreted_ref_renders_symbol_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"

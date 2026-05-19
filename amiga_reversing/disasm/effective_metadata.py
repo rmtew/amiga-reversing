@@ -840,6 +840,175 @@ def _data_block_unit_from_width(width: int) -> str:
     return "byte"
 
 
+def _data_block_bound_custom_struct(
+    element: DataBlockElementMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+) -> CustomStructMetadata | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict) or binding.get("binding_kind") != "custom_struct":
+        return None
+    bound_type = binding.get("bound_type_id")
+    if not isinstance(bound_type, str) or not bound_type:
+        return None
+    return custom_structs.get(bound_type)
+
+
+def _data_block_typed_field_label(base_label: str | None, field_name: str, index: int | None) -> str | None:
+    if not base_label:
+        return None
+    suffix = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in field_name).strip("_")
+    if not suffix:
+        return None
+    label = f"{base_label}_{suffix}"
+    if index is not None:
+        label = f"{label}_{index}"
+    if label[0].isdigit():
+        label = f"dblk_{label}"
+    return label if len(label) < 64 else None
+
+
+def _data_block_typed_gap_label(base_label: str | None, offset: int, index: int | None) -> str | None:
+    if not base_label:
+        return None
+    label = f"{base_label}_gap_{offset:X}"
+    if index is not None:
+        label = f"{label}_{index}"
+    if label[0].isdigit():
+        label = f"dblk_{label}"
+    return label if len(label) < 64 else None
+
+
+def _data_block_custom_struct_field_entity(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+    struct: CustomStructMetadata,
+    field: CustomStructFieldMetadata,
+    instance_offset: int,
+    instance_index: int | None,
+    base_label: str | None,
+) -> SeededEntityMetadata | None:
+    if field.offset < 0 or field.size <= 0:
+        return None
+    relative_end = instance_offset + field.offset + field.size
+    if relative_end > element.width:
+        return None
+    addr = layout.source_start + element.offset + instance_offset + field.offset
+    end = addr + field.size
+    if end > layout.source_end:
+        return None
+    return SeededEntityMetadata(
+        addr=addr,
+        end=end,
+        hunk=layout.hunk,
+        name=_data_block_typed_field_label(base_label, field.name, instance_index),
+        type="data",
+        unit=_data_block_unit_from_width(field.size),
+        struct_name=struct.name,
+        field_name=field.name,
+        field_type=field.type,
+        c_type=field.type,
+        pointer_struct=field.pointer_struct,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=element.citation,
+        source_id="manual_action_log",
+        source_locator=str(element.type_binding.get("type_binding_id"))
+        if isinstance(element.type_binding, dict) and element.type_binding.get("type_binding_id") is not None
+        else None,
+    )
+
+
+def _data_block_custom_struct_gap_entity(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+    offset: int,
+    width: int,
+    instance_index: int | None,
+    base_label: str | None,
+) -> SeededEntityMetadata | None:
+    if width <= 0:
+        return None
+    if offset < 0 or offset + width > element.width:
+        return None
+    addr = layout.source_start + element.offset + offset
+    end = addr + width
+    if end > layout.source_end:
+        return None
+    return SeededEntityMetadata(
+        addr=addr,
+        end=end,
+        hunk=layout.hunk,
+        name=_data_block_typed_gap_label(base_label, offset, instance_index),
+        comment="typed data block gap",
+        type="data",
+        unit=_data_block_unit_from_width(width),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=element.citation,
+        source_id="manual_action_log",
+        source_locator=str(element.type_binding.get("type_binding_id"))
+        if isinstance(element.type_binding, dict) and element.type_binding.get("type_binding_id") is not None
+        else None,
+    )
+
+
+def _data_block_custom_struct_entities(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+) -> tuple[SeededEntityMetadata, ...]:
+    struct = _data_block_bound_custom_struct(element, custom_structs)
+    if struct is None or struct.size <= 0:
+        return ()
+    binding = element.type_binding if isinstance(element.type_binding, dict) else {}
+    array_count = _manual_seed_int(binding, "array_count") or element.array_count or 1
+    stride = element.array_stride or struct.size
+    if array_count <= 0 or stride <= 0 or stride < struct.size:
+        return ()
+    if (array_count - 1) * stride + struct.size > element.width:
+        return ()
+    base_label = element.name or (layout.name if element.offset == 0 else None)
+    entities: list[SeededEntityMetadata] = []
+    for index in range(array_count):
+        instance_offset = index * stride
+        instance_index = index if array_count > 1 else None
+        cursor = 0
+        for field in sorted(struct.fields, key=lambda item: item.offset):
+            if field.offset < cursor:
+                return ()
+            if field.offset + field.size > struct.size:
+                return ()
+            gap_width = field.offset - cursor
+            if gap_width:
+                gap = _data_block_custom_struct_gap_entity(
+                    layout, element, instance_offset + cursor, gap_width, instance_index, base_label
+                )
+                if gap is None:
+                    return ()
+                entities.append(gap)
+            field_entity = _data_block_custom_struct_field_entity(
+                layout, element, struct, field, instance_offset, instance_index, base_label
+            )
+            if field_entity is None:
+                return ()
+            entities.append(field_entity)
+            cursor = field.offset + field.size
+        if cursor < struct.size:
+            gap = _data_block_custom_struct_gap_entity(
+                layout, element, instance_offset + cursor, struct.size - cursor, instance_index, base_label
+            )
+            if gap is None:
+                return ()
+            entities.append(gap)
+    covered = (array_count - 1) * stride + struct.size
+    if covered < element.width:
+        gap = _data_block_custom_struct_gap_entity(layout, element, covered, element.width - covered, None, base_label)
+        if gap is None:
+            return ()
+        entities.append(gap)
+    return tuple(entities)
+
+
 def _data_block_element_entity(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1407,9 +1576,13 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         ]
     for layout in effective_data_block_layouts:
         for element in layout.elements:
-            entity = _data_block_element_entity(layout, element)
-            if entity is not None:
-                seeded_entities.append(entity)
+            typed_entities = _data_block_custom_struct_entities(layout, element, merged_custom_structs)
+            if typed_entities:
+                seeded_entities.extend(typed_entities)
+            else:
+                entity = _data_block_element_entity(layout, element)
+                if entity is not None:
+                    seeded_entities.append(entity)
             interpreted_ref_equate = (
                 _data_block_interpreted_ref_equate(element.reference_interpretation)
                 if isinstance(element.reference_interpretation, dict)
@@ -1422,7 +1595,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 manual_representations.append(interpreted_ref_representation)
                 if interpreted_ref_runtime_ref is not None:
                     manual_runtime_address_refs.append(interpreted_ref_runtime_ref)
-            else:
+            elif not typed_entities:
                 representation = _data_block_element_representation(layout, element)
                 if representation is not None:
                     manual_representations.append(representation)

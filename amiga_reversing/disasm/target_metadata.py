@@ -585,6 +585,12 @@ class SeededEntityMetadata:
     subtype: str | None = None
     unit: str | None = None
     encoding: str | None = None
+    struct_name: str | None = None
+    field_name: str | None = None
+    field_type: str | None = None
+    c_type: str | None = None
+    pointer_struct: str | None = None
+    value_domain: str | None = None
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
@@ -606,6 +612,12 @@ class SeededEntityMetadata:
         subtype = payload.get("subtype")
         unit = payload.get("unit")
         encoding = payload.get("encoding")
+        struct_name = payload.get("struct_name")
+        field_name = payload.get("field_name")
+        field_type = payload.get("field_type")
+        c_type = payload.get("c_type")
+        pointer_struct = payload.get("pointer_struct")
+        value_domain = payload.get("value_domain")
         assert isinstance(addr, int)
         seed_origin = _target_metadata_seed_origin(seed_origin)
         review_status = _target_metadata_review_status(review_status)
@@ -621,6 +633,12 @@ class SeededEntityMetadata:
         assert subtype is None or isinstance(subtype, str)
         assert unit is None or isinstance(unit, str)
         assert encoding is None or isinstance(encoding, str)
+        assert struct_name is None or isinstance(struct_name, str)
+        assert field_name is None or isinstance(field_name, str)
+        assert field_type is None or isinstance(field_type, str)
+        assert c_type is None or isinstance(c_type, str)
+        assert pointer_struct is None or isinstance(pointer_struct, str)
+        assert value_domain is None or isinstance(value_domain, str)
         return cls(
             addr=addr,
             seed_origin=seed_origin,
@@ -637,6 +655,12 @@ class SeededEntityMetadata:
             subtype=subtype,
             unit=unit,
             encoding=encoding,
+            struct_name=struct_name,
+            field_name=field_name,
+            field_type=field_type,
+            c_type=c_type,
+            pointer_struct=pointer_struct,
+            value_domain=value_domain,
         )
 
 @dataclass(frozen=True, slots=True)
