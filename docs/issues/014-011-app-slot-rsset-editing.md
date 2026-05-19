@@ -142,6 +142,10 @@ Current evidence:
 - Planner already-satisfied checks now skip bind candidates whose effective
   selected-use binding already carries the same layout/base identity and
   consumed `base_evidence_refs`, including unordered parent evidence ids.
+- Planner already-satisfied checks now skip unbind candidates only when the
+  effective removed binding still matches the same selected-use layout/base
+  identity and consumed `base_evidence_refs`, including unordered parent
+  evidence ids.
 - RSSET `base_evidence_refs` now preserve `parent_evidence_ids` as a set instead
   of collapsing provenance dependencies to one parent pointer.
 - RSSET `base_evidence_refs` now preserve optional correction provenance

@@ -5644,6 +5644,61 @@ def test_rsset_binding_skip_uses_active_binding_and_parent_evidence_set() -> Non
     )
 
 
+def test_rsset_unbind_skip_uses_removed_binding_identity_and_parent_evidence_set() -> None:
+    base_ref = {
+        "source_evidence_id": "prov-demo-rsset",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+    }
+    parameters = {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_register": "A6",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "displacement": 0x0102,
+        "operand_index": 0,
+        "source_evidence_id": "prov-demo-rsset",
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+        "base_evidence_refs": [base_ref],
+    }
+    candidate = {
+        "id": "rsset-binding-unbind",
+        "candidate_id": "rsset-binding-unbind",
+        "kind": "rsset_use_site_binding_remove",
+        "locator": _listing_locator(),
+        "element_id": "row-1:displacement:0:operand",
+        "suggested_action_kinds": ["rsset.binding.unbind"],
+        "parameters": parameters,
+        "current_metadata": {
+            "removed": True,
+            "rsset_use_site_binding": {
+                **parameters,
+                "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+                "base_evidence_refs": [{**base_ref, "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"]}],
+            },
+        },
+        "default_verifier": "rsset_binding_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+    cast(dict[str, object], candidate["current_metadata"])["rsset_use_site_binding"] = {
+        **parameters,
+        "base_evidence_id": "selected-base:A5:__other_base__",
+    }
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
+
+
 def test_rsset_binding_availability_requires_matching_base_evidence() -> None:
     command = {
         "command_id": "rsset.binding.bind",

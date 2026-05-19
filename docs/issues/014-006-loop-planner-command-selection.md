@@ -167,6 +167,9 @@ Progress:
 - RSSET bind already-satisfied checks now compare the active selected-use
   binding identity and consumed `base_evidence_refs`, so explicit bind
   candidates do not repeat an already-projected RSSET use-site binding.
+- RSSET unbind already-satisfied checks now require removed state plus the
+  selected-use binding identity and consumed `base_evidence_refs`, so stale
+  cleanup state cannot hide a different unbind candidate.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

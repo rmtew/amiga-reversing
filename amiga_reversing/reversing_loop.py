@@ -6856,6 +6856,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return current.get("removed") is True
     if command_id == "rsset.binding.bind":
         return _rsset_binding_already_satisfied(current, parameters)
+    if command_id == "rsset.binding.unbind":
+        return _rsset_binding_unbind_already_satisfied(current, parameters)
     if command_id in {"target.rsset_region.add", "target.rsset_region.edit", "target.rsset_region.rename"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
@@ -6935,6 +6937,43 @@ def _rsset_binding_already_satisfied(current: dict[str, object], parameters: dic
         "base_evidence_id",
         "displacement",
         "operand_index",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+        "base_evidence_refs",
+    ):
+        if key in parameters and not _rsset_binding_identity_value_matches(key, current.get(key), parameters.get(key)):
+            return False
+    return True
+
+
+def _rsset_binding_unbind_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    removed = current.get("removed") is True
+    binding = current.get("rsset_use_site_binding")
+    if isinstance(binding, dict):
+        removed = removed or binding.get("removed") is True
+        current = {**current, **binding}
+    if not removed:
+        return False
+    required_keys = (
+        "layout_name",
+        "base_symbol",
+        "base_register",
+        "base_evidence_id",
+        "displacement",
+        "operand_index",
+    )
+    if any(key not in parameters for key in required_keys):
+        return False
+    for key in (
+        *required_keys,
         "source_evidence_id",
         "source_family",
         "source_evidence_status",

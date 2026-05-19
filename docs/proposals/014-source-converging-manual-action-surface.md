@@ -1299,6 +1299,12 @@ checks need the same active selected-use binding comparison as semantic reload.
 The planner should not repeat a bind when effective metadata already carries the
 same layout/base identity and consumed `base_evidence_refs`.
 
+Follow-up observation from `014-006`/`014-011`: RSSET unbind already-satisfied
+checks need the cleanup side of that same comparison. Removed state alone is not
+enough; the removed selected-use binding must still match layout/base identity
+and consumed `base_evidence_refs`, otherwise stale cleanup can suppress a
+different actionable unbind.
+
 Implementation observation from `014-011`: explicit selected-use provenance
 must be authoritative even when a `base_evidence_id` is present. If the explicit
 source-family/status/scope is unresolved, unknown, conflicting, non-RSSET, or
