@@ -79,6 +79,10 @@ Current evidence:
   custom-field semantic reload verification now preserve and compare
   `parent_evidence_ids`, so derived struct-pointer authority cannot silently
   lose the dependency set it consumed.
+- Typed-field execution now preserves accepted provenance carried on selected
+  element context, including manual-classified evidence, path/lifetime scope,
+  conflicts, and parent evidence ids, instead of regenerating row-local
+  `struct_pointer` evidence during catalog re-selection.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.

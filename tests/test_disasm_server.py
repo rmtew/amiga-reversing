@@ -2157,6 +2157,82 @@ def test_route_manual_action_catalog_execute_returns_typed_field_local_effect(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_execute_typed_field_preserves_context_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    row = ListingRow(
+        row_id="r0",
+        kind="instruction",
+        text="move.w 36(a0),d0\n",
+        addr=0x20,
+        section_index=0,
+        start_offset=0x20,
+        end_offset=0x24,
+        stable_key="gap-row",
+        opcode_or_directive="move.w",
+        operand_text="36(a0),d0",
+        source_context=BlockRowContext(kind="core-block", hunk_index=0),
+        unresolved_typed_accesses=(
+            PlatformUnresolvedTypedAccess(
+                operand_index=0,
+                base_register="A0",
+                displacement=36,
+                struct_size=40,
+                root_struct_name="InputEvent",
+                classification="prefix_extension",
+                refined_struct_name="DerivedEvent",
+            ),
+        ),
+    )
+    context = _element_command_context(row, "gap-row:typed_gap:0:prefix_extension") | {
+        "source_evidence_id": "prov-selected-struct-pointer",
+        "source_family": "struct_pointer",
+        "source_evidence_status": "manual_classified",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x20},
+        "confidence": "medium",
+        "conflicts": [],
+        "parent_evidence_ids": ["prov-parent-a0"],
+    }
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact([row]))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "typed_gap.field.add",
+            "context": context,
+            "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        },
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    field = cast(dict[str, object], cast(dict[str, object], action["payload"])["custom_struct_field"])
+
+    assert field["source_evidence_id"] == "prov-selected-struct-pointer"
+    assert field["source_evidence_status"] == "manual_classified"
+    assert field["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0x20}
+    assert field["parent_evidence_ids"] == ["prov-parent-a0"]
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+
+
 def test_manual_action_pending_range_preserves_subject_row_index_zero() -> None:
     pending = disasm_server._manual_action_pending_range(
         {"seed": {"row_index": 0, "hunk": 0, "addr": 4, "end": 6}},

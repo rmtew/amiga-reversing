@@ -174,6 +174,26 @@ class StaticResponse(TypedDict):
 _MISSING = object()
 _LISTING_PROJECTION_SERVICE = ListingProjectionService()
 WEB_STATE_COMMAND_CONTRACT = "locator-command-v1"
+_SOURCE_EVIDENCE_CONTEXT_KEYS = (
+    "source_evidence_id",
+    "source_family",
+    "source_evidence_status",
+    "path_lifetime_scope",
+    "confidence",
+    "conflicts",
+    "parent_evidence_ids",
+    "contradicted_evidence_id",
+    "reason",
+    "cleanup_scope",
+)
+_SOURCE_EVIDENCE_QUERY_KEYS = (
+    "source_evidence_id",
+    "source_family",
+    "source_evidence_status",
+    "confidence",
+    "contradicted_evidence_id",
+    "reason",
+)
 _COMMAND_AVAILABILITY_CACHE: dict[str, dict[str, object]] = {}
 _ASYNC_JOBS: dict[str, AsyncJobPayload] = {}
 _JOB_EVENT_SUBSCRIBERS: dict[str, list[queue.Queue[dict[str, object]]]] = {}
@@ -1846,6 +1866,9 @@ def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
         for key in ("symbol", "access", "operand_index", "value", "base_register", "displacement", "width_bytes"):
             if key in context:
                 public[key] = context[key]
+        for key in _SOURCE_EVIDENCE_CONTEXT_KEYS:
+            if key in context:
+                public[key] = context[key]
         return public
     if kind == "range":
         return {"kind": "range", "locators": context["locators"], "row_count": context.get("row_count")}
@@ -1937,6 +1960,9 @@ def _command_availability_cache_key(project_name: str, context: Mapping[str, obj
         "reason": context.get("reason"),
         "item_id": context.get("item_id"),
     }
+    for key in _SOURCE_EVIDENCE_CONTEXT_KEYS:
+        if key in context:
+            payload[key] = context[key]
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
 
@@ -2080,7 +2106,14 @@ def _selected_command_element_context(row: Mapping[str, object], element_id: str
 
 def _copy_rsset_binding_context_from_query(target: dict[str, object], query: Mapping[str, list[str]]) -> None:
     values: dict[str, object] = {}
-    for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
+    for key in (
+        "layout_name",
+        "base_symbol",
+        "base_evidence_id",
+        "contradicted_evidence_id",
+        "reason",
+        *_SOURCE_EVIDENCE_QUERY_KEYS,
+    ):
         value = _first_query_value(query, key)
         if value:
             values[key] = value
@@ -2092,6 +2125,12 @@ def _copy_rsset_binding_context(target: dict[str, object], source: Mapping[str, 
         value = source.get(key)
         if isinstance(value, str) and value.strip():
             target[key] = value.strip()
+    for key in _SOURCE_EVIDENCE_CONTEXT_KEYS:
+        value = source.get(key)
+        if isinstance(value, str) and value.strip():
+            target[key] = value.strip()
+        elif isinstance(value, dict | list):
+            target[key] = value
 
 
 def _copy_rsset_same_displacement_context(project_name: str, target: dict[str, object]) -> None:
@@ -2305,7 +2344,14 @@ def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
-        for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
+        for key in (
+            "layout_name",
+            "base_symbol",
+            "base_evidence_id",
+            "contradicted_evidence_id",
+            "reason",
+            *_SOURCE_EVIDENCE_QUERY_KEYS,
+        ):
             value = context.get(key)
             if isinstance(value, str) and value:
                 query[key] = [value]

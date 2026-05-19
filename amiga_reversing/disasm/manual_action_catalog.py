@@ -288,10 +288,24 @@ def listing_element_action_catalog(
     target = element_selector.get("target")
     if isinstance(target, str) and target.strip():
         context["target"] = target.strip()
-    for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
+    for key in (
+        "layout_name",
+        "base_symbol",
+        "base_evidence_id",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "confidence",
+        "contradicted_evidence_id",
+        "reason",
+    ):
         value = element_selector.get(key)
         if isinstance(value, str) and value.strip():
             context[key] = value.strip()
+    for key in ("path_lifetime_scope", "conflicts", "parent_evidence_ids", "cleanup_scope"):
+        value = element_selector.get(key)
+        if isinstance(value, dict | list):
+            context[key] = value
     same_displacement_uses = element_selector.get("same_displacement_uses")
     if isinstance(same_displacement_uses, list):
         context["same_displacement_uses"] = same_displacement_uses
@@ -2808,7 +2822,9 @@ def _attach_custom_struct_field_evidence(
 ) -> None:
     report = _provenance_report(context, row)
     evidence_source: Mapping[str, object] = params
-    if not isinstance(params.get("source_evidence_id"), str) and report is not None:
+    if not isinstance(params.get("source_evidence_id"), str) and isinstance(context.get("source_evidence_id"), str):
+        evidence_source = context
+    elif not isinstance(params.get("source_evidence_id"), str) and report is not None:
         evidence_source = {
             "source_evidence_id": report.get("source_evidence_id"),
             "source_family": report.get("source_family"),

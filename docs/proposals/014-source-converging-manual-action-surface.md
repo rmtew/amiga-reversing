@@ -1217,6 +1217,12 @@ availability matching, durable payload replay, and semantic reload verification.
 The consumed `source_evidence_id` is not enough once struct-pointer authority is
 derived from more than one upstream base/register fact.
 
+Implementation observation from `014-012`: selected element re-resolution can
+regenerate typed-field provenance from row context and discard accepted evidence
+chosen by the planner or UI. For semantic/type writes, command context evidence
+must win over row-local regenerated evidence whenever it carries
+`source_evidence_id`.
+
 Implementation observation from `014-019`: the same parent-evidence boundary
 applies to data-block type bindings. A binding-owned descendant can carry the
 right type-binding owner while still being derived from the wrong upstream
