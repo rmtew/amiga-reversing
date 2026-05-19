@@ -1933,6 +1933,8 @@ def _command_availability_cache_key(project_name: str, context: Mapping[str, obj
         "layout_name": context.get("layout_name"),
         "base_symbol": context.get("base_symbol"),
         "base_evidence_id": context.get("base_evidence_id"),
+        "contradicted_evidence_id": context.get("contradicted_evidence_id"),
+        "reason": context.get("reason"),
         "item_id": context.get("item_id"),
     }
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -2078,7 +2080,7 @@ def _selected_command_element_context(row: Mapping[str, object], element_id: str
 
 def _copy_rsset_binding_context_from_query(target: dict[str, object], query: Mapping[str, list[str]]) -> None:
     values: dict[str, object] = {}
-    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+    for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
         value = _first_query_value(query, key)
         if value:
             values[key] = value
@@ -2086,7 +2088,7 @@ def _copy_rsset_binding_context_from_query(target: dict[str, object], query: Map
 
 
 def _copy_rsset_binding_context(target: dict[str, object], source: Mapping[str, object]) -> None:
-    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+    for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
         value = source.get(key)
         if isinstance(value, str) and value.strip():
             target[key] = value.strip()
@@ -2303,7 +2305,7 @@ def _query_from_command_context(context: Mapping[str, object]) -> dict[str, list
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
-        for key in ("layout_name", "base_symbol", "base_evidence_id"):
+        for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
             value = context.get(key)
             if isinstance(value, str) and value:
                 query[key] = [value]

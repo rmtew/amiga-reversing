@@ -1164,6 +1164,12 @@ must treat binding owner/cleanup action ids and consumed `base_evidence_refs`
 as semantic reload state. Matching only the selected-use identity tuple can
 hide stale ownership or stale provenance after unbind/rebind.
 
+Implementation observation from `014-011`: RSSET base evidence refs are also a
+correction boundary. Optional `contradicted_evidence_id` and `reason` must
+survive command-query context, report output, durable bind/unbind payloads, and
+semantic reload comparison before manual classification or override workflows
+can safely consume those refs.
+
 Implementation observation from `014-006`/`014-011`: planner command
 availability for RSSET binding must require and compare evidence-bearing
 identity parameters, not just `command_id`. A selected row can expose

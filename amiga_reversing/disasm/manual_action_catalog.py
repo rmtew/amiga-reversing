@@ -288,7 +288,7 @@ def listing_element_action_catalog(
     target = element_selector.get("target")
     if isinstance(target, str) and target.strip():
         context["target"] = target.strip()
-    for key in ("layout_name", "base_symbol", "base_evidence_id"):
+    for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
         value = element_selector.get(key)
         if isinstance(value, str) and value.strip():
             context[key] = value.strip()
@@ -2594,6 +2594,10 @@ def _rsset_base_evidence_refs(
         "conflicts": report.get("conflicts"),
         "accepted": accepted,
     }
+    for key in ("contradicted_evidence_id", "reason"):
+        value = context.get(key)
+        if isinstance(value, str) and value.strip():
+            ref[key] = value.strip()
     if parent_evidence_ids:
         ref["parent_evidence_ids"] = parent_evidence_ids
     if isinstance(subject, Mapping):
@@ -2655,6 +2659,9 @@ def _rsset_use_site_binding_payload(
         binding["path_lifetime_scope"] = accepted_ref.get("path_lifetime_scope")
         binding["confidence"] = accepted_ref.get("confidence")
         binding["conflicts"] = accepted_ref.get("conflicts", [])
+        for key in ("contradicted_evidence_id", "reason"):
+            if key in accepted_ref:
+                binding[key] = accepted_ref[key]
     width_bytes = _optional_int(context.get("width_bytes"))
     if width_bytes is not None:
         binding["width_bytes"] = width_bytes
@@ -2695,6 +2702,8 @@ def _rsset_use_site_binding_identity_payload(
             "path_lifetime_scope",
             "confidence",
             "conflicts",
+            "contradicted_evidence_id",
+            "reason",
             "base_evidence_refs",
         )
         if key in payload

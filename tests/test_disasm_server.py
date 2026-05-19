@@ -3971,6 +3971,8 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         "layout_name": "app",
         "base_symbol": "__amiga_app_base__",
         "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "contradicted_evidence_id": "prov-stale-base",
+        "reason": "selected use overrides stale base proof",
     }
     rows = [
         ListingRow(
@@ -4087,6 +4089,8 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert accepted_base_ref["status"] == "path_specific"
     assert accepted_base_ref["accepted"] is True
     assert accepted_base_ref["parent_evidence_ids"] == ["selected-base:A6:__amiga_app_base__"]
+    assert accepted_base_ref["contradicted_evidence_id"] == "prov-stale-base"
+    assert accepted_base_ref["reason"] == "selected use overrides stale base proof"
     assert accepted_base_ref["path_lifetime_scope"]["kind"] == "selected_use"
     assert report_action["report"]["verifier_readiness"]["replay"] == "ready"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
@@ -4124,6 +4128,8 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert binding["source_family"] == "rsset_app_base"
     assert binding["source_evidence_status"] == "path_specific"
     assert binding["path_lifetime_scope"] == accepted_base_ref["path_lifetime_scope"]
+    assert binding["contradicted_evidence_id"] == "prov-stale-base"
+    assert binding["reason"] == "selected use overrides stale base proof"
     assert binding["base_evidence_refs"] == [accepted_base_ref]
     assert local_effect["kind"] == "rsset_use_site_binding"
     assert appended_actions == [action]
