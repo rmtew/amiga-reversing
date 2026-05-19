@@ -103,6 +103,10 @@ Current evidence:
   state to match the selected struct/offset and consumed struct-pointer
   provenance, including unordered parent evidence ids, instead of skipping on a
   bare removed flag.
+- Selected typed-field semantic reload now rejects sparse durable field payloads
+  before matching reloaded custom-field state. Create/edit/rename payloads must
+  carry selected struct, offset, and field name; provenance-backed writes must
+  also carry the expected owner or cleanup action identity.
 - Typed-field execution now preserves accepted provenance carried on selected
   element context, including manual-classified evidence, path/lifetime scope,
   conflicts, and parent evidence ids, instead of regenerating row-local

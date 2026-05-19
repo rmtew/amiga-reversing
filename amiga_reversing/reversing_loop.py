@@ -4085,6 +4085,16 @@ def _verify_project_custom_struct_field(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing custom struct field payload"}
+    missing_identity = _custom_struct_field_missing_required_identity_fields(command_id, expected)
+    if missing_identity:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "custom struct field payload missing selected field identity",
+            "expected_custom_struct_field": expected,
+            "matching_custom_struct_fields": [],
+            "missing_identity_fields": missing_identity,
+        }
     state_keys = ["custom_struct_fields"]
     if command_id.endswith(".rename"):
         state_keys = ["renamed_custom_struct_fields", "custom_struct_fields"]
@@ -4115,6 +4125,15 @@ def _verify_project_custom_struct_field(
         "matching_custom_struct_fields": matches,
         "state_keys": checked_keys,
     }
+
+
+def _custom_struct_field_missing_required_identity_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    required = ["struct_name", "offset"]
+    if not command_id.endswith(".remove"):
+        required.append("name")
+    if expected.get("source_evidence_id") is not None:
+        required.append("cleanup_action_id" if command_id.endswith(".remove") else "owner_action_id")
+    return [key for key in required if key not in expected]
 
 
 def _custom_struct_field_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:

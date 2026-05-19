@@ -151,6 +151,9 @@ Current evidence:
 - Typed-field remove verification uses the same operand-aware raw restore check
   for zero-offset fields, so another rendered field symbol cannot satisfy raw
   cleanup proof.
+- Selected typed-field semantic reload now requires durable payloads to carry
+  selected field identity before matching reloaded custom-field state, so sparse
+  custom-field payloads cannot satisfy replay proof.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.
