@@ -4696,7 +4696,9 @@ def test_listing_data_symbol_candidates_skip_existing_effective_name(tmp_path: P
                 SeededEntityMetadata(
                     hunk=1,
                     addr=0x120,
+                    end=None,
                     name="bitmap_00040120",
+                    type="data",
                     seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
                     review_status=TargetMetadataReviewStatus.VALIDATED,
                     citation="test",
@@ -4728,6 +4730,86 @@ def test_listing_data_symbol_candidates_skip_existing_effective_name(tmp_path: P
     )
 
     assert candidates == []
+
+
+def test_listing_data_symbol_candidates_do_not_skip_different_existing_range(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    hunk=0,
+                    addr=0x40,
+                    end=0x42,
+                    name="bitmap_h0_00000040",
+                    type="data",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.VALIDATED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    row = _listing_row(
+        row_key="bitmap-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "bitmap"
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    candidates = reversing_loop._listing_data_symbol_candidates(
+        [row],
+        existing_data_symbols=reversing_loop._existing_data_symbol_names(inspect_report),
+    )
+
+    assert candidates[0]["candidate_id"] == "data-class-symbol:bitmap-row:0:00000040:bitmap_h0_00000040"
+    assert candidates[0]["suggested_action_kinds"] == ["data_symbol.rename"]
+
+
+def test_listing_data_symbol_candidates_do_not_skip_existing_code_entity(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    write_target_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    hunk=0,
+                    addr=0x40,
+                    end=0x44,
+                    name="bitmap_h0_00000040",
+                    type="code",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="test",
+                ),
+            ),
+        ),
+    )
+    row = _listing_row(
+        row_key="bitmap-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "bitmap"
+    inspect_report = {"target_state": {"target_dir": str(target_dir), "project": {"manual_state": {}}}}
+
+    candidates = reversing_loop._listing_data_symbol_candidates(
+        [row],
+        existing_data_symbols=reversing_loop._existing_data_symbol_names(inspect_report),
+    )
+
+    assert candidates[0]["candidate_id"] == "data-class-symbol:bitmap-row:0:00000040:bitmap_h0_00000040"
+    assert candidates[0]["suggested_action_kinds"] == ["data_symbol.rename"]
 
 
 def test_listing_data_symbol_candidates_skip_existing_context_symbol() -> None:

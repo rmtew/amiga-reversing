@@ -1343,7 +1343,7 @@ def _listing_representation_candidates(
 def _listing_data_symbol_candidates(
     rows: list[object],
     *,
-    existing_data_symbols: dict[tuple[int, int], str] | None = None,
+    existing_data_symbols: dict[tuple[int, int, int | None], str] | None = None,
 ) -> list[dict[str, object]]:
     candidates: list[dict[str, object]] = []
     existing = existing_data_symbols or {}
@@ -1359,9 +1359,10 @@ def _listing_data_symbol_candidates(
             addr = locator_dict.get("start_offset")
             data_class = row.get("data_class")
             if isinstance(hunk, int) and isinstance(addr, int) and isinstance(data_class, str) and data_class:
+                target_end = locator_dict.get("end_offset")
                 name = _data_ref_symbol_name(data_class, row.get("runtime_address"), hunk, addr)
                 text = row.get("text")
-                existing_name = existing.get((hunk, addr))
+                existing_name = existing.get(_data_symbol_identity_key(hunk, addr, target_end))
                 row_symbol = row.get("symbol") or row.get("label")
                 if existing_name is None and isinstance(row_symbol, str) and row_symbol:
                     existing_name = row_symbol
@@ -1377,7 +1378,7 @@ def _listing_data_symbol_candidates(
                             "locator": dict(locator_dict),
                             "target_hunk": hunk,
                             "target_addr": addr,
-                            "target_end": locator_dict.get("end_offset"),
+                            "target_end": target_end,
                             "runtime_address": row.get("runtime_address"),
                             "data_class": data_class,
                             "evidence": {
@@ -1431,7 +1432,8 @@ def _listing_data_symbol_candidates(
             if name is None or (isinstance(text, str) and name in text):
                 continue
             context_symbol = context.get("symbol")
-            existing_name = existing.get((target_hunk, target_addr))
+            target_end = context.get("target_end")
+            existing_name = existing.get(_data_symbol_identity_key(target_hunk, target_addr, target_end))
             if existing_name is None and isinstance(context_symbol, str) and context_symbol:
                 existing_name = context_symbol
             if existing_name == name:
@@ -1451,7 +1453,7 @@ def _listing_data_symbol_candidates(
                     "operand_index": operand_index,
                     "target_hunk": target_hunk,
                     "target_addr": target_addr,
-                    "target_end": context.get("target_end"),
+                    "target_end": target_end,
                     "runtime_address": context.get("runtime_address"),
                     "data_class": data_class,
                     "evidence": {
@@ -1480,6 +1482,10 @@ def _listing_data_symbol_candidates(
                 }
             )
     return candidates
+
+
+def _data_symbol_identity_key(hunk: int, addr: int, end: object) -> tuple[int, int, int | None]:
+    return (hunk, addr, end if isinstance(end, int) else None)
 
 
 def _listing_struct_pointer_candidates(
@@ -1687,14 +1693,14 @@ def _effective_target_metadata_from_report(inspect_report: dict[str, object]) ->
         return None
 
 
-def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int], str]:
+def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple[int, int, int | None], str]:
     target_state = inspect_report.get("target_state")
-    names: dict[tuple[int, int], str] = {}
+    names: dict[tuple[int, int, int | None], str] = {}
     metadata = _effective_target_metadata_from_report(inspect_report)
     if metadata is not None:
         for entity in metadata.seeded_entities:
-            if isinstance(entity.name, str) and entity.name:
-                names[(entity.hunk, entity.addr)] = entity.name
+            if entity.type == "data" and isinstance(entity.name, str) and entity.name:
+                names[_data_symbol_identity_key(entity.hunk, entity.addr, entity.end)] = entity.name
     project = target_state.get("project") if isinstance(target_state, dict) else None
     manual_state = project.get("manual_state") if isinstance(project, dict) else None
     seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
@@ -1705,9 +1711,10 @@ def _existing_data_symbol_names(inspect_report: dict[str, object]) -> dict[tuple
             continue
         hunk = seed.get("hunk")
         addr = seed.get("addr")
+        end = seed.get("end")
         name = seed.get("name")
         if isinstance(hunk, int) and isinstance(addr, int) and isinstance(name, str) and name:
-            names[(hunk, addr)] = name
+            names[_data_symbol_identity_key(hunk, addr, end)] = name
     return names
 
 

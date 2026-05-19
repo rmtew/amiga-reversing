@@ -879,6 +879,12 @@ needs the same boundary as parameters. Keep only the selected row/element source
 locator in planner-normalized commands; xref/provenance reports can rank the
 candidate but must not travel as accepted evidence on the naming command.
 
+Implementation observation from `014-014`: data-symbol already-satisfied state
+must not collapse to hunk/address alone. Candidate suppression needs the
+source-identity shape used by the command itself: data symbol kind plus
+hunk/address/end where available. Otherwise a short data seed or a non-data
+seeded entity at the same address can hide a distinct source naming candidate.
+
 Implementation observation from `014-005`/`014-013`:
 Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and

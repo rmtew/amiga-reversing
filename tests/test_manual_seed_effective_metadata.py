@@ -846,20 +846,26 @@ def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path
     assert payload["seeded_entities"] == [
         {
             "addr": 0x100,
+            "c_type": None,
             "citation": "manual_action_log:data-symbol:h0:00000100",
             "comment": "generated",
             "encoding": None,
             "end": 0x104,
+            "field_name": None,
+            "field_type": None,
             "hunk": 0,
             "name": "player_table",
+            "pointer_struct": None,
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "source_id": "manual_action_log",
             "source_locator": "ManualSeed:data-symbol:h0:00000100",
             "source_path": "source.asm",
+            "struct_name": None,
             "subtype": "pointer_table",
             "type": "data",
             "unit": "long",
+            "value_domain": None,
         }
     ]
 

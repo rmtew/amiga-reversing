@@ -46,6 +46,10 @@ Current evidence:
   effective target metadata as well as Manual Action Log projections.
 - Autonomous data-symbol rename candidates now include row-level `data_class`
   evidence for data definitions, not only referenced data use-sites.
+- Autonomous data-symbol already-satisfied checks now match existing names by
+  data-symbol kind plus hunk/address/end identity, so a non-data seeded entity
+  or different-sized data seed at the same address does not hide a distinct
+  naming candidate.
 - Autonomous referenced-data rename candidates now generate
   `runtime_address_XXXXXXXX` names from stable runtime-address references when
   no data class is available.
