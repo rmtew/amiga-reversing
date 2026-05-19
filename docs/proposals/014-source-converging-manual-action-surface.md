@@ -1200,6 +1200,13 @@ actions carry decoded selected source bytes as `source_value`, and replay must
 prove reference kind, target locator, element width, and decoded value agree
 before later render/xref projection can use the fact.
 
+Implementation observation from `014-005`/`014-018`: interpreted-ref create
+verification must reject sparse durable payloads before matching by
+`data_block_ref_id`. The payload has to carry selected layout/element identity,
+width, reference kind, target hunk/offset/locator, and decoded `source_value`;
+otherwise rendered-source and xref layers can borrow stale identity from a
+reloaded ref with the same id.
+
 Implementation observation from the `014-018` symbolic-render slice: C rendering
 had separate byte, word, and long data directive paths. Supporting symbolic
 interpreted refs required the word/long structured-data path to consume exact

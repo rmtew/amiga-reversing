@@ -71,6 +71,11 @@ Implemented tests:
 - Loop execution verifies interpreted-reference state, rendered directive plus
   symbol presence, generated runtime-address ref presence, corrective symbol
   and xref disappearance, and exact round-trip.
+- Interpret-ref semantic reload rejects sparse create payloads before matching
+  reloaded state. The durable payload must carry the selected ref id, layout,
+  element offset, width, reference kind, target hunk/offset/locator, and decoded
+  `source_value` so render/xref verification cannot borrow stale identity from
+  an existing ref.
 
 Remaining:
 - Broader reference kinds beyond locally proven absolute byte/word/long refs are

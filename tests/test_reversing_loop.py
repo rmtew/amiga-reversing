@@ -3156,6 +3156,65 @@ def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
     assert report["layers"][3]["layer"] == "xref_projection"
 
 
+def test_data_block_interpreted_ref_verifier_rejects_sparse_interpret_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00000020",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x20,
+        "target_locator": {"hunk": 0, "offset": 0x20},
+        "source_value": 0x20,
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+    }
+    sparse_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00000020",
+        "layout_id": "ptr-table",
+        "offset": 0,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"data_block_interpreted_refs": [interpreted_ref]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_data_block_interpreted_ref(
+        "demo",
+        "row.data_block.element.interpret_ref",
+        sparse_ref,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["message"] == "interpreted ref payload missing selected reference identity"
+    assert verification["missing_identity_fields"] == [
+        "width",
+        "reference_kind",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+    ]
+    assert (
+        reversing_loop._project_data_block_interpreted_ref_state_match(
+            "demo",
+            "row.data_block.element.interpret_ref",
+            sparse_ref,
+            project_root=tmp_path,
+        )
+        is None
+    )
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

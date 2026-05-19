@@ -297,6 +297,12 @@ Remaining work:
   before reload matching. A create payload must carry `layout_id`, `hunk`,
   `source_start`, and `source_end`, so an existing layout id cannot hide a
   wrong selected range.
+- Data-block interpreted-ref create verification now rejects sparse durable
+  payloads before reload matching. A create payload must carry
+  `data_block_ref_id`, `layout_id`, `offset`, `width`, `reference_kind`,
+  `target_hunk`, `target_offset`, `target_locator`, and `source_value`, so a
+  matching ref id cannot borrow stale target/source identity from reloaded
+  state.
 - Target-equate definition representation is implemented in `014-020`; broader
   semantic/equate provenance remains separate from display-style verification.
 - Keep RSSET bind-refine/type-refine, same-flow propagation, generated

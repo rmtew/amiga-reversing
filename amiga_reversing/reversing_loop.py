@@ -4604,6 +4604,15 @@ def _verify_project_data_block_interpreted_ref(
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing interpreted ref payload"}
     removed = command_id.endswith(".clear_ref")
+    missing_identity_fields = _data_block_interpreted_ref_missing_required_identity_fields(command_id, expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "interpreted ref payload missing selected reference identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_data_block_interpreted_ref": expected,
+        }
     key = "removed_data_block_interpreted_refs" if removed else "data_block_interpreted_refs"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -4630,6 +4639,8 @@ def _project_data_block_interpreted_ref_state_match(
     *,
     project_root: Path,
 ) -> dict[str, object] | None:
+    if _data_block_interpreted_ref_missing_required_identity_fields(command_id, expected):
+        return None
     key = "removed_data_block_interpreted_refs" if command_id.endswith(".clear_ref") else "data_block_interpreted_refs"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -4655,6 +4666,29 @@ def _data_block_interpreted_ref_matches(actual: dict[str, object], expected: dic
         and isinstance(expected.get("offset"), int)
         and all(actual.get(key) == value for key, value in expected.items())
     )
+
+
+def _data_block_interpreted_ref_missing_required_identity_fields(
+    command_id: str,
+    expected: dict[str, object],
+) -> list[str]:
+    fields = ["data_block_ref_id", "layout_id", "offset"]
+    if not command_id.endswith(".clear_ref"):
+        fields.extend(
+            [
+                "width",
+                "reference_kind",
+                "target_hunk",
+                "target_offset",
+                "target_locator",
+                "source_value",
+            ]
+        )
+    return [
+        field
+        for field in fields
+        if field not in expected and not (field == "data_block_ref_id" and "interpreted_ref_id" in expected)
+    ]
 
 
 def _verify_projected_data_block_interpreted_ref_rendered_source(
