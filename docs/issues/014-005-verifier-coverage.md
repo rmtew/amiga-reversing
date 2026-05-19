@@ -163,6 +163,9 @@ Current evidence:
   proves an autonomous GenAm LVO library-base candidate through command
   execution, durable Manual Action Log state, reloaded library-base register
   seed, and exact round-trip availability.
+- `tests/test_agent_reversing_loop.py::test_agent_real_genam_autonomous_data_symbol_candidate_converges`
+  proves autonomous GenAm data-symbol naming through command execution,
+  projected rendered-name verification, and exact round-trip availability.
 - Generic mutation verification now adds a `provenance_evidence` layer when the
   executed durable action payload carries `source_evidence_id`. The layer
   requires durable payload evidence, accepted source family, accepted evidence
