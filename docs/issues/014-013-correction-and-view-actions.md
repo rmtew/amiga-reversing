@@ -74,6 +74,10 @@ Current evidence:
   only responses as missing durable payloads; local effects can no longer supply
   the expected correction/view identity when the Manual Action Log action is
   absent.
+- Seeded-item suppression verification now checks affected listing rows after
+  reload and fails if the selected suppressible seeded item is still exposed in
+  rendered/navigation state. Semantic suppression state plus exact round-trip is
+  not enough to prove the visible correction converged.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
 - Provenance-backed `manual_override` writes now require and preserve cleanup

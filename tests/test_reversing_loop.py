@@ -4485,6 +4485,15 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
             assert body["command_id"] == "data_symbol.remove"
             _write_manual_log(tmp_path)
             return {"data": _executed_seeded_item_suppression_payload(tmp_path)}
+        if method == "GET" and path.endswith("/listing"):
+            source_offset = int(query["source_offset"][0])
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", start_offset=source_offset, end_offset=source_offset + 4),
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -4495,6 +4504,7 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
     assert [layer["layer"] for layer in report["verification"]["layers"]] == [
         "manual_action_log",
         "semantic_reload",
+        "rendered_source",
         "round_trip",
     ]
     assert report["action"]["command_id"] == "data_symbol.remove"
@@ -4663,6 +4673,15 @@ def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
             assert body["command_id"] == "correction.suppress_seeded_item.seeded_entity"
             _write_manual_log(tmp_path)
             return {"data": _executed_seeded_item_suppression_payload(tmp_path)}
+        if method == "GET" and path.endswith("/listing"):
+            source_offset = int(query["source_offset"][0])
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", start_offset=source_offset, end_offset=source_offset + 4),
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -4673,6 +4692,7 @@ def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
     assert [layer["layer"] for layer in report["verification"]["layers"]] == [
         "manual_action_log",
         "semantic_reload",
+        "rendered_source",
         "round_trip",
     ]
     assert report["action"]["command_id"] == "correction.suppress_seeded_item.seeded_entity"
@@ -4766,6 +4786,54 @@ def test_seeded_item_suppression_verifier_prefers_action_payload_over_local_effe
     assert verification["status"] == "passed"
     semantic_layer = verification["layers"][1]
     assert semantic_layer["expected_suppressed_seeded_item"]["addr"] == 0x100
+
+
+def test_seeded_item_suppression_verifier_rejects_stale_rendered_suppressible_row(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"suppressed_seeded_items": [item]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+    stale_row = _listing_row(kind="data", start_offset=0x100, end_offset=0x104)
+    stale_row["suppressible_seeded_items"] = [item]
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [stale_row]}},
+    )
+
+    verification = reversing_loop._verify_seeded_item_suppression_mutation(
+        "demo",
+        {
+            "action": {"action_id": "manual-1", "payload": {"suppressed_seeded_item": item}},
+            "mutation": {"affected_locators": [_listing_locator(kind="data", start_offset=0x100, end_offset=0x104)]},
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    rendered_layer = verification["layers"][2]
+    assert rendered_layer["layer"] == "rendered_source"
+    assert rendered_layer["stale_suppressible_seeded_items"] == [item]
 
 
 def test_seeded_item_suppression_verifier_rejects_local_effect_without_action_payload(

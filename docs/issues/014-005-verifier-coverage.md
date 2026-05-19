@@ -226,6 +226,9 @@ Current evidence:
   derive expected state from the durable Manual Action Log payload before
   local-effect echoes, so response-local UI effects cannot satisfy or replace a
   mismatched executed action.
+- Seeded-item suppression verification now includes a rendered-source layer for
+  command-reported affected locators, failing when the selected suppressible
+  seeded item remains visible after reload.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,

@@ -5297,8 +5297,11 @@ def _verify_seeded_item_suppression_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_suppressed_seeded_item(target_id, expected, project_root=project_root),
-        _verify_round_trip_exact(target_id, project_root=project_root),
     ]
+    rendered_source = _verify_projected_suppressed_seeded_item_rendered_source(target_id, expected, durable_result)
+    if rendered_source is not None:
+        layers.append(rendered_source)
+    layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
 
@@ -5357,6 +5360,79 @@ def _verify_project_suppressed_seeded_item(
         "expected_suppressed_seeded_item": expected,
         "matching_suppressed_seeded_items": matches,
     }
+
+
+def _verify_projected_suppressed_seeded_item_rendered_source(
+    target_id: str,
+    expected: dict[str, object] | None,
+    durable_result: dict[str, object],
+) -> dict[str, object] | None:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing suppressed seeded item payload"}
+    locations = _durable_result_affected_source_locations(durable_result)
+    if not locations:
+        return None
+    affected_rows: list[dict[str, object]] = []
+    for section_index, source_offset in locations:
+        try:
+            listing = server.route_request(
+                "GET",
+                f"/api/projects/{target_id}/listing",
+                {
+                    "section_index": [str(section_index)],
+                    "source_offset": [str(source_offset)],
+                    "before": ["0"],
+                    "after": ["0"],
+                },
+            )
+        except Exception as exc:
+            return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+        data = listing.get("data")
+        rows = data.get("rows") if isinstance(data, dict) else None
+        if not isinstance(rows, list):
+            return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+        affected_rows.extend(_data_block_rendered_source_rows(rows, section_index, source_offset))
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "message": "affected listing row missing after reload",
+            "checked_source_locations": [
+                {"section_index": section_index, "source_offset": source_offset}
+                for section_index, source_offset in locations
+            ],
+        }
+    stale_items = [
+        item
+        for row in affected_rows
+        for item in _mapping_sequence(row.get("suppressible_seeded_items"))
+        if _suppressed_seeded_item_matches(item, expected)
+    ]
+    return {
+        "layer": "rendered_source",
+        "status": "failed" if stale_items else "passed",
+        "checked_source_locations": [
+            {"section_index": section_index, "source_offset": source_offset}
+            for section_index, source_offset in locations
+        ],
+        "expected_suppressed_seeded_item": expected,
+        "stale_suppressible_seeded_items": stale_items,
+    }
+
+
+def _durable_result_affected_source_locations(durable_result: dict[str, object]) -> list[tuple[int, int]]:
+    mutation = durable_result.get("mutation")
+    affected = mutation.get("affected_locators") if isinstance(mutation, dict) else None
+    locations: list[tuple[int, int]] = []
+    if isinstance(affected, list):
+        for locator in affected:
+            if not isinstance(locator, dict):
+                continue
+            section = locator.get("section_index")
+            offset = locator.get("start_offset")
+            if isinstance(section, int) and isinstance(offset, int):
+                locations.append((section, offset))
+    return list(dict.fromkeys(locations))
 
 
 def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
