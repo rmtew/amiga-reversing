@@ -57,6 +57,9 @@ Current evidence:
 - Register-seed-backed custom struct fields now resolve through the C typed
   resolver and render field paths such as `player_score(a0)` in source/listing
   output.
+- Target custom structs now shadow same-named platform structs in the typed
+  resolver, so a target-local `InputEvent` seed renders target fields instead
+  of silently falling back to NDK `InputEvent`.
 - Selected `typed_gap.field.*` and `typed_access.field.*` commands now require
   accepted `struct_pointer` provenance before execution, persist the consumed
   `source_evidence_id` in the Manual Action Log payload, and verify manual-log
@@ -88,9 +91,10 @@ Current evidence:
   a selected rendered field path.
 - Owned cleanup of propagated typed-access descendants after remove/rename is
   still missing beyond selected-row rendered-source proof.
-- Custom target struct names currently share the resolver namespace with
-  platform structs; platform names win on collision. Add explicit namespace
-  handling later if target structs need to shadow platform/NDK names.
+- Custom target struct names still share the resolver namespace with platform
+  structs. Target-local names now win on collision; explicit namespace identity
+  remains future work for choosing an NDK/platform struct when a target custom
+  struct intentionally uses the same display name.
 - Applying custom or platform structs inside arbitrary data blocks, and mixing
   those fields with ad hoc layout elements or interpreted references, is tracked
   by the `014-015-data-block-layout-and-reference-interpretation.md`

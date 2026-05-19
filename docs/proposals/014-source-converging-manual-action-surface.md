@@ -1189,9 +1189,11 @@ structures. Heap-owned custom-struct storage plus explicit policy deep-copy and
 destroy paths kept native unit stack use bounded.
 
 Implementation observation from `014-012`: custom structs currently share the
-same resolver namespace as platform/NDK structs, and platform names win on
-collision. Use target-specific names for now; explicit namespace identity is
-future work if custom structs need to shadow platform names.
+same resolver namespace as platform/NDK structs. The typed resolver now chooses
+target custom structs before platform structs so accepted target-local struct
+metadata can render even when the display name collides with an NDK name.
+Explicit namespace identity remains future work for selecting the platform
+struct when a target custom struct intentionally has the same display name.
 
 Implementation observation from `014-012`: accepted provenance must gate typed
 field writes before command availability/execution, not only after durable

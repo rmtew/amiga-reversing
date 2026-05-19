@@ -8344,6 +8344,66 @@ def test_real_dll_custom_struct_seed_renders_typed_field(tmp_path: Path) -> None
     )
 
 
+def test_real_dll_custom_struct_seed_shadows_platform_struct_name(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "custom_input_event.bin"
+    binary_path.write_bytes(bytes.fromhex("202800084e75"))
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata = {
+        "target_type": "raw_binary",
+        "entry_register_seeds": [
+            {
+                "entry_offset": None,
+                "hunk": 0,
+                "register": "A0",
+                "kind": "struct_ptr",
+                "note": "target-local InputEvent",
+                "struct_name": "InputEvent",
+                "context_name": None,
+            }
+        ],
+        "custom_structs": [
+            {
+                "name": "InputEvent",
+                "size": 16,
+                "fields": [
+                    {
+                        "name": "game_event_score",
+                        "type": "long",
+                        "offset": 8,
+                        "size": 4,
+                        "struct": None,
+                        "pointer_struct": None,
+                        "named_base": None,
+                    }
+                ],
+            }
+        ],
+    }
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+
+    combined = analyze_source_with_c_artifact(
+        RawBinarySource(
+            kind=BinarySourceKind.RAW_BINARY,
+            path=binary_path,
+            address_model=RawAddressModel.LOCAL_OFFSET,
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=str(binary_path),
+            analysis_cache_path=tmp_path / "custom_input_event.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+
+    typed_accesses = combined["analysis"]["sections"][0]["recovered_platform_typed_accesses"]
+    assert typed_accesses[0]["root_struct_name"] == "InputEvent"
+    assert typed_accesses[0]["owner_struct_name"] == "InputEvent"
+    assert typed_accesses[0]["field_name"] == "game_event_score"
+    assert any("game_event_score(a0)" in row["text"] for row in combined["listing"]["rows"])
+
+
 def test_real_dll_metadata_named_rsset_layout_preserves_explicit_size(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

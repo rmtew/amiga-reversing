@@ -984,13 +984,14 @@ static uint16_t lookup_policy_struct_id_by_name(const M68kAnalysisPolicy *policy
   uint16_t index;
   uint16_t platform_struct_id;
   if (struct_name == NULL || struct_name[0] == '\0') return AMIGA_OS_STRUCT_ID_NONE;
+  if (policy != NULL && policy->custom_structs != NULL) {
+    for (index = 0U; index < policy->custom_struct_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++index) {
+      if (strcmp(policy->custom_structs[index].name, struct_name) == 0)
+        return (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + index);
+    }
+  }
   platform_struct_id = amiga_os_name_id(M68K_PLATFORM_NAME_STRUCT, struct_name);
   if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, platform_struct_id) != NULL) return platform_struct_id;
-  if (policy == NULL || policy->custom_structs == NULL) return AMIGA_OS_STRUCT_ID_NONE;
-  for (index = 0U; index < policy->custom_struct_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++index) {
-    if (strcmp(policy->custom_structs[index].name, struct_name) == 0)
-      return (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + index);
-  }
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
