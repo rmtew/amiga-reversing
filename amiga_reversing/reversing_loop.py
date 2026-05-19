@@ -6879,7 +6879,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         "typed_access.field.edit",
         "typed_access.field.rename",
     }:
-        return all(current.get(key) == value for key, value in parameters.items())
+        return all(_custom_struct_field_identity_value_matches(key, current.get(key), value) for key, value in parameters.items())
     if command_id in {"target.custom_struct_field.remove", "typed_access.field.remove"}:
         return current.get("removed") is True
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:

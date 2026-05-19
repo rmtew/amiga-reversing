@@ -1331,6 +1331,11 @@ availability must compare selected struct/offset and consumed
 `typed_access.field.*` command ids. Stale typed-field candidates must not borrow
 availability from a different typed access/gap on the same row.
 
+Follow-up observation from `014-006`/`014-012`: the same evidence comparison
+belongs in already-satisfied skipping. If effective metadata already contains a
+typed field with the same `parent_evidence_ids` set, replay list ordering should
+not make the planner repeat the write.
+
 Implementation observation from `014-012`: selected typed-field rename proof
 must use the previous name from command context to reject stale selected-row
 typed accesses after render; absence of that previous name is a verifier

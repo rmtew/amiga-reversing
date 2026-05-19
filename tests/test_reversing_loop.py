@@ -6215,6 +6215,45 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
     assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
 
 
+def test_typed_field_skip_treats_parent_evidence_ids_as_set() -> None:
+    evidence = {**_accepted_struct_pointer_evidence(), "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"]}
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "current_metadata": {
+            "struct_name": "DerivedEvent",
+            "offset": 36,
+            "name": "de_Code",
+            "type": "UWORD",
+            "size": 2,
+            **evidence,
+            "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+        },
+        "confidence": "high",
+        "actionable": True,
+        **evidence,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_typed_field_availability_requires_matching_source_evidence() -> None:
     evidence = {**_accepted_struct_pointer_evidence(), "parent_evidence_ids": ["prov-base-a0"]}
     command = {

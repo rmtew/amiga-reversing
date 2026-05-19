@@ -156,6 +156,10 @@ Progress:
   ranged/provenance-backed command. Planner-to-planner comparison uses the
   union of identity parameters present on either command, so a candidate that
   lacks accepted evidence cannot exclude one that carries it.
+- Typed-field already-satisfied checks now compare `parent_evidence_ids` as an
+  unordered dependency set, so projected effective metadata with equivalent
+  struct-pointer lineage is skipped instead of repeated due only to replay
+  ordering.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
