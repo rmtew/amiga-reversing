@@ -462,6 +462,88 @@ def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_
     assert report["verification"]["layers"][0]["command_id"] == command_id
 
 
+def test_typed_field_command_with_accepted_evidence_executes_and_verifies(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    evidence = _accepted_struct_pointer_evidence()
+    field = {
+        "struct_name": "DerivedEvent",
+        "offset": 36,
+        "name": "de_Code",
+        "type": "UWORD",
+        "size": 2,
+        **evidence,
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": inspect_report["candidate_work"][0],
+        "command": {
+            "kind": "command",
+            "command_id": "typed_gap.field.add",
+            "context": {
+                "kind": "element",
+                "locator": _listing_locator(),
+                "element_id": "row-1:typed_gap:1:A0:36",
+                "element_kind": "typed_gap",
+                "operand_index": 1,
+                "base_register": "A0",
+                "displacement": 36,
+            },
+            "parameters": dict(field),
+            "output_affecting": True,
+        },
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"custom_struct_fields": [field]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "typed_gap.field.add"}]}}
+        if method == "POST" and path.endswith("/commands/execute"):
+            _write_manual_log(tmp_path)
+            return {"data": _executed_custom_struct_field_payload(tmp_path, field)}
+        if method == "GET" and path.endswith("/listing"):
+            row = _listing_row(text="\tmove.w de_Code(a0),d0\n", start_offset=0, end_offset=2)
+            row["typed_accesses"] = [
+                {
+                    "operand_index": 1,
+                    "base_register": "A0",
+                    "displacement": 36,
+                    "field_offset": 36,
+                    "root_struct_name": "InputEvent",
+                    "refined_struct_name": "DerivedEvent",
+                    "owner_struct_name": "DerivedEvent",
+                    "field_name": "de_Code",
+                    "field_expr": "de_Code",
+                }
+            ]
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "executed"
+    assert report["verification"]["status"] == "passed"
+    assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "manual_action_log",
+        "provenance_evidence",
+        "semantic_reload",
+        "rendered_source",
+        "round_trip",
+    ]
+
+
 def test_provenance_backed_mutation_verifier_requires_accepted_evidence() -> None:
     command = {
         "command_id": "row.data_block.element.interpret_ref",
@@ -3913,15 +3995,21 @@ def test_typed_field_command_candidate_uses_selected_element_context() -> None:
             "refined_struct_name": "DerivedEvent",
             "classification": "prefix_extension",
         },
-        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "parameters": {
+            "struct_name": "DerivedEvent",
+            "offset": 36,
+            "name": "de_Code",
+            "type": "UWORD",
+            "size": 2,
+        },
         "output_affecting": True,
     }
     assert reversing_loop._candidate_verifier(candidate, command) is None
     assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
 
 
-def test_typed_field_candidate_skips_already_projected_field() -> None:
-    field = {"name": "de_Code", "type": "UWORD", "size": 2}
+def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> None:
+    evidence = _accepted_struct_pointer_evidence()
     candidate = {
         "id": "typed-gap-field",
         "candidate_id": "typed-gap-field",
@@ -3929,6 +4017,43 @@ def test_typed_field_candidate_skips_already_projected_field() -> None:
         "locator": _listing_locator(),
         "element_id": "row-1:typed_gap:1:A0:36",
         "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "confidence": "high",
+        "actionable": True,
+        **evidence,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {
+        "struct_name": "DerivedEvent",
+        "offset": 36,
+        "name": "de_Code",
+        "type": "UWORD",
+        "size": 2,
+        **evidence,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
+
+
+def test_typed_field_candidate_skips_already_projected_field() -> None:
+    field = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code", "type": "UWORD", "size": 2}
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "displacement": 36,
+        "refined_struct_name": "DerivedEvent",
         "suggested_action_kinds": ["typed_gap.field.add"],
         "parameters": field,
         "current_metadata": field,
@@ -5453,6 +5578,22 @@ def _executed_data_block_interpreted_ref_payload(
     return payload
 
 
+def _executed_custom_struct_field_payload(tmp_path: Path, custom_struct_field: dict[str, object]) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {
+        "action_id": "manual-1",
+        "payload": {"custom_struct_field": dict(custom_struct_field)},
+    }
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [{"kind": "custom_struct_field", "custom_struct_field": dict(custom_struct_field)}],
+    }
+    return payload
+
+
 def _executed_manual_seed_payload(tmp_path: Path, seed: dict[str, object]) -> dict[str, object]:
     payload = _executed_command_payload()
     payload["action"] = {"action_id": "manual-1", "payload": {"seed": dict(seed)}}
@@ -5666,6 +5807,17 @@ def _listing_locator(
         "start_offset": start_offset,
         "end_offset": end_offset,
         "kind": kind,
+    }
+
+
+def _accepted_struct_pointer_evidence() -> dict[str, object]:
+    return {
+        "source_evidence_id": "prov-demo-struct-pointer-h0-00000000-op1-A0-d0024",
+        "source_family": "struct_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0, "operand_index": 1},
+        "confidence": "high",
+        "conflicts": [],
     }
 
 

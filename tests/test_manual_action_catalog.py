@@ -689,7 +689,10 @@ def test_typed_gap_field_add_command_uses_gap_identity() -> None:
         parameters={"name": "de_Code", "type": "UWORD", "size": 2},
     )
 
-    assert add_action["parameters"] == {"struct_name": "DerivedEvent", "offset": 36}
+    assert add_action["parameters"]["struct_name"] == "DerivedEvent"
+    assert add_action["parameters"]["offset"] == 36
+    assert add_action["parameters"]["source_family"] == "struct_pointer"
+    assert add_action["parameters"]["source_evidence_status"] == "analysis_proven"
     assert add_action["parameter_schema"]["required"] == ["name", "type", "size"]
     assert kind == "create_manual_custom_struct_field"
     assert payload == {
@@ -699,6 +702,12 @@ def test_typed_gap_field_add_command_uses_gap_identity() -> None:
             "type": "UWORD",
             "offset": 36,
             "size": 2,
+            "source_evidence_id": add_action["parameters"]["source_evidence_id"],
+            "source_family": "struct_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": add_action["parameters"]["path_lifetime_scope"],
+            "confidence": "high",
+            "conflicts": [],
         }
     }
 
@@ -738,14 +747,46 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
         element_context=selector,
     )
 
-    assert rename_action["parameters"] == {"struct_name": "Library", "offset": 20, "name": "LIB_VERSION"}
+    assert {
+        "struct_name": rename_action["parameters"]["struct_name"],
+        "offset": rename_action["parameters"]["offset"],
+        "name": rename_action["parameters"]["name"],
+        "source_family": rename_action["parameters"]["source_family"],
+        "source_evidence_status": rename_action["parameters"]["source_evidence_status"],
+    } == {
+        "struct_name": "Library",
+        "offset": 20,
+        "name": "LIB_VERSION",
+        "source_family": "struct_pointer",
+        "source_evidence_status": "analysis_proven",
+    }
     assert rename_kind == "rename_manual_custom_struct_field"
     assert rename_payload == {
-        "custom_struct_field": {"struct_name": "Library", "offset": 20, "name": "LIB_REVISION"}
+        "custom_struct_field": {
+            "struct_name": "Library",
+            "offset": 20,
+            "name": "LIB_REVISION",
+            "source_evidence_id": rename_action["parameters"]["source_evidence_id"],
+            "source_family": "struct_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": rename_action["parameters"]["path_lifetime_scope"],
+            "confidence": "high",
+            "conflicts": [],
+        }
     }
     assert remove_kind == "remove_manual_custom_struct_field"
     assert remove_payload == {
-        "custom_struct_field": {"struct_name": "Library", "offset": 20, "name": "LIB_VERSION"}
+        "custom_struct_field": {
+            "struct_name": "Library",
+            "offset": 20,
+            "name": "LIB_VERSION",
+            "source_evidence_id": rename_action["parameters"]["source_evidence_id"],
+            "source_family": "struct_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": rename_action["parameters"]["path_lifetime_scope"],
+            "confidence": "high",
+            "conflicts": [],
+        }
     }
 
 

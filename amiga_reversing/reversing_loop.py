@@ -2852,6 +2852,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "data_block_interpreted_ref_state"
     if any(action.startswith("target.execution_view.") for action in actions):
         return "execution_view_state"
+    if any(action.startswith(("typed_gap.field.", "typed_access.field.")) for action in actions):
+        return "custom_struct_field_state"
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
         return "suppressed_seeded_item"
     if any(action.startswith("target.equate.") for action in actions):
@@ -3003,6 +3005,14 @@ def _verify_manual_mutation(
         return _verify_execution_view_mutation(
             target_id,
             str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if isinstance(command_id, str) and command_id.startswith(("typed_gap.field.", "typed_access.field.")):
+        return _verify_custom_struct_field_mutation(
+            target_id,
+            command,
+            command_id,
             durable_result,
             project_root=project_root,
         )
@@ -3549,6 +3559,103 @@ def _verify_data_block_element_mutation(
     return {"status": status, "layers": layers}
 
 
+def _verify_custom_struct_field_mutation(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _custom_struct_field_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_custom_struct_field(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_custom_struct_field_rendered_source(target_id, command, command_id, expected),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _custom_struct_field_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    field = _custom_struct_field_from_action(action)
+    if field is not None:
+        return field
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            field = _custom_struct_field_from_action(raw_action)
+            if field is not None:
+                return field
+    return None
+
+
+def _custom_struct_field_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    field = action.get("custom_struct_field")
+    if isinstance(field, dict):
+        return cast(dict[str, object], field)
+    payload = action.get("payload")
+    field = payload.get("custom_struct_field") if isinstance(payload, dict) else None
+    if isinstance(field, dict):
+        return cast(dict[str, object], field)
+    return None
+
+
+def _verify_project_custom_struct_field(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing custom struct field payload"}
+    state_keys = ["custom_struct_fields"]
+    if command_id.endswith(".rename"):
+        state_keys = ["renamed_custom_struct_fields", "custom_struct_fields"]
+    elif command_id.endswith(".remove"):
+        state_keys = ["removed_custom_struct_fields"]
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    matches: list[dict[str, object]] = []
+    checked_keys: list[str] = []
+    if isinstance(manual_state, dict):
+        for key in state_keys:
+            fields = manual_state.get(key)
+            checked_keys.append(key)
+            if not isinstance(fields, list | tuple):
+                continue
+            matches.extend(
+                cast(dict[str, object], field)
+                for field in fields
+                if isinstance(field, dict) and _custom_struct_field_matches(field, expected)
+            )
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_custom_struct_field": expected,
+        "matching_custom_struct_fields": matches,
+        "state_keys": checked_keys,
+    }
+
+
+def _custom_struct_field_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    required_keys = ("struct_name", "offset")
+    if not all(actual.get(key) == expected.get(key) for key in required_keys):
+        return False
+    for key in ("name", "type", "size"):
+        if key in expected and actual.get(key) != expected.get(key):
+            return False
+    return True
+
+
 def _data_block_element_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
     action = durable_result.get("action")
     element = _data_block_element_from_action(action)
@@ -4012,6 +4119,132 @@ def _verify_projected_data_block_rendered_source(
         "affected_rendered_text": affected_rendered_text,
         "rendered_text": rendered_text,
     }
+
+
+def _verify_projected_custom_struct_field_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing custom struct field payload"}
+    location = _custom_struct_field_render_location(command)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "custom struct field source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["2"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    rendered_text = "\n".join(
+        " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
+        for row in rows
+        if isinstance(row, dict)
+    )
+    affected_rendered_text = "\n".join(_data_block_rendered_source_text(row) for row in affected_rows)
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "affected listing row missing after reload",
+            "rendered_text": rendered_text,
+        }
+    matching_accesses = [
+        access
+        for row in affected_rows
+        for access in _mapping_sequence(row.get("typed_accesses"))
+        if _custom_struct_field_render_access_matches(access, expected, command)
+    ]
+    stale_name = expected.get("name") if isinstance(expected.get("name"), str) else None
+    if command_id.endswith(".remove"):
+        stale_tokens = (
+            [stale_name]
+            if stale_name and _rendered_source_contains_token(affected_rendered_text, stale_name)
+            else []
+        )
+        return {
+            "layer": "rendered_source",
+            "status": "passed" if not matching_accesses and not stale_tokens else "failed",
+            "source_offset": source_offset,
+            "stale_tokens": stale_tokens,
+            "matching_typed_accesses": matching_accesses,
+            "affected_rendered_text": affected_rendered_text,
+            "rendered_text": rendered_text,
+        }
+    expected_tokens = [token for token in (stale_name,) if isinstance(token, str) and token]
+    matched_tokens = [
+        token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+    ]
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if matching_accesses and len(matched_tokens) == len(expected_tokens) else "failed",
+        "source_offset": source_offset,
+        "expected_tokens": expected_tokens,
+        "matched_tokens": matched_tokens,
+        "matching_typed_accesses": matching_accesses,
+        "affected_rendered_text": affected_rendered_text,
+        "rendered_text": rendered_text,
+    }
+
+
+def _custom_struct_field_render_location(command: dict[str, object]) -> tuple[int, int] | None:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if not isinstance(locator, dict):
+        return None
+    section = locator.get("section_index")
+    offset = locator.get("start_offset")
+    if isinstance(section, int) and isinstance(offset, int):
+        return section, offset
+    return None
+
+
+def _custom_struct_field_render_access_matches(
+    access: dict[str, object],
+    expected: dict[str, object],
+    command: dict[str, object],
+) -> bool:
+    context = command.get("context")
+    operand_index = context.get("operand_index") if isinstance(context, dict) else None
+    if isinstance(operand_index, int) and access.get("operand_index") != operand_index:
+        return False
+    offset = expected.get("offset")
+    if isinstance(offset, int) and access.get("field_offset") != offset and access.get("displacement") != offset:
+        return False
+    struct_name = expected.get("struct_name")
+    if isinstance(struct_name, str) and struct_name:
+        struct_names = {
+            value
+            for value in (
+                access.get("owner_struct_name"),
+                access.get("refined_struct_name"),
+                access.get("root_struct_name"),
+                access.get("container_struct_name"),
+            )
+            if isinstance(value, str)
+        }
+        if struct_names and struct_name not in struct_names:
+            return False
+    name = expected.get("name")
+    if isinstance(name, str) and name:
+        return name in {access.get("field_name"), access.get("field_expr")}
+    return True
 
 
 def _data_block_render_location(
@@ -5452,6 +5685,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         context = _typed_field_context_from_candidate(candidate)
         if context is None:
             return None
+        parameter_payload = _typed_field_parameters_from_candidate(candidate, parameter_payload)
         return {
             "kind": "command",
             "command_id": action,
@@ -5538,10 +5772,77 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
         "field_name",
         "field_expr",
         "classification",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "conflicts",
+        "contradicted_evidence_id",
+        "reason",
     ):
         if key in candidate:
             context[key] = candidate[key]
+    evidence = candidate.get("evidence")
+    if isinstance(evidence, dict):
+        for key in (
+            "source_evidence_id",
+            "source_family",
+            "source_evidence_status",
+            "path_lifetime_scope",
+            "confidence",
+            "conflicts",
+            "contradicted_evidence_id",
+            "reason",
+        ):
+            if key in evidence and key not in context:
+                context[key] = evidence[key]
     return context
+
+
+def _typed_field_parameters_from_candidate(
+    candidate: dict[str, object],
+    parameters: dict[str, object],
+) -> dict[str, object]:
+    payload = dict(parameters)
+    struct_name = (
+        candidate.get("owner_struct_name")
+        or candidate.get("refined_struct_name")
+        or candidate.get("container_struct_name")
+        or candidate.get("root_struct_name")
+    )
+    if isinstance(struct_name, str) and struct_name.strip() and "struct_name" not in payload:
+        payload["struct_name"] = struct_name.strip()
+    offset = candidate.get("field_offset")
+    if not isinstance(offset, int) or isinstance(offset, bool):
+        offset = candidate.get("displacement")
+    if isinstance(offset, int) and not isinstance(offset, bool) and "offset" not in payload:
+        payload["offset"] = offset
+    if candidate.get("element_kind") == "typed_access" and "name" not in payload:
+        field_name = candidate.get("field_name")
+        if isinstance(field_name, str) and field_name.strip():
+            payload["name"] = field_name.strip()
+    _copy_source_evidence_to_payload(payload, candidate)
+    evidence = candidate.get("evidence")
+    if isinstance(evidence, dict):
+        _copy_source_evidence_to_payload(payload, cast(dict[str, object], evidence))
+    return payload
+
+
+def _copy_source_evidence_to_payload(payload: dict[str, object], source: dict[str, object]) -> None:
+    if not isinstance(source.get("source_evidence_id"), str):
+        return
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "contradicted_evidence_id",
+        "reason",
+    ):
+        if key in source and key not in payload:
+            payload[key] = source[key]
 
 
 def _semantic_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
@@ -5618,6 +5919,10 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
         if isinstance(raw_command_id, str):
             command_id = raw_command_id
             command_verifier = _default_verifier_for_actions([raw_command_id])
+            if _is_typed_field_command_id(raw_command_id) and not _typed_field_command_has_accepted_source_evidence(
+                command
+            ):
+                return None
     verifier = candidate.get("default_verifier")
     if isinstance(verifier, str) and verifier:
         if command_id is not None and not _candidate_advertises_command(candidate, command_id):
@@ -5626,6 +5931,31 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
             return command_verifier
         return verifier
     return command_verifier
+
+
+def _is_typed_field_command_id(command_id: str) -> bool:
+    return command_id.startswith(("typed_gap.field.", "typed_access.field."))
+
+
+def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]) -> bool:
+    evidence = _find_source_evidence_payload(command)
+    if evidence is None:
+        return False
+    source_family = evidence.get("source_family") or evidence.get("evidence_source_family")
+    status = evidence.get("source_evidence_status") or evidence.get("evidence_status") or evidence.get("status")
+    scope = evidence.get("path_lifetime_scope")
+    conflicts = evidence.get("conflicts")
+    if source_family != "struct_pointer":
+        return False
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return False
+    if not isinstance(scope, dict) or not scope.get("kind"):
+        return False
+    if isinstance(conflicts, list) and conflicts and status != "manual_override":
+        return False
+    if status == "manual_override":
+        return bool(evidence.get("contradicted_evidence_id")) and bool(evidence.get("reason"))
+    return True
 
 
 def _candidate_advertises_command(candidate: dict[str, object], command_id: str) -> bool:

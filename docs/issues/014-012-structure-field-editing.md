@@ -57,9 +57,16 @@ Current evidence:
 - Register-seed-backed custom struct fields now resolve through the C typed
   resolver and render field paths such as `player_score(a0)` in source/listing
   output.
-- No action-specific verifier proves rendered typed field paths from Manual
-  Action Log replay yet, so typed-field writes remain blocked until accepted
-  provenance, rendered-field proof, and owned cleanup are wired together.
+- Selected `typed_gap.field.*` and `typed_access.field.*` commands now require
+  accepted `struct_pointer` provenance before execution, persist the consumed
+  `source_evidence_id` in the Manual Action Log payload, and verify manual-log
+  replay, projected custom-field state, rendered typed access, provenance
+  evidence, and exact round-trip.
+- Target-wide `target.custom_struct*` metadata commands remain blocked by the
+  missing action-specific verifier when selected autonomously; they do not prove
+  a selected rendered field path.
+- Owned cleanup of propagated typed-access descendants after remove/rename is
+  still missing beyond selected-row rendered-source proof.
 - Custom target struct names currently share the resolver namespace with
   platform structs; platform names win on collision. Add explicit namespace
   handling later if target structs need to shadow platform/NDK names.
@@ -106,7 +113,8 @@ Acceptance criteria:
 - Rendered-field verifier must prove Manual Action Log replay, effective
   custom struct/field metadata, C semantic reload, rendered field path at the
   selected access, exact round-trip, and cleanup of propagated typed accesses
-  by `owner_action_id` on remove/rename/clear.
+  by `owner_action_id` on remove/rename/clear. Selected-row typed-field proof
+  exists; propagated descendant cleanup remains open.
 - Manual actions replay into effective metadata and rendered field references.
 - Commands cover typed-access and field-gap contexts.
 - Loop planner support covers explicit target custom-struct and typed-field

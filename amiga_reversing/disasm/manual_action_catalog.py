@@ -418,7 +418,7 @@ def listing_element_action_catalog(
                     "Add struct field",
                     "create_manual_custom_struct_field",
                     context,
-                    _typed_field_identity_parameters(context),
+                    _typed_field_action_parameters(context, row),
                     _typed_field_parameter_schema(),
                 ),
                 _context_log_action(
@@ -426,7 +426,7 @@ def listing_element_action_catalog(
                     "Edit struct field",
                     "create_manual_custom_struct_field",
                     context,
-                    _typed_field_identity_parameters(context),
+                    _typed_field_action_parameters(context, row),
                     _typed_field_parameter_schema(),
                 ),
             )
@@ -439,7 +439,7 @@ def listing_element_action_catalog(
                     "Edit struct field",
                     "create_manual_custom_struct_field",
                     context,
-                    _typed_field_identity_parameters(context),
+                    _typed_field_action_parameters(context, row),
                     _typed_field_parameter_schema(),
                 ),
                 _context_log_action(
@@ -447,7 +447,7 @@ def listing_element_action_catalog(
                     "Rename struct field",
                     "rename_manual_custom_struct_field",
                     context,
-                    _typed_field_identity_parameters(context),
+                    _typed_field_action_parameters(context, row),
                     _typed_field_rename_parameter_schema(),
                     "F2",
                 ),
@@ -456,7 +456,7 @@ def listing_element_action_catalog(
                     "Remove struct field",
                     "remove_manual_custom_struct_field",
                     context,
-                    _typed_field_identity_parameters(context),
+                    _typed_field_action_parameters(context, row),
                 ),
             )
         )
@@ -1435,15 +1435,21 @@ def listing_catalog_manual_payload(
     if ui_action == "create_manual_custom_struct_field":
         if not element_context or element_context.get("element_kind") not in {"typed_access", "typed_gap"}:
             raise ValueError("create_manual_custom_struct_field requires a typed element context")
-        return "create_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_target_payload(params)}
+        field = _custom_struct_field_target_payload(params)
+        _attach_custom_struct_field_evidence(field, params, element_context, row)
+        return "create_manual_custom_struct_field", {"custom_struct_field": field}
     if ui_action == "rename_manual_custom_struct_field":
         if not element_context or element_context.get("element_kind") != "typed_access":
             raise ValueError("rename_manual_custom_struct_field requires a typed-access element context")
-        return "rename_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_rename_payload(params)}
+        field = _custom_struct_field_rename_payload(params)
+        _attach_custom_struct_field_evidence(field, params, element_context, row)
+        return "rename_manual_custom_struct_field", {"custom_struct_field": field}
     if ui_action == "remove_manual_custom_struct_field":
         if not element_context or element_context.get("element_kind") != "typed_access":
             raise ValueError("remove_manual_custom_struct_field requires a typed-access element context")
-        return "remove_manual_custom_struct_field", {"custom_struct_field": _custom_struct_field_identity_payload(params)}
+        field = _custom_struct_field_identity_payload(params)
+        _attach_custom_struct_field_evidence(field, params, element_context, row)
+        return "remove_manual_custom_struct_field", {"custom_struct_field": field}
     if ui_action == "set_representation":
         return "create_manual_representation", {"representation": _representation_payload(row, element_context, params)}
     if ui_action == "add_review_note":
@@ -2565,6 +2571,44 @@ def _typed_field_identity_parameters(context: Mapping[str, object]) -> dict[str,
     if isinstance(field_name, str) and field_name.strip():
         params["name"] = field_name.strip()
     return params
+
+
+def _typed_field_action_parameters(context: Mapping[str, object], row: Mapping[str, object]) -> dict[str, object]:
+    params = _typed_field_identity_parameters(context)
+    _attach_custom_struct_field_evidence(params, params, context, row)
+    return params
+
+
+def _attach_custom_struct_field_evidence(
+    field: dict[str, object],
+    params: Mapping[str, object],
+    context: Mapping[str, object],
+    row: Mapping[str, object],
+) -> None:
+    report = _provenance_report(context, row)
+    evidence_source: Mapping[str, object] = params
+    if not isinstance(params.get("source_evidence_id"), str) and report is not None:
+        evidence_source = {
+            "source_evidence_id": report.get("source_evidence_id"),
+            "source_family": report.get("source_family"),
+            "source_evidence_status": report.get("status"),
+            "path_lifetime_scope": report.get("path_lifetime_scope"),
+            "confidence": report.get("confidence"),
+            "conflicts": report.get("conflicts"),
+        }
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "contradicted_evidence_id",
+        "reason",
+    ):
+        value = evidence_source.get(key)
+        if value is not None:
+            field[key] = value
 
 
 def _review_note_parameter_schema() -> dict[str, object]:
