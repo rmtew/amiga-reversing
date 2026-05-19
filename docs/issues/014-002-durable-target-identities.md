@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for 014 first-pass; future generated-descendant identity deferred
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:

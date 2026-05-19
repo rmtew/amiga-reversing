@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for first-pass type/domain binding; generated type-flow/review cleanup deferred
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 

@@ -1,5 +1,4 @@
-Status: Complete for supported absolute byte/word/long refs; broader reference
-kinds deferred until local evidence and verifier coverage exist.
+Status: Complete for supported absolute byte/word/long refs; broader reference kinds deferred to future
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 

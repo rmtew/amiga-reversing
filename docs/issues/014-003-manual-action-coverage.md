@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for supported 014 surface; future variants deferred
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:

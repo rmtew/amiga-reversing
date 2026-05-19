@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for regions and selected-use binding; bind-refine/cascades deferred
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:

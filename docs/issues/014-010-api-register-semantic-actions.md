@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for selected semantic/register actions; API arg/return propagation deferred
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:

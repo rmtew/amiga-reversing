@@ -1,4 +1,4 @@
-Status: Open
+Status: Implementation complete for suppressions/execution views; broader corrections deferred
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
 Scope:
