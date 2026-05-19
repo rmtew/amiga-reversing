@@ -5,6 +5,12 @@ Scope:
 Teach the reversing loop to select source-converging actions from analysis,
 listing/navigation facts, and command catalog capabilities.
 
+Accepted review state:
+Planner provenance support starts read-only. Non-dry semantic/type writes must
+wait for accepted evidence, resolved path/lifetime scope, supported catalog
+command, action-specific verifier, and already-satisfied checks against
+effective metadata/provenance state.
+
 Progress:
 - Generic `run-one` now ranks known source-converging command candidates
   (`label.rename`, row data/code seeds, representation commands, and fallback
@@ -108,6 +114,10 @@ Progress:
   `app-slot-suggestions` candidate, select `target.rsset_region.add`, execute
   through the command catalog, append Manual Action Log state, reload RSSET
   metadata, render an `RS.*` definition, and retain exact round-trip status.
+- Planner now treats report/inspection commands as planner-visible evidence,
+  not executable edits. Report-only options are summarized with
+  `execution_policy=report_only`, skipped before selection, and blocked again
+  if a stale selected command or catalog entry reaches non-dry execution.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -166,6 +176,33 @@ Remaining work:
 - Explicit RSSET binding candidates must carry the chosen layout/base and
   `base_evidence_id`; raw displacement element availability alone is only
   enough for `rsset.binding.report`, not mutation.
+- Post-`014-022` split: planner feeds may run generic provenance/def-use
+  exploration as read-only evidence gathering. They must not execute semantic
+  or type writes from exploratory provenance alone. Write candidates require a
+  supported command, durable provenance/classification evidence, resolved
+  path/lifetime scope when definitions differ, action-specific verifier support,
+  and already-satisfied checks against effective metadata.
+- Raw or unsupported semantic/type candidates, including raw RSSET
+  displacement candidates, should remain report-only until those gates exist.
+- Planner read/write rules:
+  read-only provenance reports may be mined freely for candidate explanation,
+  duplicate detection, and missing-capability reports. The planner may suggest
+  a write when a supported catalog command exists and the report names an
+  accepted `source_evidence_id`, compatible source family, resolved
+  path/lifetime scope, and action-specific verifier. The planner may execute a
+  write only when the same checks pass at execution time against refreshed
+  effective metadata.
+- Already-satisfied checks must compare against effective metadata and
+  provenance state, not just current listing text. For semantic/type work this
+  includes existing register seeds, semantic hints, RSSET bindings/regions,
+  custom fields, data-block layouts/bindings, suppressed/removed facts, and
+  accepted provenance classifications or overrides.
+- Exploratory evidence alone may produce `suggested_only` or report-only
+  planner output. It must not become a non-dry write candidate until accepted
+  classification/link/apply state exists.
+- Catalog availability is not sufficient write authority: if the available
+  entry has `effect=inspection` or `appends_to_manual_action_log=false`, the
+  loop must stop at `command_execution_policy` instead of POSTing it.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

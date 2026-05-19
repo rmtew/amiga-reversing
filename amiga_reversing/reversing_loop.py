@@ -105,6 +105,7 @@ _SEMANTIC_COMMAND_PREFIXES = (
     "semantic.struct_offset.",
     "semantic.equate.",
 )
+_REPORT_ONLY_COMMAND_PREFIXES = ("provenance.explore_",)
 _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
     "target.equate.add": ("target_equate", "target_equate"),
     "target.equate.edit": ("target_equate", "target_equate"),
@@ -682,6 +683,26 @@ def run_one_iteration(
         )
         return write_iteration_report(target_id, report, project_root=project_root)
 
+    command_policy = _command_execution_policy_blocker(command)
+    if command_policy is not None:
+        verification = {"status": "failed", "layers": [command_policy]}
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked"},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "api_gap", "name": "command_execution_policy"},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
     if _comment_text_missing(command):
         verification = {
             "status": "failed",
@@ -769,12 +790,14 @@ def run_one_iteration(
         return write_iteration_report(target_id, report, project_root=project_root)
 
     availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
-    if not _command_available_in_catalog(command, availability):
+    catalog_entry = _available_catalog_command(command, availability)
+    if catalog_entry is None:
         alternate = _select_available_command_action(target_id, inspect_report, excluded_command=command)
         if alternate is not None:
             selected = alternate
             command = cast(dict[str, object], selected["command"])
             availability = cast(dict[str, object], selected["availability"])
+            catalog_entry = _available_catalog_command(command, availability)
         else:
             availability_layer = {
                 "layer": "command_availability",
@@ -802,6 +825,26 @@ def run_one_iteration(
                 ),
             )
             return write_iteration_report(target_id, report, project_root=project_root)
+
+    catalog_policy = _command_execution_policy_blocker(command, catalog_entry)
+    if catalog_policy is not None:
+        verification = {"status": "failed", "layers": [catalog_policy]}
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked", "availability": availability},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "api_gap", "name": "command_execution_policy"},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
 
     if _command_requires_round_trip(command) and not _round_trip_verifier_available(inspect_report):
         availability_layer = {
@@ -5218,17 +5261,37 @@ def _planner_command_ids_for_action(candidate: dict[str, object], action: str) -
 def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object] | None:
     command_id = command.get("command_id")
     context = command.get("context")
-    if not isinstance(command_id, str) or _command_rank(command_id) <= 0 or not isinstance(context, dict):
+    if not isinstance(command_id, str) or not isinstance(context, dict):
+        return None
+    if _command_rank(command_id) <= 0 and not _command_id_is_report_only(command_id):
         return None
     parameters = command.get("parameters")
     normalized = dict(command)
     normalized["kind"] = "command"
     normalized["parameters"] = dict(parameters) if isinstance(parameters, dict) else {}
-    normalized["output_affecting"] = command.get("output_affecting") is True or _command_id_affects_output(command_id)
+    if _command_id_is_report_only(command_id):
+        normalized["effect"] = str(command.get("effect") or "inspection")
+        normalized["appends_to_manual_action_log"] = False
+        normalized["output_affecting"] = False
+    else:
+        normalized["output_affecting"] = command.get("output_affecting") is True or _command_id_affects_output(command_id)
     return normalized
 
 
 def _command_from_candidate_action(candidate: dict[str, object], action: str) -> dict[str, object] | None:
+    if _command_id_is_report_only(action):
+        context = _report_context_from_candidate(candidate)
+        if context is None:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": context,
+            "parameters": dict(candidate.get("parameters")) if isinstance(candidate.get("parameters"), dict) else {},
+            "output_affecting": False,
+            "effect": "inspection",
+            "appends_to_manual_action_log": False,
+        }
     if _command_rank(action) <= 0:
         return None
     locator = candidate.get("locator")
@@ -5422,6 +5485,19 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
     return None
 
 
+def _report_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
+    context = candidate.get("context")
+    if isinstance(context, dict):
+        return dict(cast(dict[str, object], context))
+    locator = candidate.get("locator")
+    element_id = candidate.get("element_id")
+    if isinstance(element_id, str) and element_id:
+        return {"kind": "element", "locator": locator, "element_id": element_id}
+    if isinstance(locator, dict):
+        return {"kind": "row", "locator": locator}
+    return None
+
+
 def _app_slot_context_from_candidate(candidate: dict[str, object]) -> dict[str, object] | None:
     locator = candidate.get("locator")
     element_id = candidate.get("element_id")
@@ -5520,6 +5596,9 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
         return str(existing) if isinstance(existing, str) and existing else "candidate is not actionable"
     if command is None:
         return "no supported source-converging command"
+    policy = _command_execution_policy_blocker(command)
+    if policy is not None:
+        return str(policy["message"])
     if _candidate_already_satisfied(candidate, command):
         return "candidate already satisfied in projected semantic state"
     if _candidate_verifier(candidate, command) is None:
@@ -5533,6 +5612,8 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
     command_verifier: str | None = None
     command_id: str | None = None
     if command is not None:
+        if _command_execution_policy_blocker(command) is not None:
+            return None
         raw_command_id = command.get("command_id")
         if isinstance(raw_command_id, str):
             command_id = raw_command_id
@@ -5684,6 +5765,8 @@ def _command_rank(command_id: str) -> int:
     for prefix, prefix_rank in _COMMAND_PREFIX_RANK.items():
         if command_id.startswith(prefix):
             return prefix_rank
+    if _command_id_is_report_only(command_id):
+        return 5
     return 0
 
 
@@ -5693,22 +5776,68 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
         if candidate is not None
         else _default_verifier_for_actions([str(command.get("command_id") or "")])
     )
-    return {
+    summary = {
         "command_id": command.get("command_id"),
         "output_affecting": command.get("output_affecting") is True,
         "verifier": verifier,
     }
+    if _command_execution_policy_blocker(command) is not None:
+        summary["execution_policy"] = "report_only"
+    return summary
 
 
 def _commands_same_identity(left: dict[str, object], right: dict[str, object]) -> bool:
     return left.get("command_id") == right.get("command_id") and left.get("context") == right.get("context")
 
 
-def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:
+def _available_catalog_command(command: dict[str, object], availability: dict[str, object]) -> dict[str, object] | None:
     commands = availability.get("commands")
-    return isinstance(commands, list) and any(
-        isinstance(entry, dict) and entry.get("command_id") == command.get("command_id") for entry in commands
-    )
+    if not isinstance(commands, list):
+        return None
+    for entry in commands:
+        if isinstance(entry, dict) and entry.get("command_id") == command.get("command_id"):
+            return cast(dict[str, object], entry)
+    return None
+
+
+def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:
+    return _available_catalog_command(command, availability) is not None
+
+
+def _command_id_is_report_only(command_id: str) -> bool:
+    return command_id.endswith(".report") or command_id.startswith(_REPORT_ONLY_COMMAND_PREFIXES)
+
+
+def _command_execution_policy_blocker(
+    command: dict[str, object],
+    catalog_entry: dict[str, object] | None = None,
+) -> dict[str, object] | None:
+    command_id = command.get("command_id")
+    if not isinstance(command_id, str):
+        return {
+            "layer": "command_execution_policy",
+            "status": "failed",
+            "message": "command id is missing",
+            "command_id": command_id,
+        }
+    if _command_is_report_only(command) or (catalog_entry is not None and _command_is_report_only(catalog_entry)):
+        return {
+            "layer": "command_execution_policy",
+            "status": "failed",
+            "message": "command is report-only",
+            "command_id": command_id,
+        }
+    return None
+
+
+def _command_is_report_only(command: dict[str, object]) -> bool:
+    command_id = command.get("command_id")
+    if isinstance(command_id, str) and _command_id_is_report_only(command_id):
+        return True
+    if command.get("appends_to_manual_action_log") is False:
+        return True
+    effect = command.get("effect")
+    return isinstance(effect, str) and effect != "manual_mutation"
 
 
 def _select_available_command_action(
@@ -5740,7 +5869,8 @@ def _select_available_command_action(
     for item in eligible:
         command = cast(dict[str, object], item["command"])
         availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
-        if _command_available_in_catalog(command, availability):
+        catalog_entry = _available_catalog_command(command, availability)
+        if catalog_entry is not None and _command_execution_policy_blocker(command, catalog_entry) is None:
             item["availability"] = availability
             return item
     return None

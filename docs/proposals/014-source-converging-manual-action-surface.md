@@ -965,6 +965,12 @@ not exported yet. Lookup-derived bases, stored-state reloads, API-return aliases
 and clobber-scoped lifetimes remain report gaps until backend provenance facts
 are surfaced.
 
+Implementation observation from `014-006`: planner command availability must be
+checked against execution policy, not just command id presence. Catalog entries
+with `effect=inspection` or `appends_to_manual_action_log=false` can be useful
+evidence surfaces, but non-dry `run-one` must stop at a
+`command_execution_policy` blocker instead of POSTing them.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

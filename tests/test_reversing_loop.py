@@ -4223,6 +4223,155 @@ def test_range_command_availability_query_uses_range_context() -> None:
     }
 
 
+def test_report_only_candidate_is_visible_but_not_selectable() -> None:
+    candidate = {
+        "id": "provenance-report",
+        "candidate_id": "provenance-report",
+        "kind": "provenance_report",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(),
+            "element_id": "row-1:register:0:a6",
+        },
+        "suggested_action_kinds": ["provenance.definition.report"],
+        "confidence": "high",
+        "actionable": True,
+    }
+    inspect_report = _inspect_with_locator()
+    inspect_report["candidate_work"] = [candidate]
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+    selected = reversing_loop._select_command_action(inspect_report)
+
+    assert command["command_id"] == "provenance.definition.report"
+    assert command["effect"] == "inspection"
+    assert command["appends_to_manual_action_log"] is False
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "command is report-only"
+    assert selected is None
+    assert inspect_report["planner"]["ranked_candidates"][0]["candidate_commands"] == [
+        {
+            "command_id": "provenance.definition.report",
+            "output_affecting": False,
+            "verifier": None,
+            "execution_policy": "report_only",
+        }
+    ]
+    assert reversing_loop._command_summary(
+        {
+            "kind": "command",
+            "command_id": "rsset.binding.report",
+            "context": command["context"],
+            "parameters": {},
+            "effect": "inspection",
+            "appends_to_manual_action_log": False,
+            "output_affecting": False,
+        },
+        candidate,
+    ) == {
+        "command_id": "rsset.binding.report",
+        "output_affecting": False,
+        "verifier": None,
+        "execution_policy": "report_only",
+    }
+
+
+def test_run_one_blocks_stale_report_only_selection_before_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    selected = {
+        "work_item": {"kind": "provenance_report", "confidence": "high"},
+        "command": {
+            "kind": "command",
+            "command_id": "provenance.definition.report",
+            "context": {
+                "kind": "element",
+                "locator": _listing_locator(),
+                "element_id": "row-1:register:0:a6",
+            },
+            "parameters": {},
+            "effect": "inspection",
+            "appends_to_manual_action_log": False,
+            "output_affecting": False,
+        },
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda inspect_report: selected)
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: (_ for _ in ()).throw(AssertionError("report-only command executed")),
+    )
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"] == [
+        {
+            "layer": "command_execution_policy",
+            "status": "failed",
+            "message": "command is report-only",
+            "command_id": "provenance.definition.report",
+        }
+    ]
+
+
+def test_run_one_blocks_catalog_inspection_entry_before_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    selected = {
+        "work_item": {
+            "kind": "api_register_seed",
+            "confidence": "high",
+            "suggested_action_kinds": ["semantic.library_base.exec.library"],
+        },
+        "command": {
+            "kind": "command",
+            "command_id": "semantic.library_base.exec.library",
+            "context": {
+                "kind": "element",
+                "locator": _listing_locator(),
+                "element_id": "row-1:register:0:a6",
+            },
+            "parameters": {"register": "A6"},
+            "output_affecting": True,
+        },
+    }
+    calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+    monkeypatch.setattr(reversing_loop, "_select_command_action", lambda report: selected)
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        calls.append((method, path))
+        if method == "GET" and path.endswith("/commands"):
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "semantic.library_base.exec.library",
+                            "effect": "inspection",
+                            "appends_to_manual_action_log": False,
+                        }
+                    ]
+                }
+            }
+        raise AssertionError("catalog inspection entry executed")
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", project_root=tmp_path)
+
+    assert calls == [("GET", "/api/projects/demo/commands")]
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"][0]["layer"] == "command_execution_policy"
+    assert report["verification"]["layers"][0]["command_id"] == "semantic.library_base.exec.library"
+
+
 def test_review_data_role_seed_candidate_uses_review_item_context() -> None:
     candidate = {
         "id": "review-data-named",
