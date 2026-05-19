@@ -234,9 +234,12 @@ Remaining work:
   metadata invariants until rendering/command slices depend on it.
 - Keep custom struct and typed-field commands blocked until rendered custom
   field paths and their verifier are proven in `014-012`.
-- Keep data-block layout and interpreted-reference commands blocked until
-  layout rendering, generated xrefs, removal behavior, and exact round-trip
-  verifiers are proven in `014-017`, `014-018`, and `014-019`.
+- Scalar data-block layout/element commands are verifier-backed in `014-017`,
+  and supported absolute byte/word/long interpreted refs are verifier-backed in
+  `014-018`. Keep broader reference kinds, gap-specific follow-ups, target-side
+  inbound xrefs, generated type-flow/review descendants, and unsupported
+  type/ref commands blocked until their owning slices prove render, cleanup,
+  generated xref/descendant state, and exact round-trip verifiers.
 - Target-equate definition representation is implemented in `014-020`; broader
   semantic/equate provenance remains separate from display-style verification.
 - Keep RSSET bind-refine/type-refine, same-flow propagation, generated
