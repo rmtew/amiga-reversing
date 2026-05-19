@@ -127,12 +127,19 @@ Current evidence:
 - Target-equate verifiers derive the expected equate from the executed durable
   action payload, so matching project state plus a local-effect echo cannot hide
   a missing or mismatched action result.
+- Target-equate definition representation is verified as display metadata:
+  reloaded target-equate state, rendered `EQU` value text, and exact rebuild
+  prove `target.equate.represent` without creating provenance/type-flow facts.
 - Generic `run-one` `target.rsset_region.*` and `app_slot.*` execution now
   verifies Manual Action Log replay, reloaded RSSET region/removal state, and
   exact round-trip instead of accepting target local-effect metadata alone.
 - RSSET/app-slot verifiers derive the expected region from the executed durable
   action payload, so matching project state plus a local-effect echo cannot hide
   a missing or mismatched action result.
+- RSSET binding verifiers now prove Manual Action Log replay, reloaded
+  selected-use binding/removal state with owner/cleanup and consumed
+  `base_evidence_refs`, selected-use rendered/ref-only cleanup state, and exact
+  round-trip for bind/unbind.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.
@@ -207,6 +214,10 @@ Current evidence:
   `parent_evidence_ids` as an unordered dependency set, so equivalent accepted
   evidence is not rejected only because the command and durable payload list
   parent ids in different orders.
+- Semantic hint, seeded-item suppression, and execution-view verifiers now
+  derive expected state from the durable Manual Action Log payload before
+  local-effect echoes, so response-local UI effects cannot satisfy or replace a
+  mismatched executed action.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,
@@ -226,13 +237,11 @@ Remaining work:
 - Keep data-block layout and interpreted-reference commands blocked until
   layout rendering, generated xrefs, removal behavior, and exact round-trip
   verifiers are proven in `014-017`, `014-018`, and `014-019`.
-- Keep target-equate definition representation commands blocked until rendered
-  `EQU` value text, semantic reload, and exact round-trip verifiers are proven
-  in `014-020`.
-- Keep RSSET numeric binding commands blocked until `014-011` proves replay,
-  selected-use rendering or linked-gap state, owned descendant cleanup, exact
-  round-trip, and type/xref verifiers where applicable. `014-021` defines the
-  verifier shape.
+- Target-equate definition representation is implemented in `014-020`; broader
+  semantic/equate provenance remains separate from display-style verification.
+- Keep RSSET bind-refine/type-refine, same-flow propagation, generated
+  xref/type-flow/review descendants, and owner-scoped descendant cleanup
+  blocked until `014-011`/`014-021` prove the cascade-specific verifiers.
 
 Cleanup / deletion:
 Delete after the verifier column in the matrix has no unspecified supported
