@@ -107,7 +107,7 @@ _SEMANTIC_COMMAND_PREFIXES = (
     "semantic.struct_offset.",
     "semantic.equate.",
 )
-_REPORT_ONLY_COMMAND_PREFIXES = ("provenance.explore_",)
+_REPORT_ONLY_COMMAND_PREFIXES: tuple[str, ...] = ()
 _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
     "target.equate.add": ("target_equate", "target_equate"),
     "target.equate.edit": ("target_equate", "target_equate"),

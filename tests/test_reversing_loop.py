@@ -6498,6 +6498,24 @@ def test_report_only_candidate_is_visible_but_not_selectable() -> None:
     }
 
 
+def test_legacy_provenance_explore_command_is_not_a_planner_report_command() -> None:
+    candidate = {
+        "id": "legacy-provenance-report",
+        "candidate_id": "legacy-provenance-report",
+        "kind": "provenance_report",
+        "context": {
+            "kind": "element",
+            "locator": _listing_locator(),
+            "element_id": "row-1:register:0:a6",
+        },
+        "suggested_action_kinds": ["provenance.explore_definition"],
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    assert reversing_loop._candidate_command_options(candidate) == []
+
+
 def test_run_one_blocks_stale_report_only_selection_before_execution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -1165,6 +1165,11 @@ with `effect=inspection` or `appends_to_manual_action_log=false` can be useful
 evidence surfaces, but non-dry `run-one` must stop at a
 `command_execution_policy` blocker instead of POSTing them.
 
+Implementation observation from `014-006`: report-only planner commands should
+be recognized from the current catalog contract, not legacy aliases. The
+supported provenance exploration surface is `provenance.*.report`; old
+`provenance.explore_*` ids must not normalize into planner commands.
+
 Implementation observation from `014-011`: RSSET binding needs both the
 family-specific identity (`base_evidence_id`, layout/base, displacement) and
 the generic provenance identity (`source_evidence_id`, source family/status,

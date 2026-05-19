@@ -142,6 +142,10 @@ Progress:
   parent ids, cleanup scope, and override fields survive the refreshed catalog
   lookup instead of being lost between candidate selection and availability
   matching.
+- Planner report-only recognition now uses the supported catalog command shape
+  `*.report` only. Legacy `provenance.explore_*` ids are not normalized into
+  planner commands, so stale candidate feeds cannot bypass the current command
+  catalog contract.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
