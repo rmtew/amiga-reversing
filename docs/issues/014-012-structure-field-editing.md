@@ -78,6 +78,10 @@ Current evidence:
 - Selected typed-field rename verification now proves the selected row renders
   the new field and no longer exposes the previous field name/access; rename
   proof fails when the command does not carry the previous field name.
+- Typed-field rename/remove rendered-source verification now also checks
+  command-reported affected locators, so stale propagated typed accesses in
+  touched rows fail cleanup proof instead of being hidden by selected-row-only
+  verification.
 - Planner command availability for `typed_gap.field.*` and
   `typed_access.field.*` now requires the refreshed catalog entry to match the
   selected struct, offset, and consumed `struct_pointer` provenance identity.
@@ -109,7 +113,9 @@ Current evidence:
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.
 - Owned cleanup of propagated typed-access descendants after remove/rename is
-  still missing beyond selected-row rendered-source proof.
+  still missing beyond command-reported affected rows; verifier coverage now
+  fails stale propagated rows it is told were affected, but broader descendant
+  discovery/ownership remains future work.
 - Custom target struct names still share the resolver namespace with platform
   structs. Target-local names now win on collision; explicit namespace identity
   remains future work for choosing an NDK/platform struct when a target custom

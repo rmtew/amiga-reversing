@@ -659,7 +659,7 @@ def test_custom_struct_field_remove_verifier_matches_cleanup_action_not_owner(
     monkeypatch.setattr(
         reversing_loop,
         "_verify_projected_custom_struct_field_rendered_source",
-        lambda target_id, command, command_id, expected: {"layer": "rendered_source", "status": "passed"},
+        lambda target_id, command, command_id, expected, **kwargs: {"layer": "rendered_source", "status": "passed"},
     )
     monkeypatch.setattr(
         reversing_loop,
@@ -812,6 +812,130 @@ def test_custom_struct_field_rename_render_verifier_requires_previous_name(
     assert verification["status"] == "failed"
     assert verification["message"] == "previous custom struct field name missing for rename proof"
     assert verification["matching_typed_accesses"]
+
+
+def test_custom_struct_field_remove_render_verifier_checks_affected_locators(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.remove",
+        "context": {
+            "locator": _listing_locator(start_offset=0, end_offset=2),
+            "operand_index": 0,
+        },
+    }
+    expected = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code"}
+    selected_row = _listing_row(text="\tmove.w 36(a0),d0\n", start_offset=0, end_offset=2)
+    stale_propagated_row = _listing_row(
+        row_key="row-2",
+        text="\tmove.w de_Code(a1),d1\n",
+        start_offset=8,
+        end_offset=10,
+    )
+    stale_propagated_row["typed_accesses"] = [
+        {
+            "operand_index": 1,
+            "displacement": 36,
+            "owner_struct_name": "DerivedEvent",
+            "field_name": "de_Code",
+            "field_expr": "de_Code",
+        }
+    ]
+    durable_result = {
+        "mutation": {
+            "affected_locators": [
+                _listing_locator(start_offset=0, end_offset=2),
+                _listing_locator(row_key="row-2", start_offset=8, end_offset=10),
+            ]
+        }
+    }
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        source_offset = int(query["source_offset"][0])
+        return {"data": {"rows": [selected_row if source_offset == 0 else stale_propagated_row]}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.remove",
+        expected,
+        durable_result=durable_result,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["checked_source_locations"] == [
+        {"section_index": 0, "source_offset": 0},
+        {"section_index": 0, "source_offset": 8},
+    ]
+    assert [access["field_name"] for access in verification["matching_typed_accesses"]] == ["de_Code"]
+
+
+def test_custom_struct_field_rename_render_verifier_checks_affected_locators(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.rename",
+        "context": {
+            "locator": _listing_locator(start_offset=0, end_offset=2),
+            "operand_index": 0,
+            "field_name": "de_Code",
+        },
+        "parameters": {"name": "de_Command"},
+    }
+    expected = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Command"}
+    selected_row = _listing_row(text="\tmove.w de_Command(a0),d0\n", start_offset=0, end_offset=2)
+    selected_row["typed_accesses"] = [
+        {
+            "operand_index": 0,
+            "displacement": 36,
+            "owner_struct_name": "DerivedEvent",
+            "field_name": "de_Command",
+            "field_expr": "de_Command",
+        }
+    ]
+    stale_propagated_row = _listing_row(
+        row_key="row-2",
+        text="\tmove.w de_Code(a1),d1\n",
+        start_offset=8,
+        end_offset=10,
+    )
+    stale_propagated_row["typed_accesses"] = [
+        {
+            "operand_index": 1,
+            "displacement": 36,
+            "owner_struct_name": "DerivedEvent",
+            "field_name": "de_Code",
+            "field_expr": "de_Code",
+        }
+    ]
+    durable_result = {
+        "mutation": {
+            "affected_locators": [
+                _listing_locator(start_offset=0, end_offset=2),
+                _listing_locator(row_key="row-2", start_offset=8, end_offset=10),
+            ]
+        }
+    }
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        source_offset = int(query["source_offset"][0])
+        return {"data": {"rows": [selected_row if source_offset == 0 else stale_propagated_row]}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.rename",
+        expected,
+        durable_result=durable_result,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matched_tokens"] == ["de_Command"]
+    assert [access["field_name"] for access in verification["stale_typed_accesses"]] == ["de_Code"]
 
 
 def test_provenance_backed_mutation_verifier_requires_accepted_evidence() -> None:

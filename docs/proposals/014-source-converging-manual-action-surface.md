@@ -1419,6 +1419,12 @@ must expose the selected `(struct_name, offset)` identity as well as provenance.
 Those fields are not optional implementation detail once availability matching
 and semantic reload verification compare them.
 
+Implementation observation from `014-012`: typed-field cleanup proof must inspect
+command-reported affected locators, not only the selected row. Rename/remove can
+look correct at the selected access while a propagated typed access in another
+touched row still renders the stale field name; broader owner-scoped descendant
+discovery remains separate future work.
+
 Implementation observation from `014-012`: remove/cleanup command schemas are
 part of the same contract as create/rename schemas. A typed-field remove that
 hides selected identity or consumed provenance leaves callers unable to prove

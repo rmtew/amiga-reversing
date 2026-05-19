@@ -3894,7 +3894,13 @@ def _verify_custom_struct_field_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_custom_struct_field(target_id, command_id, expected, project_root=project_root),
-        _verify_projected_custom_struct_field_rendered_source(target_id, command, command_id, expected),
+        _verify_projected_custom_struct_field_rendered_source(
+            target_id,
+            command,
+            command_id,
+            expected,
+            durable_result=durable_result,
+        ),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -4697,31 +4703,37 @@ def _verify_projected_custom_struct_field_rendered_source(
     command: dict[str, object],
     command_id: str,
     expected: dict[str, object] | None,
+    *,
+    durable_result: dict[str, object] | None = None,
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "rendered_source", "status": "failed", "message": "missing custom struct field payload"}
-    location = _custom_struct_field_render_location(command)
-    if location is None:
+    locations = _custom_struct_field_render_locations(command, durable_result)
+    if not locations:
         return {"layer": "rendered_source", "status": "failed", "message": "custom struct field source location missing"}
-    section_index, source_offset = location
-    try:
-        listing = server.route_request(
-            "GET",
-            f"/api/projects/{target_id}/listing",
-            {
-                "section_index": [str(section_index)],
-                "source_offset": [str(source_offset)],
-                "before": ["2"],
-                "after": ["2"],
-            },
-        )
-    except Exception as exc:
-        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
-    data = listing.get("data")
-    rows = data.get("rows") if isinstance(data, dict) else None
-    if not isinstance(rows, list):
-        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
-    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    section_index, source_offset = locations[0]
+    rows: list[object] = []
+    affected_rows: list[dict[str, object]] = []
+    for check_section, check_offset in locations:
+        try:
+            listing = server.route_request(
+                "GET",
+                f"/api/projects/{target_id}/listing",
+                {
+                    "section_index": [str(check_section)],
+                    "source_offset": [str(check_offset)],
+                    "before": ["2"],
+                    "after": ["2"],
+                },
+            )
+        except Exception as exc:
+            return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+        data = listing.get("data")
+        check_rows = data.get("rows") if isinstance(data, dict) else None
+        if not isinstance(check_rows, list):
+            return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+        rows.extend(check_rows)
+        affected_rows.extend(_data_block_rendered_source_rows(check_rows, check_section, check_offset))
     rendered_text = "\n".join(
         " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
         for row in rows
@@ -4749,12 +4761,22 @@ def _verify_projected_custom_struct_field_rendered_source(
             if stale_name and _rendered_source_contains_token(affected_rendered_text, stale_name)
             else []
         )
+        stale_accesses = [
+            access
+            for row in affected_rows
+            for access in _mapping_sequence(row.get("typed_accesses"))
+            if _custom_struct_field_render_access_matches(access, expected, command, match_operand_index=False)
+        ]
         return {
             "layer": "rendered_source",
-            "status": "passed" if not matching_accesses and not stale_tokens else "failed",
+            "status": "passed" if not stale_accesses and not stale_tokens else "failed",
             "source_offset": source_offset,
+            "checked_source_locations": [
+                {"section_index": check_section, "source_offset": check_offset}
+                for check_section, check_offset in locations
+            ],
             "stale_tokens": stale_tokens,
-            "matching_typed_accesses": matching_accesses,
+            "matching_typed_accesses": stale_accesses,
             "affected_rendered_text": affected_rendered_text,
             "rendered_text": rendered_text,
         }
@@ -4785,7 +4807,7 @@ def _verify_projected_custom_struct_field_rendered_source(
             access
             for row in affected_rows
             for access in _mapping_sequence(row.get("typed_accesses"))
-            if _custom_struct_field_render_access_matches(access, previous_expected, command)
+            if _custom_struct_field_render_access_matches(access, previous_expected, command, match_operand_index=False)
         ]
         stale_tokens = (
             [previous_name]
@@ -4806,6 +4828,10 @@ def _verify_projected_custom_struct_field_rendered_source(
                 else "failed"
             ),
             "source_offset": source_offset,
+            "checked_source_locations": [
+                {"section_index": check_section, "source_offset": check_offset}
+                for check_section, check_offset in locations
+            ],
             "expected_tokens": expected_tokens,
             "matched_tokens": matched_tokens,
             "stale_previous_name": previous_name,
@@ -4823,6 +4849,10 @@ def _verify_projected_custom_struct_field_rendered_source(
         "layer": "rendered_source",
         "status": "passed" if matching_accesses and len(matched_tokens) == len(expected_tokens) else "failed",
         "source_offset": source_offset,
+        "checked_source_locations": [
+            {"section_index": check_section, "source_offset": check_offset}
+            for check_section, check_offset in locations
+        ],
         "expected_tokens": expected_tokens,
         "matched_tokens": matched_tokens,
         "matching_typed_accesses": matching_accesses,
@@ -4856,14 +4886,37 @@ def _custom_struct_field_render_location(command: dict[str, object]) -> tuple[in
     return None
 
 
+def _custom_struct_field_render_locations(
+    command: dict[str, object],
+    durable_result: dict[str, object] | None,
+) -> list[tuple[int, int]]:
+    locations: list[tuple[int, int]] = []
+    selected = _custom_struct_field_render_location(command)
+    if selected is not None:
+        locations.append(selected)
+    mutation = durable_result.get("mutation") if isinstance(durable_result, dict) else None
+    affected = mutation.get("affected_locators") if isinstance(mutation, dict) else None
+    if isinstance(affected, list):
+        for locator in affected:
+            if not isinstance(locator, dict):
+                continue
+            section = locator.get("section_index")
+            offset = locator.get("start_offset")
+            if isinstance(section, int) and isinstance(offset, int):
+                locations.append((section, offset))
+    return list(dict.fromkeys(locations))
+
+
 def _custom_struct_field_render_access_matches(
     access: dict[str, object],
     expected: dict[str, object],
     command: dict[str, object],
+    *,
+    match_operand_index: bool = True,
 ) -> bool:
     context = command.get("context")
     operand_index = context.get("operand_index") if isinstance(context, dict) else None
-    if isinstance(operand_index, int) and access.get("operand_index") != operand_index:
+    if match_operand_index and isinstance(operand_index, int) and access.get("operand_index") != operand_index:
         return False
     offset = expected.get("offset")
     if isinstance(offset, int) and access.get("field_offset") != offset and access.get("displacement") != offset:
