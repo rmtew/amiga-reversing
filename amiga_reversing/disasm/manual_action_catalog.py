@@ -1938,13 +1938,13 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
         if name is None:
             raise ValueError("rename_data_symbol requires parameter name")
         symbol: dict[str, object] = {
-            "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
             "hunk": hunk,
             "addr": addr,
             "name": name,
         }
         if "end" in item:
             symbol["end"] = item["end"]
+        symbol["data_symbol_id"] = _data_symbol_id(symbol)
         if "name" in item:
             symbol["previous_name"] = item["name"]
         if "source_locator" in item:
@@ -1957,13 +1957,13 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
         if name is None:
             raise ValueError("rename_data_symbol requires parameter name")
         symbol = {
-            "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
             "hunk": hunk,
             "addr": addr,
             "name": name,
         }
         if end is not None and end > addr:
             symbol["end"] = end
+        symbol["data_symbol_id"] = _data_symbol_id(symbol)
         previous_name = params.get("previous_name")
         if isinstance(previous_name, str) and previous_name:
             symbol["previous_name"] = previous_name
@@ -1972,6 +1972,17 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
             symbol["data_class"] = data_class
         return symbol
     raise ValueError("rename_data_symbol requires a data row, data ref, or seeded data entity on the selected row")
+
+
+def _data_symbol_id(symbol: Mapping[str, object]) -> str:
+    hunk = _optional_int(symbol.get("hunk"))
+    addr = _optional_int(symbol.get("addr"))
+    if hunk is None or addr is None:
+        raise ValueError("data_symbol requires hunk and addr")
+    end = _optional_int(symbol.get("end"))
+    if end is not None and end > addr:
+        return f"data-symbol:h{hunk}:{addr:08X}:{end:08X}"
+    return f"data-symbol:h{hunk}:{addr:08X}"
 
 
 def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:

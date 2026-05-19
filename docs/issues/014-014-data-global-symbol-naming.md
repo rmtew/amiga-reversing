@@ -91,6 +91,9 @@ Current evidence:
 - Data-symbol rename command execution now honors the selected seeded-entity
   `end` when building the durable payload, so a same-address generated range
   cannot be renamed by accident when the operator selected a different range.
+- Data-symbol seed ids now include `end` when present and Manual Action Log
+  projection derives that ranged id from the payload, so same-address range
+  renames cannot collide before effective metadata merge.
 - Seeded-entity suppression projection now carries optional `end` and effective
   metadata applies ranged suppressions exactly, so suppressing one generated
   seeded data range does not remove a same-address range with a different end.

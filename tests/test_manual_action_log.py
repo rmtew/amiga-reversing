@@ -277,7 +277,7 @@ def test_manual_action_log_projects_data_symbol_rename_as_seed_override(tmp_path
                 1,
                 "rename_data_symbol",
                 data_symbol={
-                    "data_symbol_id": "data-symbol:h0:00000100",
+                    "data_symbol_id": "data-symbol:h0:00000100:00000104",
                     "hunk": 0,
                     "addr": 0x100,
                     "end": 0x104,
@@ -292,12 +292,66 @@ def test_manual_action_log_projects_data_symbol_rename_as_seed_override(tmp_path
 
     assert projection.seeds == (
         {
-            "seed_id": "data-symbol:h0:00000100",
+            "seed_id": "data-symbol:h0:00000100:00000104",
             "kind": "data",
             "hunk": 0,
             "addr": 0x100,
             "end": 0x104,
             "name": "player_table",
+        },
+    )
+
+
+def test_manual_action_log_keeps_same_address_data_symbol_rename_ranges(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "rename_data_symbol",
+                data_symbol={
+                    "hunk": 0,
+                    "addr": 0x100,
+                    "end": 0x104,
+                    "name": "short_table",
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "rename_data_symbol",
+                data_symbol={
+                    "hunk": 0,
+                    "addr": 0x100,
+                    "end": 0x108,
+                    "name": "long_table",
+                },
+            ),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.seeds == (
+        {
+            "seed_id": "data-symbol:h0:00000100:00000104",
+            "kind": "data",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x104,
+            "name": "short_table",
+        },
+        {
+            "seed_id": "data-symbol:h0:00000100:00000108",
+            "kind": "data",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x108,
+            "name": "long_table",
         },
     )
 

@@ -1302,6 +1302,11 @@ def _data_symbol_seed_id(symbol: Mapping[str, object]) -> str:
     addr = _manual_seed_int(symbol, "addr")
     if hunk is None or addr is None:
         raise ValueError("data_symbol requires hunk and addr")
+    end = _manual_seed_int(symbol, "end")
+    if end is not None:
+        if end <= addr:
+            raise ValueError("data_symbol end must be greater than addr")
+        return f"data-symbol:h{hunk}:{addr:08X}:{end:08X}"
     return f"data-symbol:h{hunk}:{addr:08X}"
 
 
@@ -1318,7 +1323,7 @@ def _projected_data_symbol_seed(action: _ManualAction) -> dict[str, object]:
     if not isinstance(name, str) or not name.strip():
         raise ValueError("data_symbol requires name")
     seed: dict[str, object] = {
-        "seed_id": str(symbol.get("data_symbol_id") or _data_symbol_seed_id(symbol)),
+        "seed_id": _data_symbol_seed_id(symbol),
         "kind": ManualSeedKind.DATA,
         "hunk": hunk,
         "addr": addr,

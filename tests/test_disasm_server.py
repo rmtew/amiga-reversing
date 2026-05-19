@@ -6509,7 +6509,7 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
 
     assert action["kind"] == "rename_data_symbol"
     assert data_symbol == {
-        "data_symbol_id": "data-symbol:h0:00000100",
+        "data_symbol_id": "data-symbol:h0:00000100:00000104",
         "hunk": 0,
         "addr": 0x100,
         "end": 0x104,
@@ -6602,7 +6602,7 @@ def test_route_manual_action_catalog_execute_renames_referenced_data_symbol(
 
     assert action["kind"] == "rename_data_symbol"
     assert data_symbol == {
-        "data_symbol_id": "data-symbol:h1:00000120",
+        "data_symbol_id": "data-symbol:h1:00000120:00000140",
         "hunk": 1,
         "addr": 0x120,
         "end": 0x140,

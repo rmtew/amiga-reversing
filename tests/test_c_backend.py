@@ -2867,7 +2867,7 @@ after_data:
                 "created_at": "2026-05-18T00:00:01+00:00",
                 "kind": "rename_data_symbol",
                 "data_symbol": {
-                    "data_symbol_id": "data-symbol:h0:00000002",
+                    "data_symbol_id": "data-symbol:h0:00000002:00000007",
                     "hunk": 0,
                     "addr": 2,
                     "end": 7,
@@ -3050,7 +3050,7 @@ after_data:
                 "created_at": "2026-05-18T00:00:01+00:00",
                 "kind": "rename_data_symbol",
                 "data_symbol": {
-                    "data_symbol_id": "data-symbol:h0:00000002",
+                    "data_symbol_id": "data-symbol:h0:00000002:00000007",
                     "hunk": 0,
                     "addr": 2,
                     "end": 7,
@@ -3130,7 +3130,7 @@ data_label:
                 "created_at": "2026-05-18T00:00:01+00:00",
                 "kind": "rename_data_symbol",
                 "data_symbol": {
-                    "data_symbol_id": "data-symbol:h0:00000006",
+                    "data_symbol_id": "data-symbol:h0:00000006:0000000C",
                     "hunk": 0,
                     "addr": 6,
                     "end": 12,

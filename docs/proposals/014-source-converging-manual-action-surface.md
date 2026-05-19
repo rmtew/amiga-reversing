@@ -1335,6 +1335,11 @@ has the same identity requirement as availability. If selected seeded data
 ranges share hunk/address, command execution must match the selected `end`
 before copying previous-name/source-locator context into the durable action.
 
+Implementation observation from `014-014`: range-aware data-symbol payloads also
+need range-aware Manual Action Log seed ids. Otherwise two `rename_data_symbol`
+actions at the same hunk/address can collide in replay before effective metadata
+gets a chance to merge by hunk/address/end/type.
+
 Implementation observation from `014-006`: planner availability queries are a
 provenance boundary too. The refreshed row/element catalog query must carry the
 same accepted evidence/status/scope, parent ids, conflicts, override fields,

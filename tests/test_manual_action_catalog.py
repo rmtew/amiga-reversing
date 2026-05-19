@@ -200,7 +200,7 @@ def test_data_symbol_rename_command_uses_seeded_entity_identity() -> None:
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h0:00000100",
+            "data_symbol_id": "data-symbol:h0:00000100:00000104",
             "hunk": 0,
             "addr": 0x100,
             "end": 0x104,
@@ -219,7 +219,7 @@ def test_data_symbol_rename_command_uses_seeded_entity_identity() -> None:
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h0:00000100",
+            "data_symbol_id": "data-symbol:h0:00000100:00000104",
             "hunk": 0,
             "addr": 0x100,
             "end": 0x104,
@@ -291,7 +291,7 @@ def test_data_symbol_rename_command_uses_seeded_entity_range_identity() -> None:
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h0:00000100",
+            "data_symbol_id": "data-symbol:h0:00000100:00000108",
             "hunk": 0,
             "addr": 0x100,
             "end": 0x108,
@@ -340,7 +340,7 @@ def test_data_symbol_remove_command_removes_manual_seed_identity() -> None:
                 "addr": 0x100,
                 "end": 0x104,
                 "name": "player_table",
-                "source_locator": "ManualSeed:data-symbol:h0:00000100",
+                "source_locator": "ManualSeed:data-symbol:h0:00000100:00000104",
             }
         ],
     }
@@ -350,9 +350,9 @@ def test_data_symbol_remove_command_removes_manual_seed_identity() -> None:
     kind, payload = listing_catalog_manual_payload(row, "data_symbol.remove")
 
     assert remove_action["action"] == "remove_manual_seed"
-    assert remove_action["parameters"] == {"seed_id": "data-symbol:h0:00000100"}
+    assert remove_action["parameters"] == {"seed_id": "data-symbol:h0:00000100:00000104"}
     assert kind == "remove_manual_seed"
-    assert payload == {"seed_id": "data-symbol:h0:00000100"}
+    assert payload == {"seed_id": "data-symbol:h0:00000100:00000104"}
 
 
 def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity() -> None:
@@ -373,7 +373,7 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h1:00000120",
+            "data_symbol_id": "data-symbol:h1:00000120:00000128",
             "hunk": 1,
             "addr": 0x120,
             "end": 0x128,
@@ -726,7 +726,7 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h1:00000120",
+            "data_symbol_id": "data-symbol:h1:00000120:00000140",
             "hunk": 1,
             "addr": 0x120,
             "end": 0x140,
