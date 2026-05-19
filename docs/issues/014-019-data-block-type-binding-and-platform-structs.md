@@ -28,6 +28,8 @@ Current implementation:
 - Bind payloads now preserve `parent_evidence_ids` with consumed source
   evidence, and catalog availability plus semantic reload verification compare
   that parent dependency set.
+- Bind payloads now also preserve consumed evidence `confidence`, matching the
+  public type-bind schema and selected row command context.
 - Row-scoped data-block type binding now preserves selected provenance carried
   on row command context through command re-selection and execution parameter
   merge, so manual-classified `data_block_pointer` evidence is not dropped or

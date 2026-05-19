@@ -2335,6 +2335,7 @@ def test_route_manual_action_catalog_execute_data_block_type_preserves_context_e
     assert binding["source_evidence_id"] == "prov-selected-data-block"
     assert binding["source_evidence_status"] == "manual_classified"
     assert binding["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0x20}
+    assert binding["confidence"] == "medium"
     assert binding["parent_evidence_ids"] == ["prov-table-base"]
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()

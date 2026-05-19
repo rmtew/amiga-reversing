@@ -1286,6 +1286,8 @@ also part of the provenance gate. If the schema exposes only
 `source_evidence_id`/family/status but not path/lifetime scope, conflicts,
 parent ids, override reason, or cleanup scope, callers cannot construct the
 same evidence boundary that bind payloads and verifiers compare.
+The same applies to `confidence`: it is not enough for the command context to
+carry it if the durable type-binding payload drops it before replay.
 
 Implementation observation from `014-014`: data-symbol removal is not a single
 cleanup shape. Generated seeded entities should be suppressed by hunk/address,

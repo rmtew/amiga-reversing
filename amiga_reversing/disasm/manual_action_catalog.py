@@ -3700,6 +3700,7 @@ def _data_block_element_type_binding_payload(
         "source_family",
         "source_evidence_status",
         "requires_source_evidence",
+        "confidence",
         "parent_evidence_ids",
         "contradicted_evidence_id",
         "reason",
