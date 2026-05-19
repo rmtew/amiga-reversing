@@ -862,6 +862,12 @@ Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and
 round-trip instead of affected locators.
 
+Implementation observation from `014-006`/`014-013`: seeded-item correction
+availability must compare the selected suppression identity `(kind, hunk, addr)`
+against the refreshed catalog entry. A row-level
+`correction.suppress_seeded_item.*` command id alone is not enough authority to
+suppress a different analyzer/imported fact.
+
 Implementation observation from `014-005`/`014-013`:
 Execution-view commands produce target runtime view state; their verifier should
 check the reloaded execution view or removed-view identity plus round-trip

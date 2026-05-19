@@ -6769,6 +6769,8 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
         )
     if command_id in {"row.data_block.element.bind_type", "row.data_block.element.clear_type"}:
         return _catalog_entry_parameters_match(command, entry, ("layout_id", "offset", "width"))
+    if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
+        return _catalog_entry_parameters_match(command, entry, ("kind", "hunk", "addr"))
     return True
 
 

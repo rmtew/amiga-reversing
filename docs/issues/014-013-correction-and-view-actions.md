@@ -46,6 +46,10 @@ Current evidence:
 - Generic `run-one` now verifies `correction.suppress_seeded_item.*` execution
   by checking reloaded suppressed seeded item state rather than affected row
   metadata.
+- Planner command availability for `correction.suppress_seeded_item.*` now
+  requires the refreshed catalog entry to match the selected suppression
+  identity `(kind, hunk, addr)`. A stale correction candidate can no longer
+  borrow availability from a different suppressible seeded item on the row.
 - Generic `run-one` now verifies `target.execution_view.*` execution by checking
   reloaded execution-view state, including owner/cleanup action ids, rather
   than target local-effect metadata.
@@ -101,6 +105,9 @@ Acceptance criteria:
   cleanup scope must match the contradicted evidence id. Cleanup verifier must
   remove stale descendants from the contradicted/overridden fact without
   removing analyzer-native or independently accepted facts.
+- Seeded-item correction availability must match the exact target-specific
+  suppression identity before execution; correction command id alone is not
+  enough authority to suppress an analyzer/imported fact.
 
 Required tests:
 Manual replay, command execution, source rendering, and reproduction/round-trip

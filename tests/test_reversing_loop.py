@@ -3631,7 +3631,16 @@ def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "correction.suppress_seeded_item.seeded_entity"}]}}
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "correction.suppress_seeded_item.seeded_entity",
+                            "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+                        }
+                    ]
+                }
+            }
         if method == "POST" and path.endswith("/commands/execute"):
             assert isinstance(body, dict)
             assert body["command_id"] == "correction.suppress_seeded_item.seeded_entity"
@@ -5909,6 +5918,34 @@ def test_correction_suppress_seeded_item_candidate_uses_row_context_with_prefix_
         "output_affecting": True,
     }
     assert reversing_loop._candidate_verifier(candidate, command) == "suppressed_seeded_item"
+
+
+def test_correction_suppress_seeded_item_availability_requires_matching_identity() -> None:
+    command = {
+        "command_id": "correction.suppress_seeded_item.seeded_entity",
+        "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "correction.suppress_seeded_item.seeded_entity",
+                "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x104},
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters = cast(dict[str, object], command["parameters"])
+    del command_parameters["addr"]
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters["addr"] = 0x100
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters["addr"] = 0x100
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
 def test_correction_suppress_seeded_item_skips_already_projected_suppression() -> None:
