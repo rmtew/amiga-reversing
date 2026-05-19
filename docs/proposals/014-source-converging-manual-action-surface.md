@@ -183,12 +183,13 @@ Generic provenance / def-use exploration:
   still allow later memory-held values, stack locals, allocation/local buffers,
   and table-derived pointer values.
 - Current first-slice implementation exposes read-only
-  `provenance.definition.report`, `provenance.uses.report`, and
-  `provenance.source_family.report` catalog entries for selected register/base
-  operands. Reports carry stable `source_evidence_id`, subject,
-  definitions/uses, source family/status, path/lifetime scope, confidence,
-  conflicts, possible actions, and consumers, and remain non-mutable command
-  catalog inspection entries.
+  `provenance.definition.report`, `provenance.uses.report`,
+  `provenance.references.report`, and `provenance.source_family.report` catalog
+  entries for selected register/base operands. Reports carry stable
+  `source_evidence_id`, subject, definitions/uses, reference/consumer views,
+  source family/status, path/lifetime scope, confidence, conflicts, possible
+  actions, and consumers, and remain non-mutable command catalog inspection
+  entries.
 - RSSET `rsset.binding.report` should become a family-specific view over this
   provenance model: generic provenance explains the base register/value,
   definitions, uses, path scope, conflicts, and evidence id; RSSET adds layout

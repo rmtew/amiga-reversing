@@ -488,6 +488,7 @@ def _provenance_report_actions(context: Mapping[str, object], row: Mapping[str, 
     for action_id, label, focus in (
         ("provenance.definition.report", "Provenance definition report", "definitions"),
         ("provenance.uses.report", "Provenance uses report", "uses"),
+        ("provenance.references.report", "Provenance reference report", "references"),
         ("provenance.source_family.report", "Provenance source-family report", "source_family"),
     ):
         action = _context_transient(action_id, label, "provenance_report", context, None)
@@ -507,12 +508,14 @@ def _provenance_report(context: Mapping[str, object], row: Mapping[str, object])
     source_evidence_id = _provenance_source_evidence_id(context, subject, classification)
     definitions = _provenance_definitions(context, row, subject, classification, source_evidence_id)
     uses = _provenance_uses(context, subject)
+    references = _provenance_references(context, subject, uses)
     possible_actions = _provenance_possible_actions(context, classification)
     return {
         "kind": "provenance_report",
         "subject": subject,
         "definitions": definitions,
         "uses": uses,
+        "references": references,
         "source_family": classification["source_family"],
         "status": classification["status"],
         "path_lifetime_scope": classification["path_lifetime_scope"],
@@ -731,6 +734,32 @@ def _provenance_uses(context: Mapping[str, object], subject: Mapping[str, object
         "width_bytes": subject.get("width_bytes"),
     }
     return [{key: value for key, value in use.items() if value is not None}]
+
+
+def _provenance_references(
+    context: Mapping[str, object],
+    subject: Mapping[str, object],
+    uses: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    consumers = _provenance_consumers(context)
+    references: list[dict[str, object]] = []
+    for use in uses:
+        ref = {
+            "kind": "register_base_use",
+            "hunk": use.get("hunk"),
+            "addr": use.get("addr"),
+            "stable_key": use.get("stable_key"),
+            "row_text": use.get("row_text"),
+            "operand_index": use.get("operand_index"),
+            "access": use.get("access"),
+            "width_bytes": use.get("width_bytes"),
+            "register": subject.get("register"),
+            "base_register": subject.get("base_register"),
+            "displacement": subject.get("displacement"),
+            "consumers": consumers,
+        }
+        references.append({key: value for key, value in ref.items() if value not in (None, [])})
+    return references
 
 
 def _provenance_possible_actions(

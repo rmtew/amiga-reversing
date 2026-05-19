@@ -4242,8 +4242,10 @@ def test_route_manual_action_catalog_reports_base_relative_provenance_uses(
     )
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
     uses_action = next(action for action in actions if action["action_id"] == "provenance.uses.report")
+    references_action = next(action for action in actions if action["action_id"] == "provenance.references.report")
     report = cast(dict[str, object], uses_action["report"])
     uses = cast(list[dict[str, object]], report["uses"])
+    references = cast(list[dict[str, object]], cast(dict[str, object], references_action["report"])["references"])
 
     assert report["source_family"] == "unknown"
     assert report["status"] == "unresolved"
@@ -4251,6 +4253,13 @@ def test_route_manual_action_catalog_reports_base_relative_provenance_uses(
     assert cast(dict[str, object], report["subject"])["displacement"] == 0x0102
     assert cast(dict[str, object], report["subject"])["width_bytes"] == 1
     assert [use["row_text"] for use in uses] == ["sf.b $0102(a6)", "tst.b $0102(a6)"]
+    assert references_action["effect"] == "inspection"
+    assert references_action["appends_to_manual_action_log"] is False
+    assert references_action["parameters"] == {"source_evidence_id": report["source_evidence_id"], "focus": "references"}
+    assert [ref["kind"] for ref in references] == ["register_base_use", "register_base_use"]
+    assert [ref["row_text"] for ref in references] == ["sf.b $0102(a6)", "tst.b $0102(a6)"]
+    assert all(ref["base_register"] == "A6" and ref["displacement"] == 0x0102 for ref in references)
+    assert all(ref["consumers"] == ["rsset.binding", "semantic.register_seed"] for ref in references)
     assert {"command_id": "rsset.binding.report", "state": "report_only"} in report["possible_actions"]
     assert {"command_id": "provenance.classify_source", "state": "planned_write_boundary"} in report["possible_actions"]
 

@@ -83,12 +83,13 @@ Progress:
   `semantic_hint_state`, `library_base_register_seed`, or
   `struct_pointer_register_seed` instead of generic `round_trip`.
 - Command catalog now exposes read-only `provenance.definition.report`,
-  `provenance.uses.report`, and `provenance.source_family.report` actions for
-  selected register/base operands. These actions return `inspection` results
-  with a stable `source_evidence_id`, subject, definition candidates, same-base
-  use candidates, source-family/status, path/lifetime scope, possible actions,
-  conflicts, and consumers, and they are rejected by command execution as
-  `non_mutable_command`.
+  `provenance.uses.report`, `provenance.references.report`, and
+  `provenance.source_family.report` actions for selected register/base
+  operands. These actions return `inspection` results with a stable
+  `source_evidence_id`, subject, definition candidates, same-base use
+  candidates, reference/consumer views, source-family/status, path/lifetime
+  scope, possible actions, conflicts, and consumers, and they are rejected by
+  command execution as `non_mutable_command`.
 - First-slice provenance classification covers LVO A6 base operands as
   `library_base`/`analysis_proven`, typed access/gap base operands with known
   owner/root structs as `struct_pointer`/`analysis_proven`, selected app-slot or
@@ -153,14 +154,16 @@ Investigation result:
   flow, records app-slot/typed accesses, and renders LVO/base-field/selected
   RSSET symbols in `m68k_render_ir.c`.
 - Read-only catalog commands should be `provenance.definition.report`,
-  `provenance.uses.report`, and `provenance.source_family.report`. They return
-  reports only. They may be invoked from selected operand/app-slot/typed/data
-  contexts or planner candidates, but never append Manual Action Log entries.
+  `provenance.uses.report`, `provenance.references.report`, and
+  `provenance.source_family.report`. They return reports only. They may be
+  invoked from selected operand/app-slot/typed/data contexts or planner
+  candidates, but never append Manual Action Log entries.
 - Report shape:
   `subject` (target, hunk, source address, operand index, register/base
-  register, displacement/value), `definitions`, `uses`, `source_family`,
-  `status`, `path_lifetime_scope`, `source_evidence_id`, `confidence`,
-  `conflicts`, `possible_actions`, and `consumers`. Definitions should include
+  register, displacement/value), `definitions`, `uses`, `references`,
+  `source_family`, `status`, `path_lifetime_scope`, `source_evidence_id`,
+  `confidence`, `conflicts`, `possible_actions`, and `consumers`. Definitions
+  should include
   origin kind, origin hunk/offset, defining instruction/value where known,
   predecessor/caller path summary, and parent evidence ids. Uses should include
   same-flow use-sites, same-displacement candidates, typed/app-slot/data-block
