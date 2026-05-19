@@ -3145,6 +3145,8 @@ def _typed_field_parameter_schema() -> dict[str, object]:
             "name": {"type": "string"},
             "type": {"type": "string"},
             "size": {"type": "integer", "minimum": 1},
+            "struct_name": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
             "struct": {"type": "string"},
             "pointer_struct": {"type": "string"},
             "named_base": {"type": "string"},
@@ -3157,7 +3159,12 @@ def _typed_field_parameter_schema() -> dict[str, object]:
 def _typed_field_rename_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
-        "properties": {"name": {"type": "string"}, **_source_evidence_parameter_properties()},
+        "properties": {
+            "name": {"type": "string"},
+            "struct_name": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
+            **_source_evidence_parameter_properties(),
+        },
         "required": ["name"],
     }
 

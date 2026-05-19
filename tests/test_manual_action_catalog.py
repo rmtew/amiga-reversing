@@ -1069,6 +1069,7 @@ def test_typed_gap_field_add_command_uses_gap_identity() -> None:
     assert add_action["parameters"]["offset"] == 36
     assert add_action["parameters"]["source_family"] == "struct_pointer"
     assert add_action["parameters"]["source_evidence_status"] == "analysis_proven"
+    assert {"struct_name", "offset"}.issubset(add_action["parameter_schema"]["properties"])
     assert add_action["parameter_schema"]["required"] == ["name", "type", "size"]
     assert kind == "create_manual_custom_struct_field"
     assert payload == {
@@ -1139,6 +1140,8 @@ def test_typed_access_field_commands_use_resolved_identity() -> None:
         "source_evidence_status": "analysis_proven",
     }
     assert {
+        "struct_name",
+        "offset",
         "source_evidence_id",
         "source_family",
         "source_evidence_status",

@@ -96,6 +96,9 @@ Current evidence:
   path/lifetime scope, conflicts, parent ids, manual override reason, and
   cleanup scope. This keeps the public command contract aligned with the
   verifier and availability gates.
+- Selected typed-field add/edit/rename parameter schemas also advertise the
+  selected `(struct_name, offset)` identity that payloads, availability checks,
+  and semantic reload verification compare.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.

@@ -1323,6 +1323,11 @@ of the command contract; hiding path/lifetime scope, conflicts, parent evidence
 ids, override reason, or cleanup scope invites callers to send under-specified
 writes that can only fail after selection.
 
+Implementation observation from `014-012`: selected typed-field command schemas
+must expose the selected `(struct_name, offset)` identity as well as provenance.
+Those fields are not optional implementation detail once availability matching
+and semantic reload verification compare them.
+
 Implementation observation from `014-019`: the same parent-evidence boundary
 applies to data-block type bindings. A binding-owned descendant can carry the
 right type-binding owner while still being derived from the wrong upstream
