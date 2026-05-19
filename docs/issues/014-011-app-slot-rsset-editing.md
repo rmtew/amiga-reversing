@@ -157,6 +157,11 @@ Current evidence:
   `parent_evidence_ids` and `cleanup_scope` as bind payloads, not just the
   nested `base_evidence_refs`, so cleanup/replay matching uses the selected
   binding boundary directly.
+- RSSET bind/unbind catalog exposure now treats explicit selected-use
+  provenance as authoritative. If a selected context carries unresolved,
+  unknown, conflicting, non-`rsset_app_base`, or incomplete override evidence,
+  `base_evidence_id` alone no longer exposes mutation; the operand remains
+  report-only with a classify-source boundary.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

@@ -1255,6 +1255,12 @@ same top-level consumed-evidence boundary as creation payloads. Keeping
 forces verifiers and cleanup code to infer the selected binding boundary from
 children instead of comparing the durable binding identity directly.
 
+Implementation observation from `014-011`: explicit selected-use provenance
+must be authoritative even when a `base_evidence_id` is present. If the explicit
+source-family/status/scope is unresolved, unknown, conflicting, non-RSSET, or
+an incomplete override, the catalog must keep `rsset.binding.bind`/`unbind`
+hidden and expose only report/classification paths.
+
 Implementation observation from `014-006`/`014-011`: planner command
 availability for RSSET binding must require and compare evidence-bearing
 identity parameters, not just `command_id`. A selected row can expose

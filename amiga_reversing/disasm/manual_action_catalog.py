@@ -195,6 +195,7 @@ _SOURCE_EVIDENCE_OBJECT_KEYS = (
     "cleanup_scope",
 )
 _SOURCE_EVIDENCE_KEYS = (*_SOURCE_EVIDENCE_STRING_KEYS, *_SOURCE_EVIDENCE_OBJECT_KEYS)
+_ACCEPTED_PROVENANCE_STATUSES = frozenset({"analysis_proven", "path_specific", "manual_classified", "manual_override"})
 
 
 def _copy_source_evidence_context(target: dict[str, object], source: Mapping[str, object]) -> None:
@@ -874,7 +875,9 @@ def _provenance_possible_actions(
         actions.append({"command_id": "semantic.register.struct_ptr", "state": "available_with_parameters"})
     if context.get("displacement") is not None and context.get("base_register"):
         actions.append({"command_id": "rsset.binding.report", "state": "report_only"})
-        if context.get("base_evidence_id"):
+        if context.get("base_evidence_id") and (
+            not _has_explicit_source_evidence(context) or _rsset_explicit_source_evidence_is_accepted(context)
+        ):
             actions.append({"command_id": "rsset.binding.bind", "state": "available"})
         else:
             actions.append({"command_id": "provenance.classify_source", "state": "planned_write_boundary"})
@@ -2422,6 +2425,8 @@ def _rsset_binding_evidence_parameters(context: Mapping[str, object], base_regis
     base_symbol = str(context.get("base_symbol") or "__amiga_app_base__").strip() or "__amiga_app_base__"
     base_evidence_id = context.get("base_evidence_id")
     if isinstance(base_evidence_id, str) and base_evidence_id.strip():
+        if _has_explicit_source_evidence(context) and not _rsset_explicit_source_evidence_is_accepted(context):
+            return None
         return {
             "layout_name": layout_name,
             "base_symbol": base_symbol,
@@ -2434,6 +2439,39 @@ def _rsset_binding_evidence_parameters(context: Mapping[str, object], base_regis
             "base_evidence_id": f"selected-app-slot:{base_register}:{base_symbol}",
         }
     return None
+
+
+def _has_explicit_source_evidence(context: Mapping[str, object]) -> bool:
+    return any(key in context for key in ("source_evidence_id", "source_family", "source_evidence_status", "status"))
+
+
+def _rsset_explicit_source_evidence_is_accepted(context: Mapping[str, object]) -> bool:
+    evidence_id = context.get("source_evidence_id")
+    source_family = context.get("source_family")
+    status = context.get("source_evidence_status") or context.get("status")
+    scope = context.get("path_lifetime_scope")
+    conflicts = context.get("conflicts")
+    if not isinstance(evidence_id, str) or not evidence_id.strip():
+        return False
+    if source_family != "rsset_app_base":
+        return False
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return False
+    if not isinstance(scope, Mapping) or not scope.get("kind"):
+        return False
+    if isinstance(conflicts, list) and conflicts and status != "manual_override":
+        return False
+    if status != "manual_override":
+        return True
+    cleanup_scope = context.get("cleanup_scope")
+    return (
+        isinstance(context.get("contradicted_evidence_id"), str)
+        and bool(context.get("contradicted_evidence_id"))
+        and isinstance(context.get("reason"), str)
+        and bool(context.get("reason"))
+        and isinstance(cleanup_scope, Mapping)
+        and bool(cleanup_scope.get("kind"))
+    )
 
 
 def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:

@@ -842,6 +842,52 @@ def test_app_slot_remove_command_uses_selected_slot_identity() -> None:
     assert payload == {"rsset_layout_region": {"offset": 0x234}}
 
 
+def test_rsset_binding_stays_report_only_for_unaccepted_explicit_provenance() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0xE2,
+        "end_offset": 0xE4,
+        "stable_key": "raw-rsset",
+        "text": "sf.b $0102(a6)",
+        "opcode": "sf.b",
+        "operand_parts": [
+            {
+                "kind": "displacement",
+                "operand_index": 0,
+                "base_register": "A6",
+                "displacement": 0x0102,
+                "width_bytes": 1,
+            }
+        ],
+    }
+    selector = {
+        "element_kind": "displacement",
+        "operand_index": 0,
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": "prov-unresolved-a6",
+        "source_family": "unknown",
+        "source_evidence_status": "unresolved",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+    }
+
+    actions = listing_element_action_catalog(row, selector)
+
+    assert any(action["action_id"] == "rsset.binding.report" for action in actions)
+    assert not any(action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"} for action in actions)
+    report = next(action["report"] for action in actions if action["action_id"] == "rsset.binding.report")
+    assert report["base_evidence"]["base_evidence_refs"][0]["accepted"] is False
+
+    accepted_selector = {
+        **selector,
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "manual_classified",
+    }
+    accepted_actions = listing_element_action_catalog(row, accepted_selector)
+
+    assert any(action["action_id"] == "rsset.binding.bind" for action in accepted_actions)
+
+
 def test_target_execution_view_add_and_edit_command_payloads() -> None:
     for command_id in ("target.execution_view.add", "target.execution_view.edit"):
         kind, payload = target_catalog_manual_payload(
