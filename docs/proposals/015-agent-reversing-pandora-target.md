@@ -358,6 +358,24 @@ the intended location.
 * Next recommendation: continue with typed data-block names or representation
   candidates; keep RSSET/app-base mutation paused until base evidence exists.
 
+### 015-004: Named blitter source data reference
+
+* Candidate: next Pandora `run-one` after `copper_list_000109EA`.
+* Evidence: dry-run selected a typed `data_symbol.rename` from listing data-ref
+  evidence at `s0:000007D2:instruction:509`, hunk 0 `$00057D00`, with data
+  class `blitter_source`.
+* Command: executed `data_symbol.rename` to `blitter_source_00077D00`.
+* Verifier: command execution succeeded, Manual Action Log sequence 2 was
+  appended locally, and `reproduction.json` reports `status: exact`,
+  `stale: false`, rebuilt SHA matching original.
+* Timing: dry-run 7.3s; execution 11.4s including exact reproduction.
+* Result: rendered source can now refer to the blitter-source data location by
+  a typed symbol instead of an anonymous runtime address.
+* Review: this is a narrow output-affecting source-quality improvement with a
+  supported command and exact round-trip. No support-code change was needed.
+* Next recommendation: continue typed data-block renames while they remain
+  data-class backed; inspect representation candidates before executing them.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
