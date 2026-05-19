@@ -125,6 +125,12 @@ Progress:
 - Provenance-backed planner gates now read only the command's direct consumed
   evidence fields. Nested cleanup-scope evidence ids cannot satisfy typed-field
   or data-block type write prerequisites.
+- Command availability for `rsset.binding.bind`/`unbind` now requires and
+  matches the complete
+  selected binding identity, including layout/base, base register,
+  `base_evidence_id`, displacement, and operand index. A row that exposes a
+  different RSSET binding action no longer authorizes a stale candidate with a
+  mismatched base evidence id.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -210,6 +216,10 @@ Remaining work:
 - Catalog availability is not sufficient write authority: if the available
   entry has `effect=inspection` or `appends_to_manual_action_log=false`, the
   loop must stop at `command_execution_policy` instead of POSTing it.
+- Catalog command id availability is not sufficient identity authority for
+  evidence-bearing writes. Any command family whose parameters select consumed
+  provenance or cleanup identity must compare those parameters against the
+  refreshed catalog entry before execution.
 
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

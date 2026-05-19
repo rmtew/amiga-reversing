@@ -1111,6 +1111,13 @@ must treat binding owner/cleanup action ids and consumed `base_evidence_refs`
 as semantic reload state. Matching only the selected-use identity tuple can
 hide stale ownership or stale provenance after unbind/rebind.
 
+Implementation observation from `014-006`/`014-011`: planner command
+availability for RSSET binding must require and compare evidence-bearing
+identity parameters, not just `command_id`. A selected row can expose
+`rsset.binding.bind` for one proven `base_evidence_id`; that must not authorize
+a stale candidate whose layout/base, displacement, operand index, or
+`base_evidence_id` describes a different binding.
+
 Implementation observation from `014-011`: bind-only RSSET use-site visibility
 needs a ref-only projection path separate from renderable app-slot fields.
 Creating a generic `app_XXXX` field for a missing RSSET layout would make source

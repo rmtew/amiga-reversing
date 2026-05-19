@@ -133,6 +133,12 @@ Current evidence:
   conflicts, and `base_evidence_refs` they consume. Manual replay projects
   those fields into effective `rsset_use_site_bindings` so verifier/planner
   gates can compare against effective provenance state, not just row text.
+- Planner command availability for `rsset.binding.bind`/`unbind` now requires
+  the command to carry, and the refreshed catalog entry to match, the selected
+  layout/base identity,
+  `base_evidence_id`, displacement, and operand index. This keeps raw or stale
+  same-command candidates from borrowing availability from a different proven
+  RSSET binding action on the same row.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
@@ -196,6 +202,10 @@ Remaining work:
   `base_evidence_id` or a verifier-proven equivalent flow identity. Matching
   only register name plus displacement is insufficient, including A6 fallback
   cases.
+- Availability checks already enforce exact selected-use RSSET binding
+  identity. Future same-flow/same-displacement feed widening must keep this
+  property and add flow-equivalence proof explicitly rather than relying on
+  command id matches.
 - Bind/refine/cascade ownership:
   bind-only owns selected-use state; bind-refine owns linked field/gap
   descendants it creates; type-refine owns type/domain descendants. Unbind and

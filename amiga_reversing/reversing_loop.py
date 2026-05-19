@@ -6744,9 +6744,29 @@ def _available_catalog_command(command: dict[str, object], availability: dict[st
     if not isinstance(commands, list):
         return None
     for entry in commands:
-        if isinstance(entry, dict) and entry.get("command_id") == command.get("command_id"):
+        if (
+            isinstance(entry, dict)
+            and entry.get("command_id") == command.get("command_id")
+            and _catalog_entry_matches_command_identity(command, cast(dict[str, object], entry))
+        ):
             return cast(dict[str, object], entry)
     return None
+
+
+def _catalog_entry_matches_command_identity(command: dict[str, object], entry: dict[str, object]) -> bool:
+    command_id = command.get("command_id")
+    if command_id not in {"rsset.binding.bind", "rsset.binding.unbind"}:
+        return True
+    command_parameters = command.get("parameters")
+    entry_parameters = entry.get("parameters")
+    if not isinstance(command_parameters, dict) or not isinstance(entry_parameters, dict):
+        return False
+    for key in ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index"):
+        command_value = command_parameters.get(key)
+        entry_value = entry_parameters.get(key)
+        if entry_value is None or entry_value != command_value:
+            return False
+    return True
 
 
 def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:

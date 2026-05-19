@@ -4718,6 +4718,48 @@ def test_rsset_binding_candidate_uses_element_context_and_binding_verifier() -> 
     assert reversing_loop._candidate_verifier(candidate, command) == "rsset_binding_state"
 
 
+def test_rsset_binding_availability_requires_matching_base_evidence() -> None:
+    command = {
+        "command_id": "rsset.binding.bind",
+        "parameters": {
+            "layout_name": "app",
+            "base_symbol": "__amiga_app_base__",
+            "base_register": "A6",
+            "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+            "displacement": 0x0102,
+            "operand_index": 0,
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "rsset.binding.bind",
+                "parameters": {
+                    "layout_name": "app",
+                    "base_symbol": "__amiga_app_base__",
+                    "base_register": "A6",
+                    "base_evidence_id": "selected-base:A5:__other_base__",
+                    "displacement": 0x0102,
+                    "operand_index": 0,
+                },
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters = cast(dict[str, object], command["parameters"])
+    del command_parameters["base_evidence_id"]
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    command_parameters["base_evidence_id"] = "selected-base:A6:__amiga_app_base__"
+
+    availability["commands"][0]["parameters"]["base_evidence_id"] = "selected-base:A6:__amiga_app_base__"
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
+
+
 def test_rsset_binding_verifier_requires_owner_and_base_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
