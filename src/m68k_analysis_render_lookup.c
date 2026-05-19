@@ -4845,7 +4845,7 @@ const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, s
 
 static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind,
-    uint8_t observed_access_size) {
+    uint8_t observed_access_size, int add_renderable_slot) {
   size_t index;
   M68kRenderAppSlotRef *grown;
   size_t next_capacity;
@@ -4853,7 +4853,8 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
       access_kind == M68K_APP_SLOT_ACCESS_NONE) {
     return 0;
   }
-  if (render_lookup_add_app_access_slot(lookup, displacement, observed_access_size, section_index, offset) != 0)
+  if (add_renderable_slot &&
+      render_lookup_add_app_access_slot(lookup, displacement, observed_access_size, section_index, offset) != 0)
     return -1;
   for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
     const M68kRenderAppSlotRef *existing = &lookup->app_slot_refs[index];
@@ -10611,6 +10612,55 @@ static uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *in
   return 0U;
 }
 
+static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  uint16_t binding_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || policy == NULL ||
+      lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  for (binding_index = 0U; binding_index < policy->rsset_use_site_binding_count &&
+       binding_index < M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT; ++binding_index) {
+    const M68kAnalysisRssetUseSiteBinding *binding = &policy->rsset_use_site_bindings[binding_index];
+    size_t section_index;
+    if (binding->base_evidence_id[0] == '\0' || binding->base_reg >= 8U || binding->operand_index >= 4U ||
+        binding->displacement > 0x7FFFU) {
+      continue;
+    }
+    for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+      const M68kDecodeSectionIR *section = &decode->sections[section_index];
+      size_t candidate_index;
+      if (section->section_index != binding->section_index) continue;
+      for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+        const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+        M68kInstructionIR instruction;
+        uint8_t base_reg = 0U;
+        int16_t displacement = 0;
+        uint8_t access_kind;
+        if (candidate->offset != binding->offset ||
+            !candidate_is_accepted_start(section, accepted_start[section_index], candidate)) {
+          continue;
+        }
+        if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+            binding->operand_index >= instruction.operand_count ||
+            !operand_is_address_displacement_local(&instruction.operands[binding->operand_index], &base_reg,
+              &displacement) ||
+            base_reg != binding->base_reg || displacement != (int16_t)binding->displacement) {
+          continue;
+        }
+        access_kind = app_slot_access_kind_from_instruction(&instruction, binding->operand_index);
+        if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
+            displacement, binding->operand_index, access_kind,
+            app_slot_access_size_from_instruction(&instruction, access_kind), 0) != 0) {
+          return -1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 static int displacement_is_custom_hardware_offset(int16_t displacement) {
   uint32_t offset;
   if (displacement < 0) return 0;
@@ -10669,7 +10719,7 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
         if (access_kind == M68K_APP_SLOT_ACCESS_NONE) continue;
         if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
             displacement, (uint8_t)operand_index, access_kind,
-            app_slot_access_size_from_instruction(&instruction, access_kind)) != 0) {
+            app_slot_access_size_from_instruction(&instruction, access_kind), 1) != 0) {
           return -1;
         }
       }
@@ -11225,6 +11275,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (preview != NULL) preview->platform_pass_call_summary_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_analyze_amiga_app_state_slots(lookup, decode, accepted_start) != 0) return -1;
+  if (render_lookup_seed_policy_rsset_use_site_app_refs(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_app_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();

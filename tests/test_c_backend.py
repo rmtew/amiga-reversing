@@ -8781,6 +8781,112 @@ def test_real_dll_manual_rsset_use_site_binding_renders_selected_existing_field_
     assert direct_profile["direct_rebuild_exact"] is True
 
 
+def test_real_dll_manual_rsset_use_site_binding_projects_missing_field_as_ref_only(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-rsset-binding-gap.hunk"
+    source_text = (
+        "    SECTION section_0,code\n"
+        "start:\n"
+        "    move.w d0,$0004(a2)\n"
+        "    move.w d1,$0004(a2)\n"
+        "    rts\n"
+        "    dc.w $0000\n"
+    )
+    binary_path.write_bytes(
+        assemble_platform_source_text_with_c_backend(
+            "amiga-hunk",
+            source_text,
+            include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+            target_cpu="any",
+            project_root=PROJECT_ROOT,
+        )[0]
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_rsset_use_site_binding",
+                "rsset_use_site_binding": {
+                    "rsset_use_site_binding_id": "bind-work-gap-first-use",
+                    "hunk": 0,
+                    "addr": 0,
+                    "operand_index": 1,
+                    "base_register": "A2",
+                    "displacement": 4,
+                    "layout_name": "work",
+                    "base_symbol": "__game_work_base__",
+                    "base_evidence_id": "selected-base:A2:__game_work_base__",
+                    "access": "write",
+                    "width_bytes": 2,
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        metadata_text = c_backend._metadata_path_text(metadata_path)
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+        rows, _api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
+            source,
+            metadata_text=metadata_text,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "\tmove.w d0,$0004(a2)\n" in rendered
+    assert "\tmove.w d1,$0004(a2)\n" in rendered
+    assert "app_0004 RS" not in rendered
+    assert rebuilt == binary_path.read_bytes()
+    assert direct_profile["direct_rebuild_exact"] is True
+
+    refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
+    assert refs_by_text == {
+        "move.w d0,$0004(a2)": [
+            {"symbol": "app_0004", "displacement": 4, "base_register": "A2", "operand_index": 1, "access": "write"}
+        ]
+    }
+    app_slot_analysis = profile["app_slot_analysis"]
+    assert isinstance(app_slot_analysis, dict)
+    assert [
+        (slot["symbol"], slot["displacement"], slot["base_registers"], slot["ref_count"])
+        for slot in app_slot_analysis["slots"]
+    ] == [("app_0004", 4, ["A2"], 1)]
+
+
 def test_real_dll_assembles_source_path_with_profile(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     source_path = tmp_path / "minimal.s"

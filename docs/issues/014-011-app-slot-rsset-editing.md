@@ -82,6 +82,10 @@ Current evidence:
 - C-backed render/rebuild coverage proves a bind-only selected use can render
   an existing named RSSET field while another same-displacement use of the same
   base register stays raw, and direct-rebuilds exactly.
+- Bind-only selected use-sites without a matching RSSET field now project into
+  listing `app_slot_refs` and app-slot analysis/navigation as ref-only
+  evidence. They do not create renderable `app_XXXX`/`RS.*` fields, so source
+  remains raw and exact round-trip proof stays local until `bind_refine` exists.
 - Loop planner recognizes explicit `target.rsset_region.add/edit/rename/remove`
   candidates, reports `rsset_region_state` verification, and skips
   already-satisfied projected add/edit/rename/remove state.
@@ -168,9 +172,6 @@ Remaining work:
 - Add `rsset.binding.bind_refine` so a binding can own creation/refinement of a
   missing RSSET field such as GenAm `$0102(a6)`; bind-only still leaves missing
   fields raw/linked-gap until that field action exists.
-- Project bind-only selected use-sites into listing/navigation state even when
-  no matching field exists yet, so linked gaps are visible before
-  `bind_refine`.
 - Add conflict feedback for bind+type refinement: if observed access width,
   base evidence, or platform/custom type application does not reconcile, block
   the application or create a review item instead of silently applying it.

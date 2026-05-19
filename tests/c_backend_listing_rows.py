@@ -63,11 +63,16 @@ def build_project_listing_rows_from_source_with_c_artifact(
             start=0,
             count=total_rows if isinstance(total_rows, int) else 0,
         )
+        navigation, navigation_profile = artifact.navigation_payload()
         rows = list(payload["rows"])
+        app_slot_analysis = navigation.get("app_slot_analysis")
+        merged_profile = {**summary_profile, **navigation_profile, **window_profile}
+        if isinstance(app_slot_analysis, dict):
+            merged_profile["app_slot_analysis"] = app_slot_analysis
         return (
             rows,
             _api_calls_from_rows(rows),
-            {**summary_profile, **window_profile},
+            merged_profile,
         )
     finally:
         artifact.close()

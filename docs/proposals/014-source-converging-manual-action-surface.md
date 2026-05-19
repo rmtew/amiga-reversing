@@ -1099,6 +1099,12 @@ must treat binding owner/cleanup action ids and consumed `base_evidence_refs`
 as semantic reload state. Matching only the selected-use identity tuple can
 hide stale ownership or stale provenance after unbind/rebind.
 
+Implementation observation from `014-011`: bind-only RSSET use-site visibility
+needs a ref-only projection path separate from renderable app-slot fields.
+Creating a generic `app_XXXX` field for a missing RSSET layout would make source
+rendering output-affecting before `bind_refine`; listing/navigation refs can
+expose the linked gap while keeping the operand raw and round-trip proof exact.
+
 Implementation observation from `014-012`: extending `M68kAnalysisPolicy` with
 custom structs should not add large inline arrays to stack-heavy analysis
 structures. Heap-owned custom-struct storage plus explicit policy deep-copy and
