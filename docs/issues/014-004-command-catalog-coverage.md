@@ -59,10 +59,18 @@ Current progress:
 - Command execution tests now cover edit-variant local effects for target
   equates, RSSET regions, custom structs, and custom struct fields, not only
   add/remove/rename paths.
-- Data-block layout and interpreted-reference command exposure is not covered
-  by the existing data-role, representation, symbol, or struct commands; track
-  that surface in `014-017` through `014-019`. `014-016` owns metadata and
-  Manual Action Log replay only, not command exposure.
+- Scalar data-block layout/element command exposure is implemented in `014-017`
+  through `row/range.data_block.layout.create` and
+  `row/range.data_block.element.set/remove/represent`.
+- Supported absolute byte/word/long interpreted-reference command exposure is
+  implemented in `014-018` through `row.data_block.element.interpret_ref` and
+  `row.data_block.element.clear_ref`.
+- Data-block type/platform binding command exposure is implemented for the
+  active row bind/clear slice in `014-019`; generated type-flow/review
+  descendant commands and unsupported reference/type variants remain out of
+  this umbrella until their owning slices prove identity and verifier support.
+  `014-016` owns metadata and Manual Action Log replay only, not command
+  exposure.
 - Target-equate definition value representation command exposure is tracked in
   `014-020-target-equate-value-representation.md`.
 - RSSET numeric use-site binding command exposure is defined by `014-021` and
