@@ -1851,7 +1851,7 @@ def _data_ref_symbol_name(data_class: str, runtime_address: object, target_hunk:
     if isinstance(runtime_address, int) and not isinstance(runtime_address, bool):
         if prefix:
             return f"{prefix}_{runtime_address:08X}"
-        return f"runtime_address_{runtime_address:08X}"
+        return None
     if not prefix:
         return None
     return f"{prefix}_h{target_hunk}_{target_addr:08X}"

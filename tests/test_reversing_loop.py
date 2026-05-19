@@ -6357,7 +6357,7 @@ def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:
     assert command["parameters"] == {"name": "bitmap_00040120", "hunk": 1, "addr": 0x120, "end": 0x140}
 
 
-def test_listing_data_symbol_candidates_use_runtime_address_when_class_missing() -> None:
+def test_listing_data_symbol_candidates_skip_runtime_address_when_class_missing() -> None:
     row = _listing_row(
         row_key="code-row",
         text="\tlea $120(pc),a0\n",
@@ -6376,14 +6376,8 @@ def test_listing_data_symbol_candidates_use_runtime_address_when_class_missing()
     ]
 
     candidates = reversing_loop._listing_data_symbol_candidates([row])
-    command = reversing_loop._candidate_command_options(candidates[0])[0]
 
-    assert candidates[0]["candidate_id"] == "data-ref-symbol:code-row:0:1:00000120:runtime_address_0004F92B"
-    assert candidates[0]["durable_id"] == "data_ref:h1:00000120"
-    assert candidates[0]["new_name"] == "runtime_address_0004F92B"
-    assert candidates[0]["evidence"]["runtime_address"] == 0x4F92B
-    assert command["command_id"] == "data_symbol.rename"
-    assert command["parameters"] == {"name": "runtime_address_0004F92B", "hunk": 1, "addr": 0x120, "end": 0x124}
+    assert candidates == []
 
 
 def test_listing_data_symbol_candidates_use_data_class_row_identity() -> None:

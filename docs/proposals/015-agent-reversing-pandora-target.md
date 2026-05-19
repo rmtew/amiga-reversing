@@ -334,6 +334,30 @@ the intended location.
 * Next recommendation: run the report-only provenance/RSSET command for the A6
   cluster and stop if it lacks accepted base evidence for a safe binding.
 
+### 015-003: Planner skipped generic runtime-address names
+
+* Candidate: normal Pandora `run-one` after the exact round-trip baseline.
+* Evidence: before the planner fix, the best `data_symbol.rename` candidate was
+  `runtime_address_00000300`, derived only from an unclassified runtime address.
+  That would add a low-value generic label while typed listing evidence existed
+  for data such as `copper_list_000109EA`.
+* Command: changed listing data-symbol planning so unclassified runtime-address
+  refs do not create autonomous rename candidates. Runtime refs with a data
+  class still produce typed names.
+* Verifier: `tests\test_reversing_loop.py -q` passed, focused `ruff` passed,
+  and Pandora `run-one` selected `data_symbol.rename` for hunk 0 `$000009EA`
+  to `copper_list_000109EA`.
+* Timing: focused pytest 2.55s; `run-one` 11.2s including command execution
+  and exact reproduction.
+* Result: the Manual Action Log now has one local rename action for
+  `copper_list_000109EA`, and `reproduction.json` reports `status: exact`,
+  `stale: false`, rebuilt SHA matching original.
+* Review: the implementation blocks only no-class runtime-address names. It
+  preserves typed runtime/data candidates and avoids committing target-local
+  `.project.json` timestamp churn.
+* Next recommendation: continue with typed data-block names or representation
+  candidates; keep RSSET/app-base mutation paused until base evidence exists.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -440,6 +464,12 @@ Triage by scope:
     remained raw,
   * candidate grouping for repeated raw A6 offsets in a proven app-base
     lifetime.
+* 015-002/015-003 follow-up: the element command surface now exposes
+  `rsset.binding.report` for `$01D8(a6)`, but the report remains read-only for
+  Pandora because `base_evidence_id` is null, source family is unresolved, and
+  the blocker is `missing_base_evidence`. Same-displacement counts are useful
+  (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
+  to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
 * Status: open.
 
