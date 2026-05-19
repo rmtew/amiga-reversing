@@ -5688,10 +5688,12 @@ def _verify_project_semantic_hint(
 
 
 def _semantic_hint_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
-    return all(
+    if not all(
         key in expected and actual.get(key) == expected.get(key)
         for key in ("domain", "symbol", "value", "hunk", "addr", "element_kind")
-    )
+    ):
+        return False
+    return _provenance_payload_matches(actual, expected)
 
 
 def _verify_projected_data_symbol_name(target_id: str, command: dict[str, object]) -> dict[str, object]:
@@ -5917,13 +5919,17 @@ def _verify_project_semantic_register_seed(
 
 
 def _register_seed_provenance_matches(seed: dict[str, object], expected: dict[str, object]) -> bool:
+    return _provenance_payload_matches(seed, expected)
+
+
+def _provenance_payload_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     for key in _PROVENANCE_COMMAND_IDENTITY_KEYS:
         expected_value = expected.get(key)
         if expected_value is None:
             continue
-        if key not in seed:
+        if key not in actual:
             return False
-        if not _provenance_identity_values_match(key, seed.get(key), expected_value):
+        if not _provenance_identity_values_match(key, actual.get(key), expected_value):
             return False
     return True
 
@@ -7209,7 +7215,12 @@ def _semantic_hint_already_satisfied(current: dict[str, object], command: dict[s
         addr = locator.get("start_offset")
         if addr is not None and current.get("addr") != addr:
             return False
-    return True
+    expected_provenance = {
+        key: parameters[key] if key in parameters else context.get(key)
+        for key in _PROVENANCE_COMMAND_IDENTITY_KEYS
+        if key in parameters or key in context
+    }
+    return not expected_provenance or _provenance_payload_matches(current, expected_provenance)
 
 
 def _semantic_action_token(text: str) -> str:

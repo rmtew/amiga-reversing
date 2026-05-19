@@ -116,6 +116,9 @@ Current observations:
   Manual Action Log payload and effective metadata. The durable register seed
   id still identifies the register fact, while the consumed evidence fields
   identify the proof boundary that verifier reload must match.
+- Provenance-backed semantic hints use the same split: hunk/address/element and
+  symbol identify the selected hint, while consumed source evidence fields
+  identify the accepted proof boundary for reload and skip checks.
 - Review-item/reproduction correction identities beyond seeded-item row
   suppression still need specific contracts.
 

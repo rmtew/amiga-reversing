@@ -151,6 +151,9 @@ Current evidence:
   `semantic.equate.*` execution now verifies Manual Action Log replay, reloaded
   semantic hint state, and exact round-trip instead of accepting affected-row
   metadata alone.
+- Semantic-hint reload and already-satisfied checks now compare consumed
+  provenance when the executed command carries it, including unordered
+  `parent_evidence_ids`, so stale same-location hints cannot satisfy the loop.
 - Generic `run-one` row/range/review seed creation and review seed removal now
   verify Manual Action Log replay, reloaded manual seed state or removed-seed
   absence, and exact round-trip.
@@ -209,8 +212,9 @@ Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,
   accepted status, source family, path/lifetime scope, conflicts/override
   fields, and descendant `owner_action_id` where still missing. Library-base and
-  selected typed struct-pointer register seeds now persist and verify consumed
-  provenance; broader API arg/return and propagated descendants remain open.
+  selected typed struct-pointer register seeds plus provenance-backed semantic
+  hints now persist and verify consumed provenance; broader API arg/return and
+  propagated descendants remain open.
 - Add or document one real-target smoke for each newly executable action family
   before treating synthetic verifier coverage as sufficient; record the
   verifier evidence here and the candidate/feed evidence in `014-006` or the

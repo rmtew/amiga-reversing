@@ -6401,6 +6401,63 @@ def test_semantic_hint_candidate_skips_already_projected_hint() -> None:
     )
 
 
+def test_semantic_hint_verifier_requires_matching_provenance() -> None:
+    expected = {
+        **_semantic_hint_payload(),
+        "source_evidence_id": "source:api-call",
+        "source_family": "constant_or_equ",
+        "source_evidence_status": "manual_classified",
+        "parent_evidence_ids": ["parent:b", "parent:a"],
+    }
+    stale = _semantic_hint_payload()
+    matched = {
+        **_semantic_hint_payload(),
+        "source_evidence_id": "source:api-call",
+        "source_family": "constant_or_equ",
+        "source_evidence_status": "manual_classified",
+        "parent_evidence_ids": ["parent:a", "parent:b"],
+    }
+
+    assert not reversing_loop._semantic_hint_matches(stale, expected)
+    assert reversing_loop._semantic_hint_matches(matched, expected)
+
+
+def test_semantic_hint_skip_requires_matching_provenance() -> None:
+    candidate = {
+        "id": "semantic-lvo",
+        "candidate_id": "semantic-lvo",
+        "kind": "api_semantic_hint",
+        "locator": _listing_locator(),
+        "element_id": "row-1:immediate:0:-552",
+        "element_kind": "immediate",
+        "operand_index": 0,
+        "value": -552,
+        "domain": "lvo",
+        "source_evidence_id": "source:api-call",
+        "source_family": "constant_or_equ",
+        "source_evidence_status": "manual_classified",
+        "suggested_action_kinds": ["semantic.lvo.exec.library_OpenLibrary"],
+        "current_metadata": _semantic_hint_payload(),
+        "default_verifier": "semantic_hint_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
+    candidate["current_metadata"] = {
+        **_semantic_hint_payload(),
+        "source_evidence_id": "source:api-call",
+        "source_family": "constant_or_equ",
+        "source_evidence_status": "manual_classified",
+        "confidence": "high",
+    }
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
     candidate = {
         "command": {

@@ -4280,18 +4280,20 @@ def _semantic_hint_actions(context: Mapping[str, object]) -> list[dict[str, obje
             if identity in seen:
                 continue
             seen.add(identity)
+            parameters = {
+                **candidate,
+                "element_id": context.get("element_id"),
+                "element_kind": context.get("element_kind"),
+                "operand_index": context.get("operand_index"),
+            }
+            _copy_source_evidence_context(parameters, context)
             actions.append(
                 _context_log_action(
                     f"semantic.{domain}.{_action_id_token(symbol)}",
                     str(candidate["label"]),
                     "create_manual_semantic_hint",
                     context,
-                    {
-                        **candidate,
-                        "element_id": context.get("element_id"),
-                        "element_kind": context.get("element_kind"),
-                        "operand_index": context.get("operand_index"),
-                    },
+                    parameters,
                     None,
                     "s",
                 )
@@ -4572,6 +4574,7 @@ def _semantic_hint_payload(
         "namespace": str(params.get("namespace") or ""),
     }
     _copy_element_provenance(hint, element_context)
+    _copy_source_evidence_context(hint, params)
     for key in ("function", "field"):
         value = params.get(key)
         if isinstance(value, str) and value:

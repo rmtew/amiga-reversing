@@ -1183,6 +1183,46 @@ def test_semantic_register_seed_commands_preserve_provenance() -> None:
     assert seed["path_lifetime_scope"] == action["parameters"]["path_lifetime_scope"]
 
 
+def test_semantic_hint_commands_preserve_source_evidence_context() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x40,
+        "stable_key": "lvo-row",
+        "operand_parts": [{"kind": "immediate", "operand_index": 0, "signed_value": -552}],
+    }
+    selector = {
+        "element_kind": "immediate",
+        "operand_index": 0,
+        "signed_value": -552,
+        "source_evidence_id": "source:api-call",
+        "source_family": "constant_or_equ",
+        "source_evidence_status": "manual_classified",
+        "path_lifetime_scope": {"kind": "selected_use"},
+        "confidence": "high",
+        "conflicts": [],
+        "parent_evidence_ids": ["parent:b", "parent:a"],
+    }
+
+    actions = listing_element_action_catalog(row, selector)
+    action = next(action for action in actions if action["action_id"] == "semantic.lvo.exec.library_OpenLibrary")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "semantic.lvo.exec.library_OpenLibrary",
+        element_context=selector,
+    )
+    hint = payload["semantic_hint"]
+
+    assert action["parameters"]["source_evidence_id"] == "source:api-call"
+    assert kind == "create_manual_semantic_hint"
+    assert hint["domain"] == "lvo"
+    assert hint["symbol"] == "exec.library/OpenLibrary"
+    assert hint["source_evidence_id"] == "source:api-call"
+    assert hint["source_family"] == "constant_or_equ"
+    assert hint["source_evidence_status"] == "manual_classified"
+    assert hint["parent_evidence_ids"] == ["parent:b", "parent:a"]
+
+
 def test_typed_access_field_commands_use_resolved_identity() -> None:
     row = {
         "kind": "instruction",

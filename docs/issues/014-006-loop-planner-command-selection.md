@@ -154,6 +154,9 @@ Progress:
   when projected semantic state already carries the same selected hint identity,
   so verified hint writes are not repeated just because listing text still
   exposes the same numeric operand.
+- Provenance-backed semantic hint candidates now require projected state to
+  carry the same consumed evidence before being skipped, so a stale same-location
+  hint cannot suppress the current candidate.
 - Planner alternate-command selection now uses command-specific source,
   provenance, and cleanup identity parameters instead of only command id plus
   context, so one stale same-context command cannot hide another valid
@@ -232,8 +235,9 @@ Remaining work:
 - Do not broaden custom-struct or typed-field semantic feeds past explicit
   candidates until their rendered-source verifiers are proven in `014-005`,
   `014-010`, and `014-012`. API/register has first real GenAm evidence for
-  library-base register seeds and now preserves consumed first-slice provenance,
-  but broader API argument/return semantics remain open.
+  library-base register seeds and now preserves consumed first-slice provenance
+  on register seeds and semantic hints, but broader API argument/return
+  semantics remain open.
 - Add real-target smoke coverage for each new autonomous feed before considering
   the feed mature; app-slot/RSSET and API/register library-base seeds have first
   GenAm coverage, while structures, correction/view actions, broader

@@ -72,6 +72,9 @@ Progress:
 - Register-seed semantic reload now compares consumed provenance fields,
   including unordered `parent_evidence_ids`, so a reloaded seed with the same
   register/library/struct but stale evidence cannot satisfy verification.
+- `semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.equate.*`
+  commands now preserve source evidence carried by selected/planner context in
+  the semantic hint payload, verifier reload, and already-satisfied skip check.
 - Generic provenance reports now preserve manual-override correction fields
   (`contradicted_evidence_id`, `reason`, and `cleanup_scope`) when those fields
   are carried by selected context.
