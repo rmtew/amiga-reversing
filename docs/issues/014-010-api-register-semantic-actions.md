@@ -75,6 +75,10 @@ Progress:
 - `semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.equate.*`
   commands now preserve source evidence carried by selected/planner context in
   the semantic hint payload, verifier reload, and already-satisfied skip check.
+- Semantic-hint reload verification now derives the expected hint from the
+  durable Manual Action Log action before local-effect echoes, so an unrelated
+  same-response local effect cannot satisfy or replace the executed semantic
+  hint payload.
 - Generic provenance reports now preserve manual-override correction fields
   (`contradicted_evidence_id`, `reason`, and `cleanup_scope`) when those fields
   are carried by selected context.

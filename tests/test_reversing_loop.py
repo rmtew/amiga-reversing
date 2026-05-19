@@ -6710,6 +6710,87 @@ def test_semantic_hint_verifier_requires_matching_provenance() -> None:
     assert reversing_loop._semantic_hint_matches(matched, expected)
 
 
+def test_semantic_hint_verifier_requires_durable_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    action_hint = _semantic_hint_payload()
+    local_effect_hint = {**_semantic_hint_payload(), "semantic_hint_id": "hint-local", "symbol": "exec.library/CloseLibrary"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"semantic_hints": [local_effect_hint]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_semantic_hint_mutation(
+        "demo",
+        {
+            "action": {"action_id": "manual-1", "payload": {"semantic_hint": action_hint}},
+            "application": {"local_effects": [{"kind": "semantic_hint", "semantic_hint": local_effect_hint}]},
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_semantic_hint"]["symbol"] == "exec.library/OpenLibrary"
+    assert semantic_layer["matching_semantic_hints"] == []
+
+
+def test_semantic_hint_verifier_prefers_action_payload_over_local_effect(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    action_hint = _semantic_hint_payload()
+    local_effect_hint = {**_semantic_hint_payload(), "semantic_hint_id": "hint-local", "symbol": "exec.library/CloseLibrary"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"semantic_hints": [action_hint]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_semantic_hint_mutation(
+        "demo",
+        {
+            "action": {"action_id": "manual-1", "payload": {"semantic_hint": action_hint}},
+            "application": {"local_effects": [{"kind": "semantic_hint", "semantic_hint": local_effect_hint}]},
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_semantic_hint"]["symbol"] == "exec.library/OpenLibrary"
+
+
 def test_semantic_hint_skip_requires_matching_provenance() -> None:
     candidate = {
         "id": "semantic-lvo",
