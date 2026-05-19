@@ -3625,6 +3625,16 @@ def _verify_project_rsset_binding(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing RSSET use-site binding payload"}
+    missing_identity = _rsset_binding_missing_required_identity_fields(command_id, expected)
+    if missing_identity:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "RSSET use-site binding payload missing selected-use identity",
+            "expected_rsset_use_site_binding": expected,
+            "missing_identity_fields": missing_identity,
+            "state_key": "removed_rsset_use_site_bindings" if command_id.endswith(".unbind") else "rsset_use_site_bindings",
+        }
     key = "removed_rsset_use_site_bindings" if command_id.endswith(".unbind") else "rsset_use_site_bindings"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -3642,6 +3652,22 @@ def _verify_project_rsset_binding(
         "matching_rsset_use_site_bindings": matches,
         "state_key": key,
     }
+
+
+def _rsset_binding_missing_required_identity_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    required = [
+        "rsset_use_site_binding_id",
+        "hunk",
+        "addr",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "layout_name",
+        "base_symbol",
+        "base_evidence_id",
+        "cleanup_action_id" if command_id.endswith(".unbind") else "owner_action_id",
+    ]
+    return [key for key in required if key not in expected]
 
 
 def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:

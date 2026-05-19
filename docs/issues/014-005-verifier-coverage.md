@@ -145,6 +145,9 @@ Current evidence:
   must not still contain the raw displacement token.
 - The RSSET raw-token check is operand-aware for zero-displacement binds, so a
   valid symbolic `field(a6)` render is not rejected as raw `(a6)`.
+- RSSET binding semantic reload now requires the durable payload to carry the
+  complete selected-use identity before matching reloaded binding state, so a
+  sparse binding id cannot satisfy replay proof.
 - Typed-field remove verification uses the same operand-aware raw restore check
   for zero-offset fields, so another rendered field symbol cannot satisfy raw
   cleanup proof.

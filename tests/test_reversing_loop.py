@@ -6560,6 +6560,43 @@ def test_rsset_binding_match_treats_parent_evidence_ids_as_sets() -> None:
     assert not reversing_loop._rsset_binding_matches(actual, expected)
 
 
+def test_rsset_binding_semantic_verifier_requires_selected_use_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sparse_binding = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "owner_action_id": "manual-1",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_use_site_bindings": [sparse_binding]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_rsset_binding(
+        "demo",
+        "rsset.binding.bind",
+        sparse_binding,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["missing_identity_fields"] == [
+        "hunk",
+        "addr",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "layout_name",
+        "base_symbol",
+        "base_evidence_id",
+    ]
+
+
 def test_rsset_binding_render_verifier_requires_ref_only_selected_use(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

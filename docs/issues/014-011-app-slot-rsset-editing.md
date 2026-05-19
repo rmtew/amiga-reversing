@@ -188,6 +188,10 @@ Current evidence:
 - Zero-displacement bindings are checked with operand-aware raw-token matching:
   symbolic `field(a6)` is not treated as stale raw `(a6)`, while a genuinely raw
   selected operand still fails renderable bind proof.
+- RSSET binding semantic reload now rejects sparse durable binding payloads
+  before matching reloaded state. A binding id alone is not enough; selected
+  hunk/address/operand/base/layout/base-evidence identity plus owner or cleanup
+  action identity must be present.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
