@@ -724,6 +724,7 @@ def test_target_execution_view_add_and_edit_command_payloads() -> None:
         kind, payload = target_catalog_manual_payload(
             command_id,
             {
+                "execution_view_id": "target-view-stage-code",
                 "source_start": 0x20,
                 "source_end": 0x80,
                 "base_addr": 0x4000,
@@ -734,7 +735,7 @@ def test_target_execution_view_add_and_edit_command_payloads() -> None:
         assert kind == "create_manual_execution_view"
         assert payload == {
             "execution_view": {
-                "execution_view_id": "catalog-execution-view-00000020-00000080-00004000",
+                "execution_view_id": "target-view-stage-code",
                 "source_start": 0x20,
                 "source_end": 0x80,
                 "base_addr": 0x4000,
@@ -747,6 +748,7 @@ def test_target_execution_view_remove_command_payload() -> None:
     kind, payload = target_catalog_manual_payload(
         "target.execution_view.remove",
         {
+            "execution_view_id": "target-view-stage-code",
             "source_start": 0x20,
             "source_end": 0x80,
             "base_addr": 0x4000,
@@ -756,6 +758,7 @@ def test_target_execution_view_remove_command_payload() -> None:
     assert kind == "remove_manual_execution_view"
     assert payload == {
         "execution_view": {
+            "execution_view_id": "target-view-stage-code",
             "source_start": 0x20,
             "source_end": 0x80,
             "base_addr": 0x4000,

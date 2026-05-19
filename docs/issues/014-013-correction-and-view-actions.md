@@ -55,6 +55,9 @@ Current evidence:
   than target local-effect metadata.
 - Execution-view verifier coverage now includes add/edit ownership and
   removed-view cleanup identities.
+- Execution-view catalog add/edit/remove payloads preserve an explicit
+  `execution_view_id` when a candidate or UI supplies one, while retaining the
+  `(source_start, source_end, base_addr)` tuple as the deterministic replay key.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
 - Provenance-backed `manual_override` writes now require and preserve cleanup

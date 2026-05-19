@@ -1981,7 +1981,7 @@ def _execution_view_payload(params: Mapping[str, object]) -> dict[str, object]:
     if not isinstance(name, str) or not name.strip():
         raise ValueError("create_manual_execution_view requires parameter name")
     view: dict[str, object] = {
-        "execution_view_id": f"catalog-execution-view-{source_start:08X}-{source_end:08X}-{base_addr:08X}",
+        "execution_view_id": _execution_view_id(params, source_start, source_end, base_addr),
         "source_start": source_start,
         "source_end": source_end,
         "base_addr": base_addr,
@@ -2001,11 +2001,27 @@ def _execution_view_identity_payload(params: Mapping[str, object]) -> dict[str, 
         raise ValueError("remove_manual_execution_view requires source_start, source_end, and base_addr")
     if source_start < 0 or source_end <= source_start or base_addr < 0:
         raise ValueError("remove_manual_execution_view has invalid source/runtime range")
-    return {
+    view: dict[str, object] = {
         "source_start": source_start,
         "source_end": source_end,
         "base_addr": base_addr,
     }
+    execution_view_id = params.get("execution_view_id")
+    if isinstance(execution_view_id, str) and execution_view_id.strip():
+        view["execution_view_id"] = execution_view_id.strip()
+    return view
+
+
+def _execution_view_id(
+    params: Mapping[str, object],
+    source_start: int,
+    source_end: int,
+    base_addr: int,
+) -> str:
+    execution_view_id = params.get("execution_view_id")
+    if isinstance(execution_view_id, str) and execution_view_id.strip():
+        return execution_view_id.strip()
+    return f"catalog-execution-view-{source_start:08X}-{source_end:08X}-{base_addr:08X}"
 
 
 def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
@@ -3051,6 +3067,7 @@ def _execution_view_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
         "properties": {
+            "execution_view_id": {"type": "string"},
             "source_start": {"type": "integer", "minimum": 0},
             "source_end": {"type": "integer", "minimum": 1},
             "base_addr": {"type": "integer", "minimum": 0},
@@ -3101,6 +3118,7 @@ def _execution_view_identity_parameter_schema() -> dict[str, object]:
     return {
         "type": "object",
         "properties": {
+            "execution_view_id": {"type": "string"},
             "source_start": {"type": "integer", "minimum": 0},
             "source_end": {"type": "integer", "minimum": 1},
             "base_addr": {"type": "integer", "minimum": 0},
