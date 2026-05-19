@@ -1255,6 +1255,12 @@ different source family/status, path/lifetime scope, parent evidence set,
 conflict list, or override cleanup fields, the correction boundary has not been
 proven.
 
+Follow-up observation from `014-013`: seeded-item suppression verification has
+the same durable-action-first requirement as execution views and semantic
+hints. Local-effect echoes can confirm UI feedback, but the expected correction
+identity must come from the Manual Action Log payload so a mismatched response
+cannot hide which analyzer/imported fact was actually suppressed.
+
 Implementation observation from `014-013`: execution views are correction/view
 state but still need action ownership in the Manual Action Log projection.
 Create/edit views now stamp `owner_action_id`; remove preserves the active view

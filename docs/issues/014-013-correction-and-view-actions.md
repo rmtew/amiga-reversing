@@ -46,6 +46,10 @@ Current evidence:
 - Generic `run-one` now verifies `correction.suppress_seeded_item.*` execution
   by checking reloaded suppressed seeded item state rather than affected row
   metadata.
+- Seeded-item suppression verification now derives the expected suppression
+  from the durable Manual Action Log action before local-effect echoes, so a
+  mismatched same-response local effect cannot satisfy or replace the executed
+  correction payload.
 - Planner command availability for `correction.suppress_seeded_item.*` now
   requires the refreshed catalog entry to match the selected suppression
   identity `(kind, hunk, addr[, end])`; if either side carries `end`, both must

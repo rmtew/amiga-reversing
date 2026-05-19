@@ -5281,15 +5281,6 @@ def _verify_seeded_item_suppression_mutation(
 
 
 def _suppressed_seeded_item_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") != "seeded_item_suppression":
-                continue
-            item = effect.get("suppressed_seeded_item")
-            if isinstance(item, dict):
-                return cast(dict[str, object], item)
     action = durable_result.get("action")
     item = _suppressed_seeded_item_from_action(action)
     if item is not None:
@@ -5300,6 +5291,15 @@ def _suppressed_seeded_item_from_durable_result(durable_result: dict[str, object
             item = _suppressed_seeded_item_from_action(raw_action)
             if item is not None:
                 return item
+    application = durable_result.get("application")
+    local_effects = application.get("local_effects") if isinstance(application, dict) else None
+    if isinstance(local_effects, list):
+        for effect in local_effects:
+            if not isinstance(effect, dict) or effect.get("kind") != "seeded_item_suppression":
+                continue
+            item = effect.get("suppressed_seeded_item")
+            if isinstance(item, dict):
+                return cast(dict[str, object], item)
     return None
 
 

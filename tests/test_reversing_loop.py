@@ -4647,6 +4647,95 @@ def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
     assert report["action_result"]["status"] == "executed"
 
 
+def test_seeded_item_suppression_verifier_requires_durable_action_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    action_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    local_effect_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x104}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"suppressed_seeded_items": [local_effect_item]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_seeded_item_suppression_mutation(
+        "demo",
+        {
+            "action": {"action_id": "manual-1", "payload": {"suppressed_seeded_item": action_item}},
+            "application": {
+                "local_effects": [
+                    {"kind": "seeded_item_suppression", "suppressed_seeded_item": local_effect_item}
+                ]
+            },
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_suppressed_seeded_item"]["addr"] == 0x100
+    assert semantic_layer["matching_suppressed_seeded_items"] == []
+
+
+def test_seeded_item_suppression_verifier_prefers_action_payload_over_local_effect(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    action_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    local_effect_item = {"kind": "seeded_entity", "hunk": 0, "addr": 0x104}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"suppressed_seeded_items": [action_item]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_seeded_item_suppression_mutation(
+        "demo",
+        {
+            "action": {"action_id": "manual-1", "payload": {"suppressed_seeded_item": action_item}},
+            "application": {
+                "local_effects": [
+                    {"kind": "seeded_item_suppression", "suppressed_seeded_item": local_effect_item}
+                ]
+            },
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_suppressed_seeded_item"]["addr"] == 0x100
+
+
 def test_run_one_execution_view_executes_with_view_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
