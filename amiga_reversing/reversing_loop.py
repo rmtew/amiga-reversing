@@ -5967,6 +5967,17 @@ def _verify_project_manual_label_state(
         }
     if not expected_labels:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing manual label payload"}
+    missing_identity_fields = [
+        fields for expected in expected_labels if (fields := _manual_label_missing_required_payload_fields(command_id, expected))
+    ]
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "manual label payload missing mutation identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_manual_labels": expected_labels,
+        }
     matches = [
         expected
         for expected in expected_labels
@@ -5992,6 +6003,15 @@ def _manual_label_matches(actual: dict[str, object], expected: dict[str, object]
         if actual.get(key) != value:
             return False
     return True
+
+
+def _manual_label_missing_required_payload_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    fields = ["label_id"]
+    if command_id in {"review.label.rename", "label.rename"}:
+        fields.append("name")
+    elif command_id == "review.label.change_scope":
+        fields.append("scope")
+    return [field for field in fields if field not in expected]
 
 
 def _verify_execution_view_mutation(

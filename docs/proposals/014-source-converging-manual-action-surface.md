@@ -802,6 +802,13 @@ Their verifier should derive the expected label payload or removed label id
 from the executed durable action payload, then check the reloaded Manual Action
 Log projection and round-trip instead of generic `round_trip`.
 
+Implementation observation from `014-005`: review label edits have the same
+sparse-payload risk as seeds and semantic/type writes. A `review.label.rename`
+durable payload must carry both `label_id` and `name`, and
+`review.label.change_scope` must carry both `label_id` and `scope`; otherwise a
+reloaded label with the same id can mask that the requested mutation never
+replayed.
+
 The same applies to fallback comments: generic `run-one` must verify the
 projected comment text, not merely that command execution reported an affected
 locator.

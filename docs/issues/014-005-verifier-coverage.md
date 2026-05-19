@@ -96,6 +96,10 @@ Current evidence:
 - Manual-label verifiers derive expected label payloads or removed label ids
   from executed durable action payloads, so matching project state alone cannot
   satisfy a missing or mismatched action result.
+- Review label rename/scope verifiers now reject sparse durable payloads before
+  reloaded-state matching. Rename payloads must include `label_id` and `name`;
+  scope-change payloads must include `label_id` and `scope`, so an unchanged
+  manual label with the same id cannot prove the mutation.
 - Generic `run-one` `comment.edit` execution now uses the projected-comment
   verifier instead of accepting affected-locator metadata alone.
 - `comment.edit` verification now also compares the executed durable

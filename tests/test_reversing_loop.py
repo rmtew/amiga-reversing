@@ -3686,6 +3686,34 @@ def test_manual_label_rename_verifier_checks_label_state(
     ]
 
 
+def test_manual_label_rename_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"labels": [{"label_id": "manual-label-1", "name": "old_label"}]},
+        ),
+    )
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.rename",
+        _executed_manual_label_payload(tmp_path, {"label_id": "manual-label-1"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "manual label payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == [["name"]]
+
+
 def test_manual_label_scope_verifier_checks_owner_alias(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3711,6 +3739,34 @@ def test_manual_label_scope_verifier_checks_owner_alias(
     )
 
     assert verification["status"] == "passed"
+
+
+def test_manual_label_scope_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"labels": [{"label_id": "manual-label-1", "name": "local_name", "scope": "global"}]},
+        ),
+    )
+
+    verification = reversing_loop._verify_manual_label_mutation(
+        "demo",
+        "review.label.change_scope",
+        _executed_manual_label_payload(tmp_path, {"label_id": "manual-label-1"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "manual label payload missing mutation identity"
+    assert verification["layers"][1]["missing_identity_fields"] == [["scope"]]
 
 
 def test_manual_label_remove_verifier_checks_label_absent(
