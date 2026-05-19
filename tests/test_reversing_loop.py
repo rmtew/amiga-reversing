@@ -7102,6 +7102,28 @@ def test_target_custom_struct_command_candidate_uses_target_context_and_requires
     assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
 
 
+def test_candidate_round_trip_default_cannot_authorize_unknown_command() -> None:
+    candidate = {
+        "id": "unknown-source-edit",
+        "candidate_id": "unknown-source-edit",
+        "kind": "unknown_source_edit",
+        "suggested_action_kinds": ["future.semantic.write"],
+        "default_verifier": "round_trip",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = {
+        "kind": "command",
+        "command_id": "future.semantic.write",
+        "context": {"kind": "target"},
+        "parameters": {},
+        "output_affecting": True,
+    }
+
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
+
+
 def test_target_custom_struct_candidate_skips_already_projected_field() -> None:
     field = {
         "struct_name": "InputEvent",

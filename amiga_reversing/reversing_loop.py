@@ -6887,6 +6887,8 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
                 return None
     verifier = candidate.get("default_verifier")
     if isinstance(verifier, str) and verifier:
+        if command_id is not None and command_verifier is None:
+            return None
         if command_id is not None and not _candidate_advertises_command(candidate, command_id):
             return command_verifier
         if command_id == "data_symbol.remove" and command_verifier == "manual_seed_state":

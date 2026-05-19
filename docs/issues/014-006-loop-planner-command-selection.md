@@ -89,6 +89,9 @@ Progress:
 - Non-dry execution now blocks selected commands with no action-specific
   verifier before catalog availability or command execution, so bypassed or
   stale selections cannot execute unverified source changes.
+- Candidate-level `default_verifier: round_trip` can no longer authorize an
+  unrecognized command. The selected command family must provide an
+  action-specific verifier before the planner treats it as executable.
 - Non-dry execution now queries range command availability with
   `context=range` and serialized range locators instead of falling through to
   target context, so explicit `range.seed.*` candidates can reach the range

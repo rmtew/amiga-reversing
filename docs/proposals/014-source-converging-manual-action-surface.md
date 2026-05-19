@@ -696,6 +696,12 @@ fallback must not override a stricter command-specific verifier. Explicit or
 older candidates can carry stale verifier labels, so planner summaries should
 prefer command-specific state verifiers whenever they are more precise.
 
+Implementation observation from `014-006`: that same generic `round_trip`
+fallback must not authorize a command family with no verifier at all. If the
+selected command id is unrecognized, the planner should surface a missing
+action-specific verifier even when stale candidate metadata advertises
+`default_verifier: round_trip`.
+
 Implementation observation from `014-005`: broad prefix fallbacks to
 `round_trip` are unsafe for source-valued command families. Unknown
 `data_symbol.*` or semantic commands should stop as missing-verifier work until
