@@ -3515,6 +3515,26 @@ def test_listing_data_symbol_candidates_use_data_class_row_identity() -> None:
     assert command["parameters"] == {"name": "bitmap_h0_00000040"}
 
 
+def test_listing_data_symbol_candidates_use_rename_existing_for_named_rows() -> None:
+    row = _listing_row(
+        row_key="table-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        label="old_table",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "table"
+
+    candidates = reversing_loop._listing_data_symbol_candidates([row])
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert candidates[0]["suggested_action_kinds"] == ["data_symbol.rename_existing"]
+    assert candidates[0]["current_metadata"] == {"name": "old_table"}
+    assert command["command_id"] == "data_symbol.rename_existing"
+    assert command["context"] == {"kind": "row", "locator": row["locator"]}
+
+
 def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     row = _listing_row(
         row_key="code-row",

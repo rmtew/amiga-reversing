@@ -54,6 +54,7 @@ _COMMAND_RANK = {
     "row.seed.data.pointer_table": 85,
     "range.seed.code": 90,
     "data_symbol.rename": 82,
+    "data_symbol.rename_existing": 83,
     "rsset.binding.bind": 81,
     "target.rsset_region.rename": 82,
     "target.rsset_region.add": 80,
@@ -1389,8 +1390,12 @@ def _listing_data_symbol_candidates(
                             },
                             "current_metadata": {"name": existing_name} if isinstance(existing_name, str) else {},
                             "expected_rendered_source_improvement": f"name {data_class} data row as {name}",
-                            "suggested_action_kind": "data_symbol.rename",
-                            "suggested_action_kinds": ["data_symbol.rename"],
+                            "suggested_action_kind": "data_symbol.rename_existing"
+                            if isinstance(existing_name, str)
+                            else "data_symbol.rename",
+                            "suggested_action_kinds": [
+                                "data_symbol.rename_existing" if isinstance(existing_name, str) else "data_symbol.rename"
+                            ],
                             "new_name": name,
                             "default_verifier": "projected_data_symbol_name",
                             "verifier": {"kind": "projected_data_symbol_name", "requires_semantic_reload": True},
@@ -1459,8 +1464,12 @@ def _listing_data_symbol_candidates(
                     },
                     "current_metadata": {"name": existing_name} if isinstance(existing_name, str) else {},
                     "expected_rendered_source_improvement": f"name referenced {data_class} data as {name}",
-                    "suggested_action_kind": "data_symbol.rename",
-                    "suggested_action_kinds": ["data_symbol.rename"],
+                    "suggested_action_kind": "data_symbol.rename_existing"
+                    if isinstance(existing_name, str)
+                    else "data_symbol.rename",
+                    "suggested_action_kinds": [
+                        "data_symbol.rename_existing" if isinstance(existing_name, str) else "data_symbol.rename"
+                    ],
                     "new_name": name,
                     "default_verifier": "projected_data_symbol_name",
                     "verifier": {"kind": "projected_data_symbol_name", "requires_semantic_reload": True},
@@ -2825,7 +2834,7 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "manual_label_state"
     if "comment.edit" in actions:
         return "projection_metadata"
-    if "data_symbol.rename" in actions:
+    if "data_symbol.rename_existing" in actions or "data_symbol.rename" in actions:
         return "projected_data_symbol_name"
     if "data_symbol.remove" in actions:
         return "suppressed_seeded_item"
@@ -2940,7 +2949,7 @@ def _verify_manual_mutation(
             source_offset=source_offset,
             project_root=project_root,
         )
-    if command_id == "data_symbol.rename":
+    if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "data_symbol.remove":
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
@@ -5811,7 +5820,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": {"name": name} if isinstance(name, str) and name else parameter_payload,
             "output_affecting": True,
         }
-    if action == "data_symbol.rename":
+    if action in {"data_symbol.rename", "data_symbol.rename_existing"}:
         name = parameter_payload.get("name") or candidate.get("new_name") or candidate.get("data_symbol_name")
         if not isinstance(name, str) or not name:
             return None
@@ -6267,7 +6276,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     if command_id == "label.rename":
         name = parameters.get("name")
         return isinstance(name, str) and current.get("label") == name
-    if command_id == "data_symbol.rename":
+    if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
         name = parameters.get("name")
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":

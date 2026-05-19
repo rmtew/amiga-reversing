@@ -364,6 +364,17 @@ def listing_element_action_catalog(
                     "F2",
                 )
             )
+            if "previous_name" in identity:
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.rename_existing",
+                        "Rename existing referenced data symbol",
+                        "rename_existing_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
     if element_kind == "label":
         actions.append(
             _context_log_action(
@@ -1467,6 +1478,11 @@ def listing_catalog_manual_payload(
         return "create_manual_register_seed", {"register_seed": _register_seed_payload(row, params)}
     if ui_action == "rename_data_symbol":
         return "rename_data_symbol", {"data_symbol": _data_symbol_payload(row, params)}
+    if ui_action == "rename_existing_data_symbol":
+        payload = _data_symbol_payload(row, params)
+        if "previous_name" not in payload:
+            raise ValueError("rename_existing_data_symbol requires previous_name")
+        return "rename_data_symbol", {"data_symbol": payload}
     if ui_action == "create_manual_label":
         manual_label_id = row.get("manual_label_id")
         name = params.get("name")
@@ -1677,6 +1693,23 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                 "F2",
             )
         )
+        if "name" in item:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.rename_existing",
+                    "Rename existing data symbol",
+                    "rename_existing_data_symbol",
+                    context,
+                    {
+                        "hunk": item["hunk"],
+                        "addr": item["addr"],
+                        **({"end": item["end"]} if "end" in item else {}),
+                        "previous_name": item["name"],
+                        **({"source_locator": item["source_locator"]} if "source_locator" in item else {}),
+                    },
+                    _data_name_parameter_schema(),
+                )
+            )
         actions.append(
             _context_log_action(
                 "data_symbol.remove",
@@ -1700,6 +1733,17 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                     "F2",
                 )
             )
+            if "previous_name" in identity:
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.rename_existing",
+                        "Rename existing data symbol",
+                        "rename_existing_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
     return actions
 
 

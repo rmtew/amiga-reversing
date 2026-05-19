@@ -6150,11 +6150,16 @@ def test_route_listing_marks_target_seeded_rows_suppressible(
         "source_locator": "$.seeded_entities[0]",
     }
     assert rename_action["parameter_schema"]["required"] == ["name"]
+    rename_existing_action = next(action for action in actions if action["action_id"] == "data_symbol.rename_existing")
+    assert rename_existing_action["action"] == "rename_existing_data_symbol"
+    assert rename_existing_action["parameters"] == rename_action["parameters"]
     remove_action = next(action for action in actions if action["action_id"] == "data_symbol.remove")
     assert remove_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
 
 
+@pytest.mark.parametrize("command_id", ["data_symbol.rename", "data_symbol.rename_existing"])
 def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
+    command_id: str,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -6231,7 +6236,7 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
         "/api/projects/bloodwych/commands/execute",
         {},
         {
-            "command_id": "data_symbol.rename",
+            "command_id": command_id,
             "context": _row_command_context(rows[0]),
             "parameters": {"name": "player_table"},
         },

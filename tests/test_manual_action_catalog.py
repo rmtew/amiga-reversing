@@ -145,6 +145,25 @@ def test_data_symbol_rename_command_uses_seeded_entity_identity() -> None:
         }
     }
 
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename_existing",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload == {
+        "data_symbol": {
+            "data_symbol_id": "data-symbol:h0:00000100",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x104,
+            "previous_name": "auto_data",
+            "source_locator": "GeneratedData",
+            "name": "player_table",
+        }
+    }
+
 
 def test_data_symbol_remove_command_suppresses_seeded_entity_identity() -> None:
     row = {
@@ -198,6 +217,15 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
             "name": "player_table",
         }
     }
+
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename_existing",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload["data_symbol"]["previous_name"] == "loc_1_00000120"
 
 
 def test_data_block_element_commands_infer_active_layout_identity() -> None:
@@ -489,6 +517,7 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
 
     actions = listing_element_action_catalog(row, selector)
     rename_action = next(action for action in actions if action["action_id"] == "data_symbol.rename")
+    rename_existing_action = next(action for action in actions if action["action_id"] == "data_symbol.rename_existing")
     kind, payload = listing_catalog_manual_payload(
         row,
         "data_symbol.rename",
@@ -504,6 +533,8 @@ def test_data_ref_symbol_rename_command_uses_referenced_data_identity() -> None:
         "data_class": "bitmap",
         "previous_name": "old_bitmap",
     }
+    assert rename_existing_action["action"] == "rename_existing_data_symbol"
+    assert rename_existing_action["parameters"] == rename_action["parameters"]
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {

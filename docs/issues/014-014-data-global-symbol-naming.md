@@ -46,9 +46,13 @@ Current evidence:
   no data class is available.
 - Generic `run-one` now verifies `data_symbol.remove` by checking the reloaded
   suppressed seeded item state rather than affected row metadata.
-- Durable data/global symbol edit, rename-existing-symbol, broader global, and
-  autonomous candidate workflows remain open beyond seeded data-entity
-  rename/remove and internal referenced data use-sites.
+- `data_symbol.rename_existing` now exposes first-class rename-existing-symbol
+  workflows for seeded data entities, ordinary named data rows, and referenced
+  data use-sites with a preserved `previous_name`; it reuses the durable
+  `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
+- Durable data/global symbol edit, broader global, and expanded autonomous
+  candidate workflows remain open beyond seeded data-entity rename/remove,
+  rename-existing-symbol, and internal referenced data use-sites.
 - Data symbols created or consumed by manual interpretation of values inside
   opaque data blocks are tracked by the data-block investigation in `014-015`,
   with interpreted-reference facts in `014-018` and type/domain binding in
