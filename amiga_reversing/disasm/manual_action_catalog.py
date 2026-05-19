@@ -2502,14 +2502,24 @@ def _rsset_explicit_source_evidence_is_accepted(context: Mapping[str, object]) -
     if status != "manual_override":
         return True
     cleanup_scope = context.get("cleanup_scope")
-    return (
-        isinstance(context.get("contradicted_evidence_id"), str)
-        and bool(context.get("contradicted_evidence_id"))
-        and isinstance(context.get("reason"), str)
-        and bool(context.get("reason"))
-        and isinstance(cleanup_scope, Mapping)
-        and bool(cleanup_scope.get("kind"))
-    )
+    contradicted_evidence_id = context.get("contradicted_evidence_id")
+    if not isinstance(contradicted_evidence_id, str) or not contradicted_evidence_id:
+        return False
+    if not isinstance(context.get("reason"), str) or not context.get("reason"):
+        return False
+    if not isinstance(cleanup_scope, Mapping) or not cleanup_scope.get("kind"):
+        return False
+    return _manual_override_cleanup_scope_matches_contradicted_evidence(context)
+
+
+def _manual_override_cleanup_scope_matches_contradicted_evidence(context: Mapping[str, object]) -> bool:
+    contradicted_evidence_id = context.get("contradicted_evidence_id")
+    cleanup_scope = context.get("cleanup_scope")
+    if not isinstance(contradicted_evidence_id, str) or not isinstance(cleanup_scope, Mapping):
+        return False
+    if cleanup_scope.get("kind") != "owned_descendants":
+        return True
+    return cleanup_scope.get("source_evidence_id") == contradicted_evidence_id
 
 
 def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:

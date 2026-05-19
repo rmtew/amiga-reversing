@@ -925,6 +925,22 @@ def test_rsset_binding_stays_report_only_for_unaccepted_explicit_provenance() ->
 
     assert any(action["action_id"] == "rsset.binding.bind" for action in accepted_actions)
 
+    mismatched_override_selector = {
+        **selector,
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "manual_override",
+        "contradicted_evidence_id": "prov-old-a6",
+        "reason": "Target-specific base setup differs from generic analysis.",
+        "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-other-a6"},
+    }
+    mismatched_override_actions = listing_element_action_catalog(row, mismatched_override_selector)
+
+    assert any(action["action_id"] == "rsset.binding.report" for action in mismatched_override_actions)
+    assert not any(
+        action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"}
+        for action in mismatched_override_actions
+    )
+
 
 def test_target_execution_view_add_and_edit_command_payloads() -> None:
     for command_id in ("target.execution_view.add", "target.execution_view.edit"):

@@ -72,6 +72,10 @@ Current evidence:
 - Row-scoped command availability queries now preserve manual-override
   `contradicted_evidence_id` and `reason`, so correction-boundary writes do
   not lose those fields before refreshed catalog matching.
+- Catalog-side RSSET provenance acceptance now rejects `manual_override`
+  cleanup scopes whose `owned_descendants.source_evidence_id` does not match
+  the contradicted evidence id, keeping mismatched overrides report-only before
+  mutation.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

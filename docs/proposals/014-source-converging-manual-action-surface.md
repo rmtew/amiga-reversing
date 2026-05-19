@@ -1178,6 +1178,11 @@ at the contradicted fact. For `owned_descendants`, `cleanup_scope.source_evidenc
 must equal `contradicted_evidence_id`; otherwise a manual override can claim
 cleanup proof for a different stale evidence path.
 
+Implementation observation from `014-013`: that same override cleanup check
+belongs in catalog availability, not only post-mutation provenance verification.
+Commands with mismatched `owned_descendants.source_evidence_id` should remain
+report-only so a stale override cannot write before failing the verifier.
+
 Implementation observation from `014-013`: generic provenance verification must
 compare the whole command-carried evidence boundary, not only
 `source_evidence_id`. If the durable payload replays the same id with a
