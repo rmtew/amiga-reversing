@@ -6780,6 +6780,49 @@ def test_typed_field_candidate_skips_already_projected_field() -> None:
     )
 
 
+def test_typed_field_remove_skip_uses_removed_field_identity_and_parent_evidence_set() -> None:
+    evidence = {**_accepted_struct_pointer_evidence(), "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"]}
+    field = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code", "type": "UWORD", "size": 2}
+    candidate = {
+        "id": "typed-access-field-remove",
+        "candidate_id": "typed-access-field-remove",
+        "kind": "typed_access_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_access:1:A0:36",
+        "element_kind": "typed_access",
+        "field_offset": 36,
+        "owner_struct_name": "DerivedEvent",
+        "field_name": "de_Code",
+        "width_bytes": 2,
+        "suggested_action_kinds": ["typed_access.field.remove"],
+        "parameters": field,
+        "current_metadata": {
+            "removed": True,
+            "custom_struct_field": {
+                **field,
+                **evidence,
+                "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+            },
+        },
+        "evidence": evidence,
+        "default_verifier": "custom_struct_field_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+    cast(dict[str, object], cast(dict[str, object], candidate["current_metadata"])["custom_struct_field"])[
+        "source_evidence_id"
+    ] = "prov-other-struct-pointer"
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
+
+
 def test_target_execution_view_command_candidate_uses_target_context() -> None:
     candidate = {
         "id": "execution-view",

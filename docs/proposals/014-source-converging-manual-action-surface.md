@@ -1352,6 +1352,11 @@ belongs in already-satisfied skipping. If effective metadata already contains a
 typed field with the same `parent_evidence_ids` set, replay list ordering should
 not make the planner repeat the write.
 
+Follow-up observation from `014-006`/`014-012`: typed-field cleanup skips need
+the removed field's selected identity and consumed struct-pointer provenance.
+Using only `removed` can let a stale cleanup entry hide a different
+typed-access remove candidate at the same row or offset.
+
 Implementation observation from `014-012`: selected typed-field rename proof
 must use the previous name from command context to reject stale selected-row
 typed accesses after render; absence of that previous name is a verifier

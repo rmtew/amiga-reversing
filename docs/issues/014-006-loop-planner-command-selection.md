@@ -160,6 +160,9 @@ Progress:
   unordered dependency set, so projected effective metadata with equivalent
   struct-pointer lineage is skipped instead of repeated due only to replay
   ordering.
+- Typed-field remove already-satisfied checks now require removed custom-field
+  state to match the selected field identity and consumed provenance boundary,
+  so stale cleanup state cannot hide a different typed-access cleanup.
 - Data-block bind-type already-satisfied checks now compare the active
   effective type binding, including bound type/domain and consumed provenance,
   so an explicit candidate does not repeat a binding already present in

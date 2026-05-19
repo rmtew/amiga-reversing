@@ -4001,6 +4001,41 @@ def _custom_struct_field_identity_value_matches(key: str, actual: object, expect
     return actual == expected
 
 
+def _custom_struct_field_remove_already_satisfied(
+    current: dict[str, object],
+    parameters: dict[str, object],
+) -> bool:
+    removed = current.get("removed") is True
+    field = current.get("custom_struct_field")
+    if isinstance(field, dict):
+        removed = removed or field.get("removed") is True
+        current = {**current, **field}
+    if not removed:
+        return False
+    required_keys = ("struct_name", "offset")
+    if any(key not in parameters for key in required_keys):
+        return False
+    for key in (
+        *required_keys,
+        "name",
+        "type",
+        "size",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    ):
+        if key in parameters and not _custom_struct_field_identity_value_matches(key, current.get(key), parameters.get(key)):
+            return False
+    return True
+
+
 def _data_block_element_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
     action = durable_result.get("action")
     element = _data_block_element_from_action(action)
@@ -6887,7 +6922,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     }:
         return all(_custom_struct_field_identity_value_matches(key, current.get(key), value) for key, value in parameters.items())
     if command_id in {"target.custom_struct_field.remove", "typed_access.field.remove"}:
-        return current.get("removed") is True
+        return _custom_struct_field_remove_already_satisfied(current, parameters)
     if command_id == "row.data_block.element.bind_type":
         return _data_block_type_binding_already_satisfied(current, parameters)
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:

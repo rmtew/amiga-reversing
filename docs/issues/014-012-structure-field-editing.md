@@ -89,6 +89,10 @@ Current evidence:
   lose the dependency set it consumed. Semantic reload treats parent ids as an
   unordered dependency set, so replay ordering differences do not reject the
   same accepted struct-pointer lineage.
+- Typed-field remove already-satisfied checks now require removed custom-field
+  state to match the selected struct/offset and consumed struct-pointer
+  provenance, including unordered parent evidence ids, instead of skipping on a
+  bare removed flag.
 - Typed-field execution now preserves accepted provenance carried on selected
   element context, including manual-classified evidence, path/lifetime scope,
   conflicts, and parent evidence ids, instead of regenerating row-local
