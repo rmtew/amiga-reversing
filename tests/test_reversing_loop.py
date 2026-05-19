@@ -1604,6 +1604,9 @@ def test_data_block_type_binding_verifier_requires_binding_owner_action(
         "element_width": 4,
         "binding_kind": "platform_struct",
         "bound_type_id": "Node",
+        "owner_action_id": "manual-1",
+        "source_evidence_id": "prov-node-base",
+        "parent_evidence_ids": ["prov-root"],
     }
     element = {
         "data_block_element_id": "events:30",
@@ -1893,6 +1896,9 @@ def test_data_block_type_binding_descendant_verifier_requires_owned_entity(
         citation="manual_action_log:events:30",
         source_id="manual_action_log",
         source_locator="events:30:4:platform_struct:Node",
+        owner_action_id="manual-1",
+        source_evidence_id="prov-node-base",
+        parent_evidence_ids=("prov-root",),
         type="data",
         struct_name="Node",
         field_name="LN_SUCC",
@@ -1917,6 +1923,68 @@ def test_data_block_type_binding_descendant_verifier_requires_owned_entity(
 
     assert verification["status"] == "passed"
     assert verification["matching_seeded_entities"][0]["field_name"] == "LN_SUCC"
+    assert verification["ownership_mismatches"] == []
+
+
+def test_data_block_type_binding_descendant_verifier_rejects_wrong_owner(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    binding = {
+        "type_binding_id": "events:30:4:platform_struct:Node",
+        "layout_id": "events",
+        "element_offset": 0x30,
+        "element_width": 4,
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "owner_action_id": "manual-1",
+        "source_evidence_id": "prov-node-base",
+        "parent_evidence_ids": ["prov-root"],
+    }
+    element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "platform_struct",
+        "type_binding": binding,
+    }
+    descendant = SeededEntityMetadata(
+        addr=0x20,
+        end=0x24,
+        hunk=0,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation="manual_action_log:events:30",
+        source_id="manual_action_log",
+        source_locator="events:30:4:platform_struct:Node",
+        owner_action_id="manual-other",
+        source_evidence_id="prov-node-base",
+        parent_evidence_ids=("prov-root",),
+        type="data",
+        struct_name="Node",
+        field_name="LN_SUCC",
+    )
+    monkeypatch.setattr(reversing_loop.projects, "resolve_project_dir", lambda target_id, project_root: tmp_path)
+    monkeypatch.setattr(
+        reversing_loop,
+        "effective_target_metadata",
+        lambda target_dir: TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(descendant,),
+        ),
+    )
+
+    verification = reversing_loop._verify_projected_data_block_type_binding_descendants(
+        "demo",
+        "row.data_block.element.bind_type",
+        element,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["ownership_mismatches"][0]["owner_action_id"] == "manual-other"
 
 
 def test_data_block_type_binding_descendant_verifier_rejects_missing_owned_entity(

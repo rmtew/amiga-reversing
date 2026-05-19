@@ -5,7 +5,7 @@ import json
 import tempfile
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import asdict, replace
+from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 
@@ -48,6 +48,7 @@ from amiga_reversing.disasm.target_metadata import (
     TargetMetadataSeedOrigin,
     apply_suppressed_seeded_items,
     load_target_metadata,
+    target_metadata_json_payload,
 )
 
 
@@ -1052,6 +1053,23 @@ def _data_block_type_binding_locator(element: DataBlockElementMetadata) -> str |
     return str(binding_id)
 
 
+def _data_block_type_binding_parent_evidence_ids(element: DataBlockElementMetadata) -> tuple[str, ...]:
+    binding = element.type_binding
+    if not isinstance(binding, dict):
+        return ()
+    parent_ids = binding.get("parent_evidence_ids")
+    if not isinstance(parent_ids, list | tuple):
+        return ()
+    return tuple(item for item in parent_ids if isinstance(item, str) and item)
+
+
+def _data_block_type_binding_text(element: DataBlockElementMetadata, field_name: str) -> str | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict):
+        return None
+    return _manual_seed_text(binding, field_name)
+
+
 def _data_block_typed_field_label(base_label: str | None, field_name: str, index: int | None) -> str | None:
     if not base_label:
         return None
@@ -1112,6 +1130,9 @@ def _data_block_custom_struct_field_entity(
         citation=element.citation,
         source_id="manual_action_log",
         source_locator=_data_block_type_binding_locator(element),
+        owner_action_id=_data_block_type_binding_text(element, "owner_action_id"),
+        source_evidence_id=_data_block_type_binding_text(element, "source_evidence_id"),
+        parent_evidence_ids=_data_block_type_binding_parent_evidence_ids(element),
     )
 
 
@@ -1144,6 +1165,9 @@ def _data_block_custom_struct_gap_entity(
         citation=element.citation,
         source_id="manual_action_log",
         source_locator=_data_block_type_binding_locator(element),
+        owner_action_id=_data_block_type_binding_text(element, "owner_action_id"),
+        source_evidence_id=_data_block_type_binding_text(element, "source_evidence_id"),
+        parent_evidence_ids=_data_block_type_binding_parent_evidence_ids(element),
     )
 
 
@@ -1229,6 +1253,9 @@ def _data_block_element_entity(
         source_id="manual_action_log" if value_domain is not None else None,
         source_locator=_data_block_type_binding_locator(element) if value_domain is not None else None,
         value_domain=value_domain,
+        owner_action_id=_data_block_type_binding_text(element, "owner_action_id") if value_domain is not None else None,
+        source_evidence_id=_data_block_type_binding_text(element, "source_evidence_id") if value_domain is not None else None,
+        parent_evidence_ids=_data_block_type_binding_parent_evidence_ids(element) if value_domain is not None else (),
     )
 
 
@@ -1838,7 +1865,7 @@ def effective_metadata_text(target_dir: Path) -> str:
     metadata = effective_target_metadata(target_dir)
     if metadata is None:
         return ""
-    payload = asdict(metadata)
+    payload = target_metadata_json_payload(metadata)
     _add_source_descriptor_execution_view(target_dir, payload)
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 

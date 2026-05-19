@@ -4544,16 +4544,47 @@ def _verify_projected_data_block_type_binding_descendants(
             "value_domain": entity.value_domain,
             "source_id": entity.source_id,
             "source_locator": entity.source_locator,
+            "owner_action_id": entity.owner_action_id,
+            "source_evidence_id": entity.source_evidence_id,
+            "parent_evidence_ids": list(entity.parent_evidence_ids),
         }
         for entity in entities
         if entity.source_id == "manual_action_log" and entity.source_locator == binding_id
     ]
     cleared = command_id.endswith(".clear_type")
+    ownership_mismatches: list[dict[str, object]] = []
+    if not cleared:
+        expected_owner_action_id = binding.get("owner_action_id")
+        expected_source_evidence_id = binding.get("source_evidence_id")
+        expected_parent_evidence_ids = binding.get("parent_evidence_ids")
+        for descendant in descendants:
+            mismatch: dict[str, object] = {}
+            if (
+                isinstance(expected_owner_action_id, str)
+                and descendant.get("owner_action_id") != expected_owner_action_id
+            ):
+                mismatch["owner_action_id"] = descendant.get("owner_action_id")
+            if (
+                isinstance(expected_source_evidence_id, str)
+                and descendant.get("source_evidence_id") != expected_source_evidence_id
+            ):
+                mismatch["source_evidence_id"] = descendant.get("source_evidence_id")
+            if (
+                isinstance(expected_parent_evidence_ids, list | tuple)
+                and list(descendant.get("parent_evidence_ids") or []) != list(expected_parent_evidence_ids)
+            ):
+                mismatch["parent_evidence_ids"] = descendant.get("parent_evidence_ids")
+            if mismatch:
+                mismatch["descendant"] = descendant
+                ownership_mismatches.append(mismatch)
     return {
         "layer": "type_binding_descendants",
-        "status": "passed" if (not descendants if cleared else bool(descendants)) else "failed",
+        "status": "passed"
+        if (not descendants if cleared else bool(descendants) and not ownership_mismatches)
+        else "failed",
         "type_binding_id": binding_id,
         "matching_seeded_entities": descendants,
+        "ownership_mismatches": ownership_mismatches,
     }
 
 

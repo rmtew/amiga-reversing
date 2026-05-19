@@ -53,6 +53,10 @@ Current implementation:
   by `source_id=manual_action_log` and `source_locator=type_binding_id`, proving
   active bindings have binding-owned rendered descendants and clear-type removes
   descendants from the cleared binding id.
+- Generated structured-data seeded descendants now carry the type-binding
+  `owner_action_id`, consumed `source_evidence_id`, and
+  `parent_evidence_ids`; bind verification rejects descendants that match the
+  binding id but lost or changed the owner/evidence lineage.
 - Planner command availability for `row.data_block.element.bind_type` and
   `row.data_block.element.clear_type` now requires the refreshed catalog entry
   to match the selected data-block element identity `(layout_id, offset,
@@ -73,7 +77,8 @@ Current implementation:
   element's structured-data item so known values render symbolically, with exact
   rebuild proof.
 - Generated type-flow facts/review items remain open beyond active binding
-  owner, binding-owned seeded descendants, and clear-type cleanup verification.
+  owner, binding-owned seeded descendants with consumed evidence lineage, and
+  clear-type cleanup verification.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.

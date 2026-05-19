@@ -1380,6 +1380,80 @@ def test_effective_metadata_removes_manual_data_block_layout(tmp_path: Path) -> 
     assert payload["data_block_layouts"] == []
 
 
+def test_effective_metadata_projects_data_block_type_binding_owner_to_descendants(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_custom_struct",
+                custom_struct={
+                    "name": "DataHeader",
+                    "size": 6,
+                    "fields": [
+                        {"name": "magic", "type": "UWORD", "offset": 0, "size": 2},
+                        {"name": "next_offset", "type": "APTR", "offset": 2, "size": 4},
+                    ],
+                },
+            ),
+            _action(
+                "a2",
+                2,
+                "create_manual_data_block_layout",
+                data_block_layout={
+                    "layout_id": "header",
+                    "hunk": 0,
+                    "source_start": 0x100,
+                    "source_end": 0x106,
+                    "default_unit": "byte",
+                },
+            ),
+            _action(
+                "a3",
+                3,
+                "set_manual_data_block_element",
+                data_block_element={
+                    "data_block_element_id": "header:0",
+                    "layout_id": "header",
+                    "offset": 0,
+                    "width": 6,
+                    "kind": "struct",
+                    "type_binding": {
+                        "type_binding_id": "header:0:6:custom_struct:DataHeader",
+                        "layout_id": "header",
+                        "element_offset": 0,
+                        "element_width": 6,
+                        "binding_kind": "custom_struct",
+                        "bound_type_id": "DataHeader",
+                        "owner_action_id": "a3",
+                        "source_evidence_id": "prov-header-base",
+                        "parent_evidence_ids": ["prov-root"],
+                    },
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    typed_entities = [
+        entity
+        for entity in payload["seeded_entities"]
+        if entity["source_locator"] == "header:0:6:custom_struct:DataHeader"
+    ]
+    assert [(entity["field_name"], entity["owner_action_id"]) for entity in typed_entities] == [
+        ("magic", "a3"),
+        ("next_offset", "a3"),
+    ]
+    assert {entity["source_evidence_id"] for entity in typed_entities} == {"prov-header-base"}
+    assert {tuple(entity["parent_evidence_ids"]) for entity in typed_entities} == {("prov-root",)}
+
+
 def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

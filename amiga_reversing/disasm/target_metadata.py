@@ -592,6 +592,9 @@ class SeededEntityMetadata:
     c_type: str | None = None
     pointer_struct: str | None = None
     value_domain: str | None = None
+    owner_action_id: str | None = None
+    source_evidence_id: str | None = None
+    parent_evidence_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
@@ -619,6 +622,9 @@ class SeededEntityMetadata:
         c_type = payload.get("c_type")
         pointer_struct = payload.get("pointer_struct")
         value_domain = payload.get("value_domain")
+        owner_action_id = payload.get("owner_action_id")
+        source_evidence_id = payload.get("source_evidence_id")
+        parent_evidence_ids = payload.get("parent_evidence_ids", [])
         assert isinstance(addr, int)
         seed_origin = _target_metadata_seed_origin(seed_origin)
         review_status = _target_metadata_review_status(review_status)
@@ -640,6 +646,10 @@ class SeededEntityMetadata:
         assert c_type is None or isinstance(c_type, str)
         assert pointer_struct is None or isinstance(pointer_struct, str)
         assert value_domain is None or isinstance(value_domain, str)
+        assert owner_action_id is None or isinstance(owner_action_id, str)
+        assert source_evidence_id is None or isinstance(source_evidence_id, str)
+        assert isinstance(parent_evidence_ids, list | tuple)
+        assert all(isinstance(item, str) for item in parent_evidence_ids)
         return cls(
             addr=addr,
             seed_origin=seed_origin,
@@ -662,6 +672,9 @@ class SeededEntityMetadata:
             c_type=c_type,
             pointer_struct=pointer_struct,
             value_domain=value_domain,
+            owner_action_id=owner_action_id,
+            source_evidence_id=source_evidence_id,
+            parent_evidence_ids=tuple(parent_evidence_ids),
         )
 
 @dataclass(frozen=True, slots=True)
@@ -1418,14 +1431,14 @@ def load_required_target_metadata(
 
 def write_target_metadata(target_dir: Path, metadata: TargetMetadata) -> None:
     target_metadata_path(target_dir).write_text(
-        json.dumps(asdict(metadata), indent=2, sort_keys=True) + "\n",
+        json.dumps(target_metadata_json_payload(metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
 
 def write_target_seeded_metadata(target_dir: Path, metadata: TargetMetadata) -> None:
     target_seeded_metadata_path(target_dir).write_text(
-        json.dumps(asdict(metadata), indent=2, sort_keys=True) + "\n",
+        json.dumps(target_metadata_json_payload(metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
@@ -1439,9 +1452,25 @@ def load_target_seeded_metadata(target_dir: Path) -> TargetMetadata | None:
 
 def write_target_corrections_metadata(target_dir: Path, metadata: TargetMetadata) -> None:
     target_corrections_path(target_dir).write_text(
-        json.dumps(asdict(metadata), indent=2, sort_keys=True) + "\n",
+        json.dumps(target_metadata_json_payload(metadata), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
+    payload = asdict(metadata)
+    seeded_entities = payload.get("seeded_entities")
+    if isinstance(seeded_entities, list | tuple):
+        for entity in seeded_entities:
+            if not isinstance(entity, dict):
+                continue
+            if entity.get("owner_action_id") is None:
+                entity.pop("owner_action_id", None)
+            if entity.get("source_evidence_id") is None:
+                entity.pop("source_evidence_id", None)
+            if not entity.get("parent_evidence_ids"):
+                entity.pop("parent_evidence_ids", None)
+    return cast(dict[str, object], payload)
 
 
 def _load_target_metadata_file(
@@ -1660,6 +1689,11 @@ def _merge_seeded_entity(manual: SeededEntityMetadata, seeded: SeededEntityMetad
         c_type=manual.c_type if manual.c_type is not None else seeded.c_type,
         pointer_struct=manual.pointer_struct if manual.pointer_struct is not None else seeded.pointer_struct,
         value_domain=manual.value_domain if manual.value_domain is not None else seeded.value_domain,
+        owner_action_id=manual.owner_action_id if manual.owner_action_id is not None else seeded.owner_action_id,
+        source_evidence_id=manual.source_evidence_id
+        if manual.source_evidence_id is not None
+        else seeded.source_evidence_id,
+        parent_evidence_ids=manual.parent_evidence_ids or seeded.parent_evidence_ids,
     )
 
 
