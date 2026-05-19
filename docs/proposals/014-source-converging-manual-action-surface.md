@@ -1354,6 +1354,11 @@ same evidence boundary that bind payloads and verifiers compare.
 The same applies to `confidence`: it is not enough for the command context to
 carry it if the durable type-binding payload drops it before replay.
 
+Implementation observation from `014-019`: clear-type command schemas need the
+active binding identity and provenance lineage too. Cleanup is selected against
+the existing binding, so hiding `type_binding_id`, owner action, or consumed
+evidence from the command surface makes the verifier's cleanup target invisible.
+
 Implementation observation from `014-014`: data-symbol removal is not a single
 cleanup shape. Generated seeded entities should be suppressed by their selected
 seeded-item identity, including range/end when available, but source-owned manual data-symbol names must remove their `ManualSeed:*`

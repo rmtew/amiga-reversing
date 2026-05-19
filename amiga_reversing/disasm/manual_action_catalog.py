@@ -1294,6 +1294,15 @@ def _data_block_element_type_clear_parameter_schema(defaults: Mapping[str, objec
                 "array_count": {"type": "integer", "minimum": 1},
                 "array_stride": {"type": "integer", "minimum": 1},
                 "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
+                "type_binding_id": {"type": "string"},
+                "binding_kind": {
+                    "type": "string",
+                    "enum": ["custom_struct", "platform_struct", "enum_domain", "equate_domain"],
+                },
+                "bound_type_id": {"type": "string"},
+                "bound_domain_id": {"type": "string"},
+                "owner_action_id": {"type": "string"},
+                **_source_evidence_parameter_properties(),
             },
             "required": ["layout_id", "offset", "width", "kind"],
         },
@@ -1346,6 +1355,7 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
         if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
     }
     type_binding_defaults.update(_source_evidence_parameters(context))
+    type_clear_defaults = _data_block_element_type_clear_parameters(defaults)
     return [
         _context_log_action(
             "row.data_block.element.set",
@@ -1404,14 +1414,41 @@ def _row_data_block_element_actions(context: Mapping[str, object], row: Mapping[
             "Clear data-block element type",
             "set_manual_data_block_element",
             context,
-            {
-                key: value
-                for key, value in defaults.items()
-                if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
-            },
+            type_clear_defaults,
             _data_block_element_type_clear_parameter_schema(defaults),
         ),
     ]
+
+
+def _data_block_element_type_clear_parameters(defaults: Mapping[str, object]) -> dict[str, object]:
+    params = {
+        key: value
+        for key, value in defaults.items()
+        if key in {"layout_id", "offset", "width", "kind", "name", "array_count", "array_stride", "representation"}
+    }
+    binding = defaults.get("type_binding")
+    if isinstance(binding, Mapping):
+        for key in (
+            "type_binding_id",
+            "binding_kind",
+            "bound_type_id",
+            "bound_domain_id",
+            "owner_action_id",
+            "source_evidence_id",
+            "source_family",
+            "source_evidence_status",
+            "path_lifetime_scope",
+            "confidence",
+            "conflicts",
+            "parent_evidence_ids",
+            "contradicted_evidence_id",
+            "reason",
+            "cleanup_scope",
+        ):
+            value = binding.get(key)
+            if value is not None:
+                params[key] = value
+    return params
 
 
 def _range_data_block_element_actions(

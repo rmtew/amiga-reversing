@@ -490,6 +490,11 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
                 "element_width": 4,
                 "binding_kind": "custom_struct",
                 "bound_type_id": "InputEvent",
+                "owner_action_id": "manual-bind",
+                "source_evidence_id": "prov-input-event",
+                "source_family": "data_block_pointer",
+                "source_evidence_status": "analysis_proven",
+                "parent_evidence_ids": ["prov-root"],
             },
         },
     }
@@ -498,6 +503,7 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
     bind_action = next(action for action in actions if action["action_id"] == "row.data_block.element.bind_type")
     clear_action = next(action for action in actions if action["action_id"] == "row.data_block.element.clear_type")
     bind_schema_properties = bind_action["parameter_schema"]["properties"]
+    clear_schema_properties = clear_action["parameter_schema"]["properties"]
     bind_kind, bind_payload = listing_catalog_manual_payload(
         row,
         "row.data_block.element.bind_type",
@@ -514,6 +520,21 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
 
     assert bind_action["parameters"]["kind"] == "scalar"
     assert {
+        "type_binding_id": clear_action["parameters"]["type_binding_id"],
+        "binding_kind": clear_action["parameters"]["binding_kind"],
+        "bound_type_id": clear_action["parameters"]["bound_type_id"],
+        "owner_action_id": clear_action["parameters"]["owner_action_id"],
+        "source_evidence_id": clear_action["parameters"]["source_evidence_id"],
+        "parent_evidence_ids": clear_action["parameters"]["parent_evidence_ids"],
+    } == {
+        "type_binding_id": "events:30:4:custom_struct:InputEvent",
+        "binding_kind": "custom_struct",
+        "bound_type_id": "InputEvent",
+        "owner_action_id": "manual-bind",
+        "source_evidence_id": "prov-input-event",
+        "parent_evidence_ids": ["prov-root"],
+    }
+    assert {
         "source_evidence_id",
         "source_family",
         "source_evidence_status",
@@ -525,6 +546,23 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
         "reason",
         "cleanup_scope",
     }.issubset(bind_schema_properties)
+    assert {
+        "type_binding_id",
+        "binding_kind",
+        "bound_type_id",
+        "bound_domain_id",
+        "owner_action_id",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    }.issubset(clear_schema_properties)
     assert clear_action["parameter_schema"]["required"] == []
     assert bind_kind == "set_manual_data_block_element"
     assert bind_payload == {

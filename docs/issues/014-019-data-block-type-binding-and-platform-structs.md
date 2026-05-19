@@ -43,6 +43,9 @@ Current implementation:
   append action. Clear-type payloads preserve `previous_type_binding` for stale
   render checks and stamp `previous_type_binding.cleanup_action_id` from the
   clearing action while removing the active binding.
+- Clear-type command parameters and schema now expose the active
+  type-binding id, binding kind, bound type/domain, owner action, and consumed
+  provenance lineage that the clear operation is about to clean up.
 - Loop execution is verifier-gated: source-dependent binds require accepted
   `data_block_pointer`, `struct_pointer`, `constant_or_equ`, or
   `rsset_app_base` evidence with lifetime scope; verification proves reload,
