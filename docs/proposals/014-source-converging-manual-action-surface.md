@@ -1283,6 +1283,12 @@ same top-level consumed-evidence boundary as creation payloads. Keeping
 forces verifiers and cleanup code to infer the selected binding boundary from
 children instead of comparing the durable binding identity directly.
 
+Follow-up observation from `014-011`: RSSET semantic reload must compare both
+top-level `parent_evidence_ids` and nested
+`base_evidence_refs.parent_evidence_ids`. These are dependency sets, so order
+differences are harmless, but dropping or changing a parent id means the binding
+was reloaded from different base evidence and must fail verification.
+
 Implementation observation from `014-011`: explicit selected-use provenance
 must be authoritative even when a `base_evidence_id` is present. If the explicit
 source-family/status/scope is unresolved, unknown, conflicting, non-RSSET, or

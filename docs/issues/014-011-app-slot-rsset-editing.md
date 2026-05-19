@@ -157,6 +157,10 @@ Current evidence:
   `parent_evidence_ids` and `cleanup_scope` as bind payloads, not just the
   nested `base_evidence_refs`, so cleanup/replay matching uses the selected
   binding boundary directly.
+- RSSET semantic reload verification now compares top-level
+  `parent_evidence_ids` and nested `base_evidence_refs.parent_evidence_ids` as
+  unordered dependency sets, so equivalent provenance lineage survives replay
+  or report ordering differences while mismatched parent evidence still fails.
 - RSSET bind/unbind catalog exposure now treats explicit selected-use
   provenance as authoritative. If a selected context carries unresolved,
   unknown, conflicting, non-`rsset_app_base`, or incomplete override evidence,

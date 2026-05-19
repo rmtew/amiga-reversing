@@ -5595,6 +5595,32 @@ def test_rsset_binding_verifier_requires_owner_and_base_evidence(
     assert semantic_layer["matching_rsset_use_site_bindings"] == []
 
 
+def test_rsset_binding_match_treats_parent_evidence_ids_as_sets() -> None:
+    base_ref = {
+        "source_evidence_id": "prov-demo-rsset",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+    }
+    expected = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": "prov-demo-rsset",
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+        "base_evidence_refs": [base_ref],
+    }
+    actual = {
+        **expected,
+        "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+        "base_evidence_refs": [{**base_ref, "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"]}],
+    }
+
+    assert reversing_loop._rsset_binding_matches(actual, expected)
+
+    actual["parent_evidence_ids"] = ["prov-parent-other"]
+
+    assert not reversing_loop._rsset_binding_matches(actual, expected)
+
+
 def test_rsset_unbind_verifier_requires_cleanup_action(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -3659,14 +3659,43 @@ def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object
         "path_lifetime_scope",
         "confidence",
         "conflicts",
+        "parent_evidence_ids",
         "contradicted_evidence_id",
         "reason",
         "cleanup_scope",
         "base_evidence_refs",
     ):
-        if key in expected and actual.get(key) != expected.get(key):
+        if key in expected and not _rsset_binding_identity_value_matches(key, actual.get(key), expected.get(key)):
             return False
     return "rsset_use_site_binding_id" in expected
+
+
+def _rsset_binding_identity_value_matches(key: str, actual: object, expected: object) -> bool:
+    if key == "parent_evidence_ids":
+        return _provenance_identity_values_match(key, actual, expected)
+    if key == "base_evidence_refs":
+        return _provenance_reference_values_match(actual, expected)
+    return actual == expected
+
+
+def _provenance_reference_values_match(actual: object, expected: object) -> bool:
+    if isinstance(actual, dict) and isinstance(expected, dict):
+        if set(actual) != set(expected):
+            return False
+        return all(
+            _provenance_identity_values_match(key, actual.get(key), expected.get(key))
+            if key == "parent_evidence_ids"
+            else actual.get(key) == expected.get(key)
+            for key in actual
+        )
+    if isinstance(actual, list | tuple) and isinstance(expected, list | tuple):
+        if len(actual) != len(expected):
+            return False
+        return all(
+            _provenance_reference_values_match(actual_item, expected_item)
+            for actual_item, expected_item in zip(actual, expected, strict=True)
+        )
+    return actual == expected
 
 
 def _verify_data_block_layout_mutation(
