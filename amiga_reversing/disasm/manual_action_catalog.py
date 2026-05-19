@@ -2697,6 +2697,7 @@ def _attach_custom_struct_field_evidence(
         "conflicts",
         "contradicted_evidence_id",
         "reason",
+        "cleanup_scope",
     ):
         value = evidence_source.get(key)
         if value is not None:
@@ -3435,6 +3436,7 @@ def _data_block_element_type_binding_payload(
         "requires_source_evidence",
         "contradicted_evidence_id",
         "reason",
+        "cleanup_scope",
     ):
         value = params.get(key)
         if value is not None:

@@ -45,6 +45,9 @@ Current evidence:
   only add/edit execution views.
 - Planner verifier summaries now report `suppressed_seeded_item` for seeded-item
   corrections and `execution_view_state` for execution-view commands.
+- Provenance-backed `manual_override` writes now require and preserve cleanup
+  scope, in addition to contradicted evidence id, reason, accepted source
+  family/status, and path/lifetime scope.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

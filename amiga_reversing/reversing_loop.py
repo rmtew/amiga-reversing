@@ -3121,6 +3121,7 @@ def _verify_consumed_provenance_evidence(
     source_family = evidence.get("source_family") or evidence.get("evidence_source_family")
     status = evidence.get("source_evidence_status") or evidence.get("evidence_status") or evidence.get("status")
     scope = evidence.get("path_lifetime_scope")
+    cleanup_scope = evidence.get("cleanup_scope")
     owner_action_id = evidence.get("owner_action_id") or _durable_action_id(durable_result)
     failures: list[str] = []
     if evidence.get("missing_durable_payload") is True:
@@ -3142,6 +3143,8 @@ def _verify_consumed_provenance_evidence(
             failures.append("manual_override missing contradicted_evidence_id")
         if not isinstance(evidence.get("reason"), str) or not evidence.get("reason"):
             failures.append("manual_override missing reason")
+        if not isinstance(cleanup_scope, dict) or not cleanup_scope.get("kind"):
+            failures.append("manual_override missing cleanup_scope")
     if not isinstance(owner_action_id, str) or not owner_action_id:
         failures.append("missing owner_action_id")
     return {
@@ -3151,6 +3154,7 @@ def _verify_consumed_provenance_evidence(
         "source_family": source_family,
         "source_evidence_status": status,
         "path_lifetime_scope": scope,
+        "cleanup_scope": cleanup_scope,
         "owner_action_id": owner_action_id,
         "failures": failures,
     }
@@ -5919,6 +5923,7 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
         "conflicts",
         "contradicted_evidence_id",
         "reason",
+        "cleanup_scope",
     ):
         if key in candidate:
             context[key] = candidate[key]
@@ -5933,6 +5938,7 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
             "conflicts",
             "contradicted_evidence_id",
             "reason",
+            "cleanup_scope",
         ):
             if key in evidence and key not in context:
                 context[key] = evidence[key]
@@ -5980,6 +5986,7 @@ def _copy_source_evidence_to_payload(payload: dict[str, object], source: dict[st
         "conflicts",
         "contradicted_evidence_id",
         "reason",
+        "cleanup_scope",
     ):
         if key in source and key not in payload:
             payload[key] = source[key]
@@ -6098,8 +6105,18 @@ def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]
     if isinstance(conflicts, list) and conflicts and status != "manual_override":
         return False
     if status == "manual_override":
-        return bool(evidence.get("contradicted_evidence_id")) and bool(evidence.get("reason"))
+        return _manual_override_evidence_is_complete(evidence)
     return True
+
+
+def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:
+    cleanup_scope = evidence.get("cleanup_scope")
+    return (
+        bool(evidence.get("contradicted_evidence_id"))
+        and bool(evidence.get("reason"))
+        and isinstance(cleanup_scope, dict)
+        and bool(cleanup_scope.get("kind"))
+    )
 
 
 def _data_block_type_command_has_required_evidence(command: dict[str, object]) -> bool:
@@ -6123,7 +6140,7 @@ def _data_block_type_command_has_required_evidence(command: dict[str, object]) -
     if isinstance(conflicts, list) and conflicts and status != "manual_override":
         return False
     if status == "manual_override":
-        return bool(evidence.get("contradicted_evidence_id")) and bool(evidence.get("reason"))
+        return _manual_override_evidence_is_complete(evidence)
     return True
 
 

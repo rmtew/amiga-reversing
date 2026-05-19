@@ -608,6 +608,65 @@ def test_provenance_backed_mutation_verifier_accepts_scoped_evidence() -> None:
     assert provenance_layer["owner_action_id"] == "action-1"
 
 
+def test_provenance_backed_mutation_verifier_requires_override_cleanup_scope() -> None:
+    command = {"command_id": "typed_gap.field.add"}
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "source_evidence_id": "prov-demo-override",
+                    "source_family": "struct_pointer",
+                    "source_evidence_status": "manual_override",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                    "contradicted_evidence_id": "prov-old",
+                    "reason": "target-specific path proof",
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert "manual_override missing cleanup_scope" in provenance_layer["failures"]
+
+
+def test_provenance_backed_mutation_verifier_accepts_override_cleanup_scope() -> None:
+    cleanup_scope = {"kind": "owned_descendants", "source_evidence_id": "prov-old"}
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "source_evidence_id": "prov-demo-override",
+                    "source_family": "struct_pointer",
+                    "source_evidence_status": "manual_override",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                    "contradicted_evidence_id": "prov-old",
+                    "reason": "target-specific path proof",
+                    "cleanup_scope": cleanup_scope,
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(
+        {"command_id": "typed_gap.field.add"},
+        durable_result,
+        verification,
+    )
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "passed"
+    assert provenance_layer["status"] == "passed"
+    assert provenance_layer["cleanup_scope"] == cleanup_scope
+
+
 def test_provenance_backed_mutation_verifier_rejects_command_only_evidence() -> None:
     command = {
         "command_id": "row.data_block.element.interpret_ref",
@@ -4208,6 +4267,88 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
         **evidence,
     }
     assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
+
+
+def test_manual_override_typed_field_requires_cleanup_scope_before_execution() -> None:
+    evidence = {
+        **_accepted_struct_pointer_evidence(),
+        "source_evidence_status": "manual_override",
+        "conflicts": [{"source_evidence_id": "prov-old"}],
+        "contradicted_evidence_id": "prov-old",
+        "reason": "target-specific path proof",
+    }
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "confidence": "high",
+        "actionable": True,
+        **evidence,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
+
+    cleanup_scope = {"kind": "owned_descendants", "source_evidence_id": "prov-old"}
+    candidate["cleanup_scope"] = cleanup_scope
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"]["cleanup_scope"] == cleanup_scope
+    assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
+
+
+def test_manual_override_data_block_type_requires_cleanup_scope_before_execution() -> None:
+    evidence = {
+        "source_evidence_id": "prov-demo-data-block-pointer",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "manual_override",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x40},
+        "conflicts": [{"source_evidence_id": "prov-old"}],
+        "contradicted_evidence_id": "prov-old",
+        "reason": "target-specific table pointer",
+    }
+    candidate = {
+        "id": "data-block-type",
+        "candidate_id": "data-block-type",
+        "kind": "data_block_type_binding",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.bind_type",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "binding_kind": "custom_struct",
+            "type_id": "InputEvent",
+            "requires_source_evidence": True,
+            **evidence,
+        },
+        "output_affecting": True,
+    }
+
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+
+    cleanup_scope = {"kind": "owned_descendants", "source_evidence_id": "prov-old"}
+    cast(dict[str, object], command["parameters"])["cleanup_scope"] = cleanup_scope
+
+    assert command["parameters"]["cleanup_scope"] == cleanup_scope
+    assert reversing_loop._candidate_verifier(candidate, command) == "data_block_element_state"
 
 
 def test_typed_field_candidate_skips_already_projected_field() -> None:

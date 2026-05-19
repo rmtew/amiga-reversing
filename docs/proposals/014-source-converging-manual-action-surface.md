@@ -991,6 +991,12 @@ missing path/lifetime scope, missing source family/status, and generated
 descendants without `owner_action_id`; family commands must persist those fields
 before planner execution can consume generic provenance broadly.
 
+Implementation observation from `014-013`: `manual_override` provenance evidence
+is a correction boundary, not just another accepted status. The command payload
+and durable replay must carry `contradicted_evidence_id`, reason, path/lifetime
+scope, and cleanup scope before planner execution or post-mutation verification
+may accept the write.
+
 Implementation observation from `014-010`: first-slice provenance can report
 LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw
 base-relative unknowns from listing context, but deeper C flow definitions are
