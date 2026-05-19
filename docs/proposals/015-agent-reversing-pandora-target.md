@@ -419,6 +419,25 @@ the intended location.
 * Review: support fix only; no Pandora mutation occurred.
 * Next recommendation: rerun the row-backed typed data correction.
 
+### 015-007: Named row-backed lookup table
+
+* Candidate: next available typed data-backed Pandora action after stale
+  locator fallback was fixed.
+* Evidence: planner selected a data row at `s0:00000CA0:data:819`, hunk 0
+  `$00000CA0-$00000CC0`, data class `lookup_table`.
+* Command: executed `data_symbol.rename` to `lookup_table_00020CA0`.
+* Verifier: Manual Action Log sequence 3 was appended locally;
+  `reproduction.json` reports `status: exact`, `stale: false`, rebuilt SHA
+  matching original.
+* Timing: execution 12.7s including exact reproduction.
+* Result: rendered source now uses `lookup_table_00020CA0` at the indexed
+  `movea.l lookup_table_00020CA0(pc,d2.w),a1` reference and at the table
+  definition.
+* Review: pure Pandora iteration report; no support-code change. This is a
+  typed data-backed improvement and RSSET/app-base remains report-only.
+* Next recommendation: continue with typed data-backed candidates until the
+  planner reaches non-data or unsupported actions.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
