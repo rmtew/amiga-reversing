@@ -457,6 +457,28 @@ the intended location.
 * Next recommendation: continue typed data-backed candidates until saturation,
   then inspect the next non-data-backed family before mutating.
 
+### 015-009: Named row-backed credit string
+
+* Candidate: next executed typed data-backed Pandora action after the row-backed
+  copper-list iteration.
+* Evidence: planner selected a data row at `s0:0000109E:data:1018`, hunk 0
+  `$0000109E-$000010B9`, data class `string`.
+* Command: executed `data_symbol.rename` to `string_0002109E`.
+* Verifier: Manual Action Log sequence 5 was appended locally;
+  `reproduction.json` reports `status: exact`, `stale: false`, rebuilt SHA
+  matching original.
+* Result: rendered source now uses `string_0002109E` at the string definition
+  for the visible credit text and at the `lea.l string_0002109E(pc),a3` use
+  before the string rendering call.
+* Observation: the immediately preceding dry run reported a different typed
+  data-backed candidate than the execute pass applied. Because the executed
+  action was still row-backed, command-supported, and exactly verified, this did
+  not block Pandora progress. Logged as deferred tooling follow-up D008.
+* Review: pure Pandora iteration report; no support-code change. RSSET/app-base
+  evidence remains report-only until accepted base evidence exists.
+* Next recommendation: continue typed data-backed candidates, but watch for
+  repeated dry-run/execute drift before committing to larger batches.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -662,6 +684,27 @@ Triage by scope:
 * Pull-in condition: hardware-base provenance becomes the active candidate
   family after RSSET/custom-struct/data-block work, or raw A5 accesses block a
   concrete source-converging action.
+* Status: open.
+
+#### D008: Dry-run and execute candidate drift
+
+* Date/source: 015-009 Pandora row-backed string iteration.
+* Location: `reversing_loop run-one --dry-run` followed by `run-one` for
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+* Evidence:
+  * dry run reported `data_symbol.rename_existing` for row
+    `s0:000009EA:data:656` as `copper_list_000209EA`,
+  * execute pass recomputed and applied `data_symbol.rename` for row
+    `s0:0000109E:data:1018` as `string_0002109E`,
+  * the executed action was valid, row-backed, and exact-round-trip verified.
+* Expected source improvement:
+  * make dry-run and execute action selection stable for the same project
+    state, or report clearly when a selected action is skipped and why.
+* Missing tool/report/action:
+  * concise selected-action trace with skip reasons after command availability
+    checks.
+* Pull-in condition: drift repeats, hides an invalid action, or blocks typed
+  data-backed iteration batching.
 * Status: open.
 
 ## Stop Conditions
