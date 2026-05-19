@@ -5,6 +5,11 @@ Scope:
 Add first-class data/global symbol naming actions for source-converging names
 that are not function or code labels.
 
+Accepted review state:
+Data/global naming remains source-identity work by default. Reference reports
+may rank or verify naming candidates, but names do not create provenance or
+type-flow descendants unless a separate semantic action owns them.
+
 Current evidence:
 - `SeededEntityMetadata.name` can name data definitions.
 - Manual data seeds can carry a name.
@@ -50,6 +55,10 @@ Current evidence:
   workflows for seeded data entities, ordinary named data rows, and referenced
   data use-sites with a preserved `previous_name`; it reuses the durable
   `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
+- Planner command normalization strips report/provenance fields from
+  data-symbol rename/remove parameter payloads; rename parameters carry only
+  the requested name, and remove parameters carry only selected seeded-item
+  identity.
 - Durable data/global symbol edit, broader global, and expanded autonomous
   candidate workflows remain open beyond seeded data-entity rename/remove,
   rename-existing-symbol, and internal referenced data use-sites.
@@ -58,6 +67,11 @@ Current evidence:
   with interpreted-reference facts in `014-018` and type/domain binding in
   `014-019`.
 - The proposal goal includes clearer global and data names.
+- Post-`014-022` split: data/global naming remains source-identity work, not
+  semantic/type propagation by default. Reference queries for labels/data
+  symbols are evidence-bearing def-use/xref views and may support provenance
+  exploration, but a rename does not itself create provenance/type-flow
+  descendants unless a separate semantic action owns them.
 
 Acceptance criteria:
 - Data/global symbol identities are stable by hunk, source/runtime address
@@ -70,6 +84,15 @@ Acceptance criteria:
   references where applicable, and round-trip exactness.
 - The loop can rank a non-comment data/global naming candidate and skip
   already-satisfied names from projected semantic state.
+- Naming workflows preserve the boundary between source identity and
+  provenance/type-flow facts; any semantic descendants are owned by a separate
+  action.
+- Source identity boundary:
+  data/global names and label names may consume xref/reference reports for
+  candidate ranking and rendered-use verification, but the name itself is not a
+  provenance source-family classification. A separate semantic action must
+  consume a reference as provenance before it can generate type-flow, field
+  bindings, or propagated descendants.
 
 Required tests:
 Identity tests, manual replay tests, command catalog execution tests,

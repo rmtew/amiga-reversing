@@ -839,6 +839,12 @@ symbol. The durable action remains `rename_data_symbol`, but the catalog and
 planner should surface `data_symbol.rename_existing` when `previous_name` is
 known so operators can distinguish replacement from first naming.
 
+Implementation observation from `014-014`: data-symbol command parameters must
+not double as provenance reports. Candidate and embedded command payloads should
+strip xref/source-family evidence before execution; the catalog row/element
+context supplies source identity, while separate semantic commands own any
+accepted provenance or type-flow descendants.
+
 Implementation observation from `014-005`/`014-013`:
 Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and

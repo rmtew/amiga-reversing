@@ -2511,6 +2511,34 @@ def test_planner_selects_data_symbol_rename_candidate(
     assert report["planner"]["selected_verifier"] == "projected_data_symbol_name"
 
 
+def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> None:
+    candidate = {
+        "id": "data-symbol-candidate",
+        "candidate_id": "data-symbol-candidate",
+        "kind": "data_symbol_name",
+        "command": {
+            "command_id": "data_symbol.rename_existing",
+            "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+            "parameters": {
+                "name": "player_table",
+                "previous_name": "auto_data",
+                "data_class": "table",
+                "source_evidence_id": "xref-1",
+                "source_family": "runtime_address_ref",
+                "path_lifetime_scope": {"kind": "global"},
+            },
+            "output_affecting": True,
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {"name": "player_table"}
+    assert reversing_loop._candidate_verifier(candidate, command) == "projected_data_symbol_name"
+
+
 def test_planner_skips_already_satisfied_data_symbol_rename(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2530,6 +2558,21 @@ def test_planner_skips_already_satisfied_data_symbol_rename(
     skipped = report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "data-symbol-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+
+
+def test_data_symbol_remove_candidate_strips_provenance_parameters() -> None:
+    candidate = _data_symbol_remove_candidate(suppressed=False)
+    candidate["parameters"] = {
+        "kind": "seeded_entity",
+        "hunk": 0,
+        "addr": 0x100,
+        "source_evidence_id": "xref-1",
+        "source_family": "runtime_address_ref",
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
 
 
 def test_planner_selects_data_symbol_remove_candidate(
