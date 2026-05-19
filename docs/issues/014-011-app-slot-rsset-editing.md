@@ -31,17 +31,23 @@ Current evidence:
   payloads include `base_evidence_id` so later cleanup/cascade work keeps the
   `014-021` identity shape.
 - Selected numeric base-relative operands expose `rsset.binding.report` for
-  exploratory use. `rsset.binding.bind` and `rsset.binding.unbind` are exposed
-  only when the selected context carries explicit RSSET/app-base evidence, such
-  as an app-slot context or candidate-supplied `base_evidence_id`. The catalog
-  must not infer `app/__amiga_app_base__` from an arbitrary `An` displacement.
+  exploratory use. The report now includes source locator, operand facts, base
+  evidence state, candidate layout field/gap context, nearby fields, width/gap
+  compatibility, existing same-displacement use summaries, expected cascade,
+  render state, and missing verifier blockers.
+  `rsset.binding.bind` and `rsset.binding.unbind` are exposed only when the
+  selected context carries explicit RSSET/app-base evidence, such as an
+  app-slot context or candidate-supplied `base_evidence_id`. The catalog must
+  not infer `app/__amiga_app_base__` from an arbitrary `An` displacement, and
+  report-only non-`A6` raw displacements do not receive a default app candidate.
   Bind-only records the selected use and linked-gap/raw render state without
   inventing an unlinked `RS.*` field.
 - Native listing JSON now emits raw address-register displacement operands as
   selectable `operand_parts` with `base_register`, `displacement`, and
   `operand_index`. Real GenAm coverage proves `sf.b $0102(a6)` has no
   `app_slot_refs`, still exposes a selectable displacement element, and offers
-  `rsset.binding.report`; bind/unbind waits for explicit base evidence.
+  a report showing the `$0102` one-byte app-slot gap and missing base-evidence
+  blocker; bind/unbind waits for explicit base evidence.
 - Planned refinement actions remain `create_manual_rsset_binding_type_refinement`
   and `remove_manual_rsset_binding_type_refinement`; planned refinement command
   ids remain `rsset.binding.bind_refine`, `rsset.binding.type_refine`, and
@@ -109,10 +115,9 @@ Working goal:
   exact round-trip.
 
 Remaining work:
-- Broaden `rsset.binding.report` beyond the first selected-use report so it
-  shows candidate layouts, base evidence, current field/gap state, access
-  width, existing xrefs, type compatibility, expected cascade, and missing
-  verifier blockers.
+- Broaden `rsset.binding.report` from selected-use and same-displacement
+  summaries into generated xref/type-flow descendants once bind-refine and
+  cascade ownership exist.
 - Add conflict feedback for bind+type refinement: if observed access width,
   base evidence, or platform/custom type application does not reconcile, block
   the application or create a review item instead of silently applying it.

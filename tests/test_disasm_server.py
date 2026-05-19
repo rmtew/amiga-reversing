@@ -345,6 +345,7 @@ def _seed_c_listing_artifact(
     cache_key: str = "cache",
 ) -> None:
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
     disasm_server._LISTING_PROJECTION_SERVICE.seed_artifact_for_test(
         project_name,
         artifact,
@@ -3965,8 +3966,29 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
             operand_text="$0102(a6)",
             operand_parts=(SemanticOperand(kind="displacement", text="$0102(a6)", base_register="A6", displacement=0x0102),),
             operand_accesses=("write",),
-        )
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="tst.b $0102(a6)\n",
+            addr=0xF0,
+            section_index=0,
+            start_offset=0xF0,
+            end_offset=0xF4,
+            stable_key="row-1",
+            opcode_or_directive="tst.b",
+            operand_text="$0102(a6)",
+            operand_parts=(SemanticOperand(kind="displacement", text="$0102(a6)", base_register="A6", displacement=0x0102),),
+            operand_accesses=("read",),
+        ),
     ]
+    app_slot_analysis = {
+        "regions": [
+            {"offset": 0x0101, "end": 0x0102, "size": 1, "symbol": "app_0101", "source": "manual"},
+            {"offset": 0x0103, "end": 0x0104, "size": 1, "symbol": "app_0103", "source": "manual"},
+        ],
+        "gaps": [{"start": 0x0102, "end": 0x0103, "after": "app_0101", "before": "app_0103"}],
+    }
     appended_actions: list[dict[str, object]] = []
 
     def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
@@ -3974,7 +3996,12 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         appended_actions.append(action)
         return action
 
-    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(rows, app_slot_analysis=app_slot_analysis),
+        cache_key="rsset-binding-report",
+    )
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
     monkeypatch.setattr(
         disasm_server,
@@ -3996,6 +4023,22 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
 
     assert report_action["report"]["candidate"]["displacement"] == 0x0102
     assert report_action["report"]["candidate"]["base_evidence_id"] is None
+    assert report_action["report"]["source_locator"]["row_text"] == "sf.b $0102(a6)"
+    assert report_action["report"]["operand_facts"]["width_bytes"] == 1
+    assert report_action["report"]["base_evidence"]["blockers"] == ["missing_base_evidence"]
+    assert report_action["report"]["candidate_layouts"][0]["gap_covering_displacement"] == {
+        "start": 0x0102,
+        "end": 0x0103,
+        "size": 1,
+        "after": "app_0101",
+        "before": "app_0103",
+    }
+    assert report_action["report"]["type_compatibility"]["width_fits_gap"] is True
+    assert report_action["report"]["existing_xrefs"]["same_displacement_use_count"] == 2
+    assert [use["row_text"] for use in report_action["report"]["existing_xrefs"]["same_displacement_uses"]] == [
+        "sf.b $0102(a6)",
+        "tst.b $0102(a6)",
+    ]
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
 
     evidenced_query = _element_command_query(rows[0], "row-0:displacement:0:operand") | {
@@ -4012,6 +4055,8 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
 
     assert report_action["report"]["candidate"]["displacement"] == 0x0102
     assert report_action["report"]["candidate"]["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
+    assert report_action["report"]["base_evidence"]["has_explicit_evidence"] is True
+    assert report_action["report"]["verifier_readiness"]["replay"] == "ready"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
     assert bind_action["parameters"] == {
         "layout_name": "app",
@@ -4091,6 +4136,10 @@ def test_route_manual_action_catalog_keeps_unrelated_displacements_report_only(
 
     assert any(action["action_id"] == "rsset.binding.report" for action in actions)
     assert not any(action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"} for action in actions)
+    report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
+    assert report_action["report"]["candidate"]["layout_name"] is None
+    assert report_action["report"]["candidate"]["base_symbol"] is None
+    assert report_action["report"]["base_evidence"]["blockers"] == ["missing_base_evidence"]
 
 
 def test_route_manual_action_catalog_executes_api_specific_library_base_semantic_action(

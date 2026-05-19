@@ -1077,7 +1077,7 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
 
 def test_real_dll_genam_lvo_symbol_operand_parts_expose_base_register() -> None:
     _requires_c_backend_dlls()
-    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
+    rows, _api_calls, profile = build_project_listing_rows_with_c_artifact(
         "amiga_hunk_genam",
         project_root=PROJECT_ROOT,
     )
@@ -8132,7 +8132,7 @@ def test_real_dll_renders_genam() -> None:
 
 def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
     _requires_c_backend_dlls()
-    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
+    rows, _api_calls, profile = build_project_listing_rows_with_c_artifact(
         "amiga_hunk_genam",
         project_root=PROJECT_ROOT,
     )
@@ -8162,7 +8162,9 @@ def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
     context = matching_contexts[0]
     assert context["operand_index"] == 0
 
-    actions = listing_element_action_catalog(row, {"element_id": context["element_id"]})
+    row_with_analysis = dict(row)
+    row_with_analysis["app_slot_analysis"] = profile["app_slot_analysis"]
+    actions = listing_element_action_catalog(row_with_analysis, {"element_id": context["element_id"]})
     report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
     assert not any(action["action_id"] == "rsset.binding.bind" for action in actions)
 
@@ -8173,6 +8175,11 @@ def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
         "base_evidence_id": None,
         "displacement": 0x0102,
     }
+    assert report_action["report"]["operand_facts"]["width_bytes"] == 1
+    assert report_action["report"]["base_evidence"]["blockers"] == ["missing_base_evidence"]
+    assert report_action["report"]["candidate_layouts"][0]["gap_covering_displacement"]["start"] <= 0x0102
+    assert report_action["report"]["candidate_layouts"][0]["gap_covering_displacement"]["end"] > 0x0102
+    assert report_action["report"]["type_compatibility"]["width_fits_gap"] is True
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import cast
@@ -288,6 +288,12 @@ def listing_element_action_catalog(
         value = element_selector.get(key)
         if isinstance(value, str) and value.strip():
             context[key] = value.strip()
+    same_displacement_uses = element_selector.get("same_displacement_uses")
+    if isinstance(same_displacement_uses, list):
+        context["same_displacement_uses"] = same_displacement_uses
+    same_displacement_use_count = _optional_int(element_selector.get("same_displacement_use_count"))
+    if same_displacement_use_count is not None:
+        context["same_displacement_use_count"] = same_displacement_use_count
     element_kind = str(context.get("element_kind") or "")
     actions = [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
@@ -369,7 +375,7 @@ def listing_element_action_catalog(
                 "F2",
             )
         )
-    actions.extend(_rsset_binding_actions(context))
+    actions.extend(_rsset_binding_actions(context, row))
     if element_kind == "app_slot":
         actions.extend(
             (
@@ -1650,13 +1656,13 @@ def _rsset_layout_region_identity_payload(params: Mapping[str, object]) -> dict[
     return region
 
 
-def _rsset_binding_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+def _rsset_binding_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     report_params = _rsset_use_site_binding_parameters(context, require_evidence=False)
     if report_params is None:
         return []
     report = _context_transient("rsset.binding.report", "RSSET binding report", "rsset_binding_report", context, None)
     report["parameters"] = dict(report_params)
-    report["report"] = _rsset_binding_report(context, report_params)
+    report["report"] = _rsset_binding_report(context, row, report_params)
     actions = [report]
     mutation_params = _rsset_use_site_binding_parameters(context, require_evidence=True)
     if mutation_params is None:
@@ -1704,8 +1710,15 @@ def _rsset_use_site_binding_parameters(
     evidence = _rsset_binding_evidence_parameters(context, base_register_text)
     if require_evidence and evidence is None:
         return None
-    layout_name = evidence.get("layout_name") if evidence is not None else "app"
-    base_symbol = evidence.get("base_symbol") if evidence is not None else "__amiga_app_base__"
+    if evidence is not None:
+        layout_name: object = evidence.get("layout_name")
+        base_symbol: object = evidence.get("base_symbol")
+    elif base_register_text == "A6":
+        layout_name = "app"
+        base_symbol = "__amiga_app_base__"
+    else:
+        layout_name = None
+        base_symbol = None
     return {
         "layout_name": layout_name,
         "base_symbol": base_symbol,
@@ -1747,17 +1760,266 @@ def _rsset_use_site_binding_parameter_schema() -> dict[str, object]:
     }
 
 
-def _rsset_binding_report(context: Mapping[str, object], params: Mapping[str, object]) -> dict[str, object]:
-    displacement = _optional_int(params.get("displacement")) or 0
+def _rsset_binding_width_bytes(context: Mapping[str, object], row: Mapping[str, object]) -> int | None:
     width_bytes = _optional_int(context.get("width_bytes"))
+    if width_bytes is not None:
+        return width_bytes
+    opcode = str(row.get("opcode_or_directive") or row.get("opcode") or "")
+    if opcode.endswith(".b"):
+        return 1
+    if opcode.endswith(".w"):
+        return 2
+    if opcode.endswith(".l"):
+        return 4
+    return None
+
+
+def _signed_16(value: int) -> int:
+    return value - 0x10000 if value & 0x8000 else value
+
+
+def _rsset_report_base_evidence_source(context: Mapping[str, object], has_base_evidence: bool) -> str:
+    if context.get("element_kind") == "app_slot":
+        return "selected_app_slot"
+    if has_base_evidence:
+        return "explicit_context"
+    return "report_only_raw_displacement"
+
+
+def _rsset_report_current_field(row: Mapping[str, object], displacement: int) -> dict[str, object] | None:
+    for region in _rsset_report_regions(row):
+        offset = _optional_int(region.get("offset"))
+        end = _optional_int(region.get("end"))
+        size = _optional_int(region.get("size"))
+        if offset is None:
+            continue
+        if end is None and size is not None:
+            end = offset + size
+        if end is None:
+            end = offset + 1
+        if offset <= displacement < end:
+            return _rsset_report_region_summary(region, offset, end)
+    return None
+
+
+def _rsset_report_current_gap(row: Mapping[str, object], displacement: int) -> dict[str, object] | None:
+    for gap in _mapping_sequence(row.get("app_slot_gaps")):
+        start = _optional_int(gap.get("start"))
+        end = _optional_int(gap.get("end"))
+        if start is None or end is None or not (start <= displacement < end):
+            continue
+        return {
+            "start": start,
+            "end": end,
+            "size": max(0, end - start),
+            **_optional_text_fields(gap, ("after", "before", "coverage")),
+        }
+    analysis = row.get("app_slot_analysis")
+    if isinstance(analysis, Mapping):
+        for gap in _mapping_sequence(analysis.get("gaps")):
+            start = _optional_int(gap.get("start"))
+            end = _optional_int(gap.get("end"))
+            if start is None or end is None or not (start <= displacement < end):
+                continue
+            return {
+                "start": start,
+                "end": end,
+                "size": max(0, end - start),
+                **_optional_text_fields(gap, ("after", "before", "coverage")),
+            }
+    return None
+
+
+def _rsset_report_nearby_fields(row: Mapping[str, object], displacement: int) -> list[dict[str, object]]:
+    nearby: list[dict[str, object]] = []
+    for region in _rsset_report_regions(row):
+        offset = _optional_int(region.get("offset"))
+        end = _optional_int(region.get("end"))
+        size = _optional_int(region.get("size"))
+        if offset is None:
+            continue
+        if end is None and size is not None:
+            end = offset + size
+        if end is None:
+            end = offset + 1
+        if abs(offset - displacement) <= 8 or abs(end - displacement) <= 8:
+            nearby.append(_rsset_report_region_summary(region, offset, end))
+    nearby.sort(key=lambda item: int(item.get("offset", 0)))
+    return nearby[:6]
+
+
+def _rsset_report_regions(row: Mapping[str, object]) -> list[Mapping[str, object]]:
+    regions = _mapping_sequence(row.get("app_slot_regions"))
+    analysis = row.get("app_slot_analysis")
+    if isinstance(analysis, Mapping):
+        regions.extend(_mapping_sequence(analysis.get("regions")))
+    for raw_ref in _mapping_sequence(row.get("app_slot_refs") or row.get("appSlotRefs")):
+        displacement = _optional_int(raw_ref.get("displacement"))
+        if displacement is None:
+            continue
+        regions.append(raw_ref)
+    return regions
+
+
+def _rsset_report_region_summary(region: Mapping[str, object], offset: int, end: int) -> dict[str, object]:
+    summary: dict[str, object] = {"offset": offset, "end": end, "size": max(0, end - offset)}
+    for key in (
+        "symbol",
+        "source",
+        "confidence",
+        "struct_name",
+        "storage_kind",
+        "semantic_type",
+        "parser_role",
+    ):
+        value = region.get(key)
+        if isinstance(value, str) and value:
+            summary[key] = value
+    return summary
+
+
+def _optional_text_fields(source: Mapping[str, object], keys: tuple[str, ...]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key in keys:
+        value = source.get(key)
+        if isinstance(value, str) and value:
+            result[key] = value
+    return result
+
+
+def _rsset_report_type_compatibility(
+    width_bytes: int | None,
+    current_field: Mapping[str, object] | None,
+    current_gap: Mapping[str, object] | None,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "observed_width_bytes": width_bytes,
+        "field_state": "field" if current_field else "gap" if current_gap else "unknown",
+    }
+    if current_field:
+        field_size = _optional_int(current_field.get("size"))
+        result["field_size"] = field_size
+        result["width_matches_field"] = width_bytes is not None and field_size == width_bytes
+    elif current_gap:
+        gap_size = _optional_int(current_gap.get("size"))
+        result["gap_size"] = gap_size
+        result["width_fits_gap"] = width_bytes is not None and gap_size is not None and width_bytes <= gap_size
+    else:
+        result["blockers"] = ["no_field_or_gap_context"]
+    return result
+
+
+def _rsset_report_existing_xrefs(context: Mapping[str, object], row: Mapping[str, object], displacement: int) -> dict[str, object]:
+    same_uses = _mapping_sequence(context.get("same_displacement_uses"))
+    same_count = _optional_int(context.get("same_displacement_use_count"))
+    slots = [
+        slot
+        for slot in _rsset_report_slots(row)
+        if _optional_int(slot.get("displacement")) == displacement
+    ]
+    return {
+        "same_displacement_use_count": same_count if same_count is not None else len(same_uses),
+        "same_displacement_uses": same_uses,
+        "app_slot_slots": [_rsset_report_slot_summary(slot) for slot in slots],
+    }
+
+
+def _rsset_report_slots(row: Mapping[str, object]) -> list[Mapping[str, object]]:
+    slots = _mapping_sequence(row.get("app_slot_slots"))
+    analysis = row.get("app_slot_analysis")
+    if isinstance(analysis, Mapping):
+        slots.extend(_mapping_sequence(analysis.get("slots")))
+    return slots
+
+
+def _rsset_report_slot_summary(slot: Mapping[str, object]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key in (
+        "symbol",
+        "displacement",
+        "ref_count",
+        "observed_size",
+        "observed_end",
+        "first_addr",
+        "last_addr",
+        "first_row_index",
+        "last_row_index",
+    ):
+        value = slot.get(key)
+        if isinstance(value, (str, int)) and not isinstance(value, bool):
+            result[key] = value
+    for key in ("access_counts", "width_counts"):
+        value = slot.get(key)
+        if isinstance(value, Mapping):
+            result[key] = dict(value)
+    return result
+
+
+def _rsset_binding_report(
+    context: Mapping[str, object],
+    row: Mapping[str, object],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    displacement = _optional_int(params.get("displacement")) or 0
+    width_bytes = _rsset_binding_width_bytes(context, row)
+    current_field = _rsset_report_current_field(row, displacement)
+    current_gap = _rsset_report_current_gap(row, displacement)
+    base_evidence_id = params.get("base_evidence_id")
+    has_base_evidence = isinstance(base_evidence_id, str) and bool(base_evidence_id.strip())
+    compatibility = _rsset_report_type_compatibility(width_bytes, current_field, current_gap)
+    missing_verifiers = ["bind_refine_selected_use_render", "owned_cascade_cleanup", "type_flow"]
+    if not has_base_evidence:
+        missing_verifiers.insert(0, "base_evidence")
     return {
         "kind": "rsset_binding_report",
         "candidate": {
             "layout_name": params.get("layout_name"),
             "base_symbol": params.get("base_symbol"),
             "base_register": params.get("base_register"),
-            "base_evidence_id": params.get("base_evidence_id"),
+            "base_evidence_id": base_evidence_id,
             "displacement": displacement,
+        },
+        "source_locator": {
+            "hunk": context.get("hunk"),
+            "addr": context.get("addr") or context.get("start_offset"),
+            "stable_key": context.get("stable_key") or row.get("row_key") or row.get("stable_key"),
+            "row_text": str(row.get("text") or "").strip(),
+            "operand_index": params.get("operand_index"),
+            "current_rendered_text": row.get("operand_text") or row.get("text"),
+        },
+        "operand_facts": {
+            "base_register": params.get("base_register"),
+            "displacement": displacement,
+            "signed_displacement": _signed_16(displacement),
+            "operand_index": params.get("operand_index"),
+            "access": context.get("access") or "reference",
+            "width_bytes": width_bytes,
+            "address_mode": "address_register_displacement",
+        },
+        "base_evidence": {
+            "base_register": params.get("base_register"),
+            "base_evidence_id": base_evidence_id,
+            "has_explicit_evidence": has_base_evidence,
+            "source": _rsset_report_base_evidence_source(context, has_base_evidence),
+            "blockers": [] if has_base_evidence else ["missing_base_evidence"],
+        },
+        "candidate_layouts": [
+            {
+                "layout_name": params.get("layout_name"),
+                "base_symbol": params.get("base_symbol"),
+                "field_at_displacement": current_field,
+                "gap_covering_displacement": current_gap,
+                "nearby_fields": _rsset_report_nearby_fields(row, displacement),
+            }
+        ],
+        "type_compatibility": compatibility,
+        "existing_xrefs": _rsset_report_existing_xrefs(context, row, displacement),
+        "expected_cascade": {
+            "selected_use_render": "field_symbol" if current_field else "raw_or_linked_gap",
+            "same_displacement_candidates": "deferred_until_selected_use_verified",
+            "generated_xrefs": "deferred_until_symbolic_selected_use_or_refinement",
+            "cleanup_owner": "manual_action_id_after_bind",
+            "review_items": "missing_field" if current_gap and not current_field else None,
         },
         "selected_use": {
             "hunk": context.get("hunk"),
@@ -1767,8 +2029,21 @@ def _rsset_binding_report(context: Mapping[str, object], params: Mapping[str, ob
             "width_bytes": width_bytes,
         },
         "render": {
-            "state": "linked_gap_or_raw",
-            "reason": "No field is created by bind-only; source rendering changes after a field/refinement action.",
+            "state": "field_available" if current_field else "linked_gap_or_raw",
+            "reason": (
+                "An existing field may render after bind verification."
+                if current_field
+                else "No field is created by bind-only; source rendering changes after a field/refinement action."
+            ),
+        },
+        "verifier_readiness": {
+            "replay": "ready",
+            "exact_round_trip": "ready",
+            "selected_use_render": "ready_if_existing_field" if current_field else "blocked_until_field_refinement",
+            "xref": "blocked_until_symbolic_selected_use",
+            "type_flow": "blocked_until_type_refinement_verifier",
+            "cleanup": "binding_state_ready_descendant_cleanup_planned",
+            "missing_verifier_blockers": missing_verifiers,
         },
     }
 
@@ -3906,6 +4181,12 @@ def _character_preview(value: int) -> str:
 
 def _optional_int(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _mapping_sequence(value: object) -> list[Mapping[str, object]]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _object(value: object, description: str) -> dict[str, object]:

@@ -38,7 +38,10 @@ from amiga_reversing.disasm.c_backend import (
     validate_api_input_struct_with_c_backend,
 )
 from amiga_reversing.disasm.effective_metadata import effective_metadata_hash
-from amiga_reversing.disasm.listing_context import selected_listing_element_context
+from amiga_reversing.disasm.listing_context import (
+    listing_element_contexts,
+    selected_listing_element_context,
+)
 from amiga_reversing.disasm.listing_projection import (
     ListingLocatorError,
     ListingProjectionService,
@@ -1960,6 +1963,7 @@ def _command_context_from_query(
         row, projection_hash = _resolve_command_locator(project_name, locator)
         element_context = _selected_command_element_context(row, element_id)
         _copy_rsset_binding_context_from_query(element_context, query)
+        _copy_rsset_same_displacement_context(project_name, element_context)
         element_context["locator"] = locator
         element_context["projection_hash"] = projection_hash
         return element_context, [row]
@@ -2011,6 +2015,7 @@ def _command_context_from_body(
         row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
         element_context = _selected_command_element_context(row, element_id)
         _copy_rsset_binding_context(element_context, raw_context)
+        _copy_rsset_same_displacement_context(project_name, element_context)
         element_context["locator"] = locator
         element_context["projection_hash"] = projection_hash
         return element_context, [row]
@@ -2085,12 +2090,58 @@ def _copy_rsset_binding_context(target: dict[str, object], source: Mapping[str, 
             target[key] = value.strip()
 
 
+def _copy_rsset_same_displacement_context(project_name: str, target: dict[str, object]) -> None:
+    base_register = target.get("base_register")
+    displacement = target.get("displacement")
+    if not isinstance(base_register, str) or not isinstance(displacement, int):
+        return
+    artifact = _valid_c_listing_artifact(project_name)
+    if artifact is None:
+        return
+    summary, _summary_profile = artifact.summary_payload()
+    total_rows = summary.get("total_rows")
+    if not isinstance(total_rows, int) or total_rows <= 0:
+        return
+    payload, _window_profile = artifact.window_payload(start=0, count=total_rows)
+    raw_rows = payload.get("rows")
+    if not isinstance(raw_rows, list):
+        return
+    uses: list[dict[str, object]] = []
+    wanted_base = base_register.upper()
+    for row_index, raw_row in enumerate(raw_rows):
+        if not isinstance(raw_row, Mapping):
+            continue
+        row = dict(raw_row)
+        row.setdefault("stable_key", row.get("row_key"))
+        for element_context in listing_element_contexts(row):
+            if element_context.get("base_register") != wanted_base or element_context.get("displacement") != displacement:
+                continue
+            use = {
+                "row_index": row.get("row_index", row_index),
+                "hunk": row.get("section_index"),
+                "addr": row.get("addr") or row.get("start_offset"),
+                "stable_key": row.get("row_key") or row.get("stable_key"),
+                "row_text": str(row.get("text") or "").strip(),
+                "operand_index": element_context.get("operand_index"),
+                "access": element_context.get("access") or "reference",
+            }
+            width_bytes = element_context.get("width_bytes")
+            if isinstance(width_bytes, int):
+                use["width_bytes"] = width_bytes
+            uses.append({key: value for key, value in use.items() if value is not None})
+            break
+    if uses:
+        target["same_displacement_use_count"] = len(uses)
+        target["same_displacement_uses"] = uses[:32]
+
+
 def _resolve_command_locator(
     project_name: str,
     locator: object,
     *,
     workflow_profile: WorkflowProfile | None = None,
 ) -> tuple[dict[str, object], str]:
+    navigation: object = None
     try:
         started_at = time.perf_counter()
         try:
@@ -2107,6 +2158,7 @@ def _resolve_command_locator(
                 artifact=artifact,
                 locator_payload=locator,
             )
+            navigation, _navigation_profile = artifact.navigation_payload()
         finally:
             if workflow_profile is not None:
                 workflow_profile.add_span(
@@ -2119,6 +2171,21 @@ def _resolve_command_locator(
         code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
         raise _command_contract_error(code, str(exc)) from exc
     row = dict(row)
+    if isinstance(navigation, Mapping):
+        app_slot_analysis = navigation.get("app_slot_analysis")
+        if isinstance(app_slot_analysis, Mapping):
+            row["app_slot_analysis"] = dict(app_slot_analysis)
+        groups = navigation.get("groups")
+        if isinstance(groups, Mapping):
+            for source_key, row_key in (
+                ("app-slot-regions", "app_slot_regions"),
+                ("app-slot-gaps", "app_slot_gaps"),
+                ("app-slot-field-gaps", "app_slot_field_gaps"),
+                ("app-slot-suggestions", "app_slot_suggestions"),
+            ):
+                value = groups.get(source_key)
+                if isinstance(value, list):
+                    row[row_key] = list(value)
     row["stable_key"] = row.get("row_key")
     row["stableKey"] = row.get("row_key")
     row["row_id"] = row.get("row_key")
