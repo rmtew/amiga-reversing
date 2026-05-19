@@ -17,7 +17,7 @@ Current evidence:
   unreconciled data review seed commands that write `name` into the seed
   payload.
 - Manual Action Log `rename_data_symbol` now projects a manual seeded-entity
-  name override by durable `(hunk, addr)` identity, preserving generated
+  name override by durable hunk/address/range identity, preserving generated
   seeded-entity metadata during effective metadata merge.
 - Rows backed by `target_seeded_metadata.json` seeded entities expose
   `data_symbol.rename`, and `/commands/execute` appends `rename_data_symbol`.
@@ -82,8 +82,12 @@ Current evidence:
   not generated seeded-item suppression.
 - Planner command availability for `data_symbol.remove` now matches the cleanup
   identity shape before execution: manual data-symbol removals require the
-  selected `seed_id`, while generated seeded-entity removals require the
-  selected `(kind, hunk, addr)` suppression identity.
+  selected `seed_id`, while generated seeded-entity removals require the selected
+  suppression identity, including `end` when the catalog row has a ranged seeded
+  entity.
+- Seeded-entity suppression projection now carries optional `end` and effective
+  metadata applies ranged suppressions exactly, so suppressing one generated
+  seeded data range does not remove a same-address range with a different end.
 - Durable data/global symbol edit, broader global, and expanded autonomous
   candidate workflows remain open beyond seeded data-entity rename/remove,
   rename-existing-symbol, and internal referenced data use-sites.

@@ -363,10 +363,14 @@ def _manual_suppressed_seeded_item_to_metadata(item: dict[str, object]) -> Suppr
     kind = _manual_seed_text(item, "kind")
     hunk = _manual_seed_int(item, "hunk")
     addr = _manual_seed_int(item, "addr")
+    end = _manual_seed_int(item, "end")
     if kind is None or hunk is None or addr is None:
         return None
     try:
-        return SuppressedSeededItemMetadata.from_dict({"kind": kind, "hunk": hunk, "addr": addr})
+        payload = {"kind": kind, "hunk": hunk, "addr": addr}
+        if end is not None:
+            payload["end"] = end
+        return SuppressedSeededItemMetadata.from_dict(payload)
     except AssertionError:
         return None
 

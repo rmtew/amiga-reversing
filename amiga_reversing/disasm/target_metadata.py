@@ -1083,16 +1083,19 @@ class SuppressedSeededItemMetadata:
     kind: SuppressedSeededItemKind
     hunk: int
     addr: int
+    end: int | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> SuppressedSeededItemMetadata:
         kind = payload["kind"]
         hunk = payload["hunk"]
         addr = payload["addr"]
+        end = payload.get("end")
         assert isinstance(kind, str)
         assert isinstance(hunk, int)
         assert isinstance(addr, int)
-        return cls(kind=_suppressed_seeded_item_kind(kind), hunk=hunk, addr=addr)
+        assert end is None or isinstance(end, int)
+        return cls(kind=_suppressed_seeded_item_kind(kind), hunk=hunk, addr=addr, end=end)
 
     def __post_init__(self) -> None:
         assert isinstance(self.kind, SuppressedSeededItemKind)
@@ -1540,7 +1543,7 @@ def apply_suppressed_seeded_items(
 ) -> TargetMetadata:
     if not suppressed_seeded_items:
         return seeded
-    suppressed = {(item.kind, item.hunk, item.addr) for item in suppressed_seeded_items}
+    suppressed = set(suppressed_seeded_items)
     return TargetMetadata(
         target_type=seeded.target_type,
         entry_register_seeds=seeded.entry_register_seeds,
@@ -1552,17 +1555,22 @@ def apply_suppressed_seeded_items(
         seeded_entities=tuple(
             entity
             for entity in seeded.seeded_entities
-            if (SuppressedSeededItemKind.SEEDED_ENTITY, entity.hunk, entity.addr) not in suppressed
+            if not _seeded_entity_is_suppressed(entity, suppressed)
         ),
         seeded_code_labels=tuple(
             label
             for label in seeded.seeded_code_labels
-            if (SuppressedSeededItemKind.SEEDED_CODE_LABEL, label.hunk, label.addr) not in suppressed
+            if not _seeded_item_is_suppressed(SuppressedSeededItemKind.SEEDED_CODE_LABEL, label.hunk, label.addr, suppressed)
         ),
         seeded_code_entrypoints=tuple(
             entrypoint
             for entrypoint in seeded.seeded_code_entrypoints
-            if (SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT, entrypoint.hunk, entrypoint.addr) not in suppressed
+            if not _seeded_item_is_suppressed(
+                SuppressedSeededItemKind.SEEDED_CODE_ENTRYPOINT,
+                entrypoint.hunk,
+                entrypoint.addr,
+                suppressed,
+            )
         ),
         entry_comments=seeded.entry_comments,
         manual_representations=seeded.manual_representations,
@@ -1571,6 +1579,24 @@ def apply_suppressed_seeded_items(
         execution_views=seeded.execution_views,
         suppressed_seeded_items=(),
     )
+
+
+def _seeded_entity_is_suppressed(
+    entity: SeededEntityMetadata,
+    suppressed: set[SuppressedSeededItemMetadata],
+) -> bool:
+    exact = SuppressedSeededItemMetadata(SuppressedSeededItemKind.SEEDED_ENTITY, entity.hunk, entity.addr, entity.end)
+    broad = SuppressedSeededItemMetadata(SuppressedSeededItemKind.SEEDED_ENTITY, entity.hunk, entity.addr)
+    return exact in suppressed or broad in suppressed
+
+
+def _seeded_item_is_suppressed(
+    kind: SuppressedSeededItemKind,
+    hunk: int,
+    addr: int,
+    suppressed: set[SuppressedSeededItemMetadata],
+) -> bool:
+    return SuppressedSeededItemMetadata(kind, hunk, addr) in suppressed
 
 
 def _merge_optional_field[T](manual: T | None, seeded: T | None, *, what: str) -> T | None:

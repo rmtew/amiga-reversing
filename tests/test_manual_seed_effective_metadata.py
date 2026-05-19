@@ -795,7 +795,68 @@ def test_effective_metadata_applies_manual_seeded_item_suppression(tmp_path: Pat
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["seeded_entities"] == []
-    assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "hunk": 0, "kind": "seeded_entity"}]
+    assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "end": None, "hunk": 0, "kind": "seeded_entity"}]
+
+
+def test_effective_metadata_suppresses_only_matching_seeded_entity_range(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x100,
+                    end=0x102,
+                    hunk=0,
+                    name="short_data",
+                    type="data",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded-short",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="ShortData",
+                ),
+                SeededEntityMetadata(
+                    addr=0x100,
+                    end=0x104,
+                    hunk=0,
+                    name="long_data",
+                    type="data",
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded-long",
+                    source_id="source",
+                    source_path="source.asm",
+                    source_locator="LongData",
+                ),
+            ),
+        ),
+    )
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "suppress_seeded_item",
+                suppressed_seeded_item={"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x102},
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert [
+        (entity["hunk"], entity["addr"], entity["end"], entity["name"])
+        for entity in payload["seeded_entities"]
+    ] == [(0, 0x100, 0x104, "long_data")]
+    assert payload["suppressed_seeded_items"] == [{"addr": 0x100, "end": 0x102, "hunk": 0, "kind": "seeded_entity"}]
 
 
 def test_effective_metadata_applies_data_symbol_rename_to_seeded_entity(tmp_path: Path) -> None:

@@ -976,7 +976,7 @@ def _action_object(action: _ManualAction, field_name: str) -> dict[str, object]:
     return _object(action.payload.get(field_name), what=f"{action.kind} {field_name}")
 
 
-def _suppressed_seeded_item_key(item: dict[str, object]) -> tuple[str, int, int]:
+def _suppressed_seeded_item_key(item: dict[str, object]) -> tuple[str, int, int, int | None]:
     kind = item.get("kind")
     hunk = _manual_seed_int(item, "hunk")
     addr = _manual_seed_int(item, "addr")
@@ -986,7 +986,7 @@ def _suppressed_seeded_item_key(item: dict[str, object]) -> tuple[str, int, int]
         SuppressedSeededItemKind(kind)
     except ValueError:
         raise ValueError(f"unsupported suppressed seeded item kind: {kind}") from None
-    return kind, hunk, addr
+    return kind, hunk, addr, _manual_seed_int(item, "end")
 
 
 def _execution_view_key(view: dict[str, object]) -> tuple[int, int, int]:
@@ -1504,7 +1504,7 @@ def _project_actions(
     comments: dict[str, dict[str, object]] = {}
     representations: dict[str, dict[str, object]] = {}
     semantic_hints: dict[str, dict[str, object]] = {}
-    suppressed_seeded_items: dict[tuple[str, int, int], dict[str, object]] = {}
+    suppressed_seeded_items: dict[tuple[str, int, int, int | None], dict[str, object]] = {}
     target_equates: dict[str, dict[str, object]] = {}
     renamed_target_equates: dict[str, dict[str, object]] = {}
     removed_target_equates: dict[str, dict[str, object]] = {}

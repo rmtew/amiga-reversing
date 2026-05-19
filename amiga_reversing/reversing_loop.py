@@ -5023,7 +5023,9 @@ def _verify_project_suppressed_seeded_item(
 
 
 def _suppressed_seeded_item_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
-    return all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr"))
+    if not all(key in expected and actual.get(key) == expected.get(key) for key in ("kind", "hunk", "addr")):
+        return False
+    return "end" not in expected or actual.get("end") == expected.get("end")
 
 
 def _verify_manual_seed_mutation(
@@ -6342,7 +6344,7 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
     if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
         return {key: payload[key] for key in ("name",) if key in payload}
     if command_id == "data_symbol.remove":
-        return {key: payload[key] for key in ("kind", "hunk", "addr", "seed_id") if key in payload}
+        return {key: payload[key] for key in ("kind", "hunk", "addr", "end", "seed_id") if key in payload}
     if command_id in {"target.equate.add", "target.equate.edit", "target.equate.represent"}:
         return {
             key: payload[key]
@@ -6844,12 +6846,23 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
             _catalog_entry_provenance_identity_keys(command, ("layout_id", "offset", "width")),
         )
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
-        return _catalog_entry_parameters_match(command, entry, ("kind", "hunk", "addr"))
+        return _catalog_entry_parameters_match(command, entry, _suppressed_seeded_item_identity_keys(command))
     if command_id == "data_symbol.remove":
         parameters = command.get("parameters")
-        keys = ("seed_id",) if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str) else ("kind", "hunk", "addr")
+        keys = (
+            ("seed_id",)
+            if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str)
+            else _suppressed_seeded_item_identity_keys(command)
+        )
         return _catalog_entry_parameters_match(command, entry, keys)
     return True
+
+
+def _suppressed_seeded_item_identity_keys(command: dict[str, object]) -> tuple[str, ...]:
+    parameters = command.get("parameters")
+    if isinstance(parameters, dict) and "end" in parameters:
+        return ("kind", "hunk", "addr", "end")
+    return ("kind", "hunk", "addr")
 
 
 def _catalog_entry_parameters_match(

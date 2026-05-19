@@ -6389,7 +6389,7 @@ def test_route_listing_marks_target_seeded_rows_suppressible(
     suppress_action = next(
         action for action in actions if action["action_id"] == "correction.suppress_seeded_item.seeded_entity"
     )
-    assert suppress_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    assert suppress_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
     rename_action = next(action for action in actions if action["action_id"] == "data_symbol.rename")
     assert rename_action["parameters"] == {
         "hunk": 0,
@@ -6403,7 +6403,7 @@ def test_route_listing_marks_target_seeded_rows_suppressible(
     assert rename_existing_action["action"] == "rename_existing_data_symbol"
     assert rename_existing_action["parameters"] == rename_action["parameters"]
     remove_action = next(action for action in actions if action["action_id"] == "data_symbol.remove")
-    assert remove_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    assert remove_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
 
 
 @pytest.mark.parametrize("command_id", ["data_symbol.rename", "data_symbol.rename_existing"])
@@ -6687,7 +6687,7 @@ def test_route_manual_action_catalog_execute_removes_seeded_data_symbol(
     local_effect = cast(list[dict[str, object]], application["local_effects"])[0]
 
     assert action["kind"] == "suppress_seeded_item"
-    assert suppressed == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+    assert suppressed == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
     assert local_effect == {"kind": "seeded_item_suppression", "suppressed_seeded_item": suppressed}
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()

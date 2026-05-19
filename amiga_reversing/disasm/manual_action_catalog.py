@@ -1493,7 +1493,7 @@ def _suppress_seeded_item_actions(context: Mapping[str, object], row: Mapping[st
                 label,
                 "suppress_seeded_item",
                 context,
-                {"kind": kind, "hunk": item["hunk"], "addr": item["addr"]},
+                _suppressed_seeded_item_identity(item),
             )
         )
     return actions
@@ -1843,7 +1843,7 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                     "Remove data symbol",
                     "suppress_seeded_item",
                     context,
-                    {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]},
+                    _suppressed_seeded_item_identity(item),
                 )
             )
     if not has_seeded_entity and row.get("kind") == "data":
@@ -1971,10 +1971,21 @@ def _suppressed_seeded_item_payload(row: Mapping[str, object], params: Mapping[s
     kind = params.get("kind")
     hunk = _optional_int(params.get("hunk"))
     addr = _optional_int(params.get("addr"))
+    end = _optional_int(params.get("end"))
     for item in _row_suppressible_seeded_items(row):
-        if item["kind"] == kind and item["hunk"] == hunk and item["addr"] == addr:
-            return {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]}
+        if item["kind"] != kind or item["hunk"] != hunk or item["addr"] != addr:
+            continue
+        if end is not None and item.get("end") != end:
+            continue
+        return _suppressed_seeded_item_identity(item)
     raise ValueError("suppress_seeded_item requires a suppressible seeded item on the selected row")
+
+
+def _suppressed_seeded_item_identity(item: Mapping[str, object]) -> dict[str, object]:
+    identity = {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]}
+    if "end" in item:
+        identity["end"] = item["end"]
+    return identity
 
 
 def _execution_view_payload(params: Mapping[str, object]) -> dict[str, object]:

@@ -897,9 +897,9 @@ Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and
 round-trip instead of affected locators.
 
-Implementation observation from `014-006`/`014-013`: seeded-item correction
-availability must compare the selected suppression identity `(kind, hunk, addr)`
-against the refreshed catalog entry. A row-level
+Implementation observation from `014-006`/`014-013`/`014-014`: seeded-item
+correction availability must compare the selected suppression identity,
+including range/end when available, against the refreshed catalog entry. A row-level
 `correction.suppress_seeded_item.*` command id alone is not enough authority to
 suppress a different analyzer/imported fact.
 
@@ -1303,8 +1303,8 @@ The same applies to `confidence`: it is not enough for the command context to
 carry it if the durable type-binding payload drops it before replay.
 
 Implementation observation from `014-014`: data-symbol removal is not a single
-cleanup shape. Generated seeded entities should be suppressed by hunk/address,
-but source-owned manual data-symbol names must remove their `ManualSeed:*`
+cleanup shape. Generated seeded entities should be suppressed by their selected
+seeded-item identity, including range/end when available, but source-owned manual data-symbol names must remove their `ManualSeed:*`
 projection instead; otherwise a manual rename cleanup can overreach into
 generated seeded identity.
 
@@ -1316,9 +1316,9 @@ generated seeded-item suppression.
 
 Implementation observation from `014-006`/`014-014`: `data_symbol.remove`
 availability must match the cleanup identity shape before execution. The shared
-command id can mean generated seeded-item suppression by `(kind, hunk, addr)` or
-source-owned manual seed removal by `seed_id`; command id presence alone must
-not authorize the other cleanup path.
+command id can mean generated seeded-item suppression by selected item identity
+`(kind, hunk, addr[, end])` or source-owned manual seed removal by `seed_id`;
+command id presence alone must not authorize the other cleanup path.
 
 Implementation observation from `014-006`: planner availability queries are a
 provenance boundary too. The refreshed row/element catalog query must carry the

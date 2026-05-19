@@ -3859,6 +3859,16 @@ def test_data_symbol_remove_availability_requires_matching_cleanup_identity() ->
 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
+    ranged_command = {
+        "command_id": "data_symbol.remove",
+        "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104},
+    }
+    assert reversing_loop._available_catalog_command(ranged_command, availability) is None
+
+    availability_parameters["end"] = 0x104
+
+    assert reversing_loop._available_catalog_command(ranged_command, availability) == availability["commands"][0]
+
     manual_seed_command = {
         "command_id": "data_symbol.remove",
         "parameters": {"seed_id": "data-symbol:h0:00000100"},
