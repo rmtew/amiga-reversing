@@ -912,6 +912,9 @@ Implementation observation from `014-012`: accepted `struct_pointer`
 provenance is necessary but not sufficient for a selected typed-field write.
 When the selected access width is known, pre-execution gating must reject a
 field size that does not match the observed access before command execution.
+The same selected-shape gate must compare the command payload struct name
+against the selected typed access/gap owner or refined struct so stale
+parameters cannot retarget a proven access to a different struct.
 
 Implementation observation from `014-006`: loop command-availability queries
 must preserve the selected command context exactly. Range commands use

@@ -6557,6 +6557,21 @@ def _typed_field_command_shape_mismatch(command: dict[str, object]) -> bool:
         and offset != context_offset
     ):
         return True
+    struct_name = params.get("struct_name")
+    context_struct_name = (
+        context.get("owner_struct_name")
+        or context.get("refined_struct_name")
+        or context.get("container_struct_name")
+        or context.get("root_struct_name")
+    )
+    if (
+        isinstance(struct_name, str)
+        and struct_name.strip()
+        and isinstance(context_struct_name, str)
+        and context_struct_name.strip()
+        and struct_name.strip() != context_struct_name.strip()
+    ):
+        return True
     size = params.get("size")
     width_bytes = context.get("width_bytes")
     if isinstance(size, int) and not isinstance(size, bool) and isinstance(width_bytes, int) and not isinstance(width_bytes, bool):
