@@ -67,6 +67,9 @@ Current evidence:
   Manual Action Log owned data symbols: rows whose effective symbol comes from
   `ManualSeed:*` remove that manual seed, while generated seeded entities still
   use seeded-item suppression.
+- Route-level coverage now proves the same boundary at command catalog and
+  execution time: `ManualSeed:*` data-symbol rows emit `remove_manual_seed`,
+  not generated seeded-item suppression.
 - Planner command availability for `data_symbol.remove` now matches the cleanup
   identity shape before execution: manual data-symbol removals require the
   selected `seed_id`, while generated seeded-entity removals require the

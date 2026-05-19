@@ -6655,6 +6655,105 @@ def test_route_manual_action_catalog_execute_removes_seeded_data_symbol(
     disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
 
 
+def test_route_manual_action_catalog_execute_removes_manual_data_symbol_seed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="data",
+            text="manual_data:\n    dc.b $00\n",
+            section_index=0,
+            start_offset=0x100,
+            end_offset=0x101,
+            addr=0x100,
+            stable_key="row-0",
+        )
+    ]
+    target_dir = tmp_path / "bloodwych"
+    target_dir.mkdir()
+    (target_dir / "target_seeded_metadata.json").write_text(
+        json.dumps(
+            {
+                "target_type": "program",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "rsset_layout_regions": [],
+                "seeded_entities": [
+                    {
+                        "addr": 0x100,
+                        "end": 0x101,
+                        "hunk": 0,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "manual",
+                        "source_id": "manual_action_log",
+                        "source_path": "targets/bloodwych/manual_actions.jsonl",
+                        "source_locator": "ManualSeed:manual-data-symbol-1",
+                        "name": "manual_data",
+                    }
+                ],
+                "seeded_code_labels": [],
+                "seeded_code_entrypoints": [],
+                "absolute_code_labels": [],
+                "entry_comments": [],
+                "manual_representations": [],
+                "execution_views": [],
+                "suppressed_seeded_items": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    appended_actions: list[dict[str, object]] = []
+
+    def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
+        action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
+        appended_actions.append(action)
+        return action
+
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+    monkeypatch.setattr(
+        disasm_server,
+        "resolve_project_paths",
+        lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir),
+    )
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
+    monkeypatch.setattr(disasm_server, "mark_project_updated", lambda target_dir: None)
+
+    command_payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _row_command_query(rows[0]),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], command_payload["data"])["commands"])
+    remove_action = next(action for action in actions if action["action_id"] == "data_symbol.remove")
+    assert remove_action["action"] == "remove_manual_seed"
+    assert remove_action["parameters"] == {"seed_id": "manual-data-symbol-1"}
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {"command_id": "data_symbol.remove", "context": _row_command_context(rows[0])},
+    )
+    action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    application = cast(dict[str, object], cast(dict[str, object], payload["data"])["application"])
+
+    assert action["kind"] == "remove_manual_seed"
+    assert action["payload"] == {"seed_id": "manual-data-symbol-1"}
+    assert application["status"] == "applied"
+    assert appended_actions == [action]
+    disasm_server._LISTING_PROJECTION_SERVICE.reset()
+    disasm_server._COMMAND_AVAILABILITY_CACHE.clear()
+
+
 def test_route_listing_returns_index_window(monkeypatch: pytest.MonkeyPatch) -> None:
     rows = [
         ListingRow(row_id=f"r{index}", kind="instruction", text=f"moveq #{index},d0\n", addr=index * 2)

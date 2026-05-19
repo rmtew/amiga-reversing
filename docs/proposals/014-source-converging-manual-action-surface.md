@@ -1242,6 +1242,12 @@ but source-owned manual data-symbol names must remove their `ManualSeed:*`
 projection instead; otherwise a manual rename cleanup can overreach into
 generated seeded identity.
 
+Implementation observation from `014-014`: route-level command coverage must
+exercise both data-symbol cleanup shapes. Planner-only tests can prove
+candidate normalization, but the command catalog and execution path also need to
+prove that `ManualSeed:*` rows append `remove_manual_seed` rather than
+generated seeded-item suppression.
+
 Implementation observation from `014-006`/`014-014`: `data_symbol.remove`
 availability must match the cleanup identity shape before execution. The shared
 command id can mean generated seeded-item suppression by `(kind, hunk, addr)` or
