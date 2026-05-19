@@ -1505,7 +1505,9 @@ Follow-up observation from `014-012`: typed-field remove proof needs a positive
 restore signal too. Checking only that the stale field name disappeared can hide
 a selected access that no longer renders the original numeric displacement, so
 the rendered-source verifier now requires a displacement token on the checked
-source rows when the removed offset is known.
+source rows when the removed offset is known. For zero-offset fields that token
+must be a raw operand, not just the suffix of another rendered field expression
+such as `other_field(a0)`.
 
 Implementation observation from `014-012`: remove/cleanup command schemas are
 part of the same contract as create/rename schemas. A typed-field remove that

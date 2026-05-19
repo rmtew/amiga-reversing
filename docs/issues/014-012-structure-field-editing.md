@@ -86,6 +86,8 @@ Current evidence:
   selected affected source to expose a restored numeric displacement token, so
   cleanup cannot pass solely because the stale field name disappeared while the
   original access was not rendered back.
+- Zero-offset typed-field remove verification uses operand-aware restore-token
+  matching: symbolic `other_field(a0)` is not accepted as restored raw `(a0)`.
 - Planner command availability for `typed_gap.field.*` and
   `typed_access.field.*` now requires the refreshed catalog entry to match the
   selected struct, offset, and consumed `struct_pointer` provenance identity.

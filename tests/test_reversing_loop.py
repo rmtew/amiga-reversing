@@ -913,6 +913,38 @@ def test_custom_struct_field_remove_render_verifier_requires_restored_numeric_ac
     assert verification["matched_restore_tokens"] == []
 
 
+def test_custom_struct_field_remove_render_verifier_rejects_zero_offset_symbol_restore(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.remove",
+        "context": {
+            "locator": _listing_locator(start_offset=0, end_offset=2),
+            "operand_index": 0,
+            "base_register": "A0",
+        },
+    }
+    expected = {"struct_name": "DerivedEvent", "offset": 0, "name": "de_Header"}
+    row = _listing_row(text="\tmove.w other_field(a0),d0\n", start_offset=0, end_offset=2)
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.remove",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["expected_restore_tokens"] == ["(a0)", "(A0)"]
+    assert verification["matched_restore_tokens"] == []
+
+
 def test_custom_struct_field_rename_render_verifier_checks_affected_locators(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

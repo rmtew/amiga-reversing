@@ -3728,7 +3728,7 @@ def _verify_projected_rsset_binding_rendered_source(
     ]
     raw_tokens = _rsset_binding_raw_displacement_tokens(expected)
     matched_raw_tokens = [
-        token for token in raw_tokens if _rendered_source_contains_rsset_raw_token(affected_rendered_text, token)
+        token for token in raw_tokens if _rendered_source_contains_raw_operand_token(affected_rendered_text, token)
     ]
     render_tokens = _rsset_binding_render_tokens(matching_refs)
     matched_render_tokens = [
@@ -3788,7 +3788,7 @@ def _rsset_binding_render_tokens(matching_refs: list[dict[str, object]]) -> list
     return list(dict.fromkeys(tokens))
 
 
-def _rendered_source_contains_rsset_raw_token(rendered_text: str, token: str) -> bool:
+def _rendered_source_contains_raw_operand_token(rendered_text: str, token: str) -> bool:
     if token.startswith("("):
         return re.search(rf"(?<![A-Za-z0-9_.$]){re.escape(token)}", rendered_text) is not None
     return _rendered_source_contains_token(rendered_text, token)
@@ -4896,7 +4896,7 @@ def _verify_projected_custom_struct_field_rendered_source(
         )
         restore_tokens = _custom_struct_field_remove_restore_tokens(command, expected)
         matched_restore_tokens = [
-            token for token in restore_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+            token for token in restore_tokens if _rendered_source_contains_raw_operand_token(affected_rendered_text, token)
         ]
         stale_accesses = [
             access
