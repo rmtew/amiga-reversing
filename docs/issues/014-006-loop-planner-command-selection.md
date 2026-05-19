@@ -146,6 +146,10 @@ Progress:
   `*.report` only. Legacy `provenance.explore_*` ids are not normalized into
   planner commands, so stale candidate feeds cannot bypass the current command
   catalog contract.
+- Semantic hint candidates for LVO, struct-offset, and equate commands now skip
+  when projected semantic state already carries the same selected hint identity,
+  so verified hint writes are not repeated just because listing text still
+  exposes the same numeric operand.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

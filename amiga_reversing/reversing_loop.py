@@ -6798,6 +6798,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return current.get("removed") is True
     if command_id.startswith("correction.suppress_seeded_item."):
         return current.get("suppressed") is True
+    if command_id.startswith(("semantic.lvo.", "semantic.struct_offset.", "semantic.equate.")):
+        return _semantic_hint_already_satisfied(current, command)
     if command_id.startswith("semantic.library_base."):
         context = command.get("context")
         library_name = command_id.removeprefix("semantic.library_base.")
@@ -6822,6 +6824,37 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style
     return False
+
+
+def _semantic_hint_already_satisfied(current: dict[str, object], command: dict[str, object]) -> bool:
+    command_id = command.get("command_id")
+    domain = current.get("domain")
+    symbol = current.get("symbol")
+    if not isinstance(command_id, str) or not isinstance(domain, str) or not isinstance(symbol, str):
+        return False
+    if command_id != f"semantic.{domain}.{_semantic_action_token(symbol)}":
+        return False
+    context = command.get("context")
+    parameters = command.get("parameters")
+    context = context if isinstance(context, dict) else {}
+    parameters = parameters if isinstance(parameters, dict) else {}
+    for key in ("value", "element_kind", "operand_index"):
+        expected = parameters.get(key, context.get(key))
+        if expected is not None and current.get(key) != expected:
+            return False
+    locator = context.get("locator")
+    if isinstance(locator, dict):
+        hunk = locator.get("section_index")
+        if hunk is not None and current.get("hunk") != hunk:
+            return False
+        addr = locator.get("start_offset")
+        if addr is not None and current.get("addr") != addr:
+            return False
+    return True
+
+
+def _semantic_action_token(text: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", text).strip("_")[:80] or "candidate"
 
 
 def _candidate_score(candidate: dict[str, object], command: dict[str, object] | None) -> int:

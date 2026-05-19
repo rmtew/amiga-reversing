@@ -1216,6 +1216,12 @@ be recognized from the current catalog contract, not legacy aliases. The
 supported provenance exploration surface is `provenance.*.report`; old
 `provenance.explore_*` ids must not normalize into planner commands.
 
+Implementation observation from `014-006`: semantic hint already-satisfied
+checks need semantic identity, not rendered text. LVO, struct-offset, and EQU
+hint candidates should compare projected `(domain, symbol, value, use-site)`
+state before execution, because the raw numeric operand can remain visible in
+listing evidence even after the durable hint exists.
+
 Implementation observation from `014-011`: RSSET binding needs both the
 family-specific identity (`base_evidence_id`, layout/base, displacement) and
 the generic provenance identity (`source_evidence_id`, source family/status,

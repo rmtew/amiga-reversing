@@ -5612,6 +5612,40 @@ def test_semantic_struct_pointer_candidate_skips_already_projected_seed() -> Non
     )
 
 
+def test_semantic_hint_candidate_skips_already_projected_hint() -> None:
+    candidate = {
+        "id": "semantic-lvo",
+        "candidate_id": "semantic-lvo",
+        "kind": "api_semantic_hint",
+        "locator": _listing_locator(),
+        "element_id": "row-1:immediate:0:-552",
+        "element_kind": "immediate",
+        "operand_index": 0,
+        "value": -552,
+        "domain": "lvo",
+        "suggested_action_kinds": ["semantic.lvo.exec.library_OpenLibrary"],
+        "current_metadata": {
+            "kind": "semantic_hint",
+            "hunk": 0,
+            "addr": 0,
+            "element_kind": "immediate",
+            "operand_index": 0,
+            "domain": "lvo",
+            "symbol": "exec.library/OpenLibrary",
+            "value": -552,
+        },
+        "default_verifier": "semantic_hint_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_embedded_semantic_hint_command_normalizes_with_prefix_rank() -> None:
     candidate = {
         "command": {
