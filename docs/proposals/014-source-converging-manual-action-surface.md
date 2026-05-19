@@ -917,6 +917,14 @@ including range/end when available, against the refreshed catalog entry. A row-l
 `correction.suppress_seeded_item.*` command id alone is not enough authority to
 suppress a different analyzer/imported fact.
 
+Implementation observation from `014-006`: alternate planner selection has the
+same identity requirement as catalog availability. When a selected command is
+unavailable, excluding alternates by command id plus context alone can discard a
+valid same-row command with different hunk/address/end, provenance, or cleanup
+identity. Exclusion must use the command family's identity parameters and, for
+planner-to-planner comparison, the union of identity keys present on either
+command.
+
 Implementation observation from `014-006`/`014-013`: ranged suppression
 availability must treat `end` as required when either the selected command or
 the refreshed catalog entry carries it. A stale unranged candidate should not

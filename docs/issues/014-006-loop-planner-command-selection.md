@@ -150,6 +150,12 @@ Progress:
   when projected semantic state already carries the same selected hint identity,
   so verified hint writes are not repeated just because listing text still
   exposes the same numeric operand.
+- Planner alternate-command selection now uses command-specific source,
+  provenance, and cleanup identity parameters instead of only command id plus
+  context, so one stale same-context command cannot hide another valid
+  ranged/provenance-backed command. Planner-to-planner comparison uses the
+  union of identity parameters present on either command, so a candidate that
+  lacks accepted evidence cannot exclude one that carries it.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
@@ -239,6 +245,5 @@ Remaining work:
   evidence-bearing writes. Any command family whose parameters select consumed
   provenance or cleanup identity must compare those parameters against the
   refreshed catalog entry before execution.
-
 Cleanup / deletion:
 Delete after implementation, verification, and proposal notes are complete.

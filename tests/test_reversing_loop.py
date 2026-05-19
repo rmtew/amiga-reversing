@@ -4086,6 +4086,49 @@ def test_data_symbol_rename_availability_requires_matching_source_identity() -> 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
+def test_planner_command_identity_includes_data_symbol_source_identity() -> None:
+    context = {"kind": "row", "locator": _listing_locator(kind="data")}
+    short_range = {
+        "command_id": "data_symbol.rename",
+        "context": context,
+        "parameters": {"name": "short_table", "hunk": 0, "addr": 0x100, "end": 0x104},
+    }
+    long_range = {
+        "command_id": "data_symbol.rename",
+        "context": context,
+        "parameters": {"name": "long_table", "hunk": 0, "addr": 0x100, "end": 0x108},
+    }
+
+    assert not reversing_loop._commands_same_identity(short_range, long_range)
+
+    long_range["parameters"] = {"name": "renamed_table", "hunk": 0, "addr": 0x100, "end": 0x104}
+
+    assert reversing_loop._commands_same_identity(short_range, long_range)
+
+
+def test_planner_command_identity_includes_union_of_provenance_keys() -> None:
+    context = {"kind": "element", "locator": _listing_locator(), "element_id": "row-1:typed_gap:0"}
+    unproven = {
+        "command_id": "typed_gap.field.add",
+        "context": context,
+        "parameters": {"struct_name": "InputEvent", "offset": 4, "name": "old_flags"},
+    }
+    proven = {
+        "command_id": "typed_gap.field.add",
+        "context": context,
+        "parameters": {
+            "struct_name": "InputEvent",
+            "offset": 4,
+            "name": "flags",
+            "source_evidence_id": "prov-struct-pointer",
+            "source_family": "struct_pointer",
+            "source_evidence_status": "analysis_proven",
+        },
+    }
+
+    assert not reversing_loop._commands_same_identity(unproven, proven)
+
+
 def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

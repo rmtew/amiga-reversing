@@ -6938,7 +6938,38 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
 
 
 def _commands_same_identity(left: dict[str, object], right: dict[str, object]) -> bool:
-    return left.get("command_id") == right.get("command_id") and left.get("context") == right.get("context")
+    if left.get("command_id") != right.get("command_id") or left.get("context") != right.get("context"):
+        return False
+    keys = _command_identity_parameter_keys(left, right)
+    if not keys:
+        return True
+    return _catalog_entry_parameters_match(left, right, keys)
+
+
+def _command_identity_parameter_keys(left: dict[str, object], right: dict[str, object]) -> tuple[str, ...]:
+    command_id = left.get("command_id")
+    if command_id in {"rsset.binding.bind", "rsset.binding.unbind"}:
+        return ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index")
+    if isinstance(command_id, str) and _is_typed_field_command_id(command_id):
+        return _command_provenance_identity_keys(
+            left,
+            right,
+            ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
+        )
+    if command_id == "row.data_block.element.bind_type":
+        return _command_provenance_identity_keys(left, right, ("layout_id", "offset", "width"))
+    if command_id == "row.data_block.element.clear_type":
+        return _data_block_type_clear_identity_keys(left, right)
+    if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
+        return _suppressed_seeded_item_identity_keys(left, right)
+    if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
+        return _data_symbol_identity_keys(left, right)
+    if command_id == "data_symbol.remove":
+        parameters = left.get("parameters")
+        if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str):
+            return ("seed_id",)
+        return _suppressed_seeded_item_identity_keys(left, right)
+    return ()
 
 
 def _available_catalog_command(command: dict[str, object], availability: dict[str, object]) -> dict[str, object] | None:
@@ -7040,7 +7071,22 @@ def _catalog_entry_provenance_identity_keys(command: dict[str, object], base_key
     return (*base_keys, *provenance_keys)
 
 
-def _data_block_type_clear_identity_keys(command: dict[str, object]) -> tuple[str, ...]:
+def _command_provenance_identity_keys(
+    left: dict[str, object],
+    right: dict[str, object],
+    base_keys: tuple[str, ...],
+) -> tuple[str, ...]:
+    keys = list(_catalog_entry_provenance_identity_keys(left, base_keys))
+    right_parameters = right.get("parameters")
+    if isinstance(right_parameters, dict):
+        keys.extend(key for key in _PROVENANCE_COMMAND_IDENTITY_KEYS if key in right_parameters and key not in keys)
+    return tuple(keys)
+
+
+def _data_block_type_clear_identity_keys(
+    command: dict[str, object],
+    other: dict[str, object] | None = None,
+) -> tuple[str, ...]:
     parameters = command.get("parameters")
     base_keys = ("layout_id", "offset", "width")
     if not isinstance(parameters, dict):
@@ -7050,7 +7096,25 @@ def _data_block_type_clear_identity_keys(command: dict[str, object]) -> tuple[st
         for key in ("type_binding_id", "binding_kind", "bound_type_id", "bound_domain_id", "owner_action_id")
         if key in parameters
     )
-    return _catalog_entry_provenance_identity_keys(command, (*base_keys, *binding_keys))
+    keys = _catalog_entry_provenance_identity_keys(command, (*base_keys, *binding_keys))
+    other_parameters = other.get("parameters") if other is not None else None
+    if isinstance(other_parameters, dict):
+        extra_binding_keys = (
+            "type_binding_id",
+            "binding_kind",
+            "bound_type_id",
+            "bound_domain_id",
+            "owner_action_id",
+        )
+        keys = (
+            *keys,
+            *(key for key in extra_binding_keys if key in other_parameters and key not in keys),
+        )
+        keys = (
+            *keys,
+            *(key for key in _PROVENANCE_COMMAND_IDENTITY_KEYS if key in other_parameters and key not in keys),
+        )
+    return keys
 
 
 def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:
