@@ -30,6 +30,11 @@ Current evidence:
   `owner_action_id` from the persisted Manual Action Log `action_id`. Binding
   payloads include `base_evidence_id` so later cleanup/cascade work keeps the
   `014-021` identity shape.
+- Effective target metadata now carries active `rsset_use_site_bindings` into
+  the C analysis policy. When a selected binding has explicit base evidence and
+  a matching existing RSSET field, the source renderer can render that selected
+  operand with the field symbol without requiring a register seed or broad
+  same-displacement cascade.
 - Selected numeric base-relative operands expose `rsset.binding.report` for
   exploratory use. The report now includes source locator, operand facts, base
   evidence state, candidate layout field/gap context, nearby fields, width/gap
@@ -63,6 +68,9 @@ Current evidence:
   field, rewrites a base-relative reference, and direct-rebuilds exactly; removal
   coverage proves source refs return to raw displacement and direct-rebuild
   exactly.
+- C-backed render/rebuild coverage proves a bind-only selected use can render
+  an existing named RSSET field while another same-displacement use of the same
+  base register stays raw, and direct-rebuilds exactly.
 - Loop planner recognizes explicit `target.rsset_region.add/edit/rename/remove`
   candidates, reports `rsset_region_state` verification, and skips
   already-satisfied projected add/edit/rename/remove state.
@@ -118,6 +126,12 @@ Remaining work:
 - Broaden `rsset.binding.report` from selected-use and same-displacement
   summaries into generated xref/type-flow descendants once bind-refine and
   cascade ownership exist.
+- Add `rsset.binding.bind_refine` so a binding can own creation/refinement of a
+  missing RSSET field such as GenAm `$0102(a6)`; bind-only still leaves missing
+  fields raw/linked-gap until that field action exists.
+- Project bind-only selected use-sites into listing/navigation state even when
+  no matching field exists yet, so linked gaps are visible before
+  `bind_refine`.
 - Add conflict feedback for bind+type refinement: if observed access width,
   base evidence, or platform/custom type application does not reconcile, block
   the application or create a review item instead of silently applying it.

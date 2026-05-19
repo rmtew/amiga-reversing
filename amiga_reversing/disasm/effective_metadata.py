@@ -36,6 +36,7 @@ from amiga_reversing.disasm.target_metadata import (
     ManualRuntimeAddressRefMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
+    RssetUseSiteBindingMetadata,
     SeededCodeEntrypointMetadata,
     SeededCodeLabelMetadata,
     SeededEntityMetadata,
@@ -597,6 +598,50 @@ def _manual_rsset_layout_region_key(region: dict[str, object]) -> tuple[str, str
     )
 
 
+def _manual_rsset_use_site_binding_to_metadata(binding: dict[str, object]) -> RssetUseSiteBindingMetadata | None:
+    hunk = _manual_seed_int(binding, "hunk")
+    addr = _manual_seed_int(binding, "addr")
+    operand_index = _manual_seed_int(binding, "operand_index")
+    displacement = _manual_seed_int(binding, "displacement")
+    base_register = _manual_seed_text(binding, "base_register")
+    layout_name = _manual_seed_text(binding, "layout_name")
+    base_symbol = _manual_seed_text(binding, "base_symbol")
+    base_evidence_id = _manual_seed_text(binding, "base_evidence_id")
+    if (
+        hunk is None
+        or hunk < 0
+        or addr is None
+        or addr < 0
+        or operand_index is None
+        or operand_index < 0
+        or displacement is None
+        or displacement < 0
+        or displacement > 0x7FFF
+        or base_register is None
+        or layout_name is None
+        or base_symbol is None
+        or base_evidence_id is None
+    ):
+        return None
+    return RssetUseSiteBindingMetadata(
+        hunk=hunk,
+        addr=addr,
+        operand_index=operand_index,
+        base_register=base_register.upper(),
+        displacement=displacement,
+        layout_name=layout_name,
+        base_symbol=base_symbol,
+        base_evidence_id=base_evidence_id,
+        binding_id=_manual_seed_text(binding, "rsset_use_site_binding_id"),
+        access=_manual_seed_text(binding, "access"),
+        width_bytes=_manual_seed_int(binding, "width_bytes"),
+        owner_action_id=_manual_seed_text(binding, "owner_action_id"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(binding, "rsset_use_site_binding_id"),
+    )
+
+
 def _manual_data_block_element_to_metadata(
     element: dict[str, object],
     reference_interpretations: Mapping[tuple[str, int], dict[str, object]] | None = None,
@@ -1031,6 +1076,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_custom_struct_field_projections = projection.removed_custom_struct_fields
     rsset_layout_region_projections = projection.rsset_layout_regions
     removed_rsset_layout_region_projections = projection.removed_rsset_layout_regions
+    rsset_use_site_binding_projections = projection.rsset_use_site_bindings
+    removed_rsset_use_site_binding_projections = projection.removed_rsset_use_site_bindings
     data_block_layout_projections = projection.data_block_layouts
     removed_data_block_layout_projections = projection.removed_data_block_layouts
     data_block_element_projections = projection.data_block_elements
@@ -1058,6 +1105,8 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not removed_custom_struct_field_projections
         and not rsset_layout_region_projections
         and not removed_rsset_layout_region_projections
+        and not rsset_use_site_binding_projections
+        and not removed_rsset_use_site_binding_projections
         and not data_block_layout_projections
         and not removed_data_block_layout_projections
         and not data_block_element_projections
@@ -1081,6 +1130,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     manual_runtime_address_refs = list(metadata.manual_runtime_address_refs)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
+    rsset_use_site_bindings = list(metadata.rsset_use_site_bindings)
     data_block_layouts = list(metadata.data_block_layouts)
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
@@ -1146,6 +1196,17 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             for region in rsset_layout_regions
             if (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset)
             not in removed_rsset_layout_region_keys
+        ]
+    removed_rsset_use_site_binding_ids = {
+        binding_id
+        for binding in removed_rsset_use_site_binding_projections
+        if (binding_id := _manual_seed_text(binding, "rsset_use_site_binding_id")) is not None
+    }
+    if removed_rsset_use_site_binding_ids:
+        rsset_use_site_bindings = [
+            binding
+            for binding in rsset_use_site_bindings
+            if binding.binding_id not in removed_rsset_use_site_binding_ids
         ]
     removed_data_block_layout_ids = {
         layout_id
@@ -1294,6 +1355,23 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         (region.layout_name or "app", region.base_symbol or "__amiga_app_base__", region.offset): region
         for region in rsset_layout_regions
     }
+    for binding in rsset_use_site_binding_projections:
+        rsset_use_site_binding = _manual_rsset_use_site_binding_to_metadata(binding)
+        if rsset_use_site_binding is not None:
+            rsset_use_site_bindings.append(rsset_use_site_binding)
+    merged_rsset_use_site_bindings = {
+        (
+            binding.hunk,
+            binding.addr,
+            binding.operand_index,
+            binding.base_register,
+            binding.displacement,
+            binding.layout_name,
+            binding.base_symbol,
+            binding.base_evidence_id,
+        ): binding
+        for binding in rsset_use_site_bindings
+    }
     data_block_reference_interpretations = _manual_data_block_reference_interpretations(
         data_block_interpreted_ref_projections
     )
@@ -1360,6 +1438,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         manual_runtime_address_refs=tuple(merged_manual_runtime_address_refs.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
+        rsset_use_site_bindings=tuple(merged_rsset_use_site_bindings.values()),
         data_block_layouts=tuple(effective_data_block_layouts),
         execution_views=tuple(merged_execution_views.values()),
         suppressed_seeded_items=tuple(suppressed_seeded_items),

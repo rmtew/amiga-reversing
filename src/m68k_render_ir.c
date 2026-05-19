@@ -4205,8 +4205,13 @@ static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup,
   return found_size;
 }
 
+static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
+    char *symbol_name, size_t symbol_name_size);
+
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
-    const M68kRenderPlatformState *state, M68kInstructionIR *instruction) {
+    const M68kRenderPlatformState *state, size_t section_index, uint32_t offset,
+    M68kInstructionIR *instruction) {
   size_t operand_index;
   int attached = 0;
   if (lookup == NULL || state == NULL || instruction == NULL) return 0;
@@ -4218,6 +4223,17 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     int32_t field_offset = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
+    if (lookup_rsset_use_site_binding_symbol_name(lookup, section_index, offset, (uint8_t)operand_index,
+        base_reg, displacement, symbol_name, sizeof(symbol_name))) {
+      m68k_ir_symbol_ref_init(&operand->symbol_ref);
+      operand->symbol_ref.has_name = 1U;
+      operand->symbol_ref.name_is_generated = 0U;
+      operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+      operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+      snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
+      attached = 1;
+      continue;
+    }
     if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
     if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
@@ -6437,6 +6453,47 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
     char *symbol_name, size_t symbol_name_size) {
   return lookup_base_field_slot_symbol_name(lookup, M68K_RENDER_APP_BASE_SYMBOL, displacement, symbol_name,
     symbol_name_size);
+}
+
+static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
+    char *symbol_name, size_t symbol_name_size) {
+  const M68kAnalysisPolicy *policy;
+  uint16_t binding_index;
+  int found = 0;
+  char found_symbol[64];
+  if (symbol_name != NULL && symbol_name_size > 0U) symbol_name[0] = '\0';
+  if (lookup == NULL || lookup->policy == NULL || displacement < 0) return 0;
+  policy = lookup->policy;
+  found_symbol[0] = '\0';
+  for (binding_index = 0U; binding_index < policy->rsset_use_site_binding_count &&
+       binding_index < M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT; ++binding_index) {
+    const M68kAnalysisRssetUseSiteBinding *binding = &policy->rsset_use_site_bindings[binding_index];
+    uint16_t region_index;
+    if (binding->section_index != section_index || binding->offset != offset ||
+        binding->operand_index != operand_index || binding->base_reg != base_reg ||
+        binding->displacement != (uint32_t)(uint16_t)displacement ||
+        binding->base_evidence_id[0] == '\0') {
+      continue;
+    }
+    for (region_index = 0U; region_index < policy->rsset_layout_region_count &&
+         region_index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++region_index) {
+      const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[region_index];
+      const char *region_layout = region->layout_name[0] != '\0' ? region->layout_name : M68K_RENDER_APP_LAYOUT_NAME;
+      const char *region_base = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+      if (region->offset != binding->displacement || region->symbol[0] == '\0' ||
+          strcmp(region_layout, binding->layout_name) != 0 ||
+          strcmp(region_base, binding->base_symbol) != 0) {
+        continue;
+      }
+      if (found != 0 && strcmp(found_symbol, region->symbol) != 0) return 0;
+      snprintf(found_symbol, sizeof(found_symbol), "%s", region->symbol);
+      found = 1;
+    }
+  }
+  if (found == 0 || symbol_name == NULL || symbol_name_size == 0U) return found;
+  snprintf(symbol_name, symbol_name_size, "%s", found_symbol);
+  return strlen(found_symbol) < symbol_name_size;
 }
 
 typedef struct M68kRenderAppRsSlot {
@@ -9507,7 +9564,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
   if (!attach_unmapped_absolute_runtime_address_symbols(preview, lookup, &instruction)) return 0;
-  (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, &instruction);
+  (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, section->section_index, candidate->offset,
+    &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
   apply_manual_immediate_representations(lookup, section->section_index, candidate->offset, &instruction);

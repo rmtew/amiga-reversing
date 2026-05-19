@@ -940,6 +940,22 @@ class _M68kAnalysisRssetLayoutRegion(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisRssetUseSiteBinding(ctypes.Structure):
+    _fields_ = [
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("displacement", ctypes.c_uint32),
+        ("operand_index", ctypes.c_uint8),
+        ("base_reg", ctypes.c_uint8),
+        ("reserved", ctypes.c_uint8 * 2),
+        ("layout_name", ctypes.c_char * 32),
+        ("base_symbol", ctypes.c_char * 64),
+        ("base_evidence_id", ctypes.c_char * 96),
+        ("binding_id", ctypes.c_char * 96),
+        ("owner_action_id", ctypes.c_char * 96),
+    ]
+
+
 class _M68kAnalysisManualRepresentation(ctypes.Structure):
     _fields_ = [
         ("has_section_index", ctypes.c_uint8),
@@ -995,6 +1011,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_range_count", ctypes.c_uint16),
         ("runtime_entry_point_count", ctypes.c_uint16),
         ("rsset_layout_region_count", ctypes.c_uint16),
+        ("rsset_use_site_binding_count", ctypes.c_uint16),
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
         ("manual_runtime_address_ref_count", ctypes.c_uint16),
@@ -1007,6 +1024,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
+        ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
         ("manual_representations", _M68kAnalysisManualRepresentation * 128),
         ("target_equates", _M68kAnalysisTargetEquate * 128),
         ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
@@ -8039,6 +8057,114 @@ def test_real_dll_manual_rsset_layout_region_remove_restores_raw_reference(tmp_p
 
     assert "work_flags RS.W 1\n" not in rendered
     assert "\tmove.w d0,$0004(a2)\n" in rendered
+    assert rebuilt == binary_path.read_bytes()
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
+def test_real_dll_manual_rsset_use_site_binding_renders_selected_existing_field_only(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-rsset-binding.hunk"
+    source_text = (
+        "    SECTION section_0,code\n"
+        "start:\n"
+        "    move.w d0,$0004(a2)\n"
+        "    move.w d1,$0004(a2)\n"
+        "    rts\n"
+        "    dc.w $0000\n"
+    )
+    binary_path.write_bytes(
+        assemble_platform_source_text_with_c_backend(
+            "amiga-hunk",
+            source_text,
+            include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+            target_cpu="any",
+            project_root=PROJECT_ROOT,
+        )[0]
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        json.dumps(
+            {"record": "manual_action_log_header", "version": 1, "target_identity": build_target_identity(source)},
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a1",
+                "sequence": 1,
+                "created_at": "2026-05-13T00:00:01+00:00",
+                "kind": "create_manual_rsset_layout_region",
+                "rsset_layout_region": {
+                    "rsset_layout_region_id": "work-flags",
+                    "offset": 4,
+                    "size": 2,
+                    "layout_name": "work",
+                    "base_symbol": "__game_work_base__",
+                    "sizeof_symbol": "work_SIZEOF",
+                    "symbol": "work_flags",
+                    "storage_kind": "scalar",
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "record": "manual_action",
+                "action_id": "a2",
+                "sequence": 2,
+                "created_at": "2026-05-13T00:00:02+00:00",
+                "kind": "create_manual_rsset_use_site_binding",
+                "rsset_use_site_binding": {
+                    "rsset_use_site_binding_id": "bind-work-flags-first-use",
+                    "hunk": 0,
+                    "addr": 0,
+                    "operand_index": 1,
+                    "base_register": "A2",
+                    "displacement": 4,
+                    "layout_name": "work",
+                    "base_symbol": "__game_work_base__",
+                    "base_evidence_id": "selected-base:A2:__game_work_base__",
+                    "access": "write",
+                    "width_bytes": 2,
+                },
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "work_flags RS.W 1\n" in rendered
+    assert "\tmove.w d0,work_flags(a2)\n" in rendered
+    assert "\tmove.w d1,$0004(a2)\n" in rendered
     assert rebuilt == binary_path.read_bytes()
     assert direct_profile["direct_rebuild_exact"] is True
 

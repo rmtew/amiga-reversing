@@ -49,6 +49,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT 256U
 #define M68K_ANALYSIS_NAMED_LABEL_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
+#define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 128U
@@ -241,6 +242,20 @@ typedef enum M68kAnalysisRssetLayoutStorageKind {
   M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR = 4U
 } M68kAnalysisRssetLayoutStorageKind;
 
+typedef struct M68kAnalysisRssetUseSiteBinding {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t displacement;
+  uint8_t operand_index;
+  uint8_t base_reg;
+  uint8_t reserved[2];
+  char layout_name[32];
+  char base_symbol[64];
+  char base_evidence_id[96];
+  char binding_id[96];
+  char owner_action_id[96];
+} M68kAnalysisRssetUseSiteBinding;
+
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
 
@@ -318,6 +333,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t runtime_range_count;
   uint16_t runtime_entry_point_count;
   uint16_t rsset_layout_region_count;
+  uint16_t rsset_use_site_binding_count;
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
   uint16_t manual_runtime_address_ref_count;
@@ -330,6 +346,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
+  M68kAnalysisRssetUseSiteBinding rsset_use_site_bindings[M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT];
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
   M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];

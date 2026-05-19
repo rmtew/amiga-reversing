@@ -474,6 +474,77 @@ class RssetLayoutRegionMetadata:
         )
 
 @dataclass(frozen=True, slots=True)
+class RssetUseSiteBindingMetadata:
+    hunk: int
+    addr: int
+    operand_index: int
+    base_register: str
+    displacement: int
+    layout_name: str
+    base_symbol: str
+    base_evidence_id: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    binding_id: str | None = None
+    access: str | None = None
+    width_bytes: int | None = None
+    owner_action_id: str | None = None
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> RssetUseSiteBindingMetadata:
+        hunk = payload["hunk"]
+        addr = payload["addr"]
+        operand_index = payload["operand_index"]
+        base_register = payload["base_register"]
+        displacement = payload["displacement"]
+        layout_name = payload["layout_name"]
+        base_symbol = payload["base_symbol"]
+        base_evidence_id = payload["base_evidence_id"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        binding_id = payload.get("binding_id")
+        access = payload.get("access")
+        width_bytes = payload.get("width_bytes")
+        owner_action_id = payload.get("owner_action_id")
+        assert isinstance(hunk, int)
+        assert isinstance(addr, int)
+        assert isinstance(operand_index, int)
+        assert isinstance(base_register, str)
+        assert isinstance(displacement, int)
+        assert isinstance(layout_name, str)
+        assert isinstance(base_symbol, str)
+        assert isinstance(base_evidence_id, str)
+        seed_origin = _target_metadata_seed_origin(seed_origin)
+        review_status = _target_metadata_review_status(review_status)
+        assert isinstance(citation, str)
+        assert binding_id is None or isinstance(binding_id, str)
+        assert access is None or isinstance(access, str)
+        assert width_bytes is None or isinstance(width_bytes, int)
+        assert owner_action_id is None or isinstance(owner_action_id, str)
+        return cls(
+            hunk=hunk,
+            addr=addr,
+            operand_index=operand_index,
+            base_register=base_register,
+            displacement=displacement,
+            layout_name=layout_name,
+            base_symbol=base_symbol,
+            base_evidence_id=base_evidence_id,
+            seed_origin=seed_origin,
+            review_status=review_status,
+            citation=citation,
+            binding_id=binding_id,
+            access=access,
+            width_bytes=width_bytes,
+            owner_action_id=owner_action_id,
+        )
+
+@dataclass(frozen=True, slots=True)
 class SeededEntityMetadata:
     addr: int
     seed_origin: TargetMetadataSeedOrigin
@@ -1136,6 +1207,7 @@ class TargetMetadata:
     library: LibraryTargetMetadata | None = None
     custom_structs: tuple[CustomStructMetadata, ...] = ()
     rsset_layout_regions: tuple[RssetLayoutRegionMetadata, ...] = ()
+    rsset_use_site_bindings: tuple[RssetUseSiteBindingMetadata, ...] = ()
     seeded_entities: tuple[SeededEntityMetadata, ...] = ()
     seeded_code_labels: tuple[SeededCodeLabelMetadata, ...] = ()
     seeded_code_entrypoints: tuple[SeededCodeEntrypointMetadata, ...] = ()
@@ -1157,6 +1229,7 @@ class TargetMetadata:
         library = payload["library"]
         custom_structs = payload["custom_structs"]
         rsset_layout_regions = payload["rsset_layout_regions"]
+        rsset_use_site_bindings = payload.get("rsset_use_site_bindings", [])
         seeded_entities = payload.get("seeded_entities", [])
         seeded_code_labels = payload.get("seeded_code_labels", [])
         seeded_code_entrypoints = payload.get("seeded_code_entrypoints", [])
@@ -1186,6 +1259,10 @@ class TargetMetadata:
             rsset_layout_regions=tuple(
                 RssetLayoutRegionMetadata.from_dict(_json_object(slot_payload))
                 for slot_payload in _json_list(rsset_layout_regions)
+            ),
+            rsset_use_site_bindings=tuple(
+                RssetUseSiteBindingMetadata.from_dict(_json_object(binding_payload))
+                for binding_payload in _json_list(rsset_use_site_bindings)
             ),
             seeded_entities=tuple(
                 SeededEntityMetadata.from_dict(_json_object(entity_payload))

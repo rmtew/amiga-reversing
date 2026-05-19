@@ -225,6 +225,10 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *layout_name, const char *base_symbol, const char *sizeof_symbol, const char *symbol,
   const char *struct_name, const char *pointer_struct, uint8_t flags, uint8_t storage_kind_id,
   const char *storage_kind, const char *semantic_type);
+static int policy_add_rsset_use_site_binding_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+  uint32_t offset, uint8_t operand_index, const char *base_register, uint32_t displacement,
+  const char *layout_name, const char *base_symbol, const char *base_evidence_id,
+  const char *binding_id, const char *owner_action_id);
 static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
@@ -815,6 +819,62 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
     return 0;
   }
   policy->rsset_layout_region_count += 1U;
+  return 1;
+}
+
+static int address_register_index_from_text_local(const char *register_name, uint8_t *out_reg) {
+  if (out_reg != NULL) *out_reg = 0U;
+  if (register_name == NULL || register_name[0] == '\0') return 0;
+  if ((register_name[0] != 'A' && register_name[0] != 'a') ||
+      register_name[1] < '0' || register_name[1] > '7' || register_name[2] != '\0') {
+    return 0;
+  }
+  if (out_reg != NULL) *out_reg = (uint8_t)(register_name[1] - '0');
+  return 1;
+}
+
+static int policy_add_rsset_use_site_binding_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+    uint32_t offset, uint8_t operand_index, const char *base_register, uint32_t displacement,
+    const char *layout_name, const char *base_symbol, const char *base_evidence_id,
+    const char *binding_id, const char *owner_action_id) {
+  M68kAnalysisRssetUseSiteBinding *slot;
+  uint8_t base_reg = 0U;
+  uint16_t index;
+  const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
+  const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : AMIGA_APP_BASE_TAG;
+  if (policy == NULL || displacement > 0x7FFFU || operand_index >= 4U ||
+      base_evidence_id == NULL || base_evidence_id[0] == '\0' ||
+      !address_register_index_from_text_local(base_register, &base_reg)) {
+    return 0;
+  }
+  for (index = 0U; index < policy->rsset_use_site_binding_count &&
+       index < M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT; ++index) {
+    const M68kAnalysisRssetUseSiteBinding *existing = &policy->rsset_use_site_bindings[index];
+    if (existing->section_index == section_index && existing->offset == offset &&
+        existing->operand_index == operand_index && existing->base_reg == base_reg &&
+        existing->displacement == displacement && strcmp(existing->layout_name, effective_layout) == 0 &&
+        strcmp(existing->base_symbol, effective_base) == 0 &&
+        strcmp(existing->base_evidence_id, base_evidence_id) == 0) {
+      return 1;
+    }
+  }
+  if (policy->rsset_use_site_binding_count >= M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT) return 0;
+  slot = &policy->rsset_use_site_bindings[policy->rsset_use_site_binding_count++];
+  memset(slot, 0, sizeof(*slot));
+  slot->section_index = section_index;
+  slot->offset = offset;
+  slot->operand_index = operand_index;
+  slot->base_reg = base_reg;
+  slot->displacement = displacement;
+  if (!copy_policy_text(slot->layout_name, sizeof(slot->layout_name), effective_layout) ||
+      !copy_policy_text(slot->base_symbol, sizeof(slot->base_symbol), effective_base) ||
+      !copy_policy_text(slot->base_evidence_id, sizeof(slot->base_evidence_id), base_evidence_id) ||
+      !copy_policy_text(slot->binding_id, sizeof(slot->binding_id), binding_id) ||
+      !copy_policy_text(slot->owner_action_id, sizeof(slot->owner_action_id), owner_action_id)) {
+    memset(slot, 0, sizeof(*slot));
+    --policy->rsset_use_site_binding_count;
+    return 0;
+  }
   return 1;
 }
 
@@ -4053,6 +4113,53 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   return policy_add_target_equate_local(policy, name, (int32_t)parsed);
 }
 
+static int append_metadata_rsset_use_site_binding_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t hunk = 0U;
+  uint32_t addr = 0U;
+  uint32_t operand_index = 0U;
+  uint32_t displacement = 0U;
+  int has_hunk = 0;
+  int has_addr = 0;
+  int has_operand_index = 0;
+  int has_displacement = 0;
+  char base_register[8];
+  char layout_name[32];
+  char base_symbol[64];
+  char base_evidence_id[96];
+  char binding_id[96];
+  char owner_action_id[96];
+  base_register[0] = '\0';
+  layout_name[0] = '\0';
+  base_symbol[0] = '\0';
+  base_evidence_id[0] = '\0';
+  binding_id[0] = '\0';
+  owner_action_id[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
+      !json_number_field_local(object_start, object_end, "operand_index", &operand_index, &has_operand_index) ||
+      !json_number_field_local(object_start, object_end, "displacement", &displacement, &has_displacement) ||
+      !json_optional_string_field_local(object_start, object_end, "base_register", base_register,
+        sizeof(base_register)) ||
+      !json_optional_string_field_local(object_start, object_end, "layout_name", layout_name,
+        sizeof(layout_name)) ||
+      !json_optional_string_field_local(object_start, object_end, "base_symbol", base_symbol,
+        sizeof(base_symbol)) ||
+      !json_optional_string_field_local(object_start, object_end, "base_evidence_id", base_evidence_id,
+        sizeof(base_evidence_id)) ||
+      !json_optional_string_field_local(object_start, object_end, "binding_id", binding_id, sizeof(binding_id)) ||
+      !json_optional_string_field_local(object_start, object_end, "owner_action_id", owner_action_id,
+        sizeof(owner_action_id))) {
+    return 0;
+  }
+  if (!has_hunk || !has_addr || !has_operand_index || !has_displacement ||
+      operand_index > UINT8_MAX || base_register[0] == '\0' || base_evidence_id[0] == '\0') {
+    return 0;
+  }
+  return policy_add_rsset_use_site_binding_local(policy, hunk, addr, (uint8_t)operand_index, base_register,
+    displacement, layout_name, base_symbol, base_evidence_id, binding_id, owner_action_id);
+}
+
 static int append_metadata_manual_runtime_address_ref_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t addr = 0U;
@@ -4958,6 +5065,17 @@ static int append_metadata_amiga_policy_text_local(const char *text, M68kAnalysi
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "rsset_use_site_bindings", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_rsset_use_site_binding_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata RSSET use-site binding");
+      return -1;
+    }
+    cursor = object_end;
+  }
   return 0;
 }
 
@@ -4975,6 +5093,8 @@ static int metadata_text_has_amiga_policy_local(const char *text) {
   if (text == NULL) return 0;
   if (json_find_object_field_local(text, "resident", &resident_end) != NULL) return 1;
   array_start = json_find_array_local(text, "rsset_layout_regions", &array_end);
+  if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
+  array_start = json_find_array_local(text, "rsset_use_site_bindings", &array_end);
   if (array_start != NULL && json_next_object_local(array_start, array_end, NULL) != NULL) return 1;
   text_end = text + strlen(text);
   target_type[0] = '\0';
