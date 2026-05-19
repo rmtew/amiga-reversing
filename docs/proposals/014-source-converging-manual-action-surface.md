@@ -1168,7 +1168,9 @@ Implementation observation from `014-011`: RSSET base evidence refs are also a
 correction boundary. Optional `contradicted_evidence_id` and `reason` must
 survive command-query context, report output, durable bind/unbind payloads, and
 semantic reload comparison before manual classification or override workflows
-can safely consume those refs.
+can safely consume those refs. The same applies to `cleanup_scope`, otherwise a
+manual override can preserve the contradicted evidence id while losing the
+owned-descendant cleanup boundary.
 
 Implementation observation from `014-006`/`014-011`: planner command
 availability for RSSET binding must require and compare evidence-bearing

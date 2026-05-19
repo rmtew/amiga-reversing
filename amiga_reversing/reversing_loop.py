@@ -3639,6 +3639,7 @@ def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object
         "conflicts",
         "contradicted_evidence_id",
         "reason",
+        "cleanup_scope",
         "base_evidence_refs",
     ):
         if key in expected and actual.get(key) != expected.get(key):

@@ -5104,6 +5104,7 @@ def test_rsset_binding_verifier_requires_owner_and_base_evidence(
         "source_evidence_id": "prov-demo-rsset",
         "base_evidence_id": "selected-base:A6:__amiga_app_base__",
         "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+        "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-stale-base"},
         "accepted": True,
     }
     binding = {
@@ -5122,6 +5123,7 @@ def test_rsset_binding_verifier_requires_owner_and_base_evidence(
         "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
         "confidence": "medium",
         "conflicts": [],
+        "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-stale-base"},
         "base_evidence_refs": [base_ref],
     }
     reloaded_binding = {**binding, "owner_action_id": "manual-other"}

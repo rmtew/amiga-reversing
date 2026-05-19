@@ -4156,6 +4156,7 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         "base_evidence_id": "selected-base:A6:__amiga_app_base__",
         "contradicted_evidence_id": "prov-stale-base",
         "reason": "selected use overrides stale base proof",
+        "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-stale-base"},
     }
     rows = [
         ListingRow(
@@ -4252,7 +4253,8 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
 
     evidenced_query = _element_command_query(rows[0], "row-0:displacement:0:operand") | {
-        key: [value] for key, value in rsset_binding_evidence.items()
+        key: [json.dumps(value) if isinstance(value, dict | list) else value]
+        for key, value in rsset_binding_evidence.items()
     }
     catalog_payload = disasm_server.route_request(
         "GET",
@@ -4274,6 +4276,10 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert accepted_base_ref["parent_evidence_ids"] == ["selected-base:A6:__amiga_app_base__"]
     assert accepted_base_ref["contradicted_evidence_id"] == "prov-stale-base"
     assert accepted_base_ref["reason"] == "selected use overrides stale base proof"
+    assert accepted_base_ref["cleanup_scope"] == {
+        "kind": "owned_descendants",
+        "source_evidence_id": "prov-stale-base",
+    }
     assert accepted_base_ref["path_lifetime_scope"]["kind"] == "selected_use"
     assert report_action["report"]["verifier_readiness"]["replay"] == "ready"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
@@ -4313,6 +4319,7 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert binding["path_lifetime_scope"] == accepted_base_ref["path_lifetime_scope"]
     assert binding["contradicted_evidence_id"] == "prov-stale-base"
     assert binding["reason"] == "selected use overrides stale base proof"
+    assert binding["cleanup_scope"] == accepted_base_ref["cleanup_scope"]
     assert binding["base_evidence_refs"] == [accepted_base_ref]
     assert local_effect["kind"] == "rsset_use_site_binding"
     assert appended_actions == [action]

@@ -144,6 +144,10 @@ Current evidence:
 - RSSET `base_evidence_refs` now preserve optional correction provenance
   (`contradicted_evidence_id` and `reason`) through command-query context,
   report output, bind/unbind durable payloads, and semantic reload comparison.
+- RSSET `base_evidence_refs` now also preserve correction `cleanup_scope`
+  through report output, bind/unbind durable payloads, and semantic reload
+  comparison, so manual override bindings keep the same cleanup boundary as the
+  contradicted base evidence they consume.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
@@ -198,11 +202,13 @@ Remaining work:
   candidate layout/base symbol, field-or-gap at displacement, nearby fields,
   observed access width, same-flow/same-displacement use summary,
   bind/refine/type blockers, expected cascade, and cleanup owner.
-- `base_evidence_refs` consumer shape should include operand index, base
+- `base_evidence_refs` consumer shape includes operand index, base
   register, displacement, source family, status, `source_evidence_id`,
   `base_evidence_id`, path/lifetime scope, confidence, origin kind, origin
   hunk/offset/register, optional parent evidence ids, optional correction
-  cleanup scope, layout name, and base symbol.
+  cleanup scope, layout name, and base symbol for selected-use refs. Broader
+  flow-derived refs still need backend provenance facts before this shape can be
+  widened.
 - Same-flow/same-displacement candidates require the same accepted
   `base_evidence_id` or a verifier-proven equivalent flow identity. Matching
   only register name plus displacement is insufficient, including A6 fallback
