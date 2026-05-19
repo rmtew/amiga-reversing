@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
+from typing import cast
 
 from amiga_reversing.disasm.binary_source import (
     RawAddressModel,
@@ -349,6 +350,10 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
     except ValueError:
         return None
     entry_offset = _manual_seed_int(register_seed, "entry_offset")
+    path_lifetime_scope = register_seed.get("path_lifetime_scope")
+    conflicts = register_seed.get("conflicts", [])
+    parent_evidence_ids = register_seed.get("parent_evidence_ids", [])
+    cleanup_scope = register_seed.get("cleanup_scope")
     return EntryRegisterSeedMetadata(
         entry_offset=entry_offset,
         register=register,
@@ -357,6 +362,20 @@ def _manual_register_seed_to_metadata(register_seed: dict[str, object]) -> Entry
         library_name=_manual_seed_text(register_seed, "library_name"),
         struct_name=_manual_seed_text(register_seed, "struct_name"),
         context_name=_manual_seed_text(register_seed, "context_name"),
+        source_evidence_id=_manual_seed_text(register_seed, "source_evidence_id"),
+        source_family=_manual_seed_text(register_seed, "source_family"),
+        source_evidence_status=_manual_seed_text(register_seed, "source_evidence_status"),
+        path_lifetime_scope=cast(dict[str, object], path_lifetime_scope) if isinstance(path_lifetime_scope, dict) else None,
+        confidence=_manual_seed_text(register_seed, "confidence"),
+        conflicts=tuple(cast(dict[str, object], item) for item in conflicts if isinstance(item, dict))
+        if isinstance(conflicts, list | tuple)
+        else (),
+        parent_evidence_ids=tuple(item for item in parent_evidence_ids if isinstance(item, str))
+        if isinstance(parent_evidence_ids, list | tuple)
+        else (),
+        contradicted_evidence_id=_manual_seed_text(register_seed, "contradicted_evidence_id"),
+        reason=_manual_seed_text(register_seed, "reason"),
+        cleanup_scope=cast(dict[str, object], cleanup_scope) if isinstance(cleanup_scope, dict) else None,
     )
 
 

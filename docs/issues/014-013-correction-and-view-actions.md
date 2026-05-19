@@ -72,6 +72,10 @@ Current evidence:
   consumed provenance boundary beyond `source_evidence_id`, including source
   family/status, path/lifetime scope, conflicts, parent evidence ids, and
   override cleanup fields.
+- Generic provenance reports now preserve manual-override correction fields
+  (`contradicted_evidence_id`, `reason`, and `cleanup_scope`) from selected
+  context, so read-only evidence views do not lose the cleanup boundary before
+  a family-specific command consumes the override.
 - Row-scoped command availability queries now preserve manual-override
   `contradicted_evidence_id` and `reason`, so correction-boundary writes do
   not lose those fields before refreshed catalog matching.

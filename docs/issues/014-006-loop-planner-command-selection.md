@@ -112,6 +112,10 @@ Progress:
   `semantic.library_base.exec.library`, execute through the command catalog,
   append Manual Action Log state, reload the library-base register seed, and
   retain exact round-trip status.
+- Semantic command context now preserves accepted source evidence when a
+  candidate carries it, and catalog refresh can persist first-slice
+  `library_base`/`struct_pointer` provenance into register-seed payloads instead
+  of dropping it during selected element re-resolution.
 - Autonomous referenced-data rename candidates now also use stable runtime
   addresses when `runtime_address_refs` have no data class.
 - GenAm real-target smoke now proves the autonomous RSSET feed can mine an
@@ -228,8 +232,8 @@ Remaining work:
 - Do not broaden custom-struct or typed-field semantic feeds past explicit
   candidates until their rendered-source verifiers are proven in `014-005`,
   `014-010`, and `014-012`. API/register has first real GenAm evidence for
-  library-base register seeds, but broader API argument/return semantics remain
-  open.
+  library-base register seeds and now preserves consumed first-slice provenance,
+  but broader API argument/return semantics remain open.
 - Add real-target smoke coverage for each new autonomous feed before considering
   the feed mature; app-slot/RSSET and API/register library-base seeds have first
   GenAm coverage, while structures, correction/view actions, broader

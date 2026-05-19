@@ -1144,6 +1144,45 @@ def test_typed_gap_field_add_command_uses_gap_identity() -> None:
     }
 
 
+def test_semantic_register_seed_commands_preserve_provenance() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x34,
+        "stable_key": "gap-row",
+        "unresolved_typed_accesses": [
+            {
+                "operand_index": 1,
+                "base_register": "A0",
+                "displacement": 36,
+                "root_struct_name": "InputEvent",
+                "refined_struct_name": "DerivedEvent",
+                "classification": "prefix_extension",
+            }
+        ],
+    }
+    selector = {"element_kind": "typed_gap", "operand_index": 1}
+
+    actions = listing_element_action_catalog(row, selector)
+    action = next(action for action in actions if action["action_id"] == "semantic.register.struct_ptr")
+    kind, payload = listing_catalog_manual_payload(row, "semantic.register.struct_ptr", element_context=selector)
+    seed = payload["register_seed"]
+
+    assert action["parameters"]["register"] == "A0"
+    assert action["parameters"]["struct_name"] == "DerivedEvent"
+    assert action["parameters"]["source_family"] == "struct_pointer"
+    assert action["parameters"]["source_evidence_status"] == "analysis_proven"
+    assert "source_evidence_id" in action["parameter_schema"]["properties"]
+    assert kind == "create_manual_register_seed"
+    assert seed["register"] == "A0"
+    assert seed["kind"] == "struct_ptr"
+    assert seed["struct_name"] == "DerivedEvent"
+    assert seed["source_evidence_id"] == action["parameters"]["source_evidence_id"]
+    assert seed["source_family"] == "struct_pointer"
+    assert seed["source_evidence_status"] == "analysis_proven"
+    assert seed["path_lifetime_scope"] == action["parameters"]["path_lifetime_scope"]
+
+
 def test_typed_access_field_commands_use_resolved_identity() -> None:
     row = {
         "kind": "instruction",

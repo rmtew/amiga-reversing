@@ -142,6 +142,11 @@ Current evidence:
 - Register-seed verifiers now derive the expected seed from the executed
   durable action payload, so matching project state alone cannot satisfy a
   missing or mismatched action result.
+- Register-seed verifiers now also compare consumed provenance carried by the
+  executed library-base or struct-pointer seed against reloaded semantic state,
+  treating `parent_evidence_ids` as an unordered dependency set. This prevents
+  a same register/library/struct seed with stale provenance from satisfying the
+  semantic reload layer.
 - Generic `run-one` `semantic.lvo.*`, `semantic.struct_offset.*`, and
   `semantic.equate.*` execution now verifies Manual Action Log replay, reloaded
   semantic hint state, and exact round-trip instead of accepting affected-row
@@ -203,8 +208,9 @@ Current evidence:
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,
   accepted status, source family, path/lifetime scope, conflicts/override
-  fields, and descendant `owner_action_id` so the new generic verifier layer is
-  exercised by real mutations instead of only future-proofing durable payloads.
+  fields, and descendant `owner_action_id` where still missing. Library-base and
+  selected typed struct-pointer register seeds now persist and verify consumed
+  provenance; broader API arg/return and propagated descendants remain open.
 - Add or document one real-target smoke for each newly executable action family
   before treating synthetic verifier coverage as sufficient; record the
   verifier evidence here and the candidate/feed evidence in `014-006` or the

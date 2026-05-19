@@ -5839,6 +5839,7 @@ def _verify_project_library_base_register_seed(
         and str(seed.get("register")).upper() == expected_register
         and seed.get("kind") == "library_base"
         and seed.get("library_name") == library_name
+        and _register_seed_provenance_matches(seed, expected)
     ]
     return {
         "layer": "semantic_reload",
@@ -5903,6 +5904,7 @@ def _verify_project_semantic_register_seed(
         and str(seed.get("register")).upper() == expected_register
         and seed.get("kind") == "struct_ptr"
         and seed.get("struct_name") == struct_name
+        and _register_seed_provenance_matches(seed, expected)
     ]
     return {
         "layer": "semantic_reload",
@@ -5912,6 +5914,18 @@ def _verify_project_semantic_register_seed(
         "expected_register_seed": expected,
         "matching_register_seeds": matches,
     }
+
+
+def _register_seed_provenance_matches(seed: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in _PROVENANCE_COMMAND_IDENTITY_KEYS:
+        expected_value = expected.get(key)
+        if expected_value is None:
+            continue
+        if key not in seed:
+            return False
+        if not _provenance_identity_values_match(key, seed.get(key), expected_value):
+            return False
+    return True
 
 
 def _label_command_source_location(command: dict[str, object]) -> tuple[int, int] | None:
@@ -6685,6 +6699,10 @@ def _semantic_context_from_candidate(candidate: dict[str, object]) -> dict[str, 
     ):
         if key in candidate:
             context[key] = candidate[key]
+    _copy_source_evidence_to_payload(context, candidate)
+    evidence = candidate.get("evidence")
+    if isinstance(evidence, dict):
+        _copy_source_evidence_to_payload(context, cast(dict[str, object], evidence))
     return context
 
 

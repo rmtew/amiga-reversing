@@ -62,6 +62,19 @@ Progress:
   the reloaded library-base register seed rather than affected row metadata.
 - Register-seed verifiers now use the executed durable action payload as the
   expected seed before matching reloaded project state.
+- `semantic.library_base.*` catalog entries now persist accepted first-slice
+  `library_base` provenance into the register-seed Manual Action Log payload,
+  effective metadata, and semantic-reload verifier.
+- `semantic.register.struct_ptr` is now exposed on typed access/gap elements
+  with accepted `struct_pointer` provenance and a default struct name when the
+  selected context already proves the base type; the durable register seed
+  preserves that consumed evidence.
+- Register-seed semantic reload now compares consumed provenance fields,
+  including unordered `parent_evidence_ids`, so a reloaded seed with the same
+  register/library/struct but stale evidence cannot satisfy verification.
+- Generic provenance reports now preserve manual-override correction fields
+  (`contradicted_evidence_id`, `reason`, and `cleanup_scope`) when those fields
+  are carried by selected context.
 - Generic `run-one` now mines listing LVO API-call rows into autonomous
   `semantic.library_base.*` candidates and skips library-base seeds already in
   effective metadata or Manual Action Log projections.

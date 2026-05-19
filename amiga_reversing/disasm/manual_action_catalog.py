@@ -533,9 +533,9 @@ def listing_element_action_catalog(
                 ),
             )
         )
-    if element_kind == "register":
-        actions.extend(_struct_pointer_actions(context))
-    actions.extend(_library_base_actions(context))
+    if element_kind in {"register", "typed_access", "typed_gap"}:
+        actions.extend(_struct_pointer_actions(context, row))
+    actions.extend(_library_base_actions(context, row))
     if element_kind in {"immediate", "data_literal"}:
         actions.extend(_semantic_hint_actions(context))
     return actions
@@ -571,7 +571,7 @@ def _provenance_report(context: Mapping[str, object], row: Mapping[str, object])
     uses = _provenance_uses(context, subject)
     references = _provenance_references(context, subject, uses)
     possible_actions = _provenance_possible_actions(context, classification)
-    return {
+    report: dict[str, object] = {
         "kind": "provenance_report",
         "subject": subject,
         "definitions": definitions,
@@ -587,6 +587,11 @@ def _provenance_report(context: Mapping[str, object], row: Mapping[str, object])
         "possible_actions": possible_actions,
         "consumers": _provenance_consumers(context),
     }
+    for key in ("contradicted_evidence_id", "reason", "cleanup_scope"):
+        value = classification.get(key)
+        if value is not None:
+            report[key] = value
+    return report
 
 
 def _provenance_subject(context: Mapping[str, object], row: Mapping[str, object]) -> dict[str, object] | None:
@@ -648,6 +653,7 @@ def _provenance_classification(
         explicit_scope = context.get("path_lifetime_scope")
         explicit_conflicts = context.get("conflicts")
         explicit_parent_ids = context.get("parent_evidence_ids")
+        explicit_cleanup_scope = context.get("cleanup_scope")
         confidence = context.get("confidence")
         return {
             "source_family": explicit_source_family.strip(),
@@ -662,6 +668,11 @@ def _provenance_classification(
             if isinstance(explicit_parent_ids, list)
             else [],
             "explicit_source_evidence_id": explicit_source_evidence_id.strip(),
+            "contradicted_evidence_id": context.get("contradicted_evidence_id")
+            if isinstance(context.get("contradicted_evidence_id"), str)
+            else None,
+            "reason": context.get("reason") if isinstance(context.get("reason"), str) else None,
+            "cleanup_scope": dict(explicit_cleanup_scope) if isinstance(explicit_cleanup_scope, Mapping) else None,
         }
     base_evidence_id = context.get("base_evidence_id")
     if isinstance(base_evidence_id, str) and base_evidence_id.strip():
@@ -4246,6 +4257,7 @@ def _register_seed_payload(row: Mapping[str, object], params: Mapping[str, objec
     stable_key = row.get("stable_key")
     if isinstance(stable_key, str) and stable_key:
         register_seed["stable_key"] = stable_key
+    _copy_source_evidence_context(register_seed, params)
     return register_seed
 
 
@@ -4384,27 +4396,33 @@ def _struct_offset_candidates(payload: Mapping[str, object], value: int) -> list
     return candidates
 
 
-def _struct_pointer_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+def _struct_pointer_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     register = _register_name(context)
     if register is None:
         return []
+    parameters: dict[str, object] = {"register": register, "kind": "struct_ptr", "library_name": None}
+    struct_name = context.get("refined_struct_name") or context.get("owner_struct_name") or context.get("root_struct_name")
+    if isinstance(struct_name, str) and struct_name.strip():
+        parameters["struct_name"] = struct_name.strip()
+    parameters.update(_accepted_provenance_action_parameters(context, row, required_family="struct_pointer"))
     return [
         _context_log_action(
             "semantic.register.struct_ptr",
             f"Treat {register} as struct pointer",
             "create_manual_register_seed",
             context,
-            {"register": register, "kind": "struct_ptr", "library_name": None},
+            parameters,
             _struct_pointer_parameter_schema(),
         )
     ]
 
 
 def _register_name(context: Mapping[str, object]) -> str | None:
-    register = context.get("register")
-    if not isinstance(register, str) or not register:
-        return None
-    return register.upper()
+    for key in ("register", "base_register"):
+        register = context.get(key)
+        if isinstance(register, str) and register:
+            return register.upper()
+    return None
 
 
 def _struct_pointer_parameter_schema() -> dict[str, object]:
@@ -4413,32 +4431,77 @@ def _struct_pointer_parameter_schema() -> dict[str, object]:
         "properties": {
             "struct_name": {"type": "string"},
             "context_name": {"type": "string"},
+            "source_evidence_id": {"type": "string"},
+            "source_family": {"type": "string"},
+            "source_evidence_status": {"type": "string"},
+            "path_lifetime_scope": {"type": "object"},
+            "confidence": {"type": "string"},
+            "conflicts": {"type": "array"},
+            "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
+            "contradicted_evidence_id": {"type": "string"},
+            "reason": {"type": "string"},
+            "cleanup_scope": {"type": "object"},
         },
         "required": ["struct_name"],
     }
 
 
-def _library_base_actions(context: Mapping[str, object]) -> list[dict[str, object]]:
+def _library_base_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
     if not _is_structured_a6_lvo_context(context):
         return []
     actions: list[dict[str, object]] = []
     for library_name, struct_name in _library_base_candidates(context):
+        parameters: dict[str, object] = {
+            "register": "A6",
+            "kind": "library_base",
+            "library_name": library_name,
+            "struct_name": struct_name,
+            "context_name": library_name,
+        }
+        parameters.update(_accepted_provenance_action_parameters(context, row, required_family="library_base"))
         actions.append(
             _context_log_action(
                 f"semantic.library_base.{_action_id_token(library_name)}",
                 f"Treat A6 as {library_name} base",
                 "create_manual_register_seed",
                 context,
-                {
-                    "register": "A6",
-                    "kind": "library_base",
-                    "library_name": library_name,
-                    "struct_name": struct_name,
-                    "context_name": library_name,
-                },
+                parameters,
             )
         )
     return actions
+
+
+def _accepted_provenance_action_parameters(
+    context: Mapping[str, object],
+    row: Mapping[str, object],
+    *,
+    required_family: str,
+) -> dict[str, object]:
+    report = _provenance_report(context, row)
+    if report is None:
+        return {}
+    family = report.get("source_family")
+    status = report.get("status")
+    if family != required_family or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return {}
+    params: dict[str, object] = {
+        "source_evidence_id": report["source_evidence_id"],
+        "source_family": family,
+        "source_evidence_status": status,
+    }
+    for key in (
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    ):
+        value = report.get(key)
+        if value is not None:
+            params[key] = value
+    return params
 
 
 def _library_base_candidates(context: Mapping[str, object]) -> tuple[tuple[str, str], ...]:

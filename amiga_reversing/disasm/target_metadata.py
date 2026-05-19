@@ -196,6 +196,16 @@ class EntryRegisterSeedMetadata:
     library_name: str | None = None
     struct_name: str | None = None
     context_name: str | None = None
+    source_evidence_id: str | None = None
+    source_family: str | None = None
+    source_evidence_status: str | None = None
+    path_lifetime_scope: dict[str, object] | None = None
+    confidence: str | None = None
+    conflicts: tuple[dict[str, object], ...] = ()
+    parent_evidence_ids: tuple[str, ...] = ()
+    contradicted_evidence_id: str | None = None
+    reason: str | None = None
+    cleanup_scope: dict[str, object] | None = None
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> EntryRegisterSeedMetadata:
@@ -206,6 +216,16 @@ class EntryRegisterSeedMetadata:
         library_name = payload["library_name"]
         struct_name = payload["struct_name"]
         context_name = payload["context_name"]
+        source_evidence_id = payload.get("source_evidence_id")
+        source_family = payload.get("source_family")
+        source_evidence_status = payload.get("source_evidence_status")
+        path_lifetime_scope = payload.get("path_lifetime_scope")
+        confidence = payload.get("confidence")
+        conflicts = payload.get("conflicts", [])
+        parent_evidence_ids = payload.get("parent_evidence_ids", [])
+        contradicted_evidence_id = payload.get("contradicted_evidence_id")
+        reason = payload.get("reason")
+        cleanup_scope = payload.get("cleanup_scope")
         assert entry_offset is None or isinstance(entry_offset, int)
         assert isinstance(register, str)
         assert isinstance(kind, str)
@@ -213,6 +233,18 @@ class EntryRegisterSeedMetadata:
         assert library_name is None or isinstance(library_name, str)
         assert struct_name is None or isinstance(struct_name, str)
         assert context_name is None or isinstance(context_name, str)
+        assert source_evidence_id is None or isinstance(source_evidence_id, str)
+        assert source_family is None or isinstance(source_family, str)
+        assert source_evidence_status is None or isinstance(source_evidence_status, str)
+        assert path_lifetime_scope is None or isinstance(path_lifetime_scope, dict)
+        assert confidence is None or isinstance(confidence, str)
+        assert isinstance(conflicts, list | tuple)
+        assert all(isinstance(item, dict) for item in conflicts)
+        assert isinstance(parent_evidence_ids, list | tuple)
+        assert all(isinstance(item, str) for item in parent_evidence_ids)
+        assert contradicted_evidence_id is None or isinstance(contradicted_evidence_id, str)
+        assert reason is None or isinstance(reason, str)
+        assert cleanup_scope is None or isinstance(cleanup_scope, dict)
         return cls(
             entry_offset=entry_offset,
             register=register,
@@ -221,6 +253,16 @@ class EntryRegisterSeedMetadata:
             library_name=library_name,
             struct_name=struct_name,
             context_name=context_name,
+            source_evidence_id=source_evidence_id,
+            source_family=source_family,
+            source_evidence_status=source_evidence_status,
+            path_lifetime_scope=path_lifetime_scope,
+            confidence=confidence,
+            conflicts=tuple(cast(dict[str, object], item) for item in conflicts),
+            parent_evidence_ids=tuple(parent_evidence_ids),
+            contradicted_evidence_id=contradicted_evidence_id,
+            reason=reason,
+            cleanup_scope=cleanup_scope,
         )
 
     def __post_init__(self) -> None:
@@ -1470,6 +1512,27 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
                 entity.pop("source_evidence_id", None)
             if not entity.get("parent_evidence_ids"):
                 entity.pop("parent_evidence_ids", None)
+    entry_register_seeds = payload.get("entry_register_seeds")
+    if isinstance(entry_register_seeds, list | tuple):
+        for seed in entry_register_seeds:
+            if not isinstance(seed, dict):
+                continue
+            for key in (
+                "source_evidence_id",
+                "source_family",
+                "source_evidence_status",
+                "path_lifetime_scope",
+                "confidence",
+                "contradicted_evidence_id",
+                "reason",
+                "cleanup_scope",
+            ):
+                if seed.get(key) is None:
+                    seed.pop(key, None)
+            if not seed.get("conflicts"):
+                seed.pop("conflicts", None)
+            if not seed.get("parent_evidence_ids"):
+                seed.pop("parent_evidence_ids", None)
     return cast(dict[str, object], payload)
 
 

@@ -4404,6 +4404,7 @@ def test_route_manual_action_catalog_reports_lvo_register_provenance_read_only(
     actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
     definition = next(action for action in actions if action["action_id"] == "provenance.definition.report")
     source_family = next(action for action in actions if action["action_id"] == "provenance.source_family.report")
+    library_seed = next(action for action in actions if action["action_id"] == "semantic.library_base.exec.library")
     report = cast(dict[str, object], definition["report"])
 
     assert definition["appends_to_manual_action_log"] is False
@@ -4418,6 +4419,9 @@ def test_route_manual_action_catalog_reports_lvo_register_provenance_read_only(
     )
     assert cast(list[dict[str, object]], report["definitions"])[0]["library_name"] == "exec.library"
     assert source_family["parameters"] == {"source_evidence_id": report["source_evidence_id"], "focus": "source_family"}
+    assert library_seed["parameters"]["source_evidence_id"] == report["source_evidence_id"]
+    assert library_seed["parameters"]["source_family"] == "library_base"
+    assert library_seed["parameters"]["source_evidence_status"] == "analysis_proven"
 
     with pytest.raises(disasm_server.CommandContractError) as exc:
         disasm_server.route_request(

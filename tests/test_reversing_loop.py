@@ -4907,6 +4907,82 @@ def test_library_base_register_seed_verifier_requires_action_payload(
     assert verification["layers"][1]["message"] == "missing register seed payload"
 
 
+def test_register_seed_verifier_requires_matching_provenance_reload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    expected_seed = {
+        "register": "A6",
+        "kind": "library_base",
+        "library_name": "intuition.library",
+        "source_evidence_id": "prov-intuition-a6",
+        "source_family": "library_base",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "entry", "hunk": 0, "addr": 0x120},
+        "parent_evidence_ids": ["prov-root", "prov-call"],
+    }
+    command = {
+        "command_id": "semantic.library_base.intuition.library",
+        "context": {"kind": "element", "base_register": "A6"},
+        "parameters": {},
+        "output_affecting": True,
+    }
+
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "register_seeds": [
+                    {
+                        **expected_seed,
+                        "parent_evidence_ids": ["prov-root"],
+                    },
+                ]
+            },
+        ),
+    )
+
+    missing_parent = reversing_loop._verify_library_base_register_seed_mutation(
+        "demo",
+        command,
+        _executed_register_seed_payload(tmp_path, expected_seed),
+        project_root=tmp_path,
+    )
+
+    assert missing_parent["status"] == "failed"
+    assert missing_parent["layers"][1]["matching_register_seeds"] == []
+
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "register_seeds": [
+                    {
+                        **expected_seed,
+                        "parent_evidence_ids": ["prov-call", "prov-root"],
+                    },
+                ]
+            },
+        ),
+    )
+
+    matching_parent_set = reversing_loop._verify_library_base_register_seed_mutation(
+        "demo",
+        command,
+        _executed_register_seed_payload(tmp_path, expected_seed),
+        project_root=tmp_path,
+    )
+
+    assert matching_parent_set["status"] == "passed"
+
+
 def test_run_one_struct_pointer_seed_executes_with_register_seed_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

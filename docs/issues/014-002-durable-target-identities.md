@@ -110,6 +110,12 @@ Current observations:
 - Command execution preserves target identity into selected element context, so
   catalog-derived evidence ids do not fall back to target-agnostic ids after
   locator re-selection.
+- Provenance-backed register seed identities now carry consumed
+  `source_evidence_id`, source family/status, path/lifetime scope, conflicts,
+  override cleanup fields, and unordered `parent_evidence_ids` through the
+  Manual Action Log payload and effective metadata. The durable register seed
+  id still identifies the register fact, while the consumed evidence fields
+  identify the proof boundary that verifier reload must match.
 - Review-item/reproduction correction identities beyond seeded-item row
   suppression still need specific contracts.
 
