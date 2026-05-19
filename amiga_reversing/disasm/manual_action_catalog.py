@@ -529,6 +529,7 @@ def listing_element_action_catalog(
                     "remove_manual_custom_struct_field",
                     context,
                     _typed_field_action_parameters(context, row),
+                    _typed_field_remove_parameter_schema(),
                 ),
             )
         )
@@ -3166,6 +3167,19 @@ def _typed_field_rename_parameter_schema() -> dict[str, object]:
             **_source_evidence_parameter_properties(),
         },
         "required": ["name"],
+    }
+
+
+def _typed_field_remove_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "struct_name": {"type": "string"},
+            "offset": {"type": "integer", "minimum": 0},
+            **_source_evidence_parameter_properties(),
+        },
+        "required": [],
     }
 
 

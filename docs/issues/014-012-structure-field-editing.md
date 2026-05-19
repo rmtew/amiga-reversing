@@ -91,14 +91,14 @@ Current evidence:
   element context, including manual-classified evidence, path/lifetime scope,
   conflicts, and parent evidence ids, instead of regenerating row-local
   `struct_pointer` evidence during catalog re-selection.
-- Typed-field add/edit/rename parameter schemas now advertise the full accepted
-  provenance boundary, including source evidence id, family/status,
+- Typed-field add/edit/rename/remove parameter schemas now advertise the full
+  accepted provenance boundary, including source evidence id, family/status,
   path/lifetime scope, conflicts, parent ids, manual override reason, and
   cleanup scope. This keeps the public command contract aligned with the
   verifier and availability gates.
-- Selected typed-field add/edit/rename parameter schemas also advertise the
-  selected `(struct_name, offset)` identity that payloads, availability checks,
-  and semantic reload verification compare.
+- Selected typed-field add/edit/rename/remove parameter schemas also advertise
+  the selected `(struct_name, offset)` identity that payloads, availability
+  checks, and semantic reload verification compare.
 - Target-wide `target.custom_struct*` metadata commands remain blocked by the
   missing action-specific verifier when selected autonomously; they do not prove
   a selected rendered field path.
