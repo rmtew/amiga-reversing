@@ -251,6 +251,12 @@ def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Pat
                     source_id="demo_seed",
                     source_path="seeded/demo_source.txt",
                     source_locator="DemoDataRange",
+                    struct_name="Node",
+                    field_name="LN_SUCC",
+                    field_type="APTR",
+                    c_type="struct Node *",
+                    pointer_struct="Node",
+                    value_domain="node_ref",
                 ),
             ),
         ),
@@ -274,8 +280,63 @@ def test_load_target_metadata_allows_manual_seeded_entity_override(tmp_path: Pat
             source_id="demo_seed",
             source_path="seeded/demo_source.txt",
             source_locator="DemoDataRange",
+            struct_name="Node",
+            field_name="LN_SUCC",
+            field_type="APTR",
+            c_type="struct Node *",
+            pointer_struct="Node",
+            value_domain="node_ref",
         ),
     )
+
+
+def test_load_target_metadata_keeps_same_address_seeded_entity_ranges(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    write_target_seeded_metadata(
+        target_dir,
+        TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            seeded_entities=(
+                SeededEntityMetadata(
+                    addr=0x0100,
+                    end=0x0102,
+                    type="data",
+                    name="short_data",
+                    hunk=0,
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded:short",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="ShortData",
+                ),
+                SeededEntityMetadata(
+                    addr=0x0100,
+                    end=0x0104,
+                    type="data",
+                    name="long_data",
+                    hunk=0,
+                    seed_origin=TargetMetadataSeedOrigin.PRIMARY_DOC,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="seeded:long",
+                    source_id="demo_seed",
+                    source_path="seeded/demo_source.txt",
+                    source_locator="LongData",
+                ),
+            ),
+        ),
+    )
+
+    loaded = load_target_metadata(target_dir)
+
+    assert loaded is not None
+    assert [(entity.hunk, entity.addr, entity.end, entity.type, entity.name) for entity in loaded.seeded_entities] == [
+        (0, 0x0100, 0x0102, "data", "short_data"),
+        (0, 0x0100, 0x0104, "data", "long_data"),
+    ]
 
 
 def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path: Path) -> None:

@@ -892,6 +892,11 @@ hunk/address/end/type matches should merge as overrides. Exact naming overrides
 also need to preserve existing typed entity metadata, because a source-identity
 rename must not erase semantic/type facts owned by another action.
 
+Implementation observation from `014-014`: target metadata merge has the same
+range/type identity boundary as effective projection. Merging manual and seeded
+metadata by hunk/address alone can drop generated ranges before the Manual
+Action Log has a chance to apply precise rename or suppression commands.
+
 Implementation observation from `014-005`/`014-013`:
 Seeded-item correction commands produce suppression state just like
 `data_symbol.remove`; their verifier should check the reloaded suppression and

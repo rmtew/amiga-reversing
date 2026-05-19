@@ -53,6 +53,9 @@ Current evidence:
 - Effective metadata projection now merges seeded data-symbol entities by
   hunk/address/end/type identity, preventing a same-address manual rename from
   replacing a distinct generated data range.
+- Target metadata merge now uses the same hunk/address/end/type identity for
+  seeded entities, preserving same-address generated ranges and typed metadata
+  during manual-over-seeded overrides.
 - Exact-identity data-symbol rename projection now preserves existing typed
   entity fields such as struct/field/c-type/value-domain metadata instead of
   turning a naming override into semantic metadata loss.

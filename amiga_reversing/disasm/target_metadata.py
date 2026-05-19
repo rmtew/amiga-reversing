@@ -1654,23 +1654,38 @@ def _merge_seeded_entity(manual: SeededEntityMetadata, seeded: SeededEntityMetad
         source_id=manual.source_id if manual.source_id is not None else seeded.source_id,
         source_path=manual.source_path if manual.source_path is not None else seeded.source_path,
         source_locator=manual.source_locator if manual.source_locator is not None else seeded.source_locator,
+        struct_name=manual.struct_name if manual.struct_name is not None else seeded.struct_name,
+        field_name=manual.field_name if manual.field_name is not None else seeded.field_name,
+        field_type=manual.field_type if manual.field_type is not None else seeded.field_type,
+        c_type=manual.c_type if manual.c_type is not None else seeded.c_type,
+        pointer_struct=manual.pointer_struct if manual.pointer_struct is not None else seeded.pointer_struct,
+        value_domain=manual.value_domain if manual.value_domain is not None else seeded.value_domain,
     )
+
+
+def _seeded_entity_merge_key(entity: SeededEntityMetadata) -> tuple[int, int, int | None, str | None]:
+    return (entity.hunk, entity.addr, entity.end, entity.type)
+
+
+def _seeded_entity_merge_sort_key(key: tuple[int, int, int | None, str | None]) -> tuple[int, int, int, str]:
+    hunk, addr, end, entity_type = key
+    return (hunk, addr, -1 if end is None else end, entity_type or "")
 
 
 def _merge_seeded_entities(
     manual: tuple[SeededEntityMetadata, ...],
     seeded: tuple[SeededEntityMetadata, ...],
 ) -> tuple[SeededEntityMetadata, ...]:
-    merged: dict[tuple[int, int], SeededEntityMetadata] = {
-        (entity.hunk, entity.addr): entity for entity in seeded
+    merged: dict[tuple[int, int, int | None, str | None], SeededEntityMetadata] = {
+        _seeded_entity_merge_key(entity): entity for entity in seeded
     }
     for entity in manual:
-        key = (entity.hunk, entity.addr)
+        key = _seeded_entity_merge_key(entity)
         if key in merged:
             merged[key] = _merge_seeded_entity(entity, merged[key])
         else:
             merged[key] = entity
-    return tuple(merged[key] for key in sorted(merged))
+    return tuple(merged[key] for key in sorted(merged, key=_seeded_entity_merge_sort_key))
 
 
 def _merge_seeded_code_labels(
