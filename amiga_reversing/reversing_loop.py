@@ -6299,7 +6299,7 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
     if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
         return {key: payload[key] for key in ("name",) if key in payload}
     if command_id == "data_symbol.remove":
-        return {key: payload[key] for key in ("kind", "hunk", "addr") if key in payload}
+        return {key: payload[key] for key in ("kind", "hunk", "addr", "seed_id") if key in payload}
     if command_id in {"target.equate.add", "target.equate.edit", "target.equate.represent"}:
         return {
             key: payload[key]
@@ -6436,7 +6436,7 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
         raw_command_id = command.get("command_id")
         if isinstance(raw_command_id, str):
             command_id = raw_command_id
-            command_verifier = _default_verifier_for_actions([raw_command_id])
+            command_verifier = _default_verifier_for_command(command)
             if _is_typed_field_command_id(raw_command_id) and not _typed_field_command_has_accepted_source_evidence(
                 command
             ):
@@ -6449,10 +6449,21 @@ def _candidate_verifier(candidate: dict[str, object], command: dict[str, object]
     if isinstance(verifier, str) and verifier:
         if command_id is not None and not _candidate_advertises_command(candidate, command_id):
             return command_verifier
+        if command_id == "data_symbol.remove" and command_verifier == "manual_seed_state":
+            return command_verifier
         if verifier == "round_trip" and command_verifier not in {None, "round_trip"}:
             return command_verifier
         return verifier
     return command_verifier
+
+
+def _default_verifier_for_command(command: dict[str, object]) -> str | None:
+    command_id = command.get("command_id")
+    if command_id == "data_symbol.remove":
+        parameters = command.get("parameters")
+        if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str):
+            return "manual_seed_state"
+    return _default_verifier_for_actions([str(command_id or "")])
 
 
 def _is_typed_field_command_id(command_id: str) -> bool:
@@ -6616,6 +6627,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         name = parameters.get("name")
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":
+        if isinstance(parameters.get("seed_id"), str):
+            return current.get("removed") is True
         return current.get("suppressed") is True
     if command_id in {"app_slot.rename", "app_slot.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
@@ -6710,7 +6723,7 @@ def _command_summary(command: dict[str, object], candidate: dict[str, object] | 
     verifier = (
         _candidate_verifier(candidate, command)
         if candidate is not None
-        else _default_verifier_for_actions([str(command.get("command_id") or "")])
+        else _default_verifier_for_command(command)
     )
     summary = {
         "command_id": command.get("command_id"),

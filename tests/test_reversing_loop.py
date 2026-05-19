@@ -2982,6 +2982,33 @@ def test_data_symbol_remove_candidate_strips_provenance_parameters() -> None:
     assert command["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
 
 
+def test_data_symbol_remove_candidate_keeps_manual_seed_identity() -> None:
+    candidate = _data_symbol_remove_candidate(suppressed=False)
+    candidate["parameters"] = {
+        "seed_id": "data-symbol:h0:00000100",
+        "source_evidence_id": "xref-1",
+        "source_family": "runtime_address_ref",
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {"seed_id": "data-symbol:h0:00000100"}
+    assert reversing_loop._candidate_verifier(candidate, command) == "manual_seed_state"
+    assert reversing_loop._command_summary(command)["verifier"] == "manual_seed_state"
+
+
+def test_planner_skips_already_satisfied_manual_data_symbol_remove() -> None:
+    candidate = _data_symbol_remove_candidate(suppressed=False)
+    candidate["parameters"] = {"seed_id": "data-symbol:h0:00000100"}
+    candidate["current_metadata"] = {"removed": True}
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_planner_selects_data_symbol_remove_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

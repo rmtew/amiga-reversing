@@ -71,6 +71,10 @@ Progress:
   available lower-ranked action from the same candidate.
 - Planner verifier summaries now report the action-specific verifier for
   data-symbol rename/remove candidates rather than a generic round-trip label.
+- Planner verifier summaries now distinguish `data_symbol.remove` cleanup
+  shapes: seeded-item removals report `suppressed_seeded_item`, while
+  `ManualSeed:*` data-symbol removals report `manual_seed_state` and keep only
+  the `seed_id` command parameter.
 - Planner verifier summaries now report `target_equate_state` for
   target-equate commands rather than a generic round-trip label.
 - Planner verifier summaries now report `rsset_region_state` for target RSSET
