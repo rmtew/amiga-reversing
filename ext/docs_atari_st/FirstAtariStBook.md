@@ -2831,8 +2831,7 @@ colours may be any one of 512 colours. These colours are combinations of
 the primary colours red, green and blue. Each of these primary colours can
 be used in one of eight brightness levels. This results in 8 * 8
 * 8 = 512
-combinations. With these colours available, practically all colour grada-
-tions can be represented. White results from of a superimposition of all
+combinations. With these colours available, practically all colour gradations can be represented. White results from of a superimposition of all
 three primary colours. If the primary colours are used only in brightness
 levels, corresponding grey levels are produced. The combination of red and
 green gives yellow, red and blue make purple (magenta), and blue and

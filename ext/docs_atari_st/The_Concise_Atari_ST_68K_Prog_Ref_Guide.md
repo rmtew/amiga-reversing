@@ -5984,8 +5984,7 @@ integrated operation of music synthesizers, sequencers, drum boxes etc. which
 have the MIDI interface. The ST operates as a data store for a large number of
 notes/voices which may be sent to different instruments (channels), and played
 together in sequence and time as music. The data may be 'recorded' from a tune
-previously played, edited and/or synthesized by entering new data in step-
-time-note format into the store for later retrieval.
+previously played, edited and/or synthesized by entering new data in steptime-note format into the store for later retrieval.
 The MIDI bus provides 16 channels in one of three networking modes.
 OMNI, the default where all units are addressed together and transmit and
 receive on all channels. POLY where all the units are individually addressed and
@@ -25517,8 +25516,7 @@ BCHGDn,ea"~ "~Dn~" '"T"
 BCHG data,ea
 4
 1
--ea-
-dataltadd
+-eadataltadd
 -
 -
 A -
@@ -25526,8 +25524,7 @@ A -
 BCLRDn,ea
 Dn
 6
--ea-
-dataltadd
+-eadataltadd
 -
 -
 A -
@@ -25535,8 +25532,7 @@ A -
 BCLRdata,ea
 4
 2
--ea-
-dataltadd
+-eadataltadd
 -
 -
 A -
@@ -25544,8 +25540,7 @@ A -
 BSET Dn,ea
 Dn
 7
--ea-
-dataltadd
+-eadataltadd
 -
 -
 A -
@@ -25553,8 +25548,7 @@ A -
 BSET data,ea
 4
 3
--ea-
-dataltadd
+-eadataltadd
 -
 -
 A -
@@ -25638,15 +25632,13 @@ AAA
 SUBI data,ea
 2
 Oss
--ea-
-dataltadd
+-eadataltadd
 A
 A AAA
 ADDI data,ea
 3
 Oss
--ea-
-dataltadd
+-eadataltadd
 A
 A AAA
 EORI data,ea
@@ -25677,8 +25669,7 @@ AAA
 CMPI data,ea
 6
 Oss
--ea-
-dataltadd
+-eadataltadd
 -
 A AAA
 H.4
@@ -25831,8 +25822,7 @@ NEGXea"
 CLRea
 1
 Oss
--ea-
-dataltadd
+-eadataltadd
 -
 0
 1
@@ -25841,8 +25831,7 @@ dataltadd
 NEGea
 2
 Oss
--ea-
-dataltadd
+-eadataltadd
 A
 A
 A
@@ -25851,8 +25840,7 @@ A
 NOT ea
 3
 Oss
--ea-
-dataltadd
+-eadataltadd
 -
 A
 A
@@ -25894,8 +25882,7 @@ MOVE ea,SR
 3
 -ea-
 -ea-
--ea-
-dataltadd
+-eadataltadd
 -----
 dataddmdl A A
 A
@@ -25942,8 +25929,7 @@ PEAea
 0
 1
 -ea-
--ea-
-dataltadd
+-eadataltadd
 A
 u
 A
@@ -25957,8 +25943,7 @@ MOVEM ea,list
 Olx
 Olx
 -ea-
--ea-
-conaltadd -----
+-eaconaltadd -----
 conaddmd2 -----
 TSTea
 TASea
@@ -25968,8 +25953,7 @@ TASea
 Oss
 3
 -ea-
--ea-
-dataltadd
+-eadataltadd
 -
 A
 A
@@ -26114,8 +26098,7 @@ data
 Oss
 1 s s
 -ea-
--ea-
-altaddmod A
+-eaaltaddmod A
 A
 A
 A
@@ -26128,8 +26111,7 @@ A
 Sccea
 c
 c cc 11
--ea-
-dataltadd -----
+-eadataltadd -----
 DBcc Dn,data
 c
 c
@@ -26326,21 +26308,18 @@ Oss
 OR Dn,ea
 Dn
 1 s s
--ea-
-altmemadd -
+-eaaltmemadd -
 A A 0
 0
 DIVU ea,Dn
 Dn
 3
--ea-
-dataddmdl -
+-eadataddmdl -
 A A A 0
 DIVS ea,Dn
 Dn
 7
--ea-
-dataddmdl -
+-eadataddmdl -
 A A A 0
 SBCD Dy,Dx
 Dx
@@ -26389,8 +26368,7 @@ A A A A A
 SUB Dn,ea
 Dn
 1 s s
--ea-
-altmemadd A A A A A
+-eaaltmemadd A A A A A
 SUBX Dy,Dx
 Dx
 1 s s
@@ -26470,8 +26448,7 @@ A
 EOR Dn,ea
 Dn
 1 ss
--ea-
-dataltadd
+-eadataltadd
 -
 A
 A
@@ -26531,22 +26508,19 @@ Oss
 AND Dn,ea
 Dn
 1 s s
--ea-
-altmemadd -
+-eaaltmemadd -
 A A 0
 0
 MULU ea,Dn
 Dn
 3
--ea-
-dataddmdl -
+-eadataddmdl -
 A A 0
 0
 MULS ea,Dn
 Dn
 7
--ea-
-dataddmdl -
+-eadataddmdl -
 A A 0
 0
 ABCD Dy,Dx
@@ -26621,8 +26595,7 @@ A A A A A
 ADD Dn,ea
 Dn
 1 s s
--ea-
-altmemadd A A A A A
+-eaaltmemadd A A A A A
 ADDX Dy,Dx
 Dx
 1 s s
@@ -29976,8 +29949,7 @@ as68
 -1
 -u -p myprog.s
 or
-Metacomco-
-assem myprog.asm opt
+Metacomcoassem myprog.asm opt
 j
 Both programs are linked with the Digital Research link68 linker i.e:
 link68

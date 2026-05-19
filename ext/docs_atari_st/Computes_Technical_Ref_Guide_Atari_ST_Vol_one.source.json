@@ -4,7 +4,12 @@
   "title": "COMPUTE!'s Technical Reference Guide: Atari ST Volume One: VDI",
   "publisher": "COMPUTE! Publications",
   "year": 1987,
-  "domain": ["atari-st", "gem", "vdi", "graphics"],
+  "domain": [
+    "atari-st",
+    "gem",
+    "vdi",
+    "graphics"
+  ],
   "paths": {
     "source_pdf": "resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf",
     "ocr_pdf": "resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.ocr.pdf",
@@ -13,24 +18,360 @@
   "sha256": {
     "source_pdf": "5fcf82c31661b31325984c9d48a0b5b54e0e0ce6c196251978e7f27768598b65",
     "ocr_pdf": "42b2ae53c71cf73f56753465ee77a3e7001b1a020a792fa6b1a7262d2a24382b",
-    "final_md": "2d9a2cee04023b278d67e3541e05f0f449de4bfcea59fc0903e393989be7a279"
+    "final_md": "4fbfc3b012eb1f811d2aa45c5a161608ee77e3c95b45152414e27e76faba8343"
   },
   "conversion": {
     "ocr_tool": "ocrmypdf",
-    "ocr_options": ["--deskew", "--rotate-pages"],
+    "ocr_options": [
+      "--deskew",
+      "--rotate-pages"
+    ],
     "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
   },
   "probe": {
     "page_count": 356,
     "text_pages": 341,
     "empty_text_pages": 15,
-    "low_text_pages": [5, 7, 9, 19, 46, 47, 73, 75, 98, 99, 123, 125, 147, 148, 149, 179, 180, 199, 200, 201, 325, 329, 330, 331, 335, 336, 337, 343, 351, 353],
+    "low_text_pages": [
+      5,
+      7,
+      9,
+      19,
+      46,
+      47,
+      73,
+      75,
+      98,
+      99,
+      123,
+      125,
+      147,
+      148,
+      149,
+      179,
+      180,
+      199,
+      200,
+      201,
+      325,
+      329,
+      330,
+      331,
+      335,
+      336,
+      337,
+      343,
+      351,
+      353
+    ],
     "image_blocks": 356,
     "needs_ocr": false
   },
-  "amendments": [],
+  "amendments": [
+    {
+      "page": 5,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_005.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 7,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_007.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 9,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_009.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 19,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_019.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 46,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_046.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 47,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_047.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 73,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_073.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 75,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_075.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 98,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_098.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 99,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_099.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 123,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_123.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 125,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_125.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 147,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_147.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 148,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_148.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 149,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_149.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 179,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_179.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 180,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_180.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 199,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_199.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 200,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_200.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 201,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_201.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 325,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_325.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 329,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_329.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 330,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_330.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 331,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_331.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 335,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_335.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 336,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_336.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 337,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_337.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 343,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_343.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 351,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_351.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 353,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.amendments/page_353.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    }
+  ],
   "remaining_review": {
-    "weak_pages": [5, 7, 9, 19, 46, 47, 73, 75, 98, 99, 123, 125, 147, 148, 149, 179, 180, 199, 200, 201, 325, 329, 330, 331, 335, 336, 337, 343, 351, 353],
+    "weak_pages": [
+      5,
+      7,
+      9,
+      19,
+      46,
+      47,
+      73,
+      75,
+      98,
+      99,
+      123,
+      125,
+      147,
+      148,
+      149,
+      179,
+      180,
+      199,
+      200,
+      201,
+      325,
+      329,
+      330,
+      331,
+      335,
+      336,
+      337,
+      343,
+      351,
+      353
+    ],
     "code_or_symbol_pages": []
   },
   "usage": {
@@ -39,5 +380,17 @@
     "decision": "cite_manually",
     "review_status": "seeded"
   },
-  "license_notes": "Local reference markdown generated from user-supplied source material."
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 713,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "4fbfc3b012eb1f811d2aa45c5a161608ee77e3c95b45152414e27e76faba8343"
+  }
 }

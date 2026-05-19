@@ -40,16 +40,14 @@ the copyright owner is unlawful.
 Printed in the United States of America
 10987654321
 ISBN 0-87455-093-9
-The author and publisher have made every effort in the preparation of this book to insure the ac-
-curacy of the programs and information. However, the information and programs in this book are
+The author and publisher have made every effort in the preparation of this book to insure the accuracy of the programs and information. However, the information and programs in this book are
 sold without warranty, either express or implied. Neither the author nor COMPUTE! Publications,
 Inc. will be liable for any damages caused or alleged to be caused directly, indirectly, incidentally,
 or consequentially by the programs or information in this book.
 The opinions expressed in this book are solely those of the author and are not necessarily those of
 COMPUTE! Publications, Inc.
 COMPUTE! Publications, Inc., Post Office Box 5406, Greensboro, NC 27403, (919)
-275-9809, is part of ABC Consumer Magazines, Inc., one of the ABC Publishing Com-
-panies, and is not associated with any manufacturer of personal computers. Atari, ST,
+275-9809, is part of ABC Consumer Magazines, Inc., one of the ABC Publishing Companies, and is not associated with any manufacturer of personal computers. Atari, ST,
 ST BASIC, 520ST, 1040ST, and TOS are trademarks or registered trademarks of Atari
 Corporation. GEM is a trademark of Digital Research, Inc.
 
@@ -123,17 +121,14 @@ The Atari ST is a powerful personal computer. So powerful, in
 fact, that using it to best effect can be a difficult task—even if
 you have all the available Atari documentation. That’s why
 you'll find COMPUTE!’s Technical Reference Guide, Atari ST
-Volume One: The VDI so valuable. Clear and concise, with pro-
-gram examples at every turn, it’s the most complete guide to
+Volume One: The VDI so valuable. Clear and concise, with program examples at every turn, it’s the most complete guide to
 programming graphics on the Atari ST.
 Filled with programs written in C, machine language, and
 BASIC, this reference guide and tutorial covers everything you
 need to access program the advanced graphics capabilities of
 the ST’s Virtual Device Interface, or VDI.
-The first sections explain—in plain English, not jargon-
-filled computerspeak—VDI and GEM and how to set up a
-graphics environment using VDI functions. Later chapters il-
-lustrate how to use VDI functions to draw points and lines, fill
+The first sections explain—in plain English, not jargonfilled computerspeak—VDI and GEM and how to set up a
+graphics environment using VDI functions. Later chapters illustrate how to use VDI functions to draw points and lines, fill
 areas, and move shapes around the screen.
 Program after program shows you how to get your own
 ST creations to do what you want them to do. You'll see how
@@ -147,13 +142,10 @@ graphic text strings and discussions on how letters are formed.
 The latter half of this book is a complete reference to VDI
 functions. You will find everything you need to know about
 each function in one place—a summary of each function, its
-opcode, C binding, and more. We’ve even included two indi-
-ces to the VDI functions, so finding the right function is easier
+opcode, C binding, and more. We’ve even included two indices to the VDI functions, so finding the right function is easier
 and faster.
 COMPUTE! Books is the leading publisher of programs
-and information for the Atari ST. COMPUTE!’s Technical Refer-
-ence Guide, Atari ST Volume One: The VDI is yet another ex-
-ample of the high quality you’ve come to expect in any guide
+and information for the Atari ST. COMPUTE!’s Technical Reference Guide, Atari ST Volume One: The VDI is yet another example of the high quality you’ve come to expect in any guide
 to personal computing from COMPUTE!.
 
 <!-- source-page: 7 -->
@@ -187,29 +179,22 @@ a
 <!-- source-page: 10 -->
 ## Page 10
 
-When WE think of the Graphics Environment Man-
-ager (GEM) operating system, the first thing that comes to
+When WE think of the Graphics Environment Manager (GEM) operating system, the first thing that comes to
 mind is the mouse-driven user interface, with its drop-down
 menus and icons. But there is another side to GEM which is of
 considerable interest to programmers. This part of GEM is
 known as the Virtual Device Interface, or VDI.
-The function of the VDI, as its name suggests, is to pro-
-vide a uniform, device-independent graphics interface that al-
-lows a programmer to design graphics output for a program
+The function of the VDI, as its name suggests, is to provide a uniform, device-independent graphics interface that allows a programmer to design graphics output for a program
 without necessarily knowing the operational details about the
 computer on which the program is run, or about the hardware
 device (screen, printer, plotter, and so on) used to produce the
 output. This interface is based on previous graphics software
 interfaces and on the work of a computer industry standards
-committee. If you keep in mind that it was written as an at-
-tempt to be a generalized standard for all kinds of computers,
-and was not written specifically to support the graphics ca-
-pabilities of the ST, you may better understand the reasoning
+committee. If you keep in mind that it was written as an attempt to be a generalized standard for all kinds of computers,
+and was not written specifically to support the graphics capabilities of the ST, you may better understand the reasoning
 behind its implementation.
 The VDI implements this device-independent interface in
-two ways. First, it supplies a wide array of basic graphics func-
-tions. These functions include drawing primitives (the funda-
-mental commands used to draw line figures and filled shapes);
+two ways. First, it supplies a wide array of basic graphics functions. These functions include drawing primitives (the fundamental commands used to draw line figures and filled shapes);
 attribute settings that control aspects of the figures such as the
 color, size, and shape; and inquiry commands that enable the
 program to determine specific information about the graphics
@@ -217,9 +202,7 @@ environment. They even include input functions that enable
 the programmer to accept input from the user via the mouse
 pointer, alphanumeric keys, cursor keys, and function keys.
 The VDI also provides the means by which device-specific
-driver programs may be added to the system. These device-
-driver programs act as translators. The VDI routes the general-
-ized output commands to the device driver, and the device
+driver programs may be added to the system. These devicedriver programs act as translators. The VDI routes the generalized output commands to the device driver, and the device
 driver converts these commands into the hardware-specific
 codes used to create the appropriate output on that particular
 device.
@@ -228,12 +211,10 @@ device.
 ## Page 11
 
 CHAPTER 1
-On the Atari ST computers, the part of the VDI that im-
-plements the basic graphic functions on the display screen is
+On the Atari ST computers, the part of the VDI that implements the basic graphic functions on the display screen is
 —_
 included in the Tramiel Operating System (TOS) ROMs. The part
-of the VDI that enables the use of disk-loaded fonts and de-
-vice drivers, however, is not included as part of the current
+of the VDI that enables the use of disk-loaded fonts and device drivers, however, is not included as part of the current
 ~—
 TOS ROMs and must itself be loaded from disk before these
 functions can be accessed. This part, known as the GDOS
@@ -244,14 +225,11 @@ called GDOS.PRG, which must be included in the AUTO
 folder on the system disk used to start the computer if device
 drivers or software-loaded fonts are to be used. In addition,
 that disk should contain a text file called ASSIGN.SYS, which
-provides information about the location of the various device-
-driver and text-font files that are available.
+provides information about the location of the various devicedriver and text-font files that are available.
 This books deals with only the VDI portion of GEM, but
 the reader should be cautioned that the VDI does not operate
 in isolation from the AES, the Application Environment Services
-which form the other half of GEM. Unless you take the appro-
-priate precautions, for example, the graphics functions pre-
-sented here are quite capable of writing over the menu bar
+which form the other half of GEM. Unless you take the appropriate precautions, for example, the graphics functions presented here are quite capable of writing over the menu bar
 and window borders that are managed by the AES. Also, there
 is a certain amount of overlap between the two, particularly in
 the area of the VDI input functions. In a program where you
@@ -259,8 +237,7 @@ use the AES input functions, you should be careful not to mix
 in VDI calls that will confuse them.
 Using the VDI
 You can think of the VDI as a collection of subroutines that you
-call from your program. In order to pass data to these subrou-
-tines and receive data from them, you must allocate storage
+call from your program. In order to pass data to these subroutines and receive data from them, you must allocate storage
 space in memory for a number of data arrays. The VDI uses
 information from five different arrays, each of which is made
 up of a number of 16-bit (two-byte) values. These arrays are:
@@ -318,8 +295,7 @@ The first element of the contrl array is used to pass the
 opcode. Since all of the VDI routines have a common entry
 point, there has to be some way to let the VDI know what
 command you want executed. Therefore, each command is
-given an identification number called an opcode. A few com-
-mands are further broken down into several sub-functions. In
+given an identification number called an opcode. A few commands are further broken down into several sub-functions. In
 order to specify which of these sub-functions you wish to use,
 a sub-function ID number can be passed in contrl(5). Since the
 VDI can send output to several devices, you must also identify
@@ -334,16 +310,12 @@ intin, in which you pass information to the function, and two
 are used for ptsout and intout, in which the function passes
 information back to you.
 The reason you must specify the size of these arrays is
-that the number of values passed varies from function to func-
-tion and can even vary from different calls to the same func-
-tion. The line drawing command, for example, can draw lines
+that the number of values passed varies from function to function and can even vary from different calls to the same function. The line drawing command, for example, can draw lines
 between a number of points at once. Therefore, in order to
-communicate how many lines are to be drawn, you must spec-
-ify the number of coordinate pairs that you have placed in the
+communicate how many lines are to be drawn, you must specify the number of coordinate pairs that you have placed in the
 ptsin array before calling that command. The number of points
 is placed in contrl(1). This number is equal to half the length
-of the array, since each point must be described by both a hor-
-izontal and a
+of the array, since each point must be described by both a horizontal and a
 vertical coordinate. In a similar fashion, the
 number of points passed back in the ptsout array from the
 
@@ -354,9 +326,7 @@ CHAPTER 1
 VDI command itself is stored in contrl(2). Contrl(3) and
 Contrl(4) are used to store the length of the intin and intout
 arrays, respectively.
-Elements contrl(7)-contrl(11) aren’t used for every com-
-mand, but, when they are, they pass information that is spe-
-cific to the command.
+Elements contrl(7)-contrl(11) aren’t used for every command, but, when they are, they pass information that is specific to the command.
 Assembly Language VDI Calls
 If you're programming at the machine language level, you
 must explicitly reserve memory space for each of these arrays,
@@ -389,10 +359,8 @@ the beginning address of each of the five data arrays:
 vpb:
  .de.l
 contrl,intin,ptsin,intout,ptsout
-Next, you must place any input parameters into their cor-
-rect place in the data arrays. For example, to execute the Clear
-Workstation command that clears the screen, you would trans-
-fer the following values:
+Next, you must place any input parameters into their correct place in the data arrays. For example, to execute the Clear
+Workstation command that clears the screen, you would transfer the following values:
 move #3, contrl
 ;Move the Clear Workstation
 sopcode (3) to contrl(0).
@@ -413,8 +381,7 @@ VDI and the GEM Graphics Environment
 Now you're ready to call the VDI. First, place the address
 of the VDI parameter block into register dl. Next, move the
 VDI identifier code (115 or $78) into register dO. Finally, call
-the VDI with a trap 2 instruction. This initiates a software-
-generated exception (similar to a hardware interrupt) that
+the VDI with a trap 2 instruction. This initiates a softwaregenerated exception (similar to a hardware interrupt) that
 causes execution of an exception-handler routine. In this case,
 the routine executed is the one whose address is pointed to by
 the long word beginning at location 136 ($88). This routine is
@@ -440,18 +407,14 @@ GEM output workstation). These steps will be outlined in the
 next chapter and illustrated in an example program.
 ST BASIC VDI Calls
 The fundamental strategy for making VDI calls from ST
-BASIC is similar to that used when making such calls from as-
-sembly language programs, with the exception that BASIC
+BASIC is similar to that used when making such calls from assembly language programs, with the exception that BASIC
 takes care of much of the preparatory work.
 Since the BASIC interpreter program must use VDI calls,
 it already has set aside memory for the data arrays contrl,
-ptsin, intin, ptsout, and intout. BASIC assigns the starting ad-
-dress of each of these arrays to a reserved variable of the same
+ptsin, intin, ptsout, and intout. BASIC assigns the starting address of each of these arrays to a reserved variable of the same
 name. Thus, the starting address of the contrl array is found in
 the variable named contrl, the starting address of ptsin in the
-variable ptsin, and so on. By using the PEEK and POKE com-
-mands, you may access the various elements of these data ar-
-rays. Remember that each element is two bytes long, so you
+variable ptsin, and so on. By using the PEEK and POKE commands, you may access the various elements of these data arrays. Remember that each element is two bytes long, so you
 must multiply the element number by two to get the proper
 offset for the POKE statement. The following short program
 shows how to clear the screen with the the Clear Workstation
@@ -483,16 +446,14 @@ the address of the parameter block into register d1 and the
 VDI identifier code into proper values in the dO register, and
 then execute the TRAP #2 statement.
 The original version of ST BASIC contains several built-in
-commands that perform the same functions as VDI calls with-
-out the hassle of POKEs. Although not released at the time of
+commands that perform the same functions as VDI calls without the hassle of POKEs. Although not released at the time of
 this writing, the revised MCC BASIC promises to include even
 more graphics commands. Nevertheless, BASIC programmers
 can still benefit from learning about the VDI. A familiarity
 with the structure and function of the VDI calls gives a better
 understanding of how the BASIC graphics commands work
 and how they interact. Even the enhanced version of BASIC
-does not include keywords for all of the VDI functions. Learn-
-ing how to access VDI calls directly from ST BASIC provides
+does not include keywords for all of the VDI functions. Learning how to access VDI calls directly from ST BASIC provides
 the means for using all of the tools provided by the GEM VDI,
 not just those that have been implemented by BASIC.
 Calling the VDI Routines from C
@@ -510,18 +471,15 @@ files that define a separate, named function for each VDI call.
 When the C program is linked to the proper library files, it can
 call VDI functions as if they were part of the C language.
 You still must allocate storage space for the data arrays,
-by making the following global array declarations at the be-
-ginning of this program:
+by making the following global array declarations at the beginning of this program:
 int contri[12],
 intin[128],
 ptsin[128],
 intout[128],
 ptsout[128];
 But you're not responsible for placing data directly into
-these arrays. Instead, input parameters are passed to the bind-
-ing functions as part of the function call. For example, you
-could execute the Clear Workstation call from C with the fol-
-lowing call:
+these arrays. Instead, input parameters are passed to the binding functions as part of the function call. For example, you
+could execute the Clear Workstation call from C with the following call:
 v_clrwk(handle);
 The function defined as v_clrwk in the library takes the
 parameter handle that is passed to it and puts it in contrl(6). It
@@ -537,13 +495,11 @@ size and quick in execution for a high-level language, it has
 become the language of choice for software development on
 the ST. Therefore, most of the examples in this book will be
 written in C. On occasion, however, we will include assembly
-language and BASIC examples as well, to show how the C ex-
-amples may be translated to these other environments. We
+language and BASIC examples as well, to show how the C examples may be translated to these other environments. We
 will use the C function names as they appear in the official
 Digital Research GEM bindings, since they have been adopted
 by the manufacturers of other C compilers as well.
-The C programs in this book are designed to work specifi-
-cally with the Alcyon C compiler (the one officially supported
+The C programs in this book are designed to work specifically with the Alcyon C compiler (the one officially supported
 by Atari) and with Megamax C, which also provides a very
 
 <!-- source-page: 17 -->
@@ -551,8 +507,7 @@ by Atari) and with Megamax C, which also provides a very
 
 CHAPTER 1
 complete development environment. For these compilers, the
-int data type refers to a 16-bit word of data. Some other com-
-pilers, such as the Lattice C compiler, use a 32-bit integer as
+int data type refers to a 16-bit word of data. Some other compilers, such as the Lattice C compiler, use a 32-bit integer as
 the default data type. You should substitute “short” for each
 reference to “‘int’’ when compiling the programs in this book
 with such compilers. For the sake of simplicity, we have not
@@ -580,8 +535,7 @@ loads a device driver file (if necessary), initializes the output
 device, reserves environment space for storing graphics
 settings associated with that workstation, and returns a device
 identification number, or handle, which is used to identify the
-output device when making VDI calls. For graphics output de-
-vices other than the display screen, the call to use is Open
+output device when making VDI calls. For graphics output devices other than the display screen, the call to use is Open
 Workstation, which opens a physical device workstation. The
 C format for this call is
 int input[12];
@@ -592,17 +546,13 @@ The array, input, consists of twelve words of data that
 you pass to the VDI. The first of these, the Device ID number,
 is used to let the GDOS know what device driver file it must
 load from disk. As explained in the previous chapter, the
-ROM part of the VDI doesn’t know how to talk to any graph-
-ics output device except the computer’s own display screen. In
+ROM part of the VDI doesn’t know how to talk to any graphics output device except the computer’s own display screen. In
 order to communicate with any other device, the GDOS must
-first load a device driver file to translate its graphics com-
-mands into a format that the output device recognizes.
-Loading the device driver is the job of the Open Work-
-station command, but in order for it to successfully perform
+first load a device driver file to translate its graphics commands into a format that the output device recognizes.
+Loading the device driver is the job of the Open Workstation command, but in order for it to successfully perform
 that task, several conditions must be satisfied. First, the GDOS
 extensions must have been loaded into computer memory by
-running the GDOS.PRG program. This should be done by in-
-cluding that file in the AUTO folder on the boot disk. At the
+running the GDOS.PRG program. This should be done by including that file in the AUTO folder on the boot disk. At the
 time the GDOS.PRG program is run, there must be a
 file
 called ASSIGN.SYS in the root directory of that disk. This is a
@@ -619,9 +569,7 @@ the assign.sys file is
 ID_number(flag) filename
 (fontfilename)
 where ID_number is the device ID number, flag is an optional
-letter that can be added to the ID number to give special load-
-ing instructions for the driver, filename is the name of the ac-
-tual file containing the device driver, and fontfilename is the
+letter that can be added to the ID number to give special loading instructions for the driver, filename is the name of the actual file containing the device driver, and fontfilename is the
 name of an optional font file that the device can load with the
 vst_load_font call. If there is more than one font file available
 for the device, additional font files may be listed below the ID
@@ -656,10 +604,8 @@ looks like this:
 21 fx80.sys
 EPSHSS14.FNT
 This describes a device driver file for the Epson FX-80
-printer. The printer ID number is 21, the driver itself is con-
-tained in a
-file called fx80.sys, and there is one text font avail-
-able for use by this driver, in a
+printer. The printer ID number is 21, the driver itself is contained in a
+file called fx80.sys, and there is one text font available for use by this driver, in a
 file called epshss14.fnt (a
 single-height, single-width font 14 points high).
 When opening a workstation for this device, the device
@@ -676,29 +622,23 @@ discussed more fully later on.
 The other two parameters associated with the Open
 Workstation call, handle and output, are used by the function
 to return information about the workstation that was just
-opened. The most important item is the workstation ID num-
-ber, or handle, that is returned in the variable handle. This ID
+opened. The most important item is the workstation ID number, or handle, that is returned in the variable handle. This ID
 must be included as part of the input to all of the other VDI
 functions, to indicate the device to which graphics output is to
 be sent. If the VDI can’t open the device, it returns a handle
 number of zero. Up to 16 workstations may be open at one
-time, and it is possible to open more than one physical work-
-station for devices other than the display screen.
-In addition to supplying the handle, v_opnwk fills the ar-
-ray output with 57 items of information about the workstation
+time, and it is possible to open more than one physical workstation for devices other than the display screen.
+In addition to supplying the handle, v_opnwk fills the array output with 57 items of information about the workstation
 that was just opened. All of the input and output parameters
 will be covered in the discussion of virtual workstations, below.
 Virtual Workstations
 The Open Workstation call is used for all devices except the
 display screen. The display device has a unique role in the
 GEM system. It’s the primary means of communicating with
-the user, so it’s the one graphics device that has to be open al-
-most all the time.
+the user, so it’s the one graphics device that has to be open almost all the time.
 The display device is the only device for which there is a
 device driver built into the TOS ROMs. And since it has to be
-shared by the Desktop, application programs, and desk acces-
-sories, it’s the only graphics device that must display infor-
-mation from more than one program at a time.
+shared by the Desktop, application programs, and desk accessories, it’s the only graphics device that must display information from more than one program at a time.
 In order to allow multiple users to access a single display,
 GEM uses pseudo-devices called virtual screen workstations.
 Once a physical workstation has been opened, the physical
@@ -715,8 +655,7 @@ more than one virtual screen workstation at a time.
 ## Page 23
 
 CHAPTER 2
-The format of the Open Virtual Screen Workstation func-
-tion is identical to that of the Open Workstation function:
+The format of the Open Virtual Screen Workstation function is identical to that of the Open Workstation function:
 --
 int input[12];
 int output[57]
@@ -729,12 +668,9 @@ data that you pass to the VDI to specify the initial default
 graphics settings for the workstation. It should be noted that
 unless you load the GDOS extensions with the GDOS.PRG
 program, or have a version of the TOS ROMs with the GDOS
-built in, none of these input values will affect the initial work-
-station settings, which will always be set to their default val-
-ues. We'll only briefly mention these settings here, since most
+built in, none of these input values will affect the initial workstation settings, which will always be set to their default values. We'll only briefly mention these settings here, since most
 duplicate the function of individual graphics setting commands
-that will be discussed at length in the chapters on line draw-
-ing, filled shapes, and color. They are
+that will be discussed at length in the chapters on line drawing, filled shapes, and color. They are
 Element
 Contents
 Comparable VDI function
@@ -768,8 +704,7 @@ input[9]
 Fill pen number
 vsf_color
 input[10]}_
-NDC to RC transforma-
-tion flag
+NDC to RC transformation flag
 The first and last of these parameters require a
 little further
 —
@@ -795,13 +730,10 @@ screen at once, or a low-resolution mode of 320 * 200 pixels,
 Setting Up the Graphics Environment
 with a maximum of 16 colors. In either color mode, each color
 may be selected from any of the 512 available.
-While your program cannot dictate which of the three dis-
-plays is to be used, it should be able to load a
+While your program cannot dictate which of the three displays is to be used, it should be able to load a
 set of text fonts
 that is appropriate for the current display. Therefore, in the
-assign.sys file, there are several IDs assigned to the screen de-
-vice. These assignments, which are specific to the Atari ver-
-sion of GEM only, are
+assign.sys file, there are several IDs assigned to the screen device. These assignments, which are specific to the Atari version of GEM only, are
 Device Number
 Screen Type
 01
@@ -857,8 +789,7 @@ CHAPTER 2
 As you can see, an optional path statement may be used
 to designate a path name for the device drive and text-font
 files. This path specification must be given at the beginning of
-the file, before any device ID assignments are made. The path-
-name can only be 64 characters long. It doesn’t matter
+the file, before any device ID assignments are made. The pathname can only be 64 characters long. It doesn’t matter
 whether the names are entered in upper- or lowercase letters.
 Next come the device IDs for the screen drivers. A filename of
 screen.sys is given for each entry so it will conform to the
@@ -867,25 +798,19 @@ driver file of that name because the p
 flag after the device
 number tells it that this driver is permanently installed in
 ROM. A device number of 1 is used to specify the default
-screen driver. This indicates that you don’t care about match-
-ing the disk-based text fonts to the screen resolution. Device
-numbers 2, 3, and 4 are used for the low, medium, and high-
-resolution screens, respectively. In order to open the virtual
-workstation with the proper ID, however, you first must deter-
-mine what display is in use. You can use the XBIOS (Extended
-Basic Input/Output System) command 4 to determine the cur-
-rent screen resolution. From C, you can use getrez,
+screen driver. This indicates that you don’t care about matching the disk-based text fonts to the screen resolution. Device
+numbers 2, 3, and 4 are used for the low, medium, and highresolution screens, respectively. In order to open the virtual
+workstation with the proper ID, however, you first must determine what display is in use. You can use the XBIOS (Extended
+Basic Input/Output System) command 4 to determine the current screen resolution. From C, you can use getrez,
 a macro
 defined in the file “osbinds.h”, to call this function. To find
 the proper ID number, use the statement
 ID = getrez() + 2;
 Since getrez returns the number 0
 for lo-res,
-1 for medium-
-res, and 2
+1 for mediumres, and 2
 for hi-res, all you have to do is add 2 to the value
-returned to get the right ID number. Assembly language pro-
-grammers can perform the getrez call using the following code:
+returned to get the right ID number. Assembly language programmers can perform the getrez call using the following code:
 move.w
 #4,—(sp)
 * push command number on the stack
@@ -898,23 +823,19 @@ addq.l
 The resolution will be returned in register dO.
 The last Open Virtual Workstation input parameter, the
 Normalized Device Coordinate (NDC) to Raster Coordinate
-(RC) transformation flag, allows you to specify which coordi-
-nate system you'll use for drawing. The RC system is the one
+(RC) transformation flag, allows you to specify which coordinate system you'll use for drawing. The RC system is the one
 used most commonly on microcomputers. Under this system,
 the screen is divided into rows and columns of dots, which
 represent every point that can be plotted on the display
 screen. The dots in the top row have a
-vertical, or y, coordi-
-nate of zero.The vertical coordinate number increases as you
+vertical, or y, coordinate of zero.The vertical coordinate number increases as you
 18
 
 <!-- source-page: 26 -->
 ## Page 26
 
 Setting Up the Graphics Environment
-move toward the bottom row of the screen, which has a y co-
-ordinate of 199 on the color screen and 399 on the mono-
-chrome display. Likewise, the leftmost column has a
+move toward the bottom row of the screen, which has a y coordinate of 199 on the color screen and 399 on the monochrome display. Likewise, the leftmost column has a
 horizontal or x coordinate of zero, which increases as you
 move toward the rightmost column, where the x coordinate is
 639 on medium- or high-resolution displays, and/or 319 on
@@ -924,12 +845,10 @@ Normalized Device Coordinates (NDC). Since almost every
 graphics output device has a different maximum horizontal
 and vertical resolution, it’s difficult to write a single program
 that will work with many different types of devices. That’s
-where the NDC system comes in. It attempts to offer the pro-
-grammer a system in which graphics drawn on one computer
+where the NDC system comes in. It attempts to offer the programmer a system in which graphics drawn on one computer
 screen or printer will look the same when drawn on other
 computers screens or printers of varying resolutions. When
-you use NDC coordinates, you send all of your graphics out-
-put to an imaginary display that is 32,768 pixels wide by
+you use NDC coordinates, you send all of your graphics output to an imaginary display that is 32,768 pixels wide by
 32,768 pixels high. These pixels are grouped differently than
 they are under the Raster Coordinate system, since the vertical
 axis starts at the bottom of the screen (0) and moves up to the
@@ -957,8 +876,7 @@ Normalized Device Coordinate
 CHAPTER 2
 The GDOS takes the graphics output that you send to this
 enormous display and scales it down in proportion to the
-more modest dimensions of your actual output device. For ex-
-ample, let’s say that you order the VDI to draw a box whose
+more modest dimensions of your actual output device. For example, let’s say that you order the VDI to draw a box whose
 upper left corner is at point 8192,24576 and whose lower right
 corner is at point 24576,8192 in the NDC system. This box
 follows the outline of the display, a quarter of the way in from
@@ -974,15 +892,13 @@ not be as useful as they may seem at first. For one thing, they
 slow down all of the graphics operations. Even though the ST
 computers are fast, they still aren’t so fast that the extra step
 of translating normalized coordinates to raster coordinates
-can’t cause some appreciable delay in complex drawing opera-
-tions. Secondly, the disparity between the resolution of the
+can’t cause some appreciable delay in complex drawing operations. Secondly, the disparity between the resolution of the
 normalized display and that of real-world graphics devices is
 so great that something is bound to be lost in the translation.
 With only
 1 RC pixel for every 8000 NDC pixels, there is no
 way that very complex drawings can be accurately reproduced
-on screens of varying resolutions. Realistically, most ST pro-
-grammers will want to write applications specifically for the
+on screens of varying resolutions. Realistically, most ST programmers will want to write applications specifically for the
 ST and will want to know exactly where every pixel will be
 drawn. So while NDCs are a nice idea, the RC system will
 probably still be the one used most often, at least until that
@@ -1024,9 +940,7 @@ boxh. We'll go deeper into the formation of text characters in
 the chapter that deals with text.
 Output array. In addition to supplying a handle for your
 new workstation, the v_opnwk and v_opnvwk calls fill the
-array Output with 57 varieties of information about the work-
-station that was just opened. This information is really pro-
-vided to aid in creating more portable GEM programs that
+array Output with 57 varieties of information about the workstation that was just opened. This information is really provided to aid in creating more portable GEM programs that
 may be run on other types of computers and on all kinds of
 output devices, but it is still of interest to the programmer who
 works exclusively with the ST screen device. Information
@@ -1083,8 +997,7 @@ Number of text fonts supported by the device
 Number of pattern fill styles
 Number of crosshatch fill styles
 Number of drawing-pen colors available
-(the number of colors that can be displayed by the de-
-vice at the same time)
+(the number of colors that can be displayed by the device at the same time)
 Number of Generalized Drawing Primitives (GDPs)
 (how many of the 10 basic drawing commands are
 supported)
@@ -1104,10 +1017,8 @@ Elliptical Arc (v_ellarc)
 —1 = End of list
 This part of the array holds a sequential list of code
 numbers showing what category of graphics operation is
-performed by of each of the supported GDPs. This indi-
-cates what kind of graphics settings affects each of the
-supported commands. Each element holds one of the fol-
-lowing code numbers:
+performed by of each of the supported GDPs. This indicates what kind of graphics settings affects each of the
+supported commands. Each element holds one of the following code numbers:
 Line drawing
 Marker drawing
 Graphics text
@@ -1195,8 +1106,7 @@ Minimum marker height
 Maximum marker width
 Maximum marker height
 The first two elements of the array give the maximum
-horizontal and vertical coordinates, assuming that the coordi-
-nates start at point 0,0. For the ST monochrome screen the
+horizontal and vertical coordinates, assuming that the coordinates start at point 0,0. For the ST monochrome screen the
 horizontal value is 639 and the vertical value is 399, indicating
 a resolution of 640 X 400 pixels. The horizontal value for the
 color medium-res screen is 639, and for the lo-res screen it’s
@@ -1208,16 +1118,14 @@ color medium-res screen is 639, and for the lo-res screen it’s
 
 CHAPTER 2
 contains a
-flag indicating whether the device is capable of pre-
-cise scaling or only approximate values like a film recorder.
+flag indicating whether the device is capable of precise scaling or only approximate values like a film recorder.
 This flag is set to 0, indicating precise scaling, for all ST
 screens.
 The next two elements contain the width and height of
 one pixel in microns (a micron equals 1/1000 millimeter).
 While such measurements are more accurate for printers and
 plotters than display screens which vary considerably from
-unit to unit and model to model, they can be used to deter-
-mine the aspect ratio, which is the ratio of the width to the
+unit to unit and model to model, they can be used to determine the aspect ratio, which is the ratio of the width to the
 height. For the hi-res screen the pixel width value is 372. The
 medium-res width is 169, while the lo-res width is twice that,
 or 338. The pixel height is 372 in all three modes. Thus, while
@@ -1231,13 +1139,11 @@ skinny as well. In order to get the box to look square, you
 must multiply the width by the aspect ratio (work_out[3]/
 work_out[4]) to get the height. In medium-res mode, a box
 that is 100 pixels wide should only be 45 pixels high if it is to
-appear square. The VDI does this kind of scaling for you auto-
-matically when it draws a
+appear square. The VDI does this kind of scaling for you automatically when it draws a
 circle using one of the circle
 functions.
 The next 9 values and the last 12 give some information
-about the kinds of graphics settings available. The VDI is ca-
-pable of drawing text in a number of different sizes (or
+about the kinds of graphics settings available. The VDI is capable of drawing text in a number of different sizes (or
 heights, to be more precise), and element 5
 tells exactly how
 many are available (on the ST the default number is 3 in all
@@ -1270,16 +1176,14 @@ these markers can be drawn in any of eight sizes. Elements 53
 and 54 give the minimum marker size (15 pixels wide by 11
 pixels tall), and elements 55 and 56 hold the maximum marker
 size (120 pixels wide by 88 pixels tall).
-Element 10 shows the number of text fonts that are resi-
-dent. On the ST, only one system font is available unless you
+Element 10 shows the number of text fonts that are resident. On the ST, only one system font is available unless you
 load additional fonts from disk.
 The next two values show the number of pattern types
 available for filling shapes with colored patterns. On the ST
 there are 24 pattern fill types and 12 crosshatch styles.
 Finally, element 13 shows the number of drawing pens
 that are available. This number corresponds with the number
-of hardware color registers used for a particular mode and de-
-termines the maximum number of different colors that can be
+of hardware color registers used for a particular mode and determines the maximum number of different colors that can be
 displayed on screen at one time. On the ST this value is 2 for
 the monochrome screen, 4 for the medium-res color screen,
 and 16 for the lo-res color screen. Since each of the ST’s three
@@ -1293,14 +1197,11 @@ can hold any of 512 possible values at one time. For the
 monochrome screen, this value is 2, since only black and
 white are displayed.
 Next comes information about the types of basic drawing
-operations that may be performed. For historical reasons hav-
-ing to do with the older graphics systems from which the VDI
+operations that may be performed. For historical reasons having to do with the older graphics systems from which the VDI
 evolved, these operations are known as Generalized Drawing
 Primitives (GDPs). Element 14 shows how many of the ten
-GDPs are supported. (On the ST, all ten are supported.) Ele-
-ments 15-24 contain a
-list of the code numbers for the sup-
-ported operations. Since the ST supports all ten, these elements
+GDPs are supported. (On the ST, all ten are supported.) Elements 15-24 contain a
+list of the code numbers for the supported operations. Since the ST supports all ten, these elements
 25
 
 <!-- source-page: 33 -->
@@ -1312,8 +1213,7 @@ hold the numbers
 list of code numbers showing the type of drawing operation
 (line drawing, area fill, text, and so on) performed by each of
 the ten operations. The operation type of a graphics output
-function determines which group of graphics settings will af-
-fect it. On the ST, the values for these elements are
+function determines which group of graphics settings will affect it. On the ST, the values for these elements are
 Element
 Code
 Function
@@ -1388,26 +1288,18 @@ function, while
 indicates whether the device supports color output. This flag
 shows a 1
 for either resolution of color display, and a 0 for the
-monochrome screen. The next flag shows whether text rota-
-tion is available. (It is on the ST, though we will see later on
-that text characters may only be turned in 90 degree incre-
-ments.) The flag in element 37 shows whether the device sup-
-ports area filling. (All ST screens do.) Finally, element 38
+monochrome screen. The next flag shows whether text rotation is available. (It is on the ST, though we will see later on
+that text characters may only be turned in 90 degree increments.) The flag in element 37 shows whether the device supports area filling. (All ST screens do.) Finally, element 38
 indicates whether the device supports the Cell Array function,
 in which a rectangular area of the drawing surface may be
 broken down into smaller rectangular color zones. The ST
 screens do noi support this function.
-In addition to all of the output functions, the VDI sup-
-ports a number of input functions as well, which allow a pro-
-gram to receive feedback from the user. You can tell whether a
+In addition to all of the output functions, the VDI supports a number of input functions as well, which allow a program to receive feedback from the user. You can tell whether a
 particular device supports these functions by looking at the
 value in element 44, which tells whether it supports input
-and/or output functions. On the ST, the virtual screen work-
-station includes the keyboard and mouse as well as the screen,
+and/or output functions. On the ST, the virtual screen workstation includes the keyboard and mouse as well as the screen,
 and therefore supports both input and output.
-Elements 40-43 give information about the hardware de-
-vices used for the input functions. Element 40 specifies the in-
-put devices available for the locator function, which allows the
+Elements 40-43 give information about the hardware devices used for the input functions. Element 40 specifies the input devices available for the locator function, which allows the
 26
 
 <!-- source-page: 34 -->
@@ -1428,21 +1320,16 @@ which indicates that the ten function keys are used to return a
 number from
 1 to 10, indicating the choice that was selected.
 Element 43 indicates what device is available for text character
-string input. On the ST the value here is 1, indicating the key-
-board (the only choice, actually) as the device used.
+string input. On the ST the value here is 1, indicating the keyboard (the only choice, actually) as the device used.
 Extended Inquire
-The VDI includes another function that can supply your pro-
-gram with all of the same information that is returned by the
+The VDI includes another function that can supply your program with all of the same information that is returned by the
 Open Workstation calls, plus a number of additional facts
-about the graphics environment. This function is called Ex-
-tended Inquire, and it uses the following format:
+about the graphics environment. This function is called Extended Inquire, and it uses the following format:
 int handle, flag, output[57];
 vq—extnd(handle, flag, output);
 where handle is the workstation ID number, output is a pointer
-to the array where the information is returned, and flag indi-
-cates whether you want the function to return the same output
-values as the Open Workstation calls (flag = 0), or the ex-
-tended information (flag =
+to the array where the information is returned, and flag indicates whether you want the function to return the same output
+values as the Open Workstation calls (flag = 0), or the extended information (flag =
 1). When you request the extended
 information, the values returned in the output array have the
 following meanings:
@@ -1543,31 +1430,22 @@ Setting Up the Graphics Environment
 background colors shown in output [1] is
 1 for monochrome
 systems and 512 for color systems. The number of graphics
-text special effects reported in output [2] on the ST is 31. Out-
-put[3] shows that raster scaling is not supported. Output [4]
+text special effects reported in output [2] on the ST is 31. Output[3] shows that raster scaling is not supported. Output [4]
 shows that there is one color plane in monochrome mode, two
-color planes in medium-res mode, and four color planes in lo-
-res mode; this means that the monchrome screen can only dis-
-play 2 colors at one time, while medium-res can display 4,
+color planes in medium-res mode, and four color planes in lores mode; this means that the monchrome screen can only display 2 colors at one time, while medium-res can display 4,
 and lo-res 16. Output [5] shows that a color-lookup table is
 not supported in monochome mode, but is supported in the
 color modes. (The color lookup table, which assigns VDI color
 index numbers to hardware color registers, is discussed in
 Chapter 3.)
 The performance factor in output [6] shows that 1000
-16 X 16 pixel raster operations can be performed in one sec-
-ond on the ST. Output [7] shows that the ST has flood-fill
-capability. Text characters may be rotated in 90 degree incre-
-ments, according to the value in output [8]. There are four
+16 X 16 pixel raster operations can be performed in one second on the ST. Output [7] shows that the ST has flood-fill
+capability. Text characters may be rotated in 90 degree increments, according to the value in output [8]. There are four
 drawing modes available on the ST, as shown by output [9].
-The GEM input pseudodevices work in both sample and re-
-quest mode on the ST, per output [10]. Output [11] shows that
+The GEM input pseudodevices work in both sample and request mode on the ST, per output [10]. Output [11] shows that
 text may be aligned. Output [12] shows that the screen device
-cannot ink, and output [13] shows that it cannot draw rubber-
-band lines.
-The maximum number of vertices for the Polyline, Poly-
-mark, or Area Fill functions is 128 on the ST, according to out-
-put [14]. (This means that the maximum size of the ptsin array
+cannot ink, and output [13] shows that it cannot draw rubberband lines.
+The maximum number of vertices for the Polyline, Polymark, or Area Fill functions is 128 on the ST, according to output [14]. (This means that the maximum size of the ptsin array
 should be 256.) There is no maximum size for the intin array,
 though, according to output [15]. Output [16] shows that the
 ST mouse has two buttons. Output [17] and output [18] show
@@ -1578,8 +1456,7 @@ The Clear Workstation function initializes the device to a state
 in which there is no graphics output. For the screen, this means
 setting every pixel to the background color. For a printer or
 plotter, the print buffer is cleared and a form feed is sent to
-advance to a new page. This function is performed automati-
-cally whenever a physical (but not a virtual) workstation is
+advance to a new page. This function is performed automatically whenever a physical (but not a virtual) workstation is
 29
 
 <!-- source-page: 37 -->
@@ -1594,15 +1471,12 @@ devices like printers, which don’t execute graphics commands
 as soon as the program sends them, but accumulates data in a
 buffer first. This function is used to immediately execute any
 commands that are waiting in the buffer. It has no effect on a
-device like the screen, which always executes output com-
-mands immediately. The
+device like the screen, which always executes output commands immediately. The
 C command looks like this:
 v_updwk(handle)
 The final two workstation commands are Close Workstation
 and Close Virtual Screen Workstation. These de-allocate the
-workspace used to keep track of the device settings, and pre-
-vent further output to the device. You should always remem-
-ber to close any devices that you have opened before exiting
+workspace used to keep track of the device settings, and prevent further output to the device. You should always remember to close any devices that you have opened before exiting
 your program. The syntax for these functions is
 v—clswk(handle);
 and
@@ -1616,9 +1490,7 @@ screen device and get its identification handle below, in the
 form of a short program shell, Program 2-3. All Program 2-3
 does is open the virtual workstation, call a function named
 demo, wait for somebody to press a mouse button (to give the
-viewer time to see the graphics display), and close the work-
-station. Since the function demo is not defined in this pro-
-gram, it will not link properly unless you add that function
+viewer time to see the graphics display), and close the workstation. Since the function demo is not defined in this program, it will not link properly unless you add that function
 yourself. The way we'll do that in our examples is to use the C
 #include operator to include the file work.c at the beginning of
 most of our sample programs, and name the main function of
@@ -1743,20 +1615,15 @@ run this program, the mouse pointer will be visible, and may
 disrupt part of the drawing when you move it. To avoid this,
 you can either be careful not to move the pointer, and just
 click a button when you wish to exit, or you can rename the
-program with the extender .TOS. When you run a TOS pro-
-gram, the mouse pointer becomes invisible, and the screen is
-cleared automatically. Later, in the chapter on input com-
-mands, you'll see how to make the mouse pointer invisible
+program with the extender .TOS. When you run a TOS program, the mouse pointer becomes invisible, and the screen is
+cleared automatically. Later, in the chapter on input commands, you'll see how to make the mouse pointer invisible
 before using graphics commands. You can then modify the
 shell program to incorporate this feature.
 An Assembly Language Program Shell
 Setting up a bare-bones assembly language program is more
-involved than just translating the corresponding shell.c pro-
-gram. For one thing, C programs usually link in a startup file
-at the beginning of the program to take care of such mainte-
-nance chores as allocating a chunk of RAM for a program stack,
-setting the stack pointer to the address of that stack, and re-
-turning any unused RAM to the pool of free memory. Programs
+involved than just translating the corresponding shell.c program. For one thing, C programs usually link in a startup file
+at the beginning of the program to take care of such maintenance chores as allocating a chunk of RAM for a program stack,
+setting the stack pointer to the address of that stack, and returning any unused RAM to the pool of free memory. Programs
 written in Alcyon C
 link in the file appstart.o or gemstart.o at
 the beginning to take care of these tasks.Megamax C programs
@@ -1766,25 +1633,19 @@ uses the inline assembly commands). But assembly language
 programmers must provide the equivalent functions for each
 of their programs themselves.
 The other problem is that not all assemblers have a
-.in-
-clude directive, so we won't be able to include the text of our
+.include directive, so we won't be able to include the text of our
 32
 
 <!-- source-page: 40 -->
 ## Page 40
 
 Setting Up the Graphics Environment
-shell program in each of our demo programs. Instead, we'll as-
-semble the shell program separately, and link the resulting ob-
-ject file with the demo program object files. Since our shell
+shell program in each of our demo programs. Instead, we'll assemble the shell program separately, and link the resulting object file with the demo program object files. Since our shell
 program refers to the demo subroutine in the demo program
-file, and the demo programs refer to the VDI data arrays de-
-fined in the shell program, we’ll use the .xdef and .xref
+file, and the demo programs refer to the VDI data arrays defined in the shell program, we’ll use the .xdef and .xref
 directives to help resolve these external references. The .xref
-directive tells the assembler that the symbol is defined in an-
-other object file, while the .xdef tells it that this symbol will be
-used by another object file. All of the assembly language ex-
-amples in this book have been created with the assembler that
+directive tells the assembler that the symbol is defined in another object file, while the .xdef tells it that this symbol will be
+used by another object file. All of the assembly language examples in this book have been created with the assembler that
 comes as part of the Alcyon C compiler, so bear in mind that
 the assembler directives used may be slightly different than
 those of other assemblers.
@@ -2578,15 +2439,11 @@ contrl,intin,ptsin,intout,ptsout
 
 Setting Up the Graphics Environment
 The first part of Program 2-4 requires a bit of explanation.
-When GEM starts an application program (but not a desk ac-
-cessory), it allocates all of the system memory to that program.
-Therefore, if the program wishes to use the system memory-
-management calls, or any of the AES calls that themselves al-
-locate memory, it must first de-allocate all of the memory it
+When GEM starts an application program (but not a desk accessory), it allocates all of the system memory to that program.
+Therefore, if the program wishes to use the system memorymanagement calls, or any of the AES calls that themselves allocate memory, it must first de-allocate all of the memory it
 isn’t actually using at startup time. The way to do this is with
 the XBIOS function, SETBLOCK. SETBLOCK is used to reserve
-a specific area of memory for the program, and return the re-
-maining RAM area to the Operating System’s free memory
+a specific area of memory for the program, and return the remaining RAM area to the Operating System’s free memory
 pool. In order to execute this command, you must pass the
 starting address of the area that you wish to reserve and the
 size of the area. Please remember that it’s only necessary to
@@ -2597,20 +2454,16 @@ difficult, since when you start the program, the second word
 on the stack points to that location. Finding the size of the
 program requires a
 little more knowledge of how program
-storage space is allocated. The memory area in which a pro-
-gram resides is known as the Transient Program Area (TPA).
+storage space is allocated. The memory area in which a program resides is known as the Transient Program Area (TPA).
 At the beginning of the TPA is a 256-byte segment
 known as the basepage. The basepage contains information
 about the size and address of each program segment, as well
 as the command line that is passed to the program. (These are
-the extra characters you type in when you run a Tos Takes Pa-
-rameters program whose name ends in .TTP.) After the
+the extra characters you type in when you run a Tos Takes Parameters program whose name ends in .TTP.) After the
 basepage comes the actual program code, followed by the data
 area, and then the BSS (Block Storage Segment), which is used
-to store uninitialized data. So to find the total size of the pro-
-gram area, we take a look in the basepage to find the size of
-the code, and add that to the size of the data and BSS seg-
-ments, along with the size of the basepage itself. Since we
+to store uninitialized data. So to find the total size of the program area, we take a look in the basepage to find the size of
+the code, and add that to the size of the data and BSS segments, along with the size of the basepage itself. Since we
 need a stack area for the program, it makes sense to add the
 size of the stack to the end of the program and reserve the
 combined program and stack area together. Once we calculate
@@ -2627,11 +2480,9 @@ command:
 
 CHAPTER 2
 as68 -u -l shell.s
-This creates an object file called shell.o. Since this pro-
-gram does not contain the demo subroutine, it won’t link and
+This creates an object file called shell.o. Since this program does not contain the demo subroutine, it won’t link and
 run properly. In order to get it to function, the least you must
-do is to create another object module that contains that sub-
-routine. An example of this is Program 2-5, dummy.s.
+do is to create another object module that contains that subroutine. An example of this is Program 2-5, dummy.s.
 Program 2-5. dummy.s
 SRTATTAAEEKERKK
 EASA EERE TERETE
@@ -2652,22 +2503,17 @@ Assemble this file in the same way to create the dummy.o
 file. Next, use the linker to join the two object modules. The
 command line to use is
 link68 [u] dummy.68k=shell,dummy
-This creates the dummy.68k, a relocatable program mod-
-ule that must be modified to ran under GEMDOS, using the
+This creates the dummy.68k, a relocatable program module that must be modified to ran under GEMDOS, using the
 relmod program:
 relmod dummy
-This produces the dummy.prg program file that can be ex-
-ecuted from the desktop. This program just waits until the
-user presses a mouse button, and then ends. When you substi-
-tute the graphics demo subroutines from the programs in sub-
-sequent chapters for the dummy demo routine, the program
+This produces the dummy.prg program file that can be executed from the desktop. This program just waits until the
+user presses a mouse button, and then ends. When you substitute the graphics demo subroutines from the programs in subsequent chapters for the dummy demo routine, the program
 will draw the graphics demonstration, and then waits for the
 user to press the mouse button.
 As with the C example programs, you may find that the
 mouse pointer image disrupts the picture when you move it
 for the first time, because it saves and restores the original
-background image that appeared before your drawing was dis-
-played. The solution is to either rename the program with a
+background image that appeared before your drawing was displayed. The solution is to either rename the program with a
 .TOS extender or modify the shell program to turn off the
 mouse pointer before drawing, as we will demonstrate in a
 later chapter.
@@ -2806,12 +2652,10 @@ Pmarki.c
 €/
 In addition to drawing dots, the Polymarker function can
 be used to draw several other marker shapes as well. In our
-example program, single points were drawn on the screen be-
-cause when we opened the virtual screen workstation, we
+example program, single points were drawn on the screen because when we opened the virtual screen workstation, we
 specified marker type
 1 (a single point) as our default marker
-type in work_in[3]. But, as we saw from the information re-
-turned by the v_openvwk call in work_out[8], there are six
+type in work_in[3]. But, as we saw from the information returned by the v_openvwk call in work_out[8], there are six
 marker types available for use on the ST screen. These are as
 follows.
 Marker
@@ -2878,16 +2722,14 @@ in which it is drawn, assuming, of course, that the program is
 being run on a color monitor. With
 a monochrome monitor,
 the background is usually all white, and all drawing is done in
-black. But on the color monitor, you can have up to four dif-
-ferent colors on screen at one time in medium-resolution mode,
+black. But on the color monitor, you can have up to four different colors on screen at one time in medium-resolution mode,
 and up to sixteen different colors in low-resolution mode.
 Color selection is controlled by sixteen hardware registers. You
 may think of these as pens, each filled with a different color of
 ink. By default, you draw with pen 1, which, unless you change
 it, contains black ‘‘ink.” That default drawing pen was set by
 placing a 1 in work_in[4] at the time the virtual workstation
-was opened. To draw in another color, you must choose an-
-other pen with the Set Polymarker Color Index command,
+was opened. To draw in another color, you must choose another pen with the Set Polymarker Color Index command,
 int color_set,handle, pen;
 pen_set = vsm_color(handle, pen);
 where pen is the number of the drawing pen (hardware color
@@ -3017,14 +2859,12 @@ filled by the marker, but also some blank space around the
 ## Page 52
 
 Drawing Points and Lines
-border of the marker. For example, in the 11-pixel-high plus-
-sign marker (number 2), the horizontal line is actually only 9
+border of the marker. For example, in the 11-pixel-high plussign marker (number 2), the horizontal line is actually only 9
 pixels long, not 15, and the vertical line is 7 pixels high, not
 11 (Figure 3-1). The rest of the cell is taken up by blank
 pixels, distributed evenly on all four sides of the marker. To
 find the actual drawing width of any marker, divide the height
-by 11; multiply the result by 8; then add 1. To find the draw-
-ing height, divide the height by 11; multiply that result by 6;
+by 11; multiply the result by 8; then add 1. To find the drawing height, divide the height by 11; multiply that result by 6;
 then add 1. The mathematical formulas are:
 Drawing width =
 ( (height / 11) * 8) + 1
@@ -3041,8 +2881,7 @@ settings[4];
 vqm_attributes(handle, settings);
 The function returns the current polymarker settings in
 the four elements of the settings array. Element 0 contains the
-current marker type, element 1 contains the pen number, ele-
-ment 2 holds the drawing mode (we'll explain that one in the
+current marker type, element 1 contains the pen number, element 2 holds the drawing mode (we'll explain that one in the
 45
 
 <!-- source-page: 53 -->
@@ -3066,12 +2905,10 @@ Since each point is described by two coordinates, there are
 twice as many elements in the points array as there are points.
 Although it takes two points to describe a line, the endpoint of
 one line is always the beginning point of the next, except for
-the first line. Therefore, the number of lines drawn by a Poly-
-line command is always one less than the number of points.
+the first line. Therefore, the number of lines drawn by a Polyline command is always one less than the number of points.
 Anytime you use the Polyline command to draw a closed
 polygon, the first point and the last point will be the same. So,
-in order to draw a square with Polyline, you need five coordi-
-nate pairs in the points array, with the first and last pair being
+in order to draw a square with Polyline, you need five coordinate pairs in the points array, with the first and last pair being
 exactly the same.
 Program 3-3 is
 a sample program that demonstrates use
@@ -3268,14 +3105,12 @@ Plinet.c
 As you can see, Program 3-3 adapts itself to any type of
 monitor by reading the horizontal and vertical resolution from
 work_out[0] and work_out[1], and scaling the length of the
-lines and the size of the space between lines accordingly. No-
-tice also how the use of macro definitions like NEXT, STEP,
+lines and the size of the space between lines accordingly. Notice also how the use of macro definitions like NEXT, STEP,
 and REPS saves a
 lot of typing and allows us to easily vary
 the size between the ‘‘squirals” and repetitions (though if you
 want more than 15 repetitions you will have to increase the
-size of the ptsin array in the shell program). These macro defi-
-nitions also have value as program documentation.
+size of the ptsin array in the shell program). These macro definitions also have value as program documentation.
 Patterned Lines
 In addition to solid lines, the VDI also lets you draw patterned
 lines composed of dots and/or dashes. In order to draw these,
@@ -3291,14 +3126,12 @@ syntax for this routine is
 int handle, pattern;
 pattern_set = vsl_type(handle, pattern_no);
 where pattern_no is the number of any of the seven available
-line-drawing patterns. The number of the pattern that was ac-
-tually set is returned in the variable pattern_set.
+line-drawing patterns. The number of the pattern that was actually set is returned in the variable pattern_set.
 The line-drawing pattern is composed of 16 pixels lined up
 in a row. Each pixel is either colored in with the line-drawin
 color (on), or colored in with the background color (off). These
 patterns can be represented by a single 16-bit binary (base 2)
-number. For example, a pattern in which an “on” pixel alter-
-nates with an “off” pixel can be represented by the binary
+number. For example, a pattern in which an “on” pixel alternates with an “off” pixel can be represented by the binary
 number 1010101010101010, which has a decimal value of
 43690. The Atari ST screen driver supports seven types of
 line-drawing patterns (as we saw from the value returned in
@@ -3332,17 +3165,14 @@ before vsl_type call)
 The reason that we get a solid line as our default pattern
 is because we placed a
 1 representing pattern number 1 in
-work_in[3] when we opened our virtual workstation, thus re-
-questing the solid line as our default. As long as the GDOS
+work_in[3] when we opened our virtual workstation, thus requesting the solid line as our default. As long as the GDOS
 extension is installed, however, it’s possible to specify another
 value as the default. If the GDOS extension is not installed,
 the default line type will be the solid line, regardless of the
 value you put in work_in[3]. Another point to note about
 these line-drawing patterns is that the VDI makes no attempt
-to scale them according to the screen display used, so the pat-
-tern may look fatter or thinner depending on whether you are
-in lo-res, medium-res, or hi-res mode. And, since the horizon-
-tal resolution varies significantly from the vertical resolution,
+to scale them according to the screen display used, so the pattern may look fatter or thinner depending on whether you are
+in lo-res, medium-res, or hi-res mode. And, since the horizontal resolution varies significantly from the vertical resolution,
 the pattern of a dotted line that is drawn horizontally looks
 quite different from that of the same line drawn vertically.
 48
@@ -3363,8 +3193,7 @@ fn
 En
 Although the VDI supplies six preset line patterns for the
 sake of convenience, it also provides for a user-defined style,
-which allows you to choose any of the 65,536 possible com-
-binations of lit and unlit pixels for the line-drawing pattern.
+which allows you to choose any of the 65,536 possible combinations of lit and unlit pixels for the line-drawing pattern.
 Before we select pattern 7, however, we should first tell the
 VDI which pattern it represents. We do this by calling the Set
 User-Defined Line Pattern function. In C, this function appears
@@ -3393,8 +3222,7 @@ CHAPTER 3
 Line Color
 On ST systems that have a color monitor, you can specify
 which drawing pen will be used for line drawing, and thus
-control the color of the line that is drawn. On the mono-
-chrome system, you're limited to pen 0 (white) or pen
+control the color of the line that is drawn. On the monochrome system, you're limited to pen 0 (white) or pen
 1
 (black). The VDI command for selecting the pen is Set
 Polyline Color Index, which corresponds to the following C
@@ -3406,8 +3234,7 @@ The pen number is referred to in the GEM literature as the
 color index, since it represents an offset from the beginning of
 the color lookup table. Pen 0 is the background color, and pen
 1 is the default foreground color (black), which we set with
-work_in[2] when we opened the virtual workstation. If you se-
-lect a color higher than the number of colors available, pen
+work_in[2] when we opened the virtual workstation. If you select a color higher than the number of colors available, pen
 1
 will be set. We'll discuss the other color defaults and how to
 change them in the next chapter.
@@ -3603,8 +3430,7 @@ from 1 pixel to 40 pixels. The function used to specify the
 width of the lines that the VDI draws is Set Polyline Line
 Width, which in C looks like this:
 width_set = vsl_width(handle, width)
-where width is the line width in pixels. In order to keep every-
-thing symmetrical, the VDI only uses odd-numbered line
+where width is the line width in pixels. In order to keep everything symmetrical, the VDI only uses odd-numbered line
 widths. If you request a line width that’s unavailable, either
 because it’s larger than the maximum width or because it’s an
 even number, the VDI will set the width to the next lower
@@ -3629,24 +3455,18 @@ Polyline End Styles command, you may instruct the VDI to
 round off either end of the line, or to place an arrow head at
 either end of the line. The arrow head is positioned so that its
 tip is placed at the last point of the line. Although the GEM
-literature states that the rounded end is drawn so that the cen-
-ter of the rounded line is positioned at the end of the line,
+literature states that the rounded end is drawn so that the center of the rounded line is positioned at the end of the line,
 experience on the ST shows otherwise. The rounding is added
 on to the end of the line, increasing its length by about half its
 thickness. While arrows can be used with any width of line,
 the rounding is not really noticeable unless you are drawing a
-line that is thicker than five pixels. The syntax of the C com-
-mand used to set the end styles is
+line that is thicker than five pixels. The syntax of the C command used to set the end styles is
 int handle, begin_style, end_style;
 vsl_ends(handle, begin_style, end_style);
 where begin_style and end_style contain a number code from
-0 to 2, indicating what style will be used to draw the begin-
-ning and end of the line. The number 0 represents a squared-
-off end,
+0 to 2, indicating what style will be used to draw the beginning and end of the line. The number 0 represents a squaredoff end,
 1 indicates that an arrow is to be drawn, and a 2
-means that the end should be rounded off. If an invalid num-
-ber is given for either of these, the squared-end style is se-
-lected by default.
+means that the end should be rounded off. If an invalid number is given for either of these, the squared-end style is selected by default.
 Program 3-5 shows the use of thickened lines, and of the
 two stylized types of endpoints.
 Program 3-5. pline3.c
@@ -3777,9 +3597,7 @@ of
 Pline3.c
 &/
 If you ever need to find out from your program what the
-current line-drawing settings are, you can use the function In-
-quire Current Polyline Attributes (though this is fairly inef-
-ficient, as you should be able to keep track of the settings in
+current line-drawing settings are, you can use the function Inquire Current Polyline Attributes (though this is fairly inefficient, as you should be able to keep track of the settings in
 the program without having to inquire). The C format for this
 call is
 int handle, settings[4];
@@ -3806,23 +3624,19 @@ ending end style in intout(3} and intout[4], respectively. These
 ## Page 61
 
 CHAPTER 3
-values are not transferred to the settings array by the C func-
-tion bindings.
+values are not transferred to the settings array by the C function bindings.
 Line-Drawing GDPs
 There are some other VDI functions that draw figures using
 lines, and these functions share the same line-drawing settings
 as Polyline. For reasons having to do with the older graphics
-systems from which they evolved, they’re referred to as Gen-
-eralized Drawing Primitives, or GDPs, for short. The only
+systems from which they evolved, they’re referred to as Generalized Drawing Primitives, or GDPs, for short. The only
 practical programming difference between GDPs and any
 other drawing function is that they all have the same opcode,
 so assembly language and BASIC programmers will have to
-remember to set both the opcode in contrl(0) and the sub-
-function ID in contrl(5) before calling one of these functions. C
+remember to set both the opcode in contrl(0) and the subfunction ID in contrl(5) before calling one of these functions. C
 programmers will not have to worry about this, since the
 bindings take care of this detail for them. The line-drawing
-GDPs allow you to draw circles, or any part of a circle; ellip-
-ses, or any part of an ellipse; and rounded rectangles.
+GDPs allow you to draw circles, or any part of a circle; ellipses, or any part of an ellipse; and rounded rectangles.
 The first of these functions is called Arc, and it allows you
 to draw any segment of a
 circle. The C function call is
@@ -3839,8 +3653,7 @@ tenths of a degree, the points on a
 circle go from 0 to 3600.
 The VDI designates the rightmost point on the circle (the three
 o’clock position) as 0 or as 3600, depending on whether it’s
-used as the starting angle or ending angle. All drawing pro-
-ceeds in a counterclockwise direction, so the topmost point is
+used as the starting angle or ending angle. All drawing proceeds in a counterclockwise direction, so the topmost point is
 designated 900, the leftmost as 1800, and the bottom-most as
 2700 (Figure 3-3).
 54
@@ -3855,8 +3668,7 @@ Figure 3-3. Drawing Angles
 1808
 3600
 2708
-Thus, to draw the top right quarter of a circle whose cen-
-ter point is at 100,100, and whose radius is 50 pixels, you use
+Thus, to draw the top right quarter of a circle whose center point is at 100,100, and whose radius is 50 pixels, you use
 the command:
 v—arc(handle, 100, 100, 50, 0, 900);
 To draw a complete circle, you need only to specify 0 as the
@@ -3867,26 +3679,22 @@ the width of each pixel to its height), so it always appears to
 be round. If it did not make this kind of adjustment, a
 circle
 that appears round on the low-resolution screen would look
-tall and thin on the medium-resolution screen. To find the ef-
-fective vertical radius of the circle, multiply the radius by the
+tall and thin on the medium-resolution screen. To find the effective vertical radius of the circle, multiply the radius by the
 value that was in output[3] after you opened the workstation,
 and divide the result by the value that was in output[4]. Thus,
 the box that contains a
 circle with radius r
 is r units wide and
-(r * work_out[3] / work_out[4]) units high. An almost identi-
-cal function allows you to draw any segment of an ellipse. The
+(r * work_out[3] / work_out[4]) units high. An almost identical function allows you to draw any segment of an ellipse. The
 only difference between a
-circle and an ellipse is that the verti-
-cal radius of a circle is automatically calculated to scale from
+circle and an ellipse is that the vertical radius of a circle is automatically calculated to scale from
 55
 
 <!-- source-page: 63 -->
 ## Page 63
 
 CHAPTER 3
-the horizontal radius that you supply, so that it always ap-
-pears to be round, while you supply both the horizontal and
+the horizontal radius that you supply, so that it always appears to be round, while you supply both the horizontal and
 vertical radius values for the ellipse, so that it may be oval in
 shape. The C
 call for the Elliptical Arc function is:
@@ -3895,8 +3703,7 @@ v—ellarc(handle, x, y, xradius, yradius, begin_angle, end_angle);
 All of the parameters for this call are the same as those used
 by Arc, except, instead of a single radius, there are variables
 for both the horizontal (xradius) and vertical (yradius) radii.
-The final line-drawing function is called Rounded Rectan-
-gle. As its name suggests, it’s used to draw rectangles whose
+The final line-drawing function is called Rounded Rectangle. As its name suggests, it’s used to draw rectangles whose
 corners are rounded. GEM applications often use rounded
 boxes in dialogs as push buttons, as they give the program a
 more polished look than do boxes with square corners. Since
@@ -3905,8 +3712,7 @@ find that some of the smaller rounded boxes look more like
 circles.
 One thing to note about rounded rectangles is that they’re
 affected by line-drawing settings like line width and pattern,
-but not by end styles, since, properly speaking, they have nei-
-ther beginning nor ending points. The C syntax for the
+but not by end styles, since, properly speaking, they have neither beginning nor ending points. The C syntax for the
 rounded rectangle function is
 int handle, sides[4]
 v_tbox(handle, sides);
@@ -3923,8 +3729,7 @@ Right Edge
 [4]
 Bottom Edge
 Program 3-6 demonstrates the use of the line-drawing
-GDPs, and shows how they are affected by the various line-
-drawing settings.
+GDPs, and shows how they are affected by the various linedrawing settings.
 56
 
 <!-- source-page: 64 -->
@@ -4126,10 +3931,8 @@ Plinet.c
 %/
 Assembly Language Example
 Though the principles of using the VDI line-drawing functions
-are the same in assembly language as in C, the assembly lan-
-guage programmer does have to move the input parameters
-directly into the VDI data arrays. In order to illustrate this pro-
-cess, compare the assembly language version of the GDP lines
+are the same in assembly language as in C, the assembly language programmer does have to move the input parameters
+directly into the VDI data arrays. In order to illustrate this process, compare the assembly language version of the GDP lines
 program (Program 3-7) with Program 3-6. By comparing the
 two versions, assembly language programmers should get a
 better idea of how to translate the other C sample programs to
@@ -4141,14 +3944,12 @@ calls. Generally speaking, the VDI will not disturb your input
 parameter arrays, so once you put the workstation id handle in
 contrl6, for example, you can assume that it will still be there
 for subsequent VDI calls. Keep in mind, though, that as we
-have set things up here, the VDI and AES share the contrl ar-
-ray, so if your program uses AES calls, you should be aware of
+have set things up here, the VDI and AES share the contrl array, so if your program uses AES calls, you should be aware of
 the possibility for interference from that quarter. Also, since
 the process of calling the VDI uses registers d0 and d1, you
 must preserve the contents of those registers if you want them
 to survive between GEM calls. In general, you should assume
-that the ST system will use the first couple of data and ad-
-dress registers, and not place values that you wish to preserve
+that the ST system will use the first couple of data and address registers, and not place values that you wish to preserve
 between system calls in those registers.
 58
 
@@ -4985,8 +4786,7 @@ dy:
 t]
 .end
 Line-Drawing VDI Calls and BASIC
-ST BASIC doesn’t support VDI Marker commands, and it sup-
-ports some, but not all, of the line-drawing functions. It is
+ST BASIC doesn’t support VDI Marker commands, and it supports some, but not all, of the line-drawing functions. It is
 quite possible, however, to access the remaining functions
 with VDISYS(1) calls. Of the line-drawing functions that we
 have discussed, ST BASIC fully supports arcs and elliptical
@@ -5024,8 +4824,7 @@ where points is the number of vertices, and array is the name
 of a data array holding the x and y coordinates for those
 vertices.
 Program 3-8 shows the use of the VDISYS( ) command to
-make direct calls to the VDI functions from BASIC. Note par-
-ticularly that the settings you make using these functions, such
+make direct calls to the VDI functions from BASIC. Note particularly that the settings you make using these functions, such
 as line width and drawing pattern, do have an effect on the
 output of keyword commands such as LINEF and CIRCLE.
 Program 3-8. lines.bas
@@ -5284,8 +5083,7 @@ al
 Now that you've had a
 little experience using some
 of the output functions, let’s take a look at some of the settings
-that can affect graphics output, regardless of the output func-
-tion used. These include color settings, drawing modes, and
+that can affect graphics output, regardless of the output function used. These include color settings, drawing modes, and
 clipping rectangles.
 Color Settings
 In the previous chapter, we discussed how to change the color
@@ -5293,11 +5091,9 @@ of the line or marker being drawn, but we didn’t explain how
 you could select a particular color like red or green. In order to
 do so, we must examine the way in which different colored
 dots are displayed on the ST’s color screen.
-On the monochrome ST, the display system is very sim-
-ple. Each dot on the screen is represented by a single binary
+On the monochrome ST, the display system is very simple. Each dot on the screen is represented by a single binary
 digit (bit) of memory. Screen memory is organized in such a
-way that the first byte represents the 8 dots in the top left cor-
-ner of the screen, and each succeeding byte represents the
+way that the first byte represents the 8 dots in the top left corner of the screen, and each succeeding byte represents the
 next 8 dots to the right. Since each line contains 640 dots
 across, the first 80 bytes fill up the top line, and the next byte
 is used to represent the first 8 dots on the second line. There
@@ -5315,8 +5111,7 @@ eee
 
 CHAPTER 4
 Each bit of screen memory can hold either the number 0
-or 1. On a monochrome system, only one bit is needed to rep-
-resent a screen dot or pixel (picture element), because each dot
+or 1. On a monochrome system, only one bit is needed to represent a screen dot or pixel (picture element), because each dot
 on the screen is either white (off) or black (on). But with a
 color ST system, things are somewhat different. In medium-res
 mode, any dot can be one of four colors. Two binary digits are
@@ -5329,17 +5124,13 @@ WNe
 In lo-res mode, any dot can be
 1 of 16 colors, so four bits
 are required to describe a single pixel. Color screen memory is
-organized in much the same way as monochrome screen mem-
-ory, except, instead of single bits, groups of bits are used to
+organized in much the same way as monochrome screen memory, except, instead of single bits, groups of bits are used to
 represent each screen dot. Thus, in medium resolution the first
 byte of screen memory is used to depict the four pixels at the
 top left corner of the screen. The two high-order bits specify
-the color in the first dot, the next two the color in the follow-
-ing dot, and so on. Since there are 640 dots per row, each row
+the color in the first dot, the next two the color in the following dot, and so on. Since there are 640 dots per row, each row
 requires 160 bytes of screen memory. But since there are only
-200 rows of dots, 32,000 bytes of screen memory are still suf-
-ficient to display all of the dots on the screen. In low resolu-
-tion, each byte describes only two dots of color. There are only
+200 rows of dots, 32,000 bytes of screen memory are still sufficient to display all of the dots on the screen. In low resolution, each byte describes only two dots of color. There are only
 320 dots per line in this mode, however, so 160 bytes describe
 all of the dots in each line in this mode also. (See Figure 4-2.)
 Figure 4-2. Low-Resolution Screen Memory
@@ -5360,8 +5151,7 @@ Color and Other Graphics Settings
 In monochrome mode, each bit pattern can represent a
 specific color, because there are only a
 total of two colors
-available. But the ST is capable of displaying 512 different col-
-ors on an RGB color monitor or television set. Clearly, in color
+available. But the ST is capable of displaying 512 different colors on an RGB color monitor or television set. Clearly, in color
 mode each set of bits cannot represent a particular color, using
 a code where 0 represents white,
 1 stands for black, and so
@@ -5387,22 +5177,18 @@ at the time the dot was drawn. This means that if you use pen
 line, and that pen contains the default color black,
 the line will be black. But if you change the color in pen 1
 to
-green after you’ve drawn the line, the line you drew and every-
-thing else on the screen that was drawn with pen 1
-will in-
-stantly become green.
+green after you’ve drawn the line, the line you drew and everything else on the screen that was drawn with pen 1
+will instantly become green.
 The two factors that determine which colors are assigned
 to the figures that you draw on the screen, therefore, are the
-pen you used for the drawing and the color currently con-
-tained in that pen.
+pen you used for the drawing and the color currently contained in that pen.
 As we’ve seen above, you can choose a different pen for
 drawing markers and lines by using the vsm_color and
 vsl_color calls. And we will see later that you may also select
 another pen for graphic text with the vst_color call, and one
 for filled shapes with vsf_color.
 In BASIC, all but the marker pen are set with the same
-command, COLOR. If you do not specify a pen before draw-
-ing, you'll get the default drawing pen that is specified in the
+command, COLOR. If you do not specify a pen before drawing, you'll get the default drawing pen that is specified in the
 71
 
 <!-- source-page: 79 -->
@@ -5414,14 +5200,12 @@ was opened (usually color 1, which has a default value of
 black). You should be aware that the GEM VDI drawing pens
 (referred to in the GEM literature as the color index) do not
 correspond numerically to the ST color registers. GEM uses a
-complex scheme for mapping drawing pens to hardware regis-
-ters, so that drawing pen
+complex scheme for mapping drawing pens to hardware registers, so that drawing pen
 1 corresponds to color register 15,
 pens 3, 4, and 5 correspond to registers 2, 4, and 6; pens 6, 7,
 and 8 correspond to registers 3, 5, and 7, and so forth. GEM
 uses a lookup table to match color index values to hardware
-registers. The complete correspondence is mapped out in Ta-
-ble 4-2.
+registers. The complete correspondence is mapped out in Table 4-2.
 In addition to determining which color register will be
 used for drawing, we must also determine the color that the
 register contains. Colors are chosen by mixing various levels of
@@ -5441,12 +5225,10 @@ levels for red, green, and blue. The first element of this array
 and the third holds the blue value. Since GEM is written to be
 non—computer-specific, these color values are expressed in
 tenths of a percent of color saturation, meaning the color level
-values range from 0 to 1000. With only eight color levels sup-
-ported by the hardware, it should be obvious that many rgb
+values range from 0 to 1000. With only eight color levels supported by the hardware, it should be obvious that many rgb
 values will display in the same color. Table 4-1 shows the
 relationships between the color value that you request (with
-the vs_color call), the actual value that is set, and the hard-
-ware color register level to which that value corresponds.
+the vs_color call), the actual value that is set, and the hardware color register level to which that value corresponds.
 72
 
 <!-- source-page: 80 -->
@@ -5484,8 +5266,7 @@ Color Level
 929 and up
 = 1000
 7
-Since there are 512 possible combinations, it’s nearly im-
-possible to describe each one or to explain exactly how to find
+Since there are 512 possible combinations, it’s nearly impossible to describe each one or to explain exactly how to find
 a particular shade. In general, however, the higher the color
 level, the brighter the color; the lower the level, the darker the
 color. Whether the color displayed by a register tends toward
@@ -5550,19 +5331,14 @@ CHAPTER 4
 You can use the Control Panel desk accessory to get instant
 feedback on what color levels to use for a particular color.
 When you use it to mix colors using different levels of red,
-green, and blue, the panel displays these color levels as num-
-bers from 0 to 7. Using Table 4-1, you can translate these hard-
-ware levels into the corresponding numbers used by the VDI.
-If you do not change the colors of any of the color regis-
-ters, the default VDI color palette will be used. Table 4-2 gives
+green, and blue, the panel displays these color levels as numbers from 0 to 7. Using Table 4-1, you can translate these hardware levels into the corresponding numbers used by the VDI.
+If you do not change the colors of any of the color registers, the default VDI color palette will be used. Table 4-2 gives
 the default values for each of the VDI color pens. Next to each
 -
-pen number in square brackets is the number of the correspond-
-ing hardware color register. In square brackets, next to the VDI
+pen number in square brackets is the number of the corresponding hardware color register. In square brackets, next to the VDI
 red, green, and blue color values for each of the registers, are
 the corresponding hardware color levels. The table illustrates
-the 16-color low-resolution mode, but the 4-color mode is sim-
-ilar, with the exception that pen 1 maps to color register 3 in
+the 16-color low-resolution mode, but the 4-color mode is similar, with the exception that pen 1 maps to color register 3 in
 medium-resolution mode.
 Table 4-2. Default Values of VDI Color Pens
 Pen [Reg]
@@ -5672,8 +5448,7 @@ The VDI pen numbers are followed by the corresponding hardware color register
 numbers, in square brackets. The VDI color levels are followed by the corresponding
 hardware register color levels, shown in square brackets.
 Locating Color Information
-It is often useful to be able to find out which color is con-
-tained in a particular color register. For one thing, GEM does
+It is often useful to be able to find out which color is contained in a particular color register. For one thing, GEM does
 not reset the color palette when your application ends and the
 74
 
@@ -5692,21 +5467,16 @@ vq—color(handle, pen, flag, rgb);
 where pen is the color register number, and rgb is an array
 where the red, green, and blue color levels will be returned (in
 elements 0, 1, and 2, respectively). The flag setting allows you
-to select whether you wish to learn the setting that was re-
-quested when the vs_color call was made or the actual value
+to select whether you wish to learn the setting that was requested when the vs_color call was made or the actual value
 that was set.
 As we stated above, there are 1000 different VDI settings,
 but only eight possible hardware settings, so a wide range of
-VDI settings correspond to the same hardware setting. For ex-
-ample, if you set all the values in rgb[0]-[3] to 650 and call
-vs—color, then a color level of 714 (corresponding to a hard-
-ware level of 5) will be set for each. If you request a value of
-700 or 750, you'll still get a setting of 714. The flag setting de-
-termines whether the color level values that you get are the
+VDI settings correspond to the same hardware setting. For example, if you set all the values in rgb[0]-[3] to 650 and call
+vs—color, then a color level of 714 (corresponding to a hardware level of 5) will be set for each. If you request a value of
+700 or 750, you'll still get a setting of 714. The flag setting determines whether the color level values that you get are the
 values that were requested or the values that were actually set.
 If you set the flag to
-1 before calling vq—color, you get the ac-
-tual color settings (714 in each case). But if you set the flag to
+1 before calling vq—color, you get the actual color settings (714 in each case). But if you set the flag to
 0, you get the value that was requested, not the one that was
 set (650, 700, or 750). You should also note that if an invalid
 pen number is requested,
@@ -5715,13 +5485,11 @@ is returned in rgb{0].
 Another handy bit of information to have is the pen color
 used to draw a given dot on the screen. The function Get Pixel
 returns not only that information, but the color register that
-corresponds to that pen setting as well. The C language ver-
-sion of this call is
+corresponds to that pen setting as well. The C language version of this call is
 int handle, x, y, pixel, pen;
 v—get_pixel(handle, x, y, &pixel, &pen);
 where x and y are the coordinates of the point, pixel is the
-variable in which the hardware color register number is re-
-turned, and pen is the variable in which the pen number is
+variable in which the hardware color register number is returned, and pen is the variable in which the pen number is
 returned.
 75
 
@@ -5729,9 +5497,7 @@ returned.
 ## Page 83
 
 CHAPTER 4
-Program 4-1 shows how to change the color that is con-
-tained in each of the drawing pens. This program works cor-
-rectly only on a color monitor, since the principles it illustrates
+Program 4-1 shows how to change the color that is contained in each of the drawing pens. This program works correctly only on a color monitor, since the principles it illustrates
 are not applicable to the monochrome screen.
 In Program 4-1 each of the bars initially appears in the
 ~
@@ -5963,8 +5729,7 @@ that dot is changed to reflect the number of the color register
 that produces that color. In effect, the new drawing replaces
 whatever had previously appeared in that spot on the screen.
 It’s also possible for drawing operations to interact with
-existing screen graphics, rather than to replace them. For ex-
-ample, a dotted line is partly made up of 1
+existing screen graphics, rather than to replace them. For example, a dotted line is partly made up of 1
 bits (the graphics
 object), and partly of 0 bits (the color mask). The line part is
 normally drawn in whatever color is in the line drawing pen.
@@ -5995,25 +5760,20 @@ The VDI writing mode affects all of these different types of
 graphics renderings. Once you set a new writing mode, it
 stays in effect until you explicitly change it again.
 ~-
-Replace mode. The default writing mode is called the Re-
-place mode. In Replace mode, the part of the image that con-
-sists of 1 bits is drawn with whatever color is in the relevant
+Replace mode. The default writing mode is called the Replace mode. In Replace mode, the part of the image that consists of 1 bits is drawn with whatever color is in the relevant
 drawing pen (the line drawing pen, the marker pen, the text
 pen, or the fill pen). The part of the image that consists of 0
 bits (the color mask) is drawn in the background color, found
-in pen 0. As its name suggests, Replace mode replaces what-
-ever color was already there with the drawing color and the
+in pen 0. As its name suggests, Replace mode replaces whatever color was already there with the drawing color and the
 background color.
-Transparent mode. The second mode is called Transpar-
-ent mode. As with Replace mode, drawings that are made in
+Transparent mode. The second mode is called Transparent mode. As with Replace mode, drawings that are made in
 this mode depict the graphics object (1 bits) in the color of the
 current drawing pen. But Transparent mode drawings leave
 the color mask portion (0 bits) alone, so that whatever color
 was there previously still shows through in the blank spaces
 around the image. Patterned images drawn in Transparent
 mode look different from those drawn in Replace mode, with
-the former looking as if they had been stenciled onto the exist-
-ing image. Solid images look the same when drawn in either
+the former looking as if they had been stenciled onto the existing image. Solid images look the same when drawn in either
 mode, however, since they are made up entirely of 1
 bits.
 Reverse Transparent mode. The opposite of Transparent
@@ -6080,8 +5840,7 @@ Another interesting property of XOR mode is that while
 using it once always changes the picture, using it twice in a
 row restores the original colors. This makes XOR mode handy
 for drawing lines that will have to be erased later. It also lends
-itself to use in animation, where the background must be re-
-stored after the object is moved.
+itself to use in animation, where the background must be restored after the object is moved.
 Set Writing Mode. The VDI function call that is used to
 set one of these drawing modes is called Set Writing Mode.
 The C format for this function is
@@ -6110,8 +5869,7 @@ Program 4-2 demonstrates the different writing modes by
 drawing dotted lines and text in each of the four modes.
 In order to show the full effect of the different modes,
 half of the background screen is left as background color, and
-half is changed to the color in pen 3 (green). On that back-
-ground, we draw black patterned lines using line pattern 5
+half is changed to the color in pen 3 (green). On that background, we draw black patterned lines using line pattern 5
 (dashed), and graphics text. Though the text commands will
 not be covered until a later chapter, we included text in this
 example because it clearly illustrates the differences between
@@ -6124,16 +5882,13 @@ spaces between the lines are left alone, so they appear in
 white on the white background and green in that part of the
 screen. Only the black letters of the text are drawn.
 In XOR mode, the part of the line that is drawn in black
-in the other two modes is drawn in the complement of what-
-ever color it’s drawn on. The complement of white is always
+in the other two modes is drawn in the complement of whatever color it’s drawn on. The complement of white is always
 black, but the complement of green in lo-res mode is different
 from what it is in medium-res mode. In medium-res, red
 (color register 1) is the complement of green (color register 2).
 But in lo-res, light cyan (color register 13) is its complement.
 As in transparent mode, the background is left alone in the
-spaces between the image patterns, or around the letters. Fi-
-nally, in Reverse Transparent mode, the spaces that were ordi-
-narily blank in the dotted line are drawn in, in black, while
+spaces between the image patterns, or around the letters. Finally, in Reverse Transparent mode, the spaces that were ordinarily blank in the dotted line are drawn in, in black, while
 the line itself is left in the background color. Similarly, the
 80
 
@@ -6142,8 +5897,7 @@ the line itself is left in the background color. Similarly, the
 
 Color and Other Graphics Settings
 “frame” around the letters is colored in, in black, while the
-letter shapes themselves are filled with whatever color hap-
-pened to be there already.
+letter shapes themselves are filled with whatever color happened to be there already.
 Program 4-2. drawmode.c
 /RRECETEREETERA TERE R EATER
 EERE RARER EKER EEE EET
@@ -6889,20 +6643,17 @@ Clipping
 Another function that affects all types of graphics output is
 known as clipping. Clipping is used to confine graphics output
 to a designated rectangular portion of the screen. If part of the
-graphics output you’re trying to draw lies inside of the clip-
-ping rectangle and part lies outside the rectangle, the part that
+graphics output you’re trying to draw lies inside of the clipping rectangle and part lies outside the rectangle, the part that
 is inside will be drawn, while the part that is outside won't.
 By setting a clipping rectangle that is as large as the entire
 display, you can insure that no part of your graphics output
 will be ‘“drawn” on memory that does not belong to the
 screen display. This can prevent nasty system crashes, since
-when drawing operations affect program memory, unpredict-
-able (and usually unpleasant) results occur. Clipping is also
+when drawing operations affect program memory, unpredictable (and usually unpleasant) results occur. Clipping is also
 extremely helpful for updating GEM windows. Not only can it
 insure that you confine your drawing to the interior of the
 window, it can also enable you to redraw only the portion of
-the window that has been uncovered after having been cov-
-ered by another window.
+the window that has been uncovered after having been covered by another window.
 Like all good things, clipping has its price. When clipping
 is on, the VDI must examine every point before it’s drawn, in
 order to make sure that it lies within the rectangle. This extra
@@ -6912,11 +6663,9 @@ on, you must use the Set Clipping Rectangle function, the C
 version of which looks like this:
 int handle, flag, points[4);
 vs—clip(handle, flag, points);
-where flag is used to indicate whether you want to turn clip-
-ping on (flag =
+where flag is used to indicate whether you want to turn clipping on (flag =
 1 or greater) or to turn clipping off (flag = 0).
-Points is a pointer to an array that holds the x and y coordi-
-nates of the four sides of the clipping rectangle. Points[0]
+Points is a pointer to an array that holds the x and y coordinates of the four sides of the clipping rectangle. Points[0]
 85
 
 <!-- source-page: 93 -->
@@ -7064,40 +6813,28 @@ NDC Example
 So far, all of our sample programs have used the ST’s own
 Raster Coordinate system. But as we saw in Chapter 2, the
 GEM VDI also supports a non-device-specific format called
-Normalized Device Coordinates. The type of coordinate sys-
-tem you choose, Raster or Normalized, is another setting deci-
-sion that affects all subsequent drawing functions. Sample
-Program 4-5 opens two workstations, one using Raster Co-
-ordinates and the other using Normalized Device Coordinates.
+Normalized Device Coordinates. The type of coordinate system you choose, Raster or Normalized, is another setting decision that affects all subsequent drawing functions. Sample
+Program 4-5 opens two workstations, one using Raster Coordinates and the other using Normalized Device Coordinates.
 It then draws a box containing a
-circle, using each type of co-
-ordinate system. Note that several workstations can be open at
+circle, using each type of coordinate system. Note that several workstations can be open at
 once, each with its own set of graphics settings.
 By looking at the functions showrc and shownorm, we
-can examine some of the differences between the two coordi-
-nate systems. In the raster coordinate system, we have to scale
+can examine some of the differences between the two coordinate systems. In the raster coordinate system, we have to scale
 the horizontal and vertical coordinates for the center point of
 the circle, and the radius value, according to the maximum
 screen resolution.
 In NDC mode, we use the same fixed values regardless of
-the screen resolution, and the VDI does the scaling for us. No-
-tice how we must scale the vertical height of the box accord-
-ing to the aspect ratio of each pixel. That’s because the VDI
+the screen resolution, and the VDI does the scaling for us. Notice how we must scale the vertical height of the box according to the aspect ratio of each pixel. That’s because the VDI
 scales the circle in order to make it appear round. We use the
 values in work_out[3]-[4] to find the aspect ratio. Interestingly
 enough, we not only have to scale the vertical dimension of
 the NDC box according to the aspect ratio of each pixel, but
 we also have to scale it according to the aspect ratio of the
-screen. That’s because in NDC mode, the VDI not only com-
-pensates for the fact that each pixel may not be as wide as it is
-tall, but also for the fact that there may not be an even num-
-ber of rows and columns. Another point worth mentioning is
+screen. That’s because in NDC mode, the VDI not only compensates for the fact that each pixel may not be as wide as it is
+tall, but also for the fact that there may not be an even number of rows and columns. Another point worth mentioning is
 that we did not have to change the line drawing pen to get
-the second figure to appear in black, since the NDC work-
-station uses its own line drawing pen which is separate from
-the one used by the RC workstation. This program also dem-
-onstrates the rounding error that can occur when we use Nor-
-malized coordinates. In the color modes, the circle on the right
+the second figure to appear in black, since the NDC workstation uses its own line drawing pen which is separate from
+the one used by the RC workstation. This program also demonstrates the rounding error that can occur when we use Normalized coordinates. In the color modes, the circle on the right
 extends one dot past the border of the box.
 As discussed earlier Program 4-5 requires that GDOS be
 in the AUTO folder of the disk used when starting your system.
@@ -7408,24 +7145,20 @@ NDC.c
 BASIC Graphics Settings
 None of the generalized graphics settings that we have been
 talking about in this chapter have keyword support in the first
-version of ST BASIC. Although the revised version has not ap-
-peared at the time of this writing, there are indications that
+version of ST BASIC. Although the revised version has not appeared at the time of this writing, there are indications that
 this version will include the command DRAWMODE to set the
 drawing mode. The form for this command is
 DRAWMODE mode
 where mode is the mode number from 1
 to 4 (these correspond
-to the mode numbers used by vswr_mode). It may also in-
-clude the commands RGB to set the color registers, and ASK
+to the mode numbers used by vswr_mode). It may also include the commands RGB to set the color registers, and ASK
 RGB to read them. The syntax for these are
 RGB register, red, green, blue
 ASK RGB register, red, green, blue
 where register is the color register number, and red, green, and
-blue are either the values for the new settings (RGB) or vari-
-ables to hold the existing settings (ASK RGB). Note that these
+blue are either the values for the new settings (RGB) or variables to hold the existing settings (ASK RGB). Note that these
 settings reflect the hardware registers, not the VDI pens. This
-means that the register numbers will differ from the pen num-
-bers used in the COLOR command, and that the red, green,
+means that the register numbers will differ from the pen numbers used in the COLOR command, and that the red, green,
 and blue values will be in the range 0-7, not 0-1000.
 89
 
@@ -7627,14 +7360,11 @@ colors. By filling them with different crosshatch patterns you
 can make them visually distinct on both monochrome and
 color systems. Like the line drawing routines, the fill routines
 share a number of common graphics settings that can be used
-to select the color, the fill pattern, and whether or not the fig-
-ure is outlined in a solid color.
+to select the color, the fill pattern, and whether or not the figure is outlined in a solid color.
 Filled Rectangle
 The simplest of the filled figures is the rectangle. This shape is
 created with the VDI command Fill Rectangle, whose function
-is to quickly fill a rectangular area on the screen. (This com-
-mand may not work with other output devices.) The C lan-
-guage version of this function is
+is to quickly fill a rectangular area on the screen. (This command may not work with other output devices.) The C language version of this function is
 int handle, sides[4];
 vr—recfl(handle, sides);
 where sides is an array that contains the coordinates for each
@@ -7646,8 +7376,7 @@ Although drawing a
 filled box may seem a very straightforward
 operation, the VDI provides a number of fill settings that allow
 you to vary the results significantly. The first of these are the
-fill pattern settings. GEM provides the ST screen display de-
-vice with five different general types of fill patterns, which are
+fill pattern settings. GEM provides the ST screen display device with five different general types of fill patterns, which are
 referred to in the GEM literature as fill interior styles.
 93
 
@@ -7657,21 +7386,14 @@ referred to in the GEM literature as fill interior styles.
 CHAPTER 5
 The Hollow fill pattern fills the interior of the figure with
 the current background color. The Solid style fills the shape
-with the currently selected fill color. The Pattern style super-
-imposes one of a number of different drawing patterns on the
-fill area. These include dot patterns of varying density, hori-
-zontal and diagonal checkerboards, and herringbone patterns.
-The Hatch pattern fills the area with one of a number of dif-
-ferent crosshatch patterns. These are made up of horizontal,
-vertical, or diagonal lines, either alone or in combination. Fi-
-nally, the user-defined style allows you to display a pattern
-that you create yourself, using an array of 16 words to repre-
-sent a 16 X 16 pattern of dots.
+with the currently selected fill color. The Pattern style superimposes one of a number of different drawing patterns on the
+fill area. These include dot patterns of varying density, horizontal and diagonal checkerboards, and herringbone patterns.
+The Hatch pattern fills the area with one of a number of different crosshatch patterns. These are made up of horizontal,
+vertical, or diagonal lines, either alone or in combination. Finally, the user-defined style allows you to display a pattern
+that you create yourself, using an array of 16 words to represent a 16 X 16 pattern of dots.
 When you open your virtual workstation, you specify a
 default pattern type in the variable work_in[7]. (We’ve been
-setting it to 1, Solid.) To change the pattern type from this de-
-fault, you must choose another with the command Set Fill In-
-terior Style. The syntax for this call is
+setting it to 1, Solid.) To change the pattern type from this default, you must choose another with the command Set Fill Interior Style. The syntax for this call is
 int handle, pattern_type
 type_set = vsf_interior(handle, pattern_type);
 where pattern_type is
@@ -7690,14 +7412,10 @@ User-Defined
 The number of the pattern type that the VDI actually sets is
 returned in the variable type_set. If you choose a pattern_type
 that isn’t available, the type will be set to 0, Hollow.
-As we mentioned above, two of these pattern types con-
-tain a number of different patterns with similar characterstics.
+As we mentioned above, two of these pattern types contain a number of different patterns with similar characterstics.
 The Pattern style is made up of 24 different dot patterns, and
-the Hatch type has 12 different type of crosshatch line pat-
-terns. Whenever you choose the Pattern or Hatch styles, the
-actual fill pattern that is used will be determined by the set-
-ting of the Fill Style Index, that selects one of these sub-
-patterns. When you open the virtual screen workstation, you
+the Hatch type has 12 different type of crosshatch line patterns. Whenever you choose the Pattern or Hatch styles, the
+actual fill pattern that is used will be determined by the setting of the Fill Style Index, that selects one of these subpatterns. When you open the virtual screen workstation, you
 designate the default value for this index in the variable
 work_in[8] (provided that the GDOS extension is loaded).
 Thereafter, you can select
@@ -7715,8 +7433,7 @@ where pattern_index is the index number for the subpattern.
 For Hatch patterns on the ST screen, index numbers from 1 to
 12 produce different crosshatch designs, and for Pattern type
 fills, index numbers from 1 to 24 produce unique results. The
-number of the index that was actually set by the VDI is re-
-turned in the variable index_set. If the index requested is not
+number of the index that was actually set by the VDI is returned in the variable index_set. If the index requested is not
 available, an index of 1 is set.
 A few things should be noted about the fill patterns. First,
 patterns always repeat at even 16-dot intervals, starting with
@@ -8485,13 +8202,10 @@ ystep:
 31/4 screen height
 -end
 User-Defined Pattern Fill
-The one pattern that we have not discussed so far is the user-
-defined fill pattern. When the user-defined line pattern is se-
-lected, we must also tell the VDI what the pattern looks like.
+The one pattern that we have not discussed so far is the userdefined fill pattern. When the user-defined line pattern is selected, we must also tell the VDI what the pattern looks like.
 This is done in much the same way as we set up the image for
 the user-defined line pattern. Like the line pattern, each fill
-pattern is 16 dots wide, which means that each line can be de-
-scribed with a single 16-bit number. While the line pattern is
+pattern is 16 dots wide, which means that each line can be described with a single 16-bit number. While the line pattern is
 only 1 line high, however, each fill pattern is 16 lines tall.
 99
 
@@ -8499,11 +8213,9 @@ only 1 line high, however, each fill pattern is 16 lines tall.
 ## Page 107
 
 CHAPTER 5
-This means that it takes the equivalent of 16 line pattern de-
-scriptions, stacked one on top of the other, to describe a
+This means that it takes the equivalent of 16 line pattern descriptions, stacked one on top of the other, to describe a
 fill
-pattern. These sixteen 16-bit descriptions are placed in an ar-
-ray, and the address of the array is used to specify the pattern.
+pattern. These sixteen 16-bit descriptions are placed in an array, and the address of the array is used to specify the pattern.
 In order to determine the values to be placed in this array,
 binary digits are used to represent each line of filled dots
 (ones) and unfilled dots (zeros). Just writing out the pattern as
@@ -8526,8 +8238,7 @@ O0000C0000000000 = 0 X C000
 00001110141000000 = 0 X CECO
 0000041011111100 = 0 X 04FC
 Q000000000000000 = 0 X 0000
-By drawing the pattern using zeros and ones, and con-
-verting those binary numbers to hexadecimal, we get the data
+By drawing the pattern using zeros and ones, and converting those binary numbers to hexadecimal, we get the data
 needed for setting up our user-defined fill pattern. Once we
 have this data, we can use the VDI call. Set User-Defined Fill
 Pattern, to establish it as the pattern to be used when we
@@ -8556,17 +8267,14 @@ the output of the fillpat.c program, above.
 Multicolor Pattern Fill
 It’s also possible to set the user-defined fill pattern to produce
 a multicolored pattern. Such a
-fill pattern is much more com-
-plex than the standard two-color fill.
+fill pattern is much more complex than the standard two-color fill.
 In order to understand how multicolor fill patterns work,
 we must first discuss the concept of color bit planes. When we
 talked about color formation previously, we noted that when
-each dot on the screen can only be displayed in one of 2 col-
-ors, you only need one binary digit (bit) to represent that dot,
+each dot on the screen can only be displayed in one of 2 colors, you only need one binary digit (bit) to represent that dot,
 since a one or a zero covers the whole range of possiblities.
 But if you want to display that dot in any one of 4 colors, you
-need two bits to represent it. Each time you double the num-
-ber of possible colors, you need one more bit to represent the
+need two bits to represent it. Each time you double the number of possible colors, you need one more bit to represent the
 dot. Thus, in order to get 8 colors, you need three bits per dot,
 and to get 16 colors you need four bits per dot.
 When you know that you’re going to have a fixed number
@@ -8578,11 +8286,9 @@ so it had to be made as flexible as possible. If, for example, if
 GEM was used as the operating system on a computer that
 displays eight colors on screen at a time, it would be very
 awkward to say that each byte of display memory holds the
-information for 2% dots. Therefore, for the purpose of mullti-
-color pattern fills, color bits are grouped by what are called bit
+information for 2% dots. Therefore, for the purpose of mullticolor pattern fills, color bits are grouped by what are called bit
 planes. In such a grouping, the color bits for a single dots are
-split up so they aren’t contiguous the way they are in ST dis-
-play memory. Instead, all of the least-significant bits are in
+split up so they aren’t contiguous the way they are in ST display memory. Instead, all of the least-significant bits are in
 one block, followed by a block of the next most-significant
 bits, and so on. To construct the group of bits necessary to
 make up the dot in the top, left corner of the picture, you must
@@ -8618,11 +8324,9 @@ Plane
 1
 Planeé
 The color bit plane model is used when setting up data
-arrays for multicolor pattern fills. Each time you wish to dou-
-ble the number of colors available in the fill pattern, you must
+arrays for multicolor pattern fills. Each time you wish to double the number of colors available in the fill pattern, you must
 add another 16-word group onto the end of the pattern array.
-The first 16-word group is bit plane zero, the second is bit-
-plane one, and so on. The total number of 16-word bit planes
+The first 16-word group is bit plane zero, the second is bitplane one, and so on. The total number of 16-word bit planes
 should be passed to the function in the variable bit_planes.
 Take, for example, the case of the following fill pattern array:
 int pattern []={
@@ -8651,34 +8355,28 @@ OxFFFF, OxFFFF,
 Filled Shapes
 The top four words of each bit plane are made up of all
 ones, so the first four lines will have a one in each bit position.
-This corresponds to the binary number 11, or or decimal num-
-ber 3, which means that they will be drawn in with the color
+This corresponds to the binary number 11, or or decimal number 3, which means that they will be drawn in with the color
 in color register 3. The next four words have ones in the least
 significant bit plane but a zero in the most significant bit, so
 they’re drawn by color register 1. The next four words have the
-zero in the least significant bit and the one in the most signifi-
-cant bit, so they are in color register 2. And the last four words
+zero in the least significant bit and the one in the most significant bit, so they are in color register 2. And the last four words
 have zeros in both bit places, so they are background color.
 Please note that the numbers formed by joining together
-the bit planes refer to color registers and not VDI pen num-
-bers. The correspondence between the color registers and the
+the bit planes refer to color registers and not VDI pen numbers. The correspondence between the color registers and the
 VDI drawing pens (also known as the color index) can be
-found in Table 4-2. Also note that when using multicolor pat-
-tern fills, your pattern array must have the same number of bit
+found in Table 4-2. Also note that when using multicolor pattern fills, your pattern array must have the same number of bit
 planes as the display (for example, two for medium resolution
 and four for low resolution). If the bit_planes value of your
 vsf_udpat call does not agree with the actual number of bit
 planes used by the display, the call will fail and your pattern
 will not be installed. Finally, keep in mind that when you use
-the multicolor fill capability of the VDI, each bit plane is com-
-bined with the existing picture according to the writing mode,
+the multicolor fill capability of the VDI, each bit plane is combined with the existing picture according to the writing mode,
 so if you use a mode other than the default Replace mode,
 things can get extremely complicated.
 Program 5-3 shows the use of a four-color fill pattern.
 The program works on a monochrome monitor also, but you
 won't get the multicolor effect. The program displays a
-fill pat-
-tern that is composed of squares of color 0, 1, 2, and 3. If you
+fill pattern that is composed of squares of color 0, 1, 2, and 3. If you
 run the program in low resolution, you'll notice that color 3 is
 shown as yellow, whereas it is black in medium resolution.
 That’s because these colors refer to the hardware registers, not
@@ -8876,19 +8574,16 @@ changes the pen number of the foreground color drawn by
 these operations. (As you may remember, the default fill color
 was set to the value in work_in{9] at the time the virtual
 workstation was opened.) This function is called Set Fill Color
-Index, and its syntax should be familiar to you by now, be-
-cause it’s virtually identical to that of the calls used to set the
+Index, and its syntax should be familiar to you by now, because it’s virtually identical to that of the calls used to set the
 marker and line colors:
 int handle, pen;
 pen_set = vsf_color(handle, pen)
 where pen is the number of the drawing pen which you are
 requesting as the fill color, and pen_set is the variable in
-which the function returns the number of the pen that was ac-
-tually set.
+which the function returns the number of the pen that was actually set.
 The final setting is used to determine whether or not the
 filled shapes created by the various VDI calls will be drawn
-with a solid outline around them. The Set Fill Perimeter Visi-
-bility call is the one used to change this setting, and it can be
+with a solid outline around them. The Set Fill Perimeter Visibility call is the one used to change this setting, and it can be
 called like this:
 int handle, visibility_flag;
 visibility_set = vsf_perimeter(handle, visibility_flag);
@@ -8898,8 +8593,7 @@ a variable in which the actual setting is returned. In both
 cases, a Zero value indicates no outlining, and a value of one
 (or any other nonzero value) specifies that a visible outline
 will be drawn. It should be noted that this particular setting
-does not affect the Fill Rectangle (vr_recfl) function, which al-
-ways draws the rectangle without an outline.
+does not affect the Fill Rectangle (vr_recfl) function, which always draws the rectangle without an outline.
 Settings Inquiry
 As with the marker and line settings, the current status of the
 fill settings can be determined with a single VDI call. The
@@ -8928,18 +8622,15 @@ current draw mode
 Filled Shape Generalized Drawing Primitives (GDPs)
 The VDI supplies a number of GDPs which can be used to
 create a wide variety of filled shapes. The simplest is Bar,
-which is used to draw a rectangle. This may seem to be waste-
-ful redundancy, since a wide polyline or a rectangle fill each
+which is used to draw a rectangle. This may seem to be wasteful redundancy, since a wide polyline or a rectangle fill each
 produce a
 filled box, but Bar is just a
 little bit different.
 A wide
-polyline, for example, can be used for a solid box, but it can-
-not be filled with a pattern, and it uses the line settings rather
+polyline, for example, can be used for a solid box, but it cannot be filled with a pattern, and it uses the line settings rather
 than the fill settings. The rectangle fill function is designed to
 speedily clear a rectangular area of the screen only (not other
-graphics output devices), thus it doesn’t use the outline set-
-ting. The bar function, however, can be used by any device,
+graphics output devices), thus it doesn’t use the outline setting. The bar function, however, can be used by any device,
 and it does support outlining. (As its name suggests, it’s very
 handy for bar graphs.)
 While we’re on the subject of overlapping functions, you
@@ -8958,8 +8649,7 @@ The filled shape equivalent of the line drawing Rounded
 Rectangle function is called Filled Rounded Rectangle. As with
 the bar function above, all you have to do to draw a
 filled
-rounded rectangle is point to an array that contains the coordi-
-nates of the top left and bottom right corners of the rectangle:
+rounded rectangle is point to an array that contains the coordinates of the top left and bottom right corners of the rectangle:
 106
 
 <!-- source-page: 114 -->
@@ -9143,20 +8833,15 @@ of
 Userfill.c
 &/
 The final four filled shape GDPs allow you draw filled
-circles, ellipses, or pie-shaped wedges of either. The filled cir-
-cle and the circular pie functions correct the vertical radius for
+circles, ellipses, or pie-shaped wedges of either. The filled circle and the circular pie functions correct the vertical radius for
 the aspect ratio of the display screen, so the figures that they
-draw appear to be round even on displays like the medium-
-res color screen, which has tall, skinny pixels. The filled el-
-lipse and elliptical pie functions use whatever horiztonal and
+draw appear to be round even on displays like the mediumres color screen, which has tall, skinny pixels. The filled ellipse and elliptical pie functions use whatever horiztonal and
 vertical radius that you specify.
 The calling sequence for the Circle function is
 int handle, x, y, radius;
 v—circle(handle, x, y, radius);
-where x and y describe the center point of the circle, and ra-
-dius is the radius measured horizontally. (The vertical radius is
-adjusted—it automatically corrected to compensate for the as-
-pect ratio of the screen.)
+where x and y describe the center point of the circle, and radius is the radius measured horizontally. (The vertical radius is
+adjusted—it automatically corrected to compensate for the aspect ratio of the screen.)
 The syntax of the C version of the Ellipse call is
 int handle, x, y, xradius, yradius;
 v—ellipse(handle, x, y, xradius, yradius);
@@ -9165,14 +8850,11 @@ xradius and yradius describe the horizontal and vertical radii.
 The format for the Pie call is
 int handle, x, y, radius, beginangle, endangle;
 v_pieslice(handle, x, y, radius, beginangle, endangle);
-where x and y are the coordinates for the midpoint of the cir-
-cle, radius is its radius measured horizontally (the vertical ra-
-dius is adjusted for the aspect ratio), and beginangle and
+where x and y are the coordinates for the midpoint of the circle, radius is its radius measured horizontally (the vertical radius is adjusted for the aspect ratio), and beginangle and
 endangle mark the starting and ending points for the enclosed
 arc. As with the v_arc call, these angles are measured in
 1/10s of a degree, starting at the rightmost point of the circle
-as zero degrees, and moving counterclockwise, so that the top-
-most point is at 900, the leftmost at 1800, and so on. The
+as zero degrees, and moving counterclockwise, so that the topmost point is at 900, the leftmost at 1800, and so on. The
 function draws the arc of the circle described by beginangle
 and endangle, connects each end of the arc to the midpoint,
 108
@@ -9181,19 +8863,15 @@ and endangle, connects each end of the arc to the midpoint,
 ## Page 116
 
 Filled Shapes
-and fills the resulting shape according to the current fill pat-
-tern, fill color, and writing mode.
+and fills the resulting shape according to the current fill pattern, fill color, and writing mode.
 The syntax for the Elliptical Pie function is very similar:
 int handle, x, y, xradius, yradius, beginangle,endangle;
 v—ellpie(handle, x, y, xradius, yradius, beginangle, endgangle);
 The only difference is that you must supply values for both
 the horizontal and vertical radii of the ellipse.
-Program 5-5 uses the GDP Ellipse command. It also dem-
-onstrates a very important point to remember. Pattern fills are
-drawn according to the current writing mode, just like pat-
-terned lines are. As you can see from the display created by
-Program 5-5, the oval drawn in Replace mode (lower left) ob-
-scures its portion of the green block completely. The ellipses
+Program 5-5 uses the GDP Ellipse command. It also demonstrates a very important point to remember. Pattern fills are
+drawn according to the current writing mode, just like patterned lines are. As you can see from the display created by
+Program 5-5, the oval drawn in Replace mode (lower left) obscures its portion of the green block completely. The ellipses
 drawn in Transparent and Reverse Transparent modes (top left
 and top right) let the green block show through everywhere
 the fill color was not drawn. And the ellipse drawn in XOR
@@ -9331,15 +9009,13 @@ function. The Filled Area call takes an arbitrary number of
 points that you specify, connects them, and fills the resulting
 figure using the current fill settings. The shape that you create
 may cross over itself in one or more places, like a figure 8; the
-function will fill some of the loops, but may leave some adja-
-cent loops unfilled.
+function will fill some of the loops, but may leave some adjacent loops unfilled.
 The sytnax for the Filled Area call is
 int handle, count, points[2*COUNT];
 v__fillarea(handle, count, points);
 where count holds the number of vertices to be connected, and
 points is a pointer to an array of x and y coordinates for those
-points. Since each point has a horizontal and vertical compo-
-nent, the array contains twice as many elements as there are
+points. Since each point has a horizontal and vertical component, the array contains twice as many elements as there are
 points. Note that in order to insure that the points describe an
 enclosed shape, this function connects the last point in the list
 to the first point. Thus, it only requires four points to describe
@@ -9348,8 +9024,7 @@ the outline of that box. The function will not draw a figure
 that only has one point. If the shape has no area to fill, it is
 represented by a single dot if visible outlining is turned on,
 and is not drawn at all if outlining is turned off.
-Program 5-6 shows how to create a complex filled poly-
-gon using the v_fillarea command. Note that where the shape
+Program 5-6 shows how to create a complex filled polygon using the v_fillarea command. Note that where the shape
 crosses itself so that there are two or more adjacent enclosed
 spaces, the interior ones are left unfilled so that they appear to
 be “outside’”’ the polygon.
@@ -9468,8 +9143,7 @@ Flood Fill
 The last of the shape filling commands is a general-purpose
 flood fill. Unlike the previous commands that we've discussed,
 a flood fill (or contour fill, as it is sometimes called) does not
-first draw a shape and then fill it in. Rather, it colors in an ex-
-isting enclosed area. The color and pattern with which it fills
+first draw a shape and then fill it in. Rather, it colors in an existing enclosed area. The color and pattern with which it fills
 the area depend on the fill color and pattern settings.
 111
 
@@ -9480,20 +9154,14 @@ CHAPTER 5
 Flood filling operates in one of two modes. In outline
 mode, the entire area enclosed by a border of the outline pen
 color is filled. Filling begins at a point which you specify and
-moves outward in all directions. As it does so, every horizon-
-tally and vertically adjacent pixel which is not colored with
-the pen designated in the call as the outline color is filled ac-
-cording to the fill color and pattern. The fill pattern stops
+moves outward in all directions. As it does so, every horizontally and vertically adjacent pixel which is not colored with
+the pen designated in the call as the outline color is filled according to the fill color and pattern. The fill pattern stops
 spreading at each point where it encounters a pixel colored by
-the outline or contour pen. If the area to be filled is not com-
-pletely surrounded by a border of that outline color, the fill
-will “leak” out, and the entire display area (or clipping rectan-
-gle) will be filled.
+the outline or contour pen. If the area to be filled is not completely surrounded by a border of that outline color, the fill
+will “leak” out, and the entire display area (or clipping rectangle) will be filled.
 In color mode, all adjacent pixels of the same color are
-filled. You designate the point at which filling begins, and what-
-ever pen was used to color that point becomes the color which
-the fill routine displaces. As the fill moves outward, every hor-
-izontally and vertically adjacent pixel which is colored with
+filled. You designate the point at which filling begins, and whatever pen was used to color that point becomes the color which
+the fill routine displaces. As the fill moves outward, every horizontally and vertically adjacent pixel which is colored with
 the displacement pen is filled. The fill stops spreading at each
 point where a pixel drawn in another pen color is encountered.
 The syntax for the Contour Fill call is
@@ -9691,10 +9359,8 @@ BASIC Fill Commands
 The first release of ST BASIC contains a number of keyword
 commands that correspond to the filled shape commands that
 we've covered in this chapter. The COLOR command can be
-used to set not only the fill color but also the fill style and in-
-dex. There is also direct support for the GDPs that drew filled
-circles, ellipses, pie slices, and elliptical pies. The BASIC com-
-mand PCIRCLE creates a
+used to set not only the fill color but also the fill style and index. There is also direct support for the GDPs that drew filled
+circles, ellipses, pie slices, and elliptical pies. The BASIC command PCIRCLE creates a
 filled circle or pie slice, while the
 command PELLIPSE outputs a
 filled ellipse or elliptical pie
@@ -9707,23 +9373,19 @@ function.
 
 CHAPTER 5
 Although not yet released at the time of this writing, the
-planned revision of ST BASIC appears to offer even more sup-
-port for the filled shape functions. Area filling is supported in
+planned revision of ST BASIC appears to offer even more support for the filled shape functions. Area filling is supported in
 two formats:
 AREA x,y; x1,y1; x2,y2,..... xn,yn
 MAT AREA count, array( )
 In the first, the keyword AREA is followed by a minimum
-of 3 coordinate pairs separated by semicolons. These coordi-
-nates specify the area to be filled. In the second format, you
+of 3 coordinate pairs separated by semicolons. These coordinates specify the area to be filled. In the second format, you
 place the coordinates in an array, and then specify the number
 of points to be drawn and the name of the array.
 The Bar command is supported by a variation of the
 BOX command:
 BOX FILL x1,y1;x2,y2
-where the first set of coordinates specifies the upper left cor-
-ner of the box, and the second specifies the lower right corner.
-Finally, the new ST BASIC supports the user-defined fill pat-
-tern with the command PATTERN:
+where the first set of coordinates specifies the upper left corner of the box, and the second specifies the lower right corner.
+Finally, the new ST BASIC supports the user-defined fill pattern with the command PATTERN:
 PATTERN planes, array
 where planes is the number of bit planes, and array is the
 name of the array which holds that number of 16 two-byte
@@ -9931,10 +9593,8 @@ shapes. But perhaps the most powerful of the VDI drawing
 functions are the raster functions that move and manipulate
 an entire block of pixels at once. This type of operation, often
 referred to as a Bit BLiT (Bit BLock Transfer), allows you to
-draw and animate images on the display screen. On the origi-
-nal ST models, the bit manipulation is performed entirely in
-software. Atari has been working on hardware support, how-
-ever, in the form of a blitter chip, a device that greatly speeds
+draw and animate images on the display screen. On the original ST models, the bit manipulation is performed entirely in
+software. Atari has been working on hardware support, however, in the form of a blitter chip, a device that greatly speeds
 up such operations. By the time you read this, this hardware
 upgrade and new TOS ROMs that support its use may already
 be available.
@@ -9949,14 +9609,12 @@ ways with existing images. All of the image or only a selected
 portion of it may be moved.
 The one thing that all raster operations have in common
 is the format used to describe the bit image. Before the VDI
-can perform the memory manipulation necessary to move im-
-ages on the screen, it needs several key pieces of information.
+can perform the memory manipulation necessary to move images on the screen, it needs several key pieces of information.
 These include the starting memory location of the image data,
 the width and height of the image in pixels, the number of
 words of data necessary to store the image, the format of the
 bit image, and the number of color planes used. Since in GEM
-parlance a bit image is known as a raster form, the data struc-
-ture in which this information is stored is called
+parlance a bit image is known as a raster form, the data structure in which this information is stored is called
 a Memory
 Form Definition Block (MFDB). It consists of ten, 16-bit words
 of information, laid out as follows:
@@ -9997,12 +9655,10 @@ int fd_rl1, fd_r2, fd_r3; /* reserved for future use */
 This definition may be found in some versions of the
 header file Obdefs.h or in another header file that comes with
 your C compiler. Our definition uses the variable type int to
-describe a 16-bit value, but for compilers that use a 32-bit-
-wide int, the variable type would have to be changed to short
+describe a 16-bit value, but for compilers that use a 32-bitwide int, the variable type would have to be changed to short
 (or WORD, if that term has been defined by a portability macro).
 The first member of this structure, fd_addr, is a pointer to
-the integer array that holds the actual shape data for the im-
-age. As an address pointer, it’s a 32-bit value. Some versions
+the integer array that holds the actual shape data for the image. As an address pointer, it’s a 32-bit value. Some versions
 of the structure definition make the first element a pointer to a
 char, but since the image data is always an even number of
 words long, it’s more convenient to use a pointer to int. We'll
@@ -10012,8 +9668,7 @@ little bit later on. If the value
 stored in fd_addr is zero, rather than an actual address, it’s a
 signal for the VDI to use screen display memory for the image
 block. In such a case, the VDI ignores the rest of the values in
-the memory form definition block. It uses the beginning ad-
-dress of screen memory for the first value, and the width,
+the memory form definition block. It uses the beginning address of screen memory for the first value, and the width,
 120
 
 <!-- source-page: 128 -->
@@ -10021,22 +9676,17 @@ dress of screen memory for the first value, and the width,
 
 Drawing and Manipulating Image Blocks
 height, and number of bit-planes for the current display
-screen. The format flag is set to show that the display is in ST-
-specific format.
+screen. The format flag is set to show that the display is in STspecific format.
 The next two members, fd_w and fd_h, specify the width
 and height of the image in pixels. Though the actual image
 data block is made up of word-length values, and thus must
 be an even-multiple-of-16 pixels wide, the image itself does
-not have to occupy all of that width. For example, you can de-
-scribe an image that’s 26 pixels wide, even though you must
-use 32 bits of data to do it. If the rightmost portion of the im-
-age only uses a part of the last word on each line, like the ex-
-ample above which only uses 10 bits of the last word, it’s
+not have to occupy all of that width. For example, you can describe an image that’s 26 pixels wide, even though you must
+use 32 bits of data to do it. If the rightmost portion of the image only uses a part of the last word on each line, like the example above which only uses 10 bits of the last word, it’s
 known as a fringe. Images that are not an even-multiple-of-
 16-bits wide tend to be drawn a
 bit more slowly than images
-that are an even-number-of-words wide, since the VDI is al-
-ways forced to do bit manipulation on them to mask out the
+that are an even-number-of-words wide, since the VDI is always forced to do bit manipulation on them to mask out the
 unwanted bits.
 The next member of the structure, fd_wdwidth, is used to
 store the number of words of image data per line. If the width
@@ -10052,15 +9702,11 @@ the ST display memory.
 The last significant item in this data structure is
 fd_nplanes. This item is used to store the number of color bit
 planes used by the image. As we have explained earlier, one
-bit plane is needed for a monochrome (actually, 2-color) im-
-age, two bit planes are needed for a 4-color image, and four
-are required for a 16-color image. Since each of the ST’s dis-
-play modes uses a different number of bit planes, your appli-
-cation should determine how many planes are in the current
+bit plane is needed for a monochrome (actually, 2-color) image, two bit planes are needed for a 4-color image, and four
+are required for a 16-color image. Since each of the ST’s display modes uses a different number of bit planes, your application should determine how many planes are in the current
 screen and proceed accordingly. The vq_extnd function can be
 used to determine the number of planes in the display; this
-value is returned in work_out[4] when you use the call to re-
-trieve the Extended Inquire information.
+value is returned in work_out[4] when you use the call to retrieve the Extended Inquire information.
 The most important piece of information needed to draw
 bit images, though, is the actual image shape data. GEM al-
 121
@@ -10069,15 +9715,12 @@ bit images, though, is the actual image shape data. GEM al-
 ## Page 129
 
 CHAPTER 6
-lows this image data to be stored in one of two different for-
-mats, The first, the machine-specific format, is the fastest and
+lows this image data to be stored in one of two different formats, The first, the machine-specific format, is the fastest and
 easiest for the VDI to use, since it conforms to the internal
 configuration of the ST’s own display memory. The second,
-the GEM standard format, is offered for purposes of portabil-
-ity. Since the VDI offers a function for converting an image
+the GEM standard format, is offered for purposes of portability. Since the VDI offers a function for converting an image
 from one format to the other, you can create an image in the
-GEM standard format, and then convert it to the machine-
-specific format of the host computer, without having any idea
+GEM standard format, and then convert it to the machinespecific format of the host computer, without having any idea
 what the display memory layout of that computer is like. If
 you plan to write software only for the ST, though, you'll
 probably have no need for the standard format.
@@ -10089,9 +9732,7 @@ byte of memory. In the 4-color mode, the first byte of each
 line describes the four colored dots at the extreme left of that
 line. Each adjacent bit pair stores
 a number from 0
-to 3, indi-
-cating the color register used to color that dot. The most sig-
-nificant two bits describe the leftmost dot, and each less
+to 3, indicating the color register used to color that dot. The most significant two bits describe the leftmost dot, and each less
 significant bit pair describes the next dot to the right. In the
 16-color mode, the first byte of each line describes first two
 colored dots on the line. Each nybble (four-bit group) stores a
@@ -10101,16 +9742,14 @@ dot, and the low order nybble holds the information for the
 dot to its right.
 Standard GEM image format is like the format used to
 store multicolored fill patterns, that we described in Chapter 5.
-In standard format, each bit of color information is in a sepa-
-rate data block called a bit-plane. A 4-color image has two
+In standard format, each bit of color information is in a separate data block called a bit-plane. A 4-color image has two
 separate bit planes, and a 16-color image contains four bit
 planes. Each plane contains a different bit of color data for the
 same dot. For example, the most significant (leftmost) bit of
 the first word of each line of data in each bit plane contains
 information about the first dot in the top line of the picture.
 The bit in plane 0, the first plane, contains the least significant
-bit of information, and the bits in each succeeding plane con-
-tain the next most significant bit of information. Putting the
+bit of information, and the bits in each succeeding plane contain the next most significant bit of information. Putting the
 122
 
 <!-- source-page: 130 -->
@@ -10120,8 +9759,7 @@ Drawing and Manipulating Image Blocks
 bits from the various planes together forms the number that
 gives the color data for that dot. (See Figure 5-1.)
 Note that a two-color (monochrome) image has one bit
-plane in standard format, just as it does in the ST-specific for-
-mat, since each dot has only one bit of associated color data.
+plane in standard format, just as it does in the ST-specific format, since each dot has only one bit of associated color data.
 This means that for monochrome images, the standard format
 is exactly the same as the ST-specific format.
 Copy Raster Opaque
@@ -10132,8 +9770,7 @@ as there is in the destination area, so that the former can be
 copied pixel by pixel to the latter. The source image can’t be
 rotated or scaled in size with this function, though you can
 use this function to move the image data from the screen to
-memory, where you can manipulate it more easily. The C syn-
-tax for this call is
+memory, where you can manipulate it more easily. The C syntax for this call is
 int handle, mode, points([8];
 struct fdbstr *srcMFDB, *destMFDB;
 vro_cpyfm(handle, mode, points, srcMFDB, destMFDB);
@@ -10143,10 +9780,8 @@ perform a straight copy of the source image. Rather, it can
 combine an image with the existing destination image in a
 number of interesting ways. These writing modes are similar
 to the general drawing mode set by the vswr_mode( ) call, but
-they are set separately and are more comprehensive. They in-
-clude the old standbys like Replace and XOR mode, and also
-add new combinations, some more useful than others. The fol-
-lowing chart shows the 16 different combinations available
+they are set separately and are more comprehensive. They include the old standbys like Replace and XOR mode, and also
+add new combinations, some more useful than others. The following chart shows the 16 different combinations available
 with the vro_copyfm( ) call. The logic operations are described
 using the symbol S to refer to the source image, D
 to refer to
@@ -10204,21 +9839,17 @@ D1 = NOT (S AND D)
 15
 D1 =1
 Fill destination block
-As you can see, some of these operations are almost use-
-less. For example, number 0 blanks the destination rectangle
+As you can see, some of these operations are almost useless. For example, number 0 blanks the destination rectangle
 to the background color, while number 15 fills it with all ones,
 in effect changing it to pen color 1. Either of the operations
 could be performed more effectively with vr_recfl( ). Mode
 number 5
-literally does nothing, leaving the destination un-
-changed, while mode number 10 merely reverses every bit in
+literally does nothing, leaving the destination unchanged, while mode number 10 merely reverses every bit in
 the destination, without regard to the source image.
 The points parameter in the vro_copyfm( ) call is a
 pointer to an array of coordinates that describe two rectangles.
-Since the vro_copyfm( ) call can be used to move only a por-
-tion of the total image described in the MFDB, these rectangles
-describe the portion of the source MFDB from which the im-
-age is copied and the portion of the destination MFDB to
+Since the vro_copyfm( ) call can be used to move only a portion of the total image described in the MFDB, these rectangles
+describe the portion of the source MFDB from which the image is copied and the portion of the destination MFDB to
 which it is copied. The elements of the points array are
 Element
 Description
@@ -10246,8 +9877,7 @@ Bottom edge of destination rectangle
 Drawing and Manipulating Image Blocks
 These points describe an offset from the upper left corner
 of the form. Though the entire source and destination forms
-need not be the same size, the source and destination rectan-
-gles that you describe should be. If they are not, unpredictable
+need not be the same size, the source and destination rectangles that you describe should be. If they are not, unpredictable
 results may occur. (At best, the size of the source rectangle
 will be used.) You should also take care to make sure that the
 rectangles you describe do not exceed the width or height of
@@ -10283,8 +9913,7 @@ the screen with the pattern. If you have a color display, you
 will notice that the results in lo-res mode are slightly different
 from those in medium-res mode. If you add more colors to the
 picture, the results get even harder to predict. That’s because
-the logical operations which combine the two images are per-
-formed separately on each bit plane.
+the logical operations which combine the two images are performed separately on each bit plane.
 125
 
 <!-- source-page: 133 -->
@@ -10585,8 +10214,7 @@ Copymode.c
 %&/
 There are many uses for the vro_copyfm( ) call. It can be
 used to move around large areas of the screen display, as when
-you scroll the contents of a window. It can be used for stamp-
-ing images on the screen, or for saving predrawn images from
+you scroll the contents of a window. It can be used for stamping images on the screen, or for saving predrawn images from
 the screen to
 a memory buffer, where they may be manipu-
 127
@@ -10597,8 +10225,7 @@ a memory buffer, where they may be manipu-
 CHAPTER 6
 lated and redrawn. It can even be used for animating color
 shapes, by drawing the shape, erasing it, and moving it.
-The XOR mode is particularly useful for this type of ani-
-mation. As was mentioned in the discussion of the writing
+The XOR mode is particularly useful for this type of animation. As was mentioned in the discussion of the writing
 modes, an XOR drawing operation is by definition reversible,
 since reversing the bit patterns the first time changes the color,
 while reversing them a second time restores them to their
@@ -10607,9 +10234,7 @@ with an XOR operation, you need only to draw it with an XOR
 to the same spot to erase it, and then draw it with an XOR to
 the new spot to make it move. While this course of action is
 convenient, it isn’t exactly without flaw. As we have seen, the
-color that an XOR image takes depends on the color of the back-
-ground on which it’s drawn, and, if the background is multi-
-colored, the image will be, too. If the image is moved over a
+color that an XOR image takes depends on the color of the background on which it’s drawn, and, if the background is multicolored, the image will be, too. If the image is moved over a
 very complex colored background, therefore, it will change
 color as it moves. And if there’s more than one image moving
 at the same time, these images will change colors yet again
@@ -10621,18 +10246,15 @@ for animation in many situations. An example of animation
 using the XOR mode can be found at the end of this chapter,
 in the section dealing with the vrt_copyfm( ) command.
 Transform Form
-The advantage of using the standard form for image data stor-
-age is that it allows you to render an image without knowing
+The advantage of using the standard form for image data storage is that it allows you to render an image without knowing
 the specifics of the display memory layout used by the target
 computer. But since vro_cpyfm and vrt_copyfm both require
 that the source and destination forms be in machine-specific
 format, you've got to have a way of converting to that format.
 Converting forms back and forth between standard and
 machine-specific formats is the function of the VDI routine
-named Transform Form. It moves the source form to the des-
-tination form, converting it to the opposite type (indicated by
-the fd_stand flag of the source form) along the way. The func-
-tion may be called like this:
+named Transform Form. It moves the source form to the destination form, converting it to the opposite type (indicated by
+the fd_stand flag of the source form) along the way. The function may be called like this:
 128
 
 <!-- source-page: 136 -->
@@ -10647,23 +10269,19 @@ is a pointer to the destination MFDB. Note that the source and
 destination form definition blocks may be the same. In such a
 case, the form is said to be transformed in place. While this is
 fine for small images, the process can be very slow for larger
-ones on machines like the ST, where the machine-specific lay-
-out is very different from that of the standard format. So, if
+ones on machines like the ST, where the machine-specific layout is very different from that of the standard format. So, if
 speed is a consideration, it would pay to set up a destination
 block separate from the source.
-Program 6-2 uses a color image that’s stored in the stan-
-dard format. In fact, it’s almost the same image data that was
+Program 6-2 uses a color image that’s stored in the standard format. In fact, it’s almost the same image data that was
 used in the Colorpat program for the four-color pattern fill.
 The only real difference between the data format used by
 color pattern fills and standard forms is that the former is only
-one word (16 bits) wide by 16 lines high, while size of the lat-
-ter is not so restricted (our example is 32 bits wide). Since the
+one word (16 bits) wide by 16 lines high, while size of the latter is not so restricted (our example is 32 bits wide). Since the
 image is not very large, we performed the transformation to
 the ST-specific form in place, before using the vro_copyfm(
 )
 command to draw the image.
-Notice that by providing enough data for the largest num-
-ber of bit planes in use (4), we can use the same image data
+Notice that by providing enough data for the largest number of bit planes in use (4), we can use the same image data
 for all three resolution modes. The modes that need less data
 only use the number of planes that they need, and so have
 roughly the same form as the lo-res image, if less color detail.
@@ -10974,17 +10592,13 @@ of
 stdform.c
 %/
 Copy Raster Transparent
-The last raster function is Copy Raster Transparent. This oper-
-ation copies a source form that only has one bit plane of im-
-age data into a destination form that can have several color
+The last raster function is Copy Raster Transparent. This operation copies a source form that only has one bit plane of image data into a destination form that can have several color
 planes. Since a single bit plane image requires the least
 amount of image data, this is
-a very economical way of plac-
-ing an image on the screen. In fact, it’s the method used by
+a very economical way of placing an image on the screen. In fact, it’s the method used by
 GEM for drawing icons on the screen. Since this call allows
 you to specify the pen color that will be used to draw both the
-foreground (one bits) and the background (zero bits), the im-
-age can be drawn in any color combination that you wish. The
+foreground (one bits) and the background (zero bits), the image can be drawn in any color combination that you wish. The
 C language syntax for this call is
 int handle, mode, points[8],pens[2];
 struct fdbstr *srcMFDB, *destMFDB;
@@ -11007,8 +10621,7 @@ XOR
 Reverse Transparent
 hm ON
 The parameters srcMFDB and destMFDB are pointers to
-the source and destination forms. The source form must con-
-tain only a single bit plane, and it’s irrelevant whether it’s in
+the source and destination forms. The source form must contain only a single bit plane, and it’s irrelevant whether it’s in
 ~
 standard or ST-specific format, since both are the same for a
 monochrome image. The destination format may contain 1, 2,
@@ -11026,8 +10639,7 @@ the foreground color which will be drawn wherever there is a
 one bit in the source image. The other, pens{1], contains the
 pen number of the background color which is drawn wherever
 there is a zero bit in the source image. Note that these are the
-VDI pen numbers (color index), not the actual hardware regis-
-ter numbers formed by the various bit combinations. These
+VDI pen numbers (color index), not the actual hardware register numbers formed by the various bit combinations. These
 colors will be translated to the appropriate bit combinations
 when the single plane image is expanded to the number of
 planes used by the screen. The resulting expanded image is
@@ -11043,8 +10655,7 @@ provide three different arrays of image data. This is admittedly
 a lot of data to type in by hand. Fortunately, some of the
 -
 painting programs available for the ST, such as Neochrome
-and DEGAS Elite, allow you first to create an image by draw-
-ing with the mouse and then to save that image to a
+and DEGAS Elite, allow you first to create an image by drawing with the mouse and then to save that image to a
 text file
 in the form of C source code. This source code file is in the
 132
@@ -11054,13 +10665,11 @@ _
 ## Page 140
 
 Drawing and Manipulating Image Blocks
-form of an initialized array that can be merged into your pro-
-gram file.
+form of an initialized array that can be merged into your program file.
 You may have noticed the use of the XBIOS call Vsync.
 This is used to combat the flickering that can occur when you
 move an image on screen while the display is being redrawn.
-The Vsync call pauses the program until the the vertical re-
-trace interval occurs. That’s when the video beam reaches the
+The Vsync call pauses the program until the the vertical retrace interval occurs. That’s when the video beam reaches the
 bottom of the picture and shuts off until it gets back up to the
 top. This allows you to change the image in display memory
 when the display is not being changed.
@@ -12177,16 +11786,14 @@ Copytran.c
 
 CHAPTER 6
 Raster Operations In BASIC
-The original version of ST BASIC did not contain any key-
-word support for raster operations. The revised version is
+The original version of ST BASIC did not contain any keyword support for raster operations. The revised version is
 slated to include the commands SSHAPE and GSHAPE. These
 commands function much like the GET and PUT statements in
 Microsoft BASIC. To move an image from the screen to a
 memory array, you use the command SSHAPE, whose syntax is
 SSHAPE x1,y1;x2,y2, array%()
 where x1,y1, and x2,y2 are the coordinates for the top left and
-bottom right corners of the image rectangle. The array%() pa-
-rameter is an integer array that has been DIMensioned so
+bottom right corners of the image rectangle. The array%() parameter is an integer array that has been DIMensioned so
 it is
 large enough to contain the image information. For each bit
 plane, you'll need one word of data for every 16 bits of width,
@@ -12213,10 +11820,8 @@ image, and array%() is the name of the array that’s used to
 store the image. The size of the image is also taken from the
 array in which the data is stored.
 As with the VDI raster commands, images that are copied
-to the screen with GSHAPE may be combined with the exist-
-ing screen image in several ways. The command used to set
-the drawing mode also determines the copy mode for the im-
-age. This command is DRAWMODE mode, where mode is a
+to the screen with GSHAPE may be combined with the existing screen image in several ways. The command used to set
+the drawing mode also determines the copy mode for the image. This command is DRAWMODE mode, where mode is a
 number from 1
 to 4:
 138
@@ -12251,35 +11856,27 @@ Text
 <!-- source-page: 150 -->
 ## Page 150
 
-We normally don’t think of the text that ap-
-pears on a computer screen as graphics, but there is actually
+We normally don’t think of the text that appears on a computer screen as graphics, but there is actually
 very little difference between text and any other kind of
 graphics that can be displayed on the ST computers. Since the
 graphics display is bitmapped, text characters must be drawn
 on the screen dot-by-dot, just like any other kind of image.
 That’s why the most common kind of text rendering under the
 VDI is called graphics text.
-You will find that graphics settings like the clipping rect-
-angle and the drawing mode, which apply to all graphics out-
-put, affect graphics text just as they do any other drawing
-operation. In addition, there is a collection of settings that ap-
-ply only to graphics text. These allow you to control the color,
+You will find that graphics settings like the clipping rectangle and the drawing mode, which apply to all graphics output, affect graphics text just as they do any other drawing
+operation. In addition, there is a collection of settings that apply only to graphics text. These allow you to control the color,
 typeface, size, rotation, and positioning of graphics text.
 There are many advantages to using this system of text
 rendering on a computer. Characters may be placed anywhere
-on the screen, graphics and text may be mixed freely, and dif-
-ferent sizes and styles of lettering may be used at the same
-time. It’s even possible to use some of the refinements com-
-mon to the printing world, like proportional fonts and micro-
-space justification.
+on the screen, graphics and text may be mixed freely, and different sizes and styles of lettering may be used at the same
+time. It’s even possible to use some of the refinements common to the printing world, like proportional fonts and microspace justification.
 There are performance tradeoffs, however, with using a
 bitmapped screen for text, rather than a character display. Text
 rendering is a bit slower than with a character display, and
 may be noticeably slower when a whole screen full of text is
 being scrolled, for instance. This is particularly true when the
 characters are not positioned so that the image data for each
-falls within even byte boundaries, as is the case with a propor-
-tional font. When the left half of a character falls within one
+falls within even byte boundaries, as is the case with a proportional font. When the left half of a character falls within one
 byte of screen memory, and the right half within another, the
 VDI must shift the image data twice before writing it to the
 screen.
@@ -12303,11 +11900,9 @@ are printed one after the other in fixed positions on the screen.
 It allows you to output text conveniently, without worrying
 you about all the details of its position and appearance. The
 alphanumeric mode also supports many of the features of text
-display terminals, such as cursor movement and absolute po-
-sitioning, reverse video, and selective erasure.
+display terminals, such as cursor movement and absolute positioning, reverse video, and selective erasure.
 While this book deals only with the VDI functions of the
-GEM operating system, you should be aware that other por-
-tions of the ST system software also offer text support. The
+GEM operating system, you should be aware that other portions of the ST system software also offer text support. The
 AES portion of GEM contains some functions that deal with
 text manipulation and input, and GEMDOS and the ST BIOS
 both contain support for a text console device. C programmers
@@ -12323,15 +11918,11 @@ where x and y are the text placement coordinates, and string is
 a pointer to a null-terminated character string. This is an array
 of ASCII character values, ending with a character whose
 ASCII value is 0.
-Just saying that x and y are the text placement coordi-
-nates, however, doesn’t really answer the question of where
+Just saying that x and y are the text placement coordinates, however, doesn’t really answer the question of where
 the text will appear on the screen.
 Since a
-line of text may cover an area containing thou-
-sands of pixels, we must have some way of determining which
-point the placement coordinates describe. The GEM VDI rec-
-ognizes several parts of the text display as significant, and al-
-lows you to align your text display with any of these points.
+line of text may cover an area containing thousands of pixels, we must have some way of determining which
+point the placement coordinates describe. The GEM VDI recognizes several parts of the text display as significant, and allows you to align your text display with any of these points.
 In order to understand how text alignment works, you
 must be familiar with the parts of the character display. Each
 144
@@ -12349,15 +11940,10 @@ lines. Toward the lower part of the cell, there’s an imaginary
 line called the baseline. This line marks the bottom of most
 characters, such as the letter 0. Some characters, like the letters
 p and y, extend below the baseline, down to what is called the
-descent line. The upper boundary for most of the lowercase let-
-ters is called the half line. The capital letters, and some lower-
-case letters like b, extend upwards past the half line, to what is
+descent line. The upper boundary for most of the lowercase letters is called the half line. The capital letters, and some lowercase letters like b, extend upwards past the half line, to what is
 known as the ascent line. Note that there may or may not be
-some blank space between the ascent line and top line, or de-
-scent line and bottom line, depending on the particular type-
-face. In the standard Atari system font, for example, characters
-extend to the top and the bottom of the cell. The various verti-
-cal alignment points are illustrated in Figure 7-1.
+some blank space between the ascent line and top line, or descent line and bottom line, depending on the particular typeface. In the standard Atari system font, for example, characters
+extend to the top and the bottom of the cell. The various vertical alignment points are illustrated in Figure 7-1.
 Figure 7-1. Vertical Alignment of Text
 Aliannent
 Alignment
@@ -12389,13 +11975,11 @@ _|
 Width
 Left-
 _
-Right-
-justified
+Rightjustified
 justified
 Centered
 In addition to the vertical alignment points described
-above, a string of text has three significant horizontal align-
-ment points. You may line up the string so that its left side,
+above, a string of text has three significant horizontal alignment points. You may line up the string so that its left side,
 right side, or center is even with the text placement point. The
 VDI call used to select the horizontal and vertical alignment
 points is Set Graphics Text Alignment. The C syntax for this
@@ -12413,8 +11997,7 @@ alignment points that you wish to set. Since every device does
 not support this type of alignment, the actual alignment points
 that were set by the call are returned in the variables hset and
 uset. The values in these variables are a numeric code that
-specifies the alignment points. For the vertical point, the possi-
-ble values are:
+specifies the alignment points. For the vertical point, the possible values are:
 Number
 Description
 0
@@ -12441,8 +12024,7 @@ alignment is changed, however, that point can just as well
 specify the top right corner of the last character in the string,
 or the half line of the center of the string. Program 7-1 shows
 the effect of the alignment settings on text placement. It draws
-a horizontal and vertical line, and shows the possible place-
-ment of text strings whose placement coordinates are the same
+a horizontal and vertical line, and shows the possible placement of text strings whose placement coordinates are the same
 as those of the lines.
 Program 7-1. align.c
 /ERKCTEETETACTRSKA
@@ -12594,8 +12176,7 @@ Microspace Justification
 Some word processors allow you to stretch out a line of text to
 fill a certain line length on the paper by adding (or removing)
 minute spaces between characters or words. This feature, often
-referred to as microspace justification, is one of the more so-
-phisticated text functions offered by the VDI. The name of this
+referred to as microspace justification, is one of the more sophisticated text functions offered by the VDI. The name of this
 147
 
 <!-- source-page: 155 -->
@@ -12607,16 +12188,13 @@ as follows:
 int x, y, length, word_space, char_space;
 char *space;
 v_justified(handle, x, y, string, length, word_space, char_space);
-The string parameter points to the null-terminated charac-
-ter string to be printed, and the x and y parameters specify the
+The string parameter points to the null-terminated character string to be printed, and the x and y parameters specify the
 display location, just as with the v_gtext( ) call. The length
 value specifies the size of the screen area used to display the
-text string (in whichever coordinate system, raster or normal-
-ized, that’s currently in use). The final two parameters,
+text string (in whichever coordinate system, raster or normalized, that’s currently in use). The final two parameters,
 word_space and char_space, are flags that tell the function
 how to manipulate the string to achieve the desired length.
-The v_justified function can adjust the space between charac-
-ters in a word, the space between words in a
+The v_justified function can adjust the space between characters in a word, the space between words in a
 line, or both.
 Setting either of the flags to
 1 tells the function to adjust the
@@ -12628,18 +12206,13 @@ be used by v_gtext( ).
 An example of justified text can be found in Program 7-2,
 rotext.c, in the section on rotated text, below.
 Sizing a Text String
-When printing graphics text, the programmer has total respon-
-sibility for the placement of the string. One of these duties in-
-cludes making sure that the text string fits on the display
+When printing graphics text, the programmer has total responsibility for the placement of the string. One of these duties includes making sure that the text string fits on the display
 screen. In order to do this, however, you must know how
-much size the text will occupy on the display. With mono-
-spaced fonts (like the standard ST font), each character cell is
-the same width, so you can multiply the width of each charac-
-ter by the number of characters to find out the total length of
+much size the text will occupy on the display. With monospaced fonts (like the standard ST font), each character cell is
+the same width, so you can multiply the width of each character by the number of characters to find out the total length of
 the string.
 But GEM provides for proportionally spaced fonts as well.
-In a proportionally spaced font, a wide letter like the w occu-
-pies a wider cell than a narrow letter like the
+In a proportionally spaced font, a wide letter like the w occupies a wider cell than a narrow letter like the
 I, so there isn’t a
 lot of extra white space on either side of the narrow letter.
 While this will make the text look more attractive, it makes it
@@ -12657,17 +12230,14 @@ int handle, char, cellw, ldelta, rdelta,status;
 status = vqt_width(handle, char, &cellw, &ldelta, &rdelta);
 where char is the ASCII value of the character in question, and
 cellw is the variable in which the width of the character cell
-(including spacing to the left and right of the character) is re-
-turned. The width of the blank space to the left and right of
+(including spacing to the left and right of the character) is returned. The width of the blank space to the left and right of
 the character within the cell is stored in the variables Idelta
 and rdelta, Note that the width returned by this function does
 not account for any space added to the character because of
-special effects. Another function, vqt_fontinfo( ), returns infor-
-mation about the change in character width caused by special
+special effects. Another function, vqt_fontinfo( ), returns information about the change in character width caused by special
 effects. Figure 7-1 shows the parts of the character cell.
 Though it’s possible to figure out the width of the line by
-adding the widths of the individual characters, there’s an eas-
-ier way to find it. The VDI provides a function which returns
+adding the widths of the individual characters, there’s an easier way to find it. The VDI provides a function which returns
 the size that a given text string drawn in the current font
 would occupy. This function is Inquire Text Extent. It’s used
 like this:
@@ -12676,13 +12246,11 @@ char *string;
 vqt_extent(handle, string, points);
 where string is a pointer to a null-terminated text string, and
 points is a pointer to an array which holds the coordinates for
-the four corner points of the smallest box that completely con-
-tains the text string. The first two elements give the x and y
+the four corner points of the smallest box that completely contains the text string. The first two elements give the x and y
 coordinates of the lower left corner of the text box.
 The next two elements give the coordinates of the lower
 right corner. The third pair gives the location of the upper
-right corner. The last two give the x and y position of the up-
-per left corner of the text box. When we refer to the lower left
+right corner. The last two give the x and y position of the upper left corner of the text box. When we refer to the lower left
 corner of the text box, we mean relative to a horizontal line of
 text. The reason that the VDI specifies all four corner points
 (instead of just two opposite corners, like most other graphics
@@ -12714,16 +12282,14 @@ vaJ6a
 4
 With the first version of the TOS ROMs, when the text
 string is rotated 270 degrees, the coordinates for the first point
-(point[0] and point[1}) are not returned correctly by this func-
-tion. Since the text box is always at right angles on the ST,
+(point[0] and point[1}) are not returned correctly by this function. Since the text box is always at right angles on the ST,
 _
 however, you can use points 2 and 4 to describe the four sides
 of the text box.
 Character Rotation
 As we've mentioned before, one of the text settings that the
 VDI supports is character rotation. The full name of the VDI
-function is Set Character Baseline Vector. Normally the base-
-line for a character is horizontal, and extends from left to right.
+function is Set Character Baseline Vector. Normally the baseline for a character is horizontal, and extends from left to right.
 Another way of saying this is that the baseline vector is zero
 degrees. But GEM provides for rotation of the baseline as well.
 150
@@ -12741,16 +12307,12 @@ make this setting is
 int handle, angle, angle_set;
 angle_set = vst_rotation(handle, angle);
 where angle is the angle requested. Since not every angle is
-supported (on the ST screen, only even multiples of 90 de-
-grees are available), the function returns the angle that was ac-
-tually set in the variable angle_set. Remember, the VDI
+supported (on the ST screen, only even multiples of 90 degrees are available), the function returns the angle that was actually set in the variable angle_set. Remember, the VDI
 expresses angles in tenths of a degree (0-3600), starting with
 the rightmost point on the circle and moving counterclockwise.
-Program 7-2 displays four text strings, rotated at right an-
-gles to one another. It also shows an example of justified text.
+Program 7-2 displays four text strings, rotated at right angles to one another. It also shows an example of justified text.
 Since pixels on the color screen tend to be taller than they are
-wide, particularly in medium-resolution mode, somewhat nar-
-rower spacing makes the text look more natural when turned
+wide, particularly in medium-resolution mode, somewhat narrower spacing makes the text look more natural when turned
 sideways. The program also uses the vqt_extent function to
 determine the normal length of the string in order to shorten it
 somewhat.
@@ -12821,8 +12383,7 @@ Rotext.c
 &/
 Text Color
 Just as with lines, markers, and filled shapes, graphics text has
-it own individually selectable color setting. The text color de-
-fault is determined by the value placed in work_in[6] when
+it own individually selectable color setting. The text color default is determined by the value placed in work_in[6] when
 the virtual workstation is open (which defaults to color 1,
 black, if the GDOS extension is not loaded). Afterwards, you
 may change the color index with the function Set Graphic
@@ -12830,25 +12391,18 @@ Text Color Index, whose format is
 int handle, pen, pen_set;
 pen_set = vst_color(handle, pen);
 where pen is the VDI pen color (color index) requested. Since
-each resolution mode has a different number of pens avail-
-able, not every pen can be selected from every mode. There-
-fore, the function returns the number of the pen that was
+each resolution mode has a different number of pens available, not every pen can be selected from every mode. Therefore, the function returns the number of the pen that was
 actually set in the variable pen_-set.
 Special Effects
 Another feature that the VDI has borrowed from the word
 processing and printing fields is called special effects. These
-days, most word processing programs allow you to add em-
-phasis to certain parts of your text by making characters ap-
-pear in boldface, italics, or underlined type. In the same
-manner, the VDI can alter the image data of text characters ac-
-cording to a mathematical formula in order to change their ap-
-pearance. The effects supported are Thickened characters
+days, most word processing programs allow you to add emphasis to certain parts of your text by making characters appear in boldface, italics, or underlined type. In the same
+manner, the VDI can alter the image data of text characters according to a mathematical formula in order to change their appearance. The effects supported are Thickened characters
 (boldface), Light text (such as you see in a menu item that’s
 been grayed out), Skewed text (italic)
 , Underlined text, and
 Outlined Characters. These effects may be used individually or
-combined with one another. Since the new characters are al-
-tered versions of the originals, they may not always be as legi-
+combined with one another. Since the new characters are altered versions of the originals, they may not always be as legi-
 152
 —
 
@@ -12859,16 +12413,14 @@ Text
 ble. Also, you should keep in mind that adding effects can
 change the width spacing of characters. For this reason, you
 should try to print a whole line of text at a time if you’re
-using special effects, so the VDI can adjust the spacing. Other-
-wise, you may find that the new text that you put down
+using special effects, so the VDI can adjust the spacing. Otherwise, you may find that the new text that you put down
 erases part of the existing text.
 The function used to make these changes to the standard
 character set is called Set Graphic Text Special Effects. The C
 syntax for this call is
 int handle, effects, effects_set;
 effects_set = vst_effects(handle, effects);
-where effects is a flag byte showing which of five different ef-
-fects are set on or off. (GEM actually provides for six effects,
+where effects is a flag byte showing which of five different effects are set on or off. (GEM actually provides for six effects,
 but only five are supported on the ST display.) Because not
 every effect is available on every device, the function returns
 the settings it actually puts into effect in the variable
@@ -12880,8 +12432,7 @@ printed in boldface. The decimal value of the first bit (bit 0) is
 1, so adding a
 1
 to the effects flag turns on bold printing.
-Since each effect has a different bit, the effects can be eas-
-ily added to one another. For example, an effects value of 9
+Since each effect has a different bit, the effects can be easily added to one another. For example, an effects value of 9
 means that both underlining (8) and boldface (1) are turned
 on. Of course, the VDI manipulates the character image each
 time it adds an effect, so too many effects may detract from
@@ -12902,9 +12453,7 @@ Outlined
 32
 Shadowed (not available on ST)
 As we mentioned above, adding special effects to a text
-font can change the width of the characters. Most of the func-
-tions that give you information about the width of the charac-
-ters in the current font do not take special effects into account.
+font can change the width of the characters. Most of the functions that give you information about the width of the characters in the current font do not take special effects into account.
 To find out how the width of the current font has been altered
 unRwnrok
 153
@@ -12913,8 +12462,7 @@ unRwnrok
 ## Page 161
 
 CHAPTER 7
-by special effects, use the vq_fontinfo function, which is de-
-tailed a bit later on in the chapter.
+by special effects, use the vq_fontinfo function, which is detailed a bit later on in the chapter.
 Program 7-3 demonstrates the use of special effects with
 graphics text. It produces two columns of text, one of which
 shows each effect separately, and one of which shows each
@@ -13038,17 +12586,14 @@ that’s twice as large.
 The VDI function that is used to change the size of the
 current text font measures font size in terms of the height of
 each character. This height is determined in one of two ways.
-The first is in absolute pixel height, as measured by the cur-
-rent raster or normalized coordinate system. The VDI function
+The first is in absolute pixel height, as measured by the current raster or normalized coordinate system. The VDI function
 used to set character size on this basis is called Set Character
-Height, Absolute Mode. This function is called by a C pro-
-gram like this:
+Height, Absolute Mode. This function is called by a C program like this:
 int handle, height, char_width, char_height,
 cell_width, cell_height;
 vst_height(handle, height, &char_width, &char_height,
 &cell_width, &cell_height);
-where height is the pixel height of the character set, as mea-
-sured from the baseline to the top of the character cell.
+where height is the pixel height of the character set, as measured from the baseline to the top of the character cell.
 If the character height that you request isn’t available, the
 VDI sets the next smallest available height. The height of the
 actual character font that was set is returned in the variable
@@ -13056,8 +12601,7 @@ char_height, and the height of the entire character cell for that
 font is returned in the variable cell_height. Likewise, the width
 of the font that was set is returned in char_width, and the
 width of the character cell is returned in cell_width. For
-monospaced fonts, the widths returned apply to every charac-
-ter in the set. For proportional fonts, the character and cell
+monospaced fonts, the widths returned apply to every character in the set. For proportional fonts, the character and cell
 widths returned are those of the widest character in the set.
 The VDI also allows you to set the character height in
 terms of printer points. The point is
@@ -13083,8 +12627,7 @@ This function, like the absolute mode function, returns the size
 of the character and the character cell in pixel units on the
 correct coordinate scale. These measurements are returned in
 the variables char_height, char_width, cell_height, and
-cell_width. If the function is unable to set a font of the size re-
-quested, it sets the next smallest available font size. The point
+cell_width. If the function is unable to set a font of the size requested, it sets the next smallest available font size. The point
 size of the font that was actually set is returned in the variable
 point_set.
 On the ST, the default system font may be printed in the
@@ -13134,8 +12677,7 @@ font (6 X 6
 cell) is used for the lettering that appears under
 icons on the GEM Desktop.
 Using Disk-Based Fonts
-One of the most important features added by the GDOS ex-
-tensions that you load by running GDOS.PRG is the ability to
+One of the most important features added by the GDOS extensions that you load by running GDOS.PRG is the ability to
 use disk-based fonts in addition to the normal system font. In
 order to access these fonts, several requirements must be met.
 First, the GDOS extensions must be loaded. (A message like
@@ -13179,8 +12721,7 @@ nothing will happen if you try to load them again during the
 execution of the same application, and a 0 will be returned in
 fonts_added.
 Once you’ve loaded the disk-based fonts, you’ll naturally
-want to know which ones are available. The VDI function In-
-quire Face Name and Index returns information about a font’s
+want to know which ones are available. The VDI function Inquire Face Name and Index returns information about a font’s
 name and ID number. The format for this function is
 int handle, font_num, font_id;
 char name{32];
@@ -13188,12 +12729,10 @@ font_id = vqt_name(handle, font_num, name);
 where font_num is a number that’s assigned to each font when
 it is loaded into the system. Since the system font reserves for
 itself font_num 1 (and font_id 1), numbering of disk-based
-fonts begins with 2. The variable fonts_added contains the to-
-tal number of fonts loaded by the vst_load_fonts( ) call, so
+fonts begins with 2. The variable fonts_added contains the total number of fonts loaded by the vst_load_fonts( ) call, so
 the number that you pass in font_num should always be a
 value between 1 and fonts_added +
-1. Two items of infor-
-mation are returned by this function. The first is the name of
+1. Two items of information are returned by this function. The first is the name of
 157
 
 <!-- source-page: 165 -->
@@ -13204,8 +12743,7 @@ the font, which is returned in the string pointed to by name.
 This string contains
 a maximum of 32 ASCII characters, the
 first 16 of which contain the name of the font, and the last 16
-of which contain a modifier that describes the style and thick-
-ness of the characters. The other item is the font ID number.
+of which contain a modifier that describes the style and thickness of the characters. The other item is the font ID number.
 This is an identifier which is contained in the first two bytes of
 the font file, and which should be unique for every font
 named in your assign.sys file. You will need to know this
@@ -13224,8 +12762,7 @@ out about it by checking the variable font_set, in which the
 font_id number of the text font that was actually set is
 returned.
 Unload Fonts
-If you’ve used the vst_load_fonts function to load in a num-
-ber of disk-based fonts, you should call the Unload Fonts
+If you’ve used the vst_load_fonts function to load in a number of disk-based fonts, you should call the Unload Fonts
 function before your program ends, to let the VDI know that
 you are no longer using them. If you don’t, the system may
 crash when the next application tries to load them. It may also
@@ -13459,8 +12996,7 @@ available from Megamax, as well.
 This call returns the ASCII value of the first character for
 which there is image data in the character set in the variable
 minc, and the ASCII value of the last character in maxc. The
-variable maxwidth holds the maximum cell width, special ef-
-fects not included. The effects array contains information about
+variable maxwidth holds the maximum cell width, special effects not included. The effects array contains information about
 the adjustments that you must make to the character width to
 compensate for the current special effects. The contents of this
 array are interpreted as follows:
@@ -13482,9 +13018,7 @@ Right Offset
 ## Page 169
 
 CHAPTER 7
-The distances array contains information about the dis-
-tances of the various vertical alignment points from the base-
-line. The organization of this array is shown below.
+The distances array contains information about the distances of the various vertical alignment points from the baseline. The organization of this array is shown below.
 Element
 Description
 Bottom line to baseline
@@ -13495,13 +13029,11 @@ Top line to baseline
 PON
 ©
 The other inquiry function is called Inquire Current
-Graphic Text Attributes. It returns a wide variety of infor-
-mation about the current graphics text settings. This function
+Graphic Text Attributes. It returns a wide variety of information about the current graphics text settings. This function
 is called as follows:
 int handle, attributes[10];
 vqt_attributes(handle, attributes);
-where attributes is a pointer to an array of integers. The con-
-tents of that array is as follows:
+where attributes is a pointer to an array of integers. The contents of that array is as follows:
 Element
 Description
 0
@@ -13541,18 +13073,14 @@ as a solid blinking box which marks the cell in which the next
 text character will be written. All of the normal rules of screen
 display scrolling apply. When a character is written to the last
 column in a row, the cursor moves down to the first column
-of the next row. (This wrap-around feature does not work cor-
-rectly on 40-column screens.) When a character is written to
+of the next row. (This wrap-around feature does not work correctly on 40-column screens.) When a character is written to
 the last column in the bottom row, all of the lines are scrolled
 up, and the cursor moves the first column of the blank line
 .
 that’s inserted at the bottom of the page.
-Some computers have separate graphics and character dis-
-play modes. If you wish to use alphanumeric mode output
-with such computers, you must first switch their screen dis-
-plays to character mode. The VDI function call used for this
-purpose is Enter Alpha Mode. The format for calling this func-
-tion is
+Some computers have separate graphics and character display modes. If you wish to use alphanumeric mode output
+with such computers, you must first switch their screen displays to character mode. The VDI function call used for this
+purpose is Enter Alpha Mode. The format for calling this function is
 int handle;
 v—enter_cur(handle);
 On the ST, there is only one display “mode’’—bitmapped
@@ -13562,19 +13090,16 @@ aren't required to set alpha mode with the v_enter_cur( ) call
 before using the alphanumeric output function. You may wish
 to do so, however, because this call clears the screen and turns
 on the text cursor, two functions which would otherwise have
-to be performed separately. The VDI also provides an Exit Al-
-pha Mode command, whose syntax is
+to be performed separately. The VDI also provides an Exit Alpha Mode command, whose syntax is
 int handle ;
 v—exit_cur(handle);
 On the ST, this call clears the screen and turns off the text
 cursor. If you don’t use this command before your program
 exits, at least turn off the cursor, or else you'll see it flashing
 on the Desktop.
-The sole means of writing text to the screen in alphanu-
-meric mode is a function called Output Cursor Addressable
+The sole means of writing text to the screen in alphanumeric mode is a function called Output Cursor Addressable
 Text. The v_curtext(
-) function outputs text relative to the cur-
-rent cursor position, and wraps text from the end of one line
+) function outputs text relative to the current cursor position, and wraps text from the end of one line
 to the beginning of the next. The format for this call is
 int handle;
 char ‘string;
@@ -13588,8 +13113,7 @@ CHAPTER 7
 where string is a pointer to a null-terminated string of text
 characters.
 Cursor Movement Functions
-Since alpha text is output relative to the current cursor posi-
-tion, the VDI provides a number of functions that may be
+Since alpha text is output relative to the current cursor position, the VDI provides a number of functions that may be
 used to change this position. The most powerful of these is
 Direct Cursor Address, which allows you to position the
 cursor at an absolute row and column position on the screen.
@@ -13598,10 +13122,8 @@ int handle, row, column;
 vs—_curaddress(handle, row, column);
 where row is
 a row number from
-1 to 25, and column is a col-
-umn number from
-1 to 80 (40 for low resolution). Any num-
-ber outside the range of the cursor will set the cursor at the
+1 to 25, and column is a column number from
+1 to 80 (40 for low resolution). Any number outside the range of the cursor will set the cursor at the
 available position closest to that number. Setting the cursor to
 the top left position on the screen is a special case that gets its
 own function. It’s called Home Cursor, and looks like this:
@@ -13656,8 +13178,7 @@ int handle, rows, columns;
 vq—chcelis(handle, &rows, &columns);
 Terminal Emulation Functions
 Unlike graphics text, which will output any character for
-which there is image data, alphanumeric text emulates a dis-
-play terminal, and treats the ASCII characters from 0 to 31 as
+which there is image data, alphanumeric text emulates a display terminal, and treats the ASCII characters from 0 to 31 as
 nonprinting control characters. This means that it will interpret
 the ASCII character 13 as a carriage return, an instruction to
 move the cursor to the beginning of the line, rather than as a
@@ -13666,8 +13187,7 @@ console device emulates
 a DEC VT-52 terminal. Since this is
 the device that’s used for alphanumeric mode text, you'll find
 that the strings output by v_curtext(
-) respond to VT-52 es-
-cape codes, as well as the VDI control functions. These escape
+) respond to VT-52 escape codes, as well as the VDI control functions. These escape
 165
 
 <!-- source-page: 173 -->
@@ -13914,18 +13434,14 @@ PRINTed text. You should note, however, that these settings
 may not work properly with the PRINT function. Take the
 case shown in Program 7-6.
 Note that after the baseline has been rotated, the text
-printed with v_gtext( ) is displayed upside down with charac-
-ters going from right to left. But the PRINTed text is upside
+printed with v_gtext( ) is displayed upside down with characters going from right to left. But the PRINTed text is upside
 down, with the characters going from left to right as usual.
 That's because PRINT outputs each character in the text string
-separately with v_gtext( ), as a one-character string, position-
-ing each one to the right of the previous one. Another result
+separately with v_gtext( ), as a one-character string, positioning each one to the right of the previous one. Another result
 of this can be seen in the part of the program that PRINTs a
 text string after the character height has been increased. The
-large characters are written so closely together that they par-
-tially cover each other. That’s because BASIC writes out one
-character at a time and spaces them as it would small charac-
-ters, since PRINT doesn’t know about the size change. That's
+large characters are written so closely together that they partially cover each other. That’s because BASIC writes out one
+character at a time and spaces them as it would small characters, since PRINT doesn’t know about the size change. That's
 why you'll most likely have to call Graphics Text directly with
 VDISYS( ). As Program 7-6 demonstrates, you must POKE
 each character of the string to the intin array, which makes
@@ -14157,16 +13673,13 @@ print
 to
 normal”
 Using Graphic Text from Assembly Language
-The conversion of the C function v_gtext( ) to assembly lan-
-guage is a
+The conversion of the C function v_gtext( ) to assembly language is a
 little trickier. That’s because the C language
 bindings take care of the drudgery of moving each character of
 the string into the intin array. When programming in assembly
 language
-, you must take care of this detail yourself. In addi-
-tion, you must convert each 8-bit character to 16 bits, with the
-character information in the low-order bits. Program 7-7 dem-
-onstrates printing strings with the Graphics Text function.
+, you must take care of this detail yourself. In addition, you must convert each 8-bit character to 16 bits, with the
+character information in the low-order bits. Program 7-7 demonstrates printing strings with the Graphics Text function.
 169
 
 <!-- source-page: 177 -->
@@ -14488,23 +14001,18 @@ and mouse buttons, and some special keys on the keyboard. It
 also implements several logical devices that return information
 from the user to the program in a manner that’s a
 little more
-independent of the actual hardware on which the GEM op-
-erating system is running.
+independent of the actual hardware on which the GEM operating system is running.
 The VDI input functions provide only the bare-bones type
 of input that you normally associate with computers that lack
-the elaborate user interface that the ST provides. That’s be-
-cause the AES portion of GEM provides much more sophisti-
-cated facilities for interacting with the user than we associate
+the elaborate user interface that the ST provides. That’s because the AES portion of GEM provides much more sophisticated facilities for interacting with the user than we associate
 with the ST.
 An important point to remember is that the VDI input
 functions may not be compatible with those of the AES. Most
 of the time, you'll find that the VDI input functions don’t
-work properly when used in conjunction with the input func-
-tions of the AES. Therefore, if you want to use the AES input
+work properly when used in conjunction with the input functions of the AES. Therefore, if you want to use the AES input
 facilities, which provide all of the power of the VDI functions
 and much more, you'll have to abandon the VDI functions
-presented below. You may find, however, that (at least in ear-
-lier versions of the ST Operating System), the AES functions
+presented below. You may find, however, that (at least in earlier versions of the ST Operating System), the AES functions
 are somewhat slow to respond, and may not be as reliable as
 those of the VDI. For some demanding applications, you may
 find it desirable to substitute the more basic services of the
@@ -14529,23 +14037,18 @@ report the status of physical devices, like the mouse pointer
 and mouse buttons, and some special keys on the keyboard. It
 also implements several logical devices that return information
 from the user to the program in a manner that’s a little more
-independent of the actual hardware on which the GEM op-
-erating system is running.
+independent of the actual hardware on which the GEM operating system is running.
 The VDI input functions provide only the bare-bones type
 of input that you normally associate with computers that lack
-the elaborate user interface that the ST provides. That’s be-
-cause the AES portion of GEM provides much more sophisti-
-cated facilities for interacting with the user than we associate
+the elaborate user interface that the ST provides. That’s because the AES portion of GEM provides much more sophisticated facilities for interacting with the user than we associate
 with the ST.
 An important point to remember is that the VDI input
 functions may not be compatible with those of the AES. Most
 of the time, you'll find that the VDI input functions don’t
-work properly when used in conjunction with the input func-
-tions of the AES. Therefore, if you want to use the AES input
+work properly when used in conjunction with the input functions of the AES. Therefore, if you want to use the AES input
 facilities, which provide all of the power of the VDI functions
 and much more, you'll have to abandon the VDI functions
-presented below. You may find, however, that (at least in ear-
-lier versions of the ST Operating System), the AES functions
+presented below. You may find, however, that (at least in earlier versions of the ST Operating System), the AES functions
 are somewhat slow to respond, and may not be as reliable as
 those of the VDI. For some demanding applications, you may
 find it desirable to substitute the more basic services of the
@@ -14565,8 +14068,7 @@ Physical Devices
 The physical devices to which the VDI gives the most direct
 support is the mouse and its onscreen alter ego, the mouse
 pointer. One important mouse function that we have already
-encountered in the shell program is called Sample Mouse But-
-ton State. This function not only lets you know whether the
+encountered in the shell program is called Sample Mouse Button State. This function not only lets you know whether the
 left and/or right mouse button is currently being pressed, but
 also the exact location of the mouse pointer on screen. The C
 language syntax for this function is
@@ -14578,8 +14080,7 @@ are the variables in
 which the function returns the onscreen coordinates of the
 mouse pointer (which usually looks like an arrow, or a busy
 bee). The button status code uses the least significant bit to
-record the status of the left mouse button, and next most sig-
-nificant bit for the right mouse button. These bits contain a
+record the status of the left mouse button, and next most significant bit for the right mouse button. These bits contain a
 1
 if the button is pressed, and a
 0
@@ -14601,15 +14102,13 @@ down one button a
 fraction of a second before the other, even
 if he’s certain that he’s pushing them both down at the exact
 same moment. Therefore, you'll have to test the button status
-several times in a row after the initial push if you want to de-
-tect the condition where both butons are pressed at once.
+several times in a row after the initial push if you want to detect the condition where both butons are pressed at once.
 The other point to note about this function is that the x
 and y coordinates that are returned for the mouse pointer refer
 to the hot spot or action point of the pointer. That’s the part of
 the pointer which is considered to be its location on the
 screen, even when the pointer is considerably larger than a
-single point. On the arrow shaped pointer, the hot spot is lo-
-cated at the very tip of the arrow, while the bee’s hot spot is
+single point. On the arrow shaped pointer, the hot spot is located at the very tip of the arrow, while the bee’s hot spot is
 at its very center.
 176
 
@@ -14620,14 +14119,12 @@ Input Functions
 The Pointer
 While the mouse pointer is normally shaped like an arrow (or
 a bee when they system is busy accessing a disk or the like),
-the VDI allows you to change the pointer to any 16 X 16 im-
-age. The function provided for this purpose is called Set
+the VDI allows you to change the pointer to any 16 X 16 image. The function provided for this purpose is called Set
 Mouse Form, and it’s called like this:
 int handle, pointerdata[37];
 vsc_form(handle, pointerdata);
 where pointerdata is a pointer to an array of 37 integers that
-provides information about the mouse pointer. This infor-
-mation includes the foreground and background colors for the
+provides information about the mouse pointer. This information includes the foreground and background colors for the
 pointer, the coordinates of the hot spot, the shape of the
 mouse pointer, and a mask which allows you to specify
 whether the zero bits in the 16 X 16 block are transparent
@@ -14661,8 +14158,7 @@ either in the background color, or whatever color is displayed
 by the existing background, depending on the color mask.
 _
 The color mask is used to define the shape of the pointer,
-without regard to color information. Those bit positions con-
-taining a
+without regard to color information. Those bit positions containing a
 1 are considered to be “‘inside’’ the pointer, and
 whether or not the image data contains a
 1 bit, this part of the
@@ -14673,8 +14169,7 @@ pointer will be colored in, either by the foreground pen or the
 ## Page 185
 
 CHAPTER 8
-background pen. Those bit positions containing a 0 are consid-
-ered to be “outside” the pointer image, or transparent, and the
+background pen. Those bit positions containing a 0 are considered to be “outside” the pointer image, or transparent, and the
 corresponding image data bit positions that contain 0 will be
 represented on screen by whatever background data happens
 to be there.
@@ -14686,8 +14181,7 @@ This makes it possible for you to see the arrow, even when it’s
 in front of a black background. The sample program mousebox.c
 (Program 8-1) creates a custom two-color pointer that shows
 up as red and green on a color monitor.
-The vsc_form( ) function is very similar to the AES func-
-tion graf_mouse( ). That function allows you to choose from
+The vsc_form( ) function is very similar to the AES function graf_mouse( ). That function allows you to choose from
 several default pointer shapes, such as the arrow, the bee, the
 pointing hand, and open hand, the I-beam text cursor, and
 crosshairs.
@@ -14709,8 +14203,7 @@ Cursor function, the VDI makes a note of it, and hides the
 cursor down one level farther. So if you call Hide Cursor five
 times in a row, you must call Show Cursor five times before it
 becomes visible again—the first four times, Show Cursor just
-decreases the level at which the pointer is hidden. It is possi-
-ble to override this system with the reset flag, however. If you
+decreases the level at which the pointer is hidden. It is possible to override this system with the reset flag, however. If you
 call Show Cursor with the reset flag set to 0, the number of
 previous Hide Cursor calls is ignored, and the mouse pointer
 178
@@ -14720,9 +14213,7 @@ previous Hide Cursor calls is ignored, and the mouse pointer
 
 Input Functions
 is brought to the top, no matter how far down it was hidden.
-If the reset flag is set to 1, however, the function behaves nor-
-mally, and depends on the number of Hide Cursor calls per-
-formed previously.
+If the reset flag is set to 1, however, the function behaves normally, and depends on the number of Hide Cursor calls performed previously.
 In our previous sample programs, we’ve seen just how
 important it is to turn the mouse pointer off before you do any
 drawing. In the shell program that forms the heart of most of
@@ -14732,14 +14223,11 @@ result, the old
 background is saved behind the pointer. That means that
 when you move the pointer, the old background is restored,
 erasing our newly cleared screen in the area of the cursor
-block along with anything that we drew on it as well. The so-
-lution to this problem is to hide the mouse pointer before un-
-dertaking any graphics operation, including one so simple as
+block along with anything that we drew on it as well. The solution to this problem is to hide the mouse pointer before undertaking any graphics operation, including one so simple as
 clearing the screen, and restoring it only when you’re certain
 that graphics output has stopped. An example of this practice
 may be seen in the drawline(
-) function of mousebox.c, Pro-
-gram 8-1.
+) function of mousebox.c, Program 8-1.
 Special Keys
 The final physical device function that the VDI provides is
 used to check the status of some of the special keys on the ST
@@ -14778,18 +14266,13 @@ Alt
 
 CHAPTER 8
 Logical Devices
-In addition to the physical device functions, the VDI imple-
-ments some logical input devices. These logical devices pro-
-vide very specialized input facilities in
+In addition to the physical device functions, the VDI implements some logical input devices. These logical devices provide very specialized input facilities in
 a device-independent
 manner. They are provided mostly for purposes of portability,
 since there are much better ways to get input in an ST-specific
-environment. The four logical devices are the Locator, Valu-
-ator, Choice, and String devices. The functions performed by
+environment. The four logical devices are the Locator, Valuator, Choice, and String devices. The functions performed by
 these devices will be detailed below.
-The logical devices operate in one of two modes. In Re-
-quest mode, the functions do not return until a specific termi-
-nating input event occurs. In sample mode, the functions
+The logical devices operate in one of two modes. In Request mode, the functions do not return until a specific terminating input event occurs. In sample mode, the functions
 return the current status of the device as soon as they are
 called.
 Before using any of the logical devices, you should specify
@@ -14799,8 +14282,7 @@ like this:
 int handle, ldevice mode;
 vsin_mode(handle, Idevice, mode);
 where [device is the logical device code, and mode is a flag
-showing whether that device should be set to request or sam-
-ple mode. The logical devices are
+showing whether that device should be set to request or sample mode. The logical devices are
 Number
 Device
 1
@@ -14845,19 +14327,15 @@ The C syntax for the function Input Locator, Request Mode is
 int handle, x, y, x1, yl, term;
 vrq—locator(handle, x, y, &x1, &y1, &term);
 where x and y specify the starting position for the mouse
-pointer, x1 and y/1 are the variables in which its ending posi-
-tion is recorded, and term is the variable in which the termi-
-nating event is returned. The termination code is 32 for the
+pointer, x1 and y/1 are the variables in which its ending position is recorded, and term is the variable in which the terminating event is returned. The termination code is 32 for the
 left mouse button, 33 for the right mouse button, or the ASCII
 value of the key that was pressed to end the function. Note
 that with the current version of the operating system, this
-function tends to return immediately as if the left mouse but-
-ton was pressed. The solution to this problem is to call it twice
+function tends to return immediately as if the left mouse button was pressed. The solution to this problem is to call it twice
 in a row, and ignore the results of the first call.
 When the locator device is used in sample mode, the
 mouse pointer is not automatically turned on, so, if it isn’t
-showing, you should turn it on with v_show_c( ). The C syn-
-tax for Input Locator, Sample Mode is
+showing, you should turn it on with v_show_c( ). The C syntax for Input Locator, Sample Mode is
 int handle, x, y, x1, y1, term, status;
 status = vsm_locator(handle, x, y, &x1, &y1, &term);
 The status variable is used to return a status code that
@@ -14884,33 +14362,27 @@ Key pressed, no position change
 Key pressed and position changed
 String Device
 The string device is used to input a string of text characters
-from the user. In the request mode, this function collects char-
-acters until the Return key is pressed, or until the maximum
-number of characters have filled the buffer. The syntax for In-
-put String, Request Mode is
+from the user. In the request mode, this function collects characters until the Return key is pressed, or until the maximum
+number of characters have filled the buffer. The syntax for Input String, Request Mode is
 int handle, max_len, echo, xy[2];
 char string[max_len];
 vrq_string(handle, max_len, echo, xy, &string);
 where max_len is the maximum buffer length, echo is a code
 that specifies whether or not the characters should be echoed
-to the screen as they are typed in (1=yes, 0=no), xy is an ar-
-ray that holds the x and y coordinates for the echoed charac-
-ters, and string is a pointer to the string of characters that the
+to the screen as they are typed in (1=yes, 0=no), xy is an array that holds the x and y coordinates for the echoed characters, and string is a pointer to the string of characters that the
 user enters. In the current version of the ST operating system,
 echoing of characters (which is not a required feature of the
 function), isn’t supported.
 It’s also possible to use this device in sample mode. In
 this mode, the function checks the keyboard once. If there are
-no keystrokes waiting, the call simply returns. If there are key-
-strokes, the function keeps collecting them until there aren’t
+no keystrokes waiting, the call simply returns. If there are keystrokes, the function keeps collecting them until there aren’t
 any more, the buffer is full, or a carriage return is entered. The
 syntax for this call is
 int handle, max_len, echo, status, xy[2];
 char string[max_len];
 status = vsm_string(handle, max_len, echo, xy, &string);
 where status is the length of the string gathered.
-The string function returns the ASCII code for each char-
-acter that’s entered on the keyboard. Some key combinations,
+The string function returns the ASCII code for each character that’s entered on the keyboard. Some key combinations,
 however, have no ASCII value. The function keys, the ALT
 key combinations, and the HELP keys are all examples of key
 presses without ASCII equivalents. And in some cases, two or
@@ -14924,8 +14396,7 @@ the numbers on the keypad are not distinguishable from the
 Input Functions
 numbers on the top row of the keyboard by ASCII value
 alone. When you wish to get more information about the key
-presses other than the ASCII character, you may use a nega-
-tive number of max_len. When you do so, the buffer size will
+presses other than the ASCII character, you may use a negative number of max_len. When you do so, the buffer size will
 be set to the absolute value of the number specified, and the
 values returned in the intout array will consist of two-byte
 keycodes, based on the VDI standard keyboard definition. In
@@ -14937,8 +14408,7 @@ second byte of each word to the string array, you must read
 the intout[] array directly to find the full keycode value for
 each character.
 Program 8-1 uses the String device in sample mode to
-check for the user pressing the ESC key, which ends the pro-
-gram. It also illustrates many of the other functions discussed
+check for the user pressing the ESC key, which ends the program. It also illustrates many of the other functions discussed
 above. It displays a custom two-color mouse pointer (red and
 green on color systems), it reads the mouse with vq_mouse( ),
 and it hides the mouse pointer before drawing.
@@ -15274,13 +14744,11 @@ Mousebox.c
 &/
 Choice and Valuator Devices
 The two remaining logical devices, the Choice and Valuator
-devices, are not required VDI functions and are not imple-
-mented for the screen device in the current version of the ST
+devices, are not required VDI functions and are not implemented for the screen device in the current version of the ST
 operating system. We’ll describe these functions briefly, for the
 sake of completeness.
 The choice device allows the user to choose one of several
-options, usually by pressing one of the function keys. In re-
-quest mode, it waits for one of the keys to be pressed. If it’s a
+options, usually by pressing one of the function keys. In request mode, it waits for one of the keys to be pressed. If it’s a
 function key that’s pressed, its value (1-10) is returned, and if
 not, the default value is returned. The syntax of Input Choice,
 Request Mode is
@@ -15337,8 +14805,7 @@ certain input events, and calls the appropriate service routine
 when such an event occurs. For example, when the mouse is
 moved, it calls a routine that updates the position of the
 mouse pointer on the screen.
-Since an application program sometimes wishes to per-
-form actions that are synchronized with one of these input
+Since an application program sometimes wishes to perform actions that are synchronized with one of these input
 —
 events, the VDI supplies
 a number of vector exchange routines.
@@ -15365,8 +14832,7 @@ Mouse movement. The mouse movement routine is
 called every time that the mouse moves to a new location. If
 the application program grabs the mouse movement vector, it
 gains control after the x and y address coordinates have been
-calculated, but before the VDI is informed for the new posi-
-tion, and before the mouse pointer is actually redrawn on the
+calculated, but before the VDI is informed for the new position, and before the mouse pointer is actually redrawn on the
 screen. At that point, the x coordinate of the mouse pointer is
 in register dO, and the y coordinate is in d1.
 Mouse pointer redraw (cursor change). This routine is
@@ -15374,9 +14840,7 @@ called each time the cursor needs to be redrawn. If this vector
 points to an applications service routine, the application gains
 control before the redraw actually occurs. This means that the
 application can take over the task of drawing the cursor, or
-just perform some action every time that a redraw is sched-
-uled. At the point the application gains control, the x coordi-
-nate of the mouse pointer is in register dO, and the y
+just perform some action every time that a redraw is scheduled. At the point the application gains control, the x coordinate of the mouse pointer is in register dO, and the y
 coordinate in dl.
 Mouse button press. The button press routine is called
 each time the state of the mouse buttons change (that is, a
@@ -15404,8 +14868,7 @@ exchange routine.
 The mechanics of intercepting a vector is fairly simple.
 First, you must write
 a machine language routine that will be
-called every time the event happens. This routine should pre-
-serve all registers in the state in which it found them. When
+called every time the event happens. This routine should preserve all registers in the state in which it found them. When
 it’s called, all interrupts are disabled, and the application code
 should not enable interrupts. Since the service routines are
 187
@@ -15422,19 +14885,16 @@ supervisor mode, and its state is such that it’s unlikely that
 ~—
 you can successfully make any OS calls from within your
 code. Although the ST BIOS is supposed to be reentrant up to
-three levels, you may find that this really isn’t true. The up-
-shot is that you're limited in the kind of tasks that you may
+three levels, you may find that this really isn’t true. The upshot is that you're limited in the kind of tasks that you may
 perform by patching into these vectors. Nonetheless, you may
 find some legitimate uses for the vector exchange routines. For
 example, the mouse movement routines can be used to alter
 the rate of change, so as to create a slow motion mode for a
 drawing program. By monitoring the mouse buttons, you can
 get a good fix on button activity if the higher-level routines
-get confused, as they sometimes do. And using the vector ex-
-change to constantly update mouse x and y position variables
+get confused, as they sometimes do. And using the vector exchange to constantly update mouse x and y position variables
 saves you from calling vq_mouse constantly from your code.
-Once you’ve written the additional (or replacement) rou-
-tine, you need to point the system to your new routine. You
+Once you’ve written the additional (or replacement) routine, you need to point the system to your new routine. You
 do this by calling one of the Vector Exchange routines. These
 routines all have pretty much the same syntax:
 int scr_handle;
@@ -15448,9 +14908,7 @@ vex_motv(scr_handle, &newv, &oldv);
 vex_curv(scr_handle, &newv, &oldv);
 vex_timv(scr_handle, &newv, &oldv, &ticklen);
 /* Exchange Timer Interrupt Vector */
-where &newv is a pointer to your new machine language rou-
-tine, and oldv is a variable in which the address of the old sys-
-tem event routine is stored. You should save this address,
+where &newv is a pointer to your new machine language routine, and oldv is a variable in which the address of the old system event routine is stored. You should save this address,
 ~
 since in most cases your machine language routine will want
 to call the old routine to perform the normal system function,
@@ -15462,8 +14920,7 @@ either with a JSR from your routine, or by ending your routine
 ## Page 196
 
 Input Functions
-with a JMP to the old one. You'll also need this address to re-
-store the vector when you are through with it. This can be
+with a JMP to the old one. You'll also need this address to restore the vector when you are through with it. This can be
 done with a
 call of the form:
 int scr_handle;
@@ -15478,17 +14935,14 @@ all along. Instead, it’s the physical screen device handle, the
 value returned by the AES call graf_handle( ).
 BASIC Input Functions
 ST BASIC supports the common BASIC input functions, like
-INPUT, and it also implements the INP command, which al-
-lows you input a byte stream though a TOS device. Using de-
-vice 2, the console device which consists of the keyboard and
+INPUT, and it also implements the INP command, which allows you input a byte stream though a TOS device. Using device 2, the console device which consists of the keyboard and
 the display screen, you can read individual keys, one at a
 time. (Device 4, labeled keyboard, is used to send codes to the
 intelligent keyboard controller.) This function is comparable to
 the BIOS routines, however, not the VDI, and so the ASCII
 codes for the keys are returned, not the VDI keycodes.
 The first version of ST BASIC does not incorporate any of
-the VDI functions for reading the keyboard, mouse pointer po-
-sition, or mouse buttons. The proposed revision to ST BASIC
+the VDI functions for reading the keyboard, mouse pointer position, or mouse buttons. The proposed revision to ST BASIC
 includes functions such as ASK MOUSE, which returns the
 position of the mouse pointer and the button status, just like
 vq—mouse( ). But with the original version of ST BASIC (and
@@ -15496,9 +14950,7 @@ to the extent the new one doesn’t cover the full range of VDI
 input commands), you will have to resort to making VDI calls
 with VDISYS(1) for these functions.
 Program 8-2 is a BASIC translation of the mousebox.c,
-Program 8-1, which was discussed earlier in this chapter. It al-
-lows the user to draw filled boxes by dragging a mouse but-
-ton, and checks the keyboard for the ESC key, which ends the
+Program 8-1, which was discussed earlier in this chapter. It allows the user to draw filled boxes by dragging a mouse button, and checks the keyboard for the ESC key, which ends the
 program. You will note, however, that in this version you
 have to wait for the mouse to stop moving before you see the
 dotted outline of the box.
@@ -15797,16 +15249,12 @@ v—opnwk
 Open Workstation
 v_opnwk( )
 Opcode= 1
-This function opens a workstation that’s used to communicate with a physi-
-cal output device and to keep track of its graphics settings. The VDI commu-
-nicates with the device by means of a device driver that translates the VDI
+This function opens a workstation that’s used to communicate with a physical output device and to keep track of its graphics settings. The VDI communicates with the device by means of a device driver that translates the VDI
 commands to device-specific commands. When the workstation is opened,
 the device driver designated by the ASSIGN.SYS file is read in, so this
-driver must be present and the GDOS must be loaded in order for this com-
-mand to work. The Open Workstation command allows you to make initial
+driver must be present and the GDOS must be loaded in order for this command to work. The Open Workstation command allows you to make initial
 settings for a number of graphics output functions. The function returns the
-VDI device handle, along with a lot of information about the output capabil-
-ities of the device. The device is cleared upon opening.
+VDI device handle, along with a lot of information about the output capabilities of the device. The device is cleared upon opening.
 Devices required for
 All
 C binding
@@ -15894,8 +15342,7 @@ work_out[3]
 —_intout[3]
 Width of one pixel in microns
 (1/1000’s of a millimeter)
-For display screens, horizontal compo-
-nent of
+For display screens, horizontal component of
 aspect ratio
 work_out[4]
 — intout[4]
@@ -15933,14 +15380,12 @@ Number of crosshatch fill styles
 work_out[{13]
 intout[13]
 Number of drawing pen colors available
-(the number of colors that can be dis-
-played by the device at the same time)
+(the number of colors that can be displayed by the device at the same time)
 work_out[14]
  intout[14]
 Number of Generalized Drawing
 Primitives
-(GDPs)—how many of the 10 basic draw-
-ing commands are supported
+(GDPs)—how many of the 10 basic drawing commands are supported
 work_out[15]
  intout[15]
 to
@@ -15983,13 +15428,10 @@ WOON DAL
 intout[25}
 This part of the array holds a sequential
 to
-list of code numbers showing what cate-
-intout[34]
+list of code numbers showing what cateintout[34]
 gory of graphics operation is performed
-by each of the supported GDPs. This indi-
-cates what kind of graphics settings affects
-each of the supported commands. Each el-
-ement holds one of the following code
+by each of the supported GDPs. This indicates what kind of graphics settings affects
+each of the supported commands. Each element holds one of the following code
 numbers:
 0 = Line drawing
 1 = Marker drawing
@@ -16137,8 +15579,7 @@ v_clrwk( )
 Opcode=3
 This function performs device-specific initialization. For a screen, it clears
 the screen; for a printer, it erases printer buffer data and sends a form feed,
-and so forth. No graphics output occurs with any device. The functions pro-
-vided by this call are also performed by Open Workstation.
+and so forth. No graphics output occurs with any device. The functions provided by this call are also performed by Open Workstation.
 Devices required for
 All
 C binding
@@ -16205,8 +15646,7 @@ ESC 1: Inquire Addressable Alpha Cells
 vq—chcells( )
 Decades
 unction=
-This escape provides information about the number of horizontal and verti-
-cal character cell positions at which the alphanumeric cursor may be
+This escape provides information about the number of horizontal and vertical character cell positions at which the alphanumeric cursor may be
 positioned.
 Devices required for
 All
@@ -16289,8 +15729,7 @@ Opcode=5
 Function=3
 This escape would cause the screen device to exit graphics mode and enter
 alphanumeric mode if the two modes were separate on the ST. Since they
-are not, it clears the screen and turns on the visible cursor, which is posi-
-tioned in the top left corner.
+are not, it clears the screen and turns on the visible cursor, which is positioned in the top left corner.
 Devices required for
 Screen, Metafile
 C binding
@@ -16396,8 +15835,7 @@ v_curright(
 )
 Opcode=5
 Function=6
-This escape moves the alpha cursor one column to the right, unless its al-
-ready at the rightmost column on the screen.
+This escape moves the alpha cursor one column to the right, unless its already at the rightmost column on the screen.
 Devices required for
 Screen
 C binding
@@ -16433,8 +15871,7 @@ ESC 7: Alpha Cursor Left
 v—curleft( )
 Opcode=5
 Function=7
-This escape moves the alpha cursor one column to the left, unless it’s al-
-ready at the leftmost column on the screen.
+This escape moves the alpha cursor one column to the left, unless it’s already at the leftmost column on the screen.
 Devices required for
 Screen
 C binding
@@ -16644,8 +16081,7 @@ Number of points in ptsin
 Number of characters in string
 Function ID
 The (virtual) workstation device handle
-Text string, formatted as 8-bit ASCII char-
-acters, with each character set within a
+Text string, formatted as 8-bit ASCII characters, with each character set within a
 16-bit word
 . The first byte of each word
 is 0, and the second contains the character
@@ -16923,9 +16359,7 @@ ESC 20: Form Advance
 v_form_adv( )
 Opcode=5
 Function= 20
-Like the Clear Workstation command, this escape sends a form feed com-
-mand to the printer, but unlike that command, it does not discard the infor-
-mation stored in the print buffer.
+Like the Clear Workstation command, this escape sends a form feed command to the printer, but unlike that command, it does not discard the information stored in the print buffer.
 Devices required for
 Printer
 C binding
@@ -17090,8 +16524,7 @@ Sealing flag:
 1 = Separate scaling
 filename
 intin(2]—[n]
-Filename character string, with one char-
-acter per 16-bit word.
+Filename character string, with one character per 16-bit word.
 points[0]
 ptsin[0]
 X position of left edge (optional)
@@ -17289,11 +16722,9 @@ string[n]
 intin[n]
 Last character of text string.
 ptsin[0]
-X-coordinate (in NDC/RC units) of posi-
-tion where the text string is to be placed.
+X-coordinate (in NDC/RC units) of position where the text string is to be placed.
 ptsin[1]
-Y-coordinate (in NDC/RC units) of posi-
-tion where the text string is to be placed.
+Y-coordinate (in NDC/RC units) of position where the text string is to be placed.
 227
 
 <!-- source-page: 235 -->
@@ -17322,10 +16753,8 @@ Opcode=9
 This function draws a
 filled polygon whose shape is outlined by a
 series of
-points. This polygon may be complex; its lines may cross each other, creat-
-ing a number of sub-polygons, some of which are filled, others of which are
-not. In order to insure that the figure is enclosed, the last point is automati-
-cally connected to the first. If the points of the figure are the same, a single
+points. This polygon may be complex; its lines may cross each other, creating a number of sub-polygons, some of which are filled, others of which are
+not. In order to insure that the figure is enclosed, the last point is automatically connected to the first. If the points of the figure are the same, a single
 point is displayed if fill outlining is turned on. The rendering of the filled
 figure is affected by the general graphics settings and the fill settings:
 Writing mode (vswr_mode)
@@ -17384,8 +16813,7 @@ GDP 1: Bar
 v_bar( )
 Opcode=11
 Function=1
-This function draws a filled rectangle. The rendering of the filled figure is af-
-fected by the general graphics settings and the fill settings:
+This function draws a filled rectangle. The rendering of the filled figure is affected by the general graphics settings and the fill settings:
 Writing mode (vswr_mode)
 Clipping rectangle (vs_clip)
 Fill color (vsf_color)
@@ -17444,8 +16872,7 @@ Function =2
 Arc draws an arc between any two points on a
 circle. Points on the circle are
 measured in tenths of a degree, starting at the rightmost point on the circle
-and moving counterclockwise. It’s possible to draw an entire circle by speci-
-fying the same starting and ending points. This function takes the horizontal
+and moving counterclockwise. It’s possible to draw an entire circle by specifying the same starting and ending points. This function takes the horizontal
 radius parameter that’s passed to it and scales the vertical radius according
 to the aspect ratio of the monitor, so the circle looks round.
 The output of this function is affected by the general graphics settings
@@ -17531,9 +16958,7 @@ on a
 circle, connects the endpoint of that arc to the center of the circle, and
 fills the resulting pie wedge with the current fill color and pattern. Points on
 the circle are measured in tenths of a degree, starting at the rightmost point
-on the circle and moving counterclockwise. This function takes the horizon-
-tal radius parameter that’s passed to it and scales the vertical radius accord-
-ing to the aspect ratio of the monitor, so the circle looks round.
+on the circle and moving counterclockwise. This function takes the horizontal radius parameter that’s passed to it and scales the vertical radius according to the aspect ratio of the monitor, so the circle looks round.
 The way in which the filled figure is drawn depends on the general
 graphics settings and the fill settings:
 Writing mode (vswr_mode)
@@ -17678,8 +17103,7 @@ Ppcode = -
 unction=
 The Ellipse function draws a
 filled ellipse of a given horizontal and vertical
-radius and center point. The way in which the filled ellipse is drawn is af-
-fected by the general graphics settings and the fill settings:
+radius and center point. The way in which the filled ellipse is drawn is affected by the general graphics settings and the fill settings:
 Writing mode (vswr_mode)
 Clipping rectangle (vs_clip)
 Fill color (vsf_color)
@@ -17740,9 +17164,7 @@ Opcode= 11
 Function=6
 Elliptical Arc draws an arc between any two points on an ellipse. Points on
 the ellipse are measured in tenths of a degree, starting at the rightmost point
-on the circle and moving counterclockwise. It’s possible to draw an entire el-
-lipse by specifying the same point for both the beginning and end. The out-
-put of this function is affected by the general graphics settings, and the line
+on the circle and moving counterclockwise. It’s possible to draw an entire ellipse by specifying the same point for both the beginning and end. The output of this function is affected by the general graphics settings, and the line
 settings:
 Writing mode (vswr_mode)
 Clipping rectangle (vs_clip)
@@ -17991,12 +17413,10 @@ GDP 10: Justified Graphics Text
 v_justified( )
 Opcode=11
 Function=10
-This function outputs a line of graphics text that is both right and left justi-
-fied. Pixel spaces are added or removed between characters and/or words,
+This function outputs a line of graphics text that is both right and left justified. Pixel spaces are added or removed between characters and/or words,
 causing the string to be printed in the specified width. No escape characters
 are recognized by this function, and even non-printing ASCII characters are
-drawn if there is image data for them in the current character set. Text ren-
-dering is affected by the general graphics settings and the text settings:
+drawn if there is image data for them in the current character set. Text rendering is affected by the general graphics settings and the text settings:
 Writing mode (vswr_mode)
 Clipping rectangle (vs_clip)
 Text color (vst—color)
@@ -18207,14 +17627,12 @@ contrl[6] = n
 The (virtual) workstation device handle
 pen
 intin(0]
-The VDI pen (color index) number associ-
-ated with the hardware color register to
+The VDI pen (color index) number associated with the hardware color register to
 be changed. Note that pen numbers do
 not correspond directly to color register
 numbers (for example, pen 7 is not the
 same as color register 7). The relationship
-between the two is shown in the chart be-
-low. For medium-resolution mode, only
+between the two is shown in the chart below. For medium-resolution mode, only
 pens 0-3 are valid, and pen
 1 corresponds
 to register 3, as shown in parentheses.
@@ -18285,8 +17703,7 @@ rgb[2}
 intin[3]
 The Green brightness value (0-1000)
 Although the VDI uses color levels from
-0-1000, currently, the ST hardware sup-
-ports eight brightness values for each
+0-1000, currently, the ST hardware supports eight brightness values for each
 —
 color, 0-7. So the VDI maps its values to
 the actual hardware values as follows:
@@ -18340,8 +17757,7 @@ vsl_type( )
 Opcode= 15
 This function sets a line pattern that is used by subsequent line-drawing
 routines. It can install one of six preset patterns or an arbitrary 16-bit pattern
-set by the programmer. If the pattern number requested is unavailable, pat-
-tern 1, a solid line, will be set. Note that patterned lines are unavailable
+set by the programmer. If the pattern number requested is unavailable, pattern 1, a solid line, will be set. Note that patterned lines are unavailable
 when the vsl_width(
 ) function is used to set a line width greater than 1.
 These thicker lines always appear as solid.
@@ -18397,8 +17813,7 @@ vsL_width
 Set Polyline Line Width
 vsL_width( )
 Opcode= 16
-This command sets the width of the lines produced by subsequent line-
-drawing operations. On the ST, the line width may be any odd number
+This command sets the width of the lines produced by subsequent linedrawing operations. On the ST, the line width may be any odd number
 from
 1 through 39. Requests for even numbers will cause the next-lowest
 odd-numbered width to be set. Note that when lines wider than one pixel
@@ -18497,11 +17912,9 @@ vsm_type
 Set Polymarker Type
 vsm.__type( )
 Opcode= 18
-This function sets the marker shape that will be used by subsequent poly-
-marker operations. There are six preset marker shapes. The first of these, the
+This function sets the marker shape that will be used by subsequent polymarker operations. There are six preset marker shapes. The first of these, the
 dot, is always one pixel in size, and cannot be scaled the way the others
-can. If the marker that is requested is unavailable, marker number 3, the as-
-terisk, is selected.
+can. If the marker that is requested is unavailable, marker number 3, the asterisk, is selected.
 Devices required for
 All
 C Binding
@@ -18595,10 +18008,8 @@ Set Polymarker Color Index
 vsm_color( )
 Opcode= 20
 This function sets the hardware color register that will be used for future
-polymarker operations, Note that the color index (pen) number does not cor-
-respond exactly to the color register number. The VDI uses a lookup table to
-match the color index to a color register for the color screen. On the mono-
-chrome screen, color 0 is white, the background color; and 1 is black, the
+polymarker operations, Note that the color index (pen) number does not correspond exactly to the color register number. The VDI uses a lookup table to
+match the color index to a color register for the color screen. On the monochrome screen, color 0 is white, the background color; and 1 is black, the
 foreground color. If the color that was requested is not available, color index
 1 (black) will be selected.
 Devices required for
@@ -18773,8 +18184,7 @@ The style of fill pattern requested
 3 = Crosshatch
 4 = User-defined style
 User-defined fill style must first be set
-with vsf_udpat( ). If no user-defined pat-
-tern has been set the default Atari-logo
+with vsf_udpat( ). If no user-defined pattern has been set the default Atari-logo
 pattern is used.
 Results
 contrl(2]
@@ -18796,8 +18206,7 @@ Set Fill Style Index
 vsf_style( )
 Opcode=24
 This function is used to choose a particular fill pattern from those available
-for a given fill type. This fill pattern will be used for all subsequent fill oper-
-ations. Only the Pattern (Dotted) and Crosshatch fill styles offer
+for a given fill type. This fill pattern will be used for all subsequent fill operations. Only the Pattern (Dotted) and Crosshatch fill styles offer
 a number of
 patterns to choose from, so the general pattern style must be set to either of
 those in order for this command to have any effect. On the ST screen, the
@@ -18845,8 +18254,7 @@ Set Fill Color Index
 vsf_color( )
 Opcode = 25
 This function sets the hardware color register that will be used for future fill
-operations. Note that the color index (pen) number does not correspond ex-
-actly to the color register number. The VDI uses a lookup table to match the
+operations. Note that the color index (pen) number does not correspond exactly to the color register number. The VDI uses a lookup table to match the
 color index to a color register for the color screen. On the monochrome
 screen, color 0 is white, the background color; and
 1 is black, the foreground
@@ -18949,8 +18357,7 @@ vrq—locator( )
 Opcode= 28
 This function waits for a terminating event, such as a keypress or mouse
 button press, and returns the position of the mouse pointer. The mouse
-pointer is shown at the beginning of this function; it remains visible and fol-
-lows the mouse until the terminating event, at which time it is hidden. The
+pointer is shown at the beginning of this function; it remains visible and follows the mouse until the terminating event, at which time it is hidden. The
 ALT-arrow key combination may be used to move the mouse pointer. This
 mode of the locator function is chosen by first setting the device to request
 mode with the vsin_mode(
@@ -18987,8 +18394,7 @@ Number of output integers in intout
 term
 intout(0]
 Terminating event. If a keypress, the
-ASCII value of the key pressed. If a but-
-ton press, 32 for the left button, 33 for the
+ASCII value of the key pressed. If a button press, 32 for the left button, 33 for the
 right button.
 x1
 ptsout(0]
@@ -19055,13 +18461,11 @@ occurred and/or if mouse moved. The
 binding makes this value equal to contr][2]
 | (contrl[4] << 1), so that bit 0 is set if the
 mouse moved, and bit
-1 is set if a termi-
-nating event occurred.
+1 is set if a terminating event occurred.
 term
 intout[0]
 Terminating event. If a keypress, the
-ASCII value of the key pressed. If a but-
-ton press, 32 for the left button, 33 for the
+ASCII value of the key pressed. If a button press, 32 for the left button, 33 for the
 right button.
 x1
 ptsout[0]
@@ -19135,8 +18539,7 @@ Opcode= 29
 This function implements a logical device that allows the user to return a
 numerical value from
 1 to 100. In sample mode, the function checks
-whether the up- or down-arrow keys are currently pressed, thereby increas-
-ing or decreasing the starting value. This mode of the valuator function is
+whether the up- or down-arrow keys are currently pressed, thereby increasing or decreasing the starting value. This mode of the valuator function is
 chosen by first setting the device to sample mode with the vsin_mode( )
 function. This function is not implemented in the current version of the TOS
 ROMs.
@@ -19316,11 +18719,9 @@ The (virtual) workstation device handle
 max_iength
 _intin{0]
 The maximum string length. If this length
-is specified as a negative number, the ab-
-solute value of that number is used as the
+is specified as a negative number, the absolute value of that number is used as the
 length, and the 16-bit keycode value for
-each keypress is placed in the string, in-
-stead of its 8-bit ASCII value.
+each keypress is placed in the string, instead of its 8-bit ASCII value.
 echo_mode
 intin{1]
 Echo mode flag
@@ -19400,11 +18801,9 @@ The (virtual) workstation device handle
 max_length
 _intin{0}
 The maximum string length. If this length
-is specified as a negative number, the ab-
-solute value of that number is used as the
+is specified as a negative number, the absolute value of that number is used as the
 length, and the 16-bit keycode value for
-each keypress is placed in the string, in-
-stead of its 8-bit ASCII vlaue.
+each keypress is placed in the string, instead of its 8-bit ASCII vlaue.
 echo__mode
 intin{1]
 Echo mode flag
@@ -19432,18 +18831,15 @@ intout[0]
 First character of text string (if any). Each
 8-bit ASCII value is positioned in the low
 byte of a 16-bit intout word. (The high
-byte is always zero.) If max_length is neg-
-ative, indicating that 16-bit keycodes are
-to be used instead of 8-bit ASCII charac-
-ters, the C bindings still only copy the
+byte is always zero.) If max_length is negative, indicating that 16-bit keycodes are
+to be used instead of 8-bit ASCII characters, the C bindings still only copy the
 267
 
 <!-- source-page: 275 -->
 ## Page 275
 
 vsm__string
-low byte of each character to string. In or-
-der to read the full 16-bit value of each
+low byte of each character to string. In order to read the full 16-bit value of each
 character, therefore, you must read each
 one directly from the intout array
 string[n — 1]
@@ -19461,9 +18857,7 @@ vswr_mode
 Set Writing Mode
 vswr—mode( )
 Opcode= 32
-This function sets the writing mode, which affects how all subsequent draw-
-ing operations will be performed. Not only may a VDI drawing operation re-
-place an existing background picture, but it may also be combined with that
+This function sets the writing mode, which affects how all subsequent drawing operations will be performed. Not only may a VDI drawing operation replace an existing background picture, but it may also be combined with that
 background in various ways. Four drawing modes are supported: Replace,
 Transparent, Exclusive OR (XOR), and Reverse Transparent. The writing
 mode affects marker, line, fill, and graphics-text operations.
@@ -19489,8 +18883,7 @@ Writing mode requested
 1 = Replace
 Both the
 1 and the 0 bits in the
-graphics object replace the back-
-ground (1’s with current foreground
+graphics object replace the background (1’s with current foreground
 color, 0’s with color 0).
 2 = Transparent
 Only the
@@ -19506,8 +18899,7 @@ Only the 0
 bits in the graphics object
 replace the background (with current
 foreground color)
-If number requested is out of range, num-
-ber 1 (Replace) is selected.
+If number requested is out of range, number 1 (Replace) is selected.
 Results
 contrl[2] = 0
 Number of points in ptsout
@@ -19527,8 +18919,7 @@ Set Input Mode
 vsin_mode( )
 Opcode=
 33
-This function is used to set any of the four logical input devices (string, val-
-uator, locator, or choice) to request or sample mode. The proper mode
+This function is used to set any of the four logical input devices (string, valuator, locator, or choice) to request or sample mode. The proper mode
 should be set before using any of these devices. This function returns the
 mode that was actually set in inout[0], but the C bindings do not make this
 information available in a C variable.
@@ -19633,8 +19024,7 @@ Inquire Current Polymarker Attribute
 vqm_attributes( )
 Opcode=
 36
-This function returns information about the settings that affect marker draw-
-ing operations, including marker type, marker height, marker width, marker
+This function returns information about the settings that affect marker drawing operations, including marker type, marker height, marker width, marker
 color, and writing mode. The C binding does not return the information
 about the marker width (ptsout[0]) in a C variable.
 Devices required for
@@ -19683,10 +19073,8 @@ Inquire Current Fill Area Attributes
 vqf_attributes( )
 Opcode
 = 37
-This function returns information about the settings that affect area fill oper-
-ations, including interior style, fill style index, fill color, perimeter outlining,
-and writing mode. The C binding does not return the information about pe-
-rimeter outlining (intout[4]) in a C variable.
+This function returns information about the settings that affect area fill operations, including interior style, fill style index, fill color, perimeter outlining,
+and writing mode. The C binding does not return the information about perimeter outlining (intout[4]) in a C variable.
 Devices required for
 All
 C Binding
@@ -19808,8 +19196,7 @@ This function controls the horizontal and vertical alignment points for
 graphics text. The horizontal alignment determines whether the text string
 will be centered or left- or right-justified. The vertical alignment determines
 whether the y coordinate of the text placement point refers to the character
-baseline, half line, ascent line, bottom line, descent line, or top line. The de-
-fault alignment makes the graphics-text position the baseline of the leftmost
+baseline, half line, ascent line, bottom line, descent line, or top line. The default alignment makes the graphics-text position the baseline of the leftmost
 character in the string.
 Devices required for
 All
@@ -19867,18 +19254,15 @@ Opcode= 100
 This function opens a
 virtual workstation that allows the application to
 share the physical screen device with other tasks. Each virtual workstation
-has access to the full screen, but its graphics settings are maintained sepa-
-rately from all of the others. The screen device drivers are part of the TOS
-ROMs, so they do not have to be loaded in from disk when a virtual work-
-station is opened. But if you wish to use disk-loaded fonts with your virtual
+has access to the full screen, but its graphics settings are maintained separately from all of the others. The screen device drivers are part of the TOS
+ROMs, so they do not have to be loaded in from disk when a virtual workstation is opened. But if you wish to use disk-loaded fonts with your virtual
 workstation, they must be properly identified in the ASSIGN.SYS file, and
 the GDOS must be loaded. Like Open Workstation, this command allows
 you to make initial settings for a number of graphics output functions. But
 note that, unlike Open Workstation, the handle parameter does double duty
 for this call. As an input, it should be set to the value of the current screen
 device handle, which can be found by using the AES call graf_handle( ).
-Upon return from this call, the handle parameter contains the virtual work-
-station’s device handle.
+Upon return from this call, the handle parameter contains the virtual workstation’s device handle.
 Devices required for
 Screen
 C Binding
@@ -19896,8 +19280,7 @@ contrl[6] = n
 The physical screen device handle
 (obtained from graf_handle(
 ) call)
-The initial graphics output settings for the virtual workstation are speci-
-fied by the contents of the intin array (which the bindings take from
+The initial graphics output settings for the virtual workstation are specified by the contents of the intin array (which the bindings take from
 work_in] ]).
 work_in{0]
 intin(0]
@@ -20057,13 +19440,11 @@ intout[35]
 Number of pattern fill styles (24)
 Number of crosshatch fill styles (12)
 Number of drawing pen colors available
-(the number of colors that can be dis-
-played by the device at the same time)
+(the number of colors that can be displayed by the device at the same time)
 hi-res = 2, medium-res = 4, lo-res = 16
 Number of Generalized Drawing
 Primitives
-(GDPs)—how many of the 10 basic draw-
-ing commands are supported (all 10 on
+(GDPs)—how many of the 10 basic drawing commands are supported (all 10 on
 the ST)
 This part of the array holds a sequential
 list of code numbers for the first 10 GDPs
@@ -20088,8 +19469,7 @@ AD GS
 W
 10
 This part of the array holds a sequential
-list of code numbers showing what cate-
-gory of graphics operation is performed
+list of code numbers showing what category of graphics operation is performed
 by of each of the supported GDPs. This
 indicates what kind of graphics settings
 affects each of the supported commands.
@@ -20322,8 +19702,7 @@ or Open Virtual Workstation calls. (See v_opnwk(
 ) for
 more details.) If info_flag is set to 1, the following information is returned.
 Note that 6 points and 45 integers are always returned, even though many
-of these values are undefined when the information type flag is set for Ex-
-tended Inquire.
+of these values are undefined when the information type flag is set for Extended Inquire.
 work_out[0]
 — intout[0]
 Type of screen display
@@ -20331,12 +19710,9 @@ Type of screen display
 1 = Separate alphanumeric and graphics
 controllers, and separate display
 screens
-2 = Separate alpha and graphics control-
-lers, with a common display screen.
-3 = Common alpha and graphics control-
-ler, with separate display memory.
-4 = Common alpha and graphics control-
-ler, common display memory. (The
+2 = Separate alpha and graphics controllers, with a common display screen.
+3 = Common alpha and graphics controller, with separate display memory.
+4 = Common alpha and graphics controller, common display memory. (The
 ST display is this type.)
 work_out{1]
 —_intout[1]
@@ -20380,20 +19756,16 @@ intout[13]
 intout[14]
 intout(15]
 Number of text special effects supported
-(31 on the ST, since 5 effects can be com-
-bined in that many ways).
+(31 on the ST, since 5 effects can be combined in that many ways).
 Raster scaling availability flag
 0 = Scaling of rasters not supported
 (as is the case on the ST)
 1 = Raster scaling supported
 Number of color bit planes
-(monochrome= 1, medium-res=2, lo-
-res=4)
+(monochrome= 1, medium-res=2, lores=4)
 Color palette lookup table flag
 0 = Lookup table supported (as on color
-screens, where VDI drawing pen in-
-dex numbers are different from hard-
-ware color register numbers)
+screens, where VDI drawing pen index numbers are different from hardware color register numbers)
 1 = Lookup table not supported (as on ST
 monchrome screen)
 Performance factor, the number of 16
@@ -20406,8 +19778,7 @@ Contour fill capability flag
 return a value of 1)
 Character baseline rotation flag
 0 = text characters cannot be rotated
-1 = characters can be rotated in 90—de-
-gree increments only (all ST screens)
+1 = characters can be rotated in 90—degree increments only (all ST screens)
 2 = Characters can be rotated at any
 angle
 Number of writing modes available (4)
@@ -20645,9 +20016,7 @@ contrl[6] = n
 The (virtual) workstation device handle
 effects
 intin[0}
-Special effects setting. Each effect is de-
-scribed in a different bit of this word. Pos-
-sible effects are:
+Special effects setting. Each effect is described in a different bit of this word. Possible effects are:
 Bit
 Value
 Effect
@@ -20694,8 +20063,7 @@ Opcode= 107
 This command is used to set the character size of graphics text using points,
 a printing measurement equal to 1/72 inch. The character height requested
 encompasses the entire character cell, which may include some blank space
-at the top and bottom of the character. Since all point sizes will not be avail-
-able for any given font, the VDI tries to match the requested size with the
+at the top and bottom of the character. Since all point sizes will not be available for any given font, the VDI tries to match the requested size with the
 next smallest available font size. The function returns information about the
 point size selected and the character size and cell size in pixels.
 Devices required for
@@ -20750,8 +20118,7 @@ vsL_ends
 Set Polyline End Styles
 vsl_ends( )
 Opcode= 108
-This function is used to specify how the ends of lines produced by the line-
-drawing functions will appear. Either end of a line—or both ends—may be
+This function is used to specify how the ends of lines produced by the linedrawing functions will appear. Either end of a line—or both ends—may be
 squared off (the default), rounded, or have an arrowhead attached. Note that
 rounding off the end of line really only affects lines that are more than a few
 pixels wide. If the style requested by this call is not available, the squared end
@@ -20806,9 +20173,7 @@ a Memory Form Definition Block
 structure contains information about the memory location of image data, the
 size of the image in pixels and memory words, the number of color planes,
 and format of the image, either standard (each color bit plane separate), or
-ST-specific (color planes interleaved into one large bit plane). For the pur-
-poses of this function, the source and destination forms must both be in ST-
-specific format.
+ST-specific (color planes interleaved into one large bit plane). For the purposes of this function, the source and destination forms must both be in STspecific format.
 Devices required for
 Screen
 C Binding
@@ -20862,9 +20227,7 @@ source image with the desination. The
 logic operations are described below,
 using the symbol S
 to refer to the source
-image, D to refer to the starting destina-
-tion image, and D1 to refer to the result-
-ing destination image:
+image, D to refer to the starting destination image, and D1 to refer to the resulting destination image:
 291
 
 <!-- source-page: 299 -->
@@ -20941,8 +20304,7 @@ Transform Form
 vr__trn_fm( )
 Opcode= 110
 This function is used to change
-a Memory Form Definition Block whose im-
-age data is in standard format (each color bit plane separate) to ST-specific
+a Memory Form Definition Block whose image data is in standard format (each color bit plane separate) to ST-specific
 format (all color bit planes interleaved), or vice versa.
 The function converts the number of bit planes specified in the source
 form to the opposite format of that specified in the source form. It changes
@@ -21015,12 +20377,10 @@ on screen. It lets you to define the portion of the 16 X 16 pixel area to be
 drawn in the foreground color, the background color, and a transparent area
 through which the existing background may be seen.
 You must supply two arrays of image data. The first, called the mask,
-defines the opaque area of the the pointer without regard to color infor-
-mation. The second is the image data itself. Bit positions within the mask
+defines the opaque area of the the pointer without regard to color information. The second is the image data itself. Bit positions within the mask
 that contain a
 1 are considered to be inside the pointer. If the corresponding
-image data bit also contains a 1, that pixel will be colored in using the fore-
-ground color. If the corresponding image data bit contains a
+image data bit also contains a 1, that pixel will be colored in using the foreground color. If the corresponding image data bit contains a
 0, that pixel will
 be color in using the background color. Mask bit positions that contain a 0
 are considered to the outside the pointer image, or transparent, and if the
@@ -21067,11 +20427,9 @@ ptdata[5-20]
 intin[5-20]
 16 words of mask data
 pt_data[21-36] intin[21-36]
-16 words of image data. Each word repre-
-sents a line of 16 pixels, with the first
+16 words of image data. Each word represents a line of 16 pixels, with the first
 word being the top line, the second being
-the second, and so on. The least-signifi-
-cant bit in each word represents the
+the second, and so on. The least-significant bit in each word represents the
 rightmost pixel, and the most-signficant
 bit in each word, the leftmost.
 294
@@ -21094,22 +20452,18 @@ vsf_udpat
 Set User-Defined Fill Pattern
 vsf_udpat( )
 Opcode= 112
-This function is used to supply the image data for the user-defined fill pat-
-tern, style 4 of vsf_interior( ). This fill pattern is
+This function is used to supply the image data for the user-defined fill pattern, style 4 of vsf_interior( ). This fill pattern is
 a 16 X 16 pixel image,
 either monochrome or multicolor. For
 a monochrome fill pattern, 16 words
 of image data are used to describe the image on 16 lines. Each bit represents
-either a pixel of foreground color (1) or background color (0). The fore-
-ground color used is the current fill color.
+either a pixel of foreground color (1) or background color (0). The foreground color used is the current fill color.
 To describe a multicolor fill pattern, you must use 16 words of image
-data for each color bit plane. Each plane contains a single bit of color infor-
-mation for each pixel, and in order to obtain complete color information for
+data for each color bit plane. Each plane contains a single bit of color information for each pixel, and in order to obtain complete color information for
 a single pixel, you must combine the values for each corresponding bit in all
 of the planes. For example, to find the color of the top, left pixel, you must
 combine the first bit of each bit plane. The first bit plane contains all of the
-least-significant bits, and each subsequent plane holds the next most signifi-
-cant bit.
+least-significant bits, and each subsequent plane holds the next most significant bit.
 Devices required for
 Screen, Printer, Metafile
 C Binding
@@ -21157,10 +20511,8 @@ vsl_udsty
 Set User-Defined Line Style
 vsl_udsty( )
 Opcode= 113
-This function is used to supply the image data for the user-defined line pat-
-tern, pattern 7 of vsl_type( ). The line pattern data takes the form of a single
-16-bit word, each bit of which represents a pixel drawn in either the fore-
-ground color (1) or background color (0).
+This function is used to supply the image data for the user-defined line pattern, pattern 7 of vsl_type( ). The line pattern data takes the form of a single
+16-bit word, each bit of which represents a pixel drawn in either the foreground color (1) or background color (0).
 Devices required for
 Screen, Metafile
 C Binding
@@ -21321,8 +20673,7 @@ contrl[6] = n
 The (virtual) workstation device handle
 string[0]
 intin[0]
-First character of text string. Text is for-
-matted with one character per memory
+First character of text string. Text is formatted with one character per memory
 word, with each character occupying the
 low byte of the word.
 string[s]
@@ -21375,8 +20726,7 @@ Inquire Character Cell Width
 vqt_width( )
 Opcode= 117
 This function can be used to learn the character cell width of a particular
-character in the current text font (without making allowance for special ef-
-fects or baseline rotation). The character cell may include some of the blank
+character in the current text font (without making allowance for special effects or baseline rotation). The character cell may include some of the blank
 space surrounding the character.
 Devices required for
 All
@@ -21397,8 +20747,7 @@ contrl[6] = n
 The (virtual) workstation device handle
 char
 intin[0]
-Character whose width is inquired, for-
-matted so ASCII value is in the low byte
+Character whose width is inquired, formatted so ASCII value is in the low byte
 of the word.
 Results
 contrl[2] = 3
@@ -21408,8 +20757,7 @@ contrl[4] =
 Number of output integers in intout
 status
 intout[0]
-Character about which information is re-
-turned (—1 if character requested was not
+Character about which information is returned (—1 if character requested was not
 available)
 cellw
 ptsout(0]
@@ -21439,9 +20787,7 @@ vex_timv( )
 Opcode= 118
 This function allows you to add your own machine-language program to the
 ST timer interrupt handler that executes every fixed period known as a timer
-tick. Your routine should preserve all registers, should not call any non-
-reentrant ROM routines, and should end with an RTS instruction. The func-
-tion returns the address of the normal entry point of the system timer
+tick. Your routine should preserve all registers, should not call any nonreentrant ROM routines, and should end with an RTS instruction. The function returns the address of the normal entry point of the system timer
 routine, so that your routine may call that routine when it is finished.
 Devices required for
 Screen
@@ -21458,8 +20804,7 @@ contrl[3] = 0
 Number of input integers in intin
 handle
 contrl[6] =
-The physical screen device handle (ob-
-tained from graf_handle(
+The physical screen device handle (obtained from graf_handle(
 ) call)
 new_addr
 contrl[7-8]
@@ -21491,8 +20836,7 @@ Load Fonts
 vst_load__fonts(
 )
 Opcode= 119
-This function is used to load disk-based text fonts. In order to load disk-
-based fonts on the ST, the GDOS extension (GDOS.PRG) must be loaded,
+This function is used to load disk-based text fonts. In order to load diskbased fonts on the ST, the GDOS extension (GDOS.PRG) must be loaded,
 usually by placing the program in the AUTO folder of the disk with which
 the system is started. Furthermore, the filenames of the fonts that available
 for each device driver must be listed in a
@@ -21544,8 +20888,7 @@ Opcode= 120
 _
 This function is used to terminate the availability of disk-loaded fonts to a
 particular device. If no other workstation is using those fonts, this function
-also frees up the memory taken up by those fonts. You should unload disk-
-based fonts whenever you are through using them.
+also frees up the memory taken up by those fonts. You should unload diskbased fonts whenever you are through using them.
 Devices required for
 Screen
 C Binding
@@ -21582,13 +20925,10 @@ vrt_cpyfm
 Copy Raster, Transparent
 vrt_cpyfm( )
 Opcode= 121
-This function is used to copy a single-plane rectangular bit image to a des-
-tination memory area (usually in screen memory) that can be made up of
+This function is used to copy a single-plane rectangular bit image to a destination memory area (usually in screen memory) that can be made up of
 several color bit planes. The VDI uses a data structure called
 a Memory
-Form Definition Block (MFDB) to describe the source and destination mem-
-ory areas. This data structure contains information about the memory loca-
-tion of image data, the size of the image in pixels and memory words, the
+Form Definition Block (MFDB) to describe the source and destination memory areas. This data structure contains information about the memory location of image data, the size of the image in pixels and memory words, the
 number of color planes, and format of the image, either standard (each color
 bit plane separate), or ST-specific (color planes interleaved into one large bit
 plane). For the purposes of this function, the source and destination forms
@@ -21598,8 +20938,7 @@ the foreground (one bits) and the background (zero bits), so the image can
 be drawn in any color combination that you wish. The image may be copied
 directly, or combined in various ways with the existing image data in the
 destination area. Note that the writing modes used to combine the image are
-not the same ones used by vro_cpyfm( ), but rather the more limited set of-
-fered by vswr_mode( ).
+not the same ones used by vro_cpyfm( ), but rather the more limited set offered by vswr_mode( ).
 Devices required for
 Screen
 C Binding
@@ -21712,14 +21051,12 @@ v_show__c
 Show Mouse Pointer
 v_show_c( )
 Opcode= 122
-This function is used to display the mouse pointer, which tracks the move-
-ment of the mouse on screen. Whether or not a call to this function actually
+This function is used to display the mouse pointer, which tracks the movement of the mouse on screen. Whether or not a call to this function actually
 displays the pointer depends on how many times Hide Mouse Pointer
 (v_hide_c) has been called previously. Each time v_hide_c(
 ) is called,
 pointer visibility is pushed down one level further. Therefore, if v_hide_c( )
-is called twice, v_show_c( ) must also be called twice before the pointer be-
-comes visible. This function provides a reset flag, however, which resets the
+is called twice, v_show_c( ) must also be called twice before the pointer becomes visible. This function provides a reset flag, however, which resets the
 counter that keeps track of how many times the pointer has been hidden. By
 using this flag, you may specify that the pointer become visible regardless of
 the level at which it was hidden.
@@ -21803,8 +21140,7 @@ vq—mouse
 Sample Mouse Button State
 vq—mouse( )
 Opcode= 124
-This function is used to discover if either or both mouse buttons are cur-
-rently being pressed. It also returns the current screen position of the mouse
+This function is used to discover if either or both mouse buttons are currently being pressed. It also returns the current screen position of the mouse
 pointer.
 Devices required for
 Screen, Plotter
@@ -21855,8 +21191,7 @@ This function allows you to add your own machine language program to the
 ST mouse button interrupt handler that executes every time that a mouse
 button is pressed. Your routine should preserve all registers, should not call
 any non-reentrant ROM routines, and should end with an RTS instruction.
-At the point that your program executes, the mouse button status is con-
-tained in register DO, represented in the same manner as in vq_mouse( ).
+At the point that your program executes, the mouse button status is contained in register DO, represented in the same manner as in vq_mouse( ).
 The function returns the address of the normal entry point of the system
 timer routine, so that your routine may call that routine when it is finished.
 Devices required for
@@ -21906,8 +21241,7 @@ Opcode= 126
 This function allows you to add your own machine language program to the
 ST mouse movement interrupt handler that executes every time that the
 mouse changes position. At the time your program executes, register DO
-contains the horizontal position of the mouse, and the D1 contains the verti-
-cal position. Your routine should preserve all registers, should not call any
+contains the horizontal position of the mouse, and the D1 contains the vertical position. Your routine should preserve all registers, should not call any
 non-reentrant ROM routines, and should end with an RTS instruction. The
 function returns the address of the normal entry point of the system timer
 routine, so that your routine may call that routine when it is finished.
@@ -21958,9 +21292,7 @@ pointer is to be redrawn. At the point at which your code executes, the hori-
 ~
 zontal position of the mouse pointer is stored in register DO, and its vertical
 poisiton in register D1. Your routine should preserve all registers, should not
-call any non-reentrant ROM routines, and should end with an RTS instruc-
-tion. The function returns the address of the normal entry point of the sys-
-tem timer routine, so that your routine may call that routine when it is
+call any non-reentrant ROM routines, and should end with an RTS instruction. The function returns the address of the normal entry point of the system timer routine, so that your routine may call that routine when it is
 finished.
 Devices required for
 Screen
@@ -22063,11 +21395,8 @@ vs—clip
 Set Clipping Rectangle
 vs__clip( )
 Opcode= 129
-This function is used to turn clipping on and off. When clipping is on, out-
-put of all of the VDI graphics functions is restricted to a particular rectangu-
-lar area. Output directed to areas outside of that rectangle is ignored.
-Clipping is particularly useful for confining output to the within the bound-
-aries of
+This function is used to turn clipping on and off. When clipping is on, output of all of the VDI graphics functions is restricted to a particular rectangular area. Output directed to areas outside of that rectangle is ignored.
+Clipping is particularly useful for confining output to the within the boundaries of
 a window.
 Devices required for
 Screen, Printer, Metafile
@@ -22117,8 +21446,7 @@ Inquire
 Face Name and Index
 vqt_name( )
 Opcode= 130
-This function returns a character string containing the name and style infor-
-mation about a text font. It also returns the font ID number, which is needed
+This function returns a character string containing the name and style information about a text font. It also returns the font ID number, which is needed
 to set this font as the current graphics text font (with a call to vst_font).
 Devices required for
 Screen, Printer, Plotter
@@ -22164,10 +21492,8 @@ needed to set this font as the current
 graphics text font when calling vst_font( ).
 name{0-31]
 intout[1-32]
-The text name string. This string is for-
-matted so that each character is set into a
-separate 16-bit member of the intout ar-
-ray, with the ASCII value of the character
+The text name string. This string is formatted so that each character is set into a
+separate 16-bit member of the intout array, with the ASCII value of the character
 in the low byte, and a zero in the high
 byte. The first 16 characters of the string
 contain the name of the fonts, and the last
@@ -22194,8 +21520,7 @@ C Binding
 int handle, minchar, maxchar, maxwidth, distances[5], effects[3];
 vqt_font_info(handle, &minchar, &maxchar, distanches, &maxwidth,
 effects);
-Note: Some versions of the Alcyon and Megamax bindings assign this func-
-tion the name vqt_fontinfo( ), instead of vqt_font_info( ).
+Note: Some versions of the Alcyon and Megamax bindings assign this function the name vqt_fontinfo( ), instead of vqt_font_info( ).
 Inputs
 contrl[0] = 131
 Opcode
@@ -22226,16 +21551,14 @@ The maximum character cell width in this
 type face, not including special effects.
 distances(0]
 ptsout(1]
-The distance from the baseline to the bot-
-tom line.
+The distance from the baseline to the bottom line.
 effects[0]
 ptsout[2]
 The total increase in character width due
 to current special effects.
 distances[1]
 ptsout[3]
-The distance from the baseline to the de-
-scent line.
+The distance from the baseline to the descent line.
 effects[1]
 ptsout[4]
 The increase in character width on the left
@@ -22250,8 +21573,7 @@ The increase in character width on the
 right due to current special effects.
 distances[3]
 ptsout[7]
-The distance from the baseline to the as-
-cent line.
+The distance from the baseline to the ascent line.
 ptsout[8]
 0
 distances[4]
@@ -22288,8 +21610,7 @@ The VDI string input functions (vrq_string and
 vsm_string) may return a two-byte value for every key
 pressed, rather than a simple one-byte ASCII code. The first
 byte of this keycode is generally a unique key identifier that
-refers to the physical key struck, regardless of shift key com-
-binations. The second byte is usually the ASCII value of the
+refers to the physical key struck, regardless of shift key combinations. The second byte is usually the ASCII value of the
 key combination, which does depend on the state of the shift
 keys (Shift, Control, and Alt). The following table shows the
 keycodes, as 4-digit hexadecimal numbers, for all key and shift
@@ -22825,8 +22146,7 @@ VDI Font Files
 
 Font files
 for VDI disk-based fonts are divided into
-four sections. The first, called the font header, contains infor-
-mation about the font such as first and last character in the
+four sections. The first, called the font header, contains information about the font such as first and last character in the
 font, font size, font name, and so on. The font header is 87
 bytes long, and is laid out in the following format:
 Byte
@@ -22855,8 +22175,7 @@ Font size (in points).
 Font name and style information. This is a 32-character
 text string, with each character occupying the low byte of
 its own 16-bit word. The first 16 characters give the name
-of the font, while the last 16 describe special characteris-
-tics, such as thickness and style. This text string is one of
+of the font, while the last 16 describe special characteristics, such as thickness and style. This text string is one of
 the values returned by vqt_name( ).
 First character. The ASCII value of the first character in
 the font. This value is returned by vqt_font_info( ).
@@ -22864,8 +22183,7 @@ Last character. The ASCII value of the last character in the
 font. This value is returned by vqt_font_info( ).
 Top line distance. The distance in pixels from the baseline
 to the top line. This value is returned by vqt_font_info( ).
-Ascent line distance. The distance in pixels from the base-
-line to the ascent line. This value is returned by
+Ascent line distance. The distance in pixels from the baseline to the ascent line. This value is returned by
 vqt_font_info( ).
 Half line distance. The distance in pixels from the baseline
 to the half line. This value is returned by vqt_font_info( ).
@@ -22893,8 +22211,7 @@ width of a character by the thickening special effect.
 
 Appendix C
 60-61
-Underline size. The width in pixels of the line used to un-
-derline a character.
+Underline size. The width in pixels of the line used to underline a character.
 62-63
 Lightening mask. The 16-bit mask used to remove pixels
 from the character for the lightening special effect. The
@@ -22935,8 +22252,7 @@ the beginning of the file to the horizontal offset table.
 Character offset table pointer. The number of bytes from
 the beginning of the file to the character offset table.
 76-79
-Font data pointer. The number of bytes from the begin-
-ning the file to the start of font image data.
+Font data pointer. The number of bytes from the beginning the file to the start of font image data.
 80-81
 Form width. The number of bytes required to hold the
 combined widths of all of the characters in the font (total
@@ -22944,21 +22260,14 @@ character widths divided by 8).
 82-83
 Form height. Same as the font height in pixels.
 84-87
-Pointer to the next font. These four bytes are place-
-holders for a pointer to the next font which is set by the
+Pointer to the next font. These four bytes are placeholders for a pointer to the next font which is set by the
 device driver.
-Character table offset. The next section is called the char-
-acter offset table. This table contains the offset for the charac-
-ters’ image data from the beginning of the image data table.
-This offset is equal to the sum of the widths of all of the pre-
-ceding characters. For example, let’s say the first character in
+Character table offset. The next section is called the character offset table. This table contains the offset for the characters’ image data from the beginning of the image data table.
+This offset is equal to the sum of the widths of all of the preceding characters. For example, let’s say the first character in
 the font has an ASCII value of 32. Its offset is the first entry in
-the offset table, which always has a value of zero. If that char-
-acter is 4 pixels wide, the second entry, for character 33, will
-be four. The width of character 33 will be added to four to ob-
-tain the value for the third entry, which covers character 34.
-You can find the width of any individual character by sub-
-tracting its offset from that of the following character. That
+the offset table, which always has a value of zero. If that character is 4 pixels wide, the second entry, for character 33, will
+be four. The width of character 33 will be added to four to obtain the value for the third entry, which covers character 34.
+You can find the width of any individual character by subtracting its offset from that of the following character. That
 326
 
 <!-- source-page: 334 -->
@@ -22971,10 +22280,8 @@ for the last character from that of the following one. Note that
 this table is necessary even for fonts whose characters all have
 the same widths (called mono-spaced fonts).
 Horizontal offset table. The third section is an optional
-horizontal offset table. This table contains one entry per char-
-acter, showing the additional number of pixel spaces (positive
-or negative) that should be added before the character is out-
-put. A bit in the flag word of the header table indicates
+horizontal offset table. This table contains one entry per character, showing the additional number of pixel spaces (positive
+or negative) that should be added before the character is output. A bit in the flag word of the header table indicates
 whether or not there is a horizontal offset table.
 Actual image data. The final section is the actual image
 data for the characters in the font. Character data is formatted
@@ -22982,8 +22289,7 @@ with all of the data for each scan line of all of the characters
 following one after the other. The data for the first line of the
 first character is followed by the data for the first line of the
 second character, and so on. Each scan line starts on a word
-boundary, but within a scan line the characters are not byte-
-or word-aligned, That means that if each character is six bits
+boundary, but within a scan line the characters are not byteor word-aligned, That means that if each character is six bits
 wide, the first character uses the first six bits in the first byte,
 and the second character uses the last two bits of the first byte
 and the first four bits of the next byte. Only at the end of the
@@ -22992,13 +22298,10 @@ a word boundary.
 Important Note
 The few disk-based fonts that were available for examination
 at the time of this writing were arranged in the Intel format
-used by the IBM version of GEM. This means that 16-bit val-
-ues are formatted with the low byte first and the high byte
+used by the IBM version of GEM. This means that 16-bit values are formatted with the low byte first and the high byte
 second, and 32-bit values are stored with the least significant
-byte first, followed by increasingly significant bytes. For ex-
-ample, in the font header, if the 16-bit font ID has a value of
-2, the number appears in the header with the two-byte fol-
-lowed by the-zero byte.
+byte first, followed by increasingly significant bytes. For example, in the font header, if the 16-bit font ID has a value of
+2, the number appears in the header with the two-byte followed by the-zero byte.
 327
 
 <!-- source-page: 336 -->
@@ -24096,8 +23399,7 @@ getrez 18
 GOTOXY 158
 graphics device operating system.
 See GDOS
-graphics environment manager operat-
-ing system. See GEM
+graphics environment manager operating system. See GEM
 graphics object 77, 78
 graphics settings, BASIC 89-90
 graphics text 143-62
@@ -24365,33 +23667,27 @@ DISK & MAGAZINE
 Only COMPUTE!’s Atari ST Disk &
 Magazine gives you all this and more
 in each big issue:
-TOP QUALITY PROGRAMS: Applica-
-tion programs for home and business.
+TOP QUALITY PROGRAMS: Application programs for home and business.
 Utilities. Games. Educational programs for
 the youngsters.
 All
 are already on
 an
-enclosed disk and ready to run. For exam-
-ple: a typical disk might contain an elabo-
-rate adventure game written in BASIC, a
+enclosed disk and ready to run. For example: a typical disk might contain an elaborate adventure game written in BASIC, a
 programming utility written in machine
 language, a dazzling graphics
 demo in compiled Pascal, and a
-useful home or business ap-
-plication written in Forth or C.
+useful home or business application written in Forth or C.
 NEOCHROME OF THE
 MONTH: What are computer
 artists doing with the Atari ST?
 Each issue contains
-a Neo-
-chrome picture file—ready to
+a Neochrome picture file—ready to
 load and admire.
 REGULAR COLUMNS:
 If
 you’re a programmer—or would
-like to be—you’ll love our col-
-umns on ST programming techniques and
+like to be—you’ll love our columns on ST programming techniques and
 the C language. Or check out our column
 on the latest events and happenings
 throughout the ST community. Or send
@@ -24400,8 +23696,7 @@ Reader's Feedback column.
 REVIEWS: Honest evaluations of the
 latest, best software and hardware for the
 Atari ST.
-NEWS & PRODUCTS: A comprehen-
-sive listing
+NEWS & PRODUCTS: A comprehensive listing
 of
 all the new software and
 peripherals for your ST.
@@ -24411,8 +23706,7 @@ latest industry trade shows, and
 overviews
 of significant new
 product introductions.
-Don’t miss a single big issue. Sub-
-scribe to COMPUTE!’ Atari ST
+Don’t miss a single big issue. Subscribe to COMPUTE!’ Atari ST
 Disk & Magazine now through
 this special money-saving offer.
 Return coupon above or call
@@ -24463,14 +23757,11 @@ rexly-to-lond pict
 Lee Noet
 cee
 Every other month, COMPUTE!'’s
-Atari ST Disk & Magazine brings you ex-
-citing new action-packed programs
+Atari ST Disk & Magazine brings you exciting new action-packed programs
 already on disk! Just load and you’re
 ready to run.
 You can depend on getting at least
-five new programs in each issue—high-
-quality applications, educational, home fi-
-nance, utility, and game programs you
+five new programs in each issue—highquality applications, educational, home finance, utility, and game programs you
 and the entire family will use, enjoy, and
 profit from all year long.
 And here's even more good news.
@@ -24500,11 +23791,9 @@ The first in a series of three reference guides for the Atari
 ST personal computer, this book has everything you need to
 create sophisticated, professional-looking graphics. Here’s
 just a sample of what you'll find inside:
-* A complete easy-to-use VDI (Virtual Design Interface) func-
-tion reference section.
+* A complete easy-to-use VDI (Virtual Design Interface) function reference section.
 * Numerous sample programs which demonstrate exactly
-how to implement VDI function calls from C, machine lan-
-guage, and BASIC.
+how to implement VDI function calls from C, machine language, and BASIC.
 ¢ Drawing and manipulating image blocks.
 * How fo
 fill shapes and draw points and lines.
@@ -24514,10 +23803,8 @@ and quick,
 * A complete listing of extended keyboard codes.
 Written in a clear and concise style by the noted ST
 author Sheldon Leemon, COMPUTE!’s Technical Reference
-Guide, Atari ST Volume One: The VDI is for every intermedi-
-ate-to-advanced-level BASIC, C, and machine language
-programmer who wants to tap the true potential of this pow-
-erful computer.
+Guide, Atari ST Volume One: The VDI is for every intermediate-to-advanced-level BASIC, C, and machine language
+programmer who wants to tap the true potential of this powerful computer.
 COMPUTE!’s Technical Reference Guide, Atari ST Volume
 One: The VDI
 is the complete tutorial and reference guide to

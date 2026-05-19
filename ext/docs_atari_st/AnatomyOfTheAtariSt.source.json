@@ -4,7 +4,12 @@
   "title": "Anatomy of the Atari ST",
   "publisher": null,
   "year": null,
-  "domain": ["atari-st", "hardware", "tos", "gem"],
+  "domain": [
+    "atari-st",
+    "hardware",
+    "tos",
+    "gem"
+  ],
   "paths": {
     "source_pdf": "resources/platform_atari_st/docs/AnatomyOfTheAtariSt.pdf",
     "ocr_pdf": "resources/platform_atari_st/docs/AnatomyOfTheAtariSt.ocr.pdf",
@@ -13,24 +18,96 @@
   "sha256": {
     "source_pdf": "a652a2b18ebcd813b1232abe88f1a58d44013602d4d389390e0a437c5bc4bfc9",
     "ocr_pdf": "3b157cbeb4ba1e1edeeb1b8446300b16c659525c06af37c2be25850c400ccb27",
-    "final_md": "9a06eaa414b63aa517b65ce3f0d005572000bf1839cb64894f46eef957c1ab39"
+    "final_md": "a65cd05d63e2c1f61a0ffcadfafc6d9bb7881513f25cec2af7984149b90f47f7"
   },
   "conversion": {
     "ocr_tool": "ocrmypdf",
-    "ocr_options": ["--deskew", "--rotate-pages"],
+    "ocr_options": [
+      "--deskew",
+      "--rotate-pages"
+    ],
     "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
   },
   "probe": {
     "page_count": 454,
     "text_pages": 452,
     "empty_text_pages": 2,
-    "low_text_pages": [7, 9, 71, 73, 109, 451],
+    "low_text_pages": [
+      7,
+      9,
+      71,
+      73,
+      109,
+      451
+    ],
     "image_blocks": 454,
     "needs_ocr": false
   },
-  "amendments": [],
+  "amendments": [
+    {
+      "page": 7,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_007.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 9,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_009.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 71,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_071.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 73,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_073.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 109,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_109.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 451,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/AnatomyOfTheAtariSt.amendments/page_451.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    }
+  ],
   "remaining_review": {
-    "weak_pages": [7, 9, 71, 73, 109, 451],
+    "weak_pages": [
+      7,
+      9,
+      71,
+      73,
+      109,
+      451
+    ],
     "code_or_symbol_pages": []
   },
   "usage": {
@@ -39,5 +116,17 @@
     "decision": "cite_manually",
     "review_status": "seeded"
   },
-  "license_notes": "Local reference markdown generated from user-supplied source material."
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 6,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "a65cd05d63e2c1f61a0ffcadfafc6d9bb7881513f25cec2af7984149b90f47f7"
+  }
 }

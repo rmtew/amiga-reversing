@@ -4,7 +4,17 @@
   "title": "The Concise Atari ST Reference Guide",
   "publisher": "Glentop Press Ltd",
   "year": 1988,
-  "domain": ["atari-st", "hardware", "tos", "gemdos", "bios", "xbios", "vdi", "aes", "m68k"],
+  "domain": [
+    "atari-st",
+    "hardware",
+    "tos",
+    "gemdos",
+    "bios",
+    "xbios",
+    "vdi",
+    "aes",
+    "m68k"
+  ],
   "paths": {
     "source_pdf": "resources/platform_atari_st/docs/The_Concise_Atari_ST_68K_Prog_Ref_Guide.pdf",
     "ocr_pdf": null,
@@ -13,7 +23,7 @@
   "sha256": {
     "source_pdf": "556cd0559692e47d6f60acf7088017c1ffa92cec862d11971294b1f6184035bf",
     "ocr_pdf": null,
-    "final_md": "4c9fde2cfb6b8ce3f11d191e79c9c7bf52fe9e7f1a2c9ddfcec01a2ef5af0ee5"
+    "final_md": "9253db1b16f4341cae34a4574776e3569acfc5a773c340a8a231ed9c01adc41e"
   },
   "conversion": {
     "ocr_tool": null,
@@ -24,13 +34,115 @@
     "page_count": 405,
     "text_pages": 400,
     "empty_text_pages": 5,
-    "low_text_pages": [1, 2, 4, 228, 395, 402, 403, 404, 405],
+    "low_text_pages": [
+      1,
+      2,
+      4,
+      228,
+      395,
+      402,
+      403,
+      404,
+      405
+    ],
     "image_blocks": 405,
     "needs_ocr": false
   },
-  "amendments": [],
+  "amendments": [
+    {
+      "page": 1,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_001.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "candidate_repair"
+    },
+    {
+      "page": 2,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_002.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 4,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_004.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 228,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_228.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 395,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_395.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 402,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_402.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 403,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_403.glm.md",
+      "review_status": "rejected",
+      "dpi": 180,
+      "quality": "no_useful_text"
+    },
+    {
+      "page": 404,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_404.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "candidate_repair"
+    },
+    {
+      "page": 405,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_atari_st/The_Concise_Atari_ST_68K_Prog_Ref_Guide.amendments/page_405.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    }
+  ],
   "remaining_review": {
-    "weak_pages": [1, 2, 4, 228, 395, 402, 403, 404, 405],
+    "weak_pages": [
+      1,
+      2,
+      4,
+      228,
+      395,
+      402,
+      403,
+      404,
+      405
+    ],
     "code_or_symbol_pages": []
   },
   "usage": {
@@ -39,5 +151,17 @@
     "decision": "cite_manually",
     "review_status": "seeded"
   },
-  "license_notes": "Local reference markdown generated from user-supplied source material."
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 28,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "9253db1b16f4341cae34a4574776e3569acfc5a773c340a8a231ed9c01adc41e"
+  }
 }

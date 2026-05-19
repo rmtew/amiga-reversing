@@ -56,8 +56,7 @@ permission of First Publishing or Data Becker, GmbH.
 Every effort has been made to insure complete and accurate information
 concerning the material presented in this book. However First Publishing can
 neither guarantee nor be held legally responsible for any mistakes in printing
-or faulty instructions contained in this book. The authors will always appre-
-ciate receiving notice of subsequent mistakes.
+or faulty instructions contained in this book. The authors will always appreciate receiving notice of subsequent mistakes.
 ATARI, 520ST, ST, TOS, ST BASIC and ST LOGO are trademarks or
 registered trademarks of Atari Corp.
 GEM, GEM Draw and GEM Write are trademarks or registered trademarks
@@ -1590,8 +1589,7 @@ These bits must be set by the command bytes to the disk drive. The V-bi
 the so-called "verify flag".
 When set, the drive performs an automa
 verify after every head movement.
-The H-bit contains the spin-
-sequence. The system delays disk access until the disk motor has reach
+The H-bit contains the spinsequence. The system delays disk access until the disk motor has reach
 300 rpm.
 If the H-bit is cleared, the FDC checks for activation of
 |
@@ -2366,8 +2364,7 @@ These bis
 control
 the number
 of
-start-
-and stopbits
+startand stopbits
 and the
 format desired.
 Start
@@ -2496,8 +2493,7 @@ Whereas the RSR sends receiver information, the TSR handles
 transmission information.
 Bit O Transmitter Enable
 The sending section is completely shut off when this bit is
-cleared. At the same time the End-bit is cleared and the UE-
-bit is set (see below).
+cleared. At the same time the End-bit is cleared and the UEbit is set (see below).
 The output to the receiver is set in
 the corresponding H- and L-bits.
 Bits 1,2 High- and Low-bit
@@ -13396,8 +13392,7 @@ only for
 one plane
 1=fi11 pattern
 is
-for multi-
-plane
+for multiplane
 _CLIP
 word
 0=no clipping
@@ -43932,8 +43927,7 @@ M* SACU
 isq
 M* OAOW
 aBuq
-qsaq-
-baq
+qsaqbaq
 M* SACU
 asq
 aisq

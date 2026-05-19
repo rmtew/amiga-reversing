@@ -10,6 +10,7 @@ The end state for each document is:
 ```text
 source PDF or OCR PDF
   -> baseline page-cited Markdown
+  -> conservative deterministic cleanup
   -> selected page repairs
   -> final page-cited Markdown
   -> per-document metadata JSON
@@ -97,6 +98,37 @@ If a document already has a good text layer, `SomeBook.ocr.pdf` is not needed.
 `SomeBook.baseline.md` is the direct output of `pdf_to_markdown.py`.
 `ext/docs_atari_st/SomeBook.md` is the source we cite from KB work. It may be
 identical to the baseline or may include reviewed repairs.
+
+## Deterministic Cleanup
+
+Run the conservative cleanup pass before reviewing GLM amendments:
+
+```powershell
+uv run python src\scripts\kb\clean_pdf_md.py `
+  ext\docs_atari_st\SomeBook.source.json
+```
+
+Current cleanup rules are intentionally low-risk:
+
+```text
+alpha_hyphen_join:
+  pro-
+  vide
+  -> provide
+
+mojibake_common:
+  common bad UTF-8/Windows-1252 sequences to readable punctuation
+
+empty_table_drop:
+  remove OCR artifacts such as empty HTML tables
+
+blank_line_collapse:
+  collapse excessive blank lines
+```
+
+The cleanup tool updates `cleanup` metadata and the final Markdown SHA. It
+does not try to correct code, opcodes, register names, or ambiguous glyphs such
+as `0/O` and `1/l/I`.
 
 ## Baseline Markdown
 
@@ -285,6 +317,20 @@ $response = Invoke-RestMethod `
 $response.choices[0].message.content |
   Set-Content resources\platform_atari_st\docs\SomeBook.amendments\page_042.glm.md -Encoding UTF8
 ```
+
+For the normal weak-page repair pass, use the project script instead of calling
+the endpoint by hand:
+
+```powershell
+uv run python src\scripts\kb\glm_ocr_amendments.py `
+  ext\docs_atari_st\SomeBook.source.json
+```
+
+The script reads `remaining_review.weak_pages`, renders those pages from the
+recorded source PDF, writes `*.amendments/page_NNN.glm.md`, and records seeded
+amendments in the document metadata. Review generated amendments before applying
+them to final Markdown, especially for code, symbols, opcodes, and numeric
+tables.
 
 ## Metadata JSON
 
