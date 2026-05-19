@@ -1631,6 +1631,35 @@ def test_run_one_data_block_layout_executes_with_layout_state_verifier(
     assert report["action"]["command_id"] == "range.data_block.layout.create"
 
 
+def test_data_block_layout_verifier_rejects_sparse_create_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    layout = {
+        "layout_id": "ascii-hex",
+        "hunk": 0,
+        "source_start": 0x20,
+        "source_end": 0x24,
+        "name": "ascii_hex_digit_value",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"data_block_layouts": [layout]}),
+    )
+
+    verification = reversing_loop._verify_project_data_block_layout(
+        "demo",
+        "range.data_block.layout.create",
+        {"layout_id": "ascii-hex"},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["message"] == "data block layout payload missing source identity"
+    assert verification["missing_identity_fields"] == ["hunk", "source_start", "source_end"]
+
+
 def test_run_one_data_block_element_executes_with_element_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

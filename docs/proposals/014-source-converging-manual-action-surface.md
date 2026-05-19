@@ -761,6 +761,12 @@ include source/origin execution-view identity. Runtime address alone is not
 durable for copied or relocated data and can misattribute layout facts across
 execution views.
 
+Implementation observation from `014-005`/`014-017`: data-block layout create
+verification must reject sparse durable payloads before matching by
+`layout_id`. The payload has to carry `layout_id`, `hunk`, `source_start`, and
+`source_end`; otherwise reloaded state with the same id can hide that the
+selected range did not replay.
+
 Implementation observation from `014-015`: the first implementation slice
 should be scalar layout rendering only. GenAm `loc_0_00001442` provides a real
 ASCII hex digit lookup table with local xref evidence, exact bytes, and no need

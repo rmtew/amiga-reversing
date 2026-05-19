@@ -51,6 +51,9 @@ Implemented tests:
   verifiers, checks Manual Action Log replay, semantic reload state for element
   set/represent/remove, rendered source directive/value evidence, exact
   round-trip, and blocks unsupported type/ref commands without a verifier.
+- Data-block layout create verification rejects sparse durable payloads before
+  matching reloaded state: `layout_id`, `hunk`, `source_start`, and
+  `source_end` must all be present.
 - Reversing loop rendered-source coverage now checks the affected listing
   row/span, not nearby text, and fails data-block element verification when
   that row lacks required visible tokens from the layout/element payload, emits

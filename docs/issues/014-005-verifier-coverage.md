@@ -293,6 +293,10 @@ Remaining work:
   inbound xrefs, generated type-flow/review descendants, and unsupported
   type/ref commands blocked until their owning slices prove render, cleanup,
   generated xref/descendant state, and exact round-trip verifiers.
+- Data-block layout create verification now rejects sparse durable payloads
+  before reload matching. A create payload must carry `layout_id`, `hunk`,
+  `source_start`, and `source_end`, so an existing layout id cannot hide a
+  wrong selected range.
 - Target-equate definition representation is implemented in `014-020`; broader
   semantic/equate provenance remains separate from display-style verification.
 - Keep RSSET bind-refine/type-refine, same-flow propagation, generated

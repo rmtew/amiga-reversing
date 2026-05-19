@@ -4111,6 +4111,15 @@ def _verify_project_data_block_layout(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing data block layout payload"}
+    missing_identity_fields = _data_block_layout_missing_required_identity_fields(command_id, expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "data block layout payload missing source identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_data_block_layout": expected,
+        }
     key = "removed_data_block_layouts" if command_id.endswith(".remove") else "data_block_layouts"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -4132,6 +4141,13 @@ def _verify_project_data_block_layout(
 
 def _data_block_layout_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return isinstance(expected.get("layout_id"), str) and all(actual.get(key) == value for key, value in expected.items())
+
+
+def _data_block_layout_missing_required_identity_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    fields = ["layout_id"]
+    if command_id.endswith(".create"):
+        fields.extend(["hunk", "source_start", "source_end"])
+    return [field for field in fields if field not in expected]
 
 
 def _verify_data_block_element_mutation(
