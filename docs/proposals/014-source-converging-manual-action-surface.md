@@ -1119,6 +1119,12 @@ durable provenance gates. `parent_evidence_ids` represents dependencies, not a
 ranked path, so ordering differences between replay and generated metadata are
 not semantic drift.
 
+Implementation observation from `014-019`: clear-type cleanup cannot rely only
+on `source_locator=type_binding_id`. If a generated seeded descendant loses its
+binding locator but keeps the bind action `owner_action_id`, cleanup proof must
+still fail because the cleared action's descendant is live and unowned cleanup
+would otherwise pass.
+
 Implementation observation from `014-006`/`014-019`: data-block type bind/clear
 availability must compare the selected element identity `(layout_id, offset,
 width)` against the refreshed catalog entry. The command catalog does not choose

@@ -64,6 +64,10 @@ Current implementation:
   binding id but lost or changed the owner/evidence lineage. Descendant
   verification treats `parent_evidence_ids` as an unordered dependency set, so
   replay/catalog ordering differences do not reject equivalent lineage.
+- Clear-type descendant verification now treats the binding `owner_action_id`
+  as cleanup scope too, not only `source_locator=type_binding_id`, so a stale
+  seeded descendant that lost its binding locator but still belongs to the
+  cleared bind action cannot satisfy cleanup proof.
 - Planner command availability for `row.data_block.element.bind_type` and
   `row.data_block.element.clear_type` now requires the refreshed catalog entry
   to match the selected data-block element identity `(layout_id, offset,

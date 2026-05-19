@@ -7,6 +7,7 @@ import os
 import re
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,7 +22,7 @@ from amiga_reversing.disasm.effective_metadata import effective_target_metadata
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
-from amiga_reversing.disasm.target_metadata import TargetMetadata
+from amiga_reversing.disasm.target_metadata import SeededEntityMetadata, TargetMetadata
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
     inspect_target_hygiene,
@@ -4622,6 +4623,7 @@ def _verify_projected_data_block_type_binding_descendants(
     except Exception as exc:
         return {"layer": "type_binding_descendants", "status": "failed", "message": str(exc)}
     entities = metadata.seeded_entities if metadata is not None else ()
+    cleared = command_id.endswith(".clear_type")
     descendants = [
         {
             "hunk": entity.hunk,
@@ -4638,9 +4640,8 @@ def _verify_projected_data_block_type_binding_descendants(
             "parent_evidence_ids": list(entity.parent_evidence_ids),
         }
         for entity in entities
-        if entity.source_id == "manual_action_log" and entity.source_locator == binding_id
+        if _data_block_type_binding_descendant_matches(entity, binding, binding_id, cleared=cleared)
     ]
-    cleared = command_id.endswith(".clear_type")
     ownership_mismatches: list[dict[str, object]] = []
     if not cleared:
         expected_owner_action_id = binding.get("owner_action_id")
@@ -4679,6 +4680,23 @@ def _verify_projected_data_block_type_binding_descendants(
         "matching_seeded_entities": descendants,
         "ownership_mismatches": ownership_mismatches,
     }
+
+
+def _data_block_type_binding_descendant_matches(
+    entity: SeededEntityMetadata,
+    binding: Mapping[str, object],
+    binding_id: str,
+    *,
+    cleared: bool,
+) -> bool:
+    if entity.source_id != "manual_action_log":
+        return False
+    if entity.source_locator == binding_id:
+        return True
+    if not cleared:
+        return False
+    owner_action_id = binding.get("owner_action_id")
+    return isinstance(owner_action_id, str) and bool(owner_action_id) and entity.owner_action_id == owner_action_id
 
 
 def _data_block_type_binding_tokens(expected: dict[str, object]) -> list[str]:
