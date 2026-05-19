@@ -44,8 +44,11 @@ Current implementation:
   such as `MsgPort` -> `MP`, flatten inherited base fields and nested struct
   fields, and render the resulting typed field entities with exact rebuild
   proof.
-- Domain expansion, generated type-flow facts/review items, and owner-scoped
-  descendant cleanup remain open.
+- Scalar enum/equate domain bindings project `value_domain` onto the bound
+  element's structured-data item so known values render symbolically, with exact
+  rebuild proof.
+- Generated type-flow facts/review items and owner-scoped descendant cleanup
+  remain open.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.

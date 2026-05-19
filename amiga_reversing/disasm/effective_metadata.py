@@ -1006,6 +1006,26 @@ def _data_block_bound_struct(
     return _data_block_bound_custom_struct(element, custom_structs) or _data_block_bound_platform_struct(element)
 
 
+def _data_block_bound_value_domain(element: DataBlockElementMetadata) -> str | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict) or binding.get("binding_kind") not in {"enum_domain", "equate_domain"}:
+        return None
+    bound_domain = binding.get("bound_domain_id")
+    if not isinstance(bound_domain, str) or not bound_domain:
+        return None
+    return bound_domain
+
+
+def _data_block_type_binding_locator(element: DataBlockElementMetadata) -> str | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict):
+        return None
+    binding_id = binding.get("type_binding_id")
+    if binding_id is None:
+        return None
+    return str(binding_id)
+
+
 def _data_block_typed_field_label(base_label: str | None, field_name: str, index: int | None) -> str | None:
     if not base_label:
         return None
@@ -1065,9 +1085,7 @@ def _data_block_custom_struct_field_entity(
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
         source_id="manual_action_log",
-        source_locator=str(element.type_binding.get("type_binding_id"))
-        if isinstance(element.type_binding, dict) and element.type_binding.get("type_binding_id") is not None
-        else None,
+        source_locator=_data_block_type_binding_locator(element),
     )
 
 
@@ -1099,9 +1117,7 @@ def _data_block_custom_struct_gap_entity(
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
         source_id="manual_action_log",
-        source_locator=str(element.type_binding.get("type_binding_id"))
-        if isinstance(element.type_binding, dict) and element.type_binding.get("type_binding_id") is not None
-        else None,
+        source_locator=_data_block_type_binding_locator(element),
     )
 
 
@@ -1171,6 +1187,7 @@ def _data_block_element_entity(
         return None
     name = element.name or (layout.name if element.offset == 0 else None)
     comment = layout.role
+    value_domain = _data_block_bound_value_domain(element)
     return SeededEntityMetadata(
         addr=addr,
         end=end,
@@ -1183,6 +1200,9 @@ def _data_block_element_entity(
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
+        source_id="manual_action_log" if value_domain is not None else None,
+        source_locator=_data_block_type_binding_locator(element) if value_domain is not None else None,
+        value_domain=value_domain,
     )
 
 

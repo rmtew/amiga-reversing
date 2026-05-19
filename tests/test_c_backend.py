@@ -3726,6 +3726,114 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_data_block_domain_binding_renders_symbolic_value_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-domain.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.b $09
+    dc.b $00
+after_data:
+    rts
+    nop
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    records = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a1",
+            "sequence": 1,
+            "created_at": "2026-05-18T00:00:01+00:00",
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "node-type",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 3,
+                "name": "node_type",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a2",
+            "sequence": 2,
+            "created_at": "2026-05-18T00:00:02+00:00",
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "node-type:0",
+                "layout_id": "node-type",
+                "offset": 0,
+                "width": 1,
+                "kind": "scalar",
+                "type_binding": {
+                    "type_binding_id": "node-type:0:1:enum_domain:exec.node.type",
+                    "layout_id": "node-type",
+                    "element_offset": 0,
+                    "element_width": 1,
+                    "binding_kind": "enum_domain",
+                    "bound_domain_id": "exec.node.type",
+                    "owner_action_id": "a2",
+                },
+            },
+        },
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    domain_items = [item for item in policy["structured_data_items"] if item.get("value_domain") == "exec.node.type"]
+    assert [(item["offset"], item["size"], item["value_domain"]) for item in domain_items] == [
+        (2, 1, "exec.node.type")
+    ]
+    assert "\tdc.b NT_LIBRARY\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
 def test_real_dll_data_block_interpreted_ref_renders_symbol_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"
