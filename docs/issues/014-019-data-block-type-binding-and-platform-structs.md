@@ -72,6 +72,10 @@ Current implementation:
 - Planner already-satisfied checks now skip bind-type candidates whose active
   effective data-block element already carries the same type/domain binding and
   consumed provenance, including unordered `parent_evidence_ids`.
+- Planner already-satisfied checks now skip clear-type candidates only when the
+  active binding is already gone and `previous_type_binding` still matches the
+  selected binding id, owner, type/domain, and consumed provenance, including
+  unordered `parent_evidence_ids`.
 - Clear-type availability also compares the selected active binding id,
   binding kind, bound type/domain, owner action, and consumed provenance fields
   when the command carries them, preventing stale cleanup against a later

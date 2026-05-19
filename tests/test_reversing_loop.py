@@ -6755,6 +6755,65 @@ def test_data_block_type_skip_uses_active_binding_and_parent_evidence_set() -> N
     )
 
 
+def test_data_block_clear_type_skip_uses_previous_binding_and_parent_evidence_set() -> None:
+    evidence = {
+        "source_evidence_id": "prov-demo-data-block-pointer",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+    }
+    previous_binding = {
+        "type_binding_id": "events:30:4:platform_struct:Node",
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "owner_action_id": "manual-bind",
+        **evidence,
+    }
+    candidate = {
+        "id": "data-block-clear-type",
+        "candidate_id": "data-block-clear-type",
+        "kind": "data_block_type_binding_clear",
+        "current_metadata": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "kind": "scalar",
+            "previous_type_binding": {
+                **previous_binding,
+                "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+                "cleanup_action_id": "manual-clear",
+            },
+        },
+        "default_verifier": "data_block_element_state",
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = {
+        "kind": "command",
+        "command_id": "row.data_block.element.clear_type",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            **previous_binding,
+        },
+        "output_affecting": True,
+    }
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+    cast(dict[str, object], cast(dict[str, object], candidate["current_metadata"])["previous_type_binding"])[
+        "source_evidence_id"
+    ] = "prov-other-data-block-pointer"
+
+    assert reversing_loop._candidate_skip_reason(candidate, command) is None
+
+
 def test_typed_field_candidate_skips_already_projected_field() -> None:
     field = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code", "type": "UWORD", "size": 2}
     candidate = {

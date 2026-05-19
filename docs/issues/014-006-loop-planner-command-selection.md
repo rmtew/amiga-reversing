@@ -167,6 +167,10 @@ Progress:
   effective type binding, including bound type/domain and consumed provenance,
   so an explicit candidate does not repeat a binding already present in
   metadata.
+- Data-block clear-type already-satisfied checks now require the active binding
+  to be gone and the `previous_type_binding` cleanup identity/provenance to
+  match the selected binding, so stale cleanup state cannot hide a different
+  clear candidate.
 - RSSET bind already-satisfied checks now compare the active selected-use
   binding identity and consumed `base_evidence_refs`, so explicit bind
   candidates do not repeat an already-projected RSSET use-site binding.

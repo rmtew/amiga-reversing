@@ -6925,6 +6925,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return _custom_struct_field_remove_already_satisfied(current, parameters)
     if command_id == "row.data_block.element.bind_type":
         return _data_block_type_binding_already_satisfied(current, parameters)
+    if command_id == "row.data_block.element.clear_type":
+        return _data_block_type_clear_already_satisfied(current, parameters)
     if command_id in {"target.execution_view.add", "target.execution_view.edit"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.execution_view.remove":
@@ -7054,6 +7056,42 @@ def _data_block_type_binding_already_satisfied(current: dict[str, object], param
         "cleanup_scope",
     ):
         if key in parameters and not _data_block_element_value_matches(key, binding.get(key), parameters.get(key)):
+            return False
+    return True
+
+
+def _data_block_type_clear_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    required_element_keys = ("layout_id", "offset", "width")
+    if any(key not in parameters for key in required_element_keys):
+        return False
+    for key in required_element_keys:
+        if current.get(key) != parameters.get(key):
+            return False
+    if isinstance(current.get("type_binding"), dict):
+        return False
+    previous_binding = current.get("previous_type_binding")
+    if not isinstance(previous_binding, dict):
+        return False
+    if not isinstance(parameters.get("type_binding_id"), str):
+        return False
+    for key in (
+        "type_binding_id",
+        "binding_kind",
+        "bound_type_id",
+        "bound_domain_id",
+        "owner_action_id",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    ):
+        if key in parameters and not _data_block_element_value_matches(key, previous_binding.get(key), parameters.get(key)):
             return False
     return True
 

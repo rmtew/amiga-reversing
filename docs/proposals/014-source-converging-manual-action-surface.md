@@ -1104,6 +1104,11 @@ data-block bind-type need the active effective `type_binding`, not just the row
 coordinate. The skip decision should compare bound type/domain and consumed
 provenance, with parent evidence treated as a dependency set.
 
+Follow-up observation from `014-006`/`014-019`: data-block clear-type skips need
+the cleanup-side mirror of the bind check. The planner should skip only when the
+active binding is gone and `previous_type_binding` still matches the selected
+binding id, owner, type/domain, and consumed provenance.
+
 Implementation observation from the `014-018` guard slice: interpreted data
 references must not become output-affecting from target intent alone. Durable
 actions carry decoded selected source bytes as `source_value`, and replay must
