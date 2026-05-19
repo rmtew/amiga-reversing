@@ -79,6 +79,9 @@ Progress:
   durable Manual Action Log action before local-effect echoes, so an unrelated
   same-response local effect cannot satisfy or replace the executed semantic
   hint payload.
+- Semantic-hint reload verification now also rejects local-effect-only
+  responses as missing durable payloads; the expected semantic hint must come
+  from the executed Manual Action Log action.
 - Generic provenance reports now preserve manual-override correction fields
   (`contradicted_evidence_id`, `reason`, and `cleanup_scope`) when those fields
   are carried by selected context.

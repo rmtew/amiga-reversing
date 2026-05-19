@@ -1309,11 +1309,12 @@ Catalog parameters, Manual Action Log payloads, semantic reload verification,
 and already-satisfied skip checks must preserve and compare that evidence;
 otherwise a same-address/same-symbol hint can hide stale provenance.
 
-Follow-up observation from `014-010`/`014-005`: semantic-hint verification must
-derive expected state from the durable action payload before any local-effect
-echo. Local effects are useful UI feedback, but using them as the primary
-expected semantic state can let a mismatched response hide the Manual Action Log
-fact that was actually appended.
+Implementation observation from `014-010`/`014-005`: semantic-hint
+verification derives expected state from the durable action payload before any
+local-effect echo. Local effects are useful UI feedback, but using them as the
+primary expected semantic state can let a mismatched response hide the Manual
+Action Log fact that was actually appended; local-effect-only semantic hint
+responses now fail as missing durable payloads.
 
 Implementation observation from `014-006`: planner command availability must be
 checked against execution policy, not just command id presence. Catalog entries

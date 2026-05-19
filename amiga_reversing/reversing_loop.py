@@ -5757,15 +5757,6 @@ def _semantic_hint_from_durable_result(durable_result: dict[str, object]) -> dic
             hint = _semantic_hint_from_action(raw_action)
             if hint is not None:
                 return hint
-    application = durable_result.get("application")
-    local_effects = application.get("local_effects") if isinstance(application, dict) else None
-    if isinstance(local_effects, list):
-        for effect in local_effects:
-            if not isinstance(effect, dict) or effect.get("kind") != "semantic_hint":
-                continue
-            hint = effect.get("semantic_hint")
-            if isinstance(hint, dict):
-                return cast(dict[str, object], hint)
     return None
 
 
