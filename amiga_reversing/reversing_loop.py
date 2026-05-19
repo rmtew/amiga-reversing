@@ -4779,21 +4779,30 @@ def _verify_projected_custom_struct_field_rendered_source(
             if stale_name and _rendered_source_contains_token(affected_rendered_text, stale_name)
             else []
         )
+        restore_tokens = _custom_struct_field_remove_restore_tokens(command, expected)
+        matched_restore_tokens = [
+            token for token in restore_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+        ]
         stale_accesses = [
             access
             for row in affected_rows
             for access in _mapping_sequence(row.get("typed_accesses"))
             if _custom_struct_field_render_access_matches(access, expected, command, match_operand_index=False)
         ]
+        status = "failed" if stale_accesses or stale_tokens else "passed"
+        if restore_tokens and not matched_restore_tokens:
+            status = "failed"
         return {
             "layer": "rendered_source",
-            "status": "passed" if not stale_accesses and not stale_tokens else "failed",
+            "status": status,
             "source_offset": source_offset,
             "checked_source_locations": [
                 {"section_index": check_section, "source_offset": check_offset}
                 for check_section, check_offset in locations
             ],
             "stale_tokens": stale_tokens,
+            "expected_restore_tokens": restore_tokens,
+            "matched_restore_tokens": matched_restore_tokens,
             "matching_typed_accesses": stale_accesses,
             "affected_rendered_text": affected_rendered_text,
             "rendered_text": rendered_text,
@@ -4890,6 +4899,29 @@ def _custom_struct_field_previous_name(command: dict[str, object], expected: dic
             if isinstance(value, str) and value and value != expected.get("name"):
                 return value
     return None
+
+
+def _custom_struct_field_remove_restore_tokens(command: dict[str, object], expected: dict[str, object]) -> list[str]:
+    offset = expected.get("offset")
+    if not isinstance(offset, int):
+        return []
+    context = command.get("context")
+    base_register = context.get("base_register") if isinstance(context, dict) else None
+    registers = []
+    if isinstance(base_register, str) and base_register:
+        registers = [base_register.lower(), base_register.upper()]
+    tokens: list[str] = []
+    if registers:
+        if offset == 0:
+            tokens.extend(f"({register})" for register in registers)
+        else:
+            tokens.extend(f"{offset}({register})" for register in registers)
+            for width in (0, 2, 4, 8):
+                tokens.extend(f"${offset:0{width}X}({register})" for register in registers)
+    elif offset != 0:
+        tokens.append(f"{offset}(")
+        tokens.extend(f"${offset:0{width}X}(" for width in (0, 2, 4, 8))
+    return list(dict.fromkeys(tokens))
 
 
 def _custom_struct_field_render_location(command: dict[str, object]) -> tuple[int, int] | None:

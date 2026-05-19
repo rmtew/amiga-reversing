@@ -872,6 +872,47 @@ def test_custom_struct_field_remove_render_verifier_checks_affected_locators(
     assert [access["field_name"] for access in verification["matching_typed_accesses"]] == ["de_Code"]
 
 
+def test_custom_struct_field_remove_render_verifier_requires_restored_numeric_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {
+        "command_id": "typed_access.field.remove",
+        "context": {
+            "locator": _listing_locator(start_offset=0, end_offset=2),
+            "operand_index": 0,
+            "base_register": "A0",
+        },
+    }
+    expected = {"struct_name": "DerivedEvent", "offset": 36, "name": "de_Code"}
+    row = _listing_row(text="\tmove.w d0,d1\n", start_offset=0, end_offset=2)
+
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [row]}},
+    )
+
+    verification = reversing_loop._verify_projected_custom_struct_field_rendered_source(
+        "demo",
+        command,
+        "typed_access.field.remove",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["expected_restore_tokens"] == [
+        "36(a0)",
+        "36(A0)",
+        "$24(a0)",
+        "$24(A0)",
+        "$0024(a0)",
+        "$0024(A0)",
+        "$00000024(a0)",
+        "$00000024(A0)",
+    ]
+    assert verification["matched_restore_tokens"] == []
+
+
 def test_custom_struct_field_rename_render_verifier_checks_affected_locators(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1461,6 +1461,12 @@ look correct at the selected access while a propagated typed access in another
 touched row still renders the stale field name; broader owner-scoped descendant
 discovery remains separate future work.
 
+Follow-up observation from `014-012`: typed-field remove proof needs a positive
+restore signal too. Checking only that the stale field name disappeared can hide
+a selected access that no longer renders the original numeric displacement, so
+the rendered-source verifier now requires a displacement token on the checked
+source rows when the removed offset is known.
+
 Implementation observation from `014-012`: remove/cleanup command schemas are
 part of the same contract as create/rename schemas. A typed-field remove that
 hides selected identity or consumed provenance leaves callers unable to prove

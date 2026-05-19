@@ -82,6 +82,10 @@ Current evidence:
   command-reported affected locators, so stale propagated typed accesses in
   touched rows fail cleanup proof instead of being hidden by selected-row-only
   verification.
+- Typed-field remove rendered-source verification now also requires the
+  selected affected source to expose a restored numeric displacement token, so
+  cleanup cannot pass solely because the stale field name disappeared while the
+  original access was not rendered back.
 - Planner command availability for `typed_gap.field.*` and
   `typed_access.field.*` now requires the refreshed catalog entry to match the
   selected struct, offset, and consumed `struct_pointer` provenance identity.
