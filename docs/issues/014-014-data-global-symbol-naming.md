@@ -113,6 +113,10 @@ Current evidence:
   smoke test proving they feed autonomous `data_symbol.rename` or
   `data_symbol.rename_existing` candidates with projected-name verification and
   exact round-trip status.
+- Data-symbol add/edit/rename verification now derives expected state from the
+  executed durable `data_symbol` payload before checking semantic reload and
+  rendered text. A matching rendered row alone cannot hide a missing or
+  mismatched hunk/address/range/name payload.
 - Broader global data-symbol workflows and expanded autonomous candidate
   workflows remain open beyond seeded data-entity rename/remove,
   add/edit/rename-existing-symbol, and internal referenced data use-sites.

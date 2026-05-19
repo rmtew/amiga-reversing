@@ -3290,14 +3290,110 @@ def _verify_data_symbol_rename_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     _open_and_wait_listing(target_id, timeout_seconds=10.0)
+    expected = _data_symbol_from_durable_result(durable_result)
     layers = [
+        _verify_data_symbol_durable_payload(command, expected),
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
-        _verify_semantic_reload(target_id, durable_result, project_root=project_root),
+        _verify_project_data_symbol_seed(target_id, expected, project_root=project_root),
         _verify_projected_data_symbol_name(target_id, command),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _data_symbol_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    symbol = _data_symbol_from_action(action)
+    if symbol is not None:
+        return symbol
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            symbol = _data_symbol_from_action(raw_action)
+            if symbol is not None:
+                return symbol
+    return None
+
+
+def _data_symbol_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    symbol = action.get("data_symbol")
+    if isinstance(symbol, dict):
+        return cast(dict[str, object], symbol)
+    payload = action.get("payload")
+    symbol = payload.get("data_symbol") if isinstance(payload, dict) else None
+    if isinstance(symbol, dict):
+        return cast(dict[str, object], symbol)
+    return None
+
+
+def _verify_data_symbol_durable_payload(
+    command: dict[str, object],
+    expected: dict[str, object] | None,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "durable_payload", "status": "failed", "message": "missing data symbol payload"}
+    missing = [key for key in ("name", "hunk", "addr") if key not in expected]
+    mismatches: list[str] = []
+    parameters = command.get("parameters")
+    if isinstance(parameters, dict):
+        for key in ("name", "hunk", "addr", "end", "previous_name"):
+            if key in parameters and expected.get(key) != parameters.get(key):
+                mismatches.append(key)
+    return {
+        "layer": "durable_payload",
+        "status": "failed" if missing or mismatches else "passed",
+        "expected_data_symbol": expected,
+        "missing_identity_fields": missing,
+        "mismatched_command_fields": mismatches,
+    }
+
+
+def _verify_project_data_symbol_seed(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing data symbol payload"}
+    if any(key not in expected for key in ("name", "hunk", "addr")):
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "data symbol payload missing source identity",
+            "expected_data_symbol": expected,
+        }
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    seeds = manual_state.get("seeds") if isinstance(manual_state, dict) else None
+    if not isinstance(seeds, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual seeds were not reloaded"}
+    matches = [
+        seed
+        for seed in seeds
+        if isinstance(seed, dict) and _data_symbol_seed_matches(seed, expected)
+    ]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_data_symbol": expected,
+        "matching_manual_data_symbol_seeds": matches,
+    }
+
+
+def _data_symbol_seed_matches(seed: dict[str, object], expected: dict[str, object]) -> bool:
+    if str(seed.get("kind")) != "data":
+        return False
+    for key in ("name", "hunk", "addr"):
+        if seed.get(key) != expected.get(key):
+            return False
+    return "end" not in expected or seed.get("end") == expected.get("end")
 
 
 def _verify_target_equate_mutation(

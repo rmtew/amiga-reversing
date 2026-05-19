@@ -101,6 +101,9 @@ Current evidence:
 - Generic `run-one` `data_symbol.rename` execution now verifies Manual Action
   Log replay, semantic reload, projected listing text/name, and exact
   round-trip instead of accepting affected-locator metadata alone.
+- Data-symbol add/edit/rename verification now requires the executed durable
+  `data_symbol` payload to match the selected hunk/address/range/name before
+  semantic reload and rendered-name checks can pass.
 - Generic `run-one` `data_symbol.remove` execution now verifies Manual Action
   Log replay, either reloaded suppressed seeded item state or removed manual
   data-symbol seed absence, and exact round-trip instead of accepting

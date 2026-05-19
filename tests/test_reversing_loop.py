@@ -4470,6 +4470,25 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
     inspect_report["candidate_work"] = [_data_symbol_candidate(current_name="auto_data", new_name="player_table")]
     monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
     monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "seeds": [
+                    {
+                        "seed_id": "data_symbol:0:00000000:00000002",
+                        "kind": "data",
+                        "hunk": 0,
+                        "addr": 0,
+                        "end": 2,
+                        "name": "player_table",
+                    }
+                ]
+            },
+        ),
+    )
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
@@ -4487,9 +4506,7 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
             assert isinstance(body, dict)
             assert body["command_id"] == "data_symbol.rename"
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
-        if method == "GET" and path == "/api/projects/demo":
-            return {"data": {"project": {"manual_state": {}}}}
+            return {"data": _executed_data_symbol_payload(tmp_path, {"hunk": 0, "addr": 0, "end": 2, "name": "player_table"})}
         if method == "GET" and path.endswith("/listing"):
             return {"data": {"rows": [_listing_row(row_key="row-1", kind="data", text="player_table:\n")]}}
         raise AssertionError(path)
@@ -4500,6 +4517,7 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
 
     assert report["verification"]["status"] == "passed"
     assert [layer["layer"] for layer in report["verification"]["layers"]] == [
+        "durable_payload",
         "manual_action_log",
         "semantic_reload",
         "projection",
@@ -4507,6 +4525,117 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
     ]
     assert report["action"]["command_id"] == "data_symbol.rename"
     assert report["action_result"]["status"] == "executed"
+
+
+def test_data_symbol_rename_verifier_requires_durable_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    command = {
+        "command_id": "data_symbol.rename",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {"hunk": 0, "addr": 0, "end": 2, "name": "player_table"},
+    }
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "seeds": [
+                    {"kind": "data", "hunk": 0, "addr": 0, "end": 2, "name": "player_table"},
+                ]
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [_listing_row(kind="data", text="player_table:\n")]}},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_data_symbol_rename_mutation(
+        "demo",
+        command,
+        {"action": {"action_id": "manual-1", "payload": {"comment": {"text": "not a data symbol"}}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][0]["layer"] == "durable_payload"
+    assert verification["layers"][0]["message"] == "missing data symbol payload"
+
+
+def test_data_symbol_rename_verifier_rejects_mismatched_durable_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    command = {
+        "command_id": "data_symbol.rename",
+        "context": {"kind": "row", "locator": _listing_locator(kind="data")},
+        "parameters": {"hunk": 0, "addr": 0, "end": 2, "name": "player_table"},
+    }
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={
+                "seeds": [
+                    {"kind": "data", "hunk": 0, "addr": 0, "end": 4, "name": "player_table"},
+                ]
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": [_listing_row(kind="data", text="player_table:\n")]}},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_data_symbol_rename_mutation(
+        "demo",
+        command,
+        {
+            "action": {
+                "action_id": "manual-1",
+                "payload": {"data_symbol": {"hunk": 0, "addr": 0, "end": 4, "name": "player_table"}},
+            }
+        },
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][0]["mismatched_command_fields"] == ["end"]
+    assert verification["layers"][2]["matching_manual_data_symbol_seeds"] == [
+        {"kind": "data", "hunk": 0, "addr": 0, "end": 4, "name": "player_table"}
+    ]
 
 
 def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
@@ -9791,6 +9920,27 @@ def _executed_semantic_hint_payload(tmp_path: Path) -> dict[str, object]:
             "manual_action_log_head_hash": state["head_hash"],
             "effective_metadata_hash": "f" * 64,
             "affected_locators": [_listing_locator(end_offset=4)],
+            "projection_hash": "projection-1",
+        },
+        "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
+    }
+
+
+def _executed_data_symbol_payload(tmp_path: Path, data_symbol: dict[str, object]) -> dict[str, object]:
+    state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    return {
+        "action": {"action_id": "manual-1", "payload": {"data_symbol": dict(data_symbol)}},
+        "application": {
+            "local_effects": [{"kind": "data_symbol_rename", "data_symbol": dict(data_symbol)}],
+        },
+        "mutation": {
+            "durable_action_id": "manual-1",
+            "manual_action_log_count": state["count"],
+            "manual_action_log_head_hash": state["head_hash"],
+            "effective_metadata_hash": "f" * 64,
+            "affected_locators": [
+                _listing_locator(kind="data", end_offset=cast(int, data_symbol.get("end", 2))),
+            ],
             "projection_hash": "projection-1",
         },
         "workflow_profile": {"workflow_id": "manual_command_execution", "spans": []},
