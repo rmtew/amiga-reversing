@@ -43,6 +43,9 @@ Current progress:
   durable `(hunk, addr)` identity.
 - Seeded data symbol removal uses existing durable `suppress_seeded_item`
   replay.
+- Manual Action Log owned data-symbol removal uses existing durable
+  `remove_manual_seed` replay with the `ManualSeed:*` seed id, so cleanup
+  retracts only the source-owned manual symbol projection.
 
 Child / related implementation issues:
 - `014-007-data-role-command-coverage.md`

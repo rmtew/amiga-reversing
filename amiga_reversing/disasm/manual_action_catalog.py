@@ -1490,6 +1490,11 @@ def listing_catalog_manual_payload(
         if "previous_name" not in payload:
             raise ValueError("rename_existing_data_symbol requires previous_name")
         return "rename_data_symbol", {"data_symbol": payload}
+    if ui_action == "remove_manual_seed":
+        seed_id = params.get("seed_id")
+        if not isinstance(seed_id, str) or not seed_id:
+            raise ValueError("remove_manual_seed requires seed_id")
+        return "remove_manual_seed", {"seed_id": seed_id}
     if ui_action == "create_manual_label":
         manual_label_id = row.get("manual_label_id")
         name = params.get("name")
@@ -1717,15 +1722,27 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                     _data_name_parameter_schema(),
                 )
             )
-        actions.append(
-            _context_log_action(
-                "data_symbol.remove",
-                "Remove data symbol",
-                "suppress_seeded_item",
-                context,
-                {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]},
+        manual_seed_id = _manual_seed_id_from_source_locator(item.get("source_locator"))
+        if manual_seed_id is not None:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.remove",
+                    "Remove data symbol",
+                    "remove_manual_seed",
+                    context,
+                    {"seed_id": manual_seed_id},
+                )
             )
-        )
+        else:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.remove",
+                    "Remove data symbol",
+                    "suppress_seeded_item",
+                    context,
+                    {"kind": item["kind"], "hunk": item["hunk"], "addr": item["addr"]},
+                )
+            )
     if not has_seeded_entity and row.get("kind") == "data":
         identity = _row_data_symbol_identity(row)
         if identity is not None:
@@ -1752,6 +1769,14 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                     )
                 )
     return actions
+
+
+def _manual_seed_id_from_source_locator(value: object) -> str | None:
+    prefix = "ManualSeed:"
+    if not isinstance(value, str) or not value.startswith(prefix):
+        return None
+    seed_id = value.removeprefix(prefix)
+    return seed_id if seed_id else None
 
 
 def _row_data_symbol_identity(row: Mapping[str, object]) -> dict[str, object] | None:

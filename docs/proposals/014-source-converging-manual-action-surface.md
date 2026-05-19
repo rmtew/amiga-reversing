@@ -1139,6 +1139,12 @@ failure, not a successful rename proof. This is still only selected-row proof;
 propagated typed-access descendants need owner-scoped cleanup before broad
 rename/remove cascades are safe.
 
+Implementation observation from `014-014`: data-symbol removal is not a single
+cleanup shape. Generated seeded entities should be suppressed by hunk/address,
+but source-owned manual data-symbol names must remove their `ManualSeed:*`
+projection instead; otherwise a manual rename cleanup can overreach into
+generated seeded identity.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

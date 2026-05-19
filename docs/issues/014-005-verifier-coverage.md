@@ -102,8 +102,9 @@ Current evidence:
   Log replay, semantic reload, projected listing text/name, and exact
   round-trip instead of accepting affected-locator metadata alone.
 - Generic `run-one` `data_symbol.remove` execution now verifies Manual Action
-  Log replay, reloaded suppressed seeded item state, and exact round-trip
-  instead of accepting affected-locator metadata alone.
+  Log replay, either reloaded suppressed seeded item state or removed manual
+  data-symbol seed absence, and exact round-trip instead of accepting
+  affected-locator metadata alone.
 - Generic `run-one` `correction.suppress_seeded_item.*` execution now verifies
   Manual Action Log replay, reloaded suppressed seeded item state, and exact
   round-trip instead of accepting affected-locator metadata alone.

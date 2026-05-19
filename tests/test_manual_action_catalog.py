@@ -224,6 +224,34 @@ def test_data_symbol_remove_command_suppresses_seeded_entity_identity() -> None:
     }
 
 
+def test_data_symbol_remove_command_removes_manual_seed_identity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x100,
+        "end_offset": 0x104,
+        "suppressible_seeded_items": [
+            {
+                "kind": "seeded_entity",
+                "hunk": 0,
+                "addr": 0x100,
+                "end": 0x104,
+                "name": "player_table",
+                "source_locator": "ManualSeed:data-symbol:h0:00000100",
+            }
+        ],
+    }
+
+    actions = listing_row_action_catalog(row)
+    remove_action = next(action for action in actions if action["action_id"] == "data_symbol.remove")
+    kind, payload = listing_catalog_manual_payload(row, "data_symbol.remove")
+
+    assert remove_action["action"] == "remove_manual_seed"
+    assert remove_action["parameters"] == {"seed_id": "data-symbol:h0:00000100"}
+    assert kind == "remove_manual_seed"
+    assert payload == {"seed_id": "data-symbol:h0:00000100"}
+
+
 def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity() -> None:
     row = {
         "kind": "data",

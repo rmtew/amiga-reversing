@@ -49,16 +49,21 @@ Current evidence:
 - Autonomous referenced-data rename candidates now generate
   `runtime_address_XXXXXXXX` names from stable runtime-address references when
   no data class is available.
-- Generic `run-one` now verifies `data_symbol.remove` by checking the reloaded
-  suppressed seeded item state rather than affected row metadata.
+- Generic `run-one` now verifies `data_symbol.remove` by checking either the
+  reloaded suppressed seeded item state or the removed manual data-symbol seed,
+  rather than affected row metadata.
 - `data_symbol.rename_existing` now exposes first-class rename-existing-symbol
   workflows for seeded data entities, ordinary named data rows, and referenced
   data use-sites with a preserved `previous_name`; it reuses the durable
   `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
 - Planner command normalization strips report/provenance fields from
   data-symbol rename/remove parameter payloads; rename parameters carry only
-  the requested name, and remove parameters carry only selected seeded-item
-  identity.
+  the requested name, and remove parameters carry only selected seeded-item or
+  manual-seed identity.
+- `data_symbol.remove` now preserves the source-identity boundary for
+  Manual Action Log owned data symbols: rows whose effective symbol comes from
+  `ManualSeed:*` remove that manual seed, while generated seeded entities still
+  use seeded-item suppression.
 - Durable data/global symbol edit, broader global, and expanded autonomous
   candidate workflows remain open beyond seeded data-entity rename/remove,
   rename-existing-symbol, and internal referenced data use-sites.

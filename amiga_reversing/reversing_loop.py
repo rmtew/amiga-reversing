@@ -2952,6 +2952,13 @@ def _verify_manual_mutation(
     if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "data_symbol.remove":
+        if _manual_seed_removals_from_durable_result(durable_result):
+            return _verify_manual_seed_mutation(
+                target_id,
+                "data_symbol.remove",
+                durable_result,
+                project_root=project_root,
+            )
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _verify_seeded_item_suppression_mutation(target_id, durable_result, project_root=project_root)
@@ -5076,7 +5083,7 @@ def _verify_project_manual_seed_state(
     if not isinstance(seeds, list | tuple):
         return {"layer": "semantic_reload", "status": "failed", "message": "manual seeds were not reloaded"}
     seed_items = [seed for seed in seeds if isinstance(seed, dict)]
-    if command_id == "review.seed.remove":
+    if command_id in {"review.seed.remove", "data_symbol.remove"}:
         if not removed_seed_ids:
             return {"layer": "semantic_reload", "status": "failed", "message": "missing removed manual seed id payload"}
         remaining = [seed for seed in seed_items if seed.get("seed_id") in set(removed_seed_ids)]

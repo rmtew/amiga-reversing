@@ -2562,6 +2562,30 @@ def test_manual_seed_remove_verifier_checks_removed_seed_absent(
     assert verification["layers"][1]["removed_seed_ids"] == ["data-as-code"]
 
 
+def test_data_symbol_remove_verifier_checks_manual_seed_removed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": []}),
+    )
+
+    verification = reversing_loop._verify_manual_mutation(
+        "demo",
+        {"command_id": "data_symbol.remove"},
+        _executed_manual_seed_remove_payload(tmp_path, "data-symbol:h0:00000100"),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["removed_seed_ids"] == ["data-symbol:h0:00000100"]
+
+
 def test_manual_seed_verifier_rejects_mismatched_payload_field(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
