@@ -6074,8 +6074,18 @@ def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object
     parameters = command.get("parameters")
     normalized = dict(command)
     normalized["kind"] = "command"
-    normalized["context"] = _command_boundary_context(command_id, context)
-    normalized["parameters"] = _command_boundary_parameters(command_id, parameters)
+    bounded_context = _command_boundary_context(command_id, context)
+    bounded_parameters = _command_boundary_parameters(command_id, parameters)
+    if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
+        name = bounded_parameters.get("name")
+        if isinstance(name, str) and name:
+            bounded_parameters = _data_symbol_command_parameters(
+                {"locator": bounded_context.get("locator")},
+                bounded_parameters,
+                name,
+            )
+    normalized["context"] = bounded_context
+    normalized["parameters"] = bounded_parameters
     if _command_id_is_report_only(command_id):
         normalized["effect"] = str(command.get("effect") or "inspection")
         normalized["appends_to_manual_action_log"] = False
@@ -6181,7 +6191,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "kind": "command",
             "command_id": action,
             "context": context,
-            "parameters": {"name": name},
+            "parameters": _data_symbol_command_parameters(candidate, parameter_payload, name),
             "output_affecting": True,
         }
     if action == "data_symbol.remove":
@@ -6385,7 +6395,7 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
 def _command_boundary_parameters(command_id: str, parameters: object) -> dict[str, object]:
     payload = dict(parameters) if isinstance(parameters, dict) else {}
     if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
-        return {key: payload[key] for key in ("name",) if key in payload}
+        return {key: payload[key] for key in ("name", "hunk", "addr", "end") if key in payload}
     if command_id == "data_symbol.remove":
         return {key: payload[key] for key in ("kind", "hunk", "addr", "end", "seed_id") if key in payload}
     if command_id in {"target.equate.add", "target.equate.edit", "target.equate.represent"}:
@@ -6399,6 +6409,37 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
     if command_id == "target.equate.remove":
         return {key: payload[key] for key in ("name",) if key in payload}
     return payload
+
+
+def _data_symbol_command_parameters(
+    candidate: dict[str, object],
+    parameter_payload: dict[str, object],
+    name: str,
+) -> dict[str, object]:
+    parameters = _command_boundary_parameters("data_symbol.rename", {**parameter_payload, "name": name})
+    if "hunk" not in parameters:
+        hunk = candidate.get("target_hunk")
+        if not isinstance(hunk, int):
+            locator = candidate.get("locator")
+            hunk = locator.get("section_index") if isinstance(locator, dict) else None
+        if isinstance(hunk, int):
+            parameters["hunk"] = hunk
+    if "addr" not in parameters:
+        addr = candidate.get("target_addr")
+        if not isinstance(addr, int):
+            locator = candidate.get("locator")
+            addr = locator.get("start_offset") if isinstance(locator, dict) else None
+        if isinstance(addr, int):
+            parameters["addr"] = addr
+    if "end" not in parameters:
+        end = candidate.get("target_end")
+        if not isinstance(end, int):
+            locator = candidate.get("locator")
+            end = locator.get("end_offset") if isinstance(locator, dict) else None
+        addr = parameters.get("addr")
+        if isinstance(end, int) and (not isinstance(addr, int) or end > addr):
+            parameters["end"] = end
+    return parameters
 
 
 def _command_boundary_context(command_id: str, context: dict[str, object]) -> dict[str, object]:
@@ -6941,6 +6982,8 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
         return _catalog_entry_parameters_match(command, entry, _data_block_type_clear_identity_keys(command))
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _catalog_entry_parameters_match(command, entry, _suppressed_seeded_item_identity_keys(command, entry))
+    if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
+        return _catalog_entry_parameters_match(command, entry, _data_symbol_identity_keys(command, entry))
     if command_id == "data_symbol.remove":
         parameters = command.get("parameters")
         keys = (
@@ -6950,6 +6993,16 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
         )
         return _catalog_entry_parameters_match(command, entry, keys)
     return True
+
+
+def _data_symbol_identity_keys(command: dict[str, object], entry: dict[str, object]) -> tuple[str, ...]:
+    command_parameters = command.get("parameters")
+    entry_parameters = entry.get("parameters")
+    if not isinstance(command_parameters, dict) or not isinstance(entry_parameters, dict):
+        return ("hunk", "addr")
+    if "end" in command_parameters or "end" in entry_parameters:
+        return ("hunk", "addr", "end")
+    return ("hunk", "addr")
 
 
 def _suppressed_seeded_item_identity_keys(command: dict[str, object], entry: dict[str, object]) -> tuple[str, ...]:

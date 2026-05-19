@@ -876,9 +876,12 @@ known so operators can distinguish replacement from first naming.
 
 Implementation observation from `014-014`: data-symbol command parameters must
 not double as provenance reports. Candidate and embedded command payloads should
-strip xref/source-family evidence before execution; the catalog row/element
-context supplies source identity, while separate semantic commands own any
-accepted provenance or type-flow descendants.
+strip xref/source-family evidence before execution, while preserving selected
+hunk/address/end source identity. The catalog row/element context supplies the
+rendered source location, but same-address ranged data symbols still need
+identity parameters so availability and execution cannot select the wrong
+catalog entry. Separate semantic commands own any accepted provenance or
+type-flow descendants.
 
 Implementation observation from `014-014`: embedded data-symbol command context
 needs the same boundary as parameters. Keep only the selected row/element source

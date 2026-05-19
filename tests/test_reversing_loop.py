@@ -3344,7 +3344,7 @@ def test_planner_selects_data_symbol_rename_candidate(
 
     assert report["action"]["command_id"] == "data_symbol.rename"
     assert report["action"]["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
-    assert report["action"]["parameters"] == {"name": "player_table"}
+    assert report["action"]["parameters"] == {"name": "player_table", "hunk": 0, "addr": 0, "end": 2}
     assert report["planner"]["selected_command_id"] == "data_symbol.rename"
     assert report["planner"]["selected_verifier"] == "projected_data_symbol_name"
 
@@ -3379,7 +3379,7 @@ def test_embedded_data_symbol_rename_command_strips_provenance_parameters() -> N
     command = reversing_loop._candidate_command_options(candidate)[0]
 
     assert command["context"] == {"kind": "row", "locator": _listing_locator(kind="data")}
-    assert command["parameters"] == {"name": "player_table"}
+    assert command["parameters"] == {"name": "player_table", "hunk": 0, "addr": 0, "end": 2}
     assert reversing_loop._candidate_verifier(candidate, command) == "projected_data_symbol_name"
 
 
@@ -3555,7 +3555,16 @@ def test_run_one_uses_available_alternate_command_when_selected_catalog_action_i
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "data_symbol.rename"}]}}
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "data_symbol.rename",
+                            "parameters": {"hunk": 0, "addr": 0, "end": 2},
+                        }
+                    ]
+                }
+            }
         if method == "POST" and path.endswith("/commands/execute"):
             assert isinstance(body, dict)
             executed.append(str(body["command_id"]))
@@ -3914,7 +3923,16 @@ def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "data_symbol.rename"}]}}
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "data_symbol.rename",
+                            "parameters": {"hunk": 0, "addr": 0, "end": 2},
+                        }
+                    ]
+                }
+            }
         if method == "POST" and path.endswith("/commands/execute"):
             assert isinstance(body, dict)
             assert body["command_id"] == "data_symbol.rename"
@@ -4044,6 +4062,28 @@ def test_data_symbol_remove_availability_requires_matching_cleanup_identity() ->
     availability_parameters["seed_id"] = "data-symbol:h0:00000100"
 
     assert reversing_loop._available_catalog_command(manual_seed_command, availability) == availability["commands"][0]
+
+
+def test_data_symbol_rename_availability_requires_matching_source_identity() -> None:
+    command = {
+        "command_id": "data_symbol.rename",
+        "parameters": {"name": "player_table", "hunk": 0, "addr": 0x100, "end": 0x108},
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "data_symbol.rename",
+                "parameters": {"hunk": 0, "addr": 0x100, "end": 0x104},
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters["end"] = 0x108
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
 def test_run_one_seeded_item_correction_executes_with_suppression_verifier(
@@ -4742,7 +4782,7 @@ def test_listing_data_symbol_candidates_use_runtime_ref_identity() -> None:
         "locator": row["locator"],
         "element_id": "code-row:data_ref:0:1:00000120",
     }
-    assert command["parameters"] == {"name": "bitmap_00040120"}
+    assert command["parameters"] == {"name": "bitmap_00040120", "hunk": 1, "addr": 0x120, "end": 0x140}
 
 
 def test_listing_data_symbol_candidates_use_runtime_address_when_class_missing() -> None:
@@ -4771,7 +4811,7 @@ def test_listing_data_symbol_candidates_use_runtime_address_when_class_missing()
     assert candidates[0]["new_name"] == "runtime_address_0004F92B"
     assert candidates[0]["evidence"]["runtime_address"] == 0x4F92B
     assert command["command_id"] == "data_symbol.rename"
-    assert command["parameters"] == {"name": "runtime_address_0004F92B"}
+    assert command["parameters"] == {"name": "runtime_address_0004F92B", "hunk": 1, "addr": 0x120, "end": 0x124}
 
 
 def test_listing_data_symbol_candidates_use_data_class_row_identity() -> None:
@@ -4792,7 +4832,7 @@ def test_listing_data_symbol_candidates_use_data_class_row_identity() -> None:
     assert candidates[0]["new_name"] == "bitmap_h0_00000040"
     assert command["command_id"] == "data_symbol.rename"
     assert command["context"] == {"kind": "row", "locator": row["locator"]}
-    assert command["parameters"] == {"name": "bitmap_h0_00000040"}
+    assert command["parameters"] == {"name": "bitmap_h0_00000040", "hunk": 0, "addr": 0x40, "end": 0x44}
 
 
 def test_listing_data_symbol_candidates_use_rename_existing_for_named_rows() -> None:

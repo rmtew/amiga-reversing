@@ -73,12 +73,13 @@ Current evidence:
   existing-name edit workflows in the catalog while reusing the same durable
   `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
 - Planner command normalization strips report/provenance fields from
-  data-symbol rename/remove parameter payloads; rename parameters carry only
-  the requested name, and remove parameters carry only selected seeded-item or
-  manual-seed identity.
+  data-symbol rename/remove parameter payloads; rename parameters carry the
+  requested name plus selected hunk/address/end source identity, and remove
+  parameters carry only selected seeded-item or manual-seed identity.
 - Embedded data-symbol command normalization also strips report/provenance
-  fields from command context; source identity is carried by the selected row
-  or element locator, not by accepted provenance evidence.
+  fields from command context; selected row or element locator remains the
+  rendered source location, while hunk/address/end disambiguates the durable
+  data-symbol source identity.
 - `data_symbol.remove` now preserves the source-identity boundary for
   Manual Action Log owned data symbols: rows whose effective symbol comes from
   `ManualSeed:*` remove that manual seed, while generated seeded entities still
@@ -94,6 +95,10 @@ Current evidence:
 - Data-symbol rename command execution now honors the selected seeded-entity
   `end` when building the durable payload, so a same-address generated range
   cannot be renamed by accident when the operator selected a different range.
+- Planner-built data-symbol add/edit/rename/rename-existing commands now
+  preserve selected hunk/address/end source identity while still stripping
+  provenance/report fields, and availability rejects stale ranged catalog
+  entries before execution.
 - Data-symbol seed ids now include `end` when present and Manual Action Log
   projection derives that ranged id from the payload, so same-address range
   renames cannot collide before effective metadata merge.
