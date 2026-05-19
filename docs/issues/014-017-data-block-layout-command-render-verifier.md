@@ -51,10 +51,11 @@ Implemented tests:
   verifiers, checks Manual Action Log replay, semantic reload state for element
   set/represent/remove, rendered source directive/value evidence, exact
   round-trip, and blocks unsupported type/ref commands without a verifier.
-- Reversing loop rendered-source coverage now fails data-block element
-  verification when the reloaded listing lacks required visible tokens from the
-  layout/element payload, emits the wrong directive width (`dc.b` vs `dc.w` vs
-  `dc.l`), or an element removal lacks raw/gap source restoration evidence.
+- Reversing loop rendered-source coverage now checks the affected listing
+  row/span, not nearby text, and fails data-block element verification when
+  that row lacks required visible tokens from the layout/element payload, emits
+  the wrong directive width (`dc.b` vs `dc.w` vs `dc.l`), or an element removal
+  lacks raw/gap source restoration evidence.
 - C backend render matrix covers data-block scalar byte/word/long elements,
   character byte arrays, explicit gap bytes, and compact padding `dcb.b` runs
   with exact rebuild.

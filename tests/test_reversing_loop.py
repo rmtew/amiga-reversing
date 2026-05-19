@@ -655,8 +655,20 @@ def test_run_one_data_block_layout_executes_with_layout_state_verifier(
             return {
                 "data": {
                     "rows": [
-                        _listing_row(row_key="row-1", kind="label", label="ascii_hex_digit_value"),
-                        _listing_row(row_key="row-2", kind="data", text="\tdcb.b $30,$FF\t; lookup_table\n"),
+                        _listing_row(
+                            row_key="row-1",
+                            kind="label",
+                            label="ascii_hex_digit_value",
+                            start_offset=0x20,
+                            end_offset=0x20,
+                        ),
+                        _listing_row(
+                            row_key="row-2",
+                            kind="data",
+                            text="\tdcb.b $30,$FF\t; lookup_table\n",
+                            start_offset=0x20,
+                            end_offset=0x24,
+                        ),
                     ]
                 }
             }
@@ -733,7 +745,18 @@ def test_run_one_data_block_element_executes_with_element_state_verifier(
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_element_payload(tmp_path, element)}
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="digits:\n\tdc.b '0','1'\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            kind="data",
+                            text="digits:\n\tdc.b '0','1'\n",
+                            start_offset=0x20,
+                            end_offset=0x22,
+                        )
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -809,7 +832,20 @@ def test_run_one_data_block_element_update_commands_verify_expected_state(
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_element_payload(tmp_path, element)}
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", text="\tdc.b $30,$31\n", start_offset=0x20, end_offset=0x22),
+                        _listing_row(
+                            row_key="row-2",
+                            kind="data",
+                            text="digits:\n\tdc.b $32,$33\n",
+                            start_offset=0x24,
+                            end_offset=0x26,
+                        ),
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -865,7 +901,13 @@ def test_data_block_element_verifier_fails_when_rendered_source_missing(
             _write_manual_log(tmp_path)
             return {"data": _executed_data_block_element_payload(tmp_path, element)}
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", text="\tdc.b $30,$31\n", start_offset=0x20, end_offset=0x22)
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -916,7 +958,18 @@ def test_data_block_element_verifier_fails_on_wrong_rendered_directive(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="word_value:\n\tdc.b $12,$34\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            kind="data",
+                            text="word_value:\n\tdc.b $12,$34\n",
+                            start_offset=0x20,
+                            end_offset=0x22,
+                        )
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -958,7 +1011,20 @@ def test_data_block_element_remove_verifier_requires_raw_restore_source(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="unrelated_label:\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", text="unrelated_label:\n", start_offset=0x20, end_offset=0x22),
+                        _listing_row(
+                            row_key="row-2",
+                            kind="data",
+                            text="\tdc.b $30,$31\n",
+                            start_offset=0x24,
+                            end_offset=0x26,
+                        ),
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -1007,7 +1073,13 @@ def test_data_block_element_remove_verifier_accepts_raw_dc_after_named_element_r
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/listing"):
-            return {"data": {"rows": [_listing_row(kind="data", text="\tdc.b $30,$31\n")]}}
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(kind="data", text="\tdc.b $30,$31\n", start_offset=0x20, end_offset=0x22)
+                    ]
+                }
+            }
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)

@@ -3490,14 +3490,26 @@ def _verify_projected_data_block_rendered_source(
         for row in rows
         if isinstance(row, dict)
     )
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    affected_rendered_text = "\n".join(_data_block_rendered_source_text(row) for row in affected_rows)
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "affected listing row missing after reload",
+            "rendered_text": rendered_text,
+        }
     if command_id.endswith(".remove"):
         stale_tokens = [
             token
             for token in _data_block_stale_removal_tokens(render_expected)
-            if token and _rendered_source_contains_token(rendered_text, token)
+            if token and _rendered_source_contains_token(affected_rendered_text, token)
         ]
         restore_tokens = _data_block_removal_restore_tokens(render_expected)
-        matched_restore_tokens = [token for token in restore_tokens if _rendered_source_contains_token(rendered_text, token)]
+        matched_restore_tokens = [
+            token for token in restore_tokens if _rendered_source_contains_token(affected_rendered_text, token)
+        ]
         status = "failed" if stale_tokens else "passed"
         if restore_tokens and len(matched_restore_tokens) != len(restore_tokens):
             status = "failed"
@@ -3510,6 +3522,7 @@ def _verify_projected_data_block_rendered_source(
             "stale_tokens": stale_tokens,
             "expected_restore_tokens": restore_tokens,
             "matched_restore_tokens": matched_restore_tokens,
+            "affected_rendered_text": affected_rendered_text,
             "rendered_text": rendered_text,
         }
     if not expected_tokens:
@@ -3518,13 +3531,14 @@ def _verify_projected_data_block_rendered_source(
         metadata["source_offset"] = source_offset
         metadata["message"] = metadata.get("message", "verified affected locator; no stable rendered token in payload")
         return metadata
-    matched_tokens = [token for token in expected_tokens if _rendered_source_contains_token(rendered_text, token)]
+    matched_tokens = [token for token in expected_tokens if _rendered_source_contains_token(affected_rendered_text, token)]
     return {
         "layer": "rendered_source",
         "status": "passed" if len(matched_tokens) == len(expected_tokens) else "failed",
         "source_offset": source_offset,
         "expected_tokens": expected_tokens,
         "matched_tokens": matched_tokens,
+        "affected_rendered_text": affected_rendered_text,
         "rendered_text": rendered_text,
     }
 
@@ -3602,6 +3616,26 @@ def _project_data_block_element_state_match(
         if isinstance(element, dict) and _data_block_element_matches(element, expected):
             return cast(dict[str, object], element)
     return None
+
+
+def _data_block_rendered_source_rows(
+    rows: list[object],
+    section_index: int,
+    source_offset: int,
+) -> list[dict[str, object]]:
+    affected: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        locator = row.get("locator")
+        row_locator = locator if isinstance(locator, dict) else row
+        if _row_covers_source_location(row, cast(dict[str, object], row_locator), section_index, source_offset):
+            affected.append(cast(dict[str, object], row))
+    return affected
+
+
+def _data_block_rendered_source_text(row: dict[str, object]) -> str:
+    return " ".join(str(row.get(key) or "") for key in ("label", "text", "operand_text", "source_text"))
 
 
 def _data_block_expected_render_tokens(expected: dict[str, object]) -> list[str]:

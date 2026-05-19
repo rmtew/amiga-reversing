@@ -46,6 +46,10 @@ Implemented tests:
   action-specific render/xref verifier.
 
 Remaining:
+- Payload/projection guards before any output-affecting projection: supported
+  `reference_kind`, required absolute target locator, decoded element bytes
+  equal the intended target, and reference width fits/matches the owning
+  element.
 - Symbolic rendering for supported reference kinds.
 - Generated bidirectional xrefs with owner identity.
 - Verifiers for rendered text, generated xrefs, cleanup disappearance, and
