@@ -1156,6 +1156,12 @@ command-specific. Generic provenance verification must treat context-carried
 one, or stale selected-use contexts can escape the write-boundary evidence
 match.
 
+Implementation observation from `014-005`: nested reference evidence is not the
+same as consumed write evidence. `base_evidence_refs`, `conflicts`, and
+`cleanup_scope` may preserve audit/cleanup context, but they must not satisfy
+the generic consumed-provenance verifier when the durable action payload itself
+forgot `source_evidence_id`.
+
 Implementation observation from `014-013`: `manual_override` provenance evidence
 is a correction boundary, not just another accepted status. The command payload
 and durable replay must carry `contradicted_evidence_id`, reason, path/lifetime

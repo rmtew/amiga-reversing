@@ -1090,6 +1090,40 @@ def test_provenance_backed_mutation_verifier_rejects_command_only_evidence() -> 
     assert "durable action payload missing consumed source_evidence_id" in provenance_layer["failures"]
 
 
+def test_provenance_backed_mutation_verifier_ignores_nested_reference_evidence_as_consumed() -> None:
+    command = {
+        "command_id": "rsset.binding.bind",
+        "parameters": {"source_evidence_id": "prov-demo-rsset-path"},
+    }
+    accepted_ref = {
+        "source_evidence_id": "prov-demo-rsset-path",
+        "source_family": "rsset_app_base",
+        "status": "path_specific",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "accepted": True,
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "rsset_use_site_binding": {
+                    "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                    "base_evidence_refs": [accepted_ref],
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert "durable action payload missing consumed source_evidence_id" in provenance_layer["failures"]
+
+
 def test_run_one_manual_seed_executes_with_seed_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

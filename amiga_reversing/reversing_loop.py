@@ -3110,6 +3110,7 @@ _PROVENANCE_COMMAND_IDENTITY_KEYS = (
     "reason",
     "cleanup_scope",
 )
+_PROVENANCE_REFERENCE_CONTAINER_KEYS = frozenset({"base_evidence_refs", "cleanup_scope", "conflicts"})
 
 
 def _verify_provenance_backed_mutation(
@@ -3178,7 +3179,7 @@ def _find_source_evidence_payload(value: object) -> dict[str, object] | None:
         if isinstance(evidence_id, str) and evidence_id:
             return cast(dict[str, object], value)
         for key, child in value.items():
-            if key == "cleanup_scope":
+            if key in _PROVENANCE_REFERENCE_CONTAINER_KEYS:
                 continue
             found = _find_source_evidence_payload(child)
             if found is not None:

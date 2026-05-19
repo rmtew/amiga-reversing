@@ -188,6 +188,10 @@ Current evidence:
   production contract: selected interpreted-reference rows must carry enough
   source bytes for the requested width, and fake listing artifacts used for
   command execution must provide navigation payloads.
+- The generic provenance verifier no longer treats nested reference-only
+  evidence as consumed write evidence. `base_evidence_refs`, `conflicts`, and
+  `cleanup_scope` may document inputs or cleanup, but the durable action payload
+  itself must carry the consumed `source_evidence_id`.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,
