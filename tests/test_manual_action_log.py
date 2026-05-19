@@ -992,6 +992,7 @@ def test_manual_action_log_projects_execution_view(tmp_path: Path) -> None:
             "source_end": 0x80,
             "base_addr": 0x4000,
             "name": "stage_code_revised",
+            "owner_action_id": "a2",
         },
     )
 
@@ -1809,7 +1810,15 @@ def test_manual_action_log_removes_execution_view_by_identity(tmp_path: Path) ->
 
     assert projection.execution_views == ()
     assert projection.removed_execution_views == (
-        {"source_start": 0x20, "source_end": 0x80, "base_addr": 0x4000},
+        {
+            "execution_view_id": "stage",
+            "source_start": 0x20,
+            "source_end": 0x80,
+            "base_addr": 0x4000,
+            "name": "stage_code",
+            "owner_action_id": "a1",
+            "cleanup_action_id": "a2",
+        },
     )
 
 

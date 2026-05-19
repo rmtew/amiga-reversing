@@ -5109,6 +5109,8 @@ def _verify_execution_view_mutation(
 ) -> dict[str, object]:
     expected = _execution_view_from_durable_result(durable_result)
     removed = command_id == "target.execution_view.remove"
+    if expected is not None:
+        expected = _execution_view_with_expected_action_id(expected, durable_result, removed=removed)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_execution_view(target_id, expected, removed=removed, project_root=project_root),
@@ -5139,6 +5141,20 @@ def _execution_view_from_durable_result(durable_result: dict[str, object]) -> di
             if view is not None:
                 return view
     return None
+
+
+def _execution_view_with_expected_action_id(
+    view: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    removed: bool,
+) -> dict[str, object]:
+    action_id = _durable_action_id(durable_result)
+    if not isinstance(action_id, str) or not action_id:
+        return view
+    result = dict(view)
+    result.setdefault("cleanup_action_id" if removed else "owner_action_id", action_id)
+    return result
 
 
 def _execution_view_from_action(action: object) -> dict[str, object] | None:
@@ -5186,7 +5202,7 @@ def _execution_view_matches(actual: dict[str, object], expected: dict[str, objec
     for key in ("source_start", "source_end", "base_addr"):
         if key not in expected or actual.get(key) != expected.get(key):
             return False
-    for key in ("name", "comment"):
+    for key in ("name", "comment", "owner_action_id", "cleanup_action_id"):
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return True

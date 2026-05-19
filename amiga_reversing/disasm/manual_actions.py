@@ -1774,15 +1774,18 @@ def _project_actions(
             removed["cleanup_action_id"] = action.action_id
             removed_data_block_interpreted_refs[ref_id] = removed
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
-            view = _action_object(action, "execution_view")
+            view = dict(_action_object(action, "execution_view"))
+            view["owner_action_id"] = action.action_id
             key = _execution_view_key(view)
             removed_execution_views.pop(key, None)
             execution_views[key] = view
         elif action.kind is ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
             key = _execution_view_key(view)
-            execution_views.pop(key, None)
-            removed_execution_views[key] = view
+            existing = execution_views.pop(key, None)
+            removed = dict(existing or view)
+            removed["cleanup_action_id"] = action.action_id
+            removed_execution_views[key] = removed
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:

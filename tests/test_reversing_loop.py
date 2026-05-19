@@ -3157,7 +3157,7 @@ def test_run_one_execution_view_executes_with_view_verifier(
         "get_project",
         lambda target_id, project_root: replace(
             _project(()),
-            manual_state={"execution_views": [_execution_view_payload()]},
+            manual_state={"execution_views": [{**_execution_view_payload(), "owner_action_id": "manual-1"}]},
         ),
     )
 
@@ -3219,6 +3219,7 @@ def test_run_one_execution_view_remove_executes_with_removed_view_verifier(
                         "source_start": 0x20,
                         "source_end": 0x80,
                         "base_addr": 0x4000,
+                        "cleanup_action_id": "manual-1",
                     }
                 ]
             },
@@ -3243,6 +3244,86 @@ def test_run_one_execution_view_remove_executes_with_removed_view_verifier(
     assert report["verification"]["layers"][1]["removed"] is True
     assert report["action"]["command_id"] == "target.execution_view.remove"
     assert report["action_result"]["status"] == "executed"
+
+
+def test_execution_view_add_verifier_requires_owner_action(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"execution_views": [{**_execution_view_payload(), "owner_action_id": "manual-other"}]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_execution_view_mutation(
+        "demo",
+        "target.execution_view.add",
+        {"action": {"action_id": "manual-1", "payload": {"execution_view": _execution_view_payload()}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_execution_view"]["owner_action_id"] == "manual-1"
+    assert semantic_layer["matching_execution_views"] == []
+
+
+def test_execution_view_remove_verifier_requires_cleanup_action(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    removed_view = {
+        "source_start": 0x20,
+        "source_end": 0x80,
+        "base_addr": 0x4000,
+        "cleanup_action_id": "manual-other",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_execution_views": [removed_view]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_execution_view_mutation(
+        "demo",
+        "target.execution_view.remove",
+        {"action": {"action_id": "manual-1", "payload": {"execution_view": _execution_view_remove_payload()}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_execution_view"]["cleanup_action_id"] == "manual-1"
+    assert semantic_layer["matching_execution_views"] == []
 
 
 def test_run_one_semantic_hint_executes_with_hint_verifier(
@@ -6190,6 +6271,14 @@ def _executed_representation_payload(tmp_path: Path) -> dict[str, object]:
     }
 
 
+def _execution_view_remove_payload() -> dict[str, object]:
+    return {
+        "source_start": 0x20,
+        "source_end": 0x80,
+        "base_addr": 0x4000,
+    }
+
+
 def _executed_execution_view_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
     return {
@@ -6211,11 +6300,7 @@ def _executed_execution_view_payload(tmp_path: Path) -> dict[str, object]:
 
 def _executed_execution_view_remove_payload(tmp_path: Path) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
-    view = {
-        "source_start": 0x20,
-        "source_end": 0x80,
-        "base_addr": 0x4000,
-    }
+    view = _execution_view_remove_payload()
     return {
         "action": {"action_id": "manual-1", "payload": {"execution_view": view}},
         "application": {
