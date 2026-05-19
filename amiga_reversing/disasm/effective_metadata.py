@@ -826,6 +826,74 @@ def _data_block_element_representation(
     )
 
 
+def _data_block_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
+    if ref.get("reference_kind") != "absolute":
+        return None
+    width = _manual_seed_int(ref, "width")
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    source_value = _manual_seed_int(ref, "source_value")
+    target_locator = ref.get("target_locator")
+    if width not in {1, 2, 4} or target_hunk is None or target_hunk < 0:
+        return None
+    if target_offset is None or target_offset < 0 or source_value is None or source_value < 0:
+        return None
+    if source_value != target_offset or source_value >= (1 << (width * 8)):
+        return None
+    if not isinstance(target_locator, Mapping):
+        return None
+    if _manual_seed_int(target_locator, "hunk") != target_hunk:
+        return None
+    if _manual_seed_int(target_locator, "offset") != target_offset:
+        return None
+    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
+
+
+def _data_block_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquateMetadata | None:
+    symbol = _data_block_interpreted_ref_symbol(ref)
+    target_offset = _manual_seed_int(ref, "target_offset")
+    if symbol is None or target_offset is None:
+        return None
+    return TargetEquateMetadata(
+        name=symbol,
+        value=target_offset,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "data_block_ref_id"),
+        comment="data-block interpreted absolute reference",
+    )
+
+
+def _data_block_element_interpreted_ref_representation(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+) -> ManualRepresentationMetadata | None:
+    if not isinstance(element.reference_interpretation, dict):
+        return None
+    symbol = _data_block_interpreted_ref_symbol(element.reference_interpretation)
+    if symbol is None:
+        return None
+    addr, end = _data_block_element_span(layout, element)
+    if end <= addr or end > layout.source_end:
+        return None
+    width = _manual_seed_int(element.reference_interpretation, "width")
+    if width not in {1, 2, 4} or end - addr != width:
+        return None
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=layout.hunk,
+        style=ManualRepresentationStyle.SYMBOL,
+        element_kind="data_block_interpreted_ref",
+        symbol=symbol,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(element.reference_interpretation, "data_block_ref_id"),
+        source_id="manual_action_log",
+        source_locator=_manual_data_block_reference_id(element.reference_interpretation),
+    )
+
+
 def _metadata_range_end(addr: int, end: int | None) -> int:
     return end if end is not None and end > addr else addr + 1
 
@@ -1187,9 +1255,20 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             entity = _data_block_element_entity(layout, element)
             if entity is not None:
                 seeded_entities.append(entity)
-            representation = _data_block_element_representation(layout, element)
-            if representation is not None:
-                manual_representations.append(representation)
+            interpreted_ref_equate = (
+                _data_block_interpreted_ref_equate(element.reference_interpretation)
+                if isinstance(element.reference_interpretation, dict)
+                else None
+            )
+            interpreted_ref_representation = _data_block_element_interpreted_ref_representation(layout, element)
+            if interpreted_ref_equate is not None and interpreted_ref_representation is not None:
+                target_equates.append(interpreted_ref_equate)
+                manual_representations.append(interpreted_ref_representation)
+            else:
+                representation = _data_block_element_representation(layout, element)
+                if representation is not None:
+                    manual_representations.append(representation)
+    merged_target_equates = {equate.name: equate for equate in target_equates}
     for view in execution_view_projections:
         execution_view = _manual_execution_view_to_metadata(view)
         if execution_view is not None:

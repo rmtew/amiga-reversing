@@ -1229,6 +1229,33 @@ def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path:
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] == interpreted_ref
+    assert payload["target_equates"] == [
+        {
+            "citation": "manual_action_log:ptr-table:0:absolute:h0:00002000",
+            "comment": "data-block interpreted absolute reference",
+            "name": "dblk_ref_h0_00002000",
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "value": 0x2000,
+        }
+    ]
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x100,
+            "citation": "manual_action_log:ptr-table:0:absolute:h0:00002000",
+            "element_kind": "data_block_interpreted_ref",
+            "end": 0x104,
+            "hunk": 0,
+            "operand_index": None,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "ptr-table:0:absolute:h0:00002000",
+            "source_path": None,
+            "style": "symbol",
+            "symbol": "dblk_ref_h0_00002000",
+        }
+    ]
 
 
 def test_effective_metadata_removes_manual_data_block_interpreted_ref(tmp_path: Path) -> None:
@@ -1298,6 +1325,8 @@ def test_effective_metadata_removes_manual_data_block_interpreted_ref(tmp_path: 
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] is None
+    assert payload["target_equates"] == []
+    assert payload["manual_representations"] == []
 
 
 def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path: Path) -> None:

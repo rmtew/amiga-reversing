@@ -11,7 +11,9 @@ Requirements:
 - Add `interpret_manual_data_block_element_ref` Manual Action Log support,
   exposed through a `data_block.element.interpret_ref` command id. First slice
   implements replay/projection state and row command catalog exposure through
-  `row.data_block.element.interpret_ref`; render/xref projection remains open.
+  `row.data_block.element.interpret_ref`; symbolic render projection is now
+  covered for supported absolute byte/word/long refs, while generated xref
+  projection remains open.
 - Model reference kind, width, signedness, base/source evidence, scale, target
   locator, confidence, and xref-generation mode.
 - Project interpreted refs into a dedicated manual fact family.
@@ -46,20 +48,25 @@ Implemented tests:
   `source_value`, and Manual Action Log replay rejects unsupported kinds,
   missing/mismatched absolute target locators, width mismatches against the
   owning element, and source values that do not equal the intended target.
-- Loop execution still blocks interpreted-reference commands as missing an
-  action-specific render/xref verifier.
+- Effective metadata reuses those guards before output projection, then emits a
+  generated target-local `EQU` plus element-scoped symbolic representation for
+  supported absolute byte/word/long refs.
+- C source rendering consumes symbol manual representations for scalar
+  byte/word/long data and exact rebuild coverage proves `dc.l dblk_ref_*`
+  remains byte-identical.
+- Loop execution verifies interpreted-reference state, rendered directive plus
+  symbol presence, corrective symbol disappearance, and exact round-trip.
 
 Remaining:
-- Reuse the command/replay payload guards as projection gates before any
-  output-affecting render/xref projection.
-- Symbolic rendering for supported reference kinds.
 - Generated bidirectional xrefs with owner identity.
-- Verifiers for rendered text, generated xrefs, cleanup disappearance, and
-  exact rebuild.
+- Xref verifier checks for generated source/target xrefs and cleanup
+  disappearance.
 
 Acceptance criteria:
 - Replay reloads interpreted-reference state exactly.
-- Render verifier checks expected symbolic text for supported kinds.
-- Xref verifier checks generated source and target xrefs.
+- Render verifier checks expected symbolic text for supported kinds. Covered for
+  absolute byte/word/long refs.
+- Xref verifier checks generated source and target xrefs. Still open.
 - Removal verifier proves generated xrefs and symbolic rendering disappear.
-- Exact rebuild remains mandatory.
+  Symbolic rendering cleanup is covered; generated xref cleanup is still open.
+- Exact rebuild remains mandatory. Covered for symbolic render.

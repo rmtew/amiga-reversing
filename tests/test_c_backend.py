@@ -3413,6 +3413,113 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_data_block_interpreted_ref_renders_symbol_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-ref.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dc.l $00000020
+after_data:
+    rts
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    actions = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a1",
+            "sequence": 1,
+            "created_at": "2026-05-18T00:00:01+00:00",
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "jump-target",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 6,
+                "default_unit": "long",
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a2",
+            "sequence": 2,
+            "created_at": "2026-05-18T00:00:02+00:00",
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "jump-target:0",
+                "layout_id": "jump-target",
+                "offset": 0,
+                "width": 4,
+                "kind": "scalar",
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a3",
+            "sequence": 3,
+            "created_at": "2026-05-18T00:00:03+00:00",
+            "kind": "interpret_manual_data_block_element_ref",
+            "data_block_interpreted_ref": {
+                "data_block_ref_id": "jump-target:0:absolute:h0:00000020",
+                "layout_id": "jump-target",
+                "offset": 0,
+                "width": 4,
+                "reference_kind": "absolute",
+                "target_hunk": 0,
+                "target_offset": 0x20,
+                "target_locator": {"hunk": 0, "offset": 0x20},
+                "source_value": 0x20,
+                "confidence": "manual",
+                "xref_generation_mode": "bidirectional",
+            },
+        },
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "\n".join(json.dumps(action, sort_keys=True) for action in actions) + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "dblk_ref_h0_00000020\tEQU\t$20" in rendered
+    assert "\tdc.l dblk_ref_h0_00000020\n" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
 def test_real_dll_data_block_layout_scalar_matrix_renders_source_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"

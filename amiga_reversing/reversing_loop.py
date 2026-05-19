@@ -2804,6 +2804,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         for action in actions
     ):
         return "data_block_element_state"
+    if any(action in {"row.data_block.element.interpret_ref", "row.data_block.element.clear_ref"} for action in actions):
+        return "data_block_interpreted_ref_state"
     if any(action.startswith("target.execution_view.") for action in actions):
         return "execution_view_state"
     if any(action.startswith("correction.suppress_seeded_item.") for action in actions):
@@ -2939,6 +2941,14 @@ def _verify_manual_mutation(
         "range.data_block.element.represent",
     }:
         return _verify_data_block_element_mutation(
+            target_id,
+            command,
+            str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if command_id in {"row.data_block.element.interpret_ref", "row.data_block.element.clear_ref"}:
+        return _verify_data_block_interpreted_ref_mutation(
             target_id,
             command,
             str(command_id),
@@ -3441,6 +3451,218 @@ def _data_block_element_matches(actual: dict[str, object], expected: dict[str, o
         and isinstance(expected.get("offset"), int)
         and all(actual.get(key) == value for key, value in expected.items())
     )
+
+
+def _verify_data_block_interpreted_ref_mutation(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _data_block_interpreted_ref_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_data_block_interpreted_ref(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_data_block_interpreted_ref_rendered_source(
+            target_id,
+            command,
+            command_id,
+            expected,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _data_block_interpreted_ref_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    ref = _data_block_interpreted_ref_from_action(action)
+    if ref is not None:
+        return ref
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            ref = _data_block_interpreted_ref_from_action(raw_action)
+            if ref is not None:
+                return ref
+    return None
+
+
+def _data_block_interpreted_ref_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    ref = action.get("data_block_interpreted_ref")
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    payload = action.get("payload")
+    ref = payload.get("data_block_interpreted_ref") if isinstance(payload, dict) else None
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    return None
+
+
+def _verify_project_data_block_interpreted_ref(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing interpreted ref payload"}
+    removed = command_id.endswith(".clear_ref")
+    key = "removed_data_block_interpreted_refs" if removed else "data_block_interpreted_refs"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    refs = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": f"manual {key} were not reloaded"}
+    matches = [ref for ref in refs if isinstance(ref, dict) and _data_block_interpreted_ref_matches(ref, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_data_block_interpreted_ref": expected,
+        "matching_data_block_interpreted_refs": matches,
+        "state_key": key,
+    }
+
+
+def _project_data_block_interpreted_ref_state_match(
+    target_id: str,
+    command_id: str,
+    expected: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    key = "removed_data_block_interpreted_refs" if command_id.endswith(".clear_ref") else "data_block_interpreted_refs"
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    refs = manual_state.get(key) if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return None
+    for ref in refs:
+        if isinstance(ref, dict) and _data_block_interpreted_ref_matches(ref, expected):
+            return cast(dict[str, object], ref)
+    return None
+
+
+def _data_block_interpreted_ref_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    expected_ref_id = expected.get("data_block_ref_id") or expected.get("interpreted_ref_id")
+    actual_ref_id = actual.get("data_block_ref_id") or actual.get("interpreted_ref_id")
+    return (
+        isinstance(expected_ref_id, str)
+        and expected_ref_id == actual_ref_id
+        and isinstance(expected.get("layout_id"), str)
+        and isinstance(expected.get("offset"), int)
+        and all(actual.get(key) == value for key, value in expected.items())
+    )
+
+
+def _verify_projected_data_block_interpreted_ref_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing interpreted ref payload"}
+    render_expected = (
+        _project_data_block_interpreted_ref_state_match(
+            target_id,
+            command_id,
+            expected,
+            project_root=project_root,
+        )
+        or expected
+    )
+    location = _data_block_render_location(target_id, command, render_expected, project_root=project_root)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "interpreted ref source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["8"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    affected_rendered_text = "\n".join(_data_block_rendered_source_text(row) for row in affected_rows)
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "affected listing row missing after reload",
+        }
+    symbol = _data_block_interpreted_ref_symbol(render_expected)
+    directive = _data_block_directive_for_width(_optional_positive_int(render_expected.get("width")))
+    if symbol is None or directive is None:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "interpreted ref lacks supported symbolic render payload",
+            "affected_rendered_text": affected_rendered_text,
+        }
+    has_symbol = _rendered_source_contains_token(affected_rendered_text, symbol)
+    has_directive = _rendered_source_contains_token(affected_rendered_text, directive)
+    removed = command_id.endswith(".clear_ref")
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if (not has_symbol if removed else has_symbol and has_directive) else "failed",
+        "source_offset": source_offset,
+        "expected_symbol": symbol,
+        "expected_directive": directive,
+        "matched_symbol": has_symbol,
+        "matched_directive": has_directive,
+        "affected_rendered_text": affected_rendered_text,
+    }
+
+
+def _data_block_interpreted_ref_symbol(expected: dict[str, object]) -> str | None:
+    target_hunk = expected.get("target_hunk")
+    target_offset = expected.get("target_offset")
+    source_value = expected.get("source_value")
+    target_locator = expected.get("target_locator")
+    width = expected.get("width")
+    if expected.get("reference_kind") != "absolute":
+        return None
+    if not isinstance(width, int) or width not in {1, 2, 4}:
+        return None
+    if not isinstance(target_hunk, int) or target_hunk < 0:
+        return None
+    if not isinstance(target_offset, int) or target_offset < 0:
+        return None
+    if not isinstance(source_value, int) or source_value != target_offset or source_value >= (1 << (width * 8)):
+        return None
+    if not isinstance(target_locator, dict):
+        return None
+    if target_locator.get("hunk") != target_hunk or target_locator.get("offset") != target_offset:
+        return None
+    return f"dblk_ref_h{target_hunk}_{target_offset:08X}"
 
 
 def _verify_projected_data_block_rendered_source(

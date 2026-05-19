@@ -423,16 +423,6 @@ def test_output_affecting_action_runs_round_trip_layer(
             {"kind": "row"},
             {"layout_id": "ascii-hex", "offset": 0, "type_id": "InputEvent"},
         ),
-        (
-            "row.data_block.element.interpret_ref",
-            {"kind": "row"},
-            {"layout_id": "ascii-hex", "offset": 0, "reference_kind": "absolute"},
-        ),
-        (
-            "row.data_block.element.clear_ref",
-            {"kind": "row"},
-            {"layout_id": "ascii-hex", "offset": 0, "data_block_ref_id": "ascii-hex:0:absolute:h0:00002000"},
-        ),
     ],
 )
 def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_verifier(
@@ -1096,6 +1086,88 @@ def test_data_block_element_remove_verifier_accepts_raw_dc_after_named_element_r
     assert report["status"] == "passed"
     assert report["layers"][2]["stale_tokens"] == []
     assert report["layers"][2]["matched_restore_tokens"] == ["dc"]
+
+
+@pytest.mark.parametrize(
+    ("command_id", "state_key", "row_text", "expected_status"),
+    [
+        ("row.data_block.element.interpret_ref", "data_block_interpreted_refs", "\tdc.l dblk_ref_h0_00000020", "passed"),
+        ("row.data_block.element.clear_ref", "removed_data_block_interpreted_refs", "\tdc.l $00000020", "passed"),
+        ("row.data_block.element.interpret_ref", "data_block_interpreted_refs", "\tdc.l $00000020", "failed"),
+    ],
+)
+def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
+    command_id: str,
+    state_key: str,
+    row_text: str,
+    expected_status: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(kind="data", start_offset=0x20, end_offset=0x24)
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute:h0:00000020",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x20,
+        "target_locator": {"hunk": 0, "offset": 0x20},
+        "source_value": 0x20,
+        "confidence": "manual",
+        "xref_generation_mode": "bidirectional",
+    }
+    command = {
+        "kind": "command",
+        "command_id": command_id,
+        "context": {"kind": "row", "locator": locator},
+        "parameters": dict(interpreted_ref),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={state_key: [interpreted_ref]}),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            return {
+                "data": {
+                    "rows": [
+                        _listing_row(
+                            row_key="data-row",
+                            kind="data",
+                            text=row_text,
+                            start_offset=0x20,
+                            end_offset=0x24,
+                        )
+                    ]
+                }
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    _write_manual_log(tmp_path)
+    report = reversing_loop._verify_data_block_interpreted_ref_mutation(
+        "demo",
+        command,
+        command_id,
+        _executed_data_block_interpreted_ref_payload(tmp_path, interpreted_ref),
+        project_root=tmp_path,
+    )
+
+    assert reversing_loop._candidate_verifier(
+        {"suggested_action_kinds": [command_id], "default_verifier": "data_block_interpreted_ref_state"},
+        command,
+    ) == "data_block_interpreted_ref_state"
+    assert report["status"] == expected_status, report
+    assert report["layers"][1]["state_key"] == state_key
+    assert report["layers"][2]["layer"] == "rendered_source"
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
@@ -5113,6 +5185,30 @@ def _executed_data_block_element_payload(tmp_path: Path, data_block_element: dic
     payload["application"] = {
         "status": "applied",
         "local_effects": [{"kind": "data_block_element", "data_block_element": dict(data_block_element)}],
+    }
+    return payload
+
+
+def _executed_data_block_interpreted_ref_payload(
+    tmp_path: Path,
+    data_block_interpreted_ref: dict[str, object],
+) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {
+        "action_id": "manual-1",
+        "payload": {"data_block_interpreted_ref": dict(data_block_interpreted_ref)},
+    }
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [
+            {
+                "kind": "data_block_interpreted_ref",
+                "data_block_interpreted_ref": dict(data_block_interpreted_ref),
+            }
+        ],
     }
     return payload
 

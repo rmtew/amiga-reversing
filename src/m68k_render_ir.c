@@ -24,6 +24,11 @@
 #include <string.h>
 #include <time.h>
 
+static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
+    const M68kAnalysisManualRepresentation *representation);
+static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
+    const char *comment);
+
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
 }
@@ -1869,9 +1874,18 @@ static void render_asm_dc_b_character_line(M68kRenderIRPreview *preview, const u
 }
 
 static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview, const uint8_t *data,
-    uint32_t offset, uint32_t size, uint8_t style_id, const char *comment) {
+    uint32_t offset, uint32_t size, const M68kRenderLookup *lookup,
+    const M68kAnalysisManualRepresentation *representation, const char *comment) {
   uint32_t cursor = 0U;
+  uint8_t style_id = representation != NULL ? representation->style_id : M68K_ANALYSIS_REPRESENTATION_STYLE_NONE;
   if (preview == NULL || data == NULL || size == 0U) return;
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && (size == 1U || size == 2U || size == 4U)) {
+    const char *symbol_name = manual_representation_symbol_name(lookup, representation);
+    if (symbol_name != NULL && asm_symbol_name_is_safe_local(symbol_name)) {
+      render_asm_dc_symbol_expr(preview, size, symbol_name, comment);
+      return;
+    }
+  }
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) {
     render_asm_dc_b_string(preview, data, offset, size, comment);
     return;
@@ -1903,7 +1917,7 @@ static void render_asm_dc_b_with_policy(M68kRenderIRPreview *preview, const M68k
       uint32_t chunk_size = representation->size;
       if (chunk_size > size - cursor) chunk_size = size - cursor;
       render_asm_manual_representation_dc_b(preview, section->data, current, chunk_size,
-        representation->style_id, cursor == 0U ? comment : NULL);
+        lookup, representation, cursor == 0U ? comment : NULL);
       cursor += chunk_size;
     } else {
       uint32_t next = next_manual_representation_offset(lookup, section->section_index, current, limit);
@@ -1913,6 +1927,22 @@ static void render_asm_dc_b_with_policy(M68kRenderIRPreview *preview, const M68k
       cursor += chunk_size;
     }
   }
+}
+
+static int render_asm_manual_symbol_representation(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint32_t size, const char *comment) {
+  const M68kAnalysisManualRepresentation *representation;
+  const char *symbol_name;
+  if (size != 1U && size != 2U && size != 4U) return 0;
+  representation = lookup_manual_representation_at(lookup, section_index, offset);
+  if (representation == NULL || representation->size != size ||
+      representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
+    return 0;
+  }
+  symbol_name = manual_representation_symbol_name(lookup, representation);
+  if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) return 0;
+  render_asm_dc_symbol_expr(preview, size, symbol_name, comment);
+  return 1;
 }
 
 static void render_asm_dc_b_length_prefixed_string(M68kRenderIRPreview *preview, const uint8_t *data,
@@ -2836,6 +2866,11 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   }
   if (available == item->size && structured_data_item_is_absolute_long_lookup_table(item) &&
       render_asm_absolute_long_lookup_table(preview, section, lookup, item, available, comment_text)) {
+    return;
+  }
+  if (available == item->size &&
+      render_asm_manual_symbol_representation(preview, lookup, section->section_index, item->offset, item->size,
+        comment_text)) {
     return;
   }
   if (available == item->size &&
