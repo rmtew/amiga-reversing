@@ -6854,6 +6854,8 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "app_slot.remove":
         return current.get("removed") is True
+    if command_id == "rsset.binding.bind":
+        return _rsset_binding_already_satisfied(current, parameters)
     if command_id in {"target.rsset_region.add", "target.rsset_region.edit", "target.rsset_region.rename"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
@@ -6918,6 +6920,36 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         style = parameters.get("representation")
         return isinstance(style, str) and current.get("representation") == style
     return False
+
+
+def _rsset_binding_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:
+    binding = current.get("rsset_use_site_binding")
+    if isinstance(binding, dict):
+        current = binding
+    if current.get("removed") is True:
+        return False
+    for key in (
+        "layout_name",
+        "base_symbol",
+        "base_register",
+        "base_evidence_id",
+        "displacement",
+        "operand_index",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+        "base_evidence_refs",
+    ):
+        if key in parameters and not _rsset_binding_identity_value_matches(key, current.get(key), parameters.get(key)):
+            return False
+    return True
 
 
 def _data_block_type_binding_already_satisfied(current: dict[str, object], parameters: dict[str, object]) -> bool:

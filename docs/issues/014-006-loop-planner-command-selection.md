@@ -164,6 +164,9 @@ Progress:
   effective type binding, including bound type/domain and consumed provenance,
   so an explicit candidate does not repeat a binding already present in
   metadata.
+- RSSET bind already-satisfied checks now compare the active selected-use
+  binding identity and consumed `base_evidence_refs`, so explicit bind
+  candidates do not repeat an already-projected RSSET use-site binding.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

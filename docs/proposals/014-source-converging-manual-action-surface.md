@@ -1294,6 +1294,11 @@ top-level `parent_evidence_ids` and nested
 differences are harmless, but dropping or changing a parent id means the binding
 was reloaded from different base evidence and must fail verification.
 
+Follow-up observation from `014-006`/`014-011`: RSSET bind already-satisfied
+checks need the same active selected-use binding comparison as semantic reload.
+The planner should not repeat a bind when effective metadata already carries the
+same layout/base identity and consumed `base_evidence_refs`.
+
 Implementation observation from `014-011`: explicit selected-use provenance
 must be authoritative even when a `base_evidence_id` is present. If the explicit
 source-family/status/scope is unresolved, unknown, conflicting, non-RSSET, or
