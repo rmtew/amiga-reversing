@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_id": "first-atari-st-book-md",
+  "title": "The First Atari ST Book",
+  "publisher": null,
+  "year": null,
+  "domain": ["atari-st", "basic", "gem", "tos"],
+  "paths": {
+    "source_pdf": "resources/platform_atari_st/docs/FirstAtariStBook.pdf",
+    "ocr_pdf": "resources/platform_atari_st/docs/FirstAtariStBook.ocr.pdf",
+    "final_md": "ext/docs_atari_st/FirstAtariStBook.md"
+  },
+  "sha256": {
+    "source_pdf": "5c1e1a627f2e985b4ca48967fe94da59c8c3b513401c0068fdae384ac00c60dc",
+    "ocr_pdf": "40b3325ee2520f370710358c22fe7b93bc9c5991ad86d98efd3fcca551334b7e",
+    "final_md": "6b3960e73c53e5b18a55b08bc1f8985de89eb33000ee73fb0e25363050faa4b0"
+  },
+  "conversion": {
+    "ocr_tool": "ocrmypdf",
+    "ocr_options": ["--deskew", "--rotate-pages"],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 196,
+    "text_pages": 195,
+    "empty_text_pages": 1,
+    "low_text_pages": [195],
+    "image_blocks": 196,
+    "needs_ocr": false
+  },
+  "amendments": [],
+  "remaining_review": {
+    "weak_pages": [195],
+    "code_or_symbol_pages": []
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material."
+}

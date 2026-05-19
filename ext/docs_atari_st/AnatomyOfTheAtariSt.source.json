@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_id": "anatomy-of-the-atari-st-md",
+  "title": "Anatomy of the Atari ST",
+  "publisher": null,
+  "year": null,
+  "domain": ["atari-st", "hardware", "tos", "gem"],
+  "paths": {
+    "source_pdf": "resources/platform_atari_st/docs/AnatomyOfTheAtariSt.pdf",
+    "ocr_pdf": "resources/platform_atari_st/docs/AnatomyOfTheAtariSt.ocr.pdf",
+    "final_md": "ext/docs_atari_st/AnatomyOfTheAtariSt.md"
+  },
+  "sha256": {
+    "source_pdf": "a652a2b18ebcd813b1232abe88f1a58d44013602d4d389390e0a437c5bc4bfc9",
+    "ocr_pdf": "3b157cbeb4ba1e1edeeb1b8446300b16c659525c06af37c2be25850c400ccb27",
+    "final_md": "9a06eaa414b63aa517b65ce3f0d005572000bf1839cb64894f46eef957c1ab39"
+  },
+  "conversion": {
+    "ocr_tool": "ocrmypdf",
+    "ocr_options": ["--deskew", "--rotate-pages"],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 454,
+    "text_pages": 452,
+    "empty_text_pages": 2,
+    "low_text_pages": [7, 9, 71, 73, 109, 451],
+    "image_blocks": 454,
+    "needs_ocr": false
+  },
+  "amendments": [],
+  "remaining_review": {
+    "weak_pages": [7, 9, 71, 73, 109, 451],
+    "code_or_symbol_pages": []
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material."
+}

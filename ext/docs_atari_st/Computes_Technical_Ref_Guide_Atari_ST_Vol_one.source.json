@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_id": "compute-vdi-vol1-md",
+  "title": "COMPUTE!'s Technical Reference Guide: Atari ST Volume One: VDI",
+  "publisher": "COMPUTE! Publications",
+  "year": 1987,
+  "domain": ["atari-st", "gem", "vdi", "graphics"],
+  "paths": {
+    "source_pdf": "resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf",
+    "ocr_pdf": "resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.ocr.pdf",
+    "final_md": "ext/docs_atari_st/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.md"
+  },
+  "sha256": {
+    "source_pdf": "5fcf82c31661b31325984c9d48a0b5b54e0e0ce6c196251978e7f27768598b65",
+    "ocr_pdf": "42b2ae53c71cf73f56753465ee77a3e7001b1a020a792fa6b1a7262d2a24382b",
+    "final_md": "2d9a2cee04023b278d67e3541e05f0f449de4bfcea59fc0903e393989be7a279"
+  },
+  "conversion": {
+    "ocr_tool": "ocrmypdf",
+    "ocr_options": ["--deskew", "--rotate-pages"],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 356,
+    "text_pages": 341,
+    "empty_text_pages": 15,
+    "low_text_pages": [5, 7, 9, 19, 46, 47, 73, 75, 98, 99, 123, 125, 147, 148, 149, 179, 180, 199, 200, 201, 325, 329, 330, 331, 335, 336, 337, 343, 351, 353],
+    "image_blocks": 356,
+    "needs_ocr": false
+  },
+  "amendments": [],
+  "remaining_review": {
+    "weak_pages": [5, 7, 9, 19, 46, 47, 73, 75, 98, 99, 123, 125, 147, 148, 149, 179, 180, 199, 200, 201, 325, 329, 330, 331, 335, 336, 337, 343, 351, 353],
+    "code_or_symbol_pages": []
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material."
+}
