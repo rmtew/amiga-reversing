@@ -1170,6 +1170,12 @@ but source-owned manual data-symbol names must remove their `ManualSeed:*`
 projection instead; otherwise a manual rename cleanup can overreach into
 generated seeded identity.
 
+Implementation observation from `014-006`/`014-014`: `data_symbol.remove`
+availability must match the cleanup identity shape before execution. The shared
+command id can mean generated seeded-item suppression by `(kind, hunk, addr)` or
+source-owned manual seed removal by `seed_id`; command id presence alone must
+not authorize the other cleanup path.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

@@ -3574,7 +3574,16 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/commands"):
-            return {"data": {"commands": [{"command_id": "data_symbol.remove"}]}}
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "data_symbol.remove",
+                            "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+                        }
+                    ]
+                }
+            }
         if method == "POST" and path.endswith("/commands/execute"):
             assert isinstance(body, dict)
             assert body["command_id"] == "data_symbol.remove"
@@ -3594,6 +3603,42 @@ def test_run_one_data_symbol_remove_executes_with_suppression_verifier(
     ]
     assert report["action"]["command_id"] == "data_symbol.remove"
     assert report["action_result"]["status"] == "executed"
+
+
+def test_data_symbol_remove_availability_requires_matching_cleanup_identity() -> None:
+    command = {
+        "command_id": "data_symbol.remove",
+        "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100},
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "data_symbol.remove",
+                "parameters": {"kind": "seeded_entity", "hunk": 0, "addr": 0x104},
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters["addr"] = 0x100
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
+
+    manual_seed_command = {
+        "command_id": "data_symbol.remove",
+        "parameters": {"seed_id": "data-symbol:h0:00000100"},
+    }
+    availability_parameters.clear()
+    availability_parameters.update({"kind": "seeded_entity", "hunk": 0, "addr": 0x100})
+
+    assert reversing_loop._available_catalog_command(manual_seed_command, availability) is None
+
+    availability_parameters.clear()
+    availability_parameters["seed_id"] = "data-symbol:h0:00000100"
+
+    assert reversing_loop._available_catalog_command(manual_seed_command, availability) == availability["commands"][0]
 
 
 def test_run_one_seeded_item_correction_executes_with_suppression_verifier(

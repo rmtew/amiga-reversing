@@ -64,6 +64,10 @@ Current evidence:
   Manual Action Log owned data symbols: rows whose effective symbol comes from
   `ManualSeed:*` remove that manual seed, while generated seeded entities still
   use seeded-item suppression.
+- Planner command availability for `data_symbol.remove` now matches the cleanup
+  identity shape before execution: manual data-symbol removals require the
+  selected `seed_id`, while generated seeded-entity removals require the
+  selected `(kind, hunk, addr)` suppression identity.
 - Durable data/global symbol edit, broader global, and expanded autonomous
   candidate workflows remain open beyond seeded data-entity rename/remove,
   rename-existing-symbol, and internal referenced data use-sites.
@@ -98,6 +102,10 @@ Acceptance criteria:
   provenance source-family classification. A separate semantic action must
   consume a reference as provenance before it can generate type-flow, field
   bindings, or propagated descendants.
+- Remove workflows must preserve their source identity boundary at availability
+  time as well as verification time: command id `data_symbol.remove` is shared,
+  but manual-seed cleanup and generated seeded-item suppression are different
+  durable actions.
 
 Required tests:
 Identity tests, manual replay tests, command catalog execution tests,

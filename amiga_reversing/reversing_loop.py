@@ -6771,6 +6771,10 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
         return _catalog_entry_parameters_match(command, entry, ("layout_id", "offset", "width"))
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _catalog_entry_parameters_match(command, entry, ("kind", "hunk", "addr"))
+    if command_id == "data_symbol.remove":
+        parameters = command.get("parameters")
+        keys = ("seed_id",) if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str) else ("kind", "hunk", "addr")
+        return _catalog_entry_parameters_match(command, entry, keys)
     return True
 
 
