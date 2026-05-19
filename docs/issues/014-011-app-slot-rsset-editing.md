@@ -139,6 +139,10 @@ Current evidence:
   `base_evidence_id`, displacement, and operand index. This keeps raw or stale
   same-command candidates from borrowing availability from a different proven
   RSSET binding action on the same row.
+- RSSET binding command availability now also compares the full consumed
+  provenance identity when present: source evidence id, source family/status,
+  path/lifetime scope, conflicts, parent evidence ids, override fields,
+  cleanup scope, and `base_evidence_refs`.
 - Planner already-satisfied checks now skip bind candidates whose effective
   selected-use binding already carries the same layout/base identity and
   consumed `base_evidence_refs`, including unordered parent evidence ids.

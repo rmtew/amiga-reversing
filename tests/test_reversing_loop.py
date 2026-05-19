@@ -5891,6 +5891,55 @@ def test_rsset_binding_availability_requires_matching_base_evidence() -> None:
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
 
+def test_rsset_binding_availability_requires_matching_provenance_identity() -> None:
+    base_ref = {
+        "source_evidence_id": "prov-rsset",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+    }
+    command = {
+        "command_id": "rsset.binding.bind",
+        "parameters": {
+            "layout_name": "app",
+            "base_symbol": "__amiga_app_base__",
+            "base_register": "A6",
+            "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+            "displacement": 0x0102,
+            "operand_index": 0,
+            "source_evidence_id": "prov-rsset",
+            "source_family": "rsset_app_base",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+            "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"],
+            "base_evidence_refs": [base_ref],
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "rsset.binding.bind",
+                "parameters": {
+                    **cast(dict[str, object], command["parameters"]),
+                    "source_evidence_status": "manual_override",
+                },
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    cast(dict[str, object], availability["commands"][0]["parameters"])["source_evidence_status"] = "analysis_proven"
+    cast(dict[str, object], availability["commands"][0]["parameters"])["parent_evidence_ids"] = [
+        "prov-parent-b",
+        "prov-parent-a",
+    ]
+    cast(dict[str, object], availability["commands"][0]["parameters"])["base_evidence_refs"] = [
+        {**base_ref, "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"]}
+    ]
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
+
+
 def test_rsset_binding_verifier_requires_owner_and_base_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

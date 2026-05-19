@@ -7249,7 +7249,7 @@ def _commands_same_identity(left: dict[str, object], right: dict[str, object]) -
 def _command_identity_parameter_keys(left: dict[str, object], right: dict[str, object]) -> tuple[str, ...]:
     command_id = left.get("command_id")
     if command_id in {"rsset.binding.bind", "rsset.binding.unbind"}:
-        return ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index")
+        return _rsset_binding_catalog_identity_keys(left, right)
     if isinstance(command_id, str) and _is_typed_field_command_id(command_id):
         return _command_provenance_identity_keys(
             left,
@@ -7289,11 +7289,7 @@ def _available_catalog_command(command: dict[str, object], availability: dict[st
 def _catalog_entry_matches_command_identity(command: dict[str, object], entry: dict[str, object]) -> bool:
     command_id = command.get("command_id")
     if command_id in {"rsset.binding.bind", "rsset.binding.unbind"}:
-        return _catalog_entry_parameters_match(
-            command,
-            entry,
-            ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index"),
-        )
+        return _catalog_entry_parameters_match(command, entry, _rsset_binding_catalog_identity_keys(command, entry))
     if isinstance(command_id, str) and _is_typed_field_command_id(command_id):
         return _catalog_entry_parameters_match(
             command,
@@ -7346,6 +7342,26 @@ def _suppressed_seeded_item_identity_keys(command: dict[str, object], entry: dic
     return ("kind", "hunk", "addr")
 
 
+def _rsset_binding_catalog_identity_keys(
+    command: dict[str, object],
+    entry: dict[str, object] | None = None,
+) -> tuple[str, ...]:
+    keys = list(
+        _command_provenance_identity_keys(
+            command,
+            entry or {},
+            ("layout_name", "base_symbol", "base_register", "base_evidence_id", "displacement", "operand_index"),
+        )
+    )
+    for payload in (
+        command.get("parameters"),
+        entry.get("parameters") if isinstance(entry, dict) else None,
+    ):
+        if isinstance(payload, dict) and "base_evidence_refs" in payload and "base_evidence_refs" not in keys:
+            keys.append("base_evidence_refs")
+    return tuple(keys)
+
+
 def _catalog_entry_parameters_match(
     command: dict[str, object],
     entry: dict[str, object],
@@ -7368,6 +7384,8 @@ def _provenance_identity_values_match(key: str, left: object, right: object) -> 
         left_ids = _normalise_parent_evidence_ids(left)
         right_ids = _normalise_parent_evidence_ids(right)
         return left_ids is not None and right_ids is not None and left_ids == right_ids
+    if key == "base_evidence_refs":
+        return _provenance_reference_values_match(left, right)
     return left == right
 
 

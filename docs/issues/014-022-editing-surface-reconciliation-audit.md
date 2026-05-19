@@ -280,10 +280,13 @@ Generic provenance / def-use review decisions:
   The generic question is: where is this register/value set, where is it used,
   which callers/predecessor paths define it, and which source family does each
   definition reconcile to?
-- Exploration is read-only by default. `provenance.explore_definition`,
-  `provenance.explore_uses`, and `provenance.explore_source_family` style
-  commands may feed UI, loop, and API reports without writing to Manual Action
-  Log. Accepted classification/link/apply commands are the write boundary.
+- Exploration is read-only by default. The supported command ids are
+  `provenance.definition.report`, `provenance.uses.report`,
+  `provenance.references.report`, and `provenance.source_family.report`; legacy
+  `provenance.explore_*` wording is obsolete and must not feed planner command
+  normalization. Reports may feed UI, loop, and API callers without writing to
+  Manual Action Log. Accepted classification/link/apply commands are the write
+  boundary.
 - Reports should return all candidate definitions, not a single forced answer.
   Statuses: `analysis_proven`, `path_specific`, `conflicting`, `unknown`,
   `unresolved`, `manual_classified`, and `manual_override`.

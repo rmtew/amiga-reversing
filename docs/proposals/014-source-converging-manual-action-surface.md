@@ -133,11 +133,12 @@ Evidence appendix:
   LVO/app-slot/base-field/selected-RSSET symbols are attached during rendering.
 - Loop verification in `reversing_loop.py` currently proves selected semantic
   hints, library-base and struct-pointer register seeds, RSSET
-  region/binding state, data-block/interpreted-ref state, target EQU state,
-  manual seed state, data-symbol projection, suppressions, execution views,
-  manual labels, and comments. Typed custom-field rendering, broad API
-  arg/return propagation, data-block type binding, and same-flow RSSET cascades
-  remain intentionally verifier-gated.
+  region/binding state, selected typed custom-field rendering, data-block
+  layout/interpreted-ref/type-binding state, target EQU state, manual seed
+  state, data-symbol projection, suppressions, execution views, manual labels,
+  and comments. Broad API arg/return propagation, generated type-flow/review
+  cleanup, broader typed-field descendant discovery, and same-flow RSSET
+  cascades remain intentionally verifier-gated.
 - Focused tests line up with this boundary: semantic hints and register seeds
   execute with semantic reload plus round-trip; RSSET raw displacement reports
   but does not bind without explicit evidence; selected RSSET binding can render
@@ -152,10 +153,12 @@ Generic provenance / def-use exploration:
   family-specific bind/type actions. The first question is generic: where is
   this register/value set, where is it used, which callers or predecessor paths
   can define it, and which source family does each definition reconcile to?
-- Exploration is read-only. Catalog commands such as
-  `provenance.explore_definition`, `provenance.explore_uses`, and
-  `provenance.explore_source_family` should return evidence reports for UI,
-  loop, and API callers without appending to the Manual Action Log. Accepted
+- Exploration is read-only. Supported catalog commands
+  `provenance.definition.report`, `provenance.uses.report`,
+  `provenance.references.report`, and `provenance.source_family.report` return
+  evidence reports for UI, loop, and API callers without appending to the Manual
+  Action Log. Legacy `provenance.explore_*` ids are obsolete examples and must
+  not normalize into planner commands. Accepted
   `provenance.classify_source`, `provenance.override_source`, link/apply, or
   family-specific commands are the write boundary.
 - Provenance reports should return all candidate definitions instead of forcing
@@ -1344,6 +1347,12 @@ identity parameters, not just `command_id`. A selected row can expose
 `rsset.binding.bind` for one proven `base_evidence_id`; that must not authorize
 a stale candidate whose layout/base, displacement, operand index, or
 `base_evidence_id` describes a different binding.
+
+Follow-up observation from `014-006`/`014-011`: RSSET availability must compare
+the same consumed provenance boundary as semantic reload and already-satisfied
+checks. Layout/base/displacement/operand plus `base_evidence_id` is not enough
+when source family/status, path/lifetime scope, parent ids, conflicts, override
+fields, cleanup scope, or `base_evidence_refs` differ.
 
 Implementation observation from `014-011`: bind-only RSSET use-site visibility
 needs a ref-only projection path separate from renderable app-slot fields.
