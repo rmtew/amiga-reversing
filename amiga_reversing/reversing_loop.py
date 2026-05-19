@@ -53,7 +53,9 @@ _COMMAND_RANK = {
     "row.seed.data.scalar_table": 85,
     "row.seed.data.pointer_table": 85,
     "range.seed.code": 90,
+    "data_symbol.add": 82,
     "data_symbol.rename": 82,
+    "data_symbol.edit": 83,
     "data_symbol.rename_existing": 83,
     "rsset.binding.bind": 81,
     "target.rsset_region.rename": 82,
@@ -2841,7 +2843,10 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "manual_label_state"
     if "comment.edit" in actions:
         return "projection_metadata"
-    if "data_symbol.rename_existing" in actions or "data_symbol.rename" in actions:
+    if any(
+        action in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename_existing", "data_symbol.rename"}
+        for action in actions
+    ):
         return "projected_data_symbol_name"
     if "data_symbol.remove" in actions:
         return "suppressed_seeded_item"
@@ -2956,7 +2961,12 @@ def _verify_manual_mutation(
             source_offset=source_offset,
             project_root=project_root,
         )
-    if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
+    if command_id in {
+        "data_symbol.add",
+        "data_symbol.edit",
+        "data_symbol.rename",
+        "data_symbol.rename_existing",
+    }:
         return _verify_data_symbol_rename_mutation(target_id, command, durable_result, project_root=project_root)
     if command_id == "data_symbol.remove":
         if _manual_seed_removals_from_durable_result(durable_result):
@@ -6125,7 +6135,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "parameters": {"name": name} if isinstance(name, str) and name else parameter_payload,
             "output_affecting": True,
         }
-    if action in {"data_symbol.rename", "data_symbol.rename_existing"}:
+    if action in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
         name = parameter_payload.get("name") or candidate.get("new_name") or candidate.get("data_symbol_name")
         if not isinstance(name, str) or not name:
             return None
@@ -6341,7 +6351,7 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
 
 def _command_boundary_parameters(command_id: str, parameters: object) -> dict[str, object]:
     payload = dict(parameters) if isinstance(parameters, dict) else {}
-    if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
+    if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
         return {key: payload[key] for key in ("name",) if key in payload}
     if command_id == "data_symbol.remove":
         return {key: payload[key] for key in ("kind", "hunk", "addr", "end", "seed_id") if key in payload}
@@ -6359,7 +6369,13 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
 
 
 def _command_boundary_context(command_id: str, context: dict[str, object]) -> dict[str, object]:
-    if command_id in {"data_symbol.rename", "data_symbol.rename_existing", "data_symbol.remove"}:
+    if command_id in {
+        "data_symbol.add",
+        "data_symbol.edit",
+        "data_symbol.rename",
+        "data_symbol.rename_existing",
+        "data_symbol.remove",
+    }:
         return {key: context[key] for key in ("kind", "locator", "element_id") if key in context}
     if command_id == "target.equate.represent":
         return {key: context[key] for key in ("kind",) if key in context}
@@ -6692,7 +6708,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
     if command_id == "label.rename":
         name = parameters.get("name")
         return isinstance(name, str) and current.get("label") == name
-    if command_id in {"data_symbol.rename", "data_symbol.rename_existing"}:
+    if command_id in {"data_symbol.add", "data_symbol.edit", "data_symbol.rename", "data_symbol.rename_existing"}:
         name = parameters.get("name")
         return isinstance(name, str) and current.get("name") == name
     if command_id == "data_symbol.remove":

@@ -6405,11 +6405,14 @@ def test_route_listing_marks_target_seeded_rows_suppressible(
     rename_existing_action = next(action for action in actions if action["action_id"] == "data_symbol.rename_existing")
     assert rename_existing_action["action"] == "rename_existing_data_symbol"
     assert rename_existing_action["parameters"] == rename_action["parameters"]
+    edit_action = next(action for action in actions if action["action_id"] == "data_symbol.edit")
+    assert edit_action["action"] == "rename_existing_data_symbol"
+    assert edit_action["parameters"] == rename_action["parameters"]
     remove_action = next(action for action in actions if action["action_id"] == "data_symbol.remove")
     assert remove_action["parameters"] == {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
 
 
-@pytest.mark.parametrize("command_id", ["data_symbol.rename", "data_symbol.rename_existing"])
+@pytest.mark.parametrize("command_id", ["data_symbol.rename", "data_symbol.rename_existing", "data_symbol.edit"])
 def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
     command_id: str,
     monkeypatch: pytest.MonkeyPatch,

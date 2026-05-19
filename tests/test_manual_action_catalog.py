@@ -229,6 +229,15 @@ def test_data_symbol_rename_command_uses_seeded_entity_identity() -> None:
         }
     }
 
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.edit",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload["data_symbol"]["previous_name"] == "auto_data"
+
 
 def test_data_symbol_remove_command_suppresses_seeded_entity_identity() -> None:
     row = {
@@ -300,7 +309,6 @@ def test_data_symbol_rename_command_uses_seeded_entity_range_identity() -> None:
             "name": "player_table",
         }
     }
-
 
 def test_data_symbol_rename_command_rejects_mismatched_seeded_entity_range() -> None:
     row = {
@@ -390,6 +398,18 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
 
     assert kind == "rename_data_symbol"
     assert payload["data_symbol"]["previous_name"] == "loc_1_00000120"
+
+    actions = listing_row_action_catalog({key: value for key, value in row.items() if key != "label"})
+    assert any(action["action_id"] == "data_symbol.add" for action in actions)
+
+    kind, payload = listing_catalog_manual_payload(
+        {key: value for key, value in row.items() if key != "label"},
+        "data_symbol.add",
+        parameters={"name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload["data_symbol"]["data_symbol_id"] == "data-symbol:h1:00000120:00000128"
 
 
 def test_data_block_element_commands_infer_active_layout_identity() -> None:

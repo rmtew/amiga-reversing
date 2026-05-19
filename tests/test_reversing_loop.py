@@ -5104,6 +5104,8 @@ def test_semantic_dynamic_command_candidate_uses_element_context_and_specific_ve
 
 def test_unknown_source_command_prefixes_do_not_get_round_trip_fallback() -> None:
     assert reversing_loop._default_verifier_for_actions(["data_symbol.create"]) is None
+    assert reversing_loop._default_verifier_for_actions(["data_symbol.add"]) == "projected_data_symbol_name"
+    assert reversing_loop._default_verifier_for_actions(["data_symbol.edit"]) == "projected_data_symbol_name"
     assert reversing_loop._default_verifier_for_actions(["semantic.api_arg.foo"]) is None
 
 

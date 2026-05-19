@@ -69,6 +69,9 @@ Current evidence:
   workflows for seeded data entities, ordinary named data rows, and referenced
   data use-sites with a preserved `previous_name`; it reuses the durable
   `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
+- `data_symbol.add` and `data_symbol.edit` now expose explicit first-name and
+  existing-name edit workflows in the catalog while reusing the same durable
+  `rename_data_symbol` Manual Action Log projection and rendered-name verifier.
 - Planner command normalization strips report/provenance fields from
   data-symbol rename/remove parameter payloads; rename parameters carry only
   the requested name, and remove parameters carry only selected seeded-item or

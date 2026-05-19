@@ -402,11 +402,32 @@ def listing_element_action_catalog(
                     "F2",
                 )
             )
+            if "previous_name" not in identity:
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.add",
+                        "Add referenced data symbol",
+                        "rename_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
             if "previous_name" in identity:
                 actions.append(
                     _context_log_action(
                         "data_symbol.rename_existing",
                         "Rename existing referenced data symbol",
+                        "rename_existing_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.edit",
+                        "Edit referenced data symbol",
                         "rename_existing_data_symbol",
                         context,
                         identity,
@@ -1808,11 +1829,43 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                 "F2",
             )
         )
+        if "name" not in item:
+            actions.append(
+                _context_log_action(
+                    "data_symbol.add",
+                    "Add data symbol",
+                    "rename_data_symbol",
+                    context,
+                    {
+                        "hunk": item["hunk"],
+                        "addr": item["addr"],
+                        **({"end": item["end"]} if "end" in item else {}),
+                        **({"source_locator": item["source_locator"]} if "source_locator" in item else {}),
+                    },
+                    _data_name_parameter_schema(),
+                )
+            )
         if "name" in item:
             actions.append(
                 _context_log_action(
                     "data_symbol.rename_existing",
                     "Rename existing data symbol",
+                    "rename_existing_data_symbol",
+                    context,
+                    {
+                        "hunk": item["hunk"],
+                        "addr": item["addr"],
+                        **({"end": item["end"]} if "end" in item else {}),
+                        "previous_name": item["name"],
+                        **({"source_locator": item["source_locator"]} if "source_locator" in item else {}),
+                    },
+                    _data_name_parameter_schema(),
+                )
+            )
+            actions.append(
+                _context_log_action(
+                    "data_symbol.edit",
+                    "Edit data symbol",
                     "rename_existing_data_symbol",
                     context,
                     {
@@ -1860,11 +1913,32 @@ def _data_symbol_actions(context: Mapping[str, object], row: Mapping[str, object
                     "F2",
                 )
             )
+            if "previous_name" not in identity:
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.add",
+                        "Add data symbol",
+                        "rename_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
             if "previous_name" in identity:
                 actions.append(
                     _context_log_action(
                         "data_symbol.rename_existing",
                         "Rename existing data symbol",
+                        "rename_existing_data_symbol",
+                        context,
+                        identity,
+                        _data_name_parameter_schema(),
+                    )
+                )
+                actions.append(
+                    _context_log_action(
+                        "data_symbol.edit",
+                        "Edit data symbol",
                         "rename_existing_data_symbol",
                         context,
                         identity,
