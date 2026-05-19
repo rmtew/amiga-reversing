@@ -1197,6 +1197,12 @@ conflicts, and parent ids, `rsset.binding.report` and bind/unbind payloads must
 replay that exact evidence boundary rather than deriving a fresh
 `path_specific` id from `base_evidence_id`.
 
+Implementation observation from `014-011`: removal/cleanup payloads need the
+same top-level consumed-evidence boundary as creation payloads. Keeping
+`parent_evidence_ids` or `cleanup_scope` only inside nested `base_evidence_refs`
+forces verifiers and cleanup code to infer the selected binding boundary from
+children instead of comparing the durable binding identity directly.
+
 Implementation observation from `014-006`/`014-011`: planner command
 availability for RSSET binding must require and compare evidence-bearing
 identity parameters, not just `command_id`. A selected row can expose

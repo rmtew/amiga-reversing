@@ -153,6 +153,10 @@ Current evidence:
   classification/override status, path/lifetime scope, conflicts, and
   `parent_evidence_ids` survive into `base_evidence_refs` and the top-level
   binding payload for verifier comparison.
+- RSSET unbind identity payloads now preserve the same top-level
+  `parent_evidence_ids` and `cleanup_scope` as bind payloads, not just the
+  nested `base_evidence_refs`, so cleanup/replay matching uses the selected
+  binding boundary directly.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.

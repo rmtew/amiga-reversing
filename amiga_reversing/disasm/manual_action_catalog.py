@@ -2793,8 +2793,10 @@ def _rsset_use_site_binding_identity_payload(
             "path_lifetime_scope",
             "confidence",
             "conflicts",
+            "parent_evidence_ids",
             "contradicted_evidence_id",
             "reason",
+            "cleanup_scope",
             "base_evidence_refs",
         )
         if key in payload

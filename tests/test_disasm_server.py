@@ -4271,6 +4271,7 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     actions = cast(list[dict[str, object]], cast(dict[str, object], catalog_payload["data"])["commands"])
     report_action = next(action for action in actions if action["action_id"] == "rsset.binding.report")
     bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
+    unbind_action = next(action for action in actions if action["action_id"] == "rsset.binding.unbind")
 
     assert report_action["report"]["candidate"]["displacement"] == 0x0102
     assert report_action["report"]["candidate"]["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
@@ -4300,6 +4301,7 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
         "displacement": 0x0102,
         "operand_index": 0,
     }
+    assert unbind_action["parameters"] == bind_action["parameters"]
 
     payload = disasm_server.route_request(
         "POST",
@@ -4333,7 +4335,25 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert binding["cleanup_scope"] == accepted_base_ref["cleanup_scope"]
     assert binding["base_evidence_refs"] == [accepted_base_ref]
     assert local_effect["kind"] == "rsset_use_site_binding"
-    assert appended_actions == [action]
+
+    payload = disasm_server.route_request(
+        "POST",
+        "/api/projects/bloodwych/commands/execute",
+        {},
+        {
+            "command_id": "rsset.binding.unbind",
+            "context": _element_command_context(rows[0], "row-0:displacement:0:operand") | rsset_binding_evidence,
+        },
+    )
+    remove_action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
+    removed_binding = cast(dict[str, object], cast(dict[str, object], remove_action["payload"])["rsset_use_site_binding"])
+
+    assert remove_action["kind"] == "remove_manual_rsset_use_site_binding"
+    assert removed_binding["rsset_use_site_binding_id"] == binding["rsset_use_site_binding_id"]
+    assert removed_binding["parent_evidence_ids"] == ["prov-parent-a6"]
+    assert removed_binding["cleanup_scope"] == accepted_base_ref["cleanup_scope"]
+    assert removed_binding["base_evidence_refs"] == [accepted_base_ref]
+    assert appended_actions == [action, remove_action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
