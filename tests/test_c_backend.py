@@ -3606,6 +3606,126 @@ after_data:
     assert rebuilt == original
 
 
+def test_real_dll_data_block_platform_struct_binding_expands_fields_and_reassembles(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-platform-struct.bin"
+    source_text = """    SECTION section,code
+start:
+    bra.b after_data
+    dcb.b 34,$00
+after_data:
+    rts
+    nop
+"""
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    records = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a1",
+            "sequence": 1,
+            "created_at": "2026-05-18T00:00:01+00:00",
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "node",
+                "hunk": 0,
+                "source_start": 2,
+                "source_end": 36,
+                "name": "msg_port",
+                "default_unit": "byte",
+            },
+        },
+        {
+            "record": "manual_action",
+            "action_id": "a2",
+            "sequence": 2,
+            "created_at": "2026-05-18T00:00:02+00:00",
+            "kind": "set_manual_data_block_element",
+            "data_block_element": {
+                "data_block_element_id": "node:0",
+                "layout_id": "node",
+                "offset": 0,
+                "width": 34,
+                "kind": "platform_struct",
+                "type_binding": {
+                    "type_binding_id": "node:0:22:platform_struct:MsgPort",
+                    "layout_id": "node",
+                    "element_offset": 0,
+                    "element_width": 34,
+                    "binding_kind": "platform_struct",
+                    "bound_type_id": "MsgPort",
+                    "owner_action_id": "a2",
+                },
+            },
+        },
+    ]
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "".join(json.dumps(record, sort_keys=True) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+
+    typed_items = [item for item in policy["structured_data_items"] if item.get("struct_name") == "MP"]
+    assert [(item["offset"], item["size"], item["field_name"], item["field_type"]) for item in typed_items] == [
+        (2, 4, "LN_SUCC", "APTR"),
+        (6, 4, "LN_PRED", "APTR"),
+        (10, 1, "LN_TYPE", "UBYTE"),
+        (11, 1, "LN_PRI", "BYTE"),
+        (12, 4, "LN_NAME", "APTR"),
+        (16, 1, "MP_FLAGS", "UBYTE"),
+        (17, 1, "MP_SIGBIT", "UBYTE"),
+        (18, 4, "MP_SIGTASK", "APTR"),
+        (22, 4, "MP_MSGLIST.LH_HEAD", "APTR"),
+        (26, 4, "MP_MSGLIST.LH_TAIL", "APTR"),
+        (30, 4, "MP_MSGLIST.LH_TAILPRED", "APTR"),
+        (34, 1, "MP_MSGLIST.LH_TYPE", "UBYTE"),
+        (35, 1, "MP_MSGLIST.LH_pad", "UBYTE"),
+    ]
+    assert "APTR LN_SUCC" in rendered
+    assert "UBYTE MP_MSGLIST.LH_TYPE" in rendered
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
 def test_real_dll_data_block_interpreted_ref_renders_symbol_and_reassembles(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     target_dir = tmp_path / "target"

@@ -39,8 +39,13 @@ Current implementation:
   `value_domain` from seeded entities so the existing renderer emits typed
   field comments while exact bytes and round-trip stay unchanged.
 - Custom-struct expansion covers explicit gaps and arrays when the bound shape
-  fits the element width. Platform struct/domain expansion, generated type-flow
-  facts/review items, and owner-scoped descendant cleanup remain open.
+  fits the element width.
+- Platform struct bindings now resolve parsed NDK struct ids and C aliases
+  such as `MsgPort` -> `MP`, flatten inherited base fields and nested struct
+  fields, and render the resulting typed field entities with exact rebuild
+  proof.
+- Domain expansion, generated type-flow facts/review items, and owner-scoped
+  descendant cleanup remain open.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.

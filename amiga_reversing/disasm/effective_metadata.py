@@ -6,6 +6,7 @@ import tempfile
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, replace
+from functools import lru_cache
 from pathlib import Path
 
 from amiga_reversing.disasm.binary_source import (
@@ -853,6 +854,158 @@ def _data_block_bound_custom_struct(
     return custom_structs.get(bound_type)
 
 
+def _json_object_pairs_last(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        result[key] = value
+    return result
+
+
+@lru_cache(maxsize=1)
+def _amiga_ndk_include_data() -> Mapping[str, object]:
+    path = Path(__file__).resolve().parents[2] / "knowledge" / "amiga_ndk_includes_parsed.json"
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_json_object_pairs_last)
+    return data if isinstance(data, dict) else {}
+
+
+def _mapping_value(payload: Mapping[str, object], key: str) -> Mapping[str, object] | None:
+    value = payload.get(key)
+    return value if isinstance(value, dict) else None
+
+
+def _platform_struct_payload(struct_name: str) -> tuple[str, Mapping[str, object]] | None:
+    data = _amiga_ndk_include_data()
+    structs = _mapping_value(data, "structs")
+    if structs is None:
+        return None
+    name = struct_name.strip()
+    payload = structs.get(name)
+    if isinstance(payload, dict):
+        return name, payload
+    meta = _mapping_value(data, "_meta")
+    aliases = _mapping_value(meta, "struct_name_map") if meta is not None else None
+    alias = aliases.get(name) if aliases is not None else None
+    if not isinstance(alias, str) or not alias:
+        return None
+    payload = structs.get(alias)
+    if isinstance(payload, dict):
+        return alias, payload
+    return None
+
+
+def _platform_struct_field_metadata(
+    raw_field: Mapping[str, object],
+    *,
+    name_prefix: str = "",
+    offset_base: int = 0,
+) -> CustomStructFieldMetadata | None:
+    name = raw_field.get("name")
+    field_type = raw_field.get("type")
+    offset = raw_field.get("offset")
+    size = raw_field.get("size")
+    pointer_struct = raw_field.get("pointer_struct")
+    if not isinstance(name, str) or not name:
+        return None
+    if not isinstance(field_type, str) or not field_type:
+        return None
+    if not isinstance(offset, int) or not isinstance(size, int) or size <= 0:
+        return None
+    if pointer_struct is not None and not isinstance(pointer_struct, str):
+        pointer_struct = None
+    return CustomStructFieldMetadata(
+        name=f"{name_prefix}{name}",
+        type=field_type,
+        offset=offset_base + offset,
+        size=size,
+        pointer_struct=pointer_struct,
+    )
+
+
+def _platform_struct_fields(
+    struct_name: str,
+    *,
+    name_prefix: str = "",
+    offset_base: int = 0,
+    seen: frozenset[str] = frozenset(),
+) -> tuple[CustomStructFieldMetadata, ...]:
+    resolved = _platform_struct_payload(struct_name)
+    if resolved is None:
+        return ()
+    canonical_name, payload = resolved
+    if canonical_name in seen:
+        return ()
+    next_seen = seen | {canonical_name}
+    fields: list[CustomStructFieldMetadata] = []
+    base_struct = payload.get("base_struct")
+    if isinstance(base_struct, str) and base_struct:
+        fields.extend(
+            _platform_struct_fields(base_struct, name_prefix=name_prefix, offset_base=offset_base, seen=next_seen)
+        )
+    raw_fields = payload.get("fields")
+    if not isinstance(raw_fields, list):
+        return tuple(fields)
+    for raw_field in raw_fields:
+        if not isinstance(raw_field, dict):
+            continue
+        nested_struct = raw_field.get("struct")
+        if raw_field.get("type") == "STRUCT" and isinstance(nested_struct, str) and nested_struct:
+            nested_offset = raw_field.get("offset")
+            nested_name = raw_field.get("name")
+            if isinstance(nested_offset, int) and isinstance(nested_name, str) and nested_name:
+                nested_fields = _platform_struct_fields(
+                    nested_struct,
+                    name_prefix=f"{name_prefix}{nested_name}.",
+                    offset_base=offset_base + nested_offset,
+                    seen=next_seen,
+                )
+                if nested_fields:
+                    fields.extend(nested_fields)
+                    continue
+        field = _platform_struct_field_metadata(raw_field, name_prefix=name_prefix, offset_base=offset_base)
+        if field is not None:
+            fields.append(field)
+    return tuple(fields)
+
+
+@lru_cache(maxsize=256)
+def _platform_struct_metadata(struct_name: str) -> CustomStructMetadata | None:
+    resolved = _platform_struct_payload(struct_name)
+    if resolved is None:
+        return None
+    canonical_name, payload = resolved
+    size = payload.get("size")
+    if not isinstance(size, int) or size <= 0:
+        return None
+    return CustomStructMetadata(
+        name=canonical_name,
+        size=size,
+        fields=_platform_struct_fields(canonical_name),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=f"amiga_ndk_includes_parsed:{canonical_name}",
+        source="parsed_ndk_include",
+    )
+
+
+def _data_block_bound_platform_struct(element: DataBlockElementMetadata) -> CustomStructMetadata | None:
+    binding = element.type_binding
+    if not isinstance(binding, dict) or binding.get("binding_kind") != "platform_struct":
+        return None
+    bound_type = binding.get("bound_type_id")
+    if not isinstance(bound_type, str) or not bound_type:
+        return None
+    return _platform_struct_metadata(bound_type)
+
+
+def _data_block_bound_struct(
+    element: DataBlockElementMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+) -> CustomStructMetadata | None:
+    return _data_block_bound_custom_struct(element, custom_structs) or _data_block_bound_platform_struct(element)
+
+
 def _data_block_typed_field_label(base_label: str | None, field_name: str, index: int | None) -> str | None:
     if not base_label:
         return None
@@ -952,12 +1105,12 @@ def _data_block_custom_struct_gap_entity(
     )
 
 
-def _data_block_custom_struct_entities(
+def _data_block_bound_struct_entities(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
     custom_structs: Mapping[str, CustomStructMetadata],
 ) -> tuple[SeededEntityMetadata, ...]:
-    struct = _data_block_bound_custom_struct(element, custom_structs)
+    struct = _data_block_bound_struct(element, custom_structs)
     if struct is None or struct.size <= 0:
         return ()
     binding = element.type_binding if isinstance(element.type_binding, dict) else {}
@@ -1576,7 +1729,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         ]
     for layout in effective_data_block_layouts:
         for element in layout.elements:
-            typed_entities = _data_block_custom_struct_entities(layout, element, merged_custom_structs)
+            typed_entities = _data_block_bound_struct_entities(layout, element, merged_custom_structs)
             if typed_entities:
                 seeded_entities.extend(typed_entities)
             else:
