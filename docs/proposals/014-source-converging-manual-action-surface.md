@@ -1496,6 +1496,12 @@ need range-aware Manual Action Log seed ids. Otherwise two `rename_data_symbol`
 actions at the same hunk/address can collide in replay before effective metadata
 gets a chance to merge by hunk/address/end/type.
 
+Implementation observation from `014-014`: real GenAm `data_class`/data-ref rows
+can drive autonomous data-symbol naming through the normal loop once competing
+family feeds are isolated in the smoke. The useful proof is selected data-symbol
+identity, command execution, rendered projected name, and exact round-trip, not
+broader candidate feed expansion.
+
 Implementation observation from `014-006`: planner availability queries are a
 provenance boundary too. The refreshed row/element catalog query must carry the
 same accepted evidence/status/scope, parent ids, conflicts, override fields,

@@ -110,8 +110,9 @@ Current evidence:
   metadata applies ranged suppressions exactly, so suppressing one generated
   seeded data range does not remove a same-address range with a different end.
 - Real GenAm listing rows with render-plan `data_class` evidence now have a
-  smoke test proving they feed autonomous `data_symbol.rename` candidates with
-  projected-name verification.
+  smoke test proving they feed autonomous `data_symbol.rename` or
+  `data_symbol.rename_existing` candidates with projected-name verification and
+  exact round-trip status.
 - Broader global data-symbol workflows and expanded autonomous candidate
   workflows remain open beyond seeded data-entity rename/remove,
   add/edit/rename-existing-symbol, and internal referenced data use-sites.

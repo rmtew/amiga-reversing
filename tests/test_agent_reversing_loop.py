@@ -267,6 +267,47 @@ def test_agent_real_genam_autonomous_lvo_library_base_candidate_converges(
     assert matching_seeds[0]["library_name"] == "exec.library"
 
 
+def test_agent_real_genam_autonomous_data_symbol_candidate_converges(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _skip_without_c_backend()
+    project_id = "amiga_hunk_genam"
+    project_root = tmp_path / "project_root"
+    shutil.copytree(PROJECT_ROOT / "targets" / project_id, project_root / "targets" / project_id)
+    (project_root / "bin").mkdir(parents=True)
+    shutil.copy2(PROJECT_ROOT / "bin" / "GenAm", project_root / "bin" / "GenAm")
+
+    original_get_project = projects.get_project
+
+    def get_temp_project(name: str, project_root: Path | None = None, root: Path = project_root) -> ProjectRecord:
+        project = original_get_project(name, project_root=root)
+        return replace(project, review_items=())
+
+    def resolve_temp_paths(name: str, project_root: Path | None = None, root: Path = project_root) -> project_paths.ProjectPaths:
+        return project_paths.resolve_project_paths(name, project_root=root)
+
+    monkeypatch.setattr(reversing_loop.projects, "get_project", get_temp_project)
+    monkeypatch.setattr(disasm_server, "get_project", lambda name: get_temp_project(name))
+    monkeypatch.setattr(disasm_server, "resolve_project_paths", resolve_temp_paths)
+    monkeypatch.setattr(c_backend, "resolve_project_paths", resolve_temp_paths)
+    monkeypatch.setattr(reversing_loop, "_listing_entrypoint_label_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_representation_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_data_role_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_struct_pointer_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_library_base_candidates", lambda *args, **kwargs: [])
+    monkeypatch.setattr(reversing_loop, "_listing_rsset_region_candidates", lambda *args, **kwargs: [])
+
+    report = reversing_loop.run_one_iteration(project_id, mode="clean-run", project_root=project_root)
+
+    assert report["selected_work_item"]["kind"] == "data_symbol_name"
+    assert report["action"]["command_id"] in {"data_symbol.rename", "data_symbol.rename_existing"}
+    assert report["verification"]["status"] == "passed"
+    expected_name = report["selected_work_item"]["new_name"]
+    projection = next(layer for layer in report["verification"]["layers"] if layer["layer"] == "projection")
+    assert projection["expected_data_symbol_name"] == expected_name
+
+
 def _project(review_items: tuple[dict[str, object], ...]) -> ProjectRecord:
     return ProjectRecord(
         id="demo",
