@@ -1377,6 +1377,12 @@ right type-binding owner while still being derived from the wrong upstream
 pointer/base dependency set unless `parent_evidence_ids` survive the bind
 payload and semantic reload comparison.
 
+Follow-up observation from `014-019`: data-block type-binding semantic reload
+must compare nested `type_binding.parent_evidence_ids` and
+`previous_type_binding.parent_evidence_ids` as dependency sets. A clear or bind
+payload should not fail because replay listed the same parents in a different
+order, but it must fail if the dependency set changed.
+
 Implementation observation from `014-019`: row-scoped data-block binding has
 the same selected-context re-resolution risk as typed-field editing. Selected
 `data_block_pointer` evidence must be copied through command context

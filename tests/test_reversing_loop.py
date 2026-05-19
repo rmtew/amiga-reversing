@@ -1902,6 +1902,78 @@ def test_data_block_type_binding_verifier_rejects_parent_evidence_mismatch(
     assert verification["layers"][1]["matching_data_block_elements"] == []
 
 
+def test_data_block_type_binding_verifier_treats_parent_evidence_ids_as_set(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    type_binding = {
+        "type_binding_id": "events:30:4:platform_struct:Node",
+        "layout_id": "events",
+        "element_offset": 0x30,
+        "element_width": 4,
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "source_evidence_id": "prov-1",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+        "owner_action_id": "manual-1",
+    }
+    element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "platform_struct",
+        "type_binding": type_binding,
+    }
+    reloaded_element = {
+        **element,
+        "type_binding": {**type_binding, "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"]},
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"data_block_elements": [reloaded_element]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_projected_data_block_type_binding_rendered_source",
+        lambda target_id, command, command_id, expected, project_root: {"layer": "rendered_source", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_projected_data_block_type_binding_descendants",
+        lambda target_id, command_id, expected, project_root: {"layer": "type_binding_descendants", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_data_block_type_binding_mutation(
+        "demo",
+        {"command_id": "row.data_block.element.bind_type"},
+        "row.data_block.element.bind_type",
+        {"action": {"action_id": "manual-1", "payload": {"data_block_element": element}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["matching_data_block_elements"] == [reloaded_element]
+
+
 def test_data_block_clear_type_verifier_requires_previous_binding_token(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

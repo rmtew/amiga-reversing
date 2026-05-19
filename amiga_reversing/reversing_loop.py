@@ -4060,8 +4060,14 @@ def _data_block_element_matches(actual: dict[str, object], expected: dict[str, o
     return (
         isinstance(expected.get("layout_id"), str)
         and isinstance(expected.get("offset"), int)
-        and all(actual.get(key) == value for key, value in expected.items())
+        and all(_data_block_element_value_matches(key, actual.get(key), value) for key, value in expected.items())
     )
+
+
+def _data_block_element_value_matches(key: str, actual: object, expected: object) -> bool:
+    if key in {"type_binding", "previous_type_binding"}:
+        return _provenance_reference_values_match(actual, expected)
+    return actual == expected
 
 
 def _verify_data_block_interpreted_ref_mutation(

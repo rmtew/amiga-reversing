@@ -27,7 +27,9 @@ Current implementation:
   consumed source evidence when supplied.
 - Bind payloads now preserve `parent_evidence_ids` with consumed source
   evidence, and catalog availability plus semantic reload verification compare
-  that parent dependency set.
+  that parent dependency set. Semantic reload treats those parent ids as an
+  unordered dependency set inside `type_binding`/`previous_type_binding`
+  payloads.
 - Bind payloads now also preserve consumed evidence `confidence`, matching the
   public type-bind schema and selected row command context.
 - Row-scoped data-block type binding now preserves selected provenance carried
