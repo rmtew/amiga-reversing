@@ -5,6 +5,11 @@ Scope:
 Define durable target identities for every editable source-converging construct
 identified by 014-001.
 
+Accepted review state:
+Identity work may proceed alongside `014-010`. First implementation support
+should cover `source_evidence_id`, `owner_action_id`, accepted evidence status,
+and explicit path/lifetime scope for register/base provenance reports.
+
 Out of scope:
 Do not add UI-only or agent-only identifiers. Do not rely on row index, row
 text, DOM text, or screenshots.
@@ -54,6 +59,52 @@ Current observations:
   review items, symbolic projections, and other descendants of a manual action
   must be attributable to the source manual action or source fact so corrective
   actions can retract only those descendants.
+- This ownership requirement applies to semantic/type-producing actions, not to
+  purely presentational edits. Label renames, comments, and literal
+  representation choices do not need cascade identity unless they also create
+  semantic analysis facts. Type assignments, register/base seeds, RSSET
+  bindings/refinements, struct/platform field bindings, interpreted references,
+  and API/register semantic actions must carry enough evidence and owner
+  identity to reconcile with existing analysis and retract generated descendants.
+- The post-`014-022` model treats generic provenance/def-use evidence as a
+  reusable cross-cutting identity source. Durable semantic/type descendants may
+  need both `source_evidence_id` for the accepted provenance/classification and
+  `owner_action_id` for the specific field/bind/type action that generated the
+  projection.
+- `source_evidence_id` should be an opaque stable id derived from a normalized
+  evidence identity, not row text or row index. First-slice register/base ids
+  should encode source family, target, hunk, subject source address, operand
+  index when present, register/base register, origin kind, origin hunk/offset
+  when known, and path/lifetime scope. Manual classifications and overrides may
+  use the persisted Manual Action Log `action_id` as the stable suffix.
+- `owner_action_id` is the persisted Manual Action Log action id for the edit
+  that created generated descendants. It is separate from
+  `source_evidence_id`: many bindings/type edits can consume the same accepted
+  evidence, and one binding/type edit can generate many owned descendants.
+- Path/lifetime scope identity must be explicit when a definition is not
+  globally valid. Use normalized scopes such as entry, source range, defining
+  instruction to clobber, caller/callee context, selected CFG path, or manually
+  chosen scope. Conflicting/path-specific evidence must not collapse to a
+  target-wide id.
+- Evidence statuses are part of identity validation: `analysis_proven`,
+  `path_specific`, `conflicting`, `unknown`, `unresolved`,
+  `manual_classified`, `manual_override`, and future analyzer-bug/retracted
+  states. Generated descendants must store the accepted status they consumed,
+  or verifier cleanup cannot distinguish stale projections from still-valid
+  facts.
+- Generated descendants such as selected-use symbols, xrefs, linked gaps,
+  same-displacement candidates, review items, and type-flow facts must carry
+  both consumed `source_evidence_id` and generating `owner_action_id` whenever
+  those are different.
+- First-slice provenance reports now generate stable opaque
+  `source_evidence_id` values from target, source family, status, hunk/source
+  address, operand index, register/base register, displacement when present,
+  origin kind, parent evidence id when one exists, and path/lifetime scope.
+  These ids are report evidence only until an accepted classification or
+  family-specific bind/type action records them durably.
+- Command execution preserves target identity into selected element context, so
+  catalog-derived evidence ids do not fall back to target-agnostic ids after
+  locator re-selection.
 - Review-item/reproduction correction identities beyond seeded-item row
   suppression still need specific contracts.
 

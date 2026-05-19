@@ -5,6 +5,18 @@ Scope:
 Turn API, LVO, register-base, and struct-pointer semantic discoveries into
 consumed source-converging actions.
 
+Post-`014-022` split:
+This issue owns the first focused investigation and implementation slice for
+generic provenance / def-use / reference exploration. RSSET, typed fields, and
+data-block type binding consume this model rather than inventing separate
+provenance mechanisms.
+
+Accepted review state:
+Implementation may restart here. First slice is read-only provenance/def-use/
+reference reports for register/base provenance at instruction operands and
+base-relative memory operands, with required durable identity support from
+`014-002`. Exploratory reports must not write Manual Action Log state.
+
 Current evidence:
 - `entry_register_seeds` are consumed by rendering and support `library_base`
   and `struct_ptr`.
@@ -70,6 +82,21 @@ Progress:
 - Planner verifier summaries now name semantic state checks as
   `semantic_hint_state`, `library_base_register_seed`, or
   `struct_pointer_register_seed` instead of generic `round_trip`.
+- Command catalog now exposes read-only `provenance.definition.report`,
+  `provenance.uses.report`, and `provenance.source_family.report` actions for
+  selected register/base operands. These actions return `inspection` results
+  with a stable `source_evidence_id`, subject, definition candidates, same-base
+  use candidates, source-family/status, path/lifetime scope, possible actions,
+  conflicts, and consumers, and they are rejected by command execution as
+  `non_mutable_command`.
+- First-slice provenance classification covers LVO A6 base operands as
+  `library_base`/`analysis_proven`, typed access/gap base operands with known
+  owner/root structs as `struct_pointer`/`analysis_proven`, selected app-slot or
+  explicit base evidence as RSSET app-base evidence, and raw base-relative
+  displacement operands as `unknown`/`unresolved` report-only evidence.
+- Base-relative provenance reports reuse the existing same-displacement scan
+  used by RSSET reports, so `$NNNN(An)` reports can show same-displacement
+  register-base uses without creating Manual Action Log state.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 - Applying a struct/platform type should be able to feed type-flow analysis:
@@ -85,8 +112,86 @@ Progress:
   reload, and exact round-trip are verified. Ambiguous propagation must create
   review feedback, not silent type-flow facts.
 
+Post-`014-022` provenance requirements:
+- Add read-only catalog/report commands for provenance exploration, such as
+  definition lookup, use lookup, and source-family classification. Exploration
+  must not append to the Manual Action Log.
+- First implementation slice should cover register/base provenance at
+  instruction operands and base-relative memory operands. Later slices may add
+  memory-held values, stack locals, allocation/local buffers, and table-derived
+  pointer values.
+- Reports should return all candidate definitions/usages with status
+  (`analysis_proven`, `path_specific`, `conflicting`, `unknown`, `unresolved`,
+  `manual_classified`, `manual_override`), source family, path/lifetime scope,
+  confidence, conflicts, and possible manual actions.
+- Initial source-family vocabulary is `rsset_app_base`, `library_base`,
+  `struct_pointer`, `data_block_pointer`, `hardware_base`,
+  `allocation_or_local`, `constant_or_equ`, `unknown`, and `conflicting`.
+- Accepted classification/link/apply/override commands are the write boundary.
+  They must produce reusable durable evidence ids and preserve path/lifetime
+  scope. Manual overrides must record contradicted evidence and reason.
+- Reference queries are evidence-bearing def-use/xref views, not UI-only
+  navigation. They should be reusable by RSSET, typed fields, data blocks,
+  labels, EQU values, and planner verification.
+- Generated descendants should distinguish consumed provenance
+  `source_evidence_id` from the `owner_action_id` of the field/bind/type action
+  that created the projection.
+
+Investigation result:
+- Current "where is this set / used" sources are split across C analysis and
+  Python catalog/planner surfaces. Python carries selected evidence from
+  `listing_context.py` (`operand_parts`, `app_slot_refs`, typed accesses/gaps,
+  runtime-address refs), exposes report/write commands in
+  `manual_action_catalog.py`, passes explicit RSSET evidence through
+  `server.py`, projects accepted actions in `effective_metadata.py`, and gates
+  execution in `reversing_loop.py`. C imports effective metadata in
+  `platform_file_lib.c`, applies register seeds and platform lookup state in
+  `m68k_analysis_render_lookup.c`, updates platform state through instruction
+  flow, records app-slot/typed accesses, and renders LVO/base-field/selected
+  RSSET symbols in `m68k_render_ir.c`.
+- Read-only catalog commands should be `provenance.definition.report`,
+  `provenance.uses.report`, and `provenance.source_family.report`. They return
+  reports only. They may be invoked from selected operand/app-slot/typed/data
+  contexts or planner candidates, but never append Manual Action Log entries.
+- Report shape:
+  `subject` (target, hunk, source address, operand index, register/base
+  register, displacement/value), `definitions`, `uses`, `source_family`,
+  `status`, `path_lifetime_scope`, `source_evidence_id`, `confidence`,
+  `conflicts`, `possible_actions`, and `consumers`. Definitions should include
+  origin kind, origin hunk/offset, defining instruction/value where known,
+  predecessor/caller path summary, and parent evidence ids. Uses should include
+  same-flow use-sites, same-displacement candidates, typed/app-slot/data-block
+  consumers, and output-affecting risk.
+- Source-family classification is accepted only at the write boundary:
+  `provenance.classify_source` for unknown/unresolved evidence,
+  `provenance.override_source` for contradicted evidence, or a family-specific
+  bind/type action that consumes an already accepted evidence id. Exploratory
+  statuses do not authorize writes.
+- Manual classification payloads must carry source family, evidence status,
+  path/lifetime scope, reason, and the normalized subject identity. Manual
+  overrides must additionally carry the contradicted evidence id and cleanup
+  scope.
+- First slice: export operand-scoped register/base provenance for instruction
+  operands and base-relative memory operands. A report for `$NNNN(An)` should
+  answer which fact currently defines `An`, whether it is entry seed, policy
+  seed, lookup-derived, flow-derived, selected app-slot, manual classification,
+  override, conflicting, or unknown, and which same-lifetime uses share it.
+- Implementation review: the first slice intentionally reports selected
+  operand/app-slot/typed facts already present in listing context. It does not
+  yet import deeper C flow definitions such as lookup-derived, stored-state
+  reload, API-return alias, or clobber-to-clobber lifetimes; those need backend
+  exported provenance before write commands may consume them.
+- Later slices may add memory-held values, stack locals, allocation/local
+  buffers, table-derived pointer values, API return aliases, and stored-state
+  reloads. These must reuse the same report/status/evidence id model.
+
 Acceptance criteria:
 - Register/base identities cover entry-scoped and evidence-scoped lifetimes.
+- Read-only provenance exploration reports definition/use candidates, path
+  status, source family, conflicts, and possible actions without mutating Manual
+  Action Log state.
+- Accepted provenance classifications produce durable evidence ids that later
+  semantic/type actions can consume.
 - LVO/API/struct-offset semantic choices project into effective metadata.
 - Commands are available for supported libraries, registers, and struct pointer
   cases without hard-coded exec-only behavior.

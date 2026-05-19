@@ -54,6 +54,428 @@ would recognize:
 Proof actions, placeholder notes, and "note that this exists" edits are out of
 scope. They exercise the harness but do not converge the target source.
 
+## Editing Surface Reconciliation Audit
+
+Before widening any one editing family, Proposal 014 needs a full editing
+surface audit. The investigation lives in
+`014-022-editing-surface-reconciliation-audit.md` and should update this
+proposal before issue-specific implementation work continues.
+
+Current audit result:
+
+| Editing family | Category | Evidence source | Manual action shape | Reconciliation / cascade policy | Owner / cleanup requirement | Verifier gate | Next investigation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Comments and review notes | Presentation-only | Listing row/range locators and review item ids | `create/remove_manual_comment`, `add/edit/clear_review_note`, `resolve_review_item` | Local workflow/source annotation only. Use only when no structured fact fits. | Remove/comment or note/review id only; no analysis descendants. | Projected comment or note state; no type-flow/xref verifier. | Keep fallback-only in planner. |
+| Literal representation | Presentation-only unless symbolic | Operand/data element locators, source range, operand index | `create/remove_manual_representation`, data-block element representation | Local rendering choice for hex/binary/char/string. Symbolic use-site representation becomes semantic only when backed by semantic hint, target EQU, or interpreted ref. | Representation id/element identity only unless symbolic projection is generated from another owner. | Rendered text plus exact round-trip. | Separate pure display from symbolic semantic owners in verifier reports. |
+| Label and entrypoint names | Source identity | Facts v2 code starts/control targets, seeded labels, source descriptors, review labels | `create/remove/rename_manual_label`, `change_label_scope` | Rename/create source identities. May be xref-aware for candidate mining but should not create type-flow. | Label id or hunk/source/runtime identity; no cascade identity unless later label action creates derived semantic facts. | Manual label state, rendered row, exact round-trip. | Broaden autonomous feeds beyond entrypoint evidence. |
+| Data/global symbols | Source identity, sometimes xref-facing | Data rows, seeded entities, runtime-address refs, data classes, internal data refs | `rename_data_symbol`, named data seeds, seeded-item suppression for removal | Render definitions and use sites; may consume xref evidence but normally does not propagate type facts. | Target hunk/range or seeded item identity; removal suppresses only selected seeded item. | Projected data symbol or suppression state plus exact round-trip. | Finish broader global/use-site workflows in `014-014`. |
+| Code/data classification and data roles | Classification/layout | Facts v2 decode/data spans, review items, listing row/range bytes | `create/remove_manual_seed` with code/data role/unit/encoding | Reclassifies source ranges and rendered directives. Can invalidate decode/data descendants and produce review conflicts. | Seed id/range identity; conflicting descendants must be recomputed or owned before cleanup. | Manual seed state/removal plus exact round-trip. | Broaden planner feeds only with type-specific evidence. |
+| Data-block scalar layouts | Classification/layout | Data ranges, existing data roles, source bytes, active layout context | `create/edit/remove_manual_data_block_layout`, `set/remove/represent_manual_data_block_element` | Splits opaque ranges into elements and projections. Scalar rendering is supported; type/domain binding remains separate. | Layout id plus element offset; removal restores raw/gap state. | Layout/element state, exact directive/value render checks, exact round-trip. | Add gap-specific rendering and type/platform binding. |
+| Interpreted data refs | Layout plus xref-facing semantic | Data-block elements, decoded source bytes, target locators, runtime-address refs | `interpret/remove_manual_data_block_element_ref` | Converts proven byte/word/long values into symbolic refs and source-owned xrefs. | Interpreted-ref id owns symbol projection and source-owned runtime ref; cleanup must match layout/element/source value. | Ref state, symbolic render, source-owned xref cleanup, exact round-trip. | Target-side inbound xrefs and non-absolute references. |
+| Target EQU/constants | Mixed display and semantic | Target-local EQU table, NDK/equate lookup, immediate operands | `create/rename/remove_manual_target_equate`, semantic equate hints | EQU definitions and symbolic use sites are semantic; EQU definition value style is presentation-only. | Equate name identity; rename/remove updates owned symbolic use-site representations. | Target-equate state or semantic-hint state plus exact round-trip. | `014-020` for definition display style. |
+| API/LVO/register semantics | Semantic/type | LVO rows, NDK library/function metadata, selected register/memory operand contexts, typed-access analysis | `create/remove_manual_semantic_hint`, `create/remove_manual_register_seed` | Consumes API/register evidence and can seed library bases, struct pointers, LVO/field symbols, typed args/returns, and stored state. | Register seed/hint id; future propagated args/returns/type-flow need owner identity and cleanup. | Semantic hint or register-seed state plus exact round-trip; broader type-flow verifier missing. | Evidence-scoped register lifetimes and API arg/return propagation in `014-010`. |
+| RSSET/app-slot regions and bindings | Semantic/type plus layout | App-slot refs, app-slot analysis, RSSET regions/gaps, raw displacement operand parts, register/base evidence | `create/remove_manual_rsset_layout_region`, `create/remove_manual_rsset_use_site_binding`; refine/type actions planned | Regions render `RS.*`; binding links selected numeric uses to a proven base/layout. Flow-equivalent same-displacement candidates are planned, not automatic. | Region identity `(layout_name, base_symbol, offset)`; binding id plus `owner_action_id` and future cascade ids for same-displacement/xref/type descendants. | RSSET region/binding state and exact round-trip; selected-use render only when existing field matches. | Flow-derived `base_evidence_id`, bind-refine, linked gaps, owned cascades. |
+| Custom structs and typed fields | Semantic/type | Custom struct metadata, typed gaps/accesses, NDK/platform structs, unresolved typed access analysis | `create/rename/remove_manual_custom_struct(_field)` via target/typed commands | Effective metadata can store structs/fields, but C typed-reference resolver does not yet consume custom structs for rendered field paths. | Struct name and `(struct_name, offset)` field identity; propagated typed accesses need owner identity. | Metadata replay exists; rendered custom-field verifier blocks execution. | C resolver/render path and typed-field cleanup in `014-012`. |
+| Data-block type/platform binding | Semantic/type | Data-block layouts/elements, custom/platform structs, enum/equate domains, parsed include data | Planned type/domain binding actions | Should propagate typed facts, rendered nested fields, review items, and interpreted field refs only after type shape reconciles. | Layout id + element offset + type-binding id; all derived facts owner-scoped. | Missing type-flow/review cleanup verifier. | `014-019` model and verifier proof. |
+| Corrections and execution views | Correction/view | Suppressible seeded metadata, target corrections, runtime/execution view evidence, reproduction mismatches | `suppress_seeded_item`, `create/remove_manual_execution_view` | Correct target-specific facts or runtime mapping. Importer/analyzer class bugs must remain upstream bugs. | Suppression `(kind,hunk,addr)` or execution-view identity; cleanup must not remove unrelated facts. | Suppressed-item or execution-view state plus exact round-trip. | Broader reproduction/view correction commands in `014-013`. |
+| Planner/autonomous feeds | Candidate surface | Inspect candidates, listing pages, navigation analysis, effective metadata, command availability | No private action; must route to catalog commands | Candidate feeds may propose only supported, verifier-backed edits. Report-only feeds are valid for unsupported semantic/type families. | Already-satisfied skips must use projected/effective state; generated candidates need source evidence identity. | Action-specific verifier required before non-dry execution. | Audit every new feed against this table before widening. |
+
+Coverage check against current code:
+
+- The table accounts for every source-converging `ManualActionKind` currently
+  defined in `amiga_reversing/disasm/manual_actions.py`: seeds, data-symbol
+  renames, register seeds, labels/scope, comments, representations, semantic
+  hints, seeded-item suppressions, target EQUs, custom structs/fields, RSSET
+  regions/use-site bindings, data-block layouts/elements/interpreted refs,
+  execution views, review notes, and review-item resolution.
+- `undo_action` and `redo_action` are Manual Action Log controls, not separate
+  source fact families. Navigation and palette-opening catalog entries are
+  transient UI commands and stay outside the reconciliation matrix.
+- Catalog families checked in `manual_action_catalog.py` include review, row,
+  range, element, target, semantic, data-block, app-slot/RSSET, typed
+  gap/access, correction, and data-symbol commands. The proposal groups them by
+  source effect rather than by UI entry point so row/range/review variants do
+  not split the model artificially.
+- Data-role seed commands currently cover string, length-prefixed string,
+  string-control stream, scalar/lookup/pointer tables, copper lists, palettes,
+  bitmaps, sound samples, audio tables, and sprites. These remain
+  classification/layout edits unless a later typed/domain action owns semantic
+  descendants.
+- The current listing element contexts are operands, app-slot refs, typed
+  accesses/gaps, runtime address refs, data literals, labels, and comments.
+  That is enough evidence for current catalog commands, but RSSET still needs
+  exported operand-scoped `base_evidence_refs` before raw displacement binding
+  can safely mutate.
+
+Evidence appendix:
+
+- Listing context formation in `listing_context.py` is the row-to-command
+  evidence boundary. It exports operand parts, app-slot refs, typed
+  accesses/gaps, runtime address refs, data literals, labels, and comments. For
+  semantic/type edits the important carried fields are element kind, operand
+  index, register/base register, displacement, app-slot symbol/access data,
+  typed root/owner struct names, field names/expressions, and unresolved
+  typed-access classifications.
+- Catalog execution in `manual_action_catalog.py` is the only supported
+  mutation surface. Immediate values feed semantic equate/LVO/struct-offset
+  hints; register contexts feed library-base and struct-pointer seeds; typed
+  gaps/accesses feed custom struct field actions; app-slot and raw displacement
+  contexts feed app-slot/RSSET report, bind, and unbind commands.
+- Manual replay in `manual_actions.py` and projection in `effective_metadata.py`
+  prove which edits become source/render policy facts: semantic hints,
+  register seeds, custom structs/fields, RSSET regions/use-site bindings,
+  data-block layouts/elements/interpreted refs, execution views, target EQUs,
+  suppressions, labels, comments, and representations.
+- C consumption is concentrated in `platform_file_lib.c`,
+  `m68k_analysis_render_lookup.c`, and `m68k_render_ir.c`: effective metadata
+  is imported into analysis policy, register seeds and platform/typed state flow
+  through the CFG, API input/output facts and app-slot refs are recorded, and
+  LVO/app-slot/base-field/selected-RSSET symbols are attached during rendering.
+- Loop verification in `reversing_loop.py` currently proves selected semantic
+  hints, library-base and struct-pointer register seeds, RSSET
+  region/binding state, data-block/interpreted-ref state, target EQU state,
+  manual seed state, data-symbol projection, suppressions, execution views,
+  manual labels, and comments. Typed custom-field rendering, broad API
+  arg/return propagation, data-block type binding, and same-flow RSSET cascades
+  remain intentionally verifier-gated.
+- Focused tests line up with this boundary: semantic hints and register seeds
+  execute with semantic reload plus round-trip; RSSET raw displacement reports
+  but does not bind without explicit evidence; selected RSSET binding can render
+  one existing field without applying all same-displacement uses; data-block
+  scalar/ref actions prove rendered output and source-owned xref cleanup; custom
+  typed-field commands have catalog/MAL local effects but no action-specific
+  rendered-field verifier yet.
+
+Generic provenance / def-use exploration:
+
+- Semantic/type reconciliation should use a shared provenance model before
+  family-specific bind/type actions. The first question is generic: where is
+  this register/value set, where is it used, which callers or predecessor paths
+  can define it, and which source family does each definition reconcile to?
+- Exploration is read-only. Catalog commands such as
+  `provenance.explore_definition`, `provenance.explore_uses`, and
+  `provenance.explore_source_family` should return evidence reports for UI,
+  loop, and API callers without appending to the Manual Action Log. Accepted
+  `provenance.classify_source`, `provenance.override_source`, link/apply, or
+  family-specific commands are the write boundary.
+- Provenance reports should return all candidate definitions instead of forcing
+  one global answer. Statuses should include `analysis_proven`,
+  `path_specific`, `conflicting`, `unknown`, `unresolved`,
+  `manual_classified`, and `manual_override`. Path-specific or conflicting
+  results must require path/lifetime selection before mutation.
+- Initial source-family vocabulary should be bounded:
+  `rsset_app_base`, `library_base`, `struct_pointer`, `data_block_pointer`,
+  `hardware_base`, `allocation_or_local`, `constant_or_equ`, `unknown`, and
+  `conflicting`. Family-specific details hang off that classification.
+- Accepted classifications produce durable evidence ids reusable by multiple
+  semantic/type commands. Generated descendants should carry both
+  `source_evidence_id` and `owner_action_id` when the provenance evidence and
+  the field/bind/type action are different.
+- Manual classification may fill unknown/unresolved sources. Manual override
+  may contradict analysis-proven evidence only when it records the contradicted
+  evidence id, reason, path/lifetime scope, and cleanup ownership.
+- Reference queries are part of the same model, not just UI navigation.
+  "Where is this referenced?" views for labels, EQU values, app slots/RSSET
+  regions, data blocks, and struct fields are evidence-bearing def-use/xref
+  views that can feed propagation, verification, and cleanup.
+- First implementation slice should focus on register/base provenance at
+  instruction operands and base-relative memory operands. The model should
+  still allow later memory-held values, stack locals, allocation/local buffers,
+  and table-derived pointer values.
+- Current first-slice implementation exposes read-only
+  `provenance.definition.report`, `provenance.uses.report`, and
+  `provenance.source_family.report` catalog entries for selected register/base
+  operands. Reports carry stable `source_evidence_id`, subject,
+  definitions/uses, source family/status, path/lifetime scope, confidence,
+  conflicts, possible actions, and consumers, and remain non-mutable command
+  catalog inspection entries.
+- RSSET `rsset.binding.report` should become a family-specific view over this
+  provenance model: generic provenance explains the base register/value,
+  definitions, uses, path scope, conflicts, and evidence id; RSSET adds layout
+  matching, fields/gaps, compatible offsets, same-lifetime displacement uses,
+  and bind/refine blockers.
+- Current source-flow map: `listing_context.py` exports selectable operands,
+  app slots, typed accesses/gaps, and runtime refs; `manual_action_catalog.py`
+  exposes report/write boundaries; `server.py` preserves explicit RSSET
+  evidence through query/execute contexts; `effective_metadata.py` projects
+  accepted Manual Action Log state; `reversing_loop.py` mines candidates and
+  verifies action-specific state. C imports policy metadata in
+  `platform_file_lib.c`, applies register/lookup seeds and updates base state
+  in `m68k_analysis_render_lookup.c`, then renders LVO, base-field, typed, and
+  selected RSSET symbols in `m68k_render_ir.c`.
+- Focused issue split after the investigation: `014-010` owns read-only
+  provenance reports and first-slice register/base evidence; `014-002` owns
+  `source_evidence_id`, path/lifetime scope, and `owner_action_id`; `014-005`
+  owns consumed-evidence and cleanup verifier layers; `014-006` owns
+  read/report versus write/execute planner policy; RSSET, typed fields, and
+  data-block type binding consume the accepted evidence in `014-011`,
+  `014-012`, and `014-019`.
+
+Cross-cutting gaps:
+
+- Semantic/type actions need durable identities for consumed evidence, not just
+  the edited use-site. RSSET base evidence and evidence-scoped register
+  lifetimes are the clearest current examples.
+- Generated xrefs, type-flow facts, review items, linked gaps, missed-use
+  candidates, and symbolic projections must be owned by a manual action or
+  source fact before cleanup can be precise.
+- Supported mutations need layered verification: Manual Action Log replay,
+  semantic reload, family-specific rendered/type/xref effect, owner-scoped
+  cleanup where applicable, and exact round-trip when output-affecting.
+- Broad autonomous feeds should follow a real target proof for each family:
+  evidence mining, catalog command execution, Manual Action Log replay,
+  rendered source improvement, cleanup where applicable, and exact round-trip.
+
+Deep investigations should proceed in this order:
+
+1. Semantic/type reconciliation across register seeds, API/LVO semantics, typed
+   fields, RSSET bindings, custom structs, and data-block type bindings.
+2. Generic provenance / def-use / reference exploration: definition lookup,
+   use lookup, caller/path status, source-family classification, manual
+   classification/override, durable evidence ids, and path/lifetime scopes.
+3. RSSET/register-base evidence: consume provenance evidence as
+   `base_evidence_refs`, add RSSET layout interpretation, same-flow/
+   same-displacement candidates, and cascade ownership.
+4. Custom structs and typed fields: C resolver/render path, typed-gap/access
+   verifier, and propagated typed-access cleanup.
+5. Data-block type/platform binding: type/domain identity, generated type-flow
+   and review items, and removal verifier.
+6. Classification/layout cleanup: reclassification descendants, layout gap
+   rendering, and interpreted-ref target-side inbound xrefs.
+7. Planner feed policy: per-family evidence thresholds and already-satisfied
+   skip rules after the relevant verifier gates exist.
+
+Issue routing and readiness:
+
+| Issue | Current role in this audit | Reconciliation stance |
+| --- | --- | --- |
+| `014-001` | Completed capability matrix parent | Matrix remains valid, but `014-022` adds the semantic/type reconciliation layer that must be reflected before further broad expansion. |
+| `014-002` | Durable identity owner | Owns consumed provenance/evidence ids, including reusable source-family evidence, RSSET `base_evidence_refs`, path/lifetime scope, `source_evidence_id`, and owner ids for generated descendants. |
+| `014-003` | Manual Action Log umbrella | Existing append-only/corrective pattern is right; semantic/type actions must add paired cleanup for owned descendants when they generate analysis facts. |
+| `014-004` | Command catalog umbrella | Catalog may expose report-only commands before mutation support, but mutation commands need durable identity plus verifier ownership. |
+| `014-005` | Verifier umbrella | Owns the rule that semantic/type changes verify consumed evidence, generated/proposed flow-equivalent descendants, cleanup, and round-trip where output-affecting. |
+| `014-006` | Planner/autonomous feed owner | Feeds may run read-only provenance reports, but write feeds stay narrow until command, identity, conflict/path-scope resolution, and action-specific verifier support exist; raw RSSET displacement feeds remain report-only until provenance-backed `base_evidence_refs` exist. |
+| `014-007` | Completed data-role command coverage | Classification/layout only. Data roles may replace source rendering but do not imply type-flow or xref cascades. |
+| `014-008` | Completed literal representation coverage | Presentation-only unless the symbolic text is generated from a semantic owner such as a hint, target EQU, or interpreted ref. |
+| `014-009` / `014-020` | Target EQU semantics and definition display | EQU identity/use-site binding is semantic; definition value representation is display metadata and must not change numeric semantics. |
+| `014-010` | API/LVO/register semantic owner | Owns register/base provenance as the first implementation slice, evidence-scoped register lifetimes, and future API arg/return/stored-state propagation. Current verifiers prove selected hints/seeds only. |
+| `014-011` / `014-021` | RSSET/app-slot owner and binding investigation | Owns RSSET consumption of generic provenance, `base_evidence_refs` export/selection, bind/refine/unbind, linked gaps, same-flow candidates, and owned cascades. `014-021` is the model source; `014-011` is implementation. |
+| `014-012` | Custom struct/typed-field owner | Owns C resolver/render support, type-shape compatibility, rendered custom-field verifier, and propagated typed-access cleanup. |
+| `014-013` | Correction/view owner | Owns target-specific suppressions/views and cleanup semantics; analyzer/importer class bugs stay upstream bugs, not manual suppressions. |
+| `014-014` | Data/global symbol owner | Owns broader data/global definition and use-site workflows. These are xref-aware source identities, not type-flow unless another semantic owner is introduced. |
+| `014-016` / `014-017` | Data-block metadata and scalar render slices | Completed scalar layout/element work remains classification/layout. Type/domain binding stays separate. |
+| `014-018` | Interpreted data refs | Completed for absolute byte/word/long refs with source-owned xrefs. Target-side inbound refs and non-absolute/type-derived refs remain out of scope. |
+| `014-019` | Data-block type/platform binding owner | Owns type/domain binding, nested/platform struct rendering, generated type-flow/review items, and removal verification. |
+
+Initial semantic/type reconciliation findings:
+
+- Listing/catalog evidence is assembled from row operand parts, app-slot refs,
+  typed accesses, unresolved typed accesses, runtime refs, data literals,
+  labels, and comments. For semantic/type work, the critical contexts are
+  selected registers or memory operands, `base_register`/`displacement`,
+  API/LVO row metadata, `app_slot_refs`, and typed-gap/access records.
+- Catalog commands already separate immediate semantic hints
+  (`semantic.equate.*`, `semantic.lvo.*`, `semantic.struct_offset.*`),
+  register/base seeds (`semantic.library_base.*`,
+  `semantic.register.struct_ptr`), typed field commands
+  (`typed_gap.field.*`, `typed_access.field.*`), app-slot/RSSET commands, and
+  data-block type work. They all route through Manual Action Log; no private
+  semantic mutation path is needed.
+- Effective metadata can project semantic hints, register seeds, custom
+  structs/fields, RSSET layout regions, RSSET selected-use bindings, data-block
+  layouts/elements, and interpreted refs. Projection support is therefore not
+  the same as analysis reconciliation: custom structs and data-block type
+  bindings still need C resolver/render consumption and verifiers before broad
+  execution.
+- The C render/analysis lookup carries typed and platform flow state through a
+  control-flow graph. Register seeds are applied at entry or seed offsets;
+  platform state tracks app/library/hardware bases; typed state tracks struct
+  pointers, API input/output provenance, app-slot-derived addresses, stored
+  typed values, typed accesses, and unresolved typed accesses.
+- That C flow state has provenance concepts, but they are not yet durable
+  Manual Action Log evidence identities. The missing bridge is to expose stable
+  proof identities such as "A2 is this base at this offset because of this
+  seed/call/assignment" so manual semantic/type actions can reconcile with the
+  existing flow state and own later cascades.
+- Existing loop verifiers prove selected semantic state, such as semantic hint,
+  library-base register seed, struct-pointer register seed, RSSET binding, or
+  data-block ref state plus exact round-trip. They do not yet prove broad
+  propagated type-flow descendants, same-flow RSSET candidates, custom struct
+  field rendering, or owner-scoped cleanup for generated typed descendants.
+- Focused test coverage confirms the same layering: semantic hints and
+  register seeds can execute with semantic reload plus round-trip verifiers;
+  data-block scalar elements and interpreted refs have rendered-source and xref
+  verifier layers; typed-gap/access and custom-struct candidates route through
+  catalog/MAL but are blocked for loop execution by missing action-specific
+  verifiers. This is the intended gate until C resolver/render and cleanup
+  behavior are proven.
+
+Initial RSSET/register-base evidence findings:
+
+- C platform state can know an address register is an app, library, hardware,
+  or layout base from policy register seeds, lookup-derived seeds, default A6
+  app-base heuristics, app/library base propagation, and instruction flow.
+- App-slot analysis records accesses when a base-relative operand is considered
+  app-base-compatible. Listing JSON may still expose a raw displacement only as
+  an `operand_parts` displacement element, as with GenAm `$0102(a6)`, while
+  broader `app_slot_analysis` can still show the surrounding RSSET gap.
+- Current RSSET binding mutation accepts base evidence only from an explicit
+  `base_evidence_id` or from an already selected `app_slot` context. Raw
+  displacement context is enough for `rsset.binding.report`, not `bind`.
+  The agreed model keeps this split, but reframes the report as a
+  family-specific view over generic provenance exploration.
+- Existing plumbing validates two end-to-end evidence paths: explicit element
+  context can carry `layout_name`, `base_symbol`, and `base_evidence_id` through
+  the catalog, loop command query, Manual Action Log payload, effective
+  metadata, and C selected-use renderer; selected app-slot context can derive
+  `selected-app-slot:<reg>:<base_symbol>` in the catalog. The loop only carries
+  RSSET evidence when a candidate already supplies it; it does not yet mine raw
+  flow evidence.
+- The durable evidence bridge should distinguish at least seed-backed evidence,
+  flow-derived assignment evidence, selected app-slot evidence, and manual
+  binding evidence. Candidate id shapes should be explicit, for example
+  `register-seed:<id>`, `flow-base:<hunk>:<origin_addr>:<reg>:<kind>`,
+  `selected-app-slot:<reg>:<base_symbol>`, or `manual-binding:<action_id>`.
+- Manual replay already stamps RSSET bindings with `owner_action_id`, so
+  descendant cleanup can be layered on manual binding ownership. Register-seed
+  and flow-derived evidence are not yet exported to listing/catalog contexts as
+  durable `base_evidence_id` candidates.
+- Same-displacement propagation should require matching base evidence, not only
+  matching register and displacement text. A later cascade can then propose or
+  apply other uses that share the same proven flow identity, and unbind can
+  retract only descendants owned by that binding/cascade.
+
+Proposed RSSET base-evidence export contract:
+
+- C analysis should export operand-scoped provenance/base evidence alongside or
+  adjacent to `operand_parts`/`app_slot_refs`, for example as
+  `base_evidence_refs` on the listing row for RSSET consumers. Each record
+  should include `base_register`, source family, `layout_name`, `base_symbol`,
+  `base_evidence_id`, status, path/lifetime scope, `origin_kind`, origin
+  hunk/offset/register, confidence, optional parent/contradicted evidence id,
+  and optional `source_evidence_id`.
+- `base_evidence_id` should be stable and explainable:
+  `register-seed:<register_seed_id>` for policy/manual seeds,
+  `flow-base:<hunk>:<origin_addr>:<reg>:<kind>` for assignments or propagated
+  base state, `selected-app-slot:<reg>:<base_symbol>` for already materialized
+  app-slot refs, and `manual-binding:<action_id>` only for descendants of an
+  accepted binding.
+- The Python listing context should copy compatible base-evidence records onto
+  the selected element context. The catalog may then enable `rsset.binding.bind`
+  when the selected operand has a compatible `layout_name`, `base_symbol`, and
+  `base_evidence_id`; otherwise it remains report-only.
+- The current conservative A6 app-base fallback is useful for reporting nearby
+  RSSET gaps but should not by itself become mutation evidence. Binding needs a
+  seed, assignment, selected app-slot, or other durable proof that can survive
+  reload and can be cited by cascades.
+- Same-flow/same-displacement candidates should be generated from shared or
+  verifier-equivalent provenance/base evidence. Path-specific or conflicting
+  provenance requires path/lifetime selection before mutation. Candidates should
+  be proposed as owned descendants of the selected binding/cascade, not silently
+  implied by one selected-use binding record.
+- Ownership split: `014-002` owns the durable identity contract for
+  provenance evidence, `base_evidence_refs`, `source_evidence_id`, and
+  descendant owner ids; `014-010` owns the first register/base provenance slice;
+  `014-011` owns RSSET/app-slot provenance consumption, catalog enablement,
+  bind/refine/cascade behavior, and selected-use rendering; `014-005` owns
+  verifier layers for semantic reload, rendered selected-use or linked-gap
+  state, exact round-trip, and later owner-scoped descendant cleanup.
+
+Review packet:
+
+- Approve the model if semantic/type changes should be treated as
+  analysis-facing edits that consume named evidence and own generated
+  descendants, while label renames, comments, and display-only representations
+  stay local.
+- Change the model if any presentation/source-identity edit should trigger
+  flow reconciliation by default, or if any semantic/type edit should remain a
+  purely local projection.
+- Approve the RSSET contract if raw `zzz(an)` operands should remain
+  report-only until generic provenance/C analysis exports durable base evidence
+  or the selected context already carries explicit/selected-app-slot evidence.
+- Change the RSSET contract if the A6 fallback should be allowed to mutate
+  without seed/flow/selected-app-slot proof, or if same-displacement uses should
+  be bound automatically without shared/equivalent base evidence.
+- Approve the provenance contract if "where is this set/used?" exploration
+  should be read-only, multi-candidate, path/lifetime-scoped, and reusable
+  across RSSET, typed fields, data-block pointers, API/register semantics, and
+  future memory-held values.
+- Approve the issue split if follow-up work should be routed by existing owning
+  issues instead of creating one implementation issue per editing family.
+
+Accepted review decisions:
+
+- Reconciliation trigger: label renames, comments, and display representation
+  changes stay presentation/local unless they emit a semantic fact. Type
+  assignments, register seeds, RSSET bindings, custom/typed field changes,
+  data-block type bindings, and API/platform semantics are analysis-facing and
+  need durable consumed-evidence identity plus verifier coverage.
+- RSSET evidence source: C analysis should export operand-scoped
+  provenance/base evidence as `base_evidence_refs` for RSSET consumers; the
+  catalog should consume that evidence, not infer mutation authority from raw
+  `zzz(an)` text or the A6 fallback alone.
+- Generic provenance: "where is this set/used?" is read-only and should return
+  all candidate definitions/usages with source family, status, path/lifetime
+  scope, conflicts, and possible manual actions. Accepted classification,
+  override, link, or family-specific bind/type commands write Manual Action Log
+  state.
+- RSSET fallback behavior: default A6 app-base inference remains report-only
+  until backed by a seed, selected app-slot, assignment/flow proof, or other
+  durable base evidence.
+- RSSET propagation: selected-use binding remains scoped. Same-displacement
+  propagation becomes a proposed or accepted cascade only when candidate uses
+  share the same/equivalent base evidence and the cascade has owner-scoped
+  cleanup.
+- Issue ownership: `014-002` gets base-evidence and descendant-owner identity;
+  `014-010` gets first-slice register/base provenance; `014-011` gets RSSET
+  provenance consumption/export/catalog/bind/refine/cascade implementation;
+  `014-005` gets verifier gates; `014-006` gates broad planner feed exposure.
+- Typed/custom and data-block follow-up: `014-012` remains the rendered custom
+  struct/typed-field implementation owner, while `014-019` remains the
+  data-block type/platform binding owner.
+- Matrix interpretation: completed display/classification rows remain bounded
+  wins; they do not imply semantic/type cascade support without the evidence
+  and verifier contracts above.
+- Review outcome: accepted. Implementation may restart after these decisions
+  are recorded in owning issues, beginning with `014-010` read-only
+  provenance/def-use/reference reports and the needed `014-002` identity
+  support. Proposal 014 remains Draft until implementation/verifier issues
+  close.
+
+Post-review issue split checklist:
+
+- `014-002`: add the final provenance/evidence identity contract,
+  `base_evidence_refs` consumer shape, source-family evidence ids,
+  path/lifetime scope, `source_evidence_id`, and generated-descendant owner ids
+  for semantic/type cascades.
+- `014-005`: add verifier requirements for consumed evidence, equivalent-flow
+  descendants, selected/rendered effect, cleanup, and exact round-trip where
+  output-affecting.
+- `014-006`: allow read-only provenance exploration in planner feeds, but keep
+  raw/unsupported semantic candidates report-only until command, identity,
+  path/conflict resolution, and verifier gates are present; document
+  already-satisfied skip requirements against effective metadata.
+- `014-010`: specify read-only provenance exploration commands, first-slice
+  register/base provenance, evidence-scoped lifetimes, source-family
+  classification, manual classification/override, and future API
+  argument/return/stored-state propagation ownership.
+- `014-011`: implement RSSET consumption of provenance, RSSET-shaped
+  `base_evidence_refs`, bind-refine, linked gaps, same-flow/same-displacement
+  candidates, and owner-scoped cascade cleanup.
+- `014-012`: keep custom struct/typed-field work focused on C resolver/render
+  consumption, type-shape compatibility, rendered verifier, and propagated
+  typed-access cleanup.
+- `014-019`: keep data-block type/platform binding separate from scalar
+  layout/ref work; require type/domain identity, nested rendering, generated
+  review/type-flow ownership, and removal verification.
+- `014-013`, `014-014`, and `014-020`: preserve the non-semantic boundaries for
+  corrections/views, data/global symbol workflows, and EQU definition display
+  style unless those actions emit semantic facts.
+
+Issue updates should now follow the post-review checklist above, preserving the
+existing owning issues rather than creating one implementation issue per editing
+family.
+
 ## Data Block Layout Model
 
 Data-block layout is a first-class source-convergence concern, not a UI-only
@@ -81,6 +503,15 @@ such as xrefs/type-flow/review items, or be display-only. Issues must name which
 of those applies, how derived facts are removed when the owning manual action is
 removed, and which verifier proves the analysis-facing effect.
 
+Analysis reconciliation is required for semantic/type-producing changes, not
+for presentation-only edits. Label renames, comments, and representation choices
+may remain local unless they explicitly create semantic facts. Type assignments,
+register/base seeds, RSSET bindings or refinements, struct/platform field
+bindings, interpreted references, and API/register semantic actions must state
+which existing analysis evidence they reconcile with, which flow-equivalent
+facts they may generate or propose, and how those descendants are owned and
+removed.
+
 Mistake recovery is part of the same contract. Manual state is append-only, so
 undo is expressed as a corrective action: remove, unbind, clear type, suppress,
 or replace. Any action that can generate rendered changes or derived analysis
@@ -104,6 +535,18 @@ The audit below is based on current code paths in:
 - `src/m68k_render_ir.c`, `src/platform_file_lib.c`, and source model headers
 - focused command/source tests under `tests/`
 
+Read the matrix through the reconciliation audit above:
+
+- "Complete" display or classification slices do not imply semantic/type
+  cascade support. They prove their bounded rendered-source effect, replay,
+  cleanup, and round-trip only.
+- A symbolic projection is semantic only when it has a semantic owner such as a
+  semantic hint, target EQU, interpreted ref, typed field, or RSSET binding.
+  Pure representation style remains presentation-only.
+- Semantic/type rows need consumed-evidence identity, generated-descendant
+  ownership, and verifier coverage before planner feeds may execute them
+  broadly.
+
 | Fact family | Auto-analysis / source model support | Rendered-source effect | Human manual edit need | Durable identity now | Manual Action Log now | Command catalog now | Loop now | Verifier now | Gap / issue |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Source labels and function entry labels | Facts v2 code starts, control targets, policy `seeded_code_labels`, `seeded_code_entrypoints`, absolute labels | `loc_*`, `abs_*`, entry labels and symbolic refs | Rename, create, remove, or change scope for code labels when xrefs/behavior justify the name | Listing row locator plus source/runtime label payloads; row index still appears as provenance only | Create/remove/rename/change scope labels | `label.rename` for label elements; review label actions | Planner accepts explicit label rename candidates and mines source-descriptor entrypoint evidence into autonomous `label.rename` candidates when the rendered label is still generated, skipping effective/manual labels already named; review label actions report `manual_label_state` | Label projection, semantic reload, and round-trip in row label-rename path; review-label actions verify manual label state/removal plus round-trip | Broaden autonomous label feeds beyond entrypoint evidence in `014-006` |
@@ -116,7 +559,7 @@ The audit below is based on current code paths in:
 | Equates/constants | Source model supports constants/EQU; NDK constants are searchable; C policy supports a bounded target-local equate table | Known NDK equate hints replace magic immediate values with included symbols; target-local equates render as `EQU` definitions and can be used by manual symbolic immediate representations | Add/edit/rename/remove a target-local constant, bind use sites to it, and choose definition value display when source meaning depends on hex/decimal/binary/char/symbolic form | NDK equate use has hunk + source range + operand provenance; target-local equates use symbol name as durable identity; EQU definition representation identity still missing | `create_manual_semantic_hint` for `domain="equate"` projects known symbols into manual symbol representations; `create_manual_target_equate`, `rename_manual_target_equate`, and `remove_manual_target_equate` project target-local constants; rename updates symbolic use-site representations and remove prunes them; no separate EQU definition representation action yet | `semantic.equate.*` candidates for matching immediate values; target catalog exposes `target.equate.add/edit/rename/remove` with create/rename/remove local effects; no definition representation command yet | Planner accepts explicit `semantic.equate.*` use-site candidates and explicit `target.equate.*` target candidates with target-equate state verification and exact round-trip, and skips already-projected target-local equates; definition representation selection remains open | Effective metadata projection, rendered include/symbol, rendered target-local `EQU`, symbolic use-site rendering, C-backed equate navigation, rename/remove rendered-source behavior, loop target-equate state verification, and exact direct rebuild are covered; current C policy table is capped at 128 target-local equates, matching generated interpreted-ref/manual representation scale; rendered definition value style verifier absent | Core complete in `014-009-equate-constant-editing.md`; EQU value representation is open in `014-020-target-equate-value-representation.md` |
 | LVO/API semantics | NDK libraries/LVOs, render lookup platform calls, call summaries and API arg analysis | `_LVO*` symbols, NDK field symbols, library call summaries, typed args/returns, app-slot propagation | Confirm library base, LVO function, API argument/return semantics, struct-offset meaning, and propagated stored state | LVO and struct-offset immediate use has hunk + source range + operand provenance; API semantic identity not complete | `semantic.lvo.*` and `semantic.struct_offset.*` hints for immediate operands project to manual symbol representations; register seeds can seed a library base | `semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.library_base.<library>` for A6 LVO contexts using API metadata or NDK lookup | Planner accepts explicit dynamic semantic command candidates for `semantic.library_base.*`, `semantic.lvo.*`, `semantic.struct_offset.*`, and `semantic.equate.*` with selected element context and round-trip verification, and skips already-projected library-base register seeds | Effective metadata projection, rendered include/symbol, and exact direct rebuild covered for LVO and struct-offset immediate use; library-base catalog execution covers exec and API-specific libraries; register seed render test exists | Add consumed API/register/typed-field semantic actions in `014-010-api-register-semantic-actions.md` |
 | Register/base facts | `entry_register_seeds` support library base and struct pointer; render policy consumes them | Base-relative references become library/struct-aware | Add/remove register base facts with explicit lifetime/evidence | Entry offset + register + kind; not enough for all base lifetimes | Create/remove manual register seed | A6 LVO library-base helpers derive supported libraries from row API metadata or NDK library/function lookup; register elements expose a parameterized `semantic.register.struct_ptr` helper | Planner accepts explicit `semantic.register.struct_ptr` candidates with selected register element context and round-trip verification, mines unresolved typed-access listing evidence into struct-pointer candidates, and skips existing struct-pointer seeds from effective metadata; evidence-scoped lifetime inference remains open | Manual register seed render test exists; catalog coverage covers exec/non-exec LVO base helpers and register-selected struct-pointer seeds | Expand identity/commands/verifiers in `014-010-api-register-semantic-actions.md` |
-| App/base-relative slots and RSSET layout regions | App-slot refs, app-slot analysis, regions/gaps/field gaps/suggestions, `rsset_layout_regions`, named layouts; raw numeric base-relative operands can still lack `app_slot` context | `RSSET`/`RS.*`, `app_0234(a6)` names, typed field paths; RSSET binding can link `$NNNN(a6)` use-sites to a chosen layout before field creation | Add/edit/rename/remove slots, regions, sizes, storage kinds, semantic types, parser roles, layout gaps, and explicit numeric-displacement use-site bindings with reversible bind/refine/unbind cleanup | App-slot context has symbol/displacement/base/access; manual RSSET region identity is `(layout_name, base_symbol, offset)`; chosen binding identity is target + hunk + source address + operand index + base register + displacement + `(layout_name, base_symbol)` + base-evidence id | `create_manual_rsset_layout_region` adds/replaces manual RSSET layout regions; `remove_manual_rsset_layout_region` filters regions by identity; `create_manual_rsset_use_site_binding` and `remove_manual_rsset_use_site_binding` project selected-use binding state with MAL `owner_action_id`; active bindings also project into effective target metadata/C policy so an explicitly bound use can render an existing matching field without broad same-displacement propagation; planned refinement actions are `create_manual_rsset_binding_type_refinement` and `remove_manual_rsset_binding_type_refinement` | `target.rsset_region.add/edit/rename/remove` expose target-level RSSET changes including parser role metadata; `app_slot.rename/edit/remove` expose selected app-slot rename/edit/removal; `rsset.binding.report` is broad/read-only for selected numeric displacements and reports source locator, operand facts, base evidence, current field/gap state, nearby fields, same-displacement uses, type compatibility, expected cascade, and missing verifier blockers; `rsset.binding.bind/unbind` require explicit app/RSSET base evidence such as app-slot context or candidate-supplied `base_evidence_id`; planned refinement commands are `rsset.binding.bind_refine/type_refine/clear_type` | Planner recognizes explicit target RSSET, selected app-slot add/edit/rename/remove, and explicit RSSET binding candidates carrying base evidence; it skips already-satisfied projected target RSSET/app-slot state including effective target metadata, mines listing `app-slot-suggestions` into add/edit candidates, preserves parser metadata, and reports `rsset_region_state` or `rsset_binding_state`; broad binding feeds wait for selected-use verifier proof in `014-011` plus related follow-ups | Manual replay, effective metadata, command payload/execution, rendered RSSET field/reference, removal-to-raw-reference, app-slot command execution, parser-role payload projection, planner alias/autonomous suggestion selection, app-slot already-satisfied skip, RSSET binding replay/cleanup verification, loop RSSET-region/binding state verification from durable action payloads, richer report coverage for GenAm `$0102(a6)` gap/base-evidence blockers and same-displacement use scope, and exact direct-rebuild tests cover add/edit/rename/remove and bind/unbind payloads; C-backed selected-use render/rebuild now covers an existing-field bind while another same-displacement use stays raw; bind-refine field creation, linked field cleanup, owned cascade retraction, and type/xref checks remain planned where applicable | Continue app-slot/RSSET editing and binding implementation in `014-011`; investigation complete in `014-021`; identity/catalog/verifier/planner/type/correction follow-ups stay in `014-002`, `014-004`, `014-005`, `014-006`, `014-010`, `014-012`, and `014-013` |
+| App/base-relative slots and RSSET layout regions | App-slot refs, app-slot analysis, regions/gaps/field gaps/suggestions, `rsset_layout_regions`, named layouts; raw numeric base-relative operands can still lack `app_slot` context | `RSSET`/`RS.*`, `app_0234(a6)` names, typed field paths; RSSET binding can link `$NNNN(a6)` use-sites to a chosen layout before field creation | Add/edit/rename/remove slots, regions, sizes, storage kinds, semantic types, parser roles, layout gaps, and explicit numeric-displacement use-site bindings with reversible bind/refine/unbind cleanup | App-slot context has symbol/displacement/base/access; manual RSSET region identity is `(layout_name, base_symbol, offset)`; chosen binding identity is target + hunk + source address + operand index + base register + displacement + `(layout_name, base_symbol)` + base-evidence id; missing contract is exported operand-scoped `base_evidence_refs` for register-seed and flow-derived base proof | `create_manual_rsset_layout_region` adds/replaces manual RSSET layout regions; `remove_manual_rsset_layout_region` filters regions by identity; `create_manual_rsset_use_site_binding` and `remove_manual_rsset_use_site_binding` project selected-use binding state with MAL `owner_action_id`; active bindings also project into effective target metadata/C policy so an explicitly bound use can render an existing matching field without broad same-displacement propagation; planned refinement actions are `create_manual_rsset_binding_type_refinement` and `remove_manual_rsset_binding_type_refinement` | `target.rsset_region.add/edit/rename/remove` expose target-level RSSET changes including parser role metadata; `app_slot.rename/edit/remove` expose selected app-slot rename/edit/removal; `rsset.binding.report` is broad/read-only for selected numeric displacements and reports source locator, operand facts, base evidence, current field/gap state, nearby fields, same-displacement uses, type compatibility, expected cascade, and missing verifier blockers; `rsset.binding.bind/unbind` require explicit app/RSSET base evidence such as app-slot context, candidate-supplied `base_evidence_id`, or future `base_evidence_refs`; planned refinement commands are `rsset.binding.bind_refine/type_refine/clear_type` | Planner recognizes explicit target RSSET, selected app-slot add/edit/rename/remove, and explicit RSSET binding candidates carrying base evidence; it skips already-satisfied projected target RSSET/app-slot state including effective target metadata, mines listing `app-slot-suggestions` into add/edit candidates, preserves parser metadata, and reports `rsset_region_state` or `rsset_binding_state`; broad binding feeds wait for selected-use verifier proof plus exported base evidence in `014-011` | Manual replay, effective metadata, command payload/execution, rendered RSSET field/reference, removal-to-raw-reference, app-slot command execution, parser-role payload projection, planner alias/autonomous suggestion selection, app-slot already-satisfied skip, RSSET binding replay/cleanup verification, loop RSSET-region/binding state verification from durable action payloads, richer report coverage for GenAm `$0102(a6)` gap/base-evidence blockers and same-displacement use scope, and exact direct-rebuild tests cover add/edit/rename/remove and bind/unbind payloads; C-backed selected-use render/rebuild now covers an existing-field bind while another same-displacement use stays raw; bind-refine field creation, linked field cleanup, owned cascade retraction, exported `base_evidence_refs`, and type/xref checks remain planned where applicable | Continue app-slot/RSSET editing and binding implementation in `014-011`; investigation complete in `014-021`; identity/catalog/verifier/planner/type/correction follow-ups stay in `014-002`, `014-004`, `014-005`, `014-006`, `014-010`, `014-012`, and `014-013` |
 | Custom structs, fields, and typed accesses | `custom_structs`, RSSET regions, typed accesses, unresolved typed gaps, type-flow analysis | Struct field refs, typed field paths, gap navigation | Add/edit/rename/remove structs and fields; resolve typed gaps/accesses | Struct identity uses name; field identity uses `(struct_name, offset)` with field name carried for context; typed-access commands use selected element context | Custom struct and field add/edit/rename/remove actions project into effective metadata; field identity is `(struct_name, offset)` | `target.custom_struct.add/edit/rename/remove`, `target.custom_struct_field.add/edit/rename/remove`, `typed_gap.field.add/edit`, and `typed_access.field.edit/rename/remove` emit durable struct/field payloads and command execution local effects | Planner can form explicit target custom-struct/field and selected typed-gap/access field command candidates, skips already-projected struct/field state, but blocks unproven changes as missing an action-specific verifier until rendered custom-field paths are proven | Manual replay, command payload, command execution, effective metadata projection, and already-satisfied planner skips cover custom struct and field add/edit/rename/remove; typed-gap/access command payloads cover context routing; auto-analysis/navigation tests cover discovery only; rendered custom-struct field paths remain unverified | Add render verifiers for custom struct metadata in `014-012-structure-field-editing.md` |
 | Runtime/execution views and loader ranges | `execution_views`, runtime address ranges, runtime view starts, absolute labels | ORG/runtime labels and copied-stage source | Add/edit/remove runtime views for copied or relocated code/data when auto-analysis lacks evidence | Execution view identity is `(source_start, source_end, base_addr)`; absolute labels use label identity | `create_manual_execution_view` adds/replaces manual execution views; `remove_manual_execution_view` removes by identity; absolute labels can be created through label path | `target.execution_view.add/edit/remove` for target context; label rename only for labels | Planner accepts explicit `target.execution_view.*` command candidates with target context and round-trip verification, and skips already-projected execution views | Manual replay, effective metadata, command payload, and target command execution tests cover execution-view add/edit/remove; source/reproduction tests exist; broader correction verifiers remain open | Add broader correction/view actions in `014-013-correction-and-view-actions.md` |
 | Auto-analysis corrections and suppressions | `target_corrections.json`, `suppressed_seeded_items`, reproduction mismatches, blockers | Removes wrong imported/seeded facts and unblocks source render | Suppress or override target-specific auto facts only when upstream analysis is not objectively wrong for a whole class | Suppression identity is hunk + addr + seeded item kind; listing rows carry suppressible seeded source id/path/locator provenance | `suppress_seeded_item` projects target-specific seeded item suppressions | `correction.suppress_seeded_item.<kind>` row commands append seeded-item suppressions; review/reproduction correction commands absent | Planner accepts explicit `correction.suppress_seeded_item.*` candidates with row context and round-trip verification, and skips already-projected suppressions | Manual replay, effective metadata, command payload, and listing annotation tests cover seeded-item suppression; review/reproduction command verifier absent | Add execution-view and broader correction actions in `014-013-correction-and-view-actions.md` |
@@ -498,6 +941,23 @@ the target locator and cleanup owner; it does not yet create target-side inbound
 navigation. Documentation and verifiers must keep that distinction explicit
 until inbound xref projection exists.
 
+Implementation observation from `014-010`: selected element context re-selection
+can drop server-only identity fields unless they are explicitly preserved.
+Provenance evidence ids need target identity carried through catalog lookup, not
+only through the request cache key.
+
+Implementation observation from `014-010`/`014-002`: explicit parent evidence
+ids must participate in generated `source_evidence_id` values. Otherwise two
+different accepted base classifications for the same operand can collapse to
+one provenance id even though they imply different cleanup and write authority.
+
+Implementation observation from `014-010`: first-slice provenance can report
+LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw
+base-relative unknowns from listing context, but deeper C flow definitions are
+not exported yet. Lookup-derived bases, stored-state reloads, API-return aliases,
+and clobber-scoped lifetimes remain report gaps until backend provenance facts
+are surfaced.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one
@@ -529,7 +989,8 @@ until inbound xref projection exists.
 3. Add missing Manual Action Log actions. (`014-003`, with concrete capability
    issues `014-007` through `014-014`, `014-020`, and `014-021`; `014-015` investigated
    the data-block model and split implementation work into `014-016` through
-   `014-019`)
+   `014-019`; `014-022` audits the editing surface before further broad
+   expansion)
 4. Expose supported actions through the command catalog. (`014-004`)
 5. Add verifiers for every action family. (`014-005`)
 6. Teach the loop planner to use command-catalog capabilities instead of

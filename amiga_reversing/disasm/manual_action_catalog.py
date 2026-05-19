@@ -284,6 +284,9 @@ def listing_element_action_catalog(
     element_selector: Mapping[str, object],
 ) -> list[dict[str, object]]:
     context = selected_listing_element_context(row, element_selector)
+    target = element_selector.get("target")
+    if isinstance(target, str) and target.strip():
+        context["target"] = target.strip()
     for key in ("layout_name", "base_symbol", "base_evidence_id"):
         value = element_selector.get(key)
         if isinstance(value, str) and value.strip():
@@ -298,6 +301,7 @@ def listing_element_action_catalog(
     actions = [
         _context_transient("navigation.follow_reference", "Follow Reference", "follow_reference", context, "Right"),
     ]
+    actions.extend(_provenance_report_actions(context, row))
     if element_kind in {"immediate", "data_literal"}:
         actions.extend(
             [
@@ -462,6 +466,282 @@ def listing_element_action_catalog(
     if element_kind in {"immediate", "data_literal"}:
         actions.extend(_semantic_hint_actions(context))
     return actions
+
+
+def _provenance_report_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
+    report = _provenance_report(context, row)
+    if report is None:
+        return []
+    actions: list[dict[str, object]] = []
+    for action_id, label, focus in (
+        ("provenance.definition.report", "Provenance definition report", "definitions"),
+        ("provenance.uses.report", "Provenance uses report", "uses"),
+        ("provenance.source_family.report", "Provenance source-family report", "source_family"),
+    ):
+        action = _context_transient(action_id, label, "provenance_report", context, None)
+        focused_report = dict(report)
+        focused_report["focus"] = focus
+        action["report"] = focused_report
+        action["parameters"] = {"source_evidence_id": report["source_evidence_id"], "focus": focus}
+        actions.append(action)
+    return actions
+
+
+def _provenance_report(context: Mapping[str, object], row: Mapping[str, object]) -> dict[str, object] | None:
+    subject = _provenance_subject(context, row)
+    if subject is None:
+        return None
+    classification = _provenance_classification(context, subject)
+    source_evidence_id = _provenance_source_evidence_id(context, subject, classification)
+    definitions = _provenance_definitions(context, row, subject, classification, source_evidence_id)
+    uses = _provenance_uses(context, subject)
+    possible_actions = _provenance_possible_actions(context, classification)
+    return {
+        "kind": "provenance_report",
+        "subject": subject,
+        "definitions": definitions,
+        "uses": uses,
+        "source_family": classification["source_family"],
+        "status": classification["status"],
+        "path_lifetime_scope": classification["path_lifetime_scope"],
+        "source_evidence_id": source_evidence_id,
+        "confidence": classification["confidence"],
+        "conflicts": classification["conflicts"],
+        "possible_actions": possible_actions,
+        "consumers": _provenance_consumers(context),
+    }
+
+
+def _provenance_subject(context: Mapping[str, object], row: Mapping[str, object]) -> dict[str, object] | None:
+    register = _provenance_register(context)
+    if register is None:
+        return None
+    subject = {
+        "target": context.get("target"),
+        "hunk": context.get("hunk"),
+        "addr": context.get("addr") or context.get("start_offset"),
+        "stable_key": context.get("stable_key") or row.get("row_key") or row.get("stable_key"),
+        "row_text": str(row.get("text") or "").strip(),
+        "element_id": context.get("element_id"),
+        "element_kind": context.get("element_kind"),
+        "operand_index": context.get("operand_index"),
+        "register": register,
+    }
+    base_register = context.get("base_register")
+    if isinstance(base_register, str) and base_register:
+        subject["base_register"] = base_register.upper()
+    displacement = _optional_int(context.get("displacement"))
+    if displacement is not None:
+        subject["displacement"] = displacement
+        subject["address_mode"] = "address_register_displacement"
+    width_bytes = _optional_int(context.get("width_bytes"))
+    if width_bytes is None:
+        width_bytes = _rsset_binding_width_bytes(context, row)
+    if width_bytes is not None:
+        subject["width_bytes"] = width_bytes
+    value = _optional_int(context.get("value"))
+    if value is not None:
+        subject["value"] = value
+    return {key: value for key, value in subject.items() if value is not None}
+
+
+def _provenance_register(context: Mapping[str, object]) -> str | None:
+    for key in ("base_register", "register"):
+        value = context.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip().upper()
+    return None
+
+
+def _provenance_classification(
+    context: Mapping[str, object],
+    subject: Mapping[str, object],
+) -> dict[str, object]:
+    base_evidence_id = context.get("base_evidence_id")
+    if isinstance(base_evidence_id, str) and base_evidence_id.strip():
+        return {
+            "source_family": "rsset_app_base",
+            "status": "path_specific",
+            "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+            "confidence": "medium",
+            "origin_kind": "explicit_base_evidence",
+            "conflicts": [],
+            "parent_evidence_ids": [base_evidence_id.strip()],
+        }
+    if context.get("element_kind") == "app_slot":
+        return {
+            "source_family": "rsset_app_base",
+            "status": "analysis_proven",
+            "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+            "confidence": "high",
+            "origin_kind": "app_slot_analysis",
+            "conflicts": [],
+            "parent_evidence_ids": [],
+        }
+    if _is_structured_a6_lvo_context(context):
+        return {
+            "source_family": "library_base",
+            "status": "analysis_proven",
+            "path_lifetime_scope": _provenance_scope(context, "entry"),
+            "confidence": "high",
+            "origin_kind": "lvo_api_operand",
+            "conflicts": [],
+            "parent_evidence_ids": [],
+        }
+    if context.get("element_kind") in {"typed_access", "typed_gap"} and (
+        context.get("root_struct_name") or context.get("owner_struct_name")
+    ):
+        return {
+            "source_family": "struct_pointer",
+            "status": "analysis_proven",
+            "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+            "confidence": "high",
+            "origin_kind": "typed_access_analysis",
+            "conflicts": [],
+            "parent_evidence_ids": [],
+        }
+    if "displacement" in subject:
+        return {
+            "source_family": "unknown",
+            "status": "unresolved",
+            "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+            "confidence": "low",
+            "origin_kind": "base_relative_operand",
+            "conflicts": [],
+            "parent_evidence_ids": [],
+        }
+    return {
+        "source_family": "unknown",
+        "status": "unknown",
+        "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+        "confidence": "low",
+        "origin_kind": "register_operand",
+        "conflicts": [],
+        "parent_evidence_ids": [],
+    }
+
+
+def _provenance_scope(context: Mapping[str, object], kind: str) -> dict[str, object]:
+    scope: dict[str, object] = {"kind": kind}
+    for key in ("hunk", "addr", "start_offset", "end_offset", "operand_index"):
+        value = context.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            scope[key] = value
+    return scope
+
+
+def _provenance_source_evidence_id(
+    context: Mapping[str, object],
+    subject: Mapping[str, object],
+    classification: Mapping[str, object],
+) -> str:
+    target = _id_token(str(subject.get("target") or "target"))
+    family = _id_token(str(classification.get("source_family") or "unknown"))
+    status = _id_token(str(classification.get("status") or "unknown"))
+    register = _id_token(str(subject.get("register") or "reg"))
+    hunk = _optional_int(subject.get("hunk")) or 0
+    addr = _optional_int(subject.get("addr")) or _optional_int(subject.get("start_offset")) or 0
+    operand_index = _optional_int(subject.get("operand_index"))
+    operand_token = f"op{operand_index}" if operand_index is not None else "opnone"
+    displacement = _optional_int(subject.get("displacement"))
+    displacement_token = f"d{displacement:04X}" if displacement is not None else "dn"
+    origin = _id_token(str(classification.get("origin_kind") or "origin"))
+    parent_ids = classification.get("parent_evidence_ids")
+    parent_token = "pn"
+    if isinstance(parent_ids, Sequence) and not isinstance(parent_ids, (str, bytes, bytearray)):
+        first_parent = next((item for item in parent_ids if isinstance(item, str) and item), None)
+        if first_parent:
+            parent_token = _id_token(first_parent)
+    scope = classification.get("path_lifetime_scope")
+    scope_kind = _id_token(str(scope.get("kind") if isinstance(scope, Mapping) else "scope"))
+    return (
+        f"prov-{target}-{family}-{status}-h{hunk}-{addr:08X}-{operand_token}-"
+        f"{register}-{displacement_token}-{origin}-{parent_token}-{scope_kind}"
+    )
+
+
+def _provenance_definitions(
+    context: Mapping[str, object],
+    row: Mapping[str, object],
+    subject: Mapping[str, object],
+    classification: Mapping[str, object],
+    source_evidence_id: str,
+) -> list[dict[str, object]]:
+    definition = {
+        "source_evidence_id": source_evidence_id,
+        "origin_kind": classification["origin_kind"],
+        "origin_hunk": subject.get("hunk"),
+        "origin_addr": subject.get("addr") or subject.get("start_offset"),
+        "defining_instruction": str(row.get("text") or "").strip(),
+        "register": subject.get("register"),
+        "source_family": classification["source_family"],
+        "status": classification["status"],
+        "path_lifetime_scope": classification["path_lifetime_scope"],
+        "parent_evidence_ids": classification.get("parent_evidence_ids", []),
+    }
+    if context.get("api_library"):
+        definition["library_name"] = context.get("api_library")
+    if context.get("api_function"):
+        definition["function_name"] = context.get("api_function")
+    if classification.get("source_family") == "library_base" and "library_name" not in definition:
+        candidates = _library_base_candidates(context)
+        if candidates:
+            definition["library_name"] = candidates[0][0]
+            definition["struct_name"] = candidates[0][1]
+            function_name = _lvo_function_name(context)
+            if function_name:
+                definition["function_name"] = function_name
+    for key in ("root_struct_name", "owner_struct_name", "field_name", "field_expr"):
+        value = context.get(key)
+        if isinstance(value, str) and value:
+            definition[key] = value
+    return [{key: value for key, value in definition.items() if value is not None}]
+
+
+def _provenance_uses(context: Mapping[str, object], subject: Mapping[str, object]) -> list[dict[str, object]]:
+    uses = _mapping_sequence(context.get("same_displacement_uses"))
+    if uses:
+        return [dict(use) for use in uses]
+    use = {
+        "hunk": subject.get("hunk"),
+        "addr": subject.get("addr"),
+        "stable_key": subject.get("stable_key"),
+        "row_text": subject.get("row_text"),
+        "operand_index": subject.get("operand_index"),
+        "access": context.get("access") or "reference",
+        "width_bytes": subject.get("width_bytes"),
+    }
+    return [{key: value for key, value in use.items() if value is not None}]
+
+
+def _provenance_possible_actions(
+    context: Mapping[str, object],
+    classification: Mapping[str, object],
+) -> list[dict[str, object]]:
+    actions: list[dict[str, object]] = []
+    if classification.get("source_family") == "library_base":
+        for library_name, _struct_name in _library_base_candidates(context):
+            actions.append({"command_id": f"semantic.library_base.{_action_id_token(library_name)}", "state": "available"})
+    if _provenance_register(context):
+        actions.append({"command_id": "semantic.register.struct_ptr", "state": "available_with_parameters"})
+    if context.get("displacement") is not None and context.get("base_register"):
+        actions.append({"command_id": "rsset.binding.report", "state": "report_only"})
+        if context.get("base_evidence_id"):
+            actions.append({"command_id": "rsset.binding.bind", "state": "available"})
+        else:
+            actions.append({"command_id": "provenance.classify_source", "state": "planned_write_boundary"})
+    return actions
+
+
+def _provenance_consumers(context: Mapping[str, object]) -> list[str]:
+    consumers: list[str] = []
+    if context.get("displacement") is not None and context.get("base_register"):
+        consumers.append("rsset.binding")
+    if context.get("element_kind") in {"typed_access", "typed_gap"}:
+        consumers.append("typed_field")
+    if _provenance_register(context):
+        consumers.append("semantic.register_seed")
+    return consumers
 
 
 def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:

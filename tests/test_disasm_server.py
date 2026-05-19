@@ -4093,6 +4093,150 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
+def test_route_manual_action_catalog_reports_lvo_register_provenance_read_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="jsr _LVOOpenLibrary(a6)\n",
+            addr=0x120,
+            section_index=0,
+            start_offset=0x120,
+            end_offset=0x124,
+            stable_key="row-0",
+            opcode_or_directive="jsr",
+            operand_text="_LVOOpenLibrary(a6)",
+            operand_parts=(
+                SemanticOperand(
+                    kind="symbol",
+                    text="_LVOOpenLibrary",
+                    base_register="A6",
+                    metadata=SymbolOperandMetadata("_LVOOpenLibrary"),
+                ),
+            ),
+        )
+    ]
+    _seed_c_listing_artifact(
+        monkeypatch,
+        "bloodwych",
+        _RowsCListingArtifact(
+            rows,
+            api_calls_by_row_id={"r0": {"library": "exec.library", "function": "OpenLibrary", "inputs": []}},
+        ),
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
+    definition = next(action for action in actions if action["action_id"] == "provenance.definition.report")
+    source_family = next(action for action in actions if action["action_id"] == "provenance.source_family.report")
+    report = cast(dict[str, object], definition["report"])
+
+    assert definition["appends_to_manual_action_log"] is False
+    assert definition["effect"] == "inspection"
+    assert report["source_family"] == "library_base"
+    assert report["status"] == "analysis_proven"
+    assert report["confidence"] == "high"
+    assert cast(dict[str, object], report["subject"])["target"] == "bloodwych"
+    assert cast(dict[str, object], report["subject"])["base_register"] == "A6"
+    assert str(report["source_evidence_id"]).startswith(
+        "prov-bloodwych-library_base-analysis_proven-h0-00000120-op0-A6-dn-lvo_api_operand-pn-entry"
+    )
+    assert cast(list[dict[str, object]], report["definitions"])[0]["library_name"] == "exec.library"
+    assert source_family["parameters"] == {"source_evidence_id": report["source_evidence_id"], "focus": "source_family"}
+
+    with pytest.raises(disasm_server.CommandContractError) as exc:
+        disasm_server.route_request(
+            "POST",
+            "/api/projects/bloodwych/commands/execute",
+            {},
+            {
+                "command_id": "provenance.definition.report",
+                "context": _element_command_context(rows[0], "row-0:symbol:0:_LVOOpenLibrary"),
+            },
+        )
+    assert exc.value.code == "non_mutable_command"
+
+
+def test_route_manual_action_catalog_reports_base_relative_provenance_uses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        ListingRow(
+            row_id="r0",
+            kind="instruction",
+            text="sf.b $0102(a6)\n",
+            addr=0xE2,
+            section_index=0,
+            start_offset=0xE2,
+            end_offset=0xE6,
+            stable_key="row-0",
+            opcode_or_directive="sf.b",
+            operand_text="$0102(a6)",
+            operand_parts=(SemanticOperand(kind="displacement", text="$0102(a6)", base_register="A6", displacement=0x0102),),
+            operand_accesses=("write",),
+        ),
+        ListingRow(
+            row_id="r1",
+            kind="instruction",
+            text="tst.b $0102(a6)\n",
+            addr=0xF0,
+            section_index=0,
+            start_offset=0xF0,
+            end_offset=0xF4,
+            stable_key="row-1",
+            opcode_or_directive="tst.b",
+            operand_text="$0102(a6)",
+            operand_parts=(SemanticOperand(kind="displacement", text="$0102(a6)", base_register="A6", displacement=0x0102),),
+            operand_accesses=("read",),
+        ),
+    ]
+    _seed_c_listing_artifact(monkeypatch, "bloodwych", _RowsCListingArtifact(rows))
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: _binary_project(project_name, ready=True))
+
+    payload = disasm_server.route_request(
+        "GET",
+        "/api/projects/bloodwych/commands",
+        _element_command_query(rows[0], "row-0:displacement:0:operand"),
+    )
+    actions = cast(list[dict[str, object]], cast(dict[str, object], payload["data"])["commands"])
+    uses_action = next(action for action in actions if action["action_id"] == "provenance.uses.report")
+    report = cast(dict[str, object], uses_action["report"])
+    uses = cast(list[dict[str, object]], report["uses"])
+
+    assert report["source_family"] == "unknown"
+    assert report["status"] == "unresolved"
+    assert cast(dict[str, object], report["subject"])["address_mode"] == "address_register_displacement"
+    assert cast(dict[str, object], report["subject"])["displacement"] == 0x0102
+    assert cast(dict[str, object], report["subject"])["width_bytes"] == 1
+    assert [use["row_text"] for use in uses] == ["sf.b $0102(a6)", "tst.b $0102(a6)"]
+    assert {"command_id": "rsset.binding.report", "state": "report_only"} in report["possible_actions"]
+    assert {"command_id": "provenance.classify_source", "state": "planned_write_boundary"} in report["possible_actions"]
+
+    evidenced_query = _element_command_query(rows[0], "row-0:displacement:0:operand") | {
+        "base_evidence_id": ["selected-base:A6:__amiga_app_base__"],
+        "layout_name": ["app"],
+        "base_symbol": ["__amiga_app_base__"],
+    }
+    evidenced_payload = disasm_server.route_request("GET", "/api/projects/bloodwych/commands", evidenced_query)
+    evidenced_actions = cast(list[dict[str, object]], cast(dict[str, object], evidenced_payload["data"])["commands"])
+    evidenced_report = cast(
+        dict[str, object],
+        next(action for action in evidenced_actions if action["action_id"] == "provenance.definition.report")["report"],
+    )
+
+    assert evidenced_report["source_family"] == "rsset_app_base"
+    assert evidenced_report["status"] == "path_specific"
+    assert "selected-base_A6___amiga_app_base__" in str(evidenced_report["source_evidence_id"])
+    assert {"command_id": "rsset.binding.bind", "state": "available"} in evidenced_report["possible_actions"]
+
+
 def test_route_manual_action_catalog_keeps_unrelated_displacements_report_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

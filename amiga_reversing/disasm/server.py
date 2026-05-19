@@ -1962,6 +1962,7 @@ def _command_context_from_query(
             raise _command_contract_error("missing_locator", "element_id is required")
         row, projection_hash = _resolve_command_locator(project_name, locator)
         element_context = _selected_command_element_context(row, element_id)
+        element_context["target"] = project_name
         _copy_rsset_binding_context_from_query(element_context, query)
         _copy_rsset_same_displacement_context(project_name, element_context)
         element_context["locator"] = locator
@@ -2014,6 +2015,7 @@ def _command_context_from_body(
             raise _command_contract_error("missing_locator", "context.element_id is required")
         row, projection_hash = _resolve_command_locator(project_name, locator, workflow_profile=workflow_profile)
         element_context = _selected_command_element_context(row, element_id)
+        element_context["target"] = project_name
         _copy_rsset_binding_context(element_context, raw_context)
         _copy_rsset_same_displacement_context(project_name, element_context)
         element_context["locator"] = locator
