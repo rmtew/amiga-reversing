@@ -1038,10 +1038,11 @@ can drop server-only identity fields unless they are explicitly preserved.
 Provenance evidence ids need target identity carried through catalog lookup, not
 only through the request cache key.
 
-Implementation observation from `014-010`/`014-002`: explicit parent evidence
-ids must participate in generated `source_evidence_id` values. Otherwise two
-different accepted base classifications for the same operand can collapse to
-one provenance id even though they imply different cleanup and write authority.
+Implementation observation from `014-010`/`014-002`: parent provenance identity
+is a set of dependencies, not a single pointer. Generated `source_evidence_id`
+values must include every parent evidence id; otherwise two path-specific
+accepted base classifications that share the first parent can collapse to one
+consumable write authority.
 
 Implementation observation from `014-005`: provenance-backed writes need a
 generic verifier layer in addition to family-specific state/render checks. The

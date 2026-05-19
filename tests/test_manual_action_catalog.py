@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from amiga_reversing.disasm.manual_action_catalog import (
+    _provenance_source_evidence_id,
     listing_catalog_manual_payload,
     listing_element_action_catalog,
     listing_range_catalog_manual_payload,
@@ -58,6 +59,38 @@ def test_target_equate_catalog_payloads() -> None:
             "value_representation": "binary",
         }
     }
+
+
+def test_provenance_source_evidence_id_includes_all_parent_evidence_ids() -> None:
+    subject = {
+        "target": "demo",
+        "hunk": 0,
+        "addr": 0x120,
+        "operand_index": 0,
+        "register": "A6",
+        "displacement": 0x102,
+    }
+    base_classification = {
+        "source_family": "rsset_app_base",
+        "status": "path_specific",
+        "origin_kind": "explicit_base_evidence",
+        "path_lifetime_scope": {"kind": "selected_use"},
+    }
+
+    first = _provenance_source_evidence_id(
+        {},
+        subject,
+        {**base_classification, "parent_evidence_ids": ["seed:A6", "path:left"]},
+    )
+    second = _provenance_source_evidence_id(
+        {},
+        subject,
+        {**base_classification, "parent_evidence_ids": ["seed:A6", "path:right"]},
+    )
+
+    assert "seed_A6__path_left" in first
+    assert "seed_A6__path_right" in second
+    assert first != second
 
 
 def test_runtime_label_rename_uses_generated_absolute_address() -> None:

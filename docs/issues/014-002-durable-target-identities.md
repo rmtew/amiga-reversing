@@ -99,7 +99,7 @@ Current observations:
 - First-slice provenance reports now generate stable opaque
   `source_evidence_id` values from target, source family, status, hunk/source
   address, operand index, register/base register, displacement when present,
-  origin kind, parent evidence id when one exists, and path/lifetime scope.
+  origin kind, all parent evidence ids when they exist, and path/lifetime scope.
   These ids are report evidence only until an accepted classification or
   family-specific bind/type action records them durably.
 - Command execution preserves target identity into selected element context, so

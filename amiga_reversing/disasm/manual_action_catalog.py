@@ -658,18 +658,25 @@ def _provenance_source_evidence_id(
     displacement = _optional_int(subject.get("displacement"))
     displacement_token = f"d{displacement:04X}" if displacement is not None else "dn"
     origin = _id_token(str(classification.get("origin_kind") or "origin"))
-    parent_ids = classification.get("parent_evidence_ids")
-    parent_token = "pn"
-    if isinstance(parent_ids, Sequence) and not isinstance(parent_ids, (str, bytes, bytearray)):
-        first_parent = next((item for item in parent_ids if isinstance(item, str) and item), None)
-        if first_parent:
-            parent_token = _id_token(first_parent)
+    parent_token = _provenance_parent_token(classification)
     scope = classification.get("path_lifetime_scope")
     scope_kind = _id_token(str(scope.get("kind") if isinstance(scope, Mapping) else "scope"))
     return (
         f"prov-{target}-{family}-{status}-h{hunk}-{addr:08X}-{operand_token}-"
         f"{register}-{displacement_token}-{origin}-{parent_token}-{scope_kind}"
     )
+
+
+def _provenance_parent_token(classification: Mapping[str, object]) -> str:
+    parent_ids = classification.get("parent_evidence_ids")
+    if not isinstance(parent_ids, Sequence) or isinstance(parent_ids, (str, bytes, bytearray)):
+        return "pn"
+    parent_tokens = [_id_token(item) for item in parent_ids if isinstance(item, str) and item]
+    if not parent_tokens:
+        return "pn"
+    if len(parent_tokens) == 1:
+        return parent_tokens[0]
+    return "__".join(parent_tokens)
 
 
 def _provenance_definitions(

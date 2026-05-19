@@ -97,6 +97,9 @@ Progress:
 - Base-relative provenance reports reuse the existing same-displacement scan
   used by RSSET reports, so `$NNNN(An)` reports can show same-displacement
   register-base uses without creating Manual Action Log state.
+- Provenance evidence ids now include every parent evidence id, not only the
+  first one, so distinct path/base evidence chains cannot collapse to one
+  `source_evidence_id`.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 - Applying a struct/platform type should be able to feed type-flow analysis:
