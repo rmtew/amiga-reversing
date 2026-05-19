@@ -35,7 +35,12 @@ private mutation path.
 6. Autonomous mutation requires repo-visible evidence, rationale, suggested
    action, and verifier; command availability alone is not enough.
 7. Reject row index, row text, DOM text, and screenshots as durable identity.
-8. Generic `run-one` records planner state: ranked candidates, selected command,
+8. Treat inferred data type/class as a safe surface for action, not as enough
+   evidence that a manual rename is worthwhile.
+9. Generic class-prefix renames such as `string_XXXXXXXX` or
+   `table_XXXXXXXX` are framework/analyzer naming policy unless target context
+   supports a semantic name.
+10. Generic `run-one` records planner state: ranked candidates, selected command,
    and skipped-candidate reasons. Treat an already-satisfied skip as evidence
    to move to the next candidate, not as progress.
 
@@ -58,6 +63,14 @@ reverser would recognize:
 - add type, structure, field, or register-base facts when evidence supports
   them;
 - resolve review items only with the type-specific verifier.
+
+For data naming, prefer semantic names derived from program context, xrefs,
+contents, and call behavior, such as `credit_text`, `key_prompt_text`, or
+`title_screen_palette`. Do not spend target-iteration budget on mechanical
+restyling from class and address alone, such as renaming an anonymous string row
+to `string_0002109E`; implement that as general analysis/rendering policy, or
+log it as framework work, unless the current target action is to fix that
+general policy.
 
 Use `docs/proposals/014-source-converging-manual-action-surface.md` as the
 capability map. If the best source-converging action is not in the matrix, or

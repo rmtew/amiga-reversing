@@ -133,8 +133,11 @@ proposal 014:
 4. Data-block type binding for tables, sprites, copper lists, palettes, and
    platform structures.
 5. Hardware-base provenance only when the base register lifetime is proven.
-6. Data/global naming and EQU/value representation only through the separate
-   semantic actions defined by proposal 014 boundaries.
+6. Data/global naming only when the proposed name adds target semantics from
+   contents, xrefs, or call context; type/class plus address is a framework
+   naming-policy concern, not Pandora iteration progress.
+7. EQU/value representation only through the separate semantic actions defined
+   by proposal 014 boundaries.
 
 Work depth-first by candidate family. Stay with the best family until it
 produces real source improvement, saturates, or hits a blocker, then move to the
@@ -160,6 +163,13 @@ Visible source-quality improvement means at least one of:
 * a repeated raw pattern becomes a verified named or typed pattern,
 * a generated descendant becomes owned and cleanly removable,
 * review noise is reduced through a verified structured fact.
+
+Typed data-backed names must still be semantic. A data class can make a row
+safe to operate on, but renaming solely from class and address, for example
+`string_XXXXXXXX`, `lookup_table_XXXXXXXX`, or `copper_list_XXXXXXXX`, is not
+itself accepted Pandora progress unless the name captures program meaning from
+the surrounding use. Treat generic class styling as an analyzer/framework
+improvement or deferred work item.
 
 Reject placeholder comments, proof-only labels, weak-evidence renames, command
 exercise, and direct metadata edits outside supported actions.
@@ -457,7 +467,7 @@ the intended location.
 * Next recommendation: continue typed data-backed candidates until saturation,
   then inspect the next non-data-backed family before mutating.
 
-### 015-009: Named row-backed credit string
+### 015-009: Row-backed credit string exposed generic-name churn
 
 * Candidate: next executed typed data-backed Pandora action after the row-backed
   copper-list iteration.
@@ -470,14 +480,20 @@ the intended location.
 * Result: rendered source now uses `string_0002109E` at the string definition
   for the visible credit text and at the `lea.l string_0002109E(pc),a3` use
   before the string rendering call.
+* Review correction: this was exact and type-safe, but it was still a
+  mechanical class/address rename. It should not be used as a model for future
+  Pandora work. Future target renames should apply semantic program meaning,
+  for example a credit-text name, or defer generic `string_` styling to the
+  analyzer/framework.
 * Observation: the immediately preceding dry run reported a different typed
   data-backed candidate than the execute pass applied. Because the executed
   action was still row-backed, command-supported, and exactly verified, this did
   not block Pandora progress. Logged as deferred tooling follow-up D008.
 * Review: pure Pandora iteration report; no support-code change. RSSET/app-base
   evidence remains report-only until accepted base evidence exists.
-* Next recommendation: continue typed data-backed candidates, but watch for
-  repeated dry-run/execute drift before committing to larger batches.
+* Next recommendation: continue typed data-backed candidates only when the
+  action adds semantic target meaning; otherwise implement the generic naming
+  policy once or log it as deferred framework work.
 
 ## Deferred Work Log
 
@@ -707,6 +723,30 @@ Triage by scope:
   data-backed iteration batching.
 * Status: open.
 
+#### D009: Generic data-class label styling belongs in framework policy
+
+* Date/source: review of 015-009 row-backed string rename.
+* Location: `data_symbol.rename` candidates whose proposed names are only
+  `<data_class>_<address>`, such as `string_0002109E`.
+* Evidence:
+  * the row type and exact verifier made the action safe,
+  * the resulting name did not add target semantics beyond class and address,
+  * the visible string contents and call context could support a semantic
+    target name, while generic `string_` styling should not need manual LLM
+    iteration.
+* Expected source improvement:
+  * auto-analysis/rendering should apply generic class-based styling
+    consistently when that policy is desired,
+  * target-level LLM renames should use program meaning from content, xrefs,
+    and call context.
+* Missing tool/report/action:
+  * analyzer/framework naming policy for anonymous typed data rows, or a
+    planner filter that reports class/address-only renames as framework work
+    instead of target progress.
+* Pull-in condition: generic typed-row renames dominate the planner, or a
+  target action needs to replace a generic name with a semantic one.
+* Status: open.
+
 ## Stop Conditions
 
 Stop and report rather than continuing when:
@@ -717,6 +757,8 @@ Stop and report rather than continuing when:
 * evidence is conflicting and cannot be classified or overridden safely,
 * the path/lifetime scope is not provable,
 * verification fails without a clear fix,
+* the next action is only generic class/address label styling that belongs in
+  analyzer/framework policy,
 * only proof, fallback, placeholder, or makework actions remain.
 
 If exact round-trip fails after a target action, diagnose and fix only if the
