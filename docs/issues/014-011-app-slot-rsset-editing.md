@@ -95,7 +95,8 @@ Current evidence:
   round-trip.
 - Generic loop execution verifies RSSET binding commands by matching the
   durable binding payload against reloaded `rsset_use_site_bindings` or
-  `removed_rsset_use_site_bindings`, then exact round-trip.
+  `removed_rsset_use_site_bindings`, including binding owner/cleanup action
+  identity and consumed `base_evidence_refs`, then exact round-trip.
 - When inspect has no review candidates, the loop now mines listing navigation
   `app-slot-suggestions` into autonomous `target.rsset_region.add/edit`
   candidates and skips already-projected RSSET metadata.

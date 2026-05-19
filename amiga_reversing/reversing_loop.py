@@ -3466,6 +3466,12 @@ def _verify_rsset_binding_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     expected = _rsset_binding_from_durable_result(durable_result)
+    if expected is not None:
+        expected = _rsset_binding_with_expected_action_owner(
+            expected,
+            durable_result,
+            removed=command_id.endswith(".unbind"),
+        )
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_rsset_binding(target_id, command_id, expected, project_root=project_root),
@@ -3494,12 +3500,29 @@ def _rsset_binding_from_action(action: object) -> dict[str, object] | None:
         return None
     binding = action.get("rsset_use_site_binding")
     if isinstance(binding, dict):
-        return cast(dict[str, object], binding)
+        return dict(cast(dict[str, object], binding))
     payload = action.get("payload")
     binding = payload.get("rsset_use_site_binding") if isinstance(payload, dict) else None
     if isinstance(binding, dict):
-        return cast(dict[str, object], binding)
+        return dict(cast(dict[str, object], binding))
     return None
+
+
+def _rsset_binding_with_expected_action_owner(
+    binding: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    removed: bool,
+) -> dict[str, object]:
+    action_id = _durable_action_id(durable_result)
+    if not isinstance(action_id, str) or not action_id:
+        return binding
+    expected = dict(binding)
+    if removed:
+        expected.setdefault("cleanup_action_id", action_id)
+    else:
+        expected.setdefault("owner_action_id", action_id)
+    return expected
 
 
 def _verify_project_rsset_binding(
@@ -3541,6 +3564,15 @@ def _rsset_binding_matches(actual: dict[str, object], expected: dict[str, object
         "layout_name",
         "base_symbol",
         "base_evidence_id",
+        "owner_action_id",
+        "cleanup_action_id",
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "base_evidence_refs",
     ):
         if key in expected and actual.get(key) != expected.get(key):
             return False

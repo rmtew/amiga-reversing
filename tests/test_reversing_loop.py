@@ -4094,6 +4094,122 @@ def test_rsset_binding_candidate_uses_element_context_and_binding_verifier() -> 
     assert reversing_loop._candidate_verifier(candidate, command) == "rsset_binding_state"
 
 
+def test_rsset_binding_verifier_requires_owner_and_base_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    base_ref = {
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "source_family": "rsset_app_base",
+        "status": "path_specific",
+        "source_evidence_id": "prov-demo-rsset",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+        "accepted": True,
+    }
+    binding = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "hunk": 0,
+        "addr": 0xE2,
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": "prov-demo-rsset",
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "path_specific",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+        "confidence": "medium",
+        "conflicts": [],
+        "base_evidence_refs": [base_ref],
+    }
+    reloaded_binding = {**binding, "owner_action_id": "manual-other"}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_use_site_bindings": [reloaded_binding]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_rsset_binding_mutation(
+        "demo",
+        "rsset.binding.bind",
+        {"action": {"action_id": "manual-1", "payload": {"rsset_use_site_binding": binding}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_rsset_use_site_binding"]["owner_action_id"] == "manual-1"
+    assert semantic_layer["expected_rsset_use_site_binding"]["base_evidence_refs"] == [base_ref]
+    assert semantic_layer["matching_rsset_use_site_bindings"] == []
+
+
+def test_rsset_unbind_verifier_requires_cleanup_action(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    binding = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "hunk": 0,
+        "addr": 0xE2,
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"removed_rsset_use_site_bindings": [{**binding, "cleanup_action_id": "manual-other"}]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_rsset_binding_mutation(
+        "demo",
+        "rsset.binding.unbind",
+        {"action": {"action_id": "manual-2", "payload": {"rsset_use_site_binding": binding}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert semantic_layer["expected_rsset_use_site_binding"]["cleanup_action_id"] == "manual-2"
+    assert semantic_layer["matching_rsset_use_site_bindings"] == []
+
+
 def test_listing_library_base_candidates_use_lvo_api_call() -> None:
     candidates = reversing_loop._listing_library_base_candidates([_library_base_row()])
     command = reversing_loop._candidate_command_options(candidates[0])[0]

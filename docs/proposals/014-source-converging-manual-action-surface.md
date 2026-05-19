@@ -1047,6 +1047,11 @@ path/lifetime scope). The report can expose unresolved raw bases, but bind
 payloads and effective metadata should only carry accepted provenance refs so
 the generic provenance verifier can gate semantic writes.
 
+Implementation observation from `014-011`: selected RSSET binding verification
+must treat binding owner/cleanup action ids and consumed `base_evidence_refs`
+as semantic reload state. Matching only the selected-use identity tuple can
+hide stale ownership or stale provenance after unbind/rebind.
+
 Implementation observation from `014-012`: extending `M68kAnalysisPolicy` with
 custom structs should not add large inline arrays to stack-heavy analysis
 structures. Heap-owned custom-struct storage plus explicit policy deep-copy and
