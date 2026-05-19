@@ -46,6 +46,30 @@ def test_hygiene_preserves_source_import_facts(tmp_path: Path) -> None:
     assert report.safe_to_clean_run is True
 
 
+def test_hygiene_classifies_disk_import_state_and_nested_targets(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "manifest.json")
+    _touch(target_dir / "target_state.json")
+    _touch(target_dir / "targets" / "raw_payload" / "source_binary.json")
+    _touch(target_dir / "targets" / "raw_payload" / "target_metadata.json")
+    _touch(target_dir / "targets" / "raw_payload" / "binary.bin")
+    _touch(target_dir / "targets" / "raw_payload" / "reproduction.json")
+    _touch(target_dir / "targets" / "raw_payload" / "payload.s")
+    _touch(target_dir / "targets" / "raw_payload" / "ui_preferences.json")
+
+    report = inspect_target_hygiene("demo", project_root=tmp_path)
+
+    assert _entry(report, "manifest.json")["class"] == TargetFileClass.SOURCE_IMPORT_FACT
+    assert _entry(report, "target_state.json")["action"] == TargetFileAction.PRESERVE
+    assert _entry(report, "targets/raw_payload/source_binary.json")["class"] == TargetFileClass.SOURCE_IMPORT_FACT
+    assert _entry(report, "targets/raw_payload/binary.bin")["action"] == TargetFileAction.PRESERVE
+    assert _entry(report, "targets/raw_payload/reproduction.json")["class"] == TargetFileClass.GENERATED_OUTPUT
+    assert _entry(report, "targets/raw_payload/payload.s")["action"] == TargetFileAction.REGENERATE_ON_CLEAN_RUN
+    assert _entry(report, "targets/raw_payload/ui_preferences.json")["class"] == TargetFileClass.OBSOLETE_UI_STATE
+    assert report.unknown_files == ()
+    assert report.safe_to_clean_run is True
+
+
 def test_hygiene_classifies_obsolete_ui_and_manual_state(tmp_path: Path) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "target_ui_edits.json")

@@ -38,6 +38,12 @@ GENERATED_OUTPUT_FILE_NAMES = frozenset(
     }
 )
 GENERATED_OUTPUT_SUFFIXES = (".s", ".lst", ".map")
+PROJECT_SOURCE_IMPORT_FACT_FILE_NAMES = frozenset(
+    {
+        "manifest.json",
+        "target_state.json",
+    }
+)
 OBSOLETE_UI_STATE_FILE_NAMES = frozenset(
     {
         OBSOLETE_TARGET_UI_EDITS_FILE_NAME,
@@ -220,28 +226,33 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
             TargetFileAction.PRESERVE_AGENT_AUDIT,
             "agent audit/scratch state is separate from durable target facts",
         )
-    if len(path.parts) == 1 and name in SOURCE_IMPORT_FACT_FILES:
+    nested_target_parts = _nested_target_local_parts(path)
+    is_top_level = len(path.parts) == 1
+    is_target_local = is_top_level or nested_target_parts is not None
+    if (is_top_level and name in PROJECT_SOURCE_IMPORT_FACT_FILE_NAMES) or (
+        is_target_local and name in SOURCE_IMPORT_FACT_FILES
+    ):
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.SOURCE_IMPORT_FACT,
             TargetFileAction.PRESERVE,
             "known source/import fact file",
         )
-    if len(path.parts) == 1 and name == MANUAL_ACTION_LOG_FILE_NAME:
+    if is_target_local and name == MANUAL_ACTION_LOG_FILE_NAME:
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.LOCAL_MANUAL_STATE,
             TargetFileAction.DELETE_ON_CLEAN_RUN,
             "durable manual state is preserved for continue and reset only in clean-run",
         )
-    if len(path.parts) == 1 and name in OBSOLETE_UI_STATE_FILE_NAMES:
+    if is_target_local and name in OBSOLETE_UI_STATE_FILE_NAMES:
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.OBSOLETE_UI_STATE,
             TargetFileAction.DELETE_ON_CLEAN_RUN,
             "obsolete or local UI state is not durable reversing intent",
         )
-    if len(path.parts) == 1 and (name in GENERATED_OUTPUT_FILE_NAMES or name.endswith(GENERATED_OUTPUT_SUFFIXES)):
+    if is_target_local and (name in GENERATED_OUTPUT_FILE_NAMES or name.endswith(GENERATED_OUTPUT_SUFFIXES)):
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.GENERATED_OUTPUT,
@@ -254,6 +265,14 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
         TargetFileAction.REVIEW_REQUIRED,
         "not covered by the target hygiene allowlist",
     )
+
+
+def _nested_target_local_parts(path: Path) -> tuple[str, ...] | None:
+    if len(path.parts) < 3 or path.parts[0] != "targets":
+        return None
+    if any(part in {"", ".", ".."} for part in path.parts):
+        return None
+    return path.parts[2:]
 
 
 def _target_child(target_dir: Path, rel_path: str) -> Path:

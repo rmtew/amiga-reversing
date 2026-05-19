@@ -286,6 +286,31 @@ Comments are a last resort for concrete semantic discoveries when no structured
 command exists. They must be evidence-backed, useful in source, and verified at
 the intended location.
 
+## Iteration Report
+
+### 015-001: Disk-target hygiene classifier gap
+
+* Candidate: Start gate hygiene for
+  `amiga_disk_pandora-1988-firebird`.
+* Evidence: initial `reversing_loop hygiene` reported unknown target-local
+  files for disk import state and nested sub-target files:
+  `manifest.json`, `target_state.json`, nested `.project.json`,
+  `source_binary.json`, `target_metadata.json`, `binary.bin`, generated
+  `.s`/`reproduction.json`, and local `ui_preferences.json`.
+* Command: fixed `reversing_workspace` classification for disk project import
+  state and `targets/<subtarget>/...` target-local files.
+* Verifier: `tests\test_reversing_workspace.py -q` passed, focused `ruff`
+  passed, and the original Pandora hygiene command now reports no unknown
+  files with `safe_to_run: true`.
+* Timing: focused pytest 0.97s; Pandora hygiene under 1s after the fix.
+* Result: clean-run/continue/reimport are now available for Pandora without
+  reviewing expected generated or source/import files as unknowns.
+* Review: no Pandora Manual Action Log or rendered source mutation occurred.
+  This is a support-code blocker fix only; round-trip verification was not
+  required.
+* Next recommendation: run Pandora `clean-run` once to establish the trial
+  baseline, then inspect candidates using normal loop/query surfaces.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
