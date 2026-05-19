@@ -1293,6 +1293,72 @@ def test_data_block_clear_type_verifier_requires_previous_binding_token(
     assert report["layers"][2]["message"] == "clear_type requires previous type-binding render token"
 
 
+def test_data_block_clear_type_verifier_requires_cleanup_action(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    previous_type_binding = {
+        "type_binding_id": "events:30:4:platform_struct:Node",
+        "layout_id": "events",
+        "element_offset": 0x30,
+        "element_width": 4,
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "owner_action_id": "manual-bind",
+    }
+    element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "scalar",
+        "previous_type_binding": previous_type_binding,
+    }
+    reloaded_element = {
+        **element,
+        "previous_type_binding": {**previous_type_binding, "cleanup_action_id": "manual-other"},
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"data_block_elements": [reloaded_element]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_manual_log_matches_mutation",
+        lambda target_id, durable_result, project_root: {"layer": "manual_action_log", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_projected_data_block_type_binding_rendered_source",
+        lambda target_id, command, command_id, expected, project_root: {"layer": "rendered_source", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_round_trip_exact",
+        lambda target_id, project_root: {"layer": "round_trip", "status": "passed"},
+    )
+
+    verification = reversing_loop._verify_data_block_type_binding_mutation(
+        "demo",
+        {"command_id": "row.data_block.element.clear_type"},
+        "row.data_block.element.clear_type",
+        {"action": {"action_id": "manual-clear", "payload": {"data_block_element": element}}},
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    semantic_layer = verification["layers"][1]
+    assert (
+        semantic_layer["expected_data_block_element"]["previous_type_binding"]["cleanup_action_id"] == "manual-clear"
+    )
+    assert semantic_layer["matching_data_block_elements"] == []
+
+
 @pytest.mark.parametrize(
     ("command_id", "element", "state_key"),
     [

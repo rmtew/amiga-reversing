@@ -1728,6 +1728,12 @@ def _project_actions(
                 binding = dict(type_binding)
                 binding["owner_action_id"] = action.action_id
                 element["type_binding"] = binding
+            previous_type_binding = element.get("previous_type_binding")
+            if isinstance(previous_type_binding, dict) and not isinstance(type_binding, dict):
+                element = dict(element)
+                previous_binding = dict(previous_type_binding)
+                previous_binding["cleanup_action_id"] = action.action_id
+                element["previous_type_binding"] = previous_binding
             element_key = _data_block_element_key(element)
             removed_data_block_elements.pop(element_key, None)
             data_block_elements[element_key] = element

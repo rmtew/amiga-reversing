@@ -27,12 +27,14 @@ Current implementation:
   consumed source evidence when supplied.
 - Manual Action Log replay stamps `type_binding.owner_action_id` from the
   append action. Clear-type payloads preserve `previous_type_binding` for stale
-  render checks while removing the active binding.
+  render checks and stamp `previous_type_binding.cleanup_action_id` from the
+  clearing action while removing the active binding.
 - Loop execution is verifier-gated: source-dependent binds require accepted
   `data_block_pointer`, `struct_pointer`, `constant_or_equ`, or
   `rsset_app_base` evidence with lifetime scope; verification proves reload,
   rendered type token presence/absence, provenance consumption where present,
-  matching type-binding `owner_action_id`, and exact round-trip.
+  matching type-binding `owner_action_id`, matching clear-type
+  `cleanup_action_id`, and exact round-trip.
 - Effective metadata expands accepted custom-struct data-block bindings into
   typed structured-data field entities. The C policy loader now preserves
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and
@@ -48,7 +50,7 @@ Current implementation:
   element's structured-data item so known values render symbolically, with exact
   rebuild proof.
 - Generated type-flow facts/review items and owner-scoped descendant cleanup
-  remain open beyond active binding owner verification.
+  remain open beyond active binding owner and clear-type cleanup verification.
 
 Requirements:
 - Bind elements to existing custom structs by target struct identity.

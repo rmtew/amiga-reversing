@@ -1190,6 +1190,43 @@ def test_manual_action_log_stamps_data_block_type_binding_owner(tmp_path: Path) 
     )
 
 
+def test_manual_action_log_stamps_data_block_type_binding_cleanup(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {"layout_id": "events", "hunk": 0, "source_start": 0x100, "source_end": 0x110}
+    previous_type_binding = {
+        "type_binding_id": "events:0:4:platform_struct:Node",
+        "layout_id": "events",
+        "element_offset": 0,
+        "element_width": 4,
+        "binding_kind": "platform_struct",
+        "bound_type_id": "Node",
+        "owner_action_id": "a2",
+    }
+    element = {
+        "data_block_element_id": "events:0",
+        "layout_id": "events",
+        "offset": 0,
+        "width": 4,
+        "kind": "scalar",
+        "previous_type_binding": previous_type_binding,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a3", 3, "set_manual_data_block_element", data_block_element=element),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.data_block_elements == (
+        {**element, "previous_type_binding": {**previous_type_binding, "cleanup_action_id": "a3"}},
+    )
+
+
 def test_manual_action_log_projects_data_block_interpreted_refs(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
