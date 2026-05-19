@@ -1022,6 +1022,11 @@ and durable replay must carry `contradicted_evidence_id`, reason, path/lifetime
 scope, and cleanup scope before planner execution or post-mutation verification
 may accept the write.
 
+Implementation observation from `014-013`: pre-execution override gates must
+validate the correction boundary fields by type, not truthiness. Non-string
+`contradicted_evidence_id` or reason values can otherwise slip past planner
+selection and fail only after mutation.
+
 Implementation observation from `014-010`: first-slice provenance can report
 LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw
 base-relative unknowns from listing context, but deeper C flow definitions are

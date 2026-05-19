@@ -6234,12 +6234,17 @@ def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]
 
 
 def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:
+    contradicted_evidence_id = evidence.get("contradicted_evidence_id")
+    reason = evidence.get("reason")
     cleanup_scope = evidence.get("cleanup_scope")
+    cleanup_kind = cleanup_scope.get("kind") if isinstance(cleanup_scope, dict) else None
     return (
-        bool(evidence.get("contradicted_evidence_id"))
-        and bool(evidence.get("reason"))
-        and isinstance(cleanup_scope, dict)
-        and bool(cleanup_scope.get("kind"))
+        isinstance(contradicted_evidence_id, str)
+        and bool(contradicted_evidence_id)
+        and isinstance(reason, str)
+        and bool(reason)
+        and isinstance(cleanup_kind, str)
+        and bool(cleanup_kind)
     )
 
 
