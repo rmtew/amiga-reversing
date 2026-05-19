@@ -3004,6 +3004,7 @@ def _verify_manual_mutation(
     if isinstance(command_id, str) and command_id.startswith("rsset.binding."):
         return _verify_rsset_binding_mutation(
             target_id,
+            command,
             str(command_id),
             durable_result,
             project_root=project_root,
@@ -3548,6 +3549,7 @@ def _rsset_region_matches(actual: dict[str, object], expected: dict[str, object]
 
 def _verify_rsset_binding_mutation(
     target_id: str,
+    command: dict[str, object],
     command_id: str,
     durable_result: dict[str, object],
     *,
@@ -3563,6 +3565,7 @@ def _verify_rsset_binding_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_rsset_binding(target_id, command_id, expected, project_root=project_root),
+        _verify_projected_rsset_binding_rendered_source(target_id, command, command_id, expected),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -3677,6 +3680,95 @@ def _rsset_binding_identity_value_matches(key: str, actual: object, expected: ob
     if key == "base_evidence_refs":
         return _provenance_reference_values_match(actual, expected)
     return actual == expected
+
+
+def _verify_projected_rsset_binding_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing RSSET use-site binding payload"}
+    location = _custom_struct_field_render_location(command)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "RSSET binding source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["2"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "listing rows missing after reload"}
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    affected_rendered_text = "\n".join(_data_block_rendered_source_text(row) for row in affected_rows)
+    if not affected_rows:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "source_offset": source_offset,
+            "message": "affected listing row missing after reload",
+        }
+    matching_refs = [
+        ref
+        for row in affected_rows
+        for ref in _mapping_sequence(row.get("app_slot_refs"))
+        if _rsset_binding_app_slot_ref_matches(ref, expected)
+    ]
+    raw_tokens = _rsset_binding_raw_displacement_tokens(expected)
+    matched_raw_tokens = [token for token in raw_tokens if _rendered_source_contains_token(affected_rendered_text, token)]
+    removed = command_id.endswith(".unbind")
+    ref_only = expected.get("render_state") == "linked_gap_or_raw"
+    if removed:
+        status = "passed" if not matching_refs and matched_raw_tokens else "failed"
+    elif ref_only:
+        status = "passed" if matching_refs and matched_raw_tokens else "failed"
+    else:
+        status = "passed" if matching_refs else "failed"
+    return {
+        "layer": "rendered_source",
+        "status": status,
+        "source_offset": source_offset,
+        "matching_app_slot_refs": matching_refs,
+        "expected_raw_tokens": raw_tokens,
+        "matched_raw_tokens": matched_raw_tokens,
+        "affected_rendered_text": affected_rendered_text,
+    }
+
+
+def _rsset_binding_app_slot_ref_matches(ref: dict[str, object], expected: dict[str, object]) -> bool:
+    for key in ("base_register", "displacement", "operand_index"):
+        if key in expected and ref.get(key) != expected.get(key):
+            return False
+    base_symbol = expected.get("base_symbol")
+    return not (isinstance(base_symbol, str) and ref.get("base_symbol") not in {None, base_symbol})
+
+
+def _rsset_binding_raw_displacement_tokens(expected: dict[str, object]) -> list[str]:
+    displacement = expected.get("displacement")
+    base_register = expected.get("base_register")
+    if not isinstance(displacement, int) or not isinstance(base_register, str) or not base_register:
+        return []
+    registers = [base_register.lower(), base_register.upper()]
+    tokens: list[str] = []
+    if displacement == 0:
+        tokens.extend(f"({register})" for register in registers)
+    else:
+        tokens.extend(f"{displacement}({register})" for register in registers)
+        for width in (0, 2, 4, 8):
+            tokens.extend(f"${displacement:0{width}X}({register})" for register in registers)
+    return list(dict.fromkeys(tokens))
 
 
 def _provenance_reference_values_match(actual: object, expected: object) -> bool:

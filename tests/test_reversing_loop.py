@@ -6249,6 +6249,7 @@ def test_rsset_binding_verifier_requires_owner_and_base_evidence(
 
     verification = reversing_loop._verify_rsset_binding_mutation(
         "demo",
+        {"context": {"kind": "target"}},
         "rsset.binding.bind",
         {"action": {"action_id": "manual-1", "payload": {"rsset_use_site_binding": binding}}},
         project_root=tmp_path,
@@ -6285,6 +6286,117 @@ def test_rsset_binding_match_treats_parent_evidence_ids_as_sets() -> None:
     actual["parent_evidence_ids"] = ["prov-parent-other"]
 
     assert not reversing_loop._rsset_binding_matches(actual, expected)
+
+
+def test_rsset_binding_render_verifier_requires_ref_only_selected_use(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {"context": {"kind": "element", "locator": _listing_locator(), "element_id": "row-1:displacement:0"}}
+    expected = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "operand_index": 0,
+        "render_state": "linked_gap_or_raw",
+    }
+    rows: list[dict[str, object]] = [
+        {
+            **_listing_locator(),
+            "text": "\tmove.b d0,$0102(a6)",
+            "app_slot_refs": [],
+        }
+    ]
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        assert method == "GET"
+        assert path == "/api/projects/demo/listing"
+        return {"data": {"rows": rows}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.bind",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matched_raw_tokens"] == ["$0102(a6)"]
+    assert verification["matching_app_slot_refs"] == []
+
+    rows[0]["app_slot_refs"] = [
+        {
+            "symbol": "app_0102",
+            "base_register": "A6",
+            "displacement": 0x0102,
+            "operand_index": 0,
+        }
+    ]
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.bind",
+        expected,
+    )
+
+    assert verification["status"] == "passed"
+
+
+def test_rsset_unbind_render_verifier_requires_raw_without_linked_ref(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    command = {"context": {"kind": "element", "locator": _listing_locator(), "element_id": "row-1:displacement:0"}}
+    expected = {
+        "rsset_use_site_binding_id": "bind-selected-gap",
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "operand_index": 0,
+    }
+    rows: list[dict[str, object]] = [
+        {
+            **_listing_locator(),
+            "text": "\tmove.b d0,$0102(a6)",
+            "app_slot_refs": [
+                {
+                    "symbol": "app_0102",
+                    "base_register": "A6",
+                    "displacement": 0x0102,
+                    "operand_index": 0,
+                }
+            ],
+        }
+    ]
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        assert method == "GET"
+        assert path == "/api/projects/demo/listing"
+        return {"data": {"rows": rows}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.unbind",
+        expected,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["matched_raw_tokens"] == ["$0102(a6)"]
+    assert verification["matching_app_slot_refs"]
+
+    rows[0]["app_slot_refs"] = []
+
+    verification = reversing_loop._verify_projected_rsset_binding_rendered_source(
+        "demo",
+        command,
+        "rsset.binding.unbind",
+        expected,
+    )
+
+    assert verification["status"] == "passed"
 
 
 def test_rsset_unbind_verifier_requires_cleanup_action(
@@ -6324,6 +6436,7 @@ def test_rsset_unbind_verifier_requires_cleanup_action(
 
     verification = reversing_loop._verify_rsset_binding_mutation(
         "demo",
+        {"context": {"kind": "target"}},
         "rsset.binding.unbind",
         {"action": {"action_id": "manual-2", "payload": {"rsset_use_site_binding": binding}}},
         project_root=tmp_path,

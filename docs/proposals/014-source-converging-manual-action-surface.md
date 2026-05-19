@@ -1393,6 +1393,12 @@ Creating a generic `app_XXXX` field for a missing RSSET layout would make source
 rendering output-affecting before `bind_refine`; listing/navigation refs can
 expose the linked gap while keeping the operand raw and round-trip proof exact.
 
+Follow-up observation from `014-011`: RSSET binding verification needs a
+rendered selected-use layer, not only semantic reload plus exact rebuild.
+Bind-only `linked_gap_or_raw` state must prove both the restored raw
+displacement and the matching selected-use `app_slot_refs` link; unbind must
+prove the raw displacement remains while that selected-use ref is gone.
+
 Implementation observation from `014-012`: extending `M68kAnalysisPolicy` with
 custom structs should not add large inline arrays to stack-heavy analysis
 structures. Heap-owned custom-struct storage plus explicit policy deep-copy and

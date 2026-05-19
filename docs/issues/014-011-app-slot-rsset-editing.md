@@ -177,6 +177,10 @@ Current evidence:
   unknown, conflicting, non-`rsset_app_base`, or incomplete override evidence,
   `base_evidence_id` alone no longer exposes mutation; the operand remains
   report-only with a classify-source boundary.
+- RSSET binding verification now includes selected-use rendered-source proof:
+  bind-only `linked_gap_or_raw` state must still show the raw displacement plus
+  the matching `app_slot_refs` link, and unbind must show the raw displacement
+  without the stale selected-use ref.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
