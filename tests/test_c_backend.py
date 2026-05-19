@@ -961,6 +961,26 @@ class _M68kAnalysisTargetEquate(ctypes.Structure):
     ]
 
 
+class _M68kAnalysisManualRuntimeAddressRef(ctypes.Structure):
+    _fields_ = [
+        ("has_section_index", ctypes.c_uint8),
+        ("has_target", ctypes.c_uint8),
+        ("has_runtime_address", ctypes.c_uint8),
+        ("confidence", ctypes.c_uint8),
+        ("section_index", ctypes.c_uint32),
+        ("offset", ctypes.c_uint32),
+        ("size", ctypes.c_uint32),
+        ("target_section_index", ctypes.c_uint32),
+        ("target_offset", ctypes.c_uint32),
+        ("runtime_address", ctypes.c_uint32),
+        ("owner_element_offset", ctypes.c_uint32),
+        ("owner_kind", ctypes.c_char * 32),
+        ("owner_id", ctypes.c_char * 96),
+        ("owner_layout_id", ctypes.c_char * 64),
+        ("xref_generation_mode", ctypes.c_char * 32),
+    ]
+
+
 class _M68kAnalysisPolicy(ctypes.Structure):
     _fields_ = [
         ("max_cpu", ctypes.c_uint8),
@@ -977,7 +997,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("rsset_layout_region_count", ctypes.c_uint16),
         ("manual_representation_count", ctypes.c_uint16),
         ("target_equate_count", ctypes.c_uint16),
-        ("reserved_count0", ctypes.c_uint16),
+        ("manual_runtime_address_ref_count", ctypes.c_uint16),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 64),
@@ -988,7 +1008,8 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
         ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
         ("manual_representations", _M68kAnalysisManualRepresentation * 128),
-        ("target_equates", _M68kAnalysisTargetEquate * 16),
+        ("target_equates", _M68kAnalysisTargetEquate * 128),
+        ("manual_runtime_address_refs", _M68kAnalysisManualRuntimeAddressRef * 128),
     ]
 
 
@@ -3536,6 +3557,139 @@ after_data:
             "xref_generation_mode": "bidirectional",
         }
     ]
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        project_root=PROJECT_ROOT,
+    )
+    assert rebuilt == original
+
+
+def test_real_dll_data_block_interpreted_refs_scale_past_target_equate_edit_cap(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "manual-data-block-ref-table.bin"
+    source_offsets = [2 + index * 4 for index in range(20)]
+    source_text = "\n".join(
+        [
+            "    SECTION section,code",
+            "start:",
+            "    bra.b after_data",
+            *[f"    dc.l ${offset:08X}" for offset in source_offsets],
+            "after_data:",
+            "    rts",
+            "",
+        ]
+    )
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    actions = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "target_identity": build_target_identity(source),
+        },
+        {
+            "record": "manual_action",
+            "action_id": "layout",
+            "sequence": 1,
+            "created_at": "2026-05-18T00:00:01+00:00",
+            "kind": "create_manual_data_block_layout",
+            "data_block_layout": {
+                "layout_id": "ref-table",
+                "hunk": 0,
+                "source_start": source_offsets[0],
+                "source_end": source_offsets[-1] + 4,
+                "default_unit": "long",
+            },
+        },
+    ]
+    for index, source_offset in enumerate(source_offsets):
+        element_offset = index * 4
+        actions.append(
+            {
+                "record": "manual_action",
+                "action_id": f"element-{index}",
+                "sequence": 2 + index * 2,
+                "created_at": "2026-05-18T00:00:02+00:00",
+                "kind": "set_manual_data_block_element",
+                "data_block_element": {
+                    "data_block_element_id": f"ref-table:{element_offset}",
+                    "layout_id": "ref-table",
+                    "offset": element_offset,
+                    "width": 4,
+                    "kind": "scalar",
+                },
+            }
+        )
+        actions.append(
+            {
+                "record": "manual_action",
+                "action_id": f"ref-{index}",
+                "sequence": 3 + index * 2,
+                "created_at": "2026-05-18T00:00:03+00:00",
+                "kind": "interpret_manual_data_block_element_ref",
+                "data_block_interpreted_ref": {
+                    "data_block_ref_id": f"ref-table:{element_offset}:absolute:h0:{source_offset:08X}",
+                    "layout_id": "ref-table",
+                    "offset": element_offset,
+                    "width": 4,
+                    "reference_kind": "absolute",
+                    "target_hunk": 0,
+                    "target_offset": source_offset,
+                    "target_locator": {"hunk": 0, "offset": source_offset},
+                    "source_value": source_offset,
+                    "confidence": "manual",
+                    "xref_generation_mode": "bidirectional",
+                },
+            }
+        )
+    (target_dir / MANUAL_ACTION_LOG_FILE_NAME).write_text(
+        "\n".join(json.dumps(action, sort_keys=True) for action in actions) + "\n",
+        encoding="utf-8",
+    )
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        rendered = render_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+        rows, _api_calls, _profile = build_project_listing_rows_from_source_with_c_artifact(
+            source,
+            metadata_text=str(metadata_path),
+            project_root=PROJECT_ROOT,
+        )
+
+    assert rendered.count("\tEQU\t$") >= len(source_offsets)
+    for source_offset in source_offsets:
+        symbol = f"dblk_ref_h0_{source_offset:08X}"
+        assert f"{symbol}\tEQU\t${source_offset:X}" in rendered
+        assert f"\tdc.l {symbol}\n" in rendered
+    owned_refs = [
+        ref
+        for row in rows
+        for ref in row.get("runtime_address_refs", [])
+        if isinstance(ref, dict) and ref.get("owner_kind") == "data_block_interpreted_ref"
+    ]
+    assert len(owned_refs) == len(source_offsets)
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,

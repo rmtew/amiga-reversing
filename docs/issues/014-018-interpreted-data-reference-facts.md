@@ -13,14 +13,16 @@ Requirements:
   exposed through a `data_block.element.interpret_ref` command id. First slice
   implements replay/projection state and row command catalog exposure through
   `row.data_block.element.interpret_ref`; symbolic render projection is now
-  covered for supported absolute byte/word/long refs, while generated xref
-  projection remains open.
+  covered for supported absolute byte/word/long refs, and generated
+  source-owned runtime-address ref projection is covered for those refs.
 - Model reference kind, width, signedness, base/source evidence, scale, target
   locator, confidence, and xref-generation mode.
 - Project interpreted refs into a dedicated manual fact family.
 - Generate symbolic rendering where supported.
-- Generate bidirectional xrefs and remove them when the owning interpretation is
-  removed.
+- Generate source-owned runtime-address refs carrying target hunk/offset and
+  remove them when the owning interpretation is removed. Target-side inbound
+  navigation remains a follow-up and must not be implied by current verifier
+  coverage.
 - Preserve the owning layout id, element offset, and interpretation identity on
   generated xrefs so auto-analysis can distinguish manual derived refs from
   analyzer-native refs and delete them on removal.
@@ -52,6 +54,9 @@ Implemented tests:
 - Effective metadata reuses those guards before output projection, then emits a
   generated target-local `EQU` plus element-scoped symbolic representation for
   supported absolute byte/word/long refs.
+- The C policy target-equate table is sized to the generated interpreted-ref
+  table slice, and C-backed coverage proves more than 16 interpreted refs render
+  and rebuild exactly.
 - Effective metadata emits owned manual runtime-address refs for supported
   absolute refs when `xref_generation_mode` is `bidirectional` or
   `source_only`; generated refs carry the owning layout id, element offset,
@@ -75,9 +80,9 @@ Acceptance criteria:
 - Replay reloads interpreted-reference state exactly.
 - Render verifier checks expected symbolic text for supported kinds. Covered for
   absolute byte/word/long refs.
-- Xref verifier checks generated source and target xrefs. Covered through owned
-  `runtime_address_refs` carrying source row, target hunk/offset, and owner
-  identity.
+- Xref verifier checks generated source-owned runtime-address refs carrying the
+  target hunk/offset and owner identity. Target-side inbound xref navigation is
+  not part of this completed slice.
 - Removal verifier proves generated xrefs and symbolic rendering disappear.
   Covered for supported absolute refs.
 - Exact rebuild remains mandatory. Covered for symbolic render.

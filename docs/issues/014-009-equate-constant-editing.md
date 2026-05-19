@@ -29,9 +29,10 @@ Progress:
   definition/reference refs.
 - Rename/remove projection now updates or prunes symbolic representations, so
   rendered source cannot retain dangling target-equate use sites.
-- Current C policy table intentionally caps target-local equates at 16 entries
-  to avoid growing the stack-heavy `M68kAnalysisPolicy`; broader capacity should
-  move this table out of the policy struct.
+- Current C policy table caps target-local equates at 128 entries, matching the
+  manual representation and generated runtime-ref slices used by interpreted
+  data refs. Broader capacity should move this table out of the stack-heavy
+  `M68kAnalysisPolicy`.
 
 Follow-up:
 - Target-local EQU definition value representation is tracked separately in

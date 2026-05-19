@@ -199,7 +199,8 @@ Child implementation issues:
   scalar layout rendering, replay/render/removal/exact rebuild verifiers, GenAm
   hex table smoke.
 - `014-018-interpreted-data-reference-facts.md`: manual interpreted-reference
-  facts, symbolic rendering, generated bidirectional xrefs, and removal.
+  facts, symbolic rendering, source-owned runtime-address refs carrying target
+  locators, and removal.
 - `014-019-data-block-type-binding-and-platform-structs.md`: custom/platform
   struct binding, enum/equate domains, arrays/nested structs, and type-flow or
   review-item projection.
