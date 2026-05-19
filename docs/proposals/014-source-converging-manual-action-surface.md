@@ -1621,9 +1621,16 @@ same accepted evidence/status/scope, parent ids, conflicts, override fields,
 and cleanup scope as the selected candidate; otherwise the server can only
 return row-local/regenerated catalog entries and the planner cannot correctly
 distinguish unavailable evidence from stale or mismatched evidence.
+
 This includes row-scoped commands; `contradicted_evidence_id` and `reason`
 cannot be preserved only for element-scoped commands without weakening manual
 override correction proof.
+
+Implementation observation from `014-005`: manual seed creation has the same
+durable payload boundary as semantic/type writes. Verifiers must reject sparse
+seed payloads before reloaded-state matching: row/review seeds need `seed_id`,
+`kind`, `hunk`, and `addr`; range seeds also need `end` so a matching seed id
+cannot hide a stale or wrong source span.
 
 ## Principles
 

@@ -187,6 +187,10 @@ Current evidence:
 - Manual-seed verifiers derive expected seeds or removed seed ids from executed
   durable action payloads, so matching project state alone cannot satisfy a
   missing or mismatched action result.
+- Manual-seed creation verifiers now reject sparse durable payloads before
+  semantic reload matching. Row/review seeds must carry `seed_id`, `kind`,
+  `hunk`, and `addr`; range seeds must also carry `end`, so a seed id alone
+  cannot prove the wrong source range.
 - `tests/test_agent_reversing_loop.py::test_agent_reversing_loop_smoke` now
   returns durable Manual Action Log hash/count metadata and refreshed projected
   comment rows, so it exercises the projected-comment verifier instead of the

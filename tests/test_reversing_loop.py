@@ -3591,6 +3591,74 @@ def test_manual_seed_verifier_rejects_mismatched_payload_field(
     assert verification["layers"][1]["matching_manual_seeds"] == []
 
 
+def test_manual_seed_verifier_rejects_sparse_creation_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    seed = {"seed_id": "catalog-seed-1", "kind": "data", "mode": "required", "hunk": 0, "addr": 0}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "row.seed.data.raw",
+        _executed_manual_seed_payload(tmp_path, {"seed_id": "catalog-seed-1"}),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "manual seed payload missing source identity"
+    assert verification["layers"][1]["missing_identity_fields"] == [["kind", "hunk", "addr"]]
+
+
+def test_range_seed_verifier_requires_range_end_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    seed = {
+        "seed_id": "catalog-range-seed-1",
+        "kind": "data",
+        "mode": "required",
+        "hunk": 0,
+        "addr": 0,
+        "end": 4,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "range.seed.data.raw",
+        _executed_manual_seed_payload(
+            tmp_path,
+            {
+                "seed_id": "catalog-range-seed-1",
+                "kind": "data",
+                "mode": "required",
+                "hunk": 0,
+                "addr": 0,
+            },
+        ),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["layers"][1]["message"] == "manual seed payload missing source identity"
+    assert verification["layers"][1]["missing_identity_fields"] == [["end"]]
+
+
 def test_manual_label_rename_verifier_checks_label_state(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

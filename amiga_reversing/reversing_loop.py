@@ -5745,6 +5745,17 @@ def _verify_project_manual_seed_state(
         }
     if not expected_seeds:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing manual seed payload"}
+    missing_identity = [
+        missing for expected in expected_seeds if (missing := _manual_seed_missing_required_identity_fields(command_id, expected))
+    ]
+    if missing_identity:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "manual seed payload missing source identity",
+            "missing_identity_fields": missing_identity,
+            "expected_manual_seeds": expected_seeds,
+        }
     matches = [
         expected
         for expected in expected_seeds
@@ -5760,6 +5771,13 @@ def _verify_project_manual_seed_state(
 
 def _manual_seed_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
     return "seed_id" in expected and all(actual.get(key) == value for key, value in expected.items())
+
+
+def _manual_seed_missing_required_identity_fields(command_id: str, expected: dict[str, object]) -> list[str]:
+    fields = ["seed_id", "kind", "hunk", "addr"]
+    if command_id.startswith("range.seed."):
+        fields.append("end")
+    return [field for field in fields if field not in expected]
 
 
 def _verify_manual_label_mutation(
