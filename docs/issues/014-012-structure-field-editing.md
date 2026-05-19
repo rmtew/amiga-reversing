@@ -86,7 +86,9 @@ Current evidence:
 - Typed-field payloads, candidate commands, catalog availability checks, and
   custom-field semantic reload verification now preserve and compare
   `parent_evidence_ids`, so derived struct-pointer authority cannot silently
-  lose the dependency set it consumed.
+  lose the dependency set it consumed. Semantic reload treats parent ids as an
+  unordered dependency set, so replay ordering differences do not reject the
+  same accepted struct-pointer lineage.
 - Typed-field execution now preserves accepted provenance carried on selected
   element context, including manual-classified evidence, path/lifetime scope,
   conflicts, and parent evidence ids, instead of regenerating row-local

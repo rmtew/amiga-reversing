@@ -591,6 +591,42 @@ def test_custom_struct_field_verifier_rejects_mismatched_consumed_evidence(
     assert verification["matching_custom_struct_fields"] == []
 
 
+def test_custom_struct_field_verifier_treats_parent_evidence_ids_as_set(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    field = {
+        "struct_name": "DerivedEvent",
+        "offset": 36,
+        "name": "de_Code",
+        "type": "UWORD",
+        "size": 2,
+        **_accepted_struct_pointer_evidence(),
+        "parent_evidence_ids": ["prov-parent-b", "prov-parent-a"],
+        "owner_action_id": "manual-1",
+    }
+    reloaded_field = {**field, "parent_evidence_ids": ["prov-parent-a", "prov-parent-b"]}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"custom_struct_fields": [reloaded_field]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_custom_struct_field(
+        "demo",
+        "typed_gap.field.add",
+        field,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["matching_custom_struct_fields"] == [reloaded_field]
+
+
 def test_custom_struct_field_remove_verifier_matches_cleanup_action_not_owner(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -3990,9 +3990,15 @@ def _custom_struct_field_matches(actual: dict[str, object], expected: dict[str, 
         "owner_action_id",
         "cleanup_action_id",
     ):
-        if key in expected and actual.get(key) != expected.get(key):
+        if key in expected and not _custom_struct_field_identity_value_matches(key, actual.get(key), expected.get(key)):
             return False
     return True
+
+
+def _custom_struct_field_identity_value_matches(key: str, actual: object, expected: object) -> bool:
+    if key == "parent_evidence_ids":
+        return _provenance_identity_values_match(key, actual, expected)
+    return actual == expected
 
 
 def _data_block_element_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:

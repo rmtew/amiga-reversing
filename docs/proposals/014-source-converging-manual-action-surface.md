@@ -1344,6 +1344,10 @@ availability matching, durable payload replay, and semantic reload verification.
 The consumed `source_evidence_id` is not enough once struct-pointer authority is
 derived from more than one upstream base/register fact.
 
+Follow-up observation from `014-012`: custom-field semantic reload should
+compare `parent_evidence_ids` as dependency sets. Different replay ordering is
+not a different struct-pointer proof, but a missing or extra parent id is.
+
 Implementation observation from `014-012`: selected element re-resolution can
 regenerate typed-field provenance from row context and discard accepted evidence
 chosen by the planner or UI. For semantic/type writes, command context evidence
