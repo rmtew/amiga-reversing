@@ -143,6 +143,8 @@ Current evidence:
 - Renderable RSSET bind verification now treats `app_slot_refs` as insufficient
   by themselves: the selected rendered text must contain the linked symbol and
   must not still contain the raw displacement token.
+- The RSSET raw-token check is operand-aware for zero-displacement binds, so a
+  valid symbolic `field(a6)` render is not rejected as raw `(a6)`.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.

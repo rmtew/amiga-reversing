@@ -3727,7 +3727,9 @@ def _verify_projected_rsset_binding_rendered_source(
         if _rsset_binding_app_slot_ref_matches(ref, expected)
     ]
     raw_tokens = _rsset_binding_raw_displacement_tokens(expected)
-    matched_raw_tokens = [token for token in raw_tokens if _rendered_source_contains_token(affected_rendered_text, token)]
+    matched_raw_tokens = [
+        token for token in raw_tokens if _rendered_source_contains_rsset_raw_token(affected_rendered_text, token)
+    ]
     render_tokens = _rsset_binding_render_tokens(matching_refs)
     matched_render_tokens = [
         token for token in render_tokens if _rendered_source_contains_token(affected_rendered_text, token)
@@ -3784,6 +3786,12 @@ def _rsset_binding_render_tokens(matching_refs: list[dict[str, object]]) -> list
         if isinstance(symbol, str) and symbol:
             tokens.append(symbol)
     return list(dict.fromkeys(tokens))
+
+
+def _rendered_source_contains_rsset_raw_token(rendered_text: str, token: str) -> bool:
+    if token.startswith("("):
+        return re.search(rf"(?<![A-Za-z0-9_.$]){re.escape(token)}", rendered_text) is not None
+    return _rendered_source_contains_token(rendered_text, token)
 
 
 def _provenance_reference_values_match(actual: object, expected: object) -> bool:

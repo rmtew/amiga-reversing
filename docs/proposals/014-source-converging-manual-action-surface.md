@@ -1423,6 +1423,9 @@ Renderable binds need the opposite proof: the selected source text must contain
 the linked app-slot/RSSET symbol and must not still contain the raw displacement
 token. `app_slot_refs` are navigation/projection metadata, so they cannot by
 themselves prove rendered-source convergence.
+Zero-displacement binds need operand-aware raw matching: `(a6)` is a raw operand
+only when it is not the suffix of a rendered symbolic field such as
+`app_base(a6)`.
 
 Implementation observation from `014-012`: extending `M68kAnalysisPolicy` with
 custom structs should not add large inline arrays to stack-heavy analysis

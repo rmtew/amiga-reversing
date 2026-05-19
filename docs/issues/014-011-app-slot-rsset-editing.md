@@ -185,6 +185,9 @@ Current evidence:
   linked app-slot/RSSET symbol and no longer contain the raw displacement token.
   Listing `app_slot_refs` alone are projection metadata and cannot prove that
   source rendering actually converged.
+- Zero-displacement bindings are checked with operand-aware raw-token matching:
+  symbolic `field(a6)` is not treated as stale raw `(a6)`, while a genuinely raw
+  selected operand still fails renderable bind proof.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
