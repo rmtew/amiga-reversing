@@ -47,6 +47,7 @@ class EntryRegisterSeedKind(StrEnum):
 
 class ManualRepresentationStyle(StrEnum):
     HEX = "hex"
+    DECIMAL = "decimal"
     BINARY = "binary"
     CHARACTER = "character"
     STRING = "string"
@@ -923,9 +924,15 @@ class TargetEquateMetadata:
     review_status: TargetMetadataReviewStatus
     citation: str
     comment: str | None = None
+    value_representation: ManualRepresentationStyle | None = None
+    value_expression: str | None = None
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+        if self.value_representation is not None:
+            assert isinstance(self.value_representation, ManualRepresentationStyle)
+        if self.value_expression is not None:
+            assert isinstance(self.value_expression, str)
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> TargetEquateMetadata:
@@ -935,10 +942,14 @@ class TargetEquateMetadata:
         review_status = payload["review_status"]
         citation = payload["citation"]
         comment = payload.get("comment")
+        value_representation = payload.get("value_representation")
+        value_expression = payload.get("value_expression")
         assert isinstance(name, str)
         assert isinstance(value, int)
         assert isinstance(citation, str)
         assert comment is None or isinstance(comment, str)
+        assert value_representation is None or isinstance(value_representation, str)
+        assert value_expression is None or isinstance(value_expression, str)
         return cls(
             name=name,
             value=value,
@@ -946,6 +957,10 @@ class TargetEquateMetadata:
             review_status=_target_metadata_review_status(review_status),
             citation=citation,
             comment=comment,
+            value_representation=None
+            if value_representation is None
+            else _manual_representation_style(value_representation),
+            value_expression=value_expression,
         )
 
 

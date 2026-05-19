@@ -285,7 +285,8 @@ typedef enum M68kAnalysisRepresentationStyle {
   M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY = 2,
   M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER = 3,
   M68K_ANALYSIS_REPRESENTATION_STYLE_STRING = 4,
-  M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL = 5
+  M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL = 5,
+  M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL = 6
 } M68kAnalysisRepresentationStyle;
 
 typedef struct M68kAnalysisManualRepresentation {
@@ -303,6 +304,9 @@ typedef struct M68kAnalysisManualRepresentation {
 typedef struct M68kAnalysisTargetEquate {
   char name[64];
   int32_t value;
+  uint8_t value_style_id;
+  uint8_t reserved[3];
+  char value_expr[64];
 } M68kAnalysisTargetEquate;
 
 typedef struct M68kAnalysisCustomStructField {

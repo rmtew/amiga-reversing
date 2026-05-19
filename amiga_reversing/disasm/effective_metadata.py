@@ -431,6 +431,11 @@ def _manual_target_equate_to_metadata(equate: dict[str, object]) -> TargetEquate
     value = _manual_seed_int(equate, "value")
     if name is None or value is None:
         return None
+    representation_text = _manual_seed_text(equate, "value_representation")
+    try:
+        value_representation = None if representation_text is None else ManualRepresentationStyle(representation_text)
+    except ValueError:
+        return None
     return TargetEquateMetadata(
         name=name,
         value=value,
@@ -438,6 +443,8 @@ def _manual_target_equate_to_metadata(equate: dict[str, object]) -> TargetEquate
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(equate, "target_equate_id"),
         comment=_manual_seed_text(equate, "comment"),
+        value_representation=value_representation,
+        value_expression=_manual_seed_text(equate, "value_expression"),
     )
 
 

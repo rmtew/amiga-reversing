@@ -1386,6 +1386,15 @@ def test_route_manual_action_catalog_returns_target_commands(monkeypatch: pytest
     assert equate_action["appends_to_manual_action_log"] is True
     assert equate_action["action"] == "create_manual_target_equate"
     assert equate_action["parameter_schema"]["required"] == ["name", "value"]
+    equate_repr_action = next(action for action in actions if action["action_id"] == "target.equate.represent")
+    assert equate_repr_action["action"] == "create_manual_target_equate"
+    assert equate_repr_action["parameter_schema"]["properties"]["value_representation"]["enum"] == [
+        "hex",
+        "decimal",
+        "binary",
+        "character",
+        "symbol",
+    ]
     equate_rename_action = next(action for action in actions if action["action_id"] == "target.equate.rename")
     assert equate_rename_action["action"] == "rename_manual_target_equate"
     assert equate_rename_action["parameter_schema"]["required"] == ["previous_name", "name"]
@@ -1789,7 +1798,7 @@ def test_route_manual_action_catalog_execute_appends_review_note_action(
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
 
 
-@pytest.mark.parametrize("command_id", ["target.equate.add", "target.equate.edit"])
+@pytest.mark.parametrize("command_id", ["target.equate.add", "target.equate.edit", "target.equate.represent"])
 def test_route_manual_action_catalog_execute_appends_target_equate_action(
     command_id: str,
     monkeypatch: pytest.MonkeyPatch,

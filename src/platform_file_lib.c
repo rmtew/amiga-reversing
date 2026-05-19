@@ -141,6 +141,7 @@ static const TextU8Map ANALYSIS_REGISTER_SEED_KIND_NAMES[] = {
 
 static const TextU8Map ANALYSIS_REPRESENTATION_STYLE_NAMES[] = {
   { "hex", M68K_ANALYSIS_REPRESENTATION_STYLE_HEX },
+  { "decimal", M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL },
   { "binary", M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY },
   { "character", M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER },
   { "string", M68K_ANALYSIS_REPRESENTATION_STYLE_STRING },
@@ -231,7 +232,8 @@ static int policy_add_rsset_use_site_binding_local(M68kAnalysisPolicy *policy, u
   const char *binding_id, const char *owner_action_id);
 static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
   const char *fields_start, const char *fields_end);
-static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value);
+static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value,
+  uint8_t value_style_id, const char *value_expr);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
   const char *symbol_name);
@@ -1007,14 +1009,21 @@ static int policy_find_target_equate_index_local(const M68kAnalysisPolicy *polic
   return 0;
 }
 
-static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value) {
+static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value,
+    uint8_t value_style_id, const char *value_expr) {
   uint16_t index;
   M68kAnalysisTargetEquate *slot;
   if (policy == NULL || name == NULL || name[0] == '\0' || !asm_symbol_name_is_safe_local(name)) return 0;
+  if (value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+      (value_expr == NULL || value_expr[0] == '\0')) {
+    return 0;
+  }
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
     slot = &policy->target_equates[index];
     if (strcmp(slot->name, name) == 0) {
       slot->value = value;
+      slot->value_style_id = value_style_id;
+      if (!copy_policy_text(slot->value_expr, sizeof(slot->value_expr), value_expr)) return 0;
       return 1;
     }
   }
@@ -1027,6 +1036,12 @@ static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char
     return 0;
   }
   slot->value = value;
+  slot->value_style_id = value_style_id;
+  if (!copy_policy_text(slot->value_expr, sizeof(slot->value_expr), value_expr)) {
+    memset(slot, 0, sizeof(*slot));
+    --policy->target_equate_count;
+    return 0;
+  }
   return 1;
 }
 
@@ -4232,8 +4247,19 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   long parsed;
   size_t used = 0U;
   char name[64];
+  char value_representation[16];
+  char value_expression[64];
+  uint8_t value_style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_NONE;
   name[0] = '\0';
-  if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name))) return 0;
+  value_representation[0] = '\0';
+  value_expression[0] = '\0';
+  if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
+      !json_optional_string_field_local(object_start, object_end, "value_representation",
+        value_representation, sizeof(value_representation)) ||
+      !json_optional_string_field_local(object_start, object_end, "value_expression",
+        value_expression, sizeof(value_expression))) {
+    return 0;
+  }
   value_start = json_find_key_local(object_start, object_end, "value");
   if (name[0] == '\0' || value_start == NULL) return 1;
   value_start = json_skip_ws_local(value_start, object_end);
@@ -4246,7 +4272,14 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   if (used == 0U) return 0;
   parsed = strtol(number_text, &endptr, 10);
   if (endptr == NULL || *endptr != '\0' || parsed < INT32_MIN || parsed > INT32_MAX) return 0;
-  return policy_add_target_equate_local(policy, name, (int32_t)parsed);
+  if (value_representation[0] != '\0') {
+    value_style_id = analysis_representation_style_id_from_text_local(value_representation);
+    if (value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
+        value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) {
+      return 0;
+    }
+  }
+  return policy_add_target_equate_local(policy, name, (int32_t)parsed, value_style_id, value_expression);
 }
 
 static int append_metadata_rsset_use_site_binding_local(const char *object_start, const char *object_end,
@@ -5369,6 +5402,7 @@ static const char *structured_data_kind_name_local(uint8_t kind) {
 
 static const char *manual_representation_style_name_local(uint8_t style_id) {
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HEX) return "hex";
+  if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL) return "decimal";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY) return "binary";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) return "character";
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_STRING) return "string";
@@ -6356,8 +6390,19 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"name\":") != 0 ||
         json_builder_append_json_string(builder, equate->name) != 0 ||
-        json_builder_appendf(builder, ",\"value\":%d}", (int)equate->value) != 0)
+        json_builder_appendf(builder, ",\"value\":%d", (int)equate->value) != 0)
       return -1;
+    if (equate->value_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
+      if (json_builder_append(builder, ",\"value_representation\":") != 0 ||
+          json_builder_append_json_string(builder, manual_representation_style_name_local(equate->value_style_id)) != 0)
+        return -1;
+    }
+    if (equate->value_expr[0] != '\0') {
+      if (json_builder_append(builder, ",\"value_expression\":") != 0 ||
+          json_builder_append_json_string(builder, equate->value_expr) != 0)
+        return -1;
+    }
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   if (json_builder_append(builder, "],\"manual_representations\":[") != 0) return -1;
   for (index = 0U; index < policy->manual_representation_count &&

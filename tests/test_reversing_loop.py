@@ -1780,6 +1780,61 @@ def test_target_equate_rename_verifier_checks_renamed_equate_state(
     assert verification["layers"][1]["state_key"] == "renamed_target_equates"
 
 
+def test_target_equate_representation_verifier_checks_rendered_definition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    equate = {
+        "name": "PLAYER_START_LIVES",
+        "value": 42,
+        "value_representation": "symbol",
+        "value_expression": "40+2",
+    }
+    assert (
+        reversing_loop._target_equate_expected_definition_expr({"value": 32, "value_representation": "binary"})
+        == "%00100000"
+    )
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"target_equates": [equate]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {
+            "data": {
+                "groups": {
+                    "equates": [
+                        {
+                            "symbol": "PLAYER_START_LIVES",
+                            "operand": "40+2",
+                            "refs": [{"access": "definition"}],
+                        }
+                    ]
+                }
+            }
+        },
+    )
+
+    verification = reversing_loop._verify_target_equate_mutation(
+        "demo",
+        "target.equate.represent",
+        _executed_target_equate_payload(tmp_path, equate),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][2]["layer"] == "rendered_source"
+    assert verification["layers"][2]["expected_operand"] == "40+2"
+
+
 def test_target_equate_verifier_requires_action_payload(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

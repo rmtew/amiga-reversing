@@ -65,6 +65,7 @@ _COMMAND_RANK = {
     "semantic.register.struct_ptr": 73,
     "target.equate.add": 72,
     "target.equate.edit": 72,
+    "target.equate.represent": 72,
     "target.equate.rename": 72,
     "target.equate.remove": 68,
     "target.custom_struct.add": 72,
@@ -109,6 +110,7 @@ _REPORT_ONLY_COMMAND_PREFIXES = ("provenance.explore_",)
 _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
     "target.equate.add": ("target_equate", "target_equate"),
     "target.equate.edit": ("target_equate", "target_equate"),
+    "target.equate.represent": ("target_equate", "target_equate"),
     "target.equate.rename": ("target_equate", "target_equate"),
     "target.equate.remove": ("target_equate_remove", "target_equate"),
     "target.rsset_region.add": ("rsset_layout_region", "rsset_layout_region"),
@@ -3211,8 +3213,10 @@ def _verify_target_equate_mutation(
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_target_equate(target_id, command_id, expected, project_root=project_root),
-        _verify_round_trip_exact(target_id, project_root=project_root),
     ]
+    if _target_equate_payload_has_definition_representation(expected):
+        layers.append(_verify_target_equate_rendered_definition(target_id, expected))
+    layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
 
@@ -3275,10 +3279,80 @@ def _verify_project_target_equate(
 
 
 def _target_equate_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
-    for key in ("previous_name", "name", "value", "comment"):
+    for key in ("previous_name", "name", "value", "comment", "value_representation", "value_expression"):
         if key in expected and actual.get(key) != expected.get(key):
             return False
     return "name" in expected
+
+
+def _target_equate_payload_has_definition_representation(expected: dict[str, object] | None) -> bool:
+    return isinstance(expected, dict) and "value_representation" in expected
+
+
+def _target_equate_expected_definition_expr(expected: dict[str, object]) -> str | None:
+    style = expected.get("value_representation")
+    value = expected.get("value")
+    if not isinstance(style, str) or not isinstance(value, int):
+        return None
+    if style == "decimal":
+        return str(value)
+    if style == "binary":
+        value_bits = value & 0xFFFFFFFF
+        high_bit = 7 if 0 <= value <= 0xFF else 15 if 0 <= value <= 0xFFFF else 31
+        return "%" + "".join("1" if (value_bits & (1 << bit)) else "0" for bit in range(high_bit, -1, -1))
+    if style == "character":
+        if 0 <= value <= 255:
+            char = chr(value)
+            if " " <= char <= "~" and char not in {"'", "\\"}:
+                return f"'{char}'"
+        return f"${value & 0xFFFFFFFF:X}"
+    if style == "symbol":
+        expression = expected.get("value_expression")
+        return expression if isinstance(expression, str) and expression else None
+    if style == "hex":
+        return f"${value & 0xFFFFFFFF:X}"
+    return None
+
+
+def _verify_target_equate_rendered_definition(
+    target_id: str,
+    expected: dict[str, object] | None,
+) -> dict[str, object]:
+    if not isinstance(expected, dict):
+        return {"layer": "rendered_source", "status": "failed", "message": "missing target equate payload"}
+    name = expected.get("name")
+    expected_expr = _target_equate_expected_definition_expr(expected)
+    if not isinstance(name, str) or not expected_expr:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "message": "target equate payload lacks rendered definition expectation",
+            "expected_target_equate": expected,
+        }
+    try:
+        navigation = server.route_request("GET", f"/api/projects/{target_id}/listing/navigation", {}, {})
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    data = navigation.get("data")
+    groups = data.get("groups") if isinstance(data, dict) else None
+    equates = groups.get("equates") if isinstance(groups, dict) else None
+    if not isinstance(equates, list):
+        return {"layer": "rendered_source", "status": "failed", "message": "equate navigation missing after reload"}
+    matches = [
+        equate
+        for equate in equates
+        if isinstance(equate, dict)
+        and equate.get("symbol") == name
+        and equate.get("operand") == expected_expr
+        and any(isinstance(ref, dict) and ref.get("access") == "definition" for ref in equate.get("refs", []))
+    ]
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if matches else "failed",
+        "expected_symbol": name,
+        "expected_operand": expected_expr,
+        "matching_equates": matches,
+    }
 
 
 def _verify_rsset_region_mutation(
@@ -5796,6 +5870,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
         "target.rsset_region.remove",
         "target.equate.add",
         "target.equate.edit",
+        "target.equate.represent",
         "target.equate.rename",
         "target.equate.remove",
         "target.custom_struct.add",
@@ -6205,7 +6280,7 @@ def _candidate_already_satisfied(candidate: dict[str, object], command: dict[str
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.rsset_region.remove":
         return current.get("removed") is True
-    if command_id in {"target.equate.add", "target.equate.edit"}:
+    if command_id in {"target.equate.add", "target.equate.edit", "target.equate.represent"}:
         return all(current.get(key) == value for key, value in parameters.items())
     if command_id == "target.equate.rename":
         name = parameters.get("name")

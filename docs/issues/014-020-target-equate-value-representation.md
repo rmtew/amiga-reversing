@@ -1,4 +1,4 @@
-Status: Open
+Status: Completed
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 Parent issue: docs/issues/014-009-equate-constant-editing.md
 
@@ -38,6 +38,22 @@ Acceptance criteria:
 Required tests:
 Manual replay, command catalog execution, rendered `EQU` definition text,
 rename/remove regression, loop verifier, and exact rebuild tests.
+
+Implemented support:
+- `TargetEquateMetadata` and Manual Action Log replay preserve optional
+  `value_representation` and `value_expression` fields while keeping `value` as
+  the numeric semantic source of truth.
+- The command catalog exposes `target.equate.represent` through the same durable
+  target-equate payload path as add/edit, with authoritative local effects.
+- The C policy parser/exporter and source renderer now render hex, decimal,
+  binary, character, and bounded symbolic-expression definition text.
+- Exact direct rebuild remains the verifier for symbolic-expression correctness;
+  changing definition display does not create provenance, semantic hints, or
+  type-flow descendants.
+- Implementation finding: storing unbounded expression text in every C policy
+  equate slot can overflow existing stack-heavy policy tests. The C expression field is
+  deliberately bounded inline storage until the broader policy struct moves
+  large optional strings out of stack-resident arrays.
 
 Cleanup / deletion:
 Delete after the capability is implemented and Proposal 014 is updated with

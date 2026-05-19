@@ -105,6 +105,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_source_export_action(),
         _target_equate_action(),
         _target_equate_edit_action(),
+        _target_equate_represent_action(),
         _target_equate_rename_action(),
         _target_equate_remove_action(),
         _target_execution_view_action(),
@@ -1851,6 +1852,17 @@ def _target_equate_payload(params: Mapping[str, object]) -> dict[str, object]:
     comment = params.get("comment")
     if isinstance(comment, str) and comment.strip():
         equate["comment"] = comment.strip()
+    value_representation = params.get("value_representation")
+    if isinstance(value_representation, str) and value_representation.strip():
+        representation = value_representation.strip()
+        if representation not in {"hex", "decimal", "binary", "character", "symbol"}:
+            raise ValueError("target_equate value_representation must be hex, decimal, binary, character, or symbol")
+        equate["value_representation"] = representation
+    value_expression = params.get("value_expression")
+    if isinstance(value_expression, str) and value_expression.strip():
+        equate["value_expression"] = value_expression.strip()
+    if equate.get("value_representation") == "symbol" and "value_expression" not in equate:
+        raise ValueError("target_equate symbol value_representation requires value_expression")
     return equate
 
 
@@ -2836,6 +2848,11 @@ def _target_equate_parameter_schema() -> dict[str, object]:
             "name": {"type": "string"},
             "value": {"type": "integer"},
             "comment": {"type": "string"},
+            "value_representation": {
+                "type": "string",
+                "enum": ["hex", "decimal", "binary", "character", "symbol"],
+            },
+            "value_expression": {"type": "string"},
         },
         "required": ["name", "value"],
     }
@@ -4315,6 +4332,15 @@ def _target_equate_edit_action() -> dict[str, object]:
     return _target_log_action(
         "target.equate.edit",
         "Edit equate",
+        "create_manual_target_equate",
+        _target_equate_parameter_schema(),
+    )
+
+
+def _target_equate_represent_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.equate.represent",
+        "Represent equate value",
         "create_manual_target_equate",
         _target_equate_parameter_schema(),
     )

@@ -624,6 +624,51 @@ static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, con
   return 1;
 }
 
+static int byte_is_quoted_character_safe(uint8_t value);
+
+static void format_binary_value_expr(uint32_t value, char *out, size_t out_size) {
+  char *cursor = out;
+  size_t remaining = out_size;
+  int high_bit = value <= 0xFFU ? 7 : value <= 0xFFFFU ? 15 : 31;
+  int bit;
+  if (out == NULL || out_size == 0U) return;
+  out[0] = '\0';
+  if (remaining < 2U) return;
+  *cursor++ = '%';
+  --remaining;
+  for (bit = high_bit; bit >= 0 && remaining > 1U; --bit) {
+    *cursor++ = ((value >> (uint32_t)bit) & 1U) ? '1' : '0';
+    --remaining;
+  }
+  *cursor = '\0';
+}
+
+static int format_target_equate_value_expr(const M68kAnalysisTargetEquate *equate, char *out, size_t out_size) {
+  uint32_t value;
+  if (equate == NULL || out == NULL || out_size == 0U) return 0;
+  out[0] = '\0';
+  value = (uint32_t)equate->value;
+  if (equate->value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_DECIMAL) {
+    snprintf(out, out_size, "%d", (int)equate->value);
+    return 1;
+  }
+  if (equate->value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_BINARY) {
+    format_binary_value_expr(value, out, out_size);
+    return 1;
+  }
+  if (equate->value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER && equate->value >= 0 &&
+      equate->value <= 255 && byte_is_quoted_character_safe((uint8_t)equate->value)) {
+    snprintf(out, out_size, "'%c'", (char)equate->value);
+    return 1;
+  }
+  if (equate->value_style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && equate->value_expr[0] != '\0') {
+    snprintf(out, out_size, "%s", equate->value_expr);
+    return 1;
+  }
+  snprintf(out, out_size, "$%X", (unsigned)value);
+  return 1;
+}
+
 static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview, uint16_t symbol_id) {
   const char *symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id);
   const AmigaOsLibraryVectorInfo *vector = amiga_os_find_library_vector_by_symbol_id(symbol_id);
@@ -668,7 +713,13 @@ static int render_asm_declare_target_equates(M68kRenderIRPreview *preview, const
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
     const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
     if (equate->name[0] == '\0') continue;
-    if (equate->value >= 0) {
+    if (equate->value_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
+      char expr[128];
+      if (!format_target_equate_value_expr(equate, expr, sizeof(expr)) ||
+          !render_asm_declare_symbol_expr_once(preview, equate->name, expr)) {
+        return 0;
+      }
+    } else if (equate->value >= 0) {
       if (!render_asm_declare_symbol_hex_once(preview, equate->name, (uint32_t)equate->value)) return 0;
     } else if (!render_asm_declare_symbol_once(preview, equate->name, equate->value)) {
       return 0;

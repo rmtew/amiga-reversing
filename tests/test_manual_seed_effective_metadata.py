@@ -239,6 +239,7 @@ def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> No
                     "target_equate_id": "equate-1",
                     "name": "PLAYER_START_LIVES",
                     "value": 3,
+                    "value_representation": "binary",
                 },
             ),
             _action(
@@ -279,6 +280,8 @@ def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> No
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "value": 3,
+            "value_expression": None,
+            "value_representation": "binary",
         }
     ]
     assert payload["manual_representations"][0]["symbol"] == "PLAYER_INITIAL_LIVES"
@@ -1295,6 +1298,8 @@ def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path:
             "review_status": "seeded",
             "seed_origin": "manual_analysis",
             "value": 0x2000,
+            "value_expression": None,
+            "value_representation": None,
         }
     ]
     assert payload["manual_representations"] == [
