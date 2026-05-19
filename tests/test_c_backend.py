@@ -3421,7 +3421,7 @@ def test_real_dll_data_block_interpreted_ref_renders_symbol_and_reassembles(tmp_
     source_text = """    SECTION section,code
 start:
     bra.b after_data
-    dc.l $00000020
+    dc.l $00000006
 after_data:
     rts
 """
@@ -3483,15 +3483,15 @@ after_data:
             "created_at": "2026-05-18T00:00:03+00:00",
             "kind": "interpret_manual_data_block_element_ref",
             "data_block_interpreted_ref": {
-                "data_block_ref_id": "jump-target:0:absolute:h0:00000020",
+                "data_block_ref_id": "jump-target:0:absolute:h0:00000006",
                 "layout_id": "jump-target",
                 "offset": 0,
                 "width": 4,
                 "reference_kind": "absolute",
                 "target_hunk": 0,
-                "target_offset": 0x20,
-                "target_locator": {"hunk": 0, "offset": 0x20},
-                "source_value": 0x20,
+                "target_offset": 0x06,
+                "target_locator": {"hunk": 0, "offset": 0x06},
+                "source_value": 0x06,
                 "confidence": "manual",
                 "xref_generation_mode": "bidirectional",
             },
@@ -3509,9 +3509,33 @@ after_data:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
+        rows, _api_calls, _profile = build_project_listing_rows_from_source_with_c_artifact(
+            source,
+            metadata_text=str(metadata_path),
+            project_root=PROJECT_ROOT,
+        )
 
-    assert "dblk_ref_h0_00000020\tEQU\t$20" in rendered
-    assert "\tdc.l dblk_ref_h0_00000020\n" in rendered
+    assert "dblk_ref_h0_00000006\tEQU\t$6" in rendered
+    assert "\tdc.l dblk_ref_h0_00000006\n" in rendered
+    data_row = next(row for row in rows if row.get("kind") == "data" and row.get("start_offset") == 2)
+    assert data_row["runtime_address_refs"] == [
+        {
+            "confidence": 3,
+            "data_class": None,
+            "offset": 2,
+            "operand_index": None,
+            "owner_element_offset": 0,
+            "owner_id": "jump-target:0:absolute:h0:00000006",
+            "owner_kind": "data_block_interpreted_ref",
+            "owner_layout_id": "jump-target",
+            "runtime_address": 0x06,
+            "size": 4,
+            "sink_address": None,
+            "target_offset": 0x06,
+            "target_section_index": 0,
+            "xref_generation_mode": "bidirectional",
+        }
+    ]
     rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
         rendered,

@@ -3472,6 +3472,13 @@ def _verify_data_block_interpreted_ref_mutation(
             expected,
             project_root=project_root,
         ),
+        _verify_projected_data_block_interpreted_ref_xrefs(
+            target_id,
+            command,
+            command_id,
+            expected,
+            project_root=project_root,
+        ),
         _verify_round_trip_exact(target_id, project_root=project_root),
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
@@ -3640,6 +3647,89 @@ def _verify_projected_data_block_interpreted_ref_rendered_source(
         "matched_directive": has_directive,
         "affected_rendered_text": affected_rendered_text,
     }
+
+
+def _verify_projected_data_block_interpreted_ref_xrefs(
+    target_id: str,
+    command: dict[str, object],
+    command_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "xref_projection", "status": "failed", "message": "missing interpreted ref payload"}
+    render_expected = (
+        _project_data_block_interpreted_ref_state_match(
+            target_id,
+            command_id,
+            expected,
+            project_root=project_root,
+        )
+        or expected
+    )
+    mode = render_expected.get("xref_generation_mode") or "bidirectional"
+    if mode == "none":
+        return {"layer": "xref_projection", "status": "passed", "message": "xref generation disabled"}
+    location = _data_block_render_location(target_id, command, render_expected, project_root=project_root)
+    if location is None:
+        return {"layer": "xref_projection", "status": "failed", "message": "interpreted ref source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["8"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "xref_projection", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "xref_projection", "status": "failed", "message": "listing rows missing after reload"}
+    affected_rows = _data_block_rendered_source_rows(rows, section_index, source_offset)
+    refs = [
+        ref
+        for row in affected_rows
+        for ref in _mapping_sequence(row.get("runtime_address_refs") or row.get("runtimeAddressRefs"))
+    ]
+    expected_ref_id = render_expected.get("data_block_ref_id") or render_expected.get("interpreted_ref_id")
+    target_hunk = render_expected.get("target_hunk")
+    target_offset = render_expected.get("target_offset")
+    layout_id = render_expected.get("layout_id")
+    element_offset = render_expected.get("offset")
+    matching_refs = [
+        ref
+        for ref in refs
+        if ref.get("owner_kind") == "data_block_interpreted_ref"
+        and ref.get("owner_id") == expected_ref_id
+        and ref.get("owner_layout_id") == layout_id
+        and ref.get("owner_element_offset") == element_offset
+        and ref.get("target_section_index") == target_hunk
+        and ref.get("target_offset") == target_offset
+    ]
+    removed = command_id.endswith(".clear_ref")
+    return {
+        "layer": "xref_projection",
+        "status": "passed" if (not matching_refs if removed else bool(matching_refs)) else "failed",
+        "source_offset": source_offset,
+        "expected_owner_id": expected_ref_id,
+        "expected_target_hunk": target_hunk,
+        "expected_target_offset": target_offset,
+        "matching_runtime_address_refs": matching_refs,
+        "runtime_address_refs": refs,
+    }
+
+
+def _mapping_sequence(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [cast(dict[str, object], item) for item in value if isinstance(item, dict)]
 
 
 def _data_block_interpreted_ref_symbol(expected: dict[str, object]) -> str | None:

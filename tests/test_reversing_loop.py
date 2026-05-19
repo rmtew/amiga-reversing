@@ -1135,6 +1135,24 @@ def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
 
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if method == "GET" and path.endswith("/listing"):
+            runtime_address_refs = []
+            if not command_id.endswith(".clear_ref"):
+                runtime_address_refs = [
+                    {
+                        "offset": 0x20,
+                        "operand_index": None,
+                        "target_section_index": 0,
+                        "target_offset": 0x20,
+                        "runtime_address": 0x20,
+                        "size": 4,
+                        "confidence": 3,
+                        "owner_kind": "data_block_interpreted_ref",
+                        "owner_id": "ptr-table:0:absolute:h0:00000020",
+                        "owner_layout_id": "ptr-table",
+                        "owner_element_offset": 0,
+                        "xref_generation_mode": "bidirectional",
+                    }
+                ]
             return {
                 "data": {
                     "rows": [
@@ -1144,6 +1162,7 @@ def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
                             text=row_text,
                             start_offset=0x20,
                             end_offset=0x24,
+                            runtime_address_refs=runtime_address_refs,
                         )
                     ]
                 }
@@ -1168,6 +1187,7 @@ def test_data_block_interpreted_ref_verifier_checks_symbolic_render(
     assert report["status"] == expected_status, report
     assert report["layers"][1]["state_key"] == state_key
     assert report["layers"][2]["layer"] == "rendered_source"
+    assert report["layers"][3]["layer"] == "xref_projection"
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
@@ -5266,6 +5286,7 @@ def _listing_row(
     text: str | None = None,
     start_offset: int | None = 0,
     end_offset: int | None = 2,
+    runtime_address_refs: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     row = {
         "row_key": row_key,
@@ -5280,6 +5301,8 @@ def _listing_row(
         row["text"] = text
     if comment_text is not None:
         row["comment_text"] = comment_text
+    if runtime_address_refs is not None:
+        row["runtime_address_refs"] = runtime_address_refs
     return row
 
 

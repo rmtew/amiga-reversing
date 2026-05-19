@@ -2971,6 +2971,19 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (ref->data_class_flags != 0U &&
           json_builder_appendf(&builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
         goto oom;
+      if (ref->owner_kind != NULL && ref->owner_kind[0] != '\0') {
+        if (json_builder_append(&builder, ",\"owner_kind\":") != 0 ||
+            json_builder_append_json_string(&builder, ref->owner_kind) != 0 ||
+            json_builder_append(&builder, ",\"owner_id\":") != 0 ||
+            json_builder_append_json_string(&builder, ref->owner_id != NULL ? ref->owner_id : "") != 0 ||
+            json_builder_append(&builder, ",\"owner_layout_id\":") != 0 ||
+            json_builder_append_json_string(&builder, ref->owner_layout_id != NULL ? ref->owner_layout_id : "") != 0 ||
+            json_builder_appendf(&builder, ",\"owner_element_offset\":%u", (unsigned)ref->owner_element_offset) != 0 ||
+            json_builder_append(&builder, ",\"xref_generation_mode\":") != 0 ||
+            json_builder_append_json_string(&builder,
+              ref->xref_generation_mode != NULL ? ref->xref_generation_mode : "") != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
@@ -3985,6 +3998,19 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
   if (ref->data_class_flags != 0U &&
       json_builder_appendf(builder, ",\"data_class_flags\":%u", (unsigned)ref->data_class_flags) != 0)
     return -1;
+  if (ref->owner_kind != NULL && ref->owner_kind[0] != '\0') {
+    if (json_builder_append(builder, ",\"owner_kind\":") != 0 ||
+        json_builder_append_json_string(builder, ref->owner_kind) != 0 ||
+        json_builder_append(builder, ",\"owner_id\":") != 0 ||
+        json_builder_append_json_string(builder, ref->owner_id != NULL ? ref->owner_id : "") != 0 ||
+        json_builder_append(builder, ",\"owner_layout_id\":") != 0 ||
+        json_builder_append_json_string(builder, ref->owner_layout_id != NULL ? ref->owner_layout_id : "") != 0 ||
+        json_builder_appendf(builder, ",\"owner_element_offset\":%u", (unsigned)ref->owner_element_offset) != 0 ||
+        json_builder_append(builder, ",\"xref_generation_mode\":") != 0 ||
+        json_builder_append_json_string(builder,
+          ref->xref_generation_mode != NULL ? ref->xref_generation_mode : "") != 0)
+      return -1;
+  }
   return json_builder_append(builder, "}");
 }
 

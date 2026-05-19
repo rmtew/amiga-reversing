@@ -18,6 +18,7 @@ from amiga_reversing.disasm.target_metadata import (
     ExecutionViewMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
+    ManualRuntimeAddressRefMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
@@ -1256,6 +1257,25 @@ def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path:
             "symbol": "dblk_ref_h0_00002000",
         }
     ]
+    assert payload["manual_runtime_address_refs"] == [
+        {
+            "addr": 0x100,
+            "citation": "manual_action_log:ptr-table:0:absolute:h0:00002000",
+            "confidence": 3,
+            "hunk": 0,
+            "owner_element_offset": 0,
+            "owner_id": "ptr-table:0:absolute:h0:00002000",
+            "owner_kind": "data_block_interpreted_ref",
+            "owner_layout_id": "ptr-table",
+            "review_status": "seeded",
+            "runtime_address": 0x2000,
+            "seed_origin": "manual_analysis",
+            "size": 4,
+            "target_hunk": 0,
+            "target_offset": 0x2000,
+            "xref_generation_mode": "bidirectional",
+        }
+    ]
 
 
 def test_effective_metadata_removes_manual_data_block_interpreted_ref(tmp_path: Path) -> None:
@@ -1327,6 +1347,7 @@ def test_effective_metadata_removes_manual_data_block_interpreted_ref(tmp_path: 
     assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] is None
     assert payload["target_equates"] == []
     assert payload["manual_representations"] == []
+    assert payload["manual_runtime_address_refs"] == []
 
 
 def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path: Path) -> None:
@@ -1350,6 +1371,25 @@ def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path:
         TargetMetadata(
             target_type="program",
             entry_register_seeds=(),
+            manual_runtime_address_refs=(
+                ManualRuntimeAddressRefMetadata(
+                    addr=0x100,
+                    hunk=0,
+                    size=4,
+                    target_hunk=0,
+                    target_offset=0x2000,
+                    runtime_address=0x2000,
+                    confidence=3,
+                    owner_kind="data_block_interpreted_ref",
+                    owner_id="ptr-table:0:absolute:h0:00002000",
+                    owner_layout_id="ptr-table",
+                    owner_element_offset=0,
+                    xref_generation_mode="bidirectional",
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="manual_action_log:ptr-table:0:absolute:h0:00002000",
+                ),
+            ),
             data_block_layouts=(
                 DataBlockLayoutMetadata(
                     layout_id="ptr-table",
@@ -1395,6 +1435,7 @@ def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path:
     payload = json.loads(effective_metadata_text(target_dir))
 
     assert payload["data_block_layouts"][0]["elements"][0]["reference_interpretation"] is None
+    assert payload["manual_runtime_address_refs"] == []
 
 
 def test_effective_metadata_keeps_unrelated_existing_data_block_interpreted_ref(tmp_path: Path) -> None:

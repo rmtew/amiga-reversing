@@ -1,4 +1,5 @@
-Status: In progress
+Status: Complete for supported absolute byte/word/long refs; broader reference
+kinds deferred until local evidence and verifier coverage exist.
 Source issue: docs/issues/014-015-data-block-layout-and-reference-interpretation.md
 Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 
@@ -51,22 +52,32 @@ Implemented tests:
 - Effective metadata reuses those guards before output projection, then emits a
   generated target-local `EQU` plus element-scoped symbolic representation for
   supported absolute byte/word/long refs.
+- Effective metadata emits owned manual runtime-address refs for supported
+  absolute refs when `xref_generation_mode` is `bidirectional` or
+  `source_only`; generated refs carry the owning layout id, element offset,
+  interpreted-ref id, target hunk/offset, runtime address, and generation mode.
+- C listing/analysis JSON imports those manual runtime-address refs and exposes
+  the owner identity on `runtime_address_refs`; target validation rejects
+  generated xrefs whose source span or target hunk/offset is outside the
+  target-local source.
 - C source rendering consumes symbol manual representations for scalar
   byte/word/long data and exact rebuild coverage proves `dc.l dblk_ref_*`
   remains byte-identical.
 - Loop execution verifies interpreted-reference state, rendered directive plus
-  symbol presence, corrective symbol disappearance, and exact round-trip.
+  symbol presence, generated runtime-address ref presence, corrective symbol
+  and xref disappearance, and exact round-trip.
 
 Remaining:
-- Generated bidirectional xrefs with owner identity.
-- Xref verifier checks for generated source/target xrefs and cleanup
-  disappearance.
+- Broader reference kinds beyond locally proven absolute byte/word/long refs are
+  out of this slice and remain missing-capability blockers.
 
 Acceptance criteria:
 - Replay reloads interpreted-reference state exactly.
 - Render verifier checks expected symbolic text for supported kinds. Covered for
   absolute byte/word/long refs.
-- Xref verifier checks generated source and target xrefs. Still open.
+- Xref verifier checks generated source and target xrefs. Covered through owned
+  `runtime_address_refs` carrying source row, target hunk/offset, and owner
+  identity.
 - Removal verifier proves generated xrefs and symbolic rendering disappear.
-  Symbolic rendering cleanup is covered; generated xref cleanup is still open.
+  Covered for supported absolute refs.
 - Exact rebuild remains mandatory. Covered for symbolic render.

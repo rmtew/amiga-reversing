@@ -52,6 +52,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 128U
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 128U
 #define M68K_ANALYSIS_TARGET_EQUATE_LIMIT 16U
+#define M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT 128U
 
 typedef enum M68kAnalysisRegisterKind {
   M68K_ANALYSIS_REGISTER_NONE = 0,
@@ -286,6 +287,24 @@ typedef struct M68kAnalysisTargetEquate {
   int32_t value;
 } M68kAnalysisTargetEquate;
 
+typedef struct M68kAnalysisManualRuntimeAddressRef {
+  uint8_t has_section_index;
+  uint8_t has_target;
+  uint8_t has_runtime_address;
+  uint8_t confidence;
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t runtime_address;
+  uint32_t owner_element_offset;
+  char owner_kind[32];
+  char owner_id[96];
+  char owner_layout_id[64];
+  char xref_generation_mode[32];
+} M68kAnalysisManualRuntimeAddressRef;
+
 typedef struct M68kAnalysisPolicy {
   uint8_t max_cpu;
   uint8_t has_entry_offset;
@@ -301,7 +320,7 @@ typedef struct M68kAnalysisPolicy {
   uint16_t rsset_layout_region_count;
   uint16_t manual_representation_count;
   uint16_t target_equate_count;
-  uint16_t reserved_count0;
+  uint16_t manual_runtime_address_ref_count;
   uint32_t entry_offset;
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
@@ -313,6 +332,7 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
   M68kAnalysisManualRepresentation manual_representations[M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT];
   M68kAnalysisTargetEquate target_equates[M68K_ANALYSIS_TARGET_EQUATE_LIMIT];
+  M68kAnalysisManualRuntimeAddressRef manual_runtime_address_refs[M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT];
 } M68kAnalysisPolicy;
 
 typedef struct M68kAnalysisFindings {
@@ -1020,6 +1040,11 @@ typedef struct M68kRuntimeAddressRefIR {
   uint32_t sink_address;
   uint32_t data_class_flags;
   char *data_class;
+  char *owner_kind;
+  char *owner_id;
+  char *owner_layout_id;
+  char *xref_generation_mode;
+  uint32_t owner_element_offset;
 } M68kRuntimeAddressRefIR;
 
 typedef enum M68kAbsoluteMemoryOwnerKind {

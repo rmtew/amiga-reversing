@@ -229,6 +229,10 @@ static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
   uint32_t offset, uint32_t size, uint8_t style_id, uint8_t has_operand_index, uint8_t operand_index,
   const char *symbol_name);
+static int policy_add_manual_runtime_address_ref_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+  uint32_t offset, uint32_t size, uint32_t target_section_index, uint32_t target_offset,
+  uint32_t runtime_address, uint8_t confidence, const char *owner_kind, const char *owner_id,
+  const char *owner_layout_id, uint32_t owner_element_offset, const char *xref_generation_mode);
 static int policy_runtime_address_to_source_offset_local(const M68kAnalysisPolicy *policy,
   uint32_t runtime_address, uint32_t *out_section_index, uint32_t *out_offset);
 
@@ -848,6 +852,49 @@ static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char
     return 0;
   }
   slot->value = value;
+  return 1;
+}
+
+static int policy_add_manual_runtime_address_ref_local(M68kAnalysisPolicy *policy, uint32_t section_index,
+    uint32_t offset, uint32_t size, uint32_t target_section_index, uint32_t target_offset,
+    uint32_t runtime_address, uint8_t confidence, const char *owner_kind, const char *owner_id,
+    const char *owner_layout_id, uint32_t owner_element_offset, const char *xref_generation_mode) {
+  M68kAnalysisManualRuntimeAddressRef *slot;
+  uint16_t index;
+  if (policy == NULL || size == 0U || owner_kind == NULL || owner_kind[0] == '\0' ||
+      owner_id == NULL || owner_id[0] == '\0' || owner_layout_id == NULL || owner_layout_id[0] == '\0' ||
+      xref_generation_mode == NULL || xref_generation_mode[0] == '\0')
+    return 0;
+  for (index = 0U; index < policy->manual_runtime_address_ref_count &&
+       index < M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT; ++index) {
+    const M68kAnalysisManualRuntimeAddressRef *existing = &policy->manual_runtime_address_refs[index];
+    if (existing->section_index == section_index && existing->offset == offset &&
+        existing->target_section_index == target_section_index && existing->target_offset == target_offset &&
+        strcmp(existing->owner_id, owner_id) == 0)
+      return 1;
+  }
+  if (policy->manual_runtime_address_ref_count >= M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT) return 0;
+  slot = &policy->manual_runtime_address_refs[policy->manual_runtime_address_ref_count++];
+  memset(slot, 0, sizeof(*slot));
+  slot->has_section_index = 1U;
+  slot->has_target = 1U;
+  slot->has_runtime_address = 1U;
+  slot->section_index = section_index;
+  slot->offset = offset;
+  slot->size = size;
+  slot->target_section_index = target_section_index;
+  slot->target_offset = target_offset;
+  slot->runtime_address = runtime_address;
+  slot->confidence = confidence;
+  slot->owner_element_offset = owner_element_offset;
+  if (!copy_policy_text(slot->owner_kind, sizeof(slot->owner_kind), owner_kind) ||
+      !copy_policy_text(slot->owner_id, sizeof(slot->owner_id), owner_id) ||
+      !copy_policy_text(slot->owner_layout_id, sizeof(slot->owner_layout_id), owner_layout_id) ||
+      !copy_policy_text(slot->xref_generation_mode, sizeof(slot->xref_generation_mode), xref_generation_mode)) {
+    memset(slot, 0, sizeof(*slot));
+    --policy->manual_runtime_address_ref_count;
+    return 0;
+  }
   return 1;
 }
 
@@ -4006,6 +4053,57 @@ static int append_metadata_target_equate_local(const char *object_start, const c
   return policy_add_target_equate_local(policy, name, (int32_t)parsed);
 }
 
+static int append_metadata_manual_runtime_address_ref_local(const char *object_start, const char *object_end,
+    M68kAnalysisPolicy *policy) {
+  uint32_t addr = 0U;
+  uint32_t hunk = 0U;
+  uint32_t size = 0U;
+  uint32_t target_hunk = 0U;
+  uint32_t target_offset = 0U;
+  uint32_t runtime_address = 0U;
+  uint32_t confidence = 0U;
+  uint32_t owner_element_offset = 0U;
+  int has_addr = 0;
+  int has_hunk = 0;
+  int has_size = 0;
+  int has_target_hunk = 0;
+  int has_target_offset = 0;
+  int has_runtime_address = 0;
+  int has_confidence = 0;
+  int has_owner_element_offset = 0;
+  char owner_kind[32];
+  char owner_id[96];
+  char owner_layout_id[64];
+  char xref_generation_mode[32];
+  owner_kind[0] = '\0';
+  owner_id[0] = '\0';
+  owner_layout_id[0] = '\0';
+  xref_generation_mode[0] = '\0';
+  if (!json_number_field_local(object_start, object_end, "addr", &addr, &has_addr) ||
+      !json_number_field_local(object_start, object_end, "hunk", &hunk, &has_hunk) ||
+      !json_number_field_local(object_start, object_end, "size", &size, &has_size) ||
+      !json_number_field_local(object_start, object_end, "target_hunk", &target_hunk, &has_target_hunk) ||
+      !json_number_field_local(object_start, object_end, "target_offset", &target_offset, &has_target_offset) ||
+      !json_number_field_local(object_start, object_end, "runtime_address", &runtime_address, &has_runtime_address) ||
+      !json_number_field_local(object_start, object_end, "confidence", &confidence, &has_confidence) ||
+      !json_number_field_local(object_start, object_end, "owner_element_offset", &owner_element_offset,
+        &has_owner_element_offset) ||
+      !json_optional_string_field_local(object_start, object_end, "owner_kind", owner_kind, sizeof(owner_kind)) ||
+      !json_optional_string_field_local(object_start, object_end, "owner_id", owner_id, sizeof(owner_id)) ||
+      !json_optional_string_field_local(object_start, object_end, "owner_layout_id", owner_layout_id,
+        sizeof(owner_layout_id)) ||
+      !json_optional_string_field_local(object_start, object_end, "xref_generation_mode", xref_generation_mode,
+        sizeof(xref_generation_mode))) {
+    return 0;
+  }
+  if (!has_addr || !has_size || !has_target_hunk || !has_target_offset || !has_runtime_address ||
+      !has_confidence || !has_owner_element_offset)
+    return 0;
+  return policy_add_manual_runtime_address_ref_local(policy, has_hunk ? hunk : 0U, addr, size, target_hunk,
+    target_offset, runtime_address, (uint8_t)confidence, owner_kind, owner_id, owner_layout_id,
+    owner_element_offset, xref_generation_mode);
+}
+
 static const char *json_find_object_field_local(const char *text, const char *key, const char **out_object_end) {
   const char *end = text + strlen(text);
   const char *cursor = json_find_key_local(text, end, key);
@@ -4801,6 +4899,17 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
     }
     cursor = object_end;
   }
+  cursor = json_find_array_local(text, "manual_runtime_address_refs", &array_end);
+  while (cursor != NULL && cursor < array_end) {
+    const char *object_end;
+    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
+    if (object_start == NULL) break;
+    if (!append_metadata_manual_runtime_address_ref_local(object_start, object_end, policy)) {
+      platform_file_add_error(diagnostics.list, "failed parsing target metadata manual runtime address ref");
+      return -1;
+    }
+    cursor = object_end;
+  }
   cursor = json_find_array_local(text, "execution_views", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
@@ -5167,6 +5276,20 @@ static int validate_effective_policy_against_object_local(M68kDiagList *diagnost
       return 0;
     if (!validate_policy_range_local(diagnostics, object, representation->has_section_index,
         representation->section_index, representation->offset, representation->size))
+      return 0;
+  }
+  for (index = 0U; index < policy->manual_runtime_address_ref_count &&
+       index < M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT; ++index) {
+    const M68kAnalysisManualRuntimeAddressRef *ref = &policy->manual_runtime_address_refs[index];
+    if (!validate_policy_section_index_local(diagnostics, object, ref->has_section_index, ref->section_index))
+      return 0;
+    if (!validate_policy_range_local(diagnostics, object, ref->has_section_index, ref->section_index,
+          ref->offset, ref->size))
+      return 0;
+    if (!validate_policy_section_index_local(diagnostics, object, ref->has_target, ref->target_section_index))
+      return 0;
+    if (!validate_policy_offset_local(diagnostics, object, ref->has_target, ref->target_section_index,
+          ref->target_offset, "target metadata manual runtime address ref target is out of range"))
       return 0;
   }
   return 1;

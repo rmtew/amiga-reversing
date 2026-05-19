@@ -5997,6 +5997,31 @@ static int append_render_lookup_runtime_address_refs_for_section(const M68kRende
     if (entry->section_index != section_analysis->section_index) continue;
     if (m68k_ir_section_analysis_append_runtime_address_ref(section_analysis, &entry->ref) != 0) return -1;
   }
+  if (lookup->policy != NULL) {
+    uint16_t ref_index;
+    for (ref_index = 0U; ref_index < lookup->policy->manual_runtime_address_ref_count &&
+         ref_index < M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT; ++ref_index) {
+      const M68kAnalysisManualRuntimeAddressRef *manual_ref = &lookup->policy->manual_runtime_address_refs[ref_index];
+      M68kRuntimeAddressRefIR ref;
+      if (!manual_ref->has_section_index || manual_ref->section_index != section_analysis->section_index) continue;
+      memset(&ref, 0, sizeof(ref));
+      ref.offset = manual_ref->offset;
+      ref.operand_index = UINT32_MAX;
+      ref.size = manual_ref->size;
+      ref.has_target = manual_ref->has_target;
+      ref.target_section_index = manual_ref->target_section_index;
+      ref.target_offset = manual_ref->target_offset;
+      ref.has_runtime_address = manual_ref->has_runtime_address;
+      ref.runtime_address = manual_ref->runtime_address;
+      ref.confidence = manual_ref->confidence;
+      ref.owner_kind = (char *)manual_ref->owner_kind;
+      ref.owner_id = (char *)manual_ref->owner_id;
+      ref.owner_layout_id = (char *)manual_ref->owner_layout_id;
+      ref.owner_element_offset = manual_ref->owner_element_offset;
+      ref.xref_generation_mode = (char *)manual_ref->xref_generation_mode;
+      if (m68k_ir_section_analysis_append_runtime_address_ref(section_analysis, &ref) != 0) return -1;
+    }
+  }
   return 0;
 }
 

@@ -1339,15 +1339,40 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
         existing->has_sink_address == runtime_address_ref->has_sink_address &&
         existing->sink_address == runtime_address_ref->sink_address &&
         existing->size == runtime_address_ref->size &&
-        existing->data_class_flags == runtime_address_ref->data_class_flags) {
+        existing->data_class_flags == runtime_address_ref->data_class_flags &&
+        existing->owner_element_offset == runtime_address_ref->owner_element_offset &&
+        text_equal_nullable(existing->owner_kind, runtime_address_ref->owner_kind) &&
+        text_equal_nullable(existing->owner_id, runtime_address_ref->owner_id) &&
+        text_equal_nullable(existing->owner_layout_id, runtime_address_ref->owner_layout_id) &&
+        text_equal_nullable(existing->xref_generation_mode, runtime_address_ref->xref_generation_mode)) {
       return 0;
     }
   }
   copy = *runtime_address_ref;
   copy.data_class = NULL;
+  copy.owner_kind = NULL;
+  copy.owner_id = NULL;
+  copy.owner_layout_id = NULL;
+  copy.xref_generation_mode = NULL;
   if (runtime_address_ref->data_class != NULL) {
     copy.data_class = arena_strdup(section_analysis->arena, runtime_address_ref->data_class);
     if (copy.data_class == NULL) return -1;
+  }
+  if (runtime_address_ref->owner_kind != NULL) {
+    copy.owner_kind = arena_strdup(section_analysis->arena, runtime_address_ref->owner_kind);
+    if (copy.owner_kind == NULL) return -1;
+  }
+  if (runtime_address_ref->owner_id != NULL) {
+    copy.owner_id = arena_strdup(section_analysis->arena, runtime_address_ref->owner_id);
+    if (copy.owner_id == NULL) return -1;
+  }
+  if (runtime_address_ref->owner_layout_id != NULL) {
+    copy.owner_layout_id = arena_strdup(section_analysis->arena, runtime_address_ref->owner_layout_id);
+    if (copy.owner_layout_id == NULL) return -1;
+  }
+  if (runtime_address_ref->xref_generation_mode != NULL) {
+    copy.xref_generation_mode = arena_strdup(section_analysis->arena, runtime_address_ref->xref_generation_mode);
+    if (copy.xref_generation_mode == NULL) return -1;
   }
   section_analysis->runtime_address_refs = (M68kRuntimeAddressRefIR *)arena_grow_array(section_analysis->arena,
     section_analysis->runtime_address_refs, section_analysis->runtime_address_ref_count,

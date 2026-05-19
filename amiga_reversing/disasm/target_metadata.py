@@ -831,6 +831,76 @@ class TargetEquateMetadata:
 
 
 @dataclass(frozen=True, slots=True)
+class ManualRuntimeAddressRefMetadata:
+    addr: int
+    size: int
+    target_hunk: int
+    target_offset: int
+    runtime_address: int
+    confidence: int
+    owner_kind: str
+    owner_id: str
+    owner_layout_id: str
+    owner_element_offset: int
+    xref_generation_mode: str
+    seed_origin: TargetMetadataSeedOrigin
+    review_status: TargetMetadataReviewStatus
+    citation: str
+    hunk: int = 0
+
+    def __post_init__(self) -> None:
+        _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, object]) -> ManualRuntimeAddressRefMetadata:
+        addr = payload["addr"]
+        size = payload["size"]
+        target_hunk = payload["target_hunk"]
+        target_offset = payload["target_offset"]
+        runtime_address = payload["runtime_address"]
+        confidence = payload["confidence"]
+        owner_kind = payload["owner_kind"]
+        owner_id = payload["owner_id"]
+        owner_layout_id = payload["owner_layout_id"]
+        owner_element_offset = payload["owner_element_offset"]
+        xref_generation_mode = payload["xref_generation_mode"]
+        seed_origin = payload["seed_origin"]
+        review_status = payload["review_status"]
+        citation = payload["citation"]
+        hunk = payload.get("hunk", 0)
+        assert isinstance(addr, int)
+        assert isinstance(size, int)
+        assert isinstance(target_hunk, int)
+        assert isinstance(target_offset, int)
+        assert isinstance(runtime_address, int)
+        assert isinstance(confidence, int)
+        assert isinstance(owner_kind, str)
+        assert isinstance(owner_id, str)
+        assert isinstance(owner_layout_id, str)
+        assert isinstance(owner_element_offset, int)
+        assert isinstance(xref_generation_mode, str)
+        assert isinstance(citation, str)
+        assert isinstance(hunk, int)
+        return cls(
+            addr=addr,
+            size=size,
+            target_hunk=target_hunk,
+            target_offset=target_offset,
+            runtime_address=runtime_address,
+            confidence=confidence,
+            owner_kind=owner_kind,
+            owner_id=owner_id,
+            owner_layout_id=owner_layout_id,
+            owner_element_offset=owner_element_offset,
+            xref_generation_mode=xref_generation_mode,
+            seed_origin=_target_metadata_seed_origin(seed_origin),
+            review_status=_target_metadata_review_status(review_status),
+            citation=citation,
+            hunk=hunk,
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionViewMetadata:
     source_start: int
     source_end: int
@@ -1073,6 +1143,7 @@ class TargetMetadata:
     entry_comments: tuple[EntryCommentMetadata, ...] = ()
     manual_representations: tuple[ManualRepresentationMetadata, ...] = ()
     target_equates: tuple[TargetEquateMetadata, ...] = ()
+    manual_runtime_address_refs: tuple[ManualRuntimeAddressRefMetadata, ...] = ()
     data_block_layouts: tuple[DataBlockLayoutMetadata, ...] = ()
     execution_views: tuple[ExecutionViewMetadata, ...] = ()
     suppressed_seeded_items: tuple[SuppressedSeededItemMetadata, ...] = ()
@@ -1093,6 +1164,7 @@ class TargetMetadata:
         entry_comments = payload.get("entry_comments", [])
         manual_representations = payload.get("manual_representations", [])
         target_equates = payload.get("target_equates", [])
+        manual_runtime_address_refs = payload.get("manual_runtime_address_refs", [])
         data_block_layouts = payload.get("data_block_layouts", [])
         execution_views = payload.get("execution_views", [])
         suppressed_seeded_items = payload.get("suppressed_seeded_items", [])
@@ -1142,6 +1214,10 @@ class TargetMetadata:
             target_equates=tuple(
                 TargetEquateMetadata.from_dict(_json_object(equate_payload))
                 for equate_payload in _json_list(target_equates)
+            ),
+            manual_runtime_address_refs=tuple(
+                ManualRuntimeAddressRefMetadata.from_dict(_json_object(ref_payload))
+                for ref_payload in _json_list(manual_runtime_address_refs)
             ),
             data_block_layouts=tuple(
                 DataBlockLayoutMetadata.from_dict(_json_object(layout_payload))

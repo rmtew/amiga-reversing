@@ -33,6 +33,7 @@ from amiga_reversing.disasm.target_metadata import (
     ExecutionViewMetadata,
     ManualRepresentationMetadata,
     ManualRepresentationStyle,
+    ManualRuntimeAddressRefMetadata,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeEntrypointMetadata,
@@ -894,6 +895,52 @@ def _data_block_element_interpreted_ref_representation(
     )
 
 
+def _data_block_element_interpreted_ref_runtime_address_ref(
+    layout: DataBlockLayoutMetadata,
+    element: DataBlockElementMetadata,
+) -> ManualRuntimeAddressRefMetadata | None:
+    ref = element.reference_interpretation
+    if not isinstance(ref, dict):
+        return None
+    if _data_block_interpreted_ref_symbol(ref) is None:
+        return None
+    mode = ref.get("xref_generation_mode") or "bidirectional"
+    if mode not in {"bidirectional", "source_only"}:
+        return None
+    addr, end = _data_block_element_span(layout, element)
+    width = _manual_seed_int(ref, "width")
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    if end <= addr or end > layout.source_end or width not in {1, 2, 4} or end - addr != width:
+        return None
+    if target_hunk is None or target_offset is None:
+        return None
+    confidence = ref.get("confidence")
+    confidence_id = {"manual": 3, "high": 3, "medium": 2, "low": 1}.get(str(confidence or "manual"), 3)
+    ref_id = _manual_data_block_reference_id(ref)
+    layout_id = ref.get("layout_id")
+    offset = _manual_seed_int(ref, "offset")
+    if not isinstance(layout_id, str) or offset is None:
+        return None
+    return ManualRuntimeAddressRefMetadata(
+        addr=addr,
+        hunk=layout.hunk,
+        size=width,
+        target_hunk=target_hunk,
+        target_offset=target_offset,
+        runtime_address=target_offset,
+        confidence=confidence_id,
+        owner_kind="data_block_interpreted_ref",
+        owner_id=ref_id,
+        owner_layout_id=layout_id,
+        owner_element_offset=offset,
+        xref_generation_mode=str(mode),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "data_block_ref_id"),
+    )
+
+
 def _metadata_range_end(addr: int, end: int | None) -> int:
     return end if end is not None and end > addr else addr + 1
 
@@ -1031,6 +1078,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     entry_register_seeds = list(metadata.entry_register_seeds)
     manual_representations = list(metadata.manual_representations)
     target_equates = list(metadata.target_equates)
+    manual_runtime_address_refs = list(metadata.manual_runtime_address_refs)
     custom_structs = list(metadata.custom_structs)
     rsset_layout_regions = list(metadata.rsset_layout_regions)
     data_block_layouts = list(metadata.data_block_layouts)
@@ -1108,6 +1156,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         data_block_layouts = [
             layout for layout in data_block_layouts if layout.layout_id not in removed_data_block_layout_ids
         ]
+        manual_runtime_address_refs = [
+            ref for ref in manual_runtime_address_refs if ref.owner_layout_id not in removed_data_block_layout_ids
+        ]
     removed_data_block_element_keys = {
         key
         for element in removed_data_block_element_projections
@@ -1125,10 +1176,20 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             )
             for layout in data_block_layouts
         ]
+        manual_runtime_address_refs = [
+            ref
+            for ref in manual_runtime_address_refs
+            if (ref.owner_layout_id, ref.owner_element_offset) not in removed_data_block_element_keys
+        ]
     removed_data_block_interpreted_refs = _manual_data_block_reference_removals(
         removed_data_block_interpreted_ref_projections
     )
     if removed_data_block_interpreted_refs:
+        removed_ref_ids = {
+            ref_id
+            for ref_ids in removed_data_block_interpreted_refs.values()
+            for ref_id in ref_ids
+        }
         data_block_layouts = [
             replace(
                 layout,
@@ -1140,6 +1201,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 ),
             )
             for layout in data_block_layouts
+        ]
+        manual_runtime_address_refs = [
+            ref for ref in manual_runtime_address_refs if ref.owner_id not in removed_ref_ids
         ]
     for seed in required_seeds:
         seed_kind = seed.get("kind")
@@ -1261,14 +1325,21 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 else None
             )
             interpreted_ref_representation = _data_block_element_interpreted_ref_representation(layout, element)
+            interpreted_ref_runtime_ref = _data_block_element_interpreted_ref_runtime_address_ref(layout, element)
             if interpreted_ref_equate is not None and interpreted_ref_representation is not None:
                 target_equates.append(interpreted_ref_equate)
                 manual_representations.append(interpreted_ref_representation)
+                if interpreted_ref_runtime_ref is not None:
+                    manual_runtime_address_refs.append(interpreted_ref_runtime_ref)
             else:
                 representation = _data_block_element_representation(layout, element)
                 if representation is not None:
                     manual_representations.append(representation)
     merged_target_equates = {equate.name: equate for equate in target_equates}
+    merged_manual_runtime_address_refs = {
+        (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref
+        for ref in manual_runtime_address_refs
+    }
     for view in execution_view_projections:
         execution_view = _manual_execution_view_to_metadata(view)
         if execution_view is not None:
@@ -1286,6 +1357,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         entry_comments=tuple(entry_comments),
         manual_representations=tuple(manual_representations),
         target_equates=tuple(merged_target_equates.values()),
+        manual_runtime_address_refs=tuple(merged_manual_runtime_address_refs.values()),
         custom_structs=tuple(merged_custom_structs.values()),
         rsset_layout_regions=tuple(merged_rsset_layout_regions.values()),
         data_block_layouts=tuple(effective_data_block_layouts),
