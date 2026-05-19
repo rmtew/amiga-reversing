@@ -3117,19 +3117,21 @@ def _consumed_provenance_evidence(
     durable_result: dict[str, object],
 ) -> dict[str, object] | None:
     durable_evidence = _find_source_evidence_payload(durable_result)
-    command_evidence_id = _command_consumed_source_evidence_id(command)
+    command_evidence = _command_source_evidence_payload(command)
+    command_evidence_id = _source_evidence_id(command_evidence) if command_evidence is not None else None
     if durable_evidence is not None:
         evidence = dict(durable_evidence)
-        if isinstance(command_evidence_id, str) and command_evidence_id:
-            evidence["expected_source_evidence_id"] = command_evidence_id
+        if command_evidence is not None:
+            for key in _PROVENANCE_COMMAND_IDENTITY_KEYS:
+                if key in command_evidence:
+                    evidence[f"expected_{key}"] = command_evidence[key]
         return evidence
     if command_evidence_id is None:
         return None
     return {"source_evidence_id": command_evidence_id, "missing_durable_payload": True}
 
 
-def _command_consumed_source_evidence_id(command: dict[str, object]) -> str | None:
-    evidence = _command_source_evidence_payload(command)
+def _source_evidence_id(evidence: dict[str, object] | None) -> str | None:
     if evidence is None:
         return None
     evidence_id = evidence.get("source_evidence_id")
@@ -3185,6 +3187,12 @@ def _verify_consumed_provenance_evidence(
     expected_evidence_id = evidence.get("expected_source_evidence_id")
     if isinstance(expected_evidence_id, str) and expected_evidence_id and evidence_id != expected_evidence_id:
         failures.append("durable source_evidence_id does not match consumed command evidence")
+    for key in _PROVENANCE_COMMAND_IDENTITY_KEYS:
+        if key == "source_evidence_id":
+            continue
+        expected_key = f"expected_{key}"
+        if expected_key in evidence and evidence.get(key) != evidence.get(expected_key):
+            failures.append(f"durable {key} does not match consumed command evidence")
     if not isinstance(source_family, str) or source_family in {"", "unknown", "conflicting"}:
         failures.append("missing accepted source_family")
     if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
@@ -3216,6 +3224,9 @@ def _verify_consumed_provenance_evidence(
         "path_lifetime_scope": scope,
         "cleanup_scope": cleanup_scope,
         "owner_action_id": owner_action_id,
+        "expected_provenance": {
+            key.removeprefix("expected_"): value for key, value in evidence.items() if key.startswith("expected_")
+        },
         "failures": failures,
     }
 

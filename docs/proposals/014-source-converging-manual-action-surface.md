@@ -1109,6 +1109,13 @@ at the contradicted fact. For `owned_descendants`, `cleanup_scope.source_evidenc
 must equal `contradicted_evidence_id`; otherwise a manual override can claim
 cleanup proof for a different stale evidence path.
 
+Implementation observation from `014-013`: generic provenance verification must
+compare the whole command-carried evidence boundary, not only
+`source_evidence_id`. If the durable payload replays the same id with a
+different source family/status, path/lifetime scope, parent evidence set,
+conflict list, or override cleanup fields, the correction boundary has not been
+proven.
+
 Implementation observation from `014-013`: execution views are correction/view
 state but still need action ownership in the Manual Action Log projection.
 Create/edit views now stamp `owner_action_id`; remove preserves the active view

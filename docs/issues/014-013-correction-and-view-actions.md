@@ -61,6 +61,10 @@ Current evidence:
   scope, in addition to contradicted evidence id, reason, accepted source
   family/status, and path/lifetime scope. `owned_descendants` cleanup scope must
   name the same `source_evidence_id` as the contradicted evidence.
+- Generic provenance-backed mutation verification now compares the command's
+  consumed provenance boundary beyond `source_evidence_id`, including source
+  family/status, path/lifetime scope, conflicts, parent evidence ids, and
+  override cleanup fields.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation

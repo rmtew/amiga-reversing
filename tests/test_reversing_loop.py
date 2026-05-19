@@ -862,6 +862,43 @@ def test_provenance_backed_mutation_verifier_rejects_mismatched_command_evidence
     assert "durable source_evidence_id does not match consumed command evidence" in provenance_layer["failures"]
 
 
+def test_provenance_backed_mutation_verifier_rejects_mismatched_command_scope() -> None:
+    command = {
+        "command_id": "row.data_block.element.bind_type",
+        "parameters": {
+            "source_evidence_id": "prov-command",
+            "source_family": "data_block_pointer",
+            "source_evidence_status": "analysis_proven",
+            "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x40},
+            "parent_evidence_ids": ["prov-parent-a"],
+        },
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "data_block_element": {
+                    "type_binding": {
+                        "source_evidence_id": "prov-command",
+                        "source_family": "data_block_pointer",
+                        "source_evidence_status": "analysis_proven",
+                        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x44},
+                        "parent_evidence_ids": ["prov-parent-b"],
+                    }
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert "durable path_lifetime_scope does not match consumed command evidence" in provenance_layer["failures"]
+    assert "durable parent_evidence_ids does not match consumed command evidence" in provenance_layer["failures"]
+
+
 def test_provenance_backed_mutation_verifier_ignores_cleanup_scope_evidence_id_as_consumed() -> None:
     command = {
         "command_id": "typed_gap.field.add",
