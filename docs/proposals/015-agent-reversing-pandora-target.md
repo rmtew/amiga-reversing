@@ -438,6 +438,25 @@ the intended location.
 * Next recommendation: continue with typed data-backed candidates until the
   planner reaches non-data or unsupported actions.
 
+### 015-008: Named row-backed copper list
+
+* Candidate: next available typed data-backed Pandora action after the lookup
+  table iteration.
+* Evidence: planner selected a data row at `s0:00000ED8:data:929`, hunk 0
+  `$00000ED8-$00000F54`, data class `copper_list`.
+* Command: executed `data_symbol.rename` to `copper_list_00020ED8`.
+* Verifier: Manual Action Log sequence 4 was appended locally;
+  `reproduction.json` reports `status: exact`, `stale: false`, rebuilt SHA
+  matching original.
+* Result: rendered source now uses `copper_list_00020ED8` at the copper-list
+  definition and the `lea.l copper_list_00020ED8(pc),a0` use feeding
+  `cop1lc(a5)`.
+* Review: pure Pandora iteration report; no support-code change. This remains
+  typed data-backed work, and RSSET/app-base evidence remains report-only until
+  accepted base evidence exists.
+* Next recommendation: continue typed data-backed candidates until saturation,
+  then inspect the next non-data-backed family before mutating.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
