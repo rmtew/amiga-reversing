@@ -951,6 +951,13 @@ ids must participate in generated `source_evidence_id` values. Otherwise two
 different accepted base classifications for the same operand can collapse to
 one provenance id even though they imply different cleanup and write authority.
 
+Implementation observation from `014-005`: provenance-backed writes need a
+generic verifier layer in addition to family-specific state/render checks. The
+layer should fail command-only evidence, unresolved or conflicting evidence,
+missing path/lifetime scope, missing source family/status, and generated
+descendants without `owner_action_id`; family commands must persist those fields
+before planner execution can consume generic provenance broadly.
+
 Implementation observation from `014-010`: first-slice provenance can report
 LVO library-base, typed-access struct-pointer, app-slot/base evidence, and raw
 base-relative unknowns from listing context, but deeper C flow definitions are

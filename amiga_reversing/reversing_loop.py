@@ -840,6 +840,7 @@ def run_one_iteration(
     result = cast(dict[str, object], execution["data"])
     workflow_profile = result.get("workflow_profile") if isinstance(result.get("workflow_profile"), dict) else None
     verification = _verify_manual_mutation(target_id, command, result, project_root=project_root)
+    verification = _verify_provenance_backed_mutation(command, result, verification)
     report = _iteration_report(
         run_state=run_result.run_state,
         iteration_id=iteration_id,
@@ -2995,6 +2996,121 @@ def _verify_manual_mutation(
         layers.append(_verify_round_trip_exact(target_id, project_root=project_root))
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+_ACCEPTED_PROVENANCE_STATUSES = frozenset({"analysis_proven", "path_specific", "manual_classified", "manual_override"})
+
+
+def _verify_provenance_backed_mutation(
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    verification: dict[str, object],
+) -> dict[str, object]:
+    evidence = _consumed_provenance_evidence(command, durable_result)
+    if evidence is None:
+        return verification
+    layers = verification.get("layers")
+    if not isinstance(layers, list):
+        layers = []
+    layer = _verify_consumed_provenance_evidence(evidence, durable_result)
+    updated_layers = _insert_verification_layer_after(layers, "manual_action_log", layer)
+    status = "passed" if verification.get("status") == "passed" and layer["status"] == "passed" else "failed"
+    return {**verification, "status": status, "layers": updated_layers}
+
+
+def _consumed_provenance_evidence(
+    command: dict[str, object],
+    durable_result: dict[str, object],
+) -> dict[str, object] | None:
+    durable_evidence = _find_source_evidence_payload(durable_result)
+    if durable_evidence is not None:
+        return durable_evidence
+    command_evidence = _find_source_evidence_payload(command)
+    if command_evidence is None:
+        return None
+    return {"source_evidence_id": command_evidence.get("source_evidence_id"), "missing_durable_payload": True}
+
+
+def _find_source_evidence_payload(value: object) -> dict[str, object] | None:
+    if isinstance(value, dict):
+        evidence_id = value.get("source_evidence_id")
+        if isinstance(evidence_id, str) and evidence_id:
+            return cast(dict[str, object], value)
+        for child in value.values():
+            found = _find_source_evidence_payload(child)
+            if found is not None:
+                return found
+    elif isinstance(value, list | tuple):
+        for child in value:
+            found = _find_source_evidence_payload(child)
+            if found is not None:
+                return found
+    return None
+
+
+def _verify_consumed_provenance_evidence(
+    evidence: dict[str, object],
+    durable_result: dict[str, object],
+) -> dict[str, object]:
+    evidence_id = evidence.get("source_evidence_id")
+    source_family = evidence.get("source_family") or evidence.get("evidence_source_family")
+    status = evidence.get("source_evidence_status") or evidence.get("evidence_status") or evidence.get("status")
+    scope = evidence.get("path_lifetime_scope")
+    owner_action_id = evidence.get("owner_action_id") or _durable_action_id(durable_result)
+    failures: list[str] = []
+    if evidence.get("missing_durable_payload") is True:
+        failures.append("durable action payload missing consumed source_evidence_id")
+    if not isinstance(evidence_id, str) or not evidence_id:
+        failures.append("missing source_evidence_id")
+    if not isinstance(source_family, str) or source_family in {"", "unknown", "conflicting"}:
+        failures.append("missing accepted source_family")
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        failures.append("source_evidence_status is not accepted")
+    if not isinstance(scope, dict) or not scope.get("kind"):
+        failures.append("missing path_lifetime_scope")
+    conflicts = evidence.get("conflicts")
+    has_conflicts = isinstance(conflicts, list) and bool(conflicts)
+    if has_conflicts and status != "manual_override":
+        failures.append("conflicts require manual_override")
+    if status == "manual_override":
+        if not isinstance(evidence.get("contradicted_evidence_id"), str) or not evidence.get("contradicted_evidence_id"):
+            failures.append("manual_override missing contradicted_evidence_id")
+        if not isinstance(evidence.get("reason"), str) or not evidence.get("reason"):
+            failures.append("manual_override missing reason")
+    if not isinstance(owner_action_id, str) or not owner_action_id:
+        failures.append("missing owner_action_id")
+    return {
+        "layer": "provenance_evidence",
+        "status": "failed" if failures else "passed",
+        "source_evidence_id": evidence_id,
+        "source_family": source_family,
+        "source_evidence_status": status,
+        "path_lifetime_scope": scope,
+        "owner_action_id": owner_action_id,
+        "failures": failures,
+    }
+
+
+def _durable_action_id(durable_result: dict[str, object]) -> str | None:
+    action = durable_result.get("action")
+    if isinstance(action, dict):
+        action_id = action.get("action_id")
+        if isinstance(action_id, str) and action_id:
+            return action_id
+    return None
+
+
+def _insert_verification_layer_after(
+    layers: list[object],
+    after_layer: str,
+    layer: dict[str, object],
+) -> list[object]:
+    updated = list(layers)
+    for index, existing in enumerate(updated):
+        if isinstance(existing, dict) and existing.get("layer") == after_layer:
+            updated.insert(index + 1, layer)
+            return updated
+    return [layer, *updated]
 
 
 def _verify_data_symbol_rename_mutation(

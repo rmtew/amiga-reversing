@@ -4,6 +4,12 @@ Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 Scope:
 Define and implement verifier coverage for source-converging action families.
 
+Accepted review state:
+Verifier work for provenance-backed writes must use the accepted layered model:
+durable payload, Manual Action Log replay, consumed evidence/status/scope,
+conflict or override handling, descendant ownership, family effect,
+owner-scoped cleanup, and exact round-trip when output-affecting.
+
 Out of scope:
 Do not bless actions as loop-executable without an action-specific verifier.
 
@@ -23,6 +29,29 @@ Acceptance criteria:
 - Corrective actions that undo or replace a source fact must verify cleanup of
   owned derived analysis facts, including xrefs, type-flow facts, review items,
   symbolic projections, and invalidated code/data descendants where applicable.
+- Semantic/type-producing actions must also verify their analysis-facing
+  reconciliation: consumed evidence, generated or proposed flow-equivalent
+  descendants, and owner-scoped cleanup. Presentation-only edits such as label
+  renames, comments, and literal representation choices do not need this layer
+  unless they emit semantic analysis facts.
+- Provenance-backed semantic/type actions must verify the accepted provenance
+  status and scope: source-family classification, path/lifetime selection,
+  conflict or override handling, consumed `source_evidence_id`, generated
+  `owner_action_id`, cleanup, and exact round-trip where output-affecting.
+- Verifier layers for provenance-backed actions:
+  1. executed action payload matches the durable command identity;
+  2. Manual Action Log replay reloads the owning action;
+  3. consumed evidence id exists, has an accepted status, matches required
+     source family, and its path/lifetime scope covers the selected use;
+  4. conflicts are absent or resolved by a manual classification/override that
+     records contradicted evidence and reason;
+  5. generated descendants carry the expected `source_evidence_id` and
+     `owner_action_id`;
+  6. rendered/type/xref/review effects match the family-specific expectation;
+  7. cleanup/removal deletes only descendants owned by that action/evidence;
+  8. exact round-trip passes for output-affecting changes.
+- Exploratory provenance reports have no mutation verifier. Their verifier is
+  limited to report consistency and no Manual Action Log append.
 
 Required tests:
 Positive and negative verifier tests for each implemented action family.
@@ -133,8 +162,21 @@ Current evidence:
   proves an autonomous GenAm LVO library-base candidate through command
   execution, durable Manual Action Log state, reloaded library-base register
   seed, and exact round-trip availability.
+- Generic mutation verification now adds a `provenance_evidence` layer when the
+  executed durable action payload carries `source_evidence_id`. The layer
+  requires durable payload evidence, accepted source family, accepted evidence
+  status (`analysis_proven`, `path_specific`, `manual_classified`, or
+  `manual_override`), explicit path/lifetime scope, owner action identity, and
+  conflict handling. Command-only `source_evidence_id` is a verifier failure.
+- Manual overrides in the provenance verifier require both
+  `contradicted_evidence_id` and `reason`; unresolved, unknown, or conflicting
+  evidence cannot satisfy a provenance-backed write.
 
 Remaining work:
+- Extend family-specific write commands to persist `source_evidence_id`,
+  accepted status, source family, path/lifetime scope, conflicts/override
+  fields, and descendant `owner_action_id` so the new generic verifier layer is
+  exercised by real mutations instead of only future-proofing durable payloads.
 - Add or document one real-target smoke for each newly executable action family
   before treating synthetic verifier coverage as sufficient; record the
   verifier evidence here and the candidate/feed evidence in `014-006` or the

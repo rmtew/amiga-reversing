@@ -462,6 +462,77 @@ def test_unproven_custom_struct_and_typed_field_commands_block_without_specific_
     assert report["verification"]["layers"][0]["command_id"] == command_id
 
 
+def test_provenance_backed_mutation_verifier_requires_accepted_evidence() -> None:
+    command = {
+        "command_id": "row.data_block.element.interpret_ref",
+        "parameters": {"source_evidence_id": "prov-demo-unknown"},
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "data_block_interpreted_ref": {
+                    "source_evidence_id": "prov-demo-unknown",
+                    "source_family": "unknown",
+                    "source_evidence_status": "unresolved",
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert provenance_layer["status"] == "failed"
+    assert "source_evidence_status is not accepted" in provenance_layer["failures"]
+    assert "missing path_lifetime_scope" in provenance_layer["failures"]
+
+
+def test_provenance_backed_mutation_verifier_accepts_scoped_evidence() -> None:
+    command = {"command_id": "row.data_block.element.interpret_ref"}
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "data_block_interpreted_ref": {
+                    "source_evidence_id": "prov-demo-rsset-path",
+                    "source_family": "rsset_app_base",
+                    "source_evidence_status": "path_specific",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "passed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert provenance_layer["status"] == "passed"
+    assert provenance_layer["owner_action_id"] == "action-1"
+
+
+def test_provenance_backed_mutation_verifier_rejects_command_only_evidence() -> None:
+    command = {
+        "command_id": "row.data_block.element.interpret_ref",
+        "parameters": {"source_evidence_id": "prov-demo-rsset-path"},
+    }
+    durable_result = {"action": {"action_id": "action-1", "payload": {"data_block_interpreted_ref": {}}}}
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert "durable action payload missing consumed source_evidence_id" in provenance_layer["failures"]
+
+
 def test_run_one_manual_seed_executes_with_seed_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
