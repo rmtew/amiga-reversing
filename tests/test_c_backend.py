@@ -10,6 +10,7 @@ from zipfile import ZipFile
 
 import pytest
 
+from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
@@ -9412,6 +9413,44 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
         ]
         for data_class, expected_count in expected_counts.items():
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
+
+
+def test_real_dll_genam_data_class_rows_feed_data_symbol_candidates() -> None:
+    _requires_c_backend_dlls()
+
+    rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
+        "amiga_hunk_genam",
+        project_root=PROJECT_ROOT,
+    )
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    candidate_rows = []
+    for row in rows:
+        if row.get("kind") != "data" or not row.get("data_class"):
+            continue
+        row_with_locator = dict(row)
+        row_with_locator["locator"] = {
+            "target_id": "amiga_hunk_genam",
+            "projection_hash": "genam-data-symbol-smoke",
+            "kind": "row",
+            "row_key": row["row_key"],
+            "section_index": row["section_index"],
+            "start_offset": row["start_offset"],
+            "end_offset": row.get("end_offset"),
+        }
+        candidate_rows.append(row_with_locator)
+
+    candidates = reversing_loop._listing_data_symbol_candidates(candidate_rows)
+    data_class_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate.get("evidence", {}).get("evidence_kind") == "data_class_row"
+    ]
+
+    assert data_class_candidates
+    assert any(candidate["new_name"].startswith("string_h0_") for candidate in data_class_candidates)
+    assert all(candidate["kind"] == "data_symbol_name" for candidate in data_class_candidates)
+    assert all(candidate["suggested_action_kinds"] == ["data_symbol.rename"] for candidate in data_class_candidates)
+    assert all(candidate["verifier"]["kind"] == "projected_data_symbol_name" for candidate in data_class_candidates)
 
 
 def test_real_dll_render_plan_data_classes_reach_navigation() -> None:

@@ -1336,6 +1336,12 @@ candidate normalization, but the command catalog and execution path also need to
 prove that `ManualSeed:*` rows append `remove_manual_seed` rather than
 generated seeded-item suppression.
 
+Implementation observation from `014-014`: real GenAm `data_class` rows are
+enough evidence for autonomous data-symbol rename candidates once the row has a
+full listing locator. Raw C artifact rows expose the data class and source
+range, while loop execution still depends on the server projection adding the
+durable locator used for command availability and rendered-name verification.
+
 Implementation observation from `014-006`/`014-014`: `data_symbol.remove`
 availability must match the cleanup identity shape before execution. The shared
 command id can mean generated seeded-item suppression by selected item identity
