@@ -85,6 +85,9 @@ Current implementation:
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and
   `value_domain` from seeded entities so the existing renderer emits typed
   field comments while exact bytes and round-trip stay unchanged.
+- C-backed data-role render coverage now keeps its fixture section
+  longword-aligned so Amiga hunk assembly reaches seeded span projection,
+  rendering, and exact rebuild verification.
 - Custom-struct expansion covers explicit gaps and arrays when the bound shape
   fits the element width.
 - Platform struct bindings now resolve parsed NDK struct ids and C aliases

@@ -682,6 +682,11 @@ Implementation observation from `014-006`: planner reports must show the
 candidate-specific verifier used for selection. Static command defaults are only
 fallbacks and can misdescribe candidates with stricter projection verifiers.
 
+Implementation observation from `014-019`: C-backed data-role render fixtures
+must keep assembled sections longword-aligned. Otherwise the Amiga hunk writer
+fails fixture assembly before the test reaches source rendering, seeded span
+projection, or exact rebuild verification.
+
 Implementation observation from `014-006`: a candidate's generic `round_trip`
 fallback must not override a stricter command-specific verifier. Explicit or
 older candidates can carry stale verifier labels, so planner summaries should

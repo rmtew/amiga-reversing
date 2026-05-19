@@ -3198,7 +3198,7 @@ start:
     dc.b $03,$41,$42,$43,$00,$00,$00,$00
 after_data:
     rts
-    dc.b $00
+    dc.b $00,$00,$00,$00
 """
     assemble_platform_source_text_with_c_backend(
         "amiga-hunk",
