@@ -6435,6 +6435,7 @@ def _verify_representation_mutation(
     _open_and_wait_listing(target_id, timeout_seconds=10.0)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_representation_payload_matches_command(command, representation),
         _verify_project_semantic_representation(target_id, representation),
         _verify_projected_representation_text(target_id, command, representation),
         _verify_round_trip_exact(target_id, project_root=project_root),
@@ -6449,6 +6450,10 @@ def _representation_from_durable_result(durable_result: dict[str, object]) -> di
         representation = action.get("representation")
         if isinstance(representation, dict):
             return cast(dict[str, object], representation)
+        payload = action.get("payload")
+        representation = payload.get("representation") if isinstance(payload, dict) else None
+        if isinstance(representation, dict):
+            return cast(dict[str, object], representation)
     actions = durable_result.get("actions")
     if isinstance(actions, list):
         for raw_action in actions:
@@ -6457,7 +6462,53 @@ def _representation_from_durable_result(durable_result: dict[str, object]) -> di
             representation = raw_action.get("representation")
             if isinstance(representation, dict):
                 return cast(dict[str, object], representation)
+            payload = raw_action.get("payload")
+            representation = payload.get("representation") if isinstance(payload, dict) else None
+            if isinstance(representation, dict):
+                return cast(dict[str, object], representation)
     return None
+
+
+def _verify_representation_payload_matches_command(
+    command: dict[str, object],
+    representation: dict[str, object] | None,
+) -> dict[str, object]:
+    if representation is None:
+        return {"layer": "durable_payload", "status": "failed", "message": "missing durable representation payload"}
+    expected = _representation_expected_from_command(command)
+    if expected is None:
+        return {"layer": "durable_payload", "status": "failed", "message": "missing command representation identity"}
+    mismatches = {
+        key: {"expected": value, "actual": representation.get(key)}
+        for key, value in expected.items()
+        if representation.get(key) != value
+    }
+    return {
+        "layer": "durable_payload",
+        "status": "passed" if not mismatches else "failed",
+        "expected_representation": expected,
+        "actual_representation": representation,
+        "mismatches": mismatches,
+    }
+
+
+def _representation_expected_from_command(command: dict[str, object]) -> dict[str, object] | None:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    parameters = command.get("parameters")
+    style = parameters.get("representation") if isinstance(parameters, dict) else None
+    if not isinstance(context, dict) or not isinstance(locator, dict) or not isinstance(style, str):
+        return None
+    expected: dict[str, object] = {"style": style}
+    for source_key, target_key in (("section_index", "hunk"), ("start_offset", "addr"), ("end_offset", "end")):
+        value = locator.get(source_key)
+        if isinstance(value, int):
+            expected[target_key] = value
+    for key in ("element_kind", "operand_index"):
+        value = context.get(key)
+        if isinstance(value, str | int):
+            expected[key] = value
+    return expected
 
 
 def _verify_project_semantic_representation(

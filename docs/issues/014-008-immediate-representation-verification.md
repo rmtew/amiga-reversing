@@ -21,14 +21,15 @@ Progress:
   rendered output round-trips exactly.
 - Data-literal representation coverage remains intact.
 - The reversing-loop verifier for representation commands checks Manual Action
-  Log hash/count, semantic reload of the representation, rendered listing text,
-  and exact round-trip.
+  Log hash/count, executed durable representation payload identity, semantic
+  reload of the representation, rendered listing text, and exact round-trip.
 
 Acceptance criteria:
 - Operand identity is durable across listing rebuilds.
 - Instruction immediates and data literals both render with the selected style.
-- The loop verifier checks Manual Action Log, semantic reload, projected
-  representation, rendered text, and round-trip exactness where output-affecting.
+- The loop verifier checks Manual Action Log, durable representation payload
+  identity, semantic reload, projected representation, rendered text, and
+  round-trip exactness where output-affecting.
 
 Required tests:
 Operand identity tests, instruction-immediate rendering tests, data literal

@@ -138,6 +138,11 @@ Current evidence:
 - Target-equate definition representation is verified as display metadata:
   reloaded target-equate state, rendered `EQU` value text, and exact rebuild
   prove `target.equate.represent` without creating provenance/type-flow facts.
+- Literal representation verification now compares the executed durable
+  representation payload against the selected style, source locator, element
+  kind, and operand index before semantic reload/render checks. A projected
+  literal style alone cannot prove that the requested Manual Action Log action
+  was the one persisted.
 - Generic `run-one` `target.rsset_region.*` and `app_slot.*` execution now
   verifies Manual Action Log replay, reloaded RSSET region/removal state, and
   exact round-trip instead of accepting target local-effect metadata alone.

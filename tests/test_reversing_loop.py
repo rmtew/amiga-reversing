@@ -9199,6 +9199,7 @@ def test_representation_command_verifies_source_projection_and_round_trip(
     assert report["verification"]["status"] == "passed"
     assert [layer["layer"] for layer in report["verification"]["layers"]] == [
         "manual_action_log",
+        "durable_payload",
         "semantic_reload",
         "projection",
         "round_trip",
@@ -9241,6 +9242,40 @@ def test_representation_command_fails_when_rendered_text_missing(
     assert projection["status"] == "failed"
     assert projection["expected_tokens"] == ["#'A'"]
     assert report["next"]["recommendation"] == "stop"
+
+
+def test_representation_verifier_rejects_mismatched_durable_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    command = _representation_command()
+    wrong_representation = {**_representation_payload(), "style": "hex"}
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if path.endswith("/listing/open"):
+            return {"data": {"job_id": "job-1", "status": "ready"}}
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {"representations": [wrong_representation]}}}}
+        if path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(text="\tmove.b #$41,d0\n", end_offset=4)]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_manual_mutation(
+        "demo",
+        command,
+        _executed_representation_payload(tmp_path, representation=wrong_representation),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    durable_layer = verification["layers"][1]
+    assert durable_layer["layer"] == "durable_payload"
+    assert durable_layer["mismatches"]["style"] == {"expected": "character", "actual": "hex"}
 
 
 def test_listing_backed_comment_acquires_locator_after_open(
@@ -9951,10 +9986,15 @@ def _execution_view_payload() -> dict[str, object]:
     }
 
 
-def _executed_representation_payload(tmp_path: Path) -> dict[str, object]:
+def _executed_representation_payload(
+    tmp_path: Path,
+    *,
+    representation: dict[str, object] | None = None,
+) -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    representation = dict(representation or _representation_payload())
     return {
-        "action": {"action_id": "manual-1", "representation": _representation_payload()},
+        "action": {"action_id": "manual-1", "representation": representation},
         "mutation": {
             "durable_action_id": "manual-1",
             "manual_action_log_count": state["count"],

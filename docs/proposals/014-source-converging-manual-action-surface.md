@@ -604,6 +604,13 @@ invalidate listing presentation caches. Representation verification must reopen
 or refresh listing projection before checking rendered text, otherwise semantic
 reload and round-trip can pass while projection text is stale.
 
+Implementation observation from `014-005`/`014-008`: literal representation is
+presentation-only, but the verifier still needs durable payload proof. Compare
+the executed representation payload with the selected style, source locator,
+element kind, and operand index before accepting semantic reload or rendered
+text; otherwise a stale hex/binary/character action can satisfy a different
+requested display change.
+
 Implementation observation from `014-007`: structured data role comments are
 source-converging metadata, not display-only notes. The C policy comment buffer
 must be large enough for `mode`, `data_role`, `unit`, and optional `encoding`;
