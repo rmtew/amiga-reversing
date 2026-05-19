@@ -6439,6 +6439,18 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
                 "seeded_entities": [
                     {
                         "addr": 0x100,
+                        "end": 0x108,
+                        "hunk": 0,
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "generated",
+                        "source_id": "generated:entity-long",
+                        "source_path": "targets/bloodwych/source.json",
+                        "source_locator": "$.seeded_entities[0]",
+                        "name": "seeded_data_long",
+                    },
+                    {
+                        "addr": 0x100,
                         "end": 0x104,
                         "hunk": 0,
                         "seed_origin": "manual_analysis",
@@ -6446,9 +6458,9 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
                         "citation": "generated",
                         "source_id": "generated:entity",
                         "source_path": "targets/bloodwych/source.json",
-                        "source_locator": "$.seeded_entities[0]",
+                        "source_locator": "$.seeded_entities[1]",
                         "name": "seeded_data",
-                    }
+                    },
                 ],
                 "seeded_code_labels": [],
                 "seeded_code_entrypoints": [],
@@ -6487,7 +6499,7 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
         {
             "command_id": command_id,
             "context": _row_command_context(rows[0]),
-            "parameters": {"name": "player_table"},
+            "parameters": {"end": 0x104, "name": "player_table"},
         },
     )
     action = cast(dict[str, object], cast(dict[str, object], payload["data"])["action"])
@@ -6502,7 +6514,7 @@ def test_route_manual_action_catalog_execute_renames_seeded_data_symbol(
         "addr": 0x100,
         "end": 0x104,
         "previous_name": "seeded_data",
-        "source_locator": "$.seeded_entities[0]",
+        "source_locator": "$.seeded_entities[1]",
         "name": "player_table",
     }
     assert local_effect == {"kind": "data_symbol_rename", "data_symbol": data_symbol}

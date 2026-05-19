@@ -88,6 +88,9 @@ Current evidence:
   selected `seed_id`, while generated seeded-entity removals require the selected
   suppression identity, including `end` when the catalog row has a ranged seeded
   entity.
+- Data-symbol rename command execution now honors the selected seeded-entity
+  `end` when building the durable payload, so a same-address generated range
+  cannot be renamed by accident when the operator selected a different range.
 - Seeded-entity suppression projection now carries optional `end` and effective
   metadata applies ranged suppressions exactly, so suppressing one generated
   seeded data range does not remove a same-address range with a different end.

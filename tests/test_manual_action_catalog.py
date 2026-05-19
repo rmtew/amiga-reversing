@@ -252,8 +252,79 @@ def test_data_symbol_remove_command_suppresses_seeded_entity_identity() -> None:
 
     assert kind == "suppress_seeded_item"
     assert payload == {
-        "suppressed_seeded_item": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100}
+        "suppressed_seeded_item": {"kind": "seeded_entity", "hunk": 0, "addr": 0x100, "end": 0x104}
     }
+
+
+def test_data_symbol_rename_command_uses_seeded_entity_range_identity() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x100,
+        "end_offset": 0x108,
+        "suppressible_seeded_items": [
+            {
+                "kind": "seeded_entity",
+                "hunk": 0,
+                "addr": 0x100,
+                "end": 0x104,
+                "name": "short_auto_data",
+                "source_locator": "GeneratedShortData",
+            },
+            {
+                "kind": "seeded_entity",
+                "hunk": 0,
+                "addr": 0x100,
+                "end": 0x108,
+                "name": "long_auto_data",
+                "source_locator": "GeneratedLongData",
+            },
+        ],
+    }
+
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "data_symbol.rename",
+        parameters={"end": 0x108, "name": "player_table"},
+    )
+
+    assert kind == "rename_data_symbol"
+    assert payload == {
+        "data_symbol": {
+            "data_symbol_id": "data-symbol:h0:00000100",
+            "hunk": 0,
+            "addr": 0x100,
+            "end": 0x108,
+            "previous_name": "long_auto_data",
+            "source_locator": "GeneratedLongData",
+            "name": "player_table",
+        }
+    }
+
+
+def test_data_symbol_rename_command_rejects_mismatched_seeded_entity_range() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x100,
+        "end_offset": 0x108,
+        "suppressible_seeded_items": [
+            {
+                "kind": "seeded_entity",
+                "hunk": 0,
+                "addr": 0x100,
+                "end": 0x104,
+                "name": "short_auto_data",
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match="matching seeded data entity range"):
+        listing_catalog_manual_payload(
+            row,
+            "data_symbol.rename",
+            parameters={"end": 0x108, "name": "player_table"},
+        )
 
 
 def test_data_symbol_remove_command_removes_manual_seed_identity() -> None:

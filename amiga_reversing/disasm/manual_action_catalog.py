@@ -1926,24 +1926,32 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
     addr = _optional_int(params.get("addr"))
     if hunk is None or addr is None:
         raise ValueError("rename_data_symbol requires hunk and addr")
+    end = _optional_int(params.get("end"))
+    matched_seeded_address = False
     for item in _row_suppressible_seeded_items(row):
-        if item["kind"] == "seeded_entity" and item["hunk"] == hunk and item["addr"] == addr:
-            name = _data_seed_name(params)
-            if name is None:
-                raise ValueError("rename_data_symbol requires parameter name")
-            symbol: dict[str, object] = {
-                "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
-                "hunk": hunk,
-                "addr": addr,
-                "name": name,
-            }
-            if "end" in item:
-                symbol["end"] = item["end"]
-            if "name" in item:
-                symbol["previous_name"] = item["name"]
-            if "source_locator" in item:
-                symbol["source_locator"] = item["source_locator"]
-            return symbol
+        if item["kind"] != "seeded_entity" or item["hunk"] != hunk or item["addr"] != addr:
+            continue
+        matched_seeded_address = True
+        if end is not None and item.get("end") != end:
+            continue
+        name = _data_seed_name(params)
+        if name is None:
+            raise ValueError("rename_data_symbol requires parameter name")
+        symbol: dict[str, object] = {
+            "data_symbol_id": f"data-symbol:h{hunk}:{addr:08X}",
+            "hunk": hunk,
+            "addr": addr,
+            "name": name,
+        }
+        if "end" in item:
+            symbol["end"] = item["end"]
+        if "name" in item:
+            symbol["previous_name"] = item["name"]
+        if "source_locator" in item:
+            symbol["source_locator"] = item["source_locator"]
+        return symbol
+    if matched_seeded_address and end is not None:
+        raise ValueError("rename_data_symbol requires a matching seeded data entity range")
     if row.get("kind") == "data" or params.get("source") == "data_ref":
         name = _data_seed_name(params)
         if name is None:
@@ -1954,7 +1962,6 @@ def _data_symbol_payload(row: Mapping[str, object], params: Mapping[str, object]
             "addr": addr,
             "name": name,
         }
-        end = _optional_int(params.get("end"))
         if end is not None and end > addr:
             symbol["end"] = end
         previous_name = params.get("previous_name")

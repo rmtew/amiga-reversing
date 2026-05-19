@@ -1325,6 +1325,11 @@ command id can mean generated seeded-item suppression by selected item identity
 `(kind, hunk, addr[, end])` or source-owned manual seed removal by `seed_id`;
 command id presence alone must not authorize the other cleanup path.
 
+Implementation observation from `014-014`: data-symbol rename payload building
+has the same identity requirement as availability. If selected seeded data
+ranges share hunk/address, command execution must match the selected `end`
+before copying previous-name/source-locator context into the durable action.
+
 Implementation observation from `014-006`: planner availability queries are a
 provenance boundary too. The refreshed row/element catalog query must carry the
 same accepted evidence/status/scope, parent ids, conflicts, override fields,
