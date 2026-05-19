@@ -307,6 +307,9 @@ Remaining work:
   reference identity requirement and also checks `cleanup_action_id`, so stale
   clear payloads cannot borrow an existing removed ref's source/target identity
   or cleanup ownership.
+- Agent smoke fixtures now return the same durable comment payload shape that
+  production command execution returns, so closeout verification still exercises
+  the durable-payload verifier instead of a stale metadata-only test shortcut.
 - Target-equate definition representation is implemented in `014-020`; broader
   semantic/equate provenance remains separate from display-style verification.
 - Keep RSSET bind-refine/type-refine, same-flow propagation, generated

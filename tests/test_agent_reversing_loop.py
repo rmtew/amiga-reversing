@@ -73,11 +73,20 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         assert isinstance(body, dict)
         assert body["context"]["locator"]["row_key"] == "row-1"
+        body_context = cast(dict[str, object], body["context"])
+        body_locator = cast(dict[str, object], body_context["locator"])
+        body_parameters = cast(dict[str, object], body["parameters"])
+        comment = {
+            "text": body_parameters["text"],
+            "hunk": body_locator["section_index"],
+            "addr": body_locator["start_offset"],
+            "end": body_locator["end_offset"],
+        }
         _write_manual_log(target_dir)
         log_state = reversing_loop._manual_action_log_state(target_dir)
         return {
             "data": {
-                "action": {"action_id": "manual-1"},
+                "action": {"action_id": "manual-1", "payload": {"comment": comment}},
                 "mutation": {
                     "durable_action_id": "manual-1",
                     "manual_action_log_count": log_state["count"],
