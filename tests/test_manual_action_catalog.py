@@ -93,6 +93,38 @@ def test_provenance_source_evidence_id_includes_all_parent_evidence_ids() -> Non
     assert first != second
 
 
+def test_provenance_source_evidence_id_includes_full_path_lifetime_scope() -> None:
+    subject = {
+        "target": "demo",
+        "hunk": 0,
+        "addr": 0x120,
+        "operand_index": 0,
+        "register": "A6",
+        "displacement": 0x102,
+    }
+    base_classification = {
+        "source_family": "rsset_app_base",
+        "status": "path_specific",
+        "origin_kind": "flow_join",
+        "parent_evidence_ids": ["seed:A6"],
+    }
+
+    left = _provenance_source_evidence_id(
+        {},
+        subject,
+        {**base_classification, "path_lifetime_scope": {"kind": "selected_cfg_path", "path_id": "left"}},
+    )
+    right = _provenance_source_evidence_id(
+        {},
+        subject,
+        {**base_classification, "path_lifetime_scope": {"kind": "selected_cfg_path", "path_id": "right"}},
+    )
+
+    assert "path_id___left" in left
+    assert "path_id___right" in right
+    assert left != right
+
+
 def test_runtime_label_rename_uses_generated_absolute_address() -> None:
     row = {
         "kind": "label",

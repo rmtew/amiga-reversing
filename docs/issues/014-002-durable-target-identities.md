@@ -99,9 +99,14 @@ Current observations:
 - First-slice provenance reports now generate stable opaque
   `source_evidence_id` values from target, source family, status, hunk/source
   address, operand index, register/base register, displacement when present,
-  origin kind, all parent evidence ids when they exist, and path/lifetime scope.
-  These ids are report evidence only until an accepted classification or
-  family-specific bind/type action records them durably.
+  origin kind, all parent evidence ids when they exist, and the complete
+  normalized path/lifetime scope. These ids are report evidence only until an
+  accepted classification or family-specific bind/type action records them
+  durably.
+- Path/lifetime scope identity now uses the full normalized scope payload, not
+  only the scope kind, so two same-subject path-specific definitions with
+  different selected CFG paths or caller/callee contexts do not collapse to one
+  report evidence id.
 - Command execution preserves target identity into selected element context, so
   catalog-derived evidence ids do not fall back to target-agnostic ids after
   locator re-selection.

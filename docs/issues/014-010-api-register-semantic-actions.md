@@ -101,6 +101,10 @@ Progress:
 - Provenance evidence ids now include every parent evidence id, not only the
   first one, so distinct path/base evidence chains cannot collapse to one
   `source_evidence_id`.
+- Provenance evidence ids now include the full normalized path/lifetime scope,
+  not only the scope kind, so path-specific same-subject reports remain distinct
+  before any accepted classification or family-specific bind action consumes
+  them.
 - API call semantics, evidence-scoped register lifetimes, typed field access
   semantics, and broader struct-pointer candidate generation remain open.
 - Applying a struct/platform type should be able to feed type-flow analysis:

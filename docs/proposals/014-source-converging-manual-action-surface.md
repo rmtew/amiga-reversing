@@ -1085,6 +1085,12 @@ values must include every parent evidence id; otherwise two path-specific
 accepted base classifications that share the first parent can collapse to one
 consumable write authority.
 
+Implementation observation from `014-010`/`014-002`: path/lifetime scope is
+part of provenance identity, not just a report annotation. Evidence ids must
+include the full normalized scope payload, because two same-subject definitions
+with the same scope kind can still describe different selected CFG paths,
+caller/callee contexts, or manual lifetime choices.
+
 Implementation observation from `014-011`: RSSET `base_evidence_refs` should
 carry `parent_evidence_ids` as the durable dependency set. A single parent id
 field loses proof shape once register/base provenance depends on multiple

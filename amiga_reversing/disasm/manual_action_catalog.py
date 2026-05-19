@@ -734,11 +734,19 @@ def _provenance_source_evidence_id(
     origin = _id_token(str(classification.get("origin_kind") or "origin"))
     parent_token = _provenance_parent_token(classification)
     scope = classification.get("path_lifetime_scope")
-    scope_kind = _id_token(str(scope.get("kind") if isinstance(scope, Mapping) else "scope"))
+    scope_token = _provenance_scope_token(scope)
     return (
         f"prov-{target}-{family}-{status}-h{hunk}-{addr:08X}-{operand_token}-"
-        f"{register}-{displacement_token}-{origin}-{parent_token}-{scope_kind}"
+        f"{register}-{displacement_token}-{origin}-{parent_token}-{scope_token}"
     )
+
+
+def _provenance_scope_token(scope: object) -> str:
+    if not isinstance(scope, Mapping):
+        return "scope"
+    scope_kind = _id_token(str(scope.get("kind") or "scope"))
+    scope_payload = _id_token(json.dumps(scope, sort_keys=True, separators=(",", ":")))
+    return f"{scope_kind}-{scope_payload}"
 
 
 def _provenance_parent_token(classification: Mapping[str, object]) -> str:
