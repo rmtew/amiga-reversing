@@ -3132,7 +3132,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
                 "width": 2,
                 "reference_kind": "absolute",
                 "target_hunk": 0,
-                "target_offset": 0x2000,
+                "target_offset": 0x4142,
             },
         },
     )
@@ -3143,14 +3143,15 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
 
     assert interpret_action["kind"] == "interpret_manual_data_block_element_ref"
     assert interpreted_ref == {
-        "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
         "layout_id": "ascii-hex",
         "offset": 0x30,
         "width": 2,
         "reference_kind": "absolute",
         "target_hunk": 0,
-        "target_offset": 0x2000,
-        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "target_offset": 0x4142,
+        "target_locator": {"hunk": 0, "offset": 0x4142},
+        "source_value": 0x4142,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }
@@ -3166,7 +3167,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
             "parameters": {
                 "layout_id": "ascii-hex",
                 "offset": 0x30,
-                "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+                "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
             },
         },
     )
@@ -3177,7 +3178,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
 
     assert clear_action["kind"] == "remove_manual_data_block_element_ref"
     assert cleared_ref == {
-        "data_block_ref_id": "ascii-hex:30:absolute:h0:00002000",
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
         "layout_id": "ascii-hex",
         "offset": 0x30,
     }

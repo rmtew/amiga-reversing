@@ -1200,21 +1200,41 @@ def _validated_data_block_interpreted_ref(
     elements: dict[tuple[str, int], dict[str, object]],
 ) -> dict[str, object]:
     element_key = _data_block_element_key(ref)
-    if element_key not in elements:
+    element = elements.get(element_key)
+    if element is None:
         raise ValueError(f"data_block_interpreted_ref references unknown element: {element_key[0]}:{element_key[1]}")
     _data_block_interpreted_ref_key(ref)
     width = _manual_seed_int(ref, "width")
     if width is None or width <= 0:
         raise ValueError("data_block_interpreted_ref requires positive width")
+    if width not in {1, 2, 4}:
+        raise ValueError("data_block_interpreted_ref supports only byte, word, and long widths")
+    element_width = _manual_seed_int(element, "width")
+    if element_width is None or width != element_width:
+        raise ValueError("data_block_interpreted_ref width must match owning element width")
     reference_kind = ref.get("reference_kind")
-    if not isinstance(reference_kind, str) or not reference_kind:
-        raise ValueError("data_block_interpreted_ref requires reference_kind")
+    if reference_kind != "absolute":
+        raise ValueError("data_block_interpreted_ref supports only absolute references")
     target_hunk = _manual_seed_int(ref, "target_hunk")
     target_offset = _manual_seed_int(ref, "target_offset")
-    if target_hunk is not None and target_hunk < 0:
-        raise ValueError("data_block_interpreted_ref target_hunk must be non-negative")
-    if target_offset is not None and target_offset < 0:
-        raise ValueError("data_block_interpreted_ref target_offset must be non-negative")
+    if target_hunk is None or target_hunk < 0:
+        raise ValueError("data_block_interpreted_ref requires non-negative target_hunk")
+    if target_offset is None or target_offset < 0:
+        raise ValueError("data_block_interpreted_ref requires non-negative target_offset")
+    target_locator = ref.get("target_locator")
+    if not isinstance(target_locator, dict):
+        raise ValueError("data_block_interpreted_ref requires target_locator")
+    locator_hunk = _manual_seed_int(target_locator, "hunk")
+    locator_offset = _manual_seed_int(target_locator, "offset")
+    if locator_hunk != target_hunk or locator_offset != target_offset:
+        raise ValueError("data_block_interpreted_ref target_locator must match target_hunk/target_offset")
+    source_value = _manual_seed_int(ref, "source_value")
+    if source_value is None or source_value < 0:
+        raise ValueError("data_block_interpreted_ref requires non-negative source_value")
+    if width > 4 or source_value >= (1 << (width * 8)):
+        raise ValueError("data_block_interpreted_ref source_value does not fit width")
+    if source_value != target_offset:
+        raise ValueError("data_block_interpreted_ref source_value must match target_offset")
     return dict(ref)
 
 

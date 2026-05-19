@@ -42,14 +42,16 @@ Implemented tests:
 - Effective metadata projects active manual interpreted-reference facts onto the
   owning `DataBlockElement.reference_interpretation`, and corrective removal
   clears that projected element interpretation.
+- Interpret-ref command payloads record decoded selected source bytes as
+  `source_value`, and Manual Action Log replay rejects unsupported kinds,
+  missing/mismatched absolute target locators, width mismatches against the
+  owning element, and source values that do not equal the intended target.
 - Loop execution still blocks interpreted-reference commands as missing an
   action-specific render/xref verifier.
 
 Remaining:
-- Payload/projection guards before any output-affecting projection: supported
-  `reference_kind`, required absolute target locator, decoded element bytes
-  equal the intended target, and reference width fits/matches the owning
-  element.
+- Reuse the command/replay payload guards as projection gates before any
+  output-affecting render/xref projection.
 - Symbolic rendering for supported reference kinds.
 - Generated bidirectional xrefs with owner identity.
 - Verifiers for rendered text, generated xrefs, cleanup disappearance, and

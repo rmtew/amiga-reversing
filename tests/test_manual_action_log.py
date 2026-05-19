@@ -1173,6 +1173,8 @@ def test_manual_action_log_projects_data_block_interpreted_refs(tmp_path: Path) 
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x200,
+        "target_locator": {"hunk": 0, "offset": 0x200},
+        "source_value": 0x200,
         "xref_generation_mode": "bidirectional",
         "confidence": "manual",
     }
@@ -1205,6 +1207,8 @@ def test_manual_action_log_removes_data_block_interpreted_ref(tmp_path: Path) ->
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x200,
+        "target_locator": {"hunk": 0, "offset": 0x200},
+        "source_value": 0x200,
     }
     _append_jsonl(
         target_dir / MANUAL_ACTION_LOG_FILE_NAME,
@@ -1228,6 +1232,52 @@ def test_manual_action_log_removes_data_block_interpreted_ref(tmp_path: Path) ->
     assert projection.removed_data_block_interpreted_refs == ({**interpreted_ref, "cleanup_action_id": "a4"},)
 
 
+@pytest.mark.parametrize(
+    ("patch", "message"),
+    [
+        ({"width": 2}, "width must match owning element width"),
+        ({"target_locator": {"hunk": 0, "offset": 0x201}}, "target_locator must match"),
+        ({"source_value": 0x201}, "source_value must match target_offset"),
+    ],
+)
+def test_manual_action_log_rejects_invalid_data_block_interpreted_ref_payload(
+    tmp_path: Path,
+    patch: dict[str, object],
+    message: str,
+) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    layout = {"layout_id": "ptr-table", "hunk": 0, "source_start": 0x100, "source_end": 0x104}
+    element = {"data_block_element_id": "ptr-table:0", "layout_id": "ptr-table", "offset": 0, "width": 4, "kind": "scalar"}
+    interpreted_ref = {
+        "data_block_ref_id": "ptr-table:0:absolute",
+        "layout_id": "ptr-table",
+        "offset": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x200,
+        "target_locator": {"hunk": 0, "offset": 0x200},
+        "source_value": 0x200,
+        **patch,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action("a1", 1, "create_manual_data_block_layout", data_block_layout=layout),
+            _action("a2", 2, "set_manual_data_block_element", data_block_element=element),
+            _action("a3", 3, "interpret_manual_data_block_element_ref", data_block_interpreted_ref=interpreted_ref),
+        ],
+    )
+
+    projection = load_manual_projection(target_dir)
+
+    assert projection.review_state == ReviewState.BLOCKED
+    assert projection.data_block_interpreted_refs == ()
+    assert any(message in str(item.get("message") or "") for item in projection.diagnostics)
+
+
 def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
@@ -1236,8 +1286,8 @@ def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path
         "data_block_element_id": "ascii-hex:0",
         "layout_id": "ascii-hex",
         "offset": 0,
-        "width": 0x30,
-        "kind": "padding",
+        "width": 4,
+        "kind": "scalar",
     }
     interpreted_ref = {
         "data_block_ref_id": "ascii-hex:0:absolute",
@@ -1245,6 +1295,10 @@ def test_manual_action_log_removes_data_block_layout_and_owned_elements(tmp_path
         "offset": 0,
         "width": 4,
         "reference_kind": "absolute",
+        "target_hunk": 0,
+        "target_offset": 0x200,
+        "target_locator": {"hunk": 0, "offset": 0x200},
+        "source_value": 0x200,
     }
     _append_jsonl(
         target_dir / MANUAL_ACTION_LOG_FILE_NAME,

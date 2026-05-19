@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
@@ -236,6 +238,7 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
         "section_index": 0,
         "start_offset": 0x1430,
         "end_offset": 0x1432,
+        "bytes": "2000",
         "active_data_block_layout": {
             "layout_id": "ptr-table",
             "hunk": 0,
@@ -292,6 +295,7 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
             "target_hunk": 0,
             "target_offset": 0x2000,
             "target_locator": {"hunk": 0, "offset": 0x2000},
+            "source_value": 0x2000,
             "confidence": "manual",
             "xref_generation_mode": "bidirectional",
         }
@@ -307,6 +311,29 @@ def test_data_block_interpreted_ref_commands_build_durable_payloads() -> None:
             "target_offset": 0x2000,
         }
     }
+
+
+def test_data_block_interpreted_ref_payload_rejects_target_not_matching_source_bytes() -> None:
+    row = {
+        "kind": "data",
+        "section_index": 0,
+        "start_offset": 0x1430,
+        "end_offset": 0x1432,
+        "bytes": "2000",
+        "active_data_block_layout": {
+            "layout_id": "ptr-table",
+            "hunk": 0,
+            "source_start": 0x1400,
+            "source_end": 0x1480,
+        },
+    }
+
+    with pytest.raises(ValueError, match="target_offset must match selected source bytes"):
+        listing_catalog_manual_payload(
+            row,
+            "row.data_block.element.interpret_ref",
+            parameters={"target_hunk": 0, "target_offset": 0x2001},
+        )
 
 
 def test_range_data_block_element_represent_uses_applicable_subranges() -> None:

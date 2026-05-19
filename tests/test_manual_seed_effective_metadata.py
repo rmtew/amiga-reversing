@@ -1184,7 +1184,8 @@ def test_effective_metadata_projects_manual_data_block_interpreted_ref(tmp_path:
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x2000,
-        "target_locator": "h0:$00002000",
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "source_value": 0x2000,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }
@@ -1242,7 +1243,8 @@ def test_effective_metadata_removes_manual_data_block_interpreted_ref(tmp_path: 
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x2000,
-        "target_locator": "h0:$00002000",
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "source_value": 0x2000,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }
@@ -1309,7 +1311,8 @@ def test_effective_metadata_clears_existing_data_block_interpreted_ref(tmp_path:
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x2000,
-        "target_locator": "h0:$00002000",
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "source_value": 0x2000,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }
@@ -1376,7 +1379,8 @@ def test_effective_metadata_keeps_unrelated_existing_data_block_interpreted_ref(
         "reference_kind": "absolute",
         "target_hunk": 0,
         "target_offset": 0x2000,
-        "target_locator": "h0:$00002000",
+        "target_locator": {"hunk": 0, "offset": 0x2000},
+        "source_value": 0x2000,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }

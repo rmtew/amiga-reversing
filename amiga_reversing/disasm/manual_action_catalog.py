@@ -796,6 +796,7 @@ def _data_block_element_ref_parameter_schema(defaults: Mapping[str, object] | No
                 "reference_kind": {"type": "string", "enum": ["absolute"]},
                 "target_hunk": {"type": "integer", "minimum": 0},
                 "target_offset": {"type": "integer", "minimum": 0},
+                "source_value": {"type": "integer", "minimum": 0},
                 "signed": {"type": "boolean"},
                 "scale": {"type": "integer", "minimum": 1},
                 "base_evidence_id": {"type": "string"},
@@ -2657,12 +2658,17 @@ def _data_block_element_ref_payload(
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative offset")
     if width is None or width <= 0:
         raise ValueError("interpret_manual_data_block_element_ref requires positive width")
+    if width not in {1, 2, 4}:
+        raise ValueError("interpret_manual_data_block_element_ref supports only byte, word, and long widths")
     if reference_kind != "absolute":
         raise ValueError("interpret_manual_data_block_element_ref supports only absolute references")
     if target_hunk is None or target_hunk < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_hunk")
     if target_offset is None or target_offset < 0:
         raise ValueError("interpret_manual_data_block_element_ref requires non-negative target_offset")
+    source_value = _data_block_ref_source_value(rows, width)
+    if source_value != target_offset:
+        raise ValueError("interpret_manual_data_block_element_ref target_offset must match selected source bytes")
     ref_id = str(params.get("data_block_ref_id") or "").strip()
     if not ref_id:
         ref_id = f"{layout_id}:{offset:X}:{reference_kind}:h{target_hunk}:{target_offset:08X}"
@@ -2681,6 +2687,7 @@ def _data_block_element_ref_payload(
         "target_hunk": target_hunk,
         "target_offset": target_offset,
         "target_locator": {"hunk": target_hunk, "offset": target_offset},
+        "source_value": source_value,
         "confidence": confidence,
         "xref_generation_mode": xref_generation_mode,
     }
@@ -2697,6 +2704,21 @@ def _data_block_element_ref_payload(
         if isinstance(value, str) and value.strip():
             ref[field_name] = value.strip()
     return ref
+
+
+def _data_block_ref_source_value(rows: list[Mapping[str, object]], width: int) -> int:
+    if not rows:
+        raise ValueError("interpret_manual_data_block_element_ref requires selected source bytes")
+    raw_bytes = rows[0].get("bytes")
+    if not isinstance(raw_bytes, str) or not raw_bytes:
+        raise ValueError("interpret_manual_data_block_element_ref requires selected source bytes")
+    try:
+        data = bytes.fromhex(raw_bytes)
+    except ValueError as exc:
+        raise ValueError("interpret_manual_data_block_element_ref requires valid selected source bytes") from exc
+    if len(data) < width:
+        raise ValueError("interpret_manual_data_block_element_ref selected source bytes are shorter than width")
+    return int.from_bytes(data[:width], "big")
 
 
 def _data_block_element_ref_remove_payload(
