@@ -374,6 +374,7 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
     actions = listing_row_action_catalog(row)
     bind_action = next(action for action in actions if action["action_id"] == "row.data_block.element.bind_type")
     clear_action = next(action for action in actions if action["action_id"] == "row.data_block.element.clear_type")
+    bind_schema_properties = bind_action["parameter_schema"]["properties"]
     bind_kind, bind_payload = listing_catalog_manual_payload(
         row,
         "row.data_block.element.bind_type",
@@ -389,6 +390,18 @@ def test_data_block_type_binding_commands_preserve_element_identity() -> None:
     clear_kind, clear_payload = listing_catalog_manual_payload(row, "row.data_block.element.clear_type")
 
     assert bind_action["parameters"]["kind"] == "scalar"
+    assert {
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "path_lifetime_scope",
+        "confidence",
+        "conflicts",
+        "parent_evidence_ids",
+        "contradicted_evidence_id",
+        "reason",
+        "cleanup_scope",
+    }.issubset(bind_schema_properties)
     assert clear_action["parameter_schema"]["required"] == []
     assert bind_kind == "set_manual_data_block_element"
     assert bind_payload == {

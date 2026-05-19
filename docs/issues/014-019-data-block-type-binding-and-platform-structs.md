@@ -32,6 +32,11 @@ Current implementation:
   on row command context through command re-selection and execution parameter
   merge, so manual-classified `data_block_pointer` evidence is not dropped or
   regenerated before the durable bind payload.
+- Data-block type-bind parameter schemas now advertise the full accepted
+  provenance boundary, including path/lifetime scope, conflicts, parent ids,
+  manual override reason, and cleanup scope. The public catalog contract now
+  matches the evidence fields preserved in bind payloads and checked by
+  planner/verifier gates.
 - Manual Action Log replay stamps `type_binding.owner_action_id` from the
   append action. Clear-type payloads preserve `previous_type_binding` for stale
   render checks and stamp `previous_type_binding.cleanup_action_id` from the

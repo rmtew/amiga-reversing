@@ -1236,16 +1236,7 @@ def _data_block_element_type_binding_parameter_schema(defaults: Mapping[str, obj
                 "array_count": {"type": "integer", "minimum": 1},
                 "array_stride": {"type": "integer", "minimum": 1},
                 "representation": {"type": "string", "enum": ["hex", "binary", "character"]},
-                "source_evidence_id": {"type": "string"},
-                "source_family": {
-                    "type": "string",
-                    "enum": ["data_block_pointer", "struct_pointer", "constant_or_equ", "rsset_app_base"],
-                },
-                "source_evidence_status": {
-                    "type": "string",
-                    "enum": ["analysis_proven", "path_specific", "manual_classified", "manual_override"],
-                },
-                "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
+                **_source_evidence_parameter_properties(),
                 "requires_source_evidence": {"type": "boolean"},
             },
             "required": ["layout_id", "offset", "width", "binding_kind"],

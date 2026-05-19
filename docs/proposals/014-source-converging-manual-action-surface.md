@@ -1254,6 +1254,12 @@ re-selection and merged into bind parameters before execution; otherwise the
 durable type binding can silently fall back to regenerated or missing
 provenance.
 
+Implementation observation from `014-019`: data-block type-bind schemas are
+also part of the provenance gate. If the schema exposes only
+`source_evidence_id`/family/status but not path/lifetime scope, conflicts,
+parent ids, override reason, or cleanup scope, callers cannot construct the
+same evidence boundary that bind payloads and verifiers compare.
+
 Implementation observation from `014-014`: data-symbol removal is not a single
 cleanup shape. Generated seeded entities should be suppressed by hunk/address,
 but source-owned manual data-symbol names must remove their `ManualSeed:*`
