@@ -3082,6 +3082,16 @@ def _verify_manual_mutation(
 
 
 _ACCEPTED_PROVENANCE_STATUSES = frozenset({"analysis_proven", "path_specific", "manual_classified", "manual_override"})
+_PROVENANCE_COMMAND_IDENTITY_KEYS = (
+    "source_evidence_id",
+    "source_family",
+    "source_evidence_status",
+    "path_lifetime_scope",
+    "conflicts",
+    "contradicted_evidence_id",
+    "reason",
+    "cleanup_scope",
+)
 
 
 def _verify_provenance_backed_mutation(
@@ -6767,10 +6777,17 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
         return _catalog_entry_parameters_match(
             command,
             entry,
-            ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
+            _catalog_entry_provenance_identity_keys(
+                command,
+                ("struct_name", "offset", "source_evidence_id", "source_family", "source_evidence_status"),
+            ),
         )
     if command_id in {"row.data_block.element.bind_type", "row.data_block.element.clear_type"}:
-        return _catalog_entry_parameters_match(command, entry, ("layout_id", "offset", "width"))
+        return _catalog_entry_parameters_match(
+            command,
+            entry,
+            _catalog_entry_provenance_identity_keys(command, ("layout_id", "offset", "width")),
+        )
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
         return _catalog_entry_parameters_match(command, entry, ("kind", "hunk", "addr"))
     if command_id == "data_symbol.remove":
@@ -6795,6 +6812,14 @@ def _catalog_entry_parameters_match(
         if entry_value is None or entry_value != command_value:
             return False
     return True
+
+
+def _catalog_entry_provenance_identity_keys(command: dict[str, object], base_keys: tuple[str, ...]) -> tuple[str, ...]:
+    parameters = command.get("parameters")
+    if not isinstance(parameters, dict):
+        return base_keys
+    provenance_keys = tuple(key for key in _PROVENANCE_COMMAND_IDENTITY_KEYS if key in parameters and key not in base_keys)
+    return (*base_keys, *provenance_keys)
 
 
 def _command_available_in_catalog(command: dict[str, object], availability: dict[str, object]) -> bool:

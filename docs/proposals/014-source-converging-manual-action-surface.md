@@ -662,6 +662,12 @@ applies to executed durable results. A nested `cleanup_scope.source_evidence_id`
 records which old descendants are being removed; it is not consumed provenance
 for the new mutation and must not trigger the generic provenance layer.
 
+Implementation observation from `014-006`: catalog availability for
+evidence-bearing writes must compare the full consumed provenance boundary, not
+just the command id and target coordinate. For typed-field and data-block type
+writes, mismatched `source_evidence_id`, path/lifetime scope, conflict or
+override fields, or cleanup scope should stop before execution.
+
 Implementation observation from `014-006`: already-satisfied checks for rename
 commands must compare projected state to the requested new identity. Comparing
 all command parameters treats `previous_name` as required future state and can

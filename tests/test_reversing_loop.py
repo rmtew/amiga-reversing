@@ -1393,7 +1393,15 @@ def test_run_one_data_block_type_binding_requires_rendered_type_proof(
                     "commands": [
                         {
                             "command_id": "row.data_block.element.bind_type",
-                            "parameters": {"layout_id": "events", "offset": 0x30, "width": 4},
+                            "parameters": {
+                                "layout_id": "events",
+                                "offset": 0x30,
+                                "width": 4,
+                                "source_evidence_id": "prov-1",
+                                "source_family": "data_block_pointer",
+                                "source_evidence_status": "analysis_proven",
+                                "path_lifetime_scope": {"kind": "global"},
+                            },
                         }
                     ]
                 }
@@ -1458,6 +1466,45 @@ def test_data_block_type_availability_requires_matching_element_identity() -> No
     command_parameters["width"] = 4
     availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
     availability_parameters["offset"] = 0x30
+
+    assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
+
+
+def test_data_block_type_availability_requires_matching_source_evidence() -> None:
+    evidence = {
+        "source_evidence_id": "prov-1",
+        "source_family": "data_block_pointer",
+        "source_evidence_status": "analysis_proven",
+        "path_lifetime_scope": {"kind": "global"},
+    }
+    command = {
+        "command_id": "row.data_block.element.bind_type",
+        "parameters": {
+            "layout_id": "events",
+            "offset": 0x30,
+            "width": 4,
+            "binding_kind": "platform_struct",
+            "type_id": "Node",
+            **evidence,
+        },
+    }
+    availability = {
+        "commands": [
+            {
+                "command_id": "row.data_block.element.bind_type",
+                "parameters": {"layout_id": "events", "offset": 0x30, "width": 4},
+            }
+        ]
+    }
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
+    availability_parameters.update({**evidence, "source_evidence_id": "prov-other"})
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters["source_evidence_id"] = "prov-1"
 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 
@@ -5436,6 +5483,11 @@ def test_typed_field_availability_requires_matching_source_evidence() -> None:
     command_parameters["source_evidence_id"] = evidence["source_evidence_id"]
     availability_parameters = cast(dict[str, object], availability["commands"][0]["parameters"])
     availability_parameters["source_evidence_id"] = evidence["source_evidence_id"]
+    availability_parameters["path_lifetime_scope"] = {"kind": "selected_use", "hunk": 0, "addr": 2, "operand_index": 1}
+
+    assert reversing_loop._available_catalog_command(command, availability) is None
+
+    availability_parameters["path_lifetime_scope"] = evidence["path_lifetime_scope"]
 
     assert reversing_loop._available_catalog_command(command, availability) == availability["commands"][0]
 

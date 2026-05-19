@@ -131,6 +131,11 @@ Progress:
   `base_evidence_id`, displacement, and operand index. A row that exposes a
   different RSSET binding action no longer authorizes a stale candidate with a
   mismatched base evidence id.
+- Catalog availability for provenance-bearing typed-field and data-block type
+  writes now matches the consumed provenance boundary, not only command id and
+  layout/field coordinates. Stale candidates with a different
+  `source_evidence_id`, path/lifetime scope, conflict state, override reason, or
+  cleanup scope no longer pass the availability gate.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall
