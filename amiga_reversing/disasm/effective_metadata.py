@@ -623,6 +623,7 @@ def _manual_rsset_use_site_binding_to_metadata(binding: dict[str, object]) -> Rs
         or base_evidence_id is None
     ):
         return None
+    base_evidence_refs = binding.get("base_evidence_refs")
     return RssetUseSiteBindingMetadata(
         hunk=hunk,
         addr=addr,
@@ -636,6 +637,18 @@ def _manual_rsset_use_site_binding_to_metadata(binding: dict[str, object]) -> Rs
         access=_manual_seed_text(binding, "access"),
         width_bytes=_manual_seed_int(binding, "width_bytes"),
         owner_action_id=_manual_seed_text(binding, "owner_action_id"),
+        source_evidence_id=_manual_seed_text(binding, "source_evidence_id"),
+        source_family=_manual_seed_text(binding, "source_family"),
+        source_evidence_status=_manual_seed_text(binding, "source_evidence_status"),
+        path_lifetime_scope=binding.get("path_lifetime_scope") if isinstance(binding.get("path_lifetime_scope"), dict) else None,
+        confidence=_manual_seed_text(binding, "confidence"),
+        base_evidence_refs=tuple(
+            dict(ref)
+            for ref in base_evidence_refs
+            if isinstance(ref, dict)
+        )
+        if isinstance(base_evidence_refs, list | tuple)
+        else (),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=_manual_action_citation(binding, "rsset_use_site_binding_id"),

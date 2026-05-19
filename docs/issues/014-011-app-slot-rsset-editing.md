@@ -4,6 +4,17 @@ Source proposal: docs/proposals/014-source-converging-manual-action-surface.md
 Scope:
 Add first-class app-slot and RSSET layout editing.
 
+Post-`014-022` split:
+RSSET should consume the generic provenance / def-use / reference model owned
+by `014-010`. This issue owns RSSET-specific interpretation, binding, refine,
+linked-gap, and cascade behavior on top of provenance evidence.
+
+Accepted review state:
+Raw `$NNNN(An)`/`zzz(an)` operands and default A6 fallback remain report-only
+until accepted durable base evidence exists. Same-displacement propagation
+requires same accepted base evidence or verifier-proven equivalent flow
+identity.
+
 Current evidence:
 - Listing rows expose `app_slot` element contexts with symbol, displacement,
   base register, operand index, and access.
@@ -100,9 +111,29 @@ Current evidence:
   durable action payload, renders the resulting `RS.*` definition, and keeps
   exact round-trip status.
 - Broader autonomous candidate production remains open.
+- Post-`014-022` review reframes `rsset.binding.report` as a family-specific
+  view over generic provenance exploration. Generic provenance should explain
+  where the base register/value is set, where it is used, caller/path status,
+  conflicts, source-family classification, and durable evidence ids. RSSET then
+  adds layout/base matching, nearby fields/gaps, compatible offsets,
+  same-lifetime displacement uses, and bind/refine blockers.
+- `rsset.binding.report` now exposes generic provenance as RSSET-shaped
+  `base_evidence_refs`. Raw base-relative operands report unresolved/unknown
+  evidence and remain blocked; selected app-slot or explicit base evidence
+  reports accepted `rsset_app_base` refs with source evidence id,
+  path/lifetime scope, confidence, origin details, layout/base identity, and
+  accepted state.
+- `rsset.binding.bind`/`unbind` durable payloads now carry the accepted
+  `source_evidence_id`, source family/status, path/lifetime scope, confidence,
+  conflicts, and `base_evidence_refs` they consume. Manual replay projects
+  those fields into effective `rsset_use_site_bindings` so verifier/planner
+  gates can compare against effective provenance state, not just row text.
 
 Acceptance criteria:
 - App-slot and RSSET region identities are durable and not row-index based.
+- RSSET binding consumes provenance-backed base evidence; raw `zzz(an)` /
+  `$NNNN(an)` operands remain report-only until provenance, explicit evidence,
+  or selected app-slot context proves the base.
 - Manual actions replay into effective metadata and rendered RSSET/source refs.
 - Command catalog exposes add/edit/rename/remove, bind/unbind, and field/region
   operations.
@@ -123,6 +154,13 @@ Working goal:
   exact round-trip.
 
 Remaining work:
+- Broaden generic provenance consumption beyond first-slice selected-use
+  `base_evidence_refs` once backend flow definitions can distinguish
+  equivalent lifetimes, clobbers, stored-state reloads, and caller/path
+  alternatives.
+- Keep default A6 fallback report-only. Mutation needs seed-backed,
+  selected-app-slot, flow-derived, manually classified, or override evidence
+  with a durable id.
 - Broaden `rsset.binding.report` from selected-use and same-displacement
   summaries into generated xref/type-flow descendants once bind-refine and
   cascade ownership exist.
@@ -138,6 +176,30 @@ Remaining work:
 - Make generated binding descendants carry owner action ids so unbind or
   clear-type retracts same-displacement candidates, linked gaps, xrefs,
   review items, and type-flow facts without deleting unrelated RSSET fields.
+- For provenance-derived descendants, carry both consumed `source_evidence_id`
+  and binding/refinement `owner_action_id`. Path-specific or conflicting
+  provenance must block global binding until the user selects a path/lifetime
+  scope or records a manual classification/override.
+- `rsset.binding.report` should be the RSSET view over generic provenance:
+  it consumes provenance definitions/uses/source-family status, then adds
+  candidate layout/base symbol, field-or-gap at displacement, nearby fields,
+  observed access width, same-flow/same-displacement use summary,
+  bind/refine/type blockers, expected cascade, and cleanup owner.
+- `base_evidence_refs` consumer shape should include operand index, base
+  register, displacement, source family, status, `source_evidence_id`,
+  `base_evidence_id`, path/lifetime scope, confidence, origin kind, origin
+  hunk/offset/register, optional parent evidence id, optional contradicted
+  evidence id, layout name, and base symbol.
+- Same-flow/same-displacement candidates require the same accepted
+  `base_evidence_id` or a verifier-proven equivalent flow identity. Matching
+  only register name plus displacement is insufficient, including A6 fallback
+  cases.
+- Bind/refine/cascade ownership:
+  bind-only owns selected-use state; bind-refine owns linked field/gap
+  descendants it creates; type-refine owns type/domain descendants. Unbind and
+  clear-type must retract only descendants matching the selected
+  `owner_action_id`/cascade id and must leave independently accepted RSSET
+  regions or bindings intact.
 - Keep broader autonomous candidate production evidence-first and de-duped by
   durable RSSET identity before adding more feed types; durable identity gaps
   belong in `014-002`, command exposure gaps in `014-004`, and RSSET-specific

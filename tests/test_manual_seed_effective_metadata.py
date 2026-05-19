@@ -955,6 +955,63 @@ def test_effective_metadata_applies_manual_rsset_layout_region(tmp_path: Path) -
     ]
 
 
+def test_effective_metadata_carries_rsset_binding_base_evidence_refs(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    base_ref = {
+        "operand_index": 0,
+        "base_register": "A6",
+        "displacement": 0x0102,
+        "source_family": "rsset_app_base",
+        "status": "path_specific",
+        "source_evidence_id": "prov-demo-rsset",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+        "confidence": "medium",
+        "origin_kind": "explicit_base_evidence",
+        "accepted": True,
+    }
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a1",
+                1,
+                "create_manual_rsset_use_site_binding",
+                rsset_use_site_binding={
+                    "rsset_use_site_binding_id": "bind-selected-gap",
+                    "hunk": 0,
+                    "addr": 0xE2,
+                    "operand_index": 0,
+                    "base_register": "A6",
+                    "displacement": 0x0102,
+                    "layout_name": "app",
+                    "base_symbol": "__amiga_app_base__",
+                    "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                    "source_evidence_id": "prov-demo-rsset",
+                    "source_family": "rsset_app_base",
+                    "source_evidence_status": "path_specific",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xE2},
+                    "confidence": "medium",
+                    "base_evidence_refs": [base_ref],
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    binding = payload["rsset_use_site_bindings"][0]
+    assert binding["source_evidence_id"] == "prov-demo-rsset"
+    assert binding["source_family"] == "rsset_app_base"
+    assert binding["source_evidence_status"] == "path_specific"
+    assert binding["path_lifetime_scope"] == {"kind": "selected_use", "hunk": 0, "addr": 0xE2}
+    assert binding["owner_action_id"] == "a1"
+    assert binding["base_evidence_refs"] == [base_ref]
+
+
 def test_effective_metadata_applies_manual_data_block_layout_with_elements(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

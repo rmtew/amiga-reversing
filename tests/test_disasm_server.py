@@ -4026,6 +4026,11 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert report_action["report"]["source_locator"]["row_text"] == "sf.b $0102(a6)"
     assert report_action["report"]["operand_facts"]["width_bytes"] == 1
     assert report_action["report"]["base_evidence"]["blockers"] == ["missing_base_evidence"]
+    raw_base_ref = report_action["report"]["base_evidence_refs"][0]
+    assert raw_base_ref["source_family"] == "unknown"
+    assert raw_base_ref["status"] == "unresolved"
+    assert raw_base_ref["accepted"] is False
+    assert raw_base_ref.get("base_evidence_id") is None
     assert report_action["report"]["candidate_layouts"][0]["gap_covering_displacement"] == {
         "start": 0x0102,
         "end": 0x0103,
@@ -4056,6 +4061,12 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     assert report_action["report"]["candidate"]["displacement"] == 0x0102
     assert report_action["report"]["candidate"]["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
     assert report_action["report"]["base_evidence"]["has_explicit_evidence"] is True
+    accepted_base_ref = report_action["report"]["base_evidence_refs"][0]
+    assert accepted_base_ref["base_evidence_id"] == "selected-base:A6:__amiga_app_base__"
+    assert accepted_base_ref["source_family"] == "rsset_app_base"
+    assert accepted_base_ref["status"] == "path_specific"
+    assert accepted_base_ref["accepted"] is True
+    assert accepted_base_ref["path_lifetime_scope"]["kind"] == "selected_use"
     assert report_action["report"]["verifier_readiness"]["replay"] == "ready"
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
     assert bind_action["parameters"] == {
@@ -4088,6 +4099,11 @@ def test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding
     )
     assert binding["access"] == "write"
     assert binding["render_state"] == "linked_gap_or_raw"
+    assert binding["source_evidence_id"] == accepted_base_ref["source_evidence_id"]
+    assert binding["source_family"] == "rsset_app_base"
+    assert binding["source_evidence_status"] == "path_specific"
+    assert binding["path_lifetime_scope"] == accepted_base_ref["path_lifetime_scope"]
+    assert binding["base_evidence_refs"] == [accepted_base_ref]
     assert local_effect["kind"] == "rsset_use_site_binding"
     assert appended_actions == [action]
     disasm_server._LISTING_PROJECTION_SERVICE.reset()

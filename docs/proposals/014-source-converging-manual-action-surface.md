@@ -971,6 +971,13 @@ with `effect=inspection` or `appends_to_manual_action_log=false` can be useful
 evidence surfaces, but non-dry `run-one` must stop at a
 `command_execution_policy` blocker instead of POSTing them.
 
+Implementation observation from `014-011`: RSSET binding needs both the
+family-specific identity (`base_evidence_id`, layout/base, displacement) and
+the generic provenance identity (`source_evidence_id`, source family/status,
+path/lifetime scope). The report can expose unresolved raw bases, but bind
+payloads and effective metadata should only carry accepted provenance refs so
+the generic provenance verifier can gate semantic writes.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

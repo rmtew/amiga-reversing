@@ -2246,6 +2246,7 @@ def _rsset_binding_report(
     current_gap = _rsset_report_current_gap(row, displacement)
     base_evidence_id = params.get("base_evidence_id")
     has_base_evidence = isinstance(base_evidence_id, str) and bool(base_evidence_id.strip())
+    base_evidence_refs = _rsset_base_evidence_refs(context, row, params)
     compatibility = _rsset_report_type_compatibility(width_bytes, current_field, current_gap)
     missing_verifiers = ["bind_refine_selected_use_render", "owned_cascade_cleanup", "type_flow"]
     if not has_base_evidence:
@@ -2282,7 +2283,9 @@ def _rsset_binding_report(
             "has_explicit_evidence": has_base_evidence,
             "source": _rsset_report_base_evidence_source(context, has_base_evidence),
             "blockers": [] if has_base_evidence else ["missing_base_evidence"],
+            "base_evidence_refs": base_evidence_refs,
         },
+        "base_evidence_refs": base_evidence_refs,
         "candidate_layouts": [
             {
                 "layout_name": params.get("layout_name"),
@@ -2328,6 +2331,62 @@ def _rsset_binding_report(
     }
 
 
+def _rsset_base_evidence_refs(
+    context: Mapping[str, object],
+    row: Mapping[str, object],
+    params: Mapping[str, object],
+) -> list[dict[str, object]]:
+    report = _provenance_report(context, row)
+    if report is None:
+        return []
+    subject = report.get("subject")
+    definitions = report.get("definitions")
+    definition = definitions[0] if isinstance(definitions, list) and definitions and isinstance(definitions[0], dict) else {}
+    parent_ids = definition.get("parent_evidence_ids") if isinstance(definition, dict) else None
+    parent_evidence_id = None
+    if isinstance(parent_ids, list):
+        parent_evidence_id = next((item for item in parent_ids if isinstance(item, str) and item), None)
+    source_family = report.get("source_family")
+    status = report.get("status")
+    source_evidence_id = report.get("source_evidence_id")
+    base_evidence_id = params.get("base_evidence_id")
+    accepted = (
+        isinstance(source_evidence_id, str)
+        and isinstance(source_family, str)
+        and source_family not in {"", "unknown", "conflicting"}
+        and status in {"analysis_proven", "path_specific", "manual_classified", "manual_override"}
+        and isinstance(base_evidence_id, str)
+        and bool(base_evidence_id.strip())
+    )
+    ref = {
+        "operand_index": params.get("operand_index"),
+        "base_register": params.get("base_register"),
+        "displacement": params.get("displacement"),
+        "source_family": source_family,
+        "status": status,
+        "source_evidence_id": source_evidence_id,
+        "base_evidence_id": base_evidence_id,
+        "path_lifetime_scope": report.get("path_lifetime_scope"),
+        "confidence": report.get("confidence"),
+        "origin_kind": definition.get("origin_kind") if isinstance(definition, dict) else None,
+        "origin_hunk": definition.get("origin_hunk") if isinstance(definition, dict) else None,
+        "origin_offset": definition.get("origin_addr") if isinstance(definition, dict) else None,
+        "origin_register": definition.get("register") if isinstance(definition, dict) else None,
+        "parent_evidence_id": parent_evidence_id,
+        "layout_name": params.get("layout_name"),
+        "base_symbol": params.get("base_symbol"),
+        "conflicts": report.get("conflicts"),
+        "accepted": accepted,
+    }
+    if isinstance(subject, Mapping):
+        ref["subject"] = {
+            key: subject.get(key)
+            for key in ("target", "hunk", "addr", "stable_key", "row_text", "element_id", "element_kind")
+            if subject.get(key) is not None
+        }
+    return [{key: value for key, value in ref.items() if value is not None}]
+
+
 def _rsset_use_site_binding_payload(
     row: Mapping[str, object],
     context: Mapping[str, object],
@@ -2367,6 +2426,17 @@ def _rsset_use_site_binding_payload(
         "access": context.get("access") or "reference",
         "render_state": "linked_gap_or_raw",
     }
+    evidence_refs = _rsset_base_evidence_refs(context, row, params)
+    accepted_ref = next((ref for ref in evidence_refs if ref.get("accepted") is True), None)
+    if evidence_refs:
+        binding["base_evidence_refs"] = evidence_refs
+    if accepted_ref is not None:
+        binding["source_evidence_id"] = accepted_ref.get("source_evidence_id")
+        binding["source_family"] = accepted_ref.get("source_family")
+        binding["source_evidence_status"] = accepted_ref.get("status")
+        binding["path_lifetime_scope"] = accepted_ref.get("path_lifetime_scope")
+        binding["confidence"] = accepted_ref.get("confidence")
+        binding["conflicts"] = accepted_ref.get("conflicts", [])
     width_bytes = _optional_int(context.get("width_bytes"))
     if width_bytes is not None:
         binding["width_bytes"] = width_bytes
@@ -2401,7 +2471,15 @@ def _rsset_use_site_binding_identity_payload(
             "displacement",
             "layout_name",
             "base_symbol",
+            "source_evidence_id",
+            "source_family",
+            "source_evidence_status",
+            "path_lifetime_scope",
+            "confidence",
+            "conflicts",
+            "base_evidence_refs",
         )
+        if key in payload
     }
 
 

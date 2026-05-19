@@ -490,6 +490,12 @@ class RssetUseSiteBindingMetadata:
     access: str | None = None
     width_bytes: int | None = None
     owner_action_id: str | None = None
+    source_evidence_id: str | None = None
+    source_family: str | None = None
+    source_evidence_status: str | None = None
+    path_lifetime_scope: dict[str, object] | None = None
+    confidence: str | None = None
+    base_evidence_refs: tuple[dict[str, object], ...] = ()
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
@@ -511,6 +517,12 @@ class RssetUseSiteBindingMetadata:
         access = payload.get("access")
         width_bytes = payload.get("width_bytes")
         owner_action_id = payload.get("owner_action_id")
+        source_evidence_id = payload.get("source_evidence_id")
+        source_family = payload.get("source_family")
+        source_evidence_status = payload.get("source_evidence_status")
+        path_lifetime_scope = payload.get("path_lifetime_scope")
+        confidence = payload.get("confidence")
+        base_evidence_refs = payload.get("base_evidence_refs", [])
         assert isinstance(hunk, int)
         assert isinstance(addr, int)
         assert isinstance(operand_index, int)
@@ -526,6 +538,12 @@ class RssetUseSiteBindingMetadata:
         assert access is None or isinstance(access, str)
         assert width_bytes is None or isinstance(width_bytes, int)
         assert owner_action_id is None or isinstance(owner_action_id, str)
+        assert source_evidence_id is None or isinstance(source_evidence_id, str)
+        assert source_family is None or isinstance(source_family, str)
+        assert source_evidence_status is None or isinstance(source_evidence_status, str)
+        assert path_lifetime_scope is None or isinstance(path_lifetime_scope, dict)
+        assert confidence is None or isinstance(confidence, str)
+        assert isinstance(base_evidence_refs, list | tuple)
         return cls(
             hunk=hunk,
             addr=addr,
@@ -542,6 +560,12 @@ class RssetUseSiteBindingMetadata:
             access=access,
             width_bytes=width_bytes,
             owner_action_id=owner_action_id,
+            source_evidence_id=source_evidence_id,
+            source_family=source_family,
+            source_evidence_status=source_evidence_status,
+            path_lifetime_scope=path_lifetime_scope,
+            confidence=confidence,
+            base_evidence_refs=tuple(cast(dict[str, object], ref) for ref in base_evidence_refs if isinstance(ref, dict)),
         )
 
 @dataclass(frozen=True, slots=True)
