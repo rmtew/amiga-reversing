@@ -136,6 +136,12 @@ Progress:
   layout/field coordinates. Stale candidates with a different
   `source_evidence_id`, path/lifetime scope, conflict state, override reason, or
   cleanup scope no longer pass the availability gate.
+- Planner command-availability refresh now serializes provenance context for row
+  and element command queries, matching the server-side contract. Accepted
+  `source_evidence_id`, source family/status, path/lifetime scope, conflicts,
+  parent ids, cleanup scope, and override fields survive the refreshed catalog
+  lookup instead of being lost between candidate selection and availability
+  matching.
 
 Out of scope:
 Do not implement a speculative decompiler or private planner API. Do not fall

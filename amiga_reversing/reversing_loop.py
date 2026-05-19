@@ -7030,23 +7030,37 @@ def _command_availability(target_id: str, context: dict[str, object]) -> dict[st
 def _command_query_from_context(context: dict[str, object]) -> dict[str, list[str]]:
     kind = context.get("kind")
     if kind == "row":
-        return {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+        query = {"context": ["row"], "locator": [json.dumps(context["locator"])]}
+        _copy_provenance_context_to_query(query, context)
+        return query
     if kind == "element":
         query = {
             "context": ["element"],
             "locator": [json.dumps(context["locator"])],
             "element_id": [str(context["element_id"])],
         }
-        for key in ("layout_name", "base_symbol", "base_evidence_id"):
+        for key in ("layout_name", "base_symbol", "base_evidence_id", "contradicted_evidence_id", "reason"):
             value = context.get(key)
             if isinstance(value, str) and value:
                 query[key] = [value]
+        _copy_provenance_context_to_query(query, context)
         return query
     if kind == "range":
         return {"context": ["range"], "locators": [json.dumps(context["locators"])]}
     if kind == "review_item":
         return {"context": ["review-item"], "item_id": [str(context["item_id"])]}
     return {"context": ["target"]}
+
+
+def _copy_provenance_context_to_query(query: dict[str, list[str]], context: dict[str, object]) -> None:
+    for key in ("source_evidence_id", "source_family", "source_evidence_status", "confidence"):
+        value = context.get(key)
+        if isinstance(value, str) and value:
+            query[key] = [value]
+    for key in ("path_lifetime_scope", "conflicts", "parent_evidence_ids", "cleanup_scope"):
+        value = context.get(key)
+        if isinstance(value, dict | list):
+            query[key] = [json.dumps(value, sort_keys=True, separators=(",", ":"))]
 
 
 def _next_iteration_id(run_state: dict[str, object]) -> str:

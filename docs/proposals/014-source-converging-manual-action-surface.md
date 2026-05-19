@@ -1258,6 +1258,13 @@ command id can mean generated seeded-item suppression by `(kind, hunk, addr)` or
 source-owned manual seed removal by `seed_id`; command id presence alone must
 not authorize the other cleanup path.
 
+Implementation observation from `014-006`: planner availability queries are a
+provenance boundary too. The refreshed row/element catalog query must carry the
+same accepted evidence/status/scope, parent ids, conflicts, override fields,
+and cleanup scope as the selected candidate; otherwise the server can only
+return row-local/regenerated catalog entries and the planner cannot correctly
+distinguish unavailable evidence from stale or mismatched evidence.
+
 ## Principles
 
 - Build from the source model outward. Do not add commands just because one

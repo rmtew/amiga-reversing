@@ -6377,6 +6377,75 @@ def test_range_command_availability_query_uses_range_context() -> None:
     }
 
 
+def test_command_availability_query_preserves_provenance_context() -> None:
+    locator = _listing_locator()
+    scope = {"kind": "selected_use", "hunk": 0, "addr": 0x20}
+    conflicts = [{"source_evidence_id": "prov-old"}]
+    parents = ["prov-base"]
+    cleanup_scope = {"kind": "owned_descendants", "source_evidence_id": "prov-old"}
+
+    assert reversing_loop._command_query_from_context(
+        {
+            "kind": "row",
+            "locator": locator,
+            "source_evidence_id": "prov-data-block",
+            "source_family": "data_block_pointer",
+            "source_evidence_status": "manual_classified",
+            "path_lifetime_scope": scope,
+            "confidence": "medium",
+            "conflicts": conflicts,
+            "parent_evidence_ids": parents,
+            "cleanup_scope": cleanup_scope,
+        }
+    ) == {
+        "context": ["row"],
+        "locator": [json.dumps(locator)],
+        "source_evidence_id": ["prov-data-block"],
+        "source_family": ["data_block_pointer"],
+        "source_evidence_status": ["manual_classified"],
+        "confidence": ["medium"],
+        "path_lifetime_scope": [json.dumps(scope, sort_keys=True, separators=(",", ":"))],
+        "conflicts": [json.dumps(conflicts, sort_keys=True, separators=(",", ":"))],
+        "parent_evidence_ids": [json.dumps(parents, sort_keys=True, separators=(",", ":"))],
+        "cleanup_scope": [json.dumps(cleanup_scope, sort_keys=True, separators=(",", ":"))],
+    }
+
+
+def test_element_command_availability_query_preserves_binding_and_provenance_context() -> None:
+    locator = _listing_locator()
+    scope = {"kind": "selected_use", "hunk": 0, "addr": 0x40, "operand_index": 0}
+
+    assert reversing_loop._command_query_from_context(
+        {
+            "kind": "element",
+            "locator": locator,
+            "element_id": "row-1:displacement:0:operand",
+            "layout_name": "app",
+            "base_symbol": "__app_base__",
+            "base_evidence_id": "prov-base-a6",
+            "source_evidence_id": "prov-rsset",
+            "source_family": "rsset_app_base",
+            "source_evidence_status": "manual_override",
+            "path_lifetime_scope": scope,
+            "contradicted_evidence_id": "prov-old",
+            "reason": "selected app base",
+        }
+    ) == {
+        "context": ["element"],
+        "locator": [json.dumps(locator)],
+        "element_id": ["row-1:displacement:0:operand"],
+        "layout_name": ["app"],
+        "base_symbol": ["__app_base__"],
+        "base_evidence_id": ["prov-base-a6"],
+        "contradicted_evidence_id": ["prov-old"],
+        "reason": ["selected app base"],
+        "source_evidence_id": ["prov-rsset"],
+        "source_family": ["rsset_app_base"],
+        "source_evidence_status": ["manual_override"],
+        "path_lifetime_scope": [json.dumps(scope, sort_keys=True, separators=(",", ":"))],
+    }
+
+
 def test_report_only_candidate_is_visible_but_not_selectable() -> None:
     candidate = {
         "id": "provenance-report",
