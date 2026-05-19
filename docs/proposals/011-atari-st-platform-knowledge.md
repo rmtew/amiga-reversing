@@ -140,6 +140,7 @@ Optional or required local Atari ST sources currently used or referenced:
 ```text
 resources/platform_atari_st/GEMDOS.TXT
 resources/platform_atari_st/GEM_0042.pdf
+resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf
 resources/platform_atari_st/atari_st_disassembly_hints.json
 resources/platform_atari_st/atari_st_hardware_registers.md
 resources/platform_atari_st/atari_st_programming_notes.md
@@ -151,6 +152,29 @@ These Atari ST local source requirements are not yet documented in
 `RESOURCES.md`. Slice 1 must add that documentation with expected paths,
 acquisition notes, redistribution limits, and the generated artifacts that
 depend on each source.
+
+The Compute! Atari ST Technical Reference Guide volume currently present under
+`resources/platform_atari_st/docs/` is image-only: PyMuPDF reports no
+extractable text pages. Treat it as an OCR candidate, not a directly parseable
+PDF. The intended prep flow is:
+
+```text
+scan PDF
+  -> OCR PDF with searchable text layer
+  -> page-cited Markdown/source text
+  -> reviewed candidate facts or parser extraction
+```
+
+Use the source-prep probe before committing parser work:
+
+```powershell
+uv run python src\scripts\kb\pdf_to_markdown.py `
+  resources\platform_atari_st\docs\Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf `
+  --probe
+```
+
+For text-layer PDFs, the same tool can emit page-cited Markdown. For scans, run
+OCR first and keep the OCR output local unless redistribution is allowed.
 
 Current OS generation starts in:
 
@@ -783,6 +807,23 @@ unresolved platform-looking values by likely owner.
 
 Evaluate external sources deliberately. Commit inventory rows with tier,
 availability, parser feasibility, citation quality, and decision.
+
+PDF/book candidates should first pass a source-prep check:
+
+```text
+text-layer PDF:
+  direct Markdown/source-text conversion is acceptable for review and targeted parsing
+
+image-only PDF:
+  OCR required before Markdown conversion or extraction
+
+mixed PDF:
+  convert text pages, OCR only pages with insufficient text
+```
+
+Markdown is an intermediate citation and review format. It must not become the
+owner of platform facts unless the fact is promoted into structured KB,
+corrections, or parser assertions with source provenance.
 
 ### Slice 9: Hardware And Machine-Variant Inventory
 

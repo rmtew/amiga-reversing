@@ -52,6 +52,27 @@ uv run python -m src.scripts.parse_hw_manual resources/Hardware_Manual.html
 uv run python -m src.scripts.kb.ndk_parser /path/to/NDK_3.1
 ```
 
+## PDF OCR prep
+
+For scanned platform reference PDFs, add a searchable text layer before
+Markdown/source extraction. On Windows, the most reliable path is OCRmyPDF
+inside WSL:
+
+```bash
+sudo apt update
+sudo apt install ocrmypdf tesseract-ocr
+cd /mnt/c/Data/R/git/claude-repos/amiga-reversing2
+ocrmypdf --deskew --rotate-pages input.pdf output.ocr.pdf
+```
+
+Then convert text-layer PDFs to page-cited Markdown:
+
+```powershell
+uv run python src\scripts\kb\pdf_to_markdown.py output.ocr.pdf -o output.md
+```
+
+Use `--probe` first to detect image-only PDFs or weak OCR coverage.
+
 ## Validation
 
 Run the normal Python/web checks:

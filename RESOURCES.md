@@ -44,6 +44,17 @@ below.
 - **Used by:** Analysis pipeline as a test target
 - **Source:** DevPac 3.18 distribution (commercial software)
 
+## Atari ST reference PDFs (optional)
+
+- **Example:** `resources/platform_atari_st/docs/Computes_Technical_Ref_Guide_Atari_ST_Vol_one.pdf`
+- **Used by:** Candidate source inventory and future Atari ST platform KB
+  extraction described in `docs/proposals/011-atari-st-platform-knowledge.md`.
+- **Prep:** Run `uv run python src\scripts\kb\pdf_to_markdown.py <pdf> --probe`
+  before parser work. The current Compute! volume is image-only and needs OCR
+  before Markdown/text extraction.
+- **Source:** User-supplied archived book/PDF. Keep OCR derivatives local unless
+  redistribution rights are clear.
+
 ## amitools / machine68k (optional, for oracle testing)
 
 - **Install:** `uv tool install "./resources/amitools[vamos]" --with "machine68k"`
