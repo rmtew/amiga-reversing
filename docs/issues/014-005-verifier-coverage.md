@@ -184,6 +184,10 @@ Current evidence:
   command-side cleanup/evidence boundary. Cleanup-only mutations must be proven
   by their family cleanup verifier, not by treating old evidence as new consumed
   evidence.
+- Route-level verifier tests now keep command-locator fixtures aligned with the
+  production contract: selected interpreted-reference rows must carry enough
+  source bytes for the requested width, and fake listing artifacts used for
+  command execution must provide navigation payloads.
 
 Remaining work:
 - Extend family-specific write commands to persist `source_evidence_id`,

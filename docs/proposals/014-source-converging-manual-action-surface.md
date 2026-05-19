@@ -768,6 +768,12 @@ through generic `run-one`, verification must remain label-specific. Generic
 projection metadata is insufficient without checking the semantic label and the
 rendered label row at the selected source location.
 
+Implementation observation from `014-005`: route-level command verifier tests
+must satisfy the same command-locator contract as production. Interpreted
+reference commands need selected source bytes at least as wide as the requested
+element, and command execution fixtures must expose navigation payloads when
+locators are resolved through the listing artifact.
+
 Implementation observation from `014-005`/`014-006`: `review.label.*` actions
 mutate manual label state through review item ids, not listing row locators.
 Their verifier should derive the expected label payload or removed label id

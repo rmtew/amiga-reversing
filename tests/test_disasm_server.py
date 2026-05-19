@@ -3334,10 +3334,10 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
             "parameters": {
                 "layout_id": "ascii-hex",
                 "offset": 0x30,
-                "width": 2,
+                "width": 1,
                 "reference_kind": "absolute",
                 "target_hunk": 0,
-                "target_offset": 0x4142,
+                "target_offset": 0x41,
             },
         },
     )
@@ -3348,15 +3348,15 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
 
     assert interpret_action["kind"] == "interpret_manual_data_block_element_ref"
     assert interpreted_ref == {
-        "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00000041",
         "layout_id": "ascii-hex",
         "offset": 0x30,
-        "width": 2,
+        "width": 1,
         "reference_kind": "absolute",
         "target_hunk": 0,
-        "target_offset": 0x4142,
-        "target_locator": {"hunk": 0, "offset": 0x4142},
-        "source_value": 0x4142,
+        "target_offset": 0x41,
+        "target_locator": {"hunk": 0, "offset": 0x41},
+        "source_value": 0x41,
         "confidence": "manual",
         "xref_generation_mode": "bidirectional",
     }
@@ -3372,7 +3372,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
             "parameters": {
                 "layout_id": "ascii-hex",
                 "offset": 0x30,
-                "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
+                "data_block_ref_id": "ascii-hex:30:absolute:h0:00000041",
             },
         },
     )
@@ -3383,7 +3383,7 @@ def test_route_manual_action_catalog_execute_range_uses_explicit_applicable_subr
 
     assert clear_action["kind"] == "remove_manual_data_block_element_ref"
     assert cleared_ref == {
-        "data_block_ref_id": "ascii-hex:30:absolute:h0:00004142",
+        "data_block_ref_id": "ascii-hex:30:absolute:h0:00000041",
         "layout_id": "ascii-hex",
         "offset": 0x30,
     }
@@ -3548,6 +3548,9 @@ def test_route_manual_action_catalog_execute_renames_projected_manual_label_by_i
 
         def window_payload(self, *, start: int, count: int):
             return {"rows": rows[start : start + count]}, {}
+
+        def navigation_payload(self):
+            return {"groups": {}, "app_slot_analysis": {}}, {}
 
     def append_action(target_dir: Path, *, kind: str, payload: dict[str, object], binary_source: object) -> dict[str, object]:
         action = {"target_dir": str(target_dir), "kind": kind, "payload": payload}
