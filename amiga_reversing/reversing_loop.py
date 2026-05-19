@@ -3182,6 +3182,8 @@ def _verify_consumed_provenance_evidence(
             failures.append("manual_override missing reason")
         if not isinstance(cleanup_scope, dict) or not cleanup_scope.get("kind"):
             failures.append("manual_override missing cleanup_scope")
+        elif not _manual_override_cleanup_scope_matches_contradicted_evidence(evidence):
+            failures.append("manual_override cleanup_scope does not match contradicted evidence")
     if not isinstance(owner_action_id, str) or not owner_action_id:
         failures.append("missing owner_action_id")
     return {
@@ -6514,7 +6516,20 @@ def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:
         and bool(reason)
         and isinstance(cleanup_kind, str)
         and bool(cleanup_kind)
+        and _manual_override_cleanup_scope_matches_contradicted_evidence(evidence)
     )
+
+
+def _manual_override_cleanup_scope_matches_contradicted_evidence(evidence: dict[str, object]) -> bool:
+    contradicted_evidence_id = evidence.get("contradicted_evidence_id")
+    cleanup_scope = evidence.get("cleanup_scope")
+    if not isinstance(contradicted_evidence_id, str) or not isinstance(cleanup_scope, dict):
+        return False
+    cleanup_kind = cleanup_scope.get("kind")
+    if cleanup_kind != "owned_descendants":
+        return True
+    cleanup_evidence_id = cleanup_scope.get("source_evidence_id")
+    return isinstance(cleanup_evidence_id, str) and cleanup_evidence_id == contradicted_evidence_id
 
 
 def _data_block_type_command_has_required_evidence(command: dict[str, object]) -> bool:

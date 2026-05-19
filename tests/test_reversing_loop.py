@@ -948,6 +948,36 @@ def test_provenance_backed_mutation_verifier_accepts_override_cleanup_scope() ->
     assert provenance_layer["cleanup_scope"] == cleanup_scope
 
 
+def test_provenance_backed_mutation_verifier_rejects_override_cleanup_scope_mismatch() -> None:
+    durable_result = {
+        "action": {
+            "action_id": "action-1",
+            "payload": {
+                "custom_struct_field": {
+                    "source_evidence_id": "prov-demo-override",
+                    "source_family": "struct_pointer",
+                    "source_evidence_status": "manual_override",
+                    "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x120},
+                    "contradicted_evidence_id": "prov-old",
+                    "reason": "target-specific path proof",
+                    "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-other"},
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(
+        {"command_id": "typed_gap.field.add"},
+        durable_result,
+        verification,
+    )
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "failed"
+    assert "manual_override cleanup_scope does not match contradicted evidence" in provenance_layer["failures"]
+
+
 def test_provenance_backed_mutation_verifier_rejects_command_only_evidence() -> None:
     command = {
         "command_id": "row.data_block.element.interpret_ref",
@@ -5265,6 +5295,40 @@ def test_manual_override_typed_field_requires_string_boundary_fields_before_exec
         "contradicted_evidence_id": True,
         "reason": ["target-specific path proof"],
         "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-old"},
+    }
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "confidence": "high",
+        "actionable": True,
+        **evidence,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "missing action-specific verifier"
+
+
+def test_manual_override_typed_field_requires_cleanup_scope_to_match_contradicted_evidence() -> None:
+    evidence = {
+        **_accepted_struct_pointer_evidence(),
+        "source_evidence_status": "manual_override",
+        "conflicts": [{"source_evidence_id": "prov-old"}],
+        "contradicted_evidence_id": "prov-old",
+        "reason": "target-specific path proof",
+        "cleanup_scope": {"kind": "owned_descendants", "source_evidence_id": "prov-other"},
     }
     candidate = {
         "id": "typed-gap-field",

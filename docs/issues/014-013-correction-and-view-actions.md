@@ -55,7 +55,8 @@ Current evidence:
   corrections and `execution_view_state` for execution-view commands.
 - Provenance-backed `manual_override` writes now require and preserve cleanup
   scope, in addition to contradicted evidence id, reason, accepted source
-  family/status, and path/lifetime scope.
+  family/status, and path/lifetime scope. `owned_descendants` cleanup scope must
+  name the same `source_evidence_id` as the contradicted evidence.
 - High-level bootblock, resident, library/device, autoinit, and import
   relationship errors are usually importer/analyzer defects when they are
   objectively wrong for a class of targets. Those must stop as implementation
@@ -96,7 +97,8 @@ Acceptance criteria:
   with regression coverage, not become per-target Manual Action Log state.
 - Manual provenance override actions must record contradicted evidence id,
   new source family/status, reason, path/lifetime scope, cleanup scope, and the
-  owner action responsible for generated descendants. Cleanup verifier must
+  owner action responsible for generated descendants. `owned_descendants`
+  cleanup scope must match the contradicted evidence id. Cleanup verifier must
   remove stale descendants from the contradicted/overridden fact without
   removing analyzer-native or independently accepted facts.
 

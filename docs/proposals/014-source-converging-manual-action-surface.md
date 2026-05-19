@@ -1075,6 +1075,11 @@ validate the correction boundary fields by type, not truthiness. Non-string
 `contradicted_evidence_id` or reason values can otherwise slip past planner
 selection and fail only after mutation.
 
+Implementation observation from `014-013`: override cleanup ownership must point
+at the contradicted fact. For `owned_descendants`, `cleanup_scope.source_evidence_id`
+must equal `contradicted_evidence_id`; otherwise a manual override can claim
+cleanup proof for a different stale evidence path.
+
 Implementation observation from `014-013`: execution views are correction/view
 state but still need action ownership in the Manual Action Log projection.
 Create/edit views now stamp `owner_action_id`; remove preserves the active view
