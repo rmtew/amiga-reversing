@@ -3667,6 +3667,8 @@ def _verify_data_block_type_binding_mutation(
     project_root: Path,
 ) -> dict[str, object]:
     expected = _data_block_element_from_durable_result(durable_result)
+    if command_id == "row.data_block.element.bind_type" and expected is not None:
+        expected = _data_block_element_with_expected_type_binding_owner(expected, durable_result)
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
         _verify_project_data_block_element(target_id, command_id, expected, project_root=project_root),
@@ -3681,6 +3683,21 @@ def _verify_data_block_type_binding_mutation(
     ]
     status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
     return {"status": status, "layers": layers}
+
+
+def _data_block_element_with_expected_type_binding_owner(
+    element: dict[str, object],
+    durable_result: dict[str, object],
+) -> dict[str, object]:
+    binding = element.get("type_binding")
+    action_id = _durable_action_id(durable_result)
+    if not isinstance(binding, dict) or not isinstance(action_id, str) or not action_id:
+        return element
+    result = dict(element)
+    owned_binding = dict(binding)
+    owned_binding.setdefault("owner_action_id", action_id)
+    result["type_binding"] = owned_binding
+    return result
 
 
 def _verify_custom_struct_field_mutation(
@@ -3822,11 +3839,11 @@ def _data_block_element_from_action(action: object) -> dict[str, object] | None:
         return None
     element = action.get("data_block_element")
     if isinstance(element, dict):
-        return cast(dict[str, object], element)
+        return dict(cast(dict[str, object], element))
     payload = action.get("payload")
     element = payload.get("data_block_element") if isinstance(payload, dict) else None
     if isinstance(element, dict):
-        return cast(dict[str, object], element)
+        return dict(cast(dict[str, object], element))
     return None
 
 
