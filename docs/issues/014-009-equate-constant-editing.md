@@ -29,6 +29,9 @@ Progress:
   definition/reference refs.
 - Rename/remove projection now updates or prunes symbolic representations, so
   rendered source cannot retain dangling target-equate use sites.
+- Planner command normalization strips report/provenance fields from
+  target-equate CRUD parameter payloads, so already-satisfied checks compare
+  only catalog-owned equate identity/value fields.
 - Current C policy table caps target-local equates at 128 entries, matching the
   manual representation and generated runtime-ref slices used by interpreted
   data refs. Broader capacity should move this table out of the stack-heavy

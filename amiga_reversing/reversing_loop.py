@@ -6143,12 +6143,16 @@ def _command_boundary_parameters(command_id: str, parameters: object) -> dict[st
         return {key: payload[key] for key in ("name",) if key in payload}
     if command_id == "data_symbol.remove":
         return {key: payload[key] for key in ("kind", "hunk", "addr") if key in payload}
-    if command_id == "target.equate.represent":
+    if command_id in {"target.equate.add", "target.equate.edit", "target.equate.represent"}:
         return {
             key: payload[key]
             for key in ("name", "value", "comment", "value_representation", "value_expression")
             if key in payload
         }
+    if command_id == "target.equate.rename":
+        return {key: payload[key] for key in ("previous_name", "name") if key in payload}
+    if command_id == "target.equate.remove":
+        return {key: payload[key] for key in ("name",) if key in payload}
     return payload
 
 

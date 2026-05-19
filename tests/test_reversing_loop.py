@@ -5139,6 +5139,31 @@ def test_target_equate_candidate_skips_already_projected_equate() -> None:
     )
 
 
+def test_target_equate_candidate_skip_ignores_stripped_provenance_parameters() -> None:
+    candidate = {
+        "id": "target-equate",
+        "candidate_id": "target-equate",
+        "kind": "target_equate",
+        "suggested_action_kinds": ["target.equate.add"],
+        "parameters": {
+            "name": "PLAYER_START_LIVES",
+            "value": 3,
+            "source_evidence_id": "constant-1",
+            "source_family": "constant_or_equ",
+        },
+        "current_metadata": {"name": "PLAYER_START_LIVES", "value": 3},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {"name": "PLAYER_START_LIVES", "value": 3}
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
 def test_target_equate_representation_skip_ignores_stripped_provenance_parameters() -> None:
     candidate = {
         "id": "target-equate-representation",
@@ -5165,6 +5190,34 @@ def test_target_equate_representation_skip_ignores_stripped_provenance_parameter
         reversing_loop._candidate_skip_reason(candidate, command)
         == "candidate already satisfied in projected semantic state"
     )
+
+
+def test_embedded_target_equate_rename_command_strips_provenance_parameters() -> None:
+    candidate = {
+        "id": "target-equate-rename",
+        "candidate_id": "target-equate-rename",
+        "kind": "target_equate",
+        "command": {
+            "command_id": "target.equate.rename",
+            "context": {"kind": "target"},
+            "parameters": {
+                "previous_name": "PLAYER_START_LIVES",
+                "name": "PLAYER_INITIAL_LIVES",
+                "source_evidence_id": "constant-1",
+                "source_family": "constant_or_equ",
+            },
+            "output_affecting": True,
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {
+        "previous_name": "PLAYER_START_LIVES",
+        "name": "PLAYER_INITIAL_LIVES",
+    }
 
 
 def test_target_equate_rename_skips_projected_new_name() -> None:

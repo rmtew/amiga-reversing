@@ -621,6 +621,12 @@ also update symbolic immediate representations. Otherwise a rename silently
 loses source convergence, while a remove can leave dangling symbols that fail
 policy loading instead of falling back to numeric immediates.
 
+Implementation observation from `014-009`: target-equate command parameters
+must be normalized to catalog-owned identity/value fields before planner
+satisfaction checks. Provenance/report fields can explain why an EQU candidate
+was proposed, but they are not part of target-equate state and must not keep an
+already-projected add/edit/rename/remove candidate executable.
+
 Implementation observation from `014-020`: EQU definition value style is
 display-only but still travels through the C policy struct. Adding arbitrary
 per-equate expression text to the stack-resident `M68kAnalysisPolicy` overflowed
