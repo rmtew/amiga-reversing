@@ -98,6 +98,11 @@ Current evidence:
   satisfy a missing or mismatched action result.
 - Generic `run-one` `comment.edit` execution now uses the projected-comment
   verifier instead of accepting affected-locator metadata alone.
+- `comment.edit` verification now also compares the executed durable
+  `comment` payload against the selected comment text and source locator before
+  projection checks. A local row projection or command parameter alone cannot
+  prove that the persisted Manual Action Log action wrote the requested
+  comment.
 - Generic `run-one` `data_symbol.rename` execution now verifies Manual Action
   Log replay, semantic reload, projected listing text/name, and exact
   round-trip instead of accepting affected-locator metadata alone.

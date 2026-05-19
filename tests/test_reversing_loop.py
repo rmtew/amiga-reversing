@@ -4506,7 +4506,7 @@ def test_run_one_comment_edit_executes_with_projected_comment_verifier(
             assert isinstance(body, dict)
             assert body["command_id"] == "comment.edit"
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
+            return {"data": _executed_listing_comment_payload(tmp_path, text="Hunk file entrypoint.")}
         if method == "GET" and path == "/api/projects/demo":
             return {"data": {"project": {"manual_state": {}}}}
         if method == "GET" and path.endswith("/listing"):
@@ -4520,11 +4520,47 @@ def test_run_one_comment_edit_executes_with_projected_comment_verifier(
     assert report["verification"]["status"] == "passed"
     assert [layer["layer"] for layer in report["verification"]["layers"]] == [
         "manual_action_log",
+        "durable_payload",
         "semantic_reload",
         "projection",
     ]
     assert report["action"]["command_id"] == "comment.edit"
     assert report["action_result"]["status"] == "executed"
+
+
+def test_comment_edit_verifier_rejects_mismatched_durable_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    command = {
+        "command_id": "comment.edit",
+        "context": {"kind": "row", "locator": _listing_locator()},
+        "parameters": {"text": "expected comment"},
+    }
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path == "/api/projects/demo":
+            return {"data": {"project": {"manual_state": {}}}}
+        if method == "GET" and path.endswith("/listing"):
+            return {"data": {"rows": [_listing_row(comment_text="expected comment")]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    verification = reversing_loop._verify_manual_mutation(
+        "demo",
+        command,
+        _executed_listing_comment_payload(tmp_path, text="wrong comment"),
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    durable_layer = verification["layers"][1]
+    assert durable_layer["layer"] == "durable_payload"
+    assert durable_layer["expected_comment_text"] == "expected comment"
+    assert durable_layer["actual_comment_text"] == "wrong comment"
 
 
 def test_run_one_data_symbol_rename_executes_with_projected_name_verifier(
@@ -9407,7 +9443,7 @@ def test_listing_backed_comment_checks_availability_before_execution(
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         if path.endswith("/commands/execute"):
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
+            return {"data": _executed_listing_comment_payload(tmp_path, text="entrypoint returns")}
         if method == "GET" and path == "/api/projects/demo":
             return {"data": {"project": {"manual_state": {"comments": [{"text": "entrypoint returns"}]}}}}
         raise AssertionError(path)
@@ -9478,7 +9514,7 @@ def test_listing_backed_comment_verifies_projected_comment_text(
             return {"data": {"commands": [{"command_id": "comment.edit"}]}}
         if path.endswith("/commands/execute"):
             _write_manual_log(tmp_path)
-            return {"data": _executed_listing_comment_payload(tmp_path)}
+            return {"data": _executed_listing_comment_payload(tmp_path, text="custom comment")}
         if method == "GET" and path == "/api/projects/demo":
             return {"data": {"project": {"manual_state": {"comments": [{"text": "custom comment"}]}}}}
         raise AssertionError(path)
@@ -10411,10 +10447,18 @@ def _write_reproduction_exact(tmp_path: Path) -> None:
     )
 
 
-def _executed_listing_comment_payload(tmp_path: Path) -> dict[str, object]:
+def _executed_listing_comment_payload(tmp_path: Path, *, text: str = "xref-backed test comment") -> dict[str, object]:
     state = cast(dict[str, object], reversing_loop._manual_action_log_state(tmp_path / "targets" / "demo"))
+    locator = _listing_locator()
+    comment = {
+        "comment_id": "catalog-comment-h0-00000000",
+        "text": text,
+        "hunk": locator["section_index"],
+        "addr": locator["start_offset"],
+        "end": locator["end_offset"],
+    }
     return {
-        "action": {"action_id": "manual-1"},
+        "action": {"action_id": "manual-1", "payload": {"comment": comment}},
         "mutation": {
             "durable_action_id": "manual-1",
             "manual_action_log_count": state["count"],

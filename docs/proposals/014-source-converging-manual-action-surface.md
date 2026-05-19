@@ -799,6 +799,13 @@ The same applies to fallback comments: generic `run-one` must verify the
 projected comment text, not merely that command execution reported an affected
 locator.
 
+Implementation observation from `014-005`: fallback comment verification still
+needs durable action identity even though comments are presentation-only. The
+verifier must compare the executed `comment` payload's text and source locator
+against the selected command before accepting projected row text; otherwise a
+stale or mismatched Manual Action Log action can be masked by refreshed listing
+projection.
+
 Implementation observation from `014-006`/`014-014`: data-class annotations on
 definition rows are durable enough to feed row-level data-symbol naming. Use the
 row hunk/offset identity and skip projected names before proposing a rename.

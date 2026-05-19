@@ -2431,6 +2431,7 @@ def _verify_listing_comment_mutation(
 ) -> dict[str, object]:
     layers = [
         _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_comment_payload_matches_command(command, durable_result),
         _verify_project_semantic_reload(target_id),
         _verify_projected_comment_text(target_id, command),
     ]
@@ -2490,6 +2491,74 @@ def _verify_project_semantic_reload(target_id: str) -> dict[str, object]:
     if isinstance(project, dict) and isinstance(project.get("manual_state"), dict):
         return {"layer": "semantic_reload", "status": "passed"}
     return {"layer": "semantic_reload", "status": "failed", "message": "manual_state was not reloaded"}
+
+
+def _verify_comment_payload_matches_command(
+    command: dict[str, object],
+    durable_result: dict[str, object],
+) -> dict[str, object]:
+    expected = _comment_expected_from_command(command)
+    actual = _manual_comment_from_durable_result(durable_result)
+    if actual is None:
+        return {"layer": "durable_payload", "status": "failed", "message": "missing manual comment payload"}
+    if expected is None:
+        return {"layer": "durable_payload", "status": "failed", "message": "missing command comment identity"}
+    mismatches = {
+        key: {"expected": value, "actual": actual.get(key)}
+        for key, value in expected.items()
+        if actual.get(key) != value
+    }
+    return {
+        "layer": "durable_payload",
+        "status": "passed" if not mismatches else "failed",
+        "expected_comment": expected,
+        "actual_comment": actual,
+        "mismatches": mismatches,
+        "expected_comment_text": expected.get("text"),
+        "actual_comment_text": actual.get("text"),
+    }
+
+
+def _comment_expected_from_command(command: dict[str, object]) -> dict[str, object] | None:
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    parameters = command.get("parameters")
+    text = parameters.get("text") if isinstance(parameters, dict) else None
+    if not isinstance(locator, dict) or not isinstance(text, str):
+        return None
+    expected: dict[str, object] = {"text": text}
+    for source_key, target_key in (("section_index", "hunk"), ("start_offset", "addr"), ("end_offset", "end")):
+        value = locator.get(source_key)
+        if isinstance(value, int):
+            expected[target_key] = value
+    return expected
+
+
+def _manual_comment_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    comment = _manual_comment_from_action(action)
+    if comment is not None:
+        return comment
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            comment = _manual_comment_from_action(raw_action)
+            if comment is not None:
+                return comment
+    return None
+
+
+def _manual_comment_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    comment = action.get("comment")
+    if isinstance(comment, dict):
+        return cast(dict[str, object], comment)
+    payload = action.get("payload")
+    comment = payload.get("comment") if isinstance(payload, dict) else None
+    if isinstance(comment, dict):
+        return cast(dict[str, object], comment)
+    return None
 
 
 def _verify_projected_comment_text(target_id: str, command: dict[str, object]) -> dict[str, object]:
