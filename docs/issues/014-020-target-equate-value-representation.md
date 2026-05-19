@@ -6,6 +6,11 @@ Scope:
 Add target-local EQU definition value representation separate from numeric
 value and separate from immediate use-site representation.
 
+Accepted review state:
+EQU definition value representation remains display-only. EQU identity,
+symbolic use-site binding, and `constant_or_equ` provenance are separate
+semantic/equate decisions.
+
 Problem:
 `014-009` made target-local equates source-converging for identity, CRUD, and
 symbolic use sites. It does not let the user or reversing loop choose how an
@@ -25,6 +30,10 @@ Requirements:
   copying per-use-site strings.
 - Treat definition value representation as display metadata only: it must not
   change numeric equate semantics, use-site bindings, or auto-analysis facts.
+- Post-`014-022` split: EQU definition value representation stays
+  presentation-only. EQU identity/use-site binding or `constant_or_equ`
+  provenance evidence must be owned by the semantic/equate or provenance action,
+  not by this display-style action.
 
 Acceptance criteria:
 - Manual replay reloads target-equate value representation exactly.
@@ -33,6 +42,13 @@ Acceptance criteria:
 - Render verifier checks the requested `EQU` definition value text.
 - Rename/remove target-equate behavior still updates or prunes symbolic use
   sites correctly.
+- Changing EQU definition display style does not create or alter provenance
+  evidence, semantic hints, or type-flow descendants.
+- Source identity/display boundary:
+  EQU value rendering is display-only. EQU identity, symbolic use-site binding,
+  and `constant_or_equ` provenance are separate semantic/equate decisions.
+  A display-style action may read references to preview impact, but it cannot
+  create accepted provenance or own semantic descendants.
 - Exact direct rebuild remains mandatory.
 
 Required tests:
@@ -50,6 +66,9 @@ Implemented support:
 - Exact direct rebuild remains the verifier for symbolic-expression correctness;
   changing definition display does not create provenance, semantic hints, or
   type-flow descendants.
+- Planner command normalization strips provenance/report fields from
+  `target.equate.represent` parameters, so display-style commands cannot become
+  accepted evidence or remain unsatisfied because of ignored metadata.
 - Implementation finding: storing unbounded expression text in every C policy
   equate slot can overflow existing stack-heavy policy tests. The C expression field is
   deliberately bounded inline storage until the broader policy struct moves

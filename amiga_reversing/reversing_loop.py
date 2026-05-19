@@ -5833,7 +5833,7 @@ def _normalize_candidate_command(command: dict[str, object]) -> dict[str, object
     parameters = command.get("parameters")
     normalized = dict(command)
     normalized["kind"] = "command"
-    normalized["parameters"] = dict(parameters) if isinstance(parameters, dict) else {}
+    normalized["parameters"] = _display_boundary_parameters(command_id, parameters)
     if _command_id_is_report_only(command_id):
         normalized["effect"] = str(command.get("effect") or "inspection")
         normalized["appends_to_manual_action_log"] = False
@@ -6003,7 +6003,7 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "kind": "command",
             "command_id": action,
             "context": {"kind": "target"},
-            "parameters": parameter_payload,
+            "parameters": _display_boundary_parameters(action, parameter_payload),
             "output_affecting": True,
         }
     if action.startswith("correction.suppress_seeded_item."):
@@ -6135,6 +6135,17 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
             if key in evidence and key not in context:
                 context[key] = evidence[key]
     return context
+
+
+def _display_boundary_parameters(command_id: str, parameters: object) -> dict[str, object]:
+    payload = dict(parameters) if isinstance(parameters, dict) else {}
+    if command_id == "target.equate.represent":
+        return {
+            key: payload[key]
+            for key in ("name", "value", "comment", "value_representation", "value_expression")
+            if key in payload
+        }
+    return payload
 
 
 def _typed_field_parameters_from_candidate(

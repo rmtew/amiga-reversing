@@ -628,6 +628,12 @@ native C tests, so symbolic expression display currently uses bounded inline
 storage. If longer expressions become necessary, move optional target-equate
 strings out of the stack-heavy policy arrays instead of enlarging every slot.
 
+Implementation observation from `014-020`: display-style command parameters
+must stop at the display payload. Planner/report fields such as evidence ids or
+path lifetime scope can be ignored by catalog execution but still pollute
+already-satisfied checks, making presentation-only EQU edits look like accepted
+provenance writes or never-satisfied commands.
+
 Implementation observation from `014-012`: round-trip exactness alone is not a
 valid verifier for custom-struct commands while action-specific rendered-field
 proof is missing. The loop should surface a missing action-specific verifier

@@ -5017,6 +5017,66 @@ def test_target_equate_command_candidate_uses_target_context() -> None:
     assert reversing_loop._candidate_verifier(candidate, command) == "target_equate_state"
 
 
+def test_target_equate_representation_candidate_strips_provenance_parameters() -> None:
+    candidate = {
+        "id": "target-equate-representation",
+        "candidate_id": "target-equate-representation",
+        "kind": "target_equate_representation",
+        "suggested_action_kinds": ["target.equate.represent"],
+        "parameters": {
+            "name": "ASCII_SPACE",
+            "value": 32,
+            "value_representation": "character",
+            "source_evidence_id": "prov-constant",
+            "source_family": "constant_or_equ",
+            "path_lifetime_scope": {"kind": "global"},
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command == {
+        "kind": "command",
+        "command_id": "target.equate.represent",
+        "context": {"kind": "target"},
+        "parameters": {"name": "ASCII_SPACE", "value": 32, "value_representation": "character"},
+        "output_affecting": True,
+    }
+    assert reversing_loop._candidate_verifier(candidate, command) == "target_equate_state"
+
+
+def test_embedded_target_equate_representation_command_strips_provenance_parameters() -> None:
+    candidate = {
+        "id": "target-equate-representation",
+        "candidate_id": "target-equate-representation",
+        "kind": "target_equate_representation",
+        "command": {
+            "command_id": "target.equate.represent",
+            "context": {"kind": "target"},
+            "parameters": {
+                "name": "ASCII_SPACE",
+                "value": 32,
+                "value_expression": "SPACE_CHAR",
+                "source_evidence_id": "prov-constant",
+                "source_family": "constant_or_equ",
+            },
+            "output_affecting": True,
+        },
+        "confidence": "high",
+        "actionable": True,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["parameters"] == {
+        "name": "ASCII_SPACE",
+        "value": 32,
+        "value_expression": "SPACE_CHAR",
+    }
+
+
 def test_target_equate_candidate_skips_already_projected_equate() -> None:
     candidate = {
         "id": "target-equate",
@@ -5025,6 +5085,34 @@ def test_target_equate_candidate_skips_already_projected_equate() -> None:
         "suggested_action_kinds": ["target.equate.add"],
         "parameters": {"name": "PLAYER_START_LIVES", "value": 3},
         "current_metadata": {"name": "PLAYER_START_LIVES", "value": 3},
+        "confidence": "high",
+        "actionable": True,
+    }
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "candidate already satisfied in projected semantic state"
+    )
+
+
+def test_target_equate_representation_skip_ignores_stripped_provenance_parameters() -> None:
+    candidate = {
+        "id": "target-equate-representation",
+        "candidate_id": "target-equate-representation",
+        "kind": "target_equate_representation",
+        "suggested_action_kinds": ["target.equate.represent"],
+        "parameters": {
+            "name": "ASCII_SPACE",
+            "value": 32,
+            "value_representation": "character",
+            "source_evidence_id": "prov-constant",
+        },
+        "current_metadata": {
+            "name": "ASCII_SPACE",
+            "value": 32,
+            "value_representation": "character",
+        },
         "confidence": "high",
         "actionable": True,
     }
