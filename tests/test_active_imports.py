@@ -55,6 +55,7 @@ def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
         "src/scripts/sync_amiga_includes.py",
         "tests/test_active_imports.py",
         "tests/test_parse_ndk.py",
+        "tests/test_pdf_to_markdown.py",
         "tests/test_sync_amiga_includes.py",
     }
     offenders: list[str] = []
