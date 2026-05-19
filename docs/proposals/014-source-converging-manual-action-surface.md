@@ -908,6 +908,11 @@ including range/end when available, against the refreshed catalog entry. A row-l
 `correction.suppress_seeded_item.*` command id alone is not enough authority to
 suppress a different analyzer/imported fact.
 
+Implementation observation from `014-006`/`014-013`: ranged suppression
+availability must treat `end` as required when either the selected command or
+the refreshed catalog entry carries it. A stale unranged candidate should not
+borrow authority from a current ranged suppressible item at the same address.
+
 Implementation observation from `014-005`/`014-013`:
 Execution-view commands produce target runtime view state; their verifier should
 check the reloaded execution view or removed-view identity plus round-trip

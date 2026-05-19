@@ -6846,21 +6846,24 @@ def _catalog_entry_matches_command_identity(command: dict[str, object], entry: d
             _catalog_entry_provenance_identity_keys(command, ("layout_id", "offset", "width")),
         )
     if isinstance(command_id, str) and command_id.startswith("correction.suppress_seeded_item."):
-        return _catalog_entry_parameters_match(command, entry, _suppressed_seeded_item_identity_keys(command))
+        return _catalog_entry_parameters_match(command, entry, _suppressed_seeded_item_identity_keys(command, entry))
     if command_id == "data_symbol.remove":
         parameters = command.get("parameters")
         keys = (
             ("seed_id",)
             if isinstance(parameters, dict) and isinstance(parameters.get("seed_id"), str)
-            else _suppressed_seeded_item_identity_keys(command)
+            else _suppressed_seeded_item_identity_keys(command, entry)
         )
         return _catalog_entry_parameters_match(command, entry, keys)
     return True
 
 
-def _suppressed_seeded_item_identity_keys(command: dict[str, object]) -> tuple[str, ...]:
-    parameters = command.get("parameters")
-    if isinstance(parameters, dict) and "end" in parameters:
+def _suppressed_seeded_item_identity_keys(command: dict[str, object], entry: dict[str, object]) -> tuple[str, ...]:
+    command_parameters = command.get("parameters")
+    entry_parameters = entry.get("parameters")
+    if (isinstance(command_parameters, dict) and "end" in command_parameters) or (
+        isinstance(entry_parameters, dict) and "end" in entry_parameters
+    ):
         return ("kind", "hunk", "addr", "end")
     return ("kind", "hunk", "addr")
 

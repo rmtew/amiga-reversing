@@ -48,8 +48,9 @@ Current evidence:
   metadata.
 - Planner command availability for `correction.suppress_seeded_item.*` now
   requires the refreshed catalog entry to match the selected suppression
-  identity `(kind, hunk, addr)`. A stale correction candidate can no longer
-  borrow availability from a different suppressible seeded item on the row.
+  identity `(kind, hunk, addr[, end])`; if either side carries `end`, both must
+  match it. A stale correction candidate can no longer borrow availability from
+  a different suppressible seeded item or broader same-address range on the row.
 - Generic `run-one` now verifies `target.execution_view.*` execution by checking
   reloaded execution-view state, including owner/cleanup action ids, rather
   than target local-effect metadata.
