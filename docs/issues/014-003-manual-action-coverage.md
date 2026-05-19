@@ -46,6 +46,18 @@ Current progress:
 - Manual Action Log owned data-symbol removal uses existing durable
   `remove_manual_seed` replay with the `ManualSeed:*` seed id, so cleanup
   retracts only the source-owned manual symbol projection.
+- Data-block layout and scalar element replay is implemented in `014-016`
+  through `create/edit/remove_manual_data_block_layout`,
+  `set/remove/represent_manual_data_block_element`, deterministic effective
+  metadata projection, overlap replacement, stale range blocking, and owned
+  element/reference cleanup on layout or element removal.
+- Supported absolute byte/word/long interpreted-reference replay is implemented
+  in `014-018` through `interpret_manual_data_block_element_ref` and
+  `remove_manual_data_block_element_ref`, including owned source-ref cleanup.
+- Data-block type/domain binding replay for the active row bind/clear slice is
+  implemented in `014-019` through data-block element `type_binding` and
+  `previous_type_binding` payloads carrying owner/cleanup and consumed
+  provenance lineage.
 
 Child / related implementation issues:
 - `014-007-data-role-command-coverage.md`
@@ -63,10 +75,12 @@ Child / related implementation issues:
 - `014-019-data-block-type-binding-and-platform-structs.md`
 - `014-020-target-equate-value-representation.md`
 
-Note: `014-015` is the data-block investigation parent. Its concrete Manual
-Action Log work is split across `014-016` through `014-019`; command/verifier
-details in those issues remain blocked until their durable action and replay
-semantics are defined.
+Note: `014-015` is the data-block investigation parent. Its scalar layout,
+supported interpreted-reference, and active type/domain binding Manual Action
+Log replay work is implemented in `014-016` through `014-019`. Remaining
+data-block Manual Action Log gaps are limited to unsupported reference/type
+variants and future generated type-flow/review descendants until their owning
+issues define identity, replay, cleanup, and verifier semantics.
 
 Required tests:
 Manual action append/replay/projection tests for each added action family.
