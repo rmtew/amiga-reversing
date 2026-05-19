@@ -84,6 +84,10 @@ Current implementation:
   binding kind, bound type/domain, owner action, and consumed provenance fields
   when the command carries them, preventing stale cleanup against a later
   binding on the same data-block element.
+- Data-block type-binding semantic reload now rejects sparse nested binding
+  payloads before matching reloaded element state. Bind and clear payloads must
+  carry the selected binding id, layout/element width identity, binding kind,
+  bound type/domain, and owner or cleanup action identity.
 - Effective metadata expands accepted custom-struct data-block bindings into
   typed structured-data field entities. The C policy loader now preserves
   `struct_name`, `field_name`, `field_type`, `c_type`, `pointer_struct`, and

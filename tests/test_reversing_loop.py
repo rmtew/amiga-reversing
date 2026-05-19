@@ -2050,6 +2050,46 @@ def test_data_block_type_binding_verifier_requires_binding_owner_action(
     assert semantic_layer["matching_data_block_elements"] == []
 
 
+def test_data_block_type_binding_verifier_requires_complete_binding_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sparse_binding = {"type_binding_id": "events:30:4:platform_struct:Node", "owner_action_id": "manual-1"}
+    sparse_element = {
+        "data_block_element_id": "events:30",
+        "layout_id": "events",
+        "offset": 0x30,
+        "width": 4,
+        "kind": "platform_struct",
+        "type_binding": sparse_binding,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"data_block_elements": [sparse_element]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_data_block_element(
+        "demo",
+        "row.data_block.element.bind_type",
+        sparse_element,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["missing_type_binding_identity_fields"] == [
+        "type_binding.layout_id",
+        "type_binding.element_offset",
+        "type_binding.element_width",
+        "type_binding.binding_kind",
+        "type_binding.bound_type_or_domain_id",
+    ]
+    assert verification["matching_data_block_elements"] == []
+
+
 def test_data_block_type_binding_verifier_rejects_parent_evidence_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

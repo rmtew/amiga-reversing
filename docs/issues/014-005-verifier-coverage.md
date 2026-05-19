@@ -154,6 +154,9 @@ Current evidence:
 - Selected typed-field semantic reload now requires durable payloads to carry
   selected field identity before matching reloaded custom-field state, so sparse
   custom-field payloads cannot satisfy replay proof.
+- Data-block type-binding semantic reload now requires durable nested binding
+  payloads to carry complete selected binding identity before matching reloaded
+  element state.
 - Generic `run-one` `semantic.register.struct_ptr` execution now verifies
   Manual Action Log replay, reloaded struct-pointer register seed, and exact
   round-trip instead of accepting affected-locator metadata alone.

@@ -4239,6 +4239,17 @@ def _verify_project_data_block_element(
 ) -> dict[str, object]:
     if expected is None:
         return {"layer": "semantic_reload", "status": "failed", "message": "missing data block element payload"}
+    missing_binding_identity = _data_block_element_missing_required_type_binding_fields(command_id, expected)
+    if missing_binding_identity:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "data block type-binding payload missing selected binding identity",
+            "expected_data_block_element": expected,
+            "matching_data_block_elements": [],
+            "missing_type_binding_identity_fields": missing_binding_identity,
+            "state_key": "removed_data_block_elements" if command_id.endswith(".remove") else "data_block_elements",
+        }
     key = "removed_data_block_elements" if command_id.endswith(".remove") else "data_block_elements"
     try:
         project = projects.get_project(target_id, project_root=project_root)
@@ -4256,6 +4267,31 @@ def _verify_project_data_block_element(
         "matching_data_block_elements": matches,
         "state_key": key,
     }
+
+
+def _data_block_element_missing_required_type_binding_fields(
+    command_id: str,
+    expected: dict[str, object],
+) -> list[str]:
+    if command_id == "row.data_block.element.bind_type":
+        binding_key = "type_binding"
+        action_key = "owner_action_id"
+    elif command_id == "row.data_block.element.clear_type":
+        binding_key = "previous_type_binding"
+        action_key = "cleanup_action_id"
+    else:
+        return []
+    binding = expected.get(binding_key)
+    if not isinstance(binding, dict):
+        return [binding_key]
+    missing = [
+        f"{binding_key}.{key}"
+        for key in ("type_binding_id", "layout_id", "element_offset", "element_width", "binding_kind", action_key)
+        if key not in binding
+    ]
+    if "bound_type_id" not in binding and "bound_domain_id" not in binding:
+        missing.append(f"{binding_key}.bound_type_or_domain_id")
+    return missing
 
 
 def _data_block_element_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
