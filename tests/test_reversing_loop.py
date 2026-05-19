@@ -4614,6 +4614,36 @@ def test_typed_field_command_with_accepted_evidence_gets_field_verifier() -> Non
     assert reversing_loop._candidate_verifier(candidate, command) == "custom_struct_field_state"
 
 
+def test_typed_field_command_rejects_selected_access_width_mismatch() -> None:
+    evidence = _accepted_struct_pointer_evidence()
+    candidate = {
+        "id": "typed-gap-field",
+        "candidate_id": "typed-gap-field",
+        "kind": "typed_gap_field",
+        "locator": _listing_locator(),
+        "element_id": "row-1:typed_gap:1:A0:36",
+        "element_kind": "typed_gap",
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "width_bytes": 4,
+        "root_struct_name": "InputEvent",
+        "refined_struct_name": "DerivedEvent",
+        "classification": "prefix_extension",
+        "suggested_action_kinds": ["typed_gap.field.add"],
+        "parameters": {"name": "de_Code", "type": "UWORD", "size": 2},
+        "confidence": "high",
+        "actionable": True,
+        **evidence,
+    }
+
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert command["context"]["width_bytes"] == 4
+    assert reversing_loop._candidate_verifier(candidate, command) is None
+    assert reversing_loop._candidate_skip_reason(candidate, command) == "typed field shape mismatch"
+
+
 def test_manual_override_typed_field_requires_cleanup_scope_before_execution() -> None:
     evidence = {
         **_accepted_struct_pointer_evidence(),

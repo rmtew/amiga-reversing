@@ -856,6 +856,11 @@ only `(struct_name, offset, name)` during semantic reload can hide a stale or
 wrong evidence link, so the verifier treats consumed provenance and owner
 metadata as part of selected custom-field state.
 
+Implementation observation from `014-012`: accepted `struct_pointer`
+provenance is necessary but not sufficient for a selected typed-field write.
+When the selected access width is known, pre-execution gating must reject a
+field size that does not match the observed access before command execution.
+
 Implementation observation from `014-006`: loop command-availability queries
 must preserve the selected command context exactly. Range commands use
 `context=range` plus serialized locators; falling through to target context

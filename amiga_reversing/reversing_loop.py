@@ -6072,6 +6072,9 @@ def _typed_field_context_from_candidate(candidate: dict[str, object]) -> dict[st
         "field_name",
         "field_expr",
         "classification",
+        "access",
+        "width_bits",
+        "width_bytes",
         "source_evidence_id",
         "source_family",
         "source_evidence_status",
@@ -6205,6 +6208,9 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
         return str(policy["message"])
     if _candidate_already_satisfied(candidate, command):
         return "candidate already satisfied in projected semantic state"
+    command_id = command.get("command_id")
+    if isinstance(command_id, str) and _is_typed_field_command_id(command_id) and _typed_field_command_shape_mismatch(command):
+        return "typed field shape mismatch"
     if _candidate_verifier(candidate, command) is None:
         return "missing action-specific verifier"
     if not _command_context_complete(command):
@@ -6261,8 +6267,39 @@ def _typed_field_command_has_accepted_source_evidence(command: dict[str, object]
     if isinstance(conflicts, list) and conflicts and status != "manual_override":
         return False
     if status == "manual_override":
-        return _manual_override_evidence_is_complete(evidence)
-    return True
+        return _manual_override_evidence_is_complete(evidence) and _typed_field_command_has_compatible_shape(command)
+    return _typed_field_command_has_compatible_shape(command)
+
+
+def _typed_field_command_has_compatible_shape(command: dict[str, object]) -> bool:
+    return not _typed_field_command_shape_mismatch(command)
+
+
+def _typed_field_command_shape_mismatch(command: dict[str, object]) -> bool:
+    params = command.get("parameters")
+    context = command.get("context")
+    if not isinstance(params, dict) or not isinstance(context, dict):
+        return True
+    offset = params.get("offset")
+    context_offset = context.get("field_offset")
+    if not isinstance(context_offset, int) or isinstance(context_offset, bool):
+        context_offset = context.get("displacement")
+    if (
+        isinstance(offset, int)
+        and not isinstance(offset, bool)
+        and isinstance(context_offset, int)
+        and not isinstance(context_offset, bool)
+        and offset != context_offset
+    ):
+        return True
+    size = params.get("size")
+    width_bytes = context.get("width_bytes")
+    if isinstance(size, int) and not isinstance(size, bool) and isinstance(width_bytes, int) and not isinstance(width_bytes, bool):
+        return size != width_bytes
+    width_bits = context.get("width_bits")
+    if isinstance(size, int) and not isinstance(size, bool) and isinstance(width_bits, int) and not isinstance(width_bits, bool):
+        return size * 8 != width_bits
+    return False
 
 
 def _manual_override_evidence_is_complete(evidence: dict[str, object]) -> bool:
