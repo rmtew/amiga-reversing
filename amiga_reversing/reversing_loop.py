@@ -4576,7 +4576,11 @@ def _verify_projected_data_block_type_binding_descendants(
                 mismatch["source_evidence_id"] = descendant.get("source_evidence_id")
             if (
                 isinstance(expected_parent_evidence_ids, list | tuple)
-                and list(descendant.get("parent_evidence_ids") or []) != list(expected_parent_evidence_ids)
+                and not _provenance_identity_values_match(
+                    "parent_evidence_ids",
+                    descendant.get("parent_evidence_ids"),
+                    expected_parent_evidence_ids,
+                )
             ):
                 mismatch["parent_evidence_ids"] = descendant.get("parent_evidence_ids")
             if mismatch:

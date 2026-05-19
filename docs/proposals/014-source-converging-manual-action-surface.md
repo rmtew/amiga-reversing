@@ -1087,6 +1087,12 @@ carry the binding `owner_action_id`, consumed `source_evidence_id`, and
 `parent_evidence_ids`, and bind verification must reject descendants that keep
 the binding locator but lose the evidence lineage.
 
+Follow-up observation from `014-019`: generated data-block descendant
+verification needs the same unordered parent-evidence comparison as catalog and
+durable provenance gates. `parent_evidence_ids` represents dependencies, not a
+ranked path, so ordering differences between replay and generated metadata are
+not semantic drift.
+
 Implementation observation from `014-006`/`014-019`: data-block type bind/clear
 availability must compare the selected element identity `(layout_id, offset,
 width)` against the refreshed catalog entry. The command catalog does not choose

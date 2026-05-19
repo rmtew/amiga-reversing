@@ -59,7 +59,9 @@ Current implementation:
 - Generated structured-data seeded descendants now carry the type-binding
   `owner_action_id`, consumed `source_evidence_id`, and
   `parent_evidence_ids`; bind verification rejects descendants that match the
-  binding id but lost or changed the owner/evidence lineage.
+  binding id but lost or changed the owner/evidence lineage. Descendant
+  verification treats `parent_evidence_ids` as an unordered dependency set, so
+  replay/catalog ordering differences do not reject equivalent lineage.
 - Planner command availability for `row.data_block.element.bind_type` and
   `row.data_block.element.clear_type` now requires the refreshed catalog entry
   to match the selected data-block element identity `(layout_id, offset,
