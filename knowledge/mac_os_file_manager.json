@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "_meta": {
+    "name": "mac_os_file_manager",
+    "description": "Seed Classic Mac OS File Manager facts for asm analysis and C type inference.",
+    "status": "seeded",
+    "primary_sources": [
+      {
+        "id": "mpw-gm-c-files-h",
+        "type": "repo_local_header",
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "role": "C type, typedef, prototype, macro, and inline trap source"
+      },
+      {
+        "id": "mpw-gm-asm-files-a",
+        "type": "repo_local_asm_include",
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "role": "68K record offsets, trap words, parameter registers, and return registers"
+      }
+    ],
+    "doc_sources": [
+      {
+        "id": "inside-macintosh-volume-ii-1985-md",
+        "type": "repo_local_markdown",
+        "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md",
+        "role": "page-cited explanatory context for File Manager parameter blocks"
+      },
+      {
+        "id": "inside-macintosh-volume-iv-1986-md",
+        "type": "repo_local_markdown",
+        "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
+        "role": "page-cited explanatory context for HFS File Manager additions"
+      }
+    ],
+    "scope": "C and asm interfaces are primary. Markdown docs provide explanatory citations only. Pascal interfaces are not used as primary facts."
+  },
+  "calling_conventions": {
+    "pb_trap_68k": {
+      "parameter_registers": {
+        "paramBlock": "A0"
+      },
+      "return_registers": {
+        "OSErr": "D0"
+      },
+      "source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [1400, 1404],
+        "note": "PBGetVInfoSync shows paramBlock in A0 and OSErr in D0; the same pattern is repeated for PB File Manager calls."
+      }
+    }
+  },
+  "record_types": {
+    "ParamBlockRec": {
+      "kind": "union",
+      "pointer_typedefs": ["ParmBlkPtr"],
+      "role": "classic File Manager parameter block",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [416, 418]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [341, 476]
+      },
+      "doc_citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985-md",
+          "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md",
+          "page": 87,
+          "note": "Describes File Manager parameter block usage and standard fields."
+        }
+      ]
+    },
+    "HParamBlockRec": {
+      "kind": "union",
+      "pointer_typedefs": ["HParmBlkPtr"],
+      "role": "HFS File Manager parameter block",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [1112, 1115]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [1093, 1220]
+      },
+      "doc_citations": [
+        {
+          "source_id": "inside-macintosh-volume-iv-1986-md",
+          "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
+          "page": 195,
+          "note": "Contains the HParamBlockRec layout in the HFS File Manager section."
+        }
+      ]
+    },
+    "CMovePBRec": {
+      "kind": "struct",
+      "pointer_typedefs": ["CMovePBPtr"],
+      "role": "catalog move parameter block",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [1117, 1134]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [1223, 1240]
+      },
+      "doc_citations": [
+        {
+          "source_id": "inside-macintosh-volume-iv-1986-md",
+          "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
+          "page": 127,
+          "note": "Contains CMovePBRec in the File Manager parameter block records figure."
+        }
+      ]
+    }
+  },
+  "common_parameter_block_header": {
+    "role": "shared queue and File Manager dispatch header",
+    "fields": [
+      {
+        "name": "qLink",
+        "c_type": "QElemPtr",
+        "asm_storage": "ds.l 1",
+        "offset": 0,
+        "description": "queue link in header"
+      },
+      {
+        "name": "qType",
+        "c_type": "short",
+        "asm_storage": "ds.w 1",
+        "offset": 4,
+        "description": "type byte for safety check"
+      },
+      {
+        "name": "ioTrap",
+        "c_type": "short",
+        "asm_storage": "ds.w 1",
+        "offset": 6,
+        "description": "FS trap"
+      },
+      {
+        "name": "ioCmdAddr",
+        "c_type": "Ptr",
+        "asm_storage": "ds.l 1",
+        "offset": 8,
+        "description": "FS address to dispatch to"
+      },
+      {
+        "name": "ioCompletion",
+        "c_type": "IOCompletionUPP",
+        "asm_storage": "ds.l 1",
+        "offset": 12,
+        "description": "completion routine address; zero for synchronous calls"
+      },
+      {
+        "name": "ioResult",
+        "c_type": "volatile OSErr",
+        "asm_storage": "ds.w 1",
+        "offset": 16,
+        "description": "result code"
+      },
+      {
+        "name": "ioNamePtr",
+        "c_type": "StringPtr",
+        "asm_storage": "ds.l 1",
+        "offset": 18,
+        "description": "pointer to volume/file name string"
+      },
+      {
+        "name": "ioVRefNum",
+        "c_type": "short",
+        "asm_storage": "ds.w 1",
+        "offset": 22,
+        "description": "volume reference number"
+      }
+    ],
+    "c_source": {
+      "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+      "lines": [421, 428]
+    },
+    "asm_source": {
+      "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+      "lines": [476, 484]
+    }
+  },
+  "routines": [
+    {
+      "name": "PBGetVInfoSync",
+      "family": "FileManager",
+      "parameter_type": "ParmBlkPtr",
+      "result_type": "OSErr",
+      "trap_words": ["0xA007"],
+      "calling_convention": "pb_trap_68k",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [1323, 1325]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [1397, 1404]
+      },
+      "macro_alias": "PBGetVInfo"
+    },
+    {
+      "name": "PBGetFInfoSync",
+      "family": "FileManager",
+      "parameter_type": "ParmBlkPtr",
+      "result_type": "OSErr",
+      "trap_words": ["0xA00C"],
+      "calling_convention": "pb_trap_68k",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [1623, 1625]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [1879, 1886]
+      },
+      "macro_alias": "PBGetFInfo"
+    },
+    {
+      "name": "PBCatMoveSync",
+      "family": "FileManager",
+      "parameter_type": "CMovePBPtr",
+      "result_type": "OSErr",
+      "trap_words": ["0x7005", "0xA260"],
+      "calling_convention": "pb_trap_68k",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [2764, 2766]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [3150, 3158]
+      },
+      "macro_alias": "PBCatMove"
+    },
+    {
+      "name": "PBHGetVInfoSync",
+      "family": "FileManager",
+      "parameter_type": "HParmBlkPtr",
+      "result_type": "OSErr",
+      "trap_words": ["0xA207"],
+      "calling_convention": "pb_trap_68k",
+      "c_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "lines": [3047, 3049]
+      },
+      "asm_source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+        "lines": [3664, 3672]
+      },
+      "macro_alias": "PBHGetVInfo"
+    }
+  ],
+  "macro_aliases": {
+    "PBGetVInfo": {
+      "sync": "PBGetVInfoSync",
+      "async": "PBGetVInfoAsync",
+      "source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "line": 4961
+      }
+    },
+    "PBGetFInfo": {
+      "sync": "PBGetFInfoSync",
+      "async": "PBGetFInfoAsync",
+      "source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "line": 4971
+      }
+    },
+    "PBCatMove": {
+      "sync": "PBCatMoveSync",
+      "async": "PBCatMoveAsync",
+      "source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "line": 4987
+      }
+    },
+    "PBHGetVInfo": {
+      "sync": "PBHGetVInfoSync",
+      "async": "PBHGetVInfoAsync",
+      "source": {
+        "path": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+        "line": 4997
+      }
+    }
+  },
+  "review": {
+    "status": "seeded",
+    "notes": [
+      "This seed intentionally covers only a small File Manager slice.",
+      "C and asm include files are primary. Markdown citations are explanatory.",
+      "Async variants and complete field variants should be generated or parsed in a follow-up."
+    ]
+  }
+}
