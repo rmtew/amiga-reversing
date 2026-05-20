@@ -6520,6 +6520,45 @@ def test_immediate_runtime_reference_report_skips_out_of_range_constants() -> No
     )
 
 
+def test_a5_hardware_lifetime_report_proves_custom_base_use() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+
+    assert report["definitions"][0]["status"] == "custom_base"
+    assert report["uses"][0]["hardware_register_candidate"] is True
+    assert report["uses"][0]["lifetime_status"]["status"] == "proven_custom"
+    assert report["lifetimes"] == [{"status": "proven_custom", "definition_count": 1, "use_count": 1}]
+    assert report["verifier_gate"]["hardware_register_rendering_allowed"] is False
+
+
+def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report([_a5_use_row(displacement=0x96)])
+
+    assert report["uses"][0]["lifetime_status"]["status"] == "unknown"
+    assert report["lifetimes"] == [{"status": "unknown", "definition_count": 0, "use_count": 1}]
+
+
+def test_a5_hardware_lifetime_report_marks_clobber_and_conflicting_offset() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_save_restore_row(kind="save"),
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x300),
+            _a5_definition_row(custom=False),
+            _a5_save_restore_row(kind="restore"),
+        ]
+    )
+
+    assert report["uses"][0]["hardware_register_candidate"] is False
+    assert report["uses"][0]["lifetime_status"]["status"] == "conflicting"
+    assert report["clobbers"][0]["status"] == "non_custom_or_unknown"
+    assert [boundary["kind"] for boundary in report["save_restore_boundaries"]] == ["save", "restore"]
+
+
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
     _target(tmp_path)
     _write_raw_source(tmp_path, entrypoint=2)
@@ -11070,6 +11109,44 @@ def _immediate_address_row(*, value: int) -> dict[str, object]:
         }
     )
     return row
+
+
+def _a5_definition_row(*, custom: bool) -> dict[str, object]:
+    text = "\tlea _custom,a5\n" if custom else "\tmovea.l d0,a5\n"
+    row = _listing_row(row_key="a5-def-custom" if custom else "a5-def-other", text=text, start_offset=0x30, end_offset=0x34)
+    source_part = {"kind": "symbol", "symbol": "_custom", "operand_index": 0} if custom else {"kind": "register", "register": "D0", "operand_index": 0}
+    row.update(
+        {
+            "opcode_or_directive": "lea" if custom else "movea.l",
+            "operand_text": "_custom,a5" if custom else "d0,a5",
+            "operand_parts": [source_part, {"kind": "register", "register": "A5", "operand_index": 1}],
+            "operand_accesses": ["memory_read", "register_write"],
+            "operand_registers": [None if custom else "D0", "A5"],
+        }
+    )
+    return row
+
+
+def _a5_use_row(*, displacement: int) -> dict[str, object]:
+    row = _listing_row(row_key=f"a5-use-{displacement:x}", text=f"\tmove.w ${displacement:04X}(a5),d0\n", start_offset=0x40, end_offset=0x44)
+    row.update(
+        {
+            "opcode_or_directive": "move.w",
+            "operand_text": f"${displacement:04X}(a5),d0",
+            "operand_parts": [
+                {"kind": "register", "base_register": "A5", "displacement": displacement, "operand_index": 0},
+                {"kind": "register", "register": "D0", "operand_index": 1},
+            ],
+            "operand_accesses": ["memory_read", "register_write"],
+            "operand_registers": ["A5", "D0"],
+        }
+    )
+    return row
+
+
+def _a5_save_restore_row(*, kind: str) -> dict[str, object]:
+    text = "\tmove.l a5,-(a7)\n" if kind == "save" else "\tmove.l (a7)+,a5\n"
+    return _listing_row(row_key=f"a5-{kind}", text=text, start_offset=0x50, end_offset=0x54)
 
 
 def _struct_pointer_row() -> dict[str, object]:

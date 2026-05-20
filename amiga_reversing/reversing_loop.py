@@ -35,6 +35,8 @@ _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
 _LISTING_SOURCE_CANDIDATE_ROW_COUNT = 2048
 _LISTING_SOURCE_CANDIDATE_MAX_ROWS = 16384
 _MIN_IMMEDIATE_REFERENCE_VALUE = 0x1000
+_AMIGA_CUSTOM_BASE_ADDRESS = 0xDFF000
+_AMIGA_CUSTOM_REGISTER_MAX_OFFSET = 0x1FE
 _COMMAND_RANK = {
     "label.rename": 100,
     "review.seed.code": 92,
@@ -147,6 +149,12 @@ def _int_or_none(value: object) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def _sequence_values(value: object) -> list[object]:
+    if isinstance(value, list | tuple):
+        return list(value)
+    return []
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Operate the agentic reversing loop.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
@@ -176,6 +184,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     immediate_ref_parser.add_argument("--target", required=True)
     immediate_ref_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    a5_hardware_parser = subparsers.add_parser(
+        "a5-hardware-report",
+        help="Report read-only A5 custom-chip base lifetime provenance.",
+    )
+    a5_hardware_parser.add_argument("--target", required=True)
+    a5_hardware_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
@@ -229,6 +244,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "immediate-ref-report":
         _print_json(
             inspect_immediate_runtime_refs(
+                args.target,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "a5-hardware-report":
+        _print_json(
+            inspect_a5_hardware_lifetimes(
                 args.target,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
@@ -328,6 +352,29 @@ def inspect_immediate_runtime_refs(
         return report
     rows = _listing_all_rows(target_id)
     report["immediate_reference_candidates"] = _listing_immediate_runtime_reference_report(rows)
+    return report
+
+
+def inspect_a5_hardware_lifetimes(
+    target_id: str,
+    *,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    report: dict[str, object] = {
+        "target_id": target_id,
+        "hygiene": hygiene.to_dict(),
+        "safe_to_mutate": False,
+        "verifier_gate": _a5_hardware_verifier_gate(),
+    }
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    report["listing_open"] = listing_ready
+    if listing_ready.get("status") != "ready":
+        report["a5_hardware_lifetimes"] = _empty_a5_hardware_lifetime_report()
+        return report
+    rows = _listing_all_rows(target_id)
+    report["a5_hardware_lifetimes"] = _listing_a5_hardware_lifetime_report(rows)
     return report
 
 
@@ -1701,6 +1748,188 @@ def _immediate_reference_interpretation_policy() -> dict[str, object]:
         "status": "report_only",
         "symbolic_reference_allowed": False,
         "reason": "planner writes remain blocked until verifier-backed immediate reference interpretation exists",
+    }
+
+
+def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object]:
+    definitions: list[dict[str, object]] = []
+    uses: list[dict[str, object]] = []
+    clobbers: list[dict[str, object]] = []
+    boundaries: list[dict[str, object]] = []
+    active_definition: dict[str, object] | None = None
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        if boundary := _a5_save_restore_boundary(row):
+            boundaries.append({**boundary, "locator": dict(cast(dict[str, object], locator))})
+        definition = _a5_definition(row)
+        if definition is not None:
+            definition["locator"] = dict(cast(dict[str, object], locator))
+            definitions.append(definition)
+            if definition["status"] == "custom_base":
+                active_definition = definition
+            else:
+                clobbers.append(definition)
+                active_definition = None
+        for use in _a5_displacement_uses(row):
+            use["locator"] = dict(cast(dict[str, object], locator))
+            use["lifetime_status"] = _a5_use_lifetime_status(active_definition, use)
+            uses.append(use)
+    return {
+        "register": "A5",
+        "custom_base_address": _AMIGA_CUSTOM_BASE_ADDRESS,
+        "definitions": definitions,
+        "uses": uses,
+        "clobbers": clobbers,
+        "save_restore_boundaries": boundaries,
+        "lifetimes": _a5_lifetime_summaries(definitions, uses),
+        "verifier_gate": _a5_hardware_verifier_gate(),
+    }
+
+
+def _empty_a5_hardware_lifetime_report() -> dict[str, object]:
+    return {
+        "register": "A5",
+        "custom_base_address": _AMIGA_CUSTOM_BASE_ADDRESS,
+        "definitions": [],
+        "uses": [],
+        "clobbers": [],
+        "save_restore_boundaries": [],
+        "lifetimes": [],
+        "verifier_gate": _a5_hardware_verifier_gate(),
+    }
+
+
+def _a5_definition(row: Mapping[str, object]) -> dict[str, object] | None:
+    if not _row_writes_register(row, "A5"):
+        return None
+    status = "custom_base" if _row_mentions_custom_base(row) else "non_custom_or_unknown"
+    return {
+        "kind": "definition",
+        "status": status,
+        "opcode": row.get("opcode_or_directive"),
+        "text": row.get("text"),
+        "reason": "A5 loaded with Amiga custom-chip base" if status == "custom_base" else "A5 write is not proven custom base",
+    }
+
+
+def _row_writes_register(row: Mapping[str, object], register: str) -> bool:
+    registers = _sequence_values(row.get("operand_registers") or row.get("operandRegisters"))
+    accesses = _sequence_values(row.get("operand_accesses") or row.get("operandAccesses"))
+    for index, raw_register in enumerate(registers):
+        if not isinstance(raw_register, str) or raw_register.upper() != register:
+            continue
+        access = accesses[index] if index < len(accesses) else None
+        if access == "register_write":
+            return True
+    text = str(row.get("text") or "").lower().replace(" ", "")
+    return text.endswith(f",{register.lower()}") or f",{register.lower()}\n" in text
+
+
+def _row_mentions_custom_base(row: Mapping[str, object]) -> bool:
+    text = str(row.get("text") or "").lower()
+    if "_custom" in text or "$dff000" in text or "0xdff000" in text:
+        return True
+    operand_parts = row.get("operand_parts") or row.get("operandParts")
+    if not isinstance(operand_parts, list | tuple):
+        return False
+    for part in operand_parts:
+        if not isinstance(part, Mapping):
+            continue
+        symbol = part.get("symbol")
+        if isinstance(symbol, str) and symbol.lower() == "_custom":
+            return True
+        value = _int_or_none(part.get("value"))
+        if value == _AMIGA_CUSTOM_BASE_ADDRESS:
+            return True
+    return False
+
+
+def _a5_displacement_uses(row: Mapping[str, object]) -> list[dict[str, object]]:
+    uses: list[dict[str, object]] = []
+    operand_parts = row.get("operand_parts") or row.get("operandParts")
+    if not isinstance(operand_parts, list | tuple):
+        return uses
+    for index, part in enumerate(operand_parts):
+        if not isinstance(part, Mapping):
+            continue
+        base_register = part.get("base_register") or part.get("baseRegister")
+        if not isinstance(base_register, str) or base_register.upper() != "A5":
+            continue
+        displacement = _int_or_none(part.get("displacement"))
+        if displacement is None:
+            continue
+        uses.append(
+            {
+                "kind": "use",
+                "opcode": row.get("opcode_or_directive"),
+                "text": row.get("text"),
+                "operand_index": _int_or_none(part.get("operand_index") or part.get("operandIndex")) or index,
+                "displacement": displacement,
+                "hardware_register_candidate": 0 <= displacement <= _AMIGA_CUSTOM_REGISTER_MAX_OFFSET,
+            }
+        )
+    return uses
+
+
+def _a5_use_lifetime_status(
+    active_definition: dict[str, object] | None,
+    use: dict[str, object],
+) -> dict[str, object]:
+    if active_definition is None:
+        return {
+            "status": "unknown",
+            "reason": "no active proven _custom base definition reaches this A5-relative use",
+        }
+    if use.get("hardware_register_candidate") is not True:
+        return {
+            "status": "conflicting",
+            "reason": "A5 displacement is outside the Amiga custom register offset range",
+            "definition": active_definition,
+        }
+    return {
+        "status": "proven_custom",
+        "reason": "active A5 definition is _custom and displacement is in the custom register range",
+        "definition": active_definition,
+    }
+
+
+def _a5_save_restore_boundary(row: Mapping[str, object]) -> dict[str, object] | None:
+    text = str(row.get("text") or "").lower().replace(" ", "")
+    if "a5,-(a7)" in text or "a5,-(sp)" in text:
+        return {"kind": "save", "text": row.get("text")}
+    if "(a7)+,a5" in text or "(sp)+,a5" in text:
+        return {"kind": "restore", "text": row.get("text")}
+    return None
+
+
+def _a5_lifetime_summaries(
+    definitions: list[dict[str, object]],
+    uses: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    if not definitions and not uses:
+        return []
+    statuses = {cast(dict[str, object], use.get("lifetime_status")).get("status") for use in uses if isinstance(use.get("lifetime_status"), dict)}
+    if "conflicting" in statuses:
+        status = "conflicting"
+    elif "unknown" in statuses:
+        status = "unknown"
+    elif "proven_custom" in statuses:
+        status = "proven_custom"
+    else:
+        status = "unknown"
+    return [{"status": status, "definition_count": len(definitions), "use_count": len(uses)}]
+
+
+def _a5_hardware_verifier_gate() -> dict[str, object]:
+    return {
+        "status": "blocked",
+        "hardware_register_rendering_allowed": False,
+        "reason": "raw A5 displacements remain report-only until a specific _custom lifetime is accepted and verified",
+        "knowledge_source": "knowledge/amiga_hw_reference.md base $DFF000",
     }
 
 

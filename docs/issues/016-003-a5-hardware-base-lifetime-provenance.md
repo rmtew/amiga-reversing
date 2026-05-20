@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Source proposal: docs/proposals/016-pandora-reversing-loop-hardening.md
 Moved from: docs/proposals/015-agent-reversing-pandora-target.md D007
 
@@ -25,3 +25,11 @@ Acceptance:
 - No A5 hardware register naming action executes from offset match alone.
 - Pandora can use the report to choose a safe next hardware/custom-register
   candidate family.
+
+Implementation:
+- Added `a5-hardware-report`, a read-only listing-backed report for A5
+  definitions, uses, clobbers, save/restore boundaries, and lifetime status.
+- A5-relative uses are classified as proven `_custom`, unknown, or conflicting;
+  raw displacement rendering remains blocked by an explicit verifier gate.
+- Focused tests cover proven custom-base use, unknown use, clobber reporting,
+  save/restore boundaries, and out-of-range custom-register conflicts.

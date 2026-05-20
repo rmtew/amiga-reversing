@@ -78,3 +78,9 @@ there were no old issue files to delete.
   score. Terminal-decode-only or false-positive-risk items stay report-only, and
   the planner requires evidence-led orphan-code scoring before selecting a
   code-seed action.
+- 016-003 added a read-only `a5-hardware-report` for A5 `_custom` lifetime
+  provenance. The report records definitions, uses, clobbers, save/restore
+  boundaries, proven/unknown/conflicting status, and the verifier gate that
+  keeps raw A5 displacement rendering blocked. Pandora validation reported 114
+  A5 definitions, 525 uses, 98 clobbers, and 26 save/restore boundaries, with
+  324 uses proven custom and 201 still unknown.
