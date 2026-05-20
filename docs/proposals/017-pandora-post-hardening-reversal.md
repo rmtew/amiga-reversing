@@ -152,3 +152,12 @@ repeatable work to `docs\issues\017-*`.
   `017-007` for immediate-reference mutation/verifier support, `017-008` for
   CFG-backed A5 path/lifetime proof, `017-009` for RSSET candidate discovery,
   and `017-010` for planner handling of low-value representation candidates.
+- 017-007 re-established the post-hardening Pandora baseline before attempting
+  mutation: hygiene is clean, Review Items are clear, round-trip is exact, and
+  the Manual Action Log contains 37 actions at head hash
+  `eefed19c83e02b0145c2b82c1ed0144e314339d2e069dd996557b5455c3846a0`.
+  `immediate-ref-report` still finds 10 accepted conflict-free candidates, with
+  `s0:00006138` (`addi.l #458752,d0`) mapping runtime `$70000` to source
+  `$50000`, but the report remains read-only: `safe_to_mutate=false`,
+  command support is missing, verifier support is missing, and rendering is
+  blocked. No output-affecting action was taken.

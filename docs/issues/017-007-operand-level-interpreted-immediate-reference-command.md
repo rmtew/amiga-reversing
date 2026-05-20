@@ -1,4 +1,4 @@
-Status: proposed
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-002 blocker
@@ -34,5 +34,19 @@ Acceptance:
 - Proposal 017 records the Pandora candidate result, including timing and
   exact round-trip status when output-affecting.
 
-Blocked by:
-- 017-002.
+Current result:
+- 2026-05-20 baseline is clean for
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`:
+  hygiene has no unknown files, Review Items are clear, and round-trip status
+  is exact.
+- `immediate-ref-report` still finds 10 accepted conflict-free candidates. The
+  strongest observed candidate remains `s0:00006138` / `addi.l #458752,d0`,
+  mapping runtime address `$70000` to section 0 source offset `$50000`.
+- No mutation was performed. The report policy remains `report_only` with
+  `safe_to_mutate=false`, `symbolic_reference_allowed=false`, and
+  `rendering_allowed=false` because command support and verifier support are
+  both still missing.
+
+Deferred follow-up:
+- Implement the operand-level manual action, catalog command, projection, and
+  semantic/render verifier before this candidate can be promoted.
