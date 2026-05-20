@@ -169,29 +169,71 @@ def audit_doc(path: Path) -> list[dict[str, Any]]:
     return findings
 
 
+def load_suppressions(path: Path) -> tuple[set[tuple[str, str, str, str]], int]:
+    if not path.exists():
+        return set(), 0
+    data = json.loads(path.read_text(encoding="utf-8"))
+    keys = {
+        (
+            str(item["document"]),
+            str(item["rule"]),
+            str(item["match"]),
+            str(item["context"]),
+        )
+        for item in data.get("suppressions", [])
+    }
+    return keys, len(data.get("suppressions", []))
+
+
+def apply_suppressions(
+    findings: list[dict[str, Any]], suppressions: set[tuple[str, str, str, str]]
+) -> list[dict[str, Any]]:
+    return [
+        finding
+        for finding in findings
+        if (
+            str(finding["document"]),
+            str(finding["rule"]),
+            str(finding["match"]),
+            str(finding["context"]),
+        )
+        not in suppressions
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--docs", type=Path, default=Path("ext/docs_macos"))
     parser.add_argument("--output", type=Path, default=Path("ext/docs_macos/macos_text_audit.json"))
+    parser.add_argument(
+        "--suppressions",
+        type=Path,
+        default=Path("ext/docs_macos/macos_text_audit_suppressions.json"),
+    )
     args = parser.parse_args()
 
+    suppressions, suppression_count = load_suppressions(args.suppressions)
     findings: list[dict[str, Any]] = []
     for doc in sorted(args.docs.glob("*.md")):
         if doc.name == "README.md":
             continue
         findings.extend(audit_doc(doc))
+    unsuppressed = apply_suppressions(findings, suppressions)
 
     report = {
         "schema": "macos_doc_text_audit.v1",
         "docs": str(args.docs).replace("\\", "/"),
-        "finding_count": len(findings),
-        "counts_by_rule": dict(sorted(Counter(finding["rule"] for finding in findings).items())),
-        "counts_by_classification": dict(sorted(Counter(finding["classification"] for finding in findings).items())),
-        "counts_by_document": dict(sorted(Counter(finding["document"] for finding in findings).items())),
-        "findings": findings,
+        "suppressions": str(args.suppressions).replace("\\", "/"),
+        "suppression_count": suppression_count,
+        "suppressed_finding_count": len(findings) - len(unsuppressed),
+        "finding_count": len(unsuppressed),
+        "counts_by_rule": dict(sorted(Counter(finding["rule"] for finding in unsuppressed).items())),
+        "counts_by_classification": dict(sorted(Counter(finding["classification"] for finding in unsuppressed).items())),
+        "counts_by_document": dict(sorted(Counter(finding["document"] for finding in unsuppressed).items())),
+        "findings": unsuppressed,
     }
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {args.output} with {len(findings)} finding(s)")
+    print(f"wrote {args.output} with {len(unsuppressed)} finding(s)")
     return 0
 
 

@@ -1,0 +1,40 @@
+{
+  "schema": "macos_doc_text_audit_suppressions.v1",
+  "docs": "ext/docs_macos",
+  "selection": "Accepted non-fixes from the text-quality audit. These contexts intentionally use or describe ': =' spacing and should not be edited as Pascal assignment OCR.",
+  "suppression_count": 4,
+  "suppressions": [
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 497,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "context": "(synonym: =Elems68K)",
+      "reason": "Assembler synonym text, not Pascal assignment."
+    },
+    {
+      "document": "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md",
+      "page": 255,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "context": "-y Display : = without surrounding spaces (y + ).",
+      "reason": "Tool option documentation describing display formatting."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 417,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "context": "Suppress spaces on either side of : =",
+      "reason": "Prose describes formatting of the token."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 594,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "context": "/\u2022 [A-Za-z]+: =On/ \"\"",
+      "reason": "Pattern example, not Pascal assignment."
+    }
+  ]
+}

@@ -1,62 +1,12 @@
 {
   "schema": "macos_doc_text_audit.v1",
   "docs": "ext/docs_macos",
-  "finding_count": 4,
-  "counts_by_rule": {
-    "split_pascal_assignment": 4
-  },
-  "counts_by_classification": {
-    "manual_review": 4
-  },
-  "counts_by_document": {
-    "Inside_Macintosh_Volume_I_1985.md": 1,
-    "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md": 1,
-    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 2
-  },
-  "findings": [
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 497,
-      "line": 24126,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "manual_review",
-      "description": "Split Pascal assignment operator.",
-      "context": "(synonym: =Elems68K)"
-    },
-    {
-      "document": "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md",
-      "page": 255,
-      "line": 12396,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "manual_review",
-      "description": "Split Pascal assignment operator.",
-      "context": "-y Display : = without surrounding spaces (y + )."
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 417,
-      "line": 20903,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "manual_review",
-      "description": "Split Pascal assignment operator.",
-      "context": "Suppress spaces on either side of : ="
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 594,
-      "line": 30567,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "manual_review",
-      "description": "Split Pascal assignment operator.",
-      "context": "/\u2022 [A-Za-z]+: =On/ \"\""
-    }
-  ]
+  "suppressions": "ext/docs_macos/macos_text_audit_suppressions.json",
+  "suppression_count": 4,
+  "suppressed_finding_count": 4,
+  "finding_count": 0,
+  "counts_by_rule": {},
+  "counts_by_classification": {},
+  "counts_by_document": {},
+  "findings": []
 }

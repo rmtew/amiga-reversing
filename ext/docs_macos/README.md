@@ -48,5 +48,8 @@ split booleans, parameter-block OCR, AppleTalk OCR, and Roman page-reference OCR
 split Pascal assignment fixes are applied only to exact audited context lines,
 while ambiguous spacing findings stay review-only.
 
+`macos_text_audit_suppressions.json` records accepted non-fixes that the text
+audit suppresses so the active audit report stays focused on unresolved issues.
+
 `macos_source_amendments.json` records small manual fixes made from source-review
 findings where the surrounding Markdown made the intended text clear.
