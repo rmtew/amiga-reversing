@@ -2047,7 +2047,7 @@ def _a5_cfg_use_status(
     if definition_index is None:
         return _a5_cfg_unknown_status(use, definition, ["definition row is not present in CFG row index"])
     blockers = _a5_cfg_slice_blockers(rows[definition_index + 1 : use_index])
-    if use.get("hardware_register_candidate") is not True:
+    if not _a5_effective_hardware_register_candidate(definition, use):
         return _a5_cfg_conflicting_status(use, definition, ["A5 displacement is outside custom register range"])
     if blockers:
         return _a5_cfg_unknown_status(use, definition, blockers)
@@ -2131,6 +2131,8 @@ def _a5_cfg_status_payload(
     accepted: bool,
 ) -> dict[str, object]:
     scope = _a5_cfg_path_lifetime_scope(use, definition, accepted=accepted)
+    custom_base_offset = _a5_definition_custom_base_offset(definition)
+    hardware_register_offset = _a5_effective_hardware_register_offset(definition, use)
     payload = {
         "status": status,
         "accepted_hardware_base_evidence": accepted,
@@ -2141,7 +2143,9 @@ def _a5_cfg_status_payload(
         "use_locator": use.get("locator"),
         "operand_index": use.get("operand_index"),
         "displacement": use.get("displacement"),
-        "hardware_register_candidate": use.get("hardware_register_candidate") is True,
+        "custom_base_offset": custom_base_offset,
+        "hardware_register_offset": hardware_register_offset,
+        "hardware_register_candidate": _a5_effective_hardware_register_candidate(definition, use),
         "blockers": blockers,
     }
     return {key: value for key, value in payload.items() if value not in (None, [])}
@@ -2162,6 +2166,8 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
     path_lifetime_scope = candidate.get("path_lifetime_scope")
     use_locator = candidate.get("use_locator")
     displacement = _int_or_none(candidate.get("displacement"))
+    custom_base_offset = _int_or_none(candidate.get("custom_base_offset"))
+    hardware_register_offset = _int_or_none(candidate.get("hardware_register_offset"))
     operand_index = _int_or_none(candidate.get("operand_index"))
     source_evidence_id = candidate.get("source_evidence_id")
     if (
@@ -2174,7 +2180,11 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         or not source_evidence_id
     ):
         return None
-    symbol = _amiga_custom_register_symbol(displacement)
+    custom_base_offset = custom_base_offset or 0
+    hardware_register_offset = hardware_register_offset if hardware_register_offset is not None else custom_base_offset + displacement
+    if hardware_register_offset != custom_base_offset + displacement:
+        return None
+    symbol = _amiga_custom_register_symbol(hardware_register_offset)
     if symbol is None:
         return None
     addr = _int_or_none(use_locator.get("start_offset"))
@@ -2189,8 +2199,10 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         "path_lifetime_scope": dict(path_lifetime_scope),
         "operand_index": operand_index,
         "displacement": displacement,
+        "custom_base_offset": custom_base_offset,
+        "hardware_register_offset": hardware_register_offset,
         "symbol": symbol,
-        "hardware_register_address": _AMIGA_CUSTOM_BASE_ADDRESS + displacement,
+        "hardware_register_address": _AMIGA_CUSTOM_BASE_ADDRESS + hardware_register_offset,
         "definition_locator": candidate.get("definition_locator"),
         "use_locator": dict(use_locator),
         "conflicts": [],
@@ -2231,6 +2243,14 @@ def _amiga_custom_register_symbol(displacement: int) -> str | None:
     return _amiga_custom_register_symbols_by_offset().get(displacement)
 
 
+@lru_cache(maxsize=1)
+def _amiga_custom_register_offsets_by_symbol() -> dict[str, int]:
+    return {
+        symbol.lower(): offset
+        for offset, symbol in _amiga_custom_register_symbols_by_offset().items()
+    }
+
+
 def _a5_cfg_path_lifetime_scope(
     use: dict[str, object],
     definition: dict[str, object] | None,
@@ -2244,14 +2264,21 @@ def _a5_cfg_path_lifetime_scope(
     use_addr = use_locator.get("start_offset")
     operand_index = use.get("operand_index")
     displacement = use.get("displacement")
+    custom_base_offset = _a5_definition_custom_base_offset(definition)
+    displacement_id = None
+    if isinstance(displacement, int):
+        displacement_id = _a5_displacement_id(displacement)
+        if custom_base_offset not in (None, 0):
+            displacement_id = f"b{custom_base_offset:04X}+{displacement_id}"
     source_evidence_id = (
         f"a5-custom-cfg:h{hunk}:{int(definition_addr):08X}->{int(use_addr):08X}:"
-        f"op{int(operand_index)}:d{int(displacement):04X}"
+        f"op{int(operand_index)}:{displacement_id}"
         if isinstance(hunk, int)
         and isinstance(definition_addr, int)
         and isinstance(use_addr, int)
         and isinstance(operand_index, int)
         and isinstance(displacement, int)
+        and displacement_id is not None
         else "a5-custom-cfg:unknown"
     )
     return {
@@ -2261,6 +2288,8 @@ def _a5_cfg_path_lifetime_scope(
         "hunk": hunk,
         "definition_locator": definition_locator or None,
         "use_locator": use_locator or None,
+        "custom_base_offset": custom_base_offset,
+        "hardware_register_offset": _a5_effective_hardware_register_offset(definition, use),
         "accepted_hardware_base_evidence": accepted,
         "path_model": "conservative_straight_line_cfg",
     }
@@ -2295,13 +2324,20 @@ def _is_conditional_branch_opcode(opcode: str) -> bool:
 def _a5_definition(row: Mapping[str, object]) -> dict[str, object] | None:
     if not _row_writes_register(row, "A5"):
         return None
-    status = "custom_base" if _row_mentions_custom_base(row) else "non_custom_or_unknown"
+    custom_base_offset = _row_custom_base_offset(row)
+    status = "custom_base" if custom_base_offset is not None else "non_custom_or_unknown"
     return {
         "kind": "definition",
         "status": status,
         "opcode": row.get("opcode_or_directive"),
         "text": row.get("text"),
-        "reason": "A5 loaded with Amiga custom-chip base" if status == "custom_base" else "A5 write is not accepted custom-base evidence",
+        "custom_base_offset": custom_base_offset,
+        "hardware_register_address": _AMIGA_CUSTOM_BASE_ADDRESS + custom_base_offset if custom_base_offset is not None else None,
+        "reason": (
+            "A5 loaded with an address inside the Amiga custom-chip register block"
+            if status == "custom_base"
+            else "A5 write is not accepted custom-base evidence"
+        ),
     }
 
 
@@ -2318,23 +2354,86 @@ def _row_writes_register(row: Mapping[str, object], register: str) -> bool:
     return text.endswith(f",{register.lower()}") or f",{register.lower()}\n" in text
 
 
-def _row_mentions_custom_base(row: Mapping[str, object]) -> bool:
+def _row_custom_base_offset(row: Mapping[str, object]) -> int | None:
     text = str(row.get("text") or "").lower()
-    if "_custom" in text or "$dff000" in text or "0xdff000" in text:
-        return True
+    text_offset = _custom_base_expression_offset(text)
+    if text_offset is not None:
+        return text_offset
     operand_parts = row.get("operand_parts") or row.get("operandParts")
     if not isinstance(operand_parts, list | tuple):
-        return False
+        return None
     for part in operand_parts:
         if not isinstance(part, Mapping):
             continue
-        symbol = part.get("symbol")
-        if isinstance(symbol, str) and symbol.lower() == "_custom":
-            return True
+        symbol = _operand_part_symbol(part)
+        if symbol is not None:
+            symbol_offset = _custom_base_expression_offset(symbol.lower())
+            if symbol_offset is not None:
+                return symbol_offset
         value = _int_or_none(part.get("value"))
-        if value == _AMIGA_CUSTOM_BASE_ADDRESS:
-            return True
-    return False
+        if value is not None and _AMIGA_CUSTOM_BASE_ADDRESS <= value <= _AMIGA_CUSTOM_BASE_ADDRESS + _AMIGA_CUSTOM_REGISTER_MAX_OFFSET:
+            return value - _AMIGA_CUSTOM_BASE_ADDRESS
+    return None
+
+
+def _a5_displacement_id(displacement: int) -> str:
+    if displacement < 0:
+        return f"d-{abs(displacement):04X}"
+    return f"d{displacement:04X}"
+
+
+def _operand_part_symbol(part: Mapping[str, object]) -> str | None:
+    symbol = part.get("symbol")
+    if isinstance(symbol, str) and symbol:
+        return symbol
+    metadata = part.get("metadata")
+    if isinstance(metadata, Mapping):
+        symbol = metadata.get("symbol")
+        if isinstance(symbol, str) and symbol:
+            return symbol
+    return None
+
+
+def _custom_base_expression_offset(expression: str) -> int | None:
+    for match in re.finditer(r"\$dff([0-9a-f]{3})|0xdff([0-9a-f]{3})", expression, flags=re.IGNORECASE):
+        raw_offset = match.group(1) or match.group(2)
+        offset = int(raw_offset, 16)
+        if 0 <= offset <= _AMIGA_CUSTOM_REGISTER_MAX_OFFSET:
+            return offset
+    match = re.search(r"_custom(?:\s*\+\s*([a-z_][\w.]*))?", expression, flags=re.IGNORECASE)
+    if match is None:
+        return None
+    symbol = match.group(1)
+    if symbol is None:
+        return 0
+    symbol = re.sub(r"\.[bwl]$", "", symbol.lower())
+    return _amiga_custom_register_offsets_by_symbol().get(symbol)
+
+
+def _a5_definition_custom_base_offset(definition: dict[str, object] | None) -> int | None:
+    if not isinstance(definition, dict):
+        return None
+    offset = _int_or_none(definition.get("custom_base_offset"))
+    return offset if offset is not None else 0
+
+
+def _a5_effective_hardware_register_offset(
+    definition: dict[str, object] | None,
+    use: Mapping[str, object],
+) -> int | None:
+    custom_base_offset = _a5_definition_custom_base_offset(definition)
+    displacement = _int_or_none(use.get("displacement"))
+    if custom_base_offset is None or displacement is None:
+        return None
+    return custom_base_offset + displacement
+
+
+def _a5_effective_hardware_register_candidate(
+    definition: dict[str, object] | None,
+    use: Mapping[str, object],
+) -> bool:
+    offset = _a5_effective_hardware_register_offset(definition, use)
+    return offset is not None and 0 <= offset <= _AMIGA_CUSTOM_REGISTER_MAX_OFFSET
 
 
 def _a5_displacement_uses(row: Mapping[str, object]) -> list[dict[str, object]]:
@@ -2376,7 +2475,7 @@ def _a5_use_lifetime_status(
             "path_lifetime_status": "unknown",
             "reason": "no active _custom base candidate reaches this A5-relative use",
         }
-    if use.get("hardware_register_candidate") is not True:
+    if not _a5_effective_hardware_register_candidate(active_definition, use):
         return {
             "status": "conflicting",
             "accepted_hardware_base_evidence": False,
@@ -2384,17 +2483,23 @@ def _a5_use_lifetime_status(
             "path_lifetime_status": "conflicting",
             "reason": "A5 displacement is outside the Amiga custom register offset range",
             "definition": active_definition,
+            "hardware_register_offset": _a5_effective_hardware_register_offset(active_definition, use),
         }
+    hardware_register_offset = _a5_effective_hardware_register_offset(active_definition, use)
     return {
         "status": "probable_custom_candidate",
         "accepted_hardware_base_evidence": False,
         "evidence_scope": "linear_listing_state",
         "path_lifetime_status": "unknown",
+        "custom_base_offset": _a5_definition_custom_base_offset(active_definition),
+        "hardware_register_offset": hardware_register_offset,
         "path_lifetime_scope": {
             "id": active_definition.get("linear_lifetime_id"),
             "kind": "linear_listing_between_a5_writes",
             "definition_locator": active_definition.get("locator"),
             "use_locator": use.get("locator"),
+            "custom_base_offset": _a5_definition_custom_base_offset(active_definition),
+            "hardware_register_offset": hardware_register_offset,
             "accepted_hardware_base_evidence": False,
             "missing_verifier": "control-flow path/lifetime proof that A5 remains _custom on every path to this use",
         },
@@ -6569,12 +6674,27 @@ def _a5_hardware_ref_from_action(action: object) -> dict[str, object] | None:
         return None
     ref = action.get("a5_hardware_ref")
     if isinstance(ref, dict):
-        return cast(dict[str, object], ref)
+        return _normalized_a5_hardware_ref(cast(dict[str, object], ref))
     payload = action.get("payload")
     ref = payload.get("a5_hardware_ref") if isinstance(payload, dict) else None
     if isinstance(ref, dict):
-        return cast(dict[str, object], ref)
+        return _normalized_a5_hardware_ref(cast(dict[str, object], ref))
     return None
+
+
+def _normalized_a5_hardware_ref(ref: dict[str, object]) -> dict[str, object]:
+    result = dict(ref)
+    displacement = _int_or_none(result.get("displacement"))
+    custom_base_offset = _int_or_none(result.get("custom_base_offset"))
+    hardware_register_offset = _int_or_none(result.get("hardware_register_offset"))
+    if custom_base_offset is None:
+        custom_base_offset = 0
+    if hardware_register_offset is None and displacement is not None:
+        hardware_register_offset = custom_base_offset + displacement
+    result["custom_base_offset"] = custom_base_offset
+    if hardware_register_offset is not None:
+        result["hardware_register_offset"] = hardware_register_offset
+    return result
 
 
 def _verify_project_a5_hardware_ref(
@@ -6650,6 +6770,8 @@ def _a5_hardware_ref_missing_required_identity_fields(expected: dict[str, object
         "operand_index",
         "base_register",
         "displacement",
+        "custom_base_offset",
+        "hardware_register_offset",
         "custom_base_address",
         "hardware_register_address",
         "reference_kind",

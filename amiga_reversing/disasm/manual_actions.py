@@ -1346,6 +1346,8 @@ def _validated_a5_hardware_ref(ref: dict[str, object], *, action_id: str) -> dic
     end = _manual_seed_int(ref, "end")
     operand_index = _manual_seed_int(ref, "operand_index")
     displacement = _manual_seed_int(ref, "displacement")
+    custom_base_offset = _manual_seed_int(ref, "custom_base_offset")
+    hardware_register_offset = _manual_seed_int(ref, "hardware_register_offset")
     custom_base = _manual_seed_int(ref, "custom_base_address")
     hardware_address = _manual_seed_int(ref, "hardware_register_address")
     if hunk is None or hunk < 0:
@@ -1358,12 +1360,24 @@ def _validated_a5_hardware_ref(ref: dict[str, object], *, action_id: str) -> dic
         raise ValueError("a5_hardware_ref requires non-negative operand_index")
     if str(ref.get("base_register") or "").upper() != "A5":
         raise ValueError("a5_hardware_ref requires A5 base_register")
-    if displacement is None or displacement < 0 or displacement > 0x1FE:
-        raise ValueError("a5_hardware_ref displacement must be a custom-chip register offset")
+    if displacement is None:
+        raise ValueError("a5_hardware_ref requires displacement")
+    if custom_base_offset is None:
+        custom_base_offset = 0
+    if hardware_register_offset is None:
+        hardware_register_offset = custom_base_offset + displacement
+    if (
+        custom_base_offset < 0
+        or custom_base_offset > 0x1FE
+        or hardware_register_offset < 0
+        or hardware_register_offset > 0x1FE
+        or hardware_register_offset != custom_base_offset + displacement
+    ):
+        raise ValueError("a5_hardware_ref requires an effective custom-chip register offset")
     if custom_base != 0xDFF000:
         raise ValueError("a5_hardware_ref requires _custom base address")
-    if hardware_address != custom_base + displacement:
-        raise ValueError("a5_hardware_ref hardware_register_address must match base plus displacement")
+    if hardware_address != custom_base + hardware_register_offset:
+        raise ValueError("a5_hardware_ref hardware_register_address must match base plus effective offset")
     if ref.get("reference_kind") != "custom_register_displacement":
         raise ValueError("a5_hardware_ref requires custom_register_displacement reference_kind")
     if ref.get("source_family") != "amiga_custom_base":
@@ -1386,6 +1400,8 @@ def _validated_a5_hardware_ref(ref: dict[str, object], *, action_id: str) -> dic
         raise ValueError("a5_hardware_ref accepted evidence must be conflict-free")
     result = dict(ref)
     result["base_register"] = "A5"
+    result["custom_base_offset"] = custom_base_offset
+    result["hardware_register_offset"] = hardware_register_offset
     result["owner_action_id"] = action_id
     return result
 

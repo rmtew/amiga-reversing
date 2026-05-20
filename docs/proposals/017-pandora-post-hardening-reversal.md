@@ -63,6 +63,7 @@ measured blocker needed for that improvement.
 11. `017-011`: A5 accepted-evidence hardware render gate report.
 12. `017-012`: immediate-reference report mutation gate.
 13. `017-013`: A5 hardware-reference command and verifier.
+14. `017-014`: A5 custom-register base-offset report identity.
 
 ## Recommended Order
 
@@ -216,3 +217,10 @@ repeatable work to `docs\issues\017-*`.
   accepted evidence `a5-custom-cfg:h0:00000498->000004A6:op1:d0096`. The
   verifier passed manual-log, semantic reload, rendered-source, and exact
   round-trip layers. This did not require a broad Pandora mutation run.
+- 017-013 post-commit review exposed a report correctness blocker:
+  `lea _custom+dmaconr,a5` was being treated as exact `_custom`, so `(a5)` was
+  misidentified as `bltddat` instead of effective offset `$0002` / `dmaconr`.
+  017-014 now carries `custom_base_offset` through A5 evidence and command
+  payloads, accepts signed displacements only through valid effective offsets,
+  blocks out-of-range effective offsets, and keeps zero-offset evidence ids
+  stable.

@@ -4246,7 +4246,9 @@ def _a5_hardware_ref_parameter_schema() -> dict[str, object]:
             "source_evidence_id": {"type": "string"},
             "path_lifetime_scope": {"type": "object"},
             "operand_index": {"type": "integer", "minimum": 0},
-            "displacement": {"type": "integer", "minimum": 0, "maximum": 510},
+            "displacement": {"type": "integer"},
+            "custom_base_offset": {"type": "integer", "minimum": 0, "maximum": 510},
+            "hardware_register_offset": {"type": "integer", "minimum": 0, "maximum": 510},
             "symbol": {"type": "string"},
             "hardware_register_address": {"type": "integer", "minimum": 0},
         },
@@ -4312,8 +4314,22 @@ def _a5_hardware_ref_payload(
     displacement = _optional_int(params.get("displacement"))
     if displacement is None:
         displacement = _optional_int(context.get("displacement"))
-    if displacement is None or displacement < 0 or displacement > 0x1FE:
-        raise ValueError("interpret_manual_a5_hardware_ref requires custom-chip displacement")
+    if displacement is None:
+        raise ValueError("interpret_manual_a5_hardware_ref requires displacement")
+    custom_base_offset = _optional_int(params.get("custom_base_offset"))
+    if custom_base_offset is None:
+        custom_base_offset = 0
+    hardware_register_offset = _optional_int(params.get("hardware_register_offset"))
+    if hardware_register_offset is None:
+        hardware_register_offset = custom_base_offset + displacement
+    if (
+        custom_base_offset < 0
+        or custom_base_offset > 0x1FE
+        or hardware_register_offset < 0
+        or hardware_register_offset > 0x1FE
+        or hardware_register_offset != custom_base_offset + displacement
+    ):
+        raise ValueError("interpret_manual_a5_hardware_ref requires effective custom-chip register offset")
     symbol = str(params.get("symbol") or "").strip()
     if not symbol:
         raise ValueError("interpret_manual_a5_hardware_ref requires hardware register symbol")
@@ -4331,9 +4347,9 @@ def _a5_hardware_ref_payload(
         raise ValueError("interpret_manual_a5_hardware_ref requires accepted path/lifetime scope")
     hardware_address = _optional_int(params.get("hardware_register_address"))
     if hardware_address is None:
-        hardware_address = 0xDFF000 + displacement
-    if hardware_address != 0xDFF000 + displacement:
-        raise ValueError("interpret_manual_a5_hardware_ref hardware address must match _custom plus displacement")
+        hardware_address = 0xDFF000 + hardware_register_offset
+    if hardware_address != 0xDFF000 + hardware_register_offset:
+        raise ValueError("interpret_manual_a5_hardware_ref hardware address must match _custom plus effective offset")
     ref_id = str(params.get("a5_hardware_ref_id") or "").strip()
     if not ref_id:
         ref_id = f"a5-hw:h{hunk}:{addr:08X}:op{operand_index}:d{displacement:04X}"
@@ -4345,6 +4361,8 @@ def _a5_hardware_ref_payload(
         "operand_index": operand_index,
         "base_register": "A5",
         "displacement": displacement,
+        "custom_base_offset": custom_base_offset,
+        "hardware_register_offset": hardware_register_offset,
         "custom_base_address": 0xDFF000,
         "hardware_register_address": hardware_address,
         "reference_kind": "custom_register_displacement",

@@ -3496,6 +3496,8 @@ def test_a5_hardware_ref_verifier_requires_accepted_state_and_symbolic_operand(
         "operand_index": 0,
         "base_register": "A5",
         "displacement": 0x96,
+        "custom_base_offset": 0,
+        "hardware_register_offset": 0x96,
         "custom_base_address": 0xDFF000,
         "hardware_register_address": 0xDFF096,
         "reference_kind": "custom_register_displacement",
@@ -6903,7 +6905,10 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert cfg_report["mutation_policy"] == "requires_accepted_path_lifetime_command_verifier_and_exact_round_trip"
     assert cfg_report["uses"][0]["suggested_action_kinds"] == ["a5_hardware_ref.interpret"]
     assert cfg_report["uses"][0]["default_verifier"] == "a5_hardware_ref_state"
+    assert cfg_report["uses"][0]["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:d0096"
     assert cfg_report["uses"][0]["parameters"]["symbol"] == "dmacon"
+    assert cfg_report["uses"][0]["parameters"]["custom_base_offset"] == 0
+    assert cfg_report["uses"][0]["parameters"]["hardware_register_offset"] == 0x96
     assert cfg_report["uses"][0]["parameters"]["source_evidence_status"] == "accepted"
     assert cfg_report["uses"][0]["parameters"]["path_lifetime_scope"]["accepted_hardware_base_evidence"] is True
     assert cfg_report["rendering_gate"] == {
@@ -6920,6 +6925,71 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
         "missing_gates": [],
     }
     assert "proven" not in json.dumps(report)
+
+
+def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True, custom_symbol="_custom+dmaconr"),
+            _a5_use_row(displacement=0),
+        ]
+    )
+
+    definition = report["definitions"][0]
+    assert definition["status"] == "custom_base"
+    assert definition["custom_base_offset"] == 2
+    assert definition["hardware_register_address"] == 0xDFF002
+
+    cfg_use = report["cfg_path_lifetime_report"]["uses"][0]
+    assert cfg_use["status"] == "accepted_custom_base"
+    assert cfg_use["hardware_register_candidate"] is True
+    assert cfg_use["custom_base_offset"] == 2
+    assert cfg_use["hardware_register_offset"] == 2
+    assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000"
+    assert cfg_use["parameters"]["symbol"] == "dmaconr"
+    assert cfg_use["parameters"]["hardware_register_address"] == 0xDFF002
+    assert cfg_use["parameters"]["displacement"] == 0
+    assert cfg_use["parameters"]["custom_base_offset"] == 2
+    assert cfg_use["parameters"]["hardware_register_offset"] == 2
+    assert cfg_use["parameters"]["symbol"] != "bltddat"
+
+
+def test_a5_hardware_lifetime_report_rejects_out_of_range_effective_offset() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True, custom_symbol="_custom+dmaconr"),
+            _a5_use_row(displacement=0x1FE),
+        ]
+    )
+
+    use = report["uses"][0]
+    cfg_use = report["cfg_path_lifetime_report"]["uses"][0]
+    assert use["hardware_register_candidate"] is True
+    assert use["lifetime_status"]["status"] == "conflicting"
+    assert use["lifetime_status"]["hardware_register_offset"] == 0x200
+    assert cfg_use["status"] == "conflicting"
+    assert cfg_use["hardware_register_candidate"] is False
+    assert "parameters" not in cfg_use
+
+
+def test_a5_hardware_lifetime_report_accepts_negative_displacement_with_in_range_effective_offset() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True, custom_symbol="_custom+dmaconr"),
+            _a5_use_row(displacement=-2),
+        ]
+    )
+
+    cfg_use = report["cfg_path_lifetime_report"]["uses"][0]
+    assert cfg_use["status"] == "accepted_custom_base"
+    assert cfg_use["hardware_register_candidate"] is True
+    assert cfg_use["hardware_register_offset"] == 0
+    assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d-0002"
+    assert cfg_use["parameters"]["displacement"] == -2
+    assert cfg_use["parameters"]["custom_base_offset"] == 2
+    assert cfg_use["parameters"]["hardware_register_offset"] == 0
+    assert cfg_use["parameters"]["hardware_register_address"] == 0xDFF000
+    assert cfg_use["parameters"]["symbol"] == "bltddat"
 
 
 def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -> None:
@@ -11626,14 +11696,14 @@ def _immediate_address_row(*, value: int) -> dict[str, object]:
     return row
 
 
-def _a5_definition_row(*, custom: bool) -> dict[str, object]:
-    text = "\tlea _custom,a5\n" if custom else "\tmovea.l d0,a5\n"
+def _a5_definition_row(*, custom: bool, custom_symbol: str = "_custom") -> dict[str, object]:
+    text = f"\tlea {custom_symbol},a5\n" if custom else "\tmovea.l d0,a5\n"
     row = _listing_row(row_key="a5-def-custom" if custom else "a5-def-other", text=text, start_offset=0x30, end_offset=0x34)
-    source_part = {"kind": "symbol", "symbol": "_custom", "operand_index": 0} if custom else {"kind": "register", "register": "D0", "operand_index": 0}
+    source_part = {"kind": "symbol", "symbol": custom_symbol, "operand_index": 0} if custom else {"kind": "register", "register": "D0", "operand_index": 0}
     row.update(
         {
             "opcode_or_directive": "lea" if custom else "movea.l",
-            "operand_text": "_custom,a5" if custom else "d0,a5",
+            "operand_text": f"{custom_symbol},a5" if custom else "d0,a5",
             "operand_parts": [source_part, {"kind": "register", "register": "A5", "operand_index": 1}],
             "operand_accesses": ["memory_read", "register_write"],
             "operand_registers": [None if custom else "D0", "A5"],
