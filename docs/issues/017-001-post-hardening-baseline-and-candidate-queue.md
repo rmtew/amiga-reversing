@@ -19,14 +19,18 @@ Required work:
 - Rank candidate families by visible source-quality value, evidence strength,
   command availability, verifier availability, and expected round-trip safety.
 - Record blockers and deferred findings in proposal 017.
-- Do not mutate target state in this slice.
+- Do not mutate target state while establishing the baseline.
+- After the baseline, proceed directly into the best safe mutation if durable
+  evidence, command support, verifier support, and exact round-trip gates are
+  present; stop for human review only when the top candidate is ambiguous,
+  report-only, or needs new policy/tooling.
 
 Acceptance:
 - Proposal 017 has a baseline entry naming the selected next candidate family.
 - The report distinguishes actionable candidates from report-only guidance.
 - A5 hardware candidates are explicitly marked non-durable unless path/lifetime
   evidence exists outside `a5-hardware-report`.
-- No target Manual Action Log or rendered source mutation is required.
+- Baseline collection itself does not mutate the target.
 
 Blocked by:
 None - can start immediately.

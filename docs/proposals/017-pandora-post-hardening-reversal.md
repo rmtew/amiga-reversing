@@ -65,6 +65,11 @@ for accepted app-base/RSSET opportunities. Do `017-003` only when A5 hardware
 base proof is the active blocker. Use `017-006` whenever a measured slow phase
 blocks normal iteration.
 
+After `017-001`, proceed directly into the best safe mutation when durable
+evidence, command support, verifier support, and exact round-trip gates are
+present. Stop for human review only when the top candidate is ambiguous,
+report-only, or needs new policy/tooling.
+
 ## Acceptance Criteria
 
 Each accepted source-changing action must include:
