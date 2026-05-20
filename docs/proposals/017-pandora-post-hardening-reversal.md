@@ -1,6 +1,6 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: focused pass complete; remaining work is blocked/report-only or deferred.
+Status: focused pass complete; rerun follow-up issues proposed.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -72,6 +72,11 @@ measured blocker needed for that improvement.
 20. `017-020`: immediate-reference report candidate write policy.
 21. `017-021`: A5 report suppression for already-recorded hardware refs.
 22. `017-022`: current gate closeout.
+23. `017-023`: tracked Pandora render evidence for 017 source changes.
+24. `017-024`: A5 symbol-delta/address-mode-preserving rendering.
+25. `017-025`: accepted RSSET app-base evidence for raw A6 candidates.
+26. `017-026`: source-offset immediate-reference policy and verifier path.
+27. `017-027`: rerun gate and independent 017 regression review.
 
 ## Current Gate State
 
@@ -122,6 +127,14 @@ candidate from `017-002`, `017-008` to turn A5 listing-state candidates into
 accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
 when the generic planner has no candidate. Use `017-010` if low-value
 representation work repeatedly masks those higher-value blocked families.
+
+For a rerun after the focused pass, start with `017-023` so the visible Pandora
+source evidence and reset/replay boundary are explicit. Then choose the first
+remaining evidence family: `017-024` for blocked A5 zero-displacement or
+non-zero custom-base-offset refs, `017-025` for RSSET/A6 candidates, or
+`017-026` for remaining immediate source-offset candidates. Finish with
+`017-027` to rerun the current reports/tests and re-close the proposal only if
+the gates still agree.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
@@ -313,3 +326,11 @@ repeatable work to `docs\issues\017-*`.
   source-converging mutation remains without new evidence or tooling; remaining
   generic class/address data-symbol styling and low-value literal
   representation candidates are not accepted as 017 progress.
+- Post-closeout review found follow-up rerun work that should remain in 017
+  instead of being lost: 017 source-quality improvements are documented through
+  local target/manual state but not a tracked rendered-source evidence artifact;
+  zero-displacement or non-zero custom-base-offset A5 refs still need exact
+  address-mode-preserving symbol-delta rendering; RSSET has 125 report-only A6
+  candidates blocked by missing accepted app-base evidence; and remaining
+  immediate source-offset candidates need a deliberate policy/verifier path
+  before any mutation. These were promoted to `017-023` through `017-027`.
