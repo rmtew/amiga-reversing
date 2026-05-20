@@ -974,6 +974,34 @@ the intended location.
   treated as separate candidate families rather than folded into D003 by
   adjacency alone.
 
+### 015-026: Name frame counter app slot
+
+* Candidate: raw app-state coverage for `$01AA(a6)`, a repeatedly used long
+  counter outside the tilemap RSSET cluster.
+* Evidence: the display interrupt path at `s0:0000094E` increments
+  `$01AA(a6)` before updating bitplane pointers. The callback at
+  `s0:00000F54` also increments the same field. The wait helper at
+  `s0:0000078E` snapshots `$01AA(a6)` and spins until it changes, and the
+  timed loop at `s0:00000F88` compares `$01AA(a6)` against a saved value plus
+  150 frames.
+* Command: executed `target.rsset_region.add` through the target command
+  catalog with `layout_name: app`, `base_symbol: __amiga_app_base__`,
+  `offset: $01AA`, `size: 4`, and `symbol: app_frame_counter`.
+* Verifier: Manual Action Log count is 25 with head hash
+  `b413594f5355a6be58f889a12d674a0bcfe00e400297be4c2e4fac5e958eab2f`;
+  semantic reload shows `$01AA` as a 4-byte RSSET region; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_frame_counter RS.L 1` and the
+  listing projection shows seven rows containing `app_frame_counter`, including
+  `addq.l #1,app_frame_counter(a6)`,
+  `move.l app_frame_counter(a6),d5`, and
+  `cmp.l app_frame_counter(a6),d5`.
+* Review: this is a supported, source-quality app-state name with direct timing
+  evidence. It does not resolve the remaining higher-count pointer fields such
+  as `$019E(a6)`, `$01D4(a6)`, or `$01D8(a6)`, whose object/buffer lifetimes are
+  still ambiguous enough to require a separate evidence pass.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
