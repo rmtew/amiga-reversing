@@ -351,6 +351,19 @@ amendments in the document metadata. Review generated amendments before applying
 them to final Markdown, especially for code, symbols, opcodes, and numeric
 tables.
 
+Platform source inventory commands surface amendment state so review debt stays
+visible:
+
+```powershell
+uv run macos-platform-kb report
+uv run macos-platform-kb check
+```
+
+The report summarizes `seeded`, `validated`, and `rejected` amendments, applied
+validated pages, and pending risky code/symbol pages. The check fails if a
+validated amendment is not listed in `applied_amendments.pages`, or if an
+applied amendment is no longer validated.
+
 To rerun only selected pages, use `--pages` with 1-based source page numbers:
 
 ```powershell

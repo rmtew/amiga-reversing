@@ -13,10 +13,14 @@ def test_atari_platform_kb_report_validates_committed_markdown_sources(tmp_path:
 
     assert report["source_count"] == 1
     assert report["availability_counts"] == {"committed": 1}
+    assert report["amendment_status_counts"] == {"seeded": 1, "validated": 1}
+    assert report["pending_amendment_count"] == 1
+    assert report["risky_pending_amendment_count"] == 1
     assert atari_platform_kb.check_report(report) == []
     text = atari_platform_kb.format_report(report)
     assert "Atari ST Platform KB" in text
     assert "markers=2/2" in text
+    assert "amendments=2 pending=1 applied=1 risky_pending=3" in text
 
 
 def test_macos_platform_kb_report_uses_matching_inventory_shape(tmp_path: Path) -> None:
@@ -31,6 +35,10 @@ def test_macos_platform_kb_report_uses_matching_inventory_shape(tmp_path: Path) 
 
 def test_atari_platform_kb_check_reports_bad_inventory_and_metadata(tmp_path: Path) -> None:
     _write_fixture_tree(tmp_path)
+    metadata_path = tmp_path / "ext" / "docs_atari_st" / "fixture.source.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata["applied_amendments"]["pages"] = []
+    _write_json(metadata_path, metadata)
     payload = json.loads((tmp_path / "knowledge" / "atari_st_source_inventory.json").read_text(encoding="utf-8"))
     payload["sources"].append(
         {
@@ -53,6 +61,7 @@ def test_atari_platform_kb_check_reports_bad_inventory_and_metadata(tmp_path: Pa
     assert any("citation_quality must be page" in violation for violation in violations)
     assert any("source path missing" in violation for violation in violations)
     assert any("metadata final_md does not match inventory path" in violation for violation in violations)
+    assert any("validated amendments not applied" in violation for violation in violations)
 
 
 def _write_fixture_tree(root: Path, *, inventory_name: str = "atari_st_source_inventory.json") -> None:
@@ -71,6 +80,24 @@ def _write_fixture_tree(root: Path, *, inventory_name: str = "atari_st_source_in
             "source_id": "fixture-md",
             "paths": {"final_md": "ext/docs_atari_st/fixture.md"},
             "probe": {"text_pages": 2},
+            "amendments": [
+                {
+                    "page": 1,
+                    "path": "ext/docs_atari_st/fixture.amendments/page_001.glm.md",
+                    "review_status": "validated",
+                    "quality": "candidate_repair",
+                },
+                {
+                    "page": 3,
+                    "path": "ext/docs_atari_st/fixture.amendments/page_003.glm.md",
+                    "review_status": "seeded",
+                    "quality": "risky_code_or_symbol",
+                },
+            ],
+            "applied_amendments": {
+                "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+                "pages": [1],
+            },
         },
     )
     _write_json(
