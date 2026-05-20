@@ -17,3 +17,11 @@ Derived files:
 - `mpw_gm/source.json`: source and extraction metadata.
 - `mpw_gm/index.json`: conservative symbol index generated from C, assembler,
   and Rez includes for cross-checking documentation-derived facts.
+
+Query examples:
+
+```bat
+uv run python src\scripts\query_macos_include_index.py PBGetCatInfoSync
+uv run python src\scripts\query_macos_include_index.py fsRdPerm
+uv run python src\scripts\query_macos_include_index.py SIZE --kind rez_type
+```
