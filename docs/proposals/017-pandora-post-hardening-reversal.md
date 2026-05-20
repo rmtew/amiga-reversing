@@ -61,6 +61,7 @@ measured blocker needed for that improvement.
 9. `017-009`: RSSET candidate discovery for remaining raw A6 operands.
 10. `017-010`: planner treatment for low-value representation candidates.
 11. `017-011`: A5 accepted-evidence hardware render gate report.
+12. `017-012`: immediate-reference report mutation gate.
 
 ## Recommended Order
 
@@ -197,3 +198,9 @@ repeatable work to `docs\issues\017-*`.
   and now names the missing `a5_hardware_ref.interpret` command and
   `a5_hardware_ref_state` verifier gates. Exact round-trip remains required
   for any future output-affecting hardware-register render mutation.
+- 017-012 fixes a report-safety issue found during post-commit review:
+  after the Pandora runtime-address immediate was promoted, the remaining
+  `immediate-ref-report` candidates were accepted source-offset matches without
+  command payloads. The report now exposes a `mutation_gate` and keeps
+  top-level `safe_to_mutate=false` unless at least one command-backed
+  `immediate_ref.interpret` candidate remains.

@@ -7,7 +7,7 @@ import os
 import re
 import time
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -358,19 +358,25 @@ def inspect_immediate_runtime_refs(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    hygiene_safe = hygiene.safe_to_continue and not hygiene.unknown_files
     report: dict[str, object] = {
         "target_id": target_id,
         "hygiene": hygiene.to_dict(),
-        "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
+        "safe_to_mutate": False,
         "interpretation_policy": _immediate_reference_interpretation_policy(),
     }
     listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
     report["listing_open"] = listing_ready
     if listing_ready.get("status") != "ready":
         report["immediate_reference_candidates"] = []
+        report["mutation_gate"] = _immediate_reference_mutation_gate([])
         return report
     rows = _listing_all_rows(target_id)
-    report["immediate_reference_candidates"] = _listing_immediate_runtime_reference_report(rows)
+    candidates = _listing_immediate_runtime_reference_report(rows)
+    mutation_gate = _immediate_reference_mutation_gate(candidates)
+    report["immediate_reference_candidates"] = candidates
+    report["mutation_gate"] = mutation_gate
+    report["safe_to_mutate"] = hygiene_safe and mutation_gate["safe_to_mutate"] is True
     return report
 
 
@@ -1871,6 +1877,41 @@ def _immediate_reference_interpretation_policy() -> dict[str, object]:
         },
         "reason": "accepted conflict-free immediate references can be promoted through command and verifier gates",
     }
+
+
+def _immediate_reference_mutation_gate(candidates: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    command_candidate_count = sum(
+        1 for candidate in candidates if _immediate_reference_candidate_is_command_backed(candidate)
+    )
+    report_only_candidate_count = len(candidates) - command_candidate_count
+    if command_candidate_count:
+        status = "available"
+        reason = "command-backed immediate reference candidates are available"
+    elif report_only_candidate_count:
+        status = "blocked"
+        reason = "remaining immediate reference candidates are report-only"
+    else:
+        status = "blocked"
+        reason = "no immediate reference candidates are available"
+    return {
+        "status": status,
+        "safe_to_mutate": command_candidate_count > 0,
+        "command_id": "immediate_ref.interpret",
+        "command_candidate_count": command_candidate_count,
+        "report_only_candidate_count": report_only_candidate_count,
+        "reason": reason,
+    }
+
+
+def _immediate_reference_candidate_is_command_backed(candidate: Mapping[str, object]) -> bool:
+    actions = candidate.get("suggested_action_kinds")
+    parameters = candidate.get("parameters")
+    return (
+        isinstance(actions, Sequence)
+        and not isinstance(actions, str)
+        and "immediate_ref.interpret" in actions
+        and isinstance(parameters, Mapping)
+    )
 
 
 def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object]:

@@ -6687,6 +6687,14 @@ def test_immediate_runtime_reference_report_accepts_known_runtime_range() -> Non
     assert candidate["write_policy"]["rendering_allowed"] is True
     assert candidate["write_policy"]["command_support"]["status"] == "available"
     assert candidate["write_policy"]["verifier_support"]["status"] == "available"
+    assert reversing_loop._immediate_reference_mutation_gate(candidates) == {
+        "status": "available",
+        "safe_to_mutate": True,
+        "command_id": "immediate_ref.interpret",
+        "command_candidate_count": 1,
+        "report_only_candidate_count": 0,
+        "reason": "command-backed immediate reference candidates are available",
+    }
     assert candidate["suggested_action_kinds"] == ["immediate_ref.interpret"]
     assert candidate["default_verifier"] == "immediate_interpreted_ref_state"
     assert candidate["parameters"] == {
@@ -6753,6 +6761,14 @@ def test_immediate_runtime_reference_report_keeps_source_offset_matches_report_o
     assert candidates[0]["source_family"] == "source_offset"
     assert "suggested_action_kinds" not in candidates[0]
     assert "parameters" not in candidates[0]
+    assert reversing_loop._immediate_reference_mutation_gate(candidates) == {
+        "status": "blocked",
+        "safe_to_mutate": False,
+        "command_id": "immediate_ref.interpret",
+        "command_candidate_count": 0,
+        "report_only_candidate_count": 1,
+        "reason": "remaining immediate reference candidates are report-only",
+    }
 
 
 def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> None:
