@@ -1941,7 +1941,10 @@ def _empty_a5_cfg_path_lifetime_report() -> dict[str, object]:
         "accepted_custom_base_evidence_count": 0,
         "use_count": 0,
         "uses": [],
+        "safe_to_mutate": False,
+        "mutation_policy": "report_only_requires_render_command_and_verifier",
         "rendering_allowed": False,
+        "rendering_gate": _a5_hardware_rendering_gate(0),
     }
 
 
@@ -1968,8 +1971,11 @@ def _listing_a5_cfg_path_lifetime_report(
         "accepted_custom_base_evidence_count": accepted_count,
         "use_count": len(statuses),
         "uses": statuses,
+        "safe_to_mutate": False,
+        "mutation_policy": "report_only_requires_render_command_and_verifier",
         "rendering_allowed": False,
         "rendering_blocked_reason": "hardware register rendering still requires verifier consumption of accepted path/lifetime evidence",
+        "rendering_gate": _a5_hardware_rendering_gate(accepted_count),
     }
 
 
@@ -2291,8 +2297,28 @@ def _a5_hardware_verifier_gate() -> dict[str, object]:
         "status": "blocked",
         "hardware_register_rendering_allowed": False,
         "requires_accepted_path_lifetime_scope": True,
+        "requires_command_support": True,
+        "requires_verifier_support": True,
         "reason": "raw A5 displacements remain report-only until path/lifetime scope is accepted and verified",
         "knowledge_source": "knowledge/amiga_hw_reference.md base $DFF000",
+    }
+
+
+def _a5_hardware_rendering_gate(accepted_evidence_count: int) -> dict[str, object]:
+    return {
+        "status": "blocked",
+        "accepted_path_lifetime_evidence_available": accepted_evidence_count > 0,
+        "accepted_path_lifetime_evidence_count": accepted_evidence_count,
+        "command_support": {
+            "command_id": "a5_hardware_ref.interpret",
+            "status": "missing",
+        },
+        "verifier_support": {
+            "verifier": "a5_hardware_ref_state",
+            "status": "missing",
+        },
+        "exact_round_trip": "required_for_output_affecting_mutation",
+        "missing_gates": ["command_support", "verifier_support"],
     }
 
 

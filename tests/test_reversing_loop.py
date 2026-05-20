@@ -6804,12 +6804,25 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert report["lifetimes"] == [{"status": "probable_custom_candidate", "definition_count": 1, "use_count": 1}]
     assert report["verifier_gate"]["hardware_register_rendering_allowed"] is False
     assert report["verifier_gate"]["requires_accepted_path_lifetime_scope"] is True
+    assert report["verifier_gate"]["requires_command_support"] is True
+    assert report["verifier_gate"]["requires_verifier_support"] is True
     cfg_report = report["cfg_path_lifetime_report"]
     assert cfg_report["accepted_custom_base_evidence_count"] == 1
     assert cfg_report["uses"][0]["status"] == "accepted_custom_base"
     assert cfg_report["uses"][0]["accepted_hardware_base_evidence"] is True
     assert cfg_report["uses"][0]["path_lifetime_scope"]["kind"] == "straight_line_cfg_between_definition_and_use"
+    assert cfg_report["safe_to_mutate"] is False
     assert cfg_report["rendering_allowed"] is False
+    assert cfg_report["mutation_policy"] == "report_only_requires_render_command_and_verifier"
+    assert cfg_report["rendering_gate"] == {
+        "status": "blocked",
+        "accepted_path_lifetime_evidence_available": True,
+        "accepted_path_lifetime_evidence_count": 1,
+        "command_support": {"command_id": "a5_hardware_ref.interpret", "status": "missing"},
+        "verifier_support": {"verifier": "a5_hardware_ref_state", "status": "missing"},
+        "exact_round_trip": "required_for_output_affecting_mutation",
+        "missing_gates": ["command_support", "verifier_support"],
+    }
     assert "proven" not in json.dumps(report)
 
 
