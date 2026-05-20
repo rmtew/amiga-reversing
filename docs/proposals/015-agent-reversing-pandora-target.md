@@ -849,6 +849,38 @@ the intended location.
   `rsset.binding.report` path remains blocked by missing base evidence and no
   bind/refine command.
 
+### 015-022: Name tilemap dimension app slots
+
+* Candidate: D003 RSSET/app-base coverage for the adjacent raw `$01C2(a6)` and
+  `$01C4(a6)` word fields.
+* Evidence: initialization stores `#$5A` to `$01C2(a6)` and `#$81` to
+  `$01C4(a6)` beside the `app_tilemap_base` initialization at
+  `s0:00009EE0:instruction:7149`. The tilemap address calculation loads
+  `$01C2(a6)`, multiplies it by `$01C4(a6)`, scales by four, and adds the
+  result to `app_tilemap_base(a6)` around `s0:0000675E`. The same flow then
+  uses `$01C2(a6)` as the row stride for `app_tile_row`/`app_tile_column`
+  indexing. `$01C4(a6)` is also used as a vertical clamp bound after subtracting
+  the visible 8-tile window and shifting to pixel units around `s0:0000818A`.
+* Command: executed `target.rsset_region.add` twice through the target command
+  catalog: `$01C2`, `size: 2`, `symbol: app_tilemap_width`; `$01C4`,
+  `size: 2`, `symbol: app_tilemap_height`; both use `layout_name: app` and
+  `base_symbol: __amiga_app_base__`.
+* Verifier: Manual Action Log count is 20 with head hash
+  `fb63e29b334ea4c8a4ec7b5d0a451d7c2a192df8afd3bbab4d8dfec97e50ab83`;
+  semantic reload shows both RSSET regions with `size: 2`; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_tilemap_width RS.W 1` and
+  `app_tilemap_height RS.W 1`. Listing projection shows five rendered uses of
+  each field, including `move.w #$5A,app_tilemap_width(a6)`,
+  `move.w #$81,app_tilemap_height(a6)`,
+  `mulu.w app_tilemap_height(a6),d3`, and
+  `mulu.w app_tilemap_height(a6),d0`.
+* Review: this continues the same D003 cluster through a supported target-level
+  RSSET command and exact verifier. Remaining `$01D4/$01D8/$01DC` long fields
+  look like display/copper buffer pointers, but their semantics are broader
+  than tilemap indexing and need a separate evidence pass before naming.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -955,6 +987,9 @@ Triage by scope:
     initialized to `#$4000` and used as the base in tile/address calculations.
   * 015-021 resolved `$01BA(a6)` as `app_tile_column` and `$01BC(a6)` as
     `app_tile_row`, both 2-byte RSSET app fields used in tilemap indexing.
+  * 015-022 resolved `$01C2(a6)` as `app_tilemap_width` and `$01C4(a6)` as
+    `app_tilemap_height`, both 2-byte RSSET app fields used in tilemap sizing
+    and indexing.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -971,9 +1006,9 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 and 015-021 for `$01BA`, `$01BC`, and
-  `$01BE`. Adjacent raw fields remain open pending stronger names or accepted
-  base/gap evidence.
+* Status: partly fixed by 015-020 through 015-022 for `$01BA`, `$01BC`,
+  `$01BE`, `$01C2`, and `$01C4`. Adjacent raw fields remain open pending
+  stronger names or accepted base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
