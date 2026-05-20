@@ -13,10 +13,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Report Atari ST platform KB source inventory.")
+    parser = argparse.ArgumentParser(description="Report Classic Mac OS platform KB source inventory.")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("report", help="Print Atari ST source inventory report.")
-    subparsers.add_parser("check", help="Fail on Atari ST source inventory consistency issues.")
+    subparsers.add_parser("report", help="Print Classic Mac OS source inventory report.")
+    subparsers.add_parser("check", help="Fail on Classic Mac OS source inventory consistency issues.")
     args = parser.parse_args(argv)
 
     report = build_report(PROJECT_ROOT)
@@ -26,17 +26,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check":
         violations = check_report(report)
         if violations:
-            print("Atari ST platform KB check failed:")
+            print("Classic Mac OS platform KB check failed:")
             for violation in violations:
                 print(f"  - {violation}")
             return 1
-        print("Atari ST platform KB check passed.")
+        print("Classic Mac OS platform KB check passed.")
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
 
 
 def build_report(project_root: Path) -> dict[str, object]:
-    return build_docs_inventory_report(project_root, project_root / "knowledge" / "atari_st_source_inventory.json")
+    return build_docs_inventory_report(project_root, project_root / "knowledge" / "macos_source_inventory.json")
 
 
 def check_report(report: dict[str, object]) -> list[str]:
@@ -44,7 +44,7 @@ def check_report(report: dict[str, object]) -> list[str]:
 
 
 def format_report(report: dict[str, object]) -> str:
-    return format_docs_inventory_report(report, title="Atari ST Platform KB")
+    return format_docs_inventory_report(report, title="Classic Mac OS Platform KB")
 
 
 if __name__ == "__main__":

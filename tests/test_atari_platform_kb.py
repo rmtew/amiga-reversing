@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from amiga_reversing.tools import atari_platform_kb
+from amiga_reversing.tools import atari_platform_kb, macos_platform_kb
 
 
 def test_atari_platform_kb_report_validates_committed_markdown_sources(tmp_path: Path) -> None:
@@ -17,6 +17,16 @@ def test_atari_platform_kb_report_validates_committed_markdown_sources(tmp_path:
     text = atari_platform_kb.format_report(report)
     assert "Atari ST Platform KB" in text
     assert "markers=2/2" in text
+
+
+def test_macos_platform_kb_report_uses_matching_inventory_shape(tmp_path: Path) -> None:
+    _write_fixture_tree(tmp_path, inventory_name="macos_source_inventory.json")
+
+    report = macos_platform_kb.build_report(tmp_path)
+
+    assert report["source_count"] == 1
+    assert macos_platform_kb.check_report(report) == []
+    assert "Classic Mac OS Platform KB" in macos_platform_kb.format_report(report)
 
 
 def test_atari_platform_kb_check_reports_bad_inventory_and_metadata(tmp_path: Path) -> None:
@@ -45,7 +55,7 @@ def test_atari_platform_kb_check_reports_bad_inventory_and_metadata(tmp_path: Pa
     assert any("metadata final_md does not match inventory path" in violation for violation in violations)
 
 
-def _write_fixture_tree(root: Path) -> None:
+def _write_fixture_tree(root: Path, *, inventory_name: str = "atari_st_source_inventory.json") -> None:
     docs = root / "ext" / "docs_atari_st"
     knowledge = root / "knowledge"
     docs.mkdir(parents=True)
@@ -64,7 +74,7 @@ def _write_fixture_tree(root: Path) -> None:
         },
     )
     _write_json(
-        knowledge / "atari_st_source_inventory.json",
+        knowledge / inventory_name,
         {
             "schema_version": 1,
             "sources": [

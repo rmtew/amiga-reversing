@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source_id": "programming-with-macintosh-programmers-workshop-1987-md",
+  "title": "Programming with Macintosh Programmer's Workshop",
+  "publisher": null,
+  "year": 1987,
+  "domain": [
+    "classic-macos",
+    "mpw",
+    "programming",
+    "m68k"
+  ],
+  "paths": {
+    "source_pdf": "resources/platform_macos/docs/Programming_With_Macintosh_Programmers_Workshop_1987.pdf",
+    "ocr_pdf": null,
+    "baseline_md": "resources/platform_macos/docs/Programming_With_Macintosh_Programmers_Workshop_1987.baseline.md",
+    "final_md": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md"
+  },
+  "sha256": {
+    "source_pdf": "b9e5ffb145160fd4288fc5d3f47a0ff9693ade43a01ca24a7aef46129d7eef3c",
+    "ocr_pdf": null,
+    "baseline_md": "84e5ec39893b0510b37d090445d2637f3a148000aabf976c6a3b7b7299a7c976",
+    "final_md": "10a88bf548569d05b424ca46ed723252957d21543975c51b85ee1fcfa14f575d"
+  },
+  "conversion": {
+    "ocr_tool": null,
+    "ocr_options": [],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 773,
+    "text_pages": 771,
+    "empty_text_pages": 2,
+    "low_text_pages": [
+      1,
+      4,
+      771,
+      772
+    ],
+    "image_blocks": 923,
+    "needs_ocr": false
+  },
+  "amendments": [],
+  "remaining_review": {
+    "weak_pages": [
+      1,
+      4,
+      771,
+      772
+    ],
+    "code_or_symbol_pages": []
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 638,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "10a88bf548569d05b424ca46ed723252957d21543975c51b85ee1fcfa14f575d"
+  }
+}

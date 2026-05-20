@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "source_id": "mpw-assembly-language-programming-macintosh-1987-md",
+  "title": "MPW and Assembly Language Programming for the Macintosh",
+  "publisher": null,
+  "year": 1987,
+  "domain": [
+    "classic-macos",
+    "mpw",
+    "assembly",
+    "m68k"
+  ],
+  "paths": {
+    "source_pdf": "resources/platform_macos/docs/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.pdf",
+    "ocr_pdf": null,
+    "baseline_md": "resources/platform_macos/docs/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.baseline.md",
+    "final_md": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md"
+  },
+  "sha256": {
+    "source_pdf": "60218aa233a2d1615a987a4d1691f855e31bf3149029c9b38b7edc08aba47ce8",
+    "ocr_pdf": null,
+    "baseline_md": "c5550dcfa4c1c71d5b8d50cfc82bd096d0d0ea659fa9c01bfb230b291578d816",
+    "final_md": "c5ee9b49878d45d54f25c65a26eeafd2039955c9fae3cbd4633941f7acb7d2f3"
+  },
+  "conversion": {
+    "ocr_tool": null,
+    "ocr_options": [],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 335,
+    "text_pages": 333,
+    "empty_text_pages": 2,
+    "low_text_pages": [
+      1,
+      334
+    ],
+    "image_blocks": 528,
+    "needs_ocr": false
+  },
+  "amendments": [
+    {
+      "page": 1,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_001.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 2,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_002.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "candidate_repair"
+    },
+    {
+      "page": 142,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_142.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "risky_code_or_symbol"
+    },
+    {
+      "page": 334,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_334.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    }
+  ],
+  "remaining_review": {
+    "weak_pages": [
+      1,
+      2,
+      142,
+      334
+    ],
+    "code_or_symbol_pages": [],
+    "glm_targeted_pages": [
+      2,
+      142
+    ]
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 423,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "c5ee9b49878d45d54f25c65a26eeafd2039955c9fae3cbd4633941f7acb7d2f3"
+  }
+}

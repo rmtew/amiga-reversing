@@ -76,7 +76,9 @@ This keeps parser work driven by actual KB needs instead of by PDF layout noise.
 ## Artifact Layout
 
 Use one stem per document. Local source PDFs and OCR PDFs stay in
-`resources/`. Final committed Markdown and metadata live in `ext/docs_atari_st/`.
+`resources/`. Final committed Markdown and metadata live under the matching
+`ext/docs_<platform>/` directory, such as `ext/docs_atari_st/` or
+`ext/docs_macos/`.
 
 ```text
 resources/platform_atari_st/docs/

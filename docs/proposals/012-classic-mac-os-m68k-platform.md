@@ -3,9 +3,10 @@
 Status: Draft.
 
 This proposal defines a future path for classic Mac OS / Macintosh m68k platform
-support. The repo currently has no meaningful Mac OS platform support, no
-committed Mac OS reference corpus, and no platform knowledge pipeline for Mac
-executables, resource forks, filesystems, traps, or Toolbox/OS APIs.
+support. The repo now has a committed Classic Mac OS reference Markdown corpus
+and a source inventory/check command, but no meaningful Mac OS runtime platform
+support yet: no executable/resource loader, file-system model, trap/API runtime
+metadata, or generated Mac-specific C consumers.
 
 The immediate purpose is not to implement Mac support in one step. It is to
 define a source-discovery and minimal-support path that tests whether the
@@ -115,17 +116,30 @@ Mac OS, Amiga, and Atari ST. That is not the first implementation goal.
 
 ## Current Inputs
 
-Current repo search found no meaningful Mac OS platform support. Existing hits
-are incidental references such as MacOSX in vasm documentation or unrelated
-resource filenames in cloned projects.
+Current repo source-prep support:
 
-There is currently no known committed equivalent of:
+```text
+ext/docs_macos/Inside_Macintosh_Volume_I_1985.md
+ext/docs_macos/Inside_Macintosh_Volume_II_1985.md
+ext/docs_macos/Inside_Macintosh_Volume_III_1985.md
+ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md
+ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md
+ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md
+knowledge/macos_source_inventory.json
+```
+
+Each committed Markdown source has a matching `.source.json` metadata file with
+source PDF path, hashes, probe results, cleanup metadata, and amendment review
+state. These are cited source-prep artifacts, not parsed truth.
+
+Runtime platform support is still absent. There is currently no known committed
+equivalent of:
+
 
 ```text
 knowledge/mac_os_*.json
 src/generated/mac_os_*.c/.h
 src/platform_mac_os*.c
-resources/platform_mac_os
 ext/mac_os_includes
 ```
 
@@ -139,10 +153,10 @@ depend on each source.
 
 ## Source Inventory Schema
 
-Add once sources are identified:
+Current source inventory:
 
 ```text
-knowledge/mac_os_source_inventory.json
+knowledge/macos_source_inventory.json
 ```
 
 Use the same inventory vocabulary as Proposal 011. Keep availability,
@@ -160,16 +174,17 @@ Suggested shape:
       "publisher": "Apple",
       "domain": ["toolbox", "traps", "api"],
       "tier": 1,
-      "path": "resources/platform_mac_os/inside_macintosh_toolbox.pdf",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
+      "metadata_path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.source.json",
       "url": null,
-      "availability": "required_local",
+      "availability": "committed",
       "machine_readable": false,
       "citation_quality": "page",
-      "parser_feasibility": "manual_or_ocr",
+      "parser_feasibility": "targeted",
       "extraction_status": "candidate",
-      "review_status": "not_applicable",
+      "review_status": "seeded",
       "decision": "cite_manually",
-      "license_notes": "Local reference only; do not commit copyrighted PDF.",
+      "license_notes": "Committed Markdown derived from local user-supplied reference material.",
       "known_conflicts": []
     }
   ]
@@ -228,40 +243,29 @@ inventory rows and documented in `RESOURCES.md`.
 Start with a read-only command surface:
 
 ```powershell
-uv run mac-platform-kb report
-uv run mac-platform-kb check
+uv run macos-platform-kb report
+uv run macos-platform-kb check
 ```
 
-The first report may say "no parsed sources yet". Its job is to establish the
-inventory format, source decisions, fixture state, and unsupported areas.
+The first implemented report establishes the committed source inventory and
+validates Markdown/page-marker metadata. It does not yet report fixture state or
+runtime coverage.
 
-Initial report sections:
+Current report sections:
 
 ```text
 Classic Mac OS Platform KB
 
 Source inventory:
-  committed: 0
-  required_local: 0
-  candidate: 0
-  parsed: 0
+  sources: 6
+  availability: committed=6
+  extraction: candidate=6
+  review: seeded=6
+  decision: cite_manually=6
 
-Fixture corpus:
-  legal fixture: missing
-  recognized Mac artifact: no
-  m68k code region: no
-
-Containers:
-  MacBinary/BinHex: candidate
-  data fork/resource fork: candidate
-  HFS/MFS: deferred
-
-Trap/API KB:
-  Toolbox/OS traps: candidate
-  generated runtime: missing
-
-Architecture pressure:
-  platform assumptions recorded: 0
+Committed Markdown sources:
+  inside-macintosh-volume-i-1985-md: markers=564/564
+  ...
 ```
 
 Strict checks should fail on:
@@ -360,7 +364,7 @@ Candidate trap fact:
       "family": "ResourceManager",
       "source_id": "inside-macintosh-toolbox",
       "citation": {
-        "path": "resources/platform_mac_os/inside_macintosh_toolbox.pdf",
+        "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
         "page": 123
       },
       "review_status": "seeded"
@@ -373,9 +377,9 @@ Correction commands should mirror the shared platform flow unless Mac needs a
 specific divergence:
 
 ```powershell
-uv run mac-platform-kb corrections list
-uv run mac-platform-kb corrections check
-uv run mac-platform-kb corrections promote <correction_id> --reviewer <name>
+uv run macos-platform-kb corrections list
+uv run macos-platform-kb corrections check
+uv run macos-platform-kb corrections promote <correction_id> --reviewer <name>
 ```
 
 Promotion rule:
@@ -464,14 +468,16 @@ startup/runtime conventions
 Add:
 
 ```text
-knowledge/mac_os_source_inventory.json
-mac-platform-kb report
-mac-platform-kb check
-RESOURCES.md Mac source entries
+knowledge/macos_source_inventory.json
+macos-platform-kb report
+macos-platform-kb check
+ext/docs_macos/*.md
+ext/docs_macos/*.source.json
 ```
 
-Research and commit inventory rows. Identify what can be mirrored, parsed,
-cited manually, deferred, or marked unsupported.
+The committed Markdown corpus is now usable as page-cited source material.
+Future work should identify which sections become parsed input, cited
+corrections, or deferred reference material.
 
 ### Slice 2: Minimal Fixture Corpus
 
@@ -494,9 +500,9 @@ Add:
 
 ```text
 knowledge/mac_os_corrections.json
-mac-platform-kb corrections list
-mac-platform-kb corrections check
-mac-platform-kb corrections promote <id> --reviewer <name>
+macos-platform-kb corrections list
+macos-platform-kb corrections check
+macos-platform-kb corrections promote <id> --reviewer <name>
 ```
 
 ### Slice 6: Generated Runtime Metadata Skeleton
@@ -522,13 +528,13 @@ Mac-to-Atari porting assistance.
 Candidate artifacts:
 
 ```text
-knowledge/mac_os_source_inventory.json
+knowledge/macos_source_inventory.json
 knowledge/mac_os_file_format.json
 knowledge/mac_os_resource_format.json
 knowledge/mac_os_traps.json
 knowledge/mac_os_corrections.json
 src/generated/mac_os_*.c/.h
-resources/platform_mac_os/
+ext/docs_macos/
 docs/proposals/012-classic-mac-os-m68k-platform.md
 RESOURCES.md
 ```
@@ -572,7 +578,7 @@ Initial tests:
 
 ```text
 source inventory schema tests
-mac-platform-kb report/check tests
+macos-platform-kb report/check tests
 fixture recognition test
 container/resource metadata smoke test
 m68k listing smoke test
@@ -598,7 +604,7 @@ Before closing this proposal:
 - Promote durable issue reasoning into this proposal.
 - Delete completed `docs/issues/012-*` issue files.
 - Remove stale TODO entries.
-- Document `mac-platform-kb report/check` if implemented.
+- Document `macos-platform-kb report/check` if implemented.
 - Record skipped external checks and why.
 
 ## Verification

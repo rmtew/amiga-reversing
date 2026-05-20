@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "source_id": "inside-macintosh-volume-iv-1986-md",
+  "title": "Inside Macintosh Volume IV",
+  "publisher": "Apple Computer",
+  "year": 1986,
+  "domain": [
+    "classic-macos",
+    "toolbox",
+    "m68k"
+  ],
+  "paths": {
+    "source_pdf": "resources/platform_macos/docs/Inside_Macintosh_Volume_IV_1986.pdf",
+    "ocr_pdf": null,
+    "baseline_md": "resources/platform_macos/docs/Inside_Macintosh_Volume_IV_1986.baseline.md",
+    "final_md": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md"
+  },
+  "sha256": {
+    "source_pdf": "17bb3f9719523b18b4a3e70343c622b6c1a19e9d1c2c0ef0e2e409527ed17a50",
+    "ocr_pdf": null,
+    "baseline_md": "4edd611dadca51498fa6379b05e81b1a3b54be980043eeb585c2ae6ab8482991",
+    "final_md": "8bf93772c0c0029774ddea2b0176492797c7629eaa1d30c9f8761469d4f01353"
+  },
+  "conversion": {
+    "ocr_tool": null,
+    "ocr_options": [],
+    "markdown_tool": "src/scripts/kb/pdf_to_markdown.py"
+  },
+  "probe": {
+    "page_count": 334,
+    "text_pages": 334,
+    "empty_text_pages": 0,
+    "low_text_pages": [
+      4,
+      11,
+      40,
+      74,
+      82,
+      224,
+      241,
+      247,
+      266,
+      290,
+      302,
+      304,
+      308,
+      310,
+      314,
+      316,
+      324
+    ],
+    "image_blocks": 480,
+    "needs_ocr": false
+  },
+  "amendments": [
+    {
+      "page": 1,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_001.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "candidate_repair"
+    },
+    {
+      "page": 4,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_004.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 6,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_006.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "candidate_repair"
+    },
+    {
+      "page": 11,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_011.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 40,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_040.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 74,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_074.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 82,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_082.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 127,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_127.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 224,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_224.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 241,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_241.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 247,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_247.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 266,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_266.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 290,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_290.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 302,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_302.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 304,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_304.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 308,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_308.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 310,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_310.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 314,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_314.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 316,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_316.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    },
+    {
+      "page": 324,
+      "method": "glm-ocr-q8_0",
+      "reason": "baseline OCR page has low or empty text",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_324.glm.md",
+      "review_status": "seeded",
+      "dpi": 180,
+      "quality": "short_or_title_only"
+    }
+  ],
+  "remaining_review": {
+    "weak_pages": [
+      1,
+      4,
+      6,
+      11,
+      40,
+      74,
+      82,
+      127,
+      224,
+      241,
+      247,
+      266,
+      290,
+      302,
+      304,
+      308,
+      310,
+      314,
+      316,
+      324
+    ],
+    "code_or_symbol_pages": [],
+    "glm_targeted_pages": [
+      1,
+      6,
+      127
+    ]
+  },
+  "usage": {
+    "citation_quality": "page",
+    "machine_readable": true,
+    "decision": "cite_manually",
+    "review_status": "seeded"
+  },
+  "license_notes": "Local reference markdown generated from user-supplied source material.",
+  "cleanup": {
+    "tool": "src/scripts/kb/clean_pdf_md.py",
+    "rules": [
+      "alpha_hyphen_join"
+    ],
+    "counts": {
+      "alpha_hyphen_join": 22,
+      "blank_line_collapse": 0,
+      "empty_table_drop": 0
+    },
+    "final_md_sha256_after": "8bf93772c0c0029774ddea2b0176492797c7629eaa1d30c9f8761469d4f01353"
+  }
+}
