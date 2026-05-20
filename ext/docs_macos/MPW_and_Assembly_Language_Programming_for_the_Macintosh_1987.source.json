@@ -44,9 +44,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_001.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 2,
@@ -75,9 +77,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_334.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     }
   ],
   "remaining_review": {

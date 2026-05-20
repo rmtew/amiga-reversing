@@ -66,18 +66,22 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_001.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 4,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_004.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 6,
@@ -95,63 +99,77 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_011.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 17,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_017.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 61,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_061.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 63,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_063.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 75,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_075.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 85,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_085.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 87,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_087.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 96,
@@ -169,153 +187,187 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_155.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 181,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_181.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 183,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_183.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 217,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_217.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 219,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_219.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 229,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_229.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 231,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_231.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 251,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_251.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 253,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_253.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 269,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_269.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 355,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_355.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 357,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_357.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 365,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_365.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 377,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_377.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 403,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_403.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 411,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_411.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     },
     {
       "page": 413,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_413.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "short_or_title_only"
+      "quality": "short_or_title_only",
+      "reviewed_by": "codex",
+      "review_note": "Bulk-rejected: short/title-only GLM output adds no material citation or readability value over the baseline page."
     }
   ],
   "remaining_review": {
