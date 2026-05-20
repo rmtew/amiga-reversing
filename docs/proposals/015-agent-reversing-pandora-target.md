@@ -1002,6 +1002,37 @@ the intended location.
   as `$019E(a6)`, `$01D4(a6)`, or `$01D8(a6)`, whose object/buffer lifetimes are
   still ambiguous enough to require a separate evidence pass.
 
+### 015-027: Name palette effect countdown app slot
+
+* Candidate: raw app-state coverage for `$0195(a6)`, a byte countdown used by
+  the palette/callback effect code.
+* Evidence: the callback installed at `app_0360(a6)` steps through palette
+  routines around `s0:00000DE0`, `s0:00000E14`, and `s0:00000E4E`. These
+  routines wait for the raster position byte to change, copy palette words into
+  custom chip color registers, then decrement `$0195(a6)` until zero before
+  advancing the callback. Initializers set `$0195(a6)` to `$20`, `$18`, or `$08`
+  for the active palette effect phase.
+* Command: executed `target.rsset_region.add` through the target command
+  catalog with `layout_name: app`, `base_symbol: __amiga_app_base__`,
+  `offset: $0195`, `size: 1`, and `symbol: app_palette_effect_countdown`.
+* Verifier: Manual Action Log count is 26 with head hash
+  `076dea0c5d4541e010948c2b583b15fa7c0a696816497a55feabd22037c8e6fc`;
+  semantic reload shows `$0195` as a 1-byte RSSET region; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Timing: command execution appended the manual action in about 0.002s; listing
+  projection regeneration/readback was about 9s; exact reproduction completed in
+  about 1.2s.
+* Result: rendered source now defines `app_palette_effect_countdown RS.B 1` and
+  listing projection shows eight rows containing the name, including
+  `subq.b #1,app_palette_effect_countdown(a6)`,
+  `move.b #$18,app_palette_effect_countdown(a6)`, and
+  `move.b #$20,app_palette_effect_countdown(a6)`.
+* Review: the name is intentionally limited to the observed palette-effect
+  countdown behavior. It does not classify the surrounding palette tables,
+  callback slot type, or raw custom-register-looking A5 offsets, which need
+  separate supported actions and verifier coverage.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
