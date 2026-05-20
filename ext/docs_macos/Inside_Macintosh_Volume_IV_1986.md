@@ -5849,11 +5849,9 @@ LONGINT;
 INTEGER);
 {used by Device Manager}
 END;
-CMovePBPtr
-CMovePBRec
-qLink:
-= ACMovePBRec;
-RECORD
+CMovePBPtr = ^CMovePBRec;
+CMovePBRec = RECORD
+qLink: QElemPtr;
 qType:
 ioTrap:
 ioCmdAddr:
@@ -11646,11 +11644,9 @@ The File Manager
 {nurnber of unused allocation blocks}
 {used by Device Manager}
 END;
-HParmBlkPtr
-HParamBlockRec
-qLink:
-= "HParamBlockRec;
-=RECORD
+HParmBlkPtr = ^HParamBlockRec;
+HParamBlockRec = RECORD
+qLink: QElemPtr;
 qType:
 ioTrap:
 ioCmdAddr:

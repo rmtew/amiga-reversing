@@ -4969,18 +4969,15 @@ l;
 Data Types
 TYPE ParamBlkType
 (ioParam,fileParam,volumeParam,cntrlParam);
-ParmBlkPtr
-ParamBlockRec
-qLink:
-= AParamBlockRec;
-RECORD
+ParmBlkPtr = ^ParamBlockRec;
+ParamBlockRec = RECORD
+qLink: QElemPtr; {next queue entry}
 qType:
 ioTrap :
 ioCrndAddr:
 ioCompletion:
 ioResult:
 ioNamePtr:
-{next queue entry}
 {queue type}
 {routine trap}
 {routine address}

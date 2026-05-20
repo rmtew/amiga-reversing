@@ -1,8 +1,8 @@
 {
   "schema": "macos_doc_source_amendments.v1",
   "docs": "ext/docs_macos",
-  "selection": "Manual source-review amendments for split Pascal assignments where the surrounding Markdown made the intended assignment clear. More damaged record-layout cases stay in macos_text_audit.json as source_review.",
-  "amendment_count": 4,
+  "selection": "Manual source-review amendments where the surrounding Markdown or MPW Pascal interfaces made the intended text clear.",
+  "amendment_count": 7,
   "amendments": [
     {
       "document": "Inside_Macintosh_Volume_I_1985.md",
@@ -35,6 +35,30 @@
       "before": ": =",
       "after": ":=",
       "reason": "Split assignment following s2 [w]."
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 80,
+      "line": 4974,
+      "before": "ParmBlkPtr / ParamBlockRec / qLink: / = AParamBlockRec; / RECORD",
+      "after": "ParmBlkPtr = ^ParamBlockRec; / ParamBlockRec = RECORD / qLink: QElemPtr;",
+      "reason": "Verified against ext/macos_includes/mpw_gm/Interfaces/PInterfaces/Files.p lines 366 and 506-507."
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "page": 127,
+      "line": 5854,
+      "before": "CMovePBPtr / CMovePBRec / qLink: / = ACMovePBRec; / RECORD",
+      "after": "CMovePBPtr = ^CMovePBRec; / CMovePBRec = RECORD / qLink: QElemPtr;",
+      "reason": "Verified against ext/macos_includes/mpw_gm/Interfaces/PInterfaces/Files.p lines 1264-1266 and 1282."
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "page": 195,
+      "line": 11651,
+      "before": "HParmBlkPtr / HParamBlockRec / qLink: / = \"HParamBlockRec; / =RECORD",
+      "after": "HParmBlkPtr = ^HParamBlockRec; / HParamBlockRec = RECORD / qLink: QElemPtr;",
+      "reason": "Verified against ext/macos_includes/mpw_gm/Interfaces/PInterfaces/Files.p lines 1123-1125 and 1262."
     }
   ]
 }
