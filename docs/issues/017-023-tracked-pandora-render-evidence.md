@@ -40,7 +40,10 @@ Resolution:
 - Added `docs/validation/pandora-017-rerun-2026-05-21.md` as the tracked
   evidence boundary for 017 source-quality review.
 - Kept timestamp-only `.project.json` churn out of tracked evidence.
-- The tracked `.s` render carries accepted render-safe A5 hardware-reference
-  improvements. Local Manual Action Log state remains required to reproduce all
-  accepted 017 state; the report records the current action count/head hash and
-  exact round-trip status.
+- No refreshed `.s` render was committed in this closeout. The tracked `.s`
+  remains a historical source artifact from earlier Pandora work and should not
+  be read as a complete 017 rerun artifact.
+- Full 017 local/manual reproduction requires Manual Action Log count 58 with
+  head hash
+  `3cbe93c200fd62d091b67c5b096c7b2221e3b57bf30f222272633a4342deed35`; the
+  validation report records that boundary and the exact round-trip status.

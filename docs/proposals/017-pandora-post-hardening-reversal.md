@@ -345,9 +345,9 @@ repeatable work to `docs\issues\017-*`.
   immediate source-offset candidates need a deliberate policy/verifier path
   before any mutation. These were promoted to `017-023` through `017-027`.
 - 017-023 added `docs/validation/pandora-017-rerun-2026-05-21.md` as the
-  tracked evidence boundary. The tracked `.s` contains the accepted render-safe
-  A5 hardware refs; full 017 local/manual reproduction requires Manual Action
-  Log count 58 with head hash
+  tracked evidence boundary. No refreshed `.s` render was committed in this
+  closeout; full 017 local/manual reproduction requires Manual Action Log count
+  58 with head hash
   `3cbe93c200fd62d091b67c5b096c7b2221e3b57bf30f222272633a4342deed35`.
 - 017-024 remains deferred. The remaining accepted A5 blocker is a
   zero-displacement `(a5)` use; replacing it with a symbolic displacement would

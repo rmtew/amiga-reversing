@@ -9,14 +9,14 @@ target-local Manual Action Log remains local state; timestamp-only
 
 ## Source Evidence Boundary
 
-- Tracked `.s` render: contains the accepted render-safe A5 hardware-reference
-  improvements, including `dmacon(a5)`, `intena(a5)`, `intreq(a5)`, and
-  `bltafwm(a5)`.
+- Tracked `.s` render: no refreshed `.s` artifact was committed for this
+  closeout. The existing tracked `.s` is a historical source artifact and is
+  not a complete 017 rerun artifact.
 - Local Manual Action Log: required to reproduce all accepted 017 manual state.
   Current count is 58 actions with head hash
   `3cbe93c200fd62d091b67c5b096c7b2221e3b57bf30f222272633a4342deed35`.
-- Immediate interpreted reference state is local/manual evidence; the tracked
-  `.s` does not add a new immediate-ref symbol in this rerun.
+- Immediate interpreted reference and accepted A5 hardware-reference state are
+  local/manual evidence for this closeout.
 - Round-trip status from `inspect`: `exact`.
 
 ## Gate Summary
