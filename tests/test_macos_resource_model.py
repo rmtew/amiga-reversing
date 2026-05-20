@@ -110,6 +110,24 @@ def test_sample_h_and_inc1_constants_resolve_resource_ids() -> None:
     assert by_name["MinSpace"]["value"] == 8 * 1024
 
 
+def test_unknown_symbolic_resource_ids_stay_unresolved() -> None:
+    parsed = parse_rez_source(
+        """
+resource 'RECT' (rMissingRect) {
+};
+resource 'WIND' (rWindow + kOffset) {
+};
+""",
+        path="Sample.r",
+        constants={},
+    )
+
+    assert parsed["resources"][0]["symbolic_id"] == "rMissingRect"
+    assert parsed["resources"][0]["numeric_id"] is None
+    assert parsed["resources"][1]["symbolic_id"] == "rWindow + kOffset"
+    assert parsed["resources"][1]["numeric_id"] is None
+
+
 def test_resource_xrefs_connect_sample_call_sites_to_resource_declarations() -> None:
     xrefs = build_resource_xrefs(
         {
@@ -152,6 +170,25 @@ def test_resource_xrefs_connect_sample_call_sites_to_resource_declarations() -> 
     assert get_resource["resource_type"] == "RECT"
     assert get_resource["id_source"] == "caller_supplied_parameter"
     assert get_resource["resource"] is None
+
+
+def test_unknown_resource_xref_symbol_stays_unresolved() -> None:
+    xrefs = build_resource_xrefs(
+        {"Sample.a": "\tMOVE.W #rMissingRect,-(SP)\n\tBSR GoGetRect\n"},
+        [],
+        {},
+    )
+
+    assert xrefs == [
+        {
+            "source": "Sample.a",
+            "line": 2,
+            "call": "GoGetRect",
+            "symbolic_id": "rMissingRect",
+            "numeric_id": None,
+            "resource": None,
+        }
+    ]
 
 
 def test_count_r_cmdo_smoke_inventory() -> None:

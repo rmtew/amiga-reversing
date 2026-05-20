@@ -233,25 +233,26 @@ def _strip_asm_comment(line: str) -> str:
     return line
 
 
-def _safe_int_expression(expression: str) -> int | None:
+def _safe_int_expression(expression: str, names: Mapping[str, int] | None = None) -> int | None:
     cleaned = re.sub(r"\$([0-9A-Fa-f]+)", r"0x\1", expression.strip())
-    cleaned = re.sub(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", "0", cleaned)
     try:
         node = ast.parse(cleaned, mode="eval").body
     except SyntaxError:
         return None
-    return _eval_int_node(node)
+    return _eval_int_node(node, names or {})
 
 
-def _eval_int_node(node: ast.AST) -> int | None:
+def _eval_int_node(node: ast.AST, names: Mapping[str, int]) -> int | None:
     if isinstance(node, ast.Constant) and isinstance(node.value, int):
         return node.value
+    if isinstance(node, ast.Name):
+        return names.get(node.id)
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
-        value = _eval_int_node(node.operand)
+        value = _eval_int_node(node.operand, names)
         return None if value is None else -value
     if isinstance(node, ast.BinOp):
-        left = _eval_int_node(node.left)
-        right = _eval_int_node(node.right)
+        left = _eval_int_node(node.left, names)
+        right = _eval_int_node(node.right, names)
         operation = _INT_OPERATORS.get(type(node.op))
         if left is None or right is None or operation is None:
             return None
@@ -260,7 +261,7 @@ def _eval_int_node(node: ast.AST) -> int | None:
 
 
 def _int_literal(expression: str) -> bool:
-    return _safe_int_expression(expression) is not None and not re.search(r"[A-Za-z_]", expression)
+    return _safe_int_expression(expression) is not None
 
 
 def _resolve_constant_or_int(
@@ -270,7 +271,12 @@ def _resolve_constant_or_int(
     if expression in constants:
         value = constants[expression].get("value")
         return value if isinstance(value, int) else None
-    return _safe_int_expression(expression)
+    resolved_names: dict[str, int] = {}
+    for name, constant in constants.items():
+        value = constant.get("value")
+        if isinstance(value, int):
+            resolved_names[name] = value
+    return _safe_int_expression(expression, resolved_names)
 
 
 def _source_call_name(code: str) -> str | None:

@@ -900,6 +900,11 @@ resources documentation coverage tests
   MacRoman make files decode MPW dependency/continuation glyphs as U+0192 and
   U+2202, so parser tests cover those forms separately from display-normalized
   text.
+- Post-review cleanup tightened earlier Mac parsers: unresolved Rez resource ID
+  expressions now remain unresolved instead of becoming numeric zero, MPW source
+  logical-line parsing accepts MacRoman continuation glyphs as well as
+  backslash, and fork role classification treats `XCOF`/`stub` library-like data
+  forks as object payloads alongside `OBJ `.
 
 ## Open Questions
 

@@ -86,6 +86,44 @@ def test_mpw_asm_classifies_resource_fork_as_executable_and_data_fork_as_payload
     }
 
 
+def test_object_and_library_like_payload_types_classify_as_object_payloads() -> None:
+    rows = classify_inventory_items(
+        [
+            {
+                "path": "MPW-GM/MPW/Examples/AExamples/Count.a.o",
+                "cnid": 1,
+                "type": "OBJ ",
+                "creator": "MPS ",
+                "data_size": 64,
+                "resource_size": 0,
+            },
+            {
+                "path": "MPW-GM/MPW/Libraries/Runtime.o",
+                "cnid": 2,
+                "type": "XCOF",
+                "creator": "MPS ",
+                "data_size": 128,
+                "resource_size": 0,
+            },
+            {
+                "path": "MPW-GM/MPW/Libraries/Interface.o",
+                "cnid": 3,
+                "type": "stub",
+                "creator": "MPS ",
+                "data_size": 256,
+                "resource_size": 0,
+            },
+        ]
+    )
+
+    assert [row["fork_roles"]["data"]["role"] for row in rows] == [
+        "object_payload",
+        "object_payload",
+        "object_payload",
+    ]
+    assert all(row["fork_roles"]["resource"]["role"] == "absent" for row in rows)
+
+
 def test_selected_inventory_drift_check_keeps_required_fixture_records_present() -> None:
     paths = [
         "MPW-GM/MPW/Examples/AExamples/Count.a",

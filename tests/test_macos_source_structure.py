@@ -97,6 +97,35 @@ def test_sample_source_structure_preserves_segments_routines_and_continued_impor
     ]
 
 
+def test_source_structure_accepts_mpw_continuation_glyphs() -> None:
+    parsed = parse_mpw_source_text(
+        "\n".join(
+            [
+                "Initialize\tPROC",
+                "\tIMPORT\tGoGetRect,AlertUser,\t\u2202",
+                "\t\tSysEnvirons,TrapAvailable",
+                "\tEXPORT\t(QD,\u00b6",
+                "\t\tG):DATA",
+                "\tENDP",
+            ]
+        ),
+        path="Sample.a",
+    )
+
+    assert [item["symbol"] for item in parsed["imports"]] == [
+        "GoGetRect",
+        "AlertUser",
+        "SysEnvirons",
+        "TrapAvailable",
+    ]
+    assert parsed["imports"][0]["line"] == 2
+    assert parsed["imports"][0]["line_end"] == 3
+    assert parsed["exports"] == [
+        {"symbol": "QD", "type": "DATA", "line": 4, "line_end": 5, "routine": "Initialize", "segment": None},
+        {"symbol": "G", "type": "DATA", "line": 4, "line_end": 5, "routine": "Initialize", "segment": None},
+    ]
+
+
 def test_sample_misc_func_export_and_nested_with_scope() -> None:
     parsed = parse_mpw_source_text(
         "\n".join(

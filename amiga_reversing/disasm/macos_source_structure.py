@@ -25,6 +25,7 @@ _DIRECTIVES = frozenset(
 
 _ROUTINE_STARTS = frozenset({"MAIN", "PROC", "FUNC"})
 _ROUTINE_ENDS = frozenset({"ENDP", "ENDF", "ENDPROC"})
+_CONTINUATION_SUFFIXES = ("\\", "\u00b6", "\u2202")
 
 
 def parse_mpw_source_files(paths: list[Path]) -> dict[str, object]:
@@ -204,7 +205,7 @@ def _logical_lines(lines: list[str]) -> list[dict[str, object]]:
         stripped = line.rstrip()
         if not buffer:
             start_line = index
-        if stripped.endswith("\\"):
+        if stripped.endswith(_CONTINUATION_SUFFIXES):
             buffer += stripped[:-1] + " "
             continue
         buffer += stripped

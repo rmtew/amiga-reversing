@@ -9,6 +9,7 @@ AEXAMPLES_EVIDENCE = "docs/macos-initial-analysis-research.md:276-290"
 ASM_EVIDENCE = "docs/macos-initial-analysis-research.md:294-309"
 OBJECT_EVIDENCE = "docs/macos-initial-analysis-research.md:311-321"
 ASM_CODE_RESOURCE_EVIDENCE = "ext/macos_tools/mpw_gm/asm_code_resources.json"
+OBJECT_PAYLOAD_TYPES = frozenset({"OBJ ", "XCOF", "stub"})
 
 
 def resource_type_counts(resource_fork_summary: Mapping[str, object]) -> dict[str, int]:
@@ -75,7 +76,7 @@ def _classify_data_fork(path: str, file_type: str, creator: str, size: int) -> d
         return _role("source_text", INVENTORY_EVIDENCE, AEXAMPLES_EVIDENCE)
     if _is_mpw_asm(path, file_type, creator):
         return _role("data_string_payload", INVENTORY_EVIDENCE, ASM_EVIDENCE)
-    if file_type == "OBJ ":
+    if file_type in OBJECT_PAYLOAD_TYPES:
         return _role("object_payload", INVENTORY_EVIDENCE, OBJECT_EVIDENCE)
     return _role("unknown", INVENTORY_EVIDENCE)
 
