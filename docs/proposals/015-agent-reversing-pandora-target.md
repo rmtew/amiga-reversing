@@ -5,6 +5,10 @@ editing features added in proposal 014.
 
 Status: closed after the 015-034 Pandora trial and final review.
 
+Follow-up hardening work moved to
+`docs/proposals/016-pandora-reversing-loop-hardening.md`. This proposal remains
+the historical Pandora trial archive.
+
 ## Goals
 
 * Agent runs the reversing loop to trial the editing features added in
