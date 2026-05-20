@@ -30,24 +30,24 @@ assumptions.
 Proposal 011 covers Atari ST platform knowledge cleanup. This proposal is the
 Mac counterpart and architecture pressure test.
 
-## Checkpoint Index
+## Section Index
 
-- [ ] Target Outcome
-- [ ] Why This Exists
-- [ ] Evidence
-- [ ] Current Inputs
-- [ ] Research Path Before Issue Breakdown
-- [ ] Platform Shape
-- [ ] Build Provenance And Deferred Roundtrip Model
-- [ ] Provenance And KB Policy
-- [ ] Implementation Slices
-- [ ] Issue Breakdown Seed
-- [ ] Artifact Ownership
-- [ ] Non-Goals
-- [ ] Acceptance Criteria
-- [ ] Verification Plan
-- [ ] Open Questions
-- [ ] Deletion Checklist
+- Target Outcome
+- Why This Exists
+- Evidence
+- Current Inputs
+- Research Path Before Issue Breakdown
+- Platform Shape
+- Build Provenance And Deferred Roundtrip Model
+- Provenance And KB Policy
+- Implementation Slices
+- Issue Breakdown Seed
+- Artifact Ownership
+- Non-Goals
+- Acceptance Criteria
+- Verification Plan
+- Open Questions
+- Closeout Checklist
 
 ## Target Outcome
 
@@ -969,6 +969,10 @@ resources documentation coverage tests
   listing smoke path, and starter web payload/rendering tests. Full Mac target
   lifecycle creation, Segment Loader fixups, source-to-CODE mapping, and
   byte-for-byte roundtrip remain explicit future work.
+- 012-012 replaced the stale unchecked checkpoint list with a neutral section
+  index. Completed `docs/issues/012-*` files remain in place for now because
+  the active thread objective still uses them as the per-issue evidence trail;
+  deleting them is deferred until this working objective is closed.
 
 ## Open Questions
 
@@ -984,14 +988,17 @@ resources documentation coverage tests
 - What target metadata field names should be shared across Amiga, Atari ST, and
   Mac for source container information?
 
-## Deletion Checklist
+## Closeout Checklist
 
-Before closing this proposal:
+Starter milestone closeout state:
 
-- Promote durable issue reasoning into this proposal.
-- Delete completed `docs/issues/012-*` issue files.
-- Remove stale TODO entries.
-- Record skipped external checks and why.
+- Durable issue reasoning is promoted into this proposal's implementation
+  observations.
+- Completed `docs/issues/012-*` issue files are intentionally retained while
+  the active working objective still references them as per-issue evidence.
+- Stale unchecked checkpoint markers have been removed.
+- Skipped external checks are represented by optional-fixture skips in the Mac
+  tests and by `RESOURCES.md` fixture documentation.
 
 ## Verification
 
