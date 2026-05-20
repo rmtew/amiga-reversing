@@ -681,6 +681,51 @@ the intended location.
 * Next recommendation: inspect the remaining four orphan-code review items and
   record blockers for any item that has only terminal-decode evidence.
 
+### 015-017: Block remaining terminal-decode-only review items
+
+* Candidate: final Manual Review Items pass over the four remaining
+  `orphan_code_candidate` entries and the low-confidence
+  `unreconciled_data_range` list.
+* Evidence: the Review surface now reports 106 items, including four orphan
+  code candidates:
+  * `orphan_code_candidate:h0:$00001094-$0000109e`, fingerprint
+    `73a73a274dfa43adf52bf5543003daabde3eae3262bd235f819bbacdd5d7d3f9`,
+    sits between an accepted `rts` and credited text data.
+  * `orphan_code_candidate:h0:$00002656-$00002664`, fingerprint
+    `8e4ecf8c5246b7fcd1f2478ada78dd549ba43e6e0888f5adbfb23f4394968917`,
+    decodes as a short interrupt-level/callback-slot helper but has no
+    accepted inbound reference.
+  * `orphan_code_candidate:h0:$00006014-$0000602a`, fingerprint
+    `4533eb5476c056a2f2d5634d706dd9bb548a59ea21ae8b37733949437a16e629`,
+    is part of a plausible bit-test helper sequence but has no accepted
+    inbound reference.
+  * `orphan_code_candidate:h0:$0004b0ce-$0004b0ea`, fingerprint
+    `faa21cb8c92384da034d56ed2901619f446e1e7b0404541a6439caf88d4bfb53`,
+    begins a large plausible code/data region after pointer-store setup, but
+    the selected item still has no accepted inbound reference.
+* Command: no mutation. Catalogs expose `review.seed.code` and
+  `review.resolve.data_or_padding` for orphan items, and many data seed roles
+  plus `review.resolve.opaque_data` for unreconciled data ranges.
+* Verifier: not run for a mutation. The exact reproduction report remains
+  `status: exact`, `stale: false` from 015-016.
+* Timing: listing search for accepted references to the four labels took about
+  4.8s; review item refresh took about 3.7s.
+* Result: no remaining item was cleared. Command availability alone would only
+  reduce review count; it would not add a verified source fact.
+* Blockers:
+  * orphan code items need accepted inbound control-flow, callback-slot,
+    dispatch-table, or same-family evidence before `review.seed.code` is safe,
+  * data ranges need type-specific evidence before selecting a data role or
+    resolving as opaque data,
+  * the callback-slot/stored-pointer report in D001 remains the right support
+    path for items like `$00002656`.
+* Review: this pass intentionally stops broad orphan-code conversion. The
+  supported action/verifier path works when evidence is concrete, but the
+  remaining review items do not yet meet the evidence threshold.
+* Next recommendation: pause Manual Review Item mutation here; resume with a
+  targeted stored-pointer/callback-slot report or another source-converging
+  candidate family rather than clearing terminal-decode-only items.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
