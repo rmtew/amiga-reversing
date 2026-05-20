@@ -1,6 +1,6 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: starter research slice implemented; full platform completion remains open.
+Status: blocked on C-backed Mac platform path; starter research slice implemented.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -829,7 +829,7 @@ fork, CODE resource, and unsupported state.
 Document optional MPW-GM fixture paths and the Mac platform inventory check.
 ```
 
-012-013. C-backed Mac platform parser/import parity - open
+012-013. C-backed Mac platform parser/import parity - blocked
 
 ```text
 Promote durable Mac HFS, fork, resource fork, CODE metadata, and selected CODE
@@ -837,7 +837,7 @@ segment import behavior into C APIs matching the Amiga/Atari platform boundary.
 Keep Python as wrapper/report/editing code only.
 ```
 
-012-014. Mac project/API/web integration - open
+012-014. Mac project/API/web integration - blocked
 
 ```text
 Create a real Mac OS project path whose server payload uses `macos` and whose
@@ -852,21 +852,21 @@ Feed source render and analysis from generated Mac OS metadata, not handcrafted
 Python dictionaries in tests or view assembly.
 ```
 
-012-016. Real CODE listing view - open
+012-016. Real CODE listing view - blocked
 
 ```text
 Render selected nonzero CODE resources as actual m68k listing rows in the web
 UI, not just a word preview in a container summary.
 ```
 
-012-017. Core platform framework cleanup - open
+012-017. Core platform framework cleanup - blocked
 
 ```text
 Remove any Mac-only side paths discovered during implementation by extending
 shared platform source/container/project/listing abstractions cleanly.
 ```
 
-012-018. Mac OS example target artifact - open
+012-018. Mac OS example target artifact - blocked
 
 ```text
 Commit an illustrative evolving Mac OS target under `targets/macos_hfs_mpw_gm/`
@@ -1097,6 +1097,12 @@ resources documentation coverage tests
   tests. The generated runtime now emits `src/generated/mac_os_runtime.json`,
   source project assembly loads that generated metadata by default, and render
   payloads record the generated metadata source.
+- Post-012-015 review found the remaining completion issues all depend on the
+  same missing foundation: C-backed Mac HFS/resource/CODE import and a shared
+  Mac project/listing schema. The Python helper path remains useful research
+  evidence, but it must not be promoted as the durable implementation. Issues
+  012-013, 012-014, 012-016, 012-017, and 012-018 are therefore blocked rather
+  than open-ended.
 
 ## Open Questions
 

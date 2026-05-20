@@ -1,4 +1,4 @@
-Status: Open
+Status: blocked
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -54,3 +54,14 @@ Required tests:
 - Drift test against committed MPW `Asm` metadata when the real fixture is
   available.
 - `cmd /c src\precommit.bat`.
+
+Blocker recorded:
+- 012-015 removed handcrafted Mac runtime metadata from the render path, but the
+  durable Mac container/import path is still Python-only research code.
+- `src/` has no C-backed HFS catalog/file/fork parser, Classic Mac resource
+  fork parser, CODE inventory/extraction path, or Mac project metadata serializer
+  equivalent to the Amiga/Atari platform backends.
+- Do not promote the Python helper path as the accepted durable implementation.
+  The next viable 012 slice is a C platform-file backend extension that owns HFS
+  file lookup, fork/resource metadata, CODE 0/nonzero CODE inventory, and
+  selected CODE byte extraction.

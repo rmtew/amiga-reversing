@@ -1,4 +1,4 @@
-Status: Open
+Status: blocked
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -29,3 +29,13 @@ Required tests:
 - Regression tests proving existing Amiga/Atari imports still use the shared
   framework path.
 - Review checklist confirming no Mac-only workaround path remains.
+
+Blocker recorded:
+- Mac still exposes framework gaps: source projects, HFS file/fork containers,
+  resource-fork metadata, selected CODE listing ranges, and unsupported Segment
+  Loader state do not fit the current binary/disk project split cleanly.
+- The clean path is to extend shared framework types before committing a Mac
+  target/API/listing path. A Mac-only compatibility branch or `classic_macos`
+  alias is explicitly rejected.
+- This issue remains blocked until 012-013 defines the durable C-backed Mac
+  container facts and 012-014 defines their normal project/API shape.

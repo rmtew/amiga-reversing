@@ -1,4 +1,4 @@
-Status: Open
+Status: blocked
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -42,3 +42,12 @@ Required tests:
 - Regression tests for existing Amiga/Atari project payload branches.
 - Required-fixture gate or explicit skip report for environments missing the
   MPW-GM image/provider.
+
+Blocker recorded:
+- The normal project/server model currently has binary and disk project kinds;
+  no first-class Mac project kind or C-backed Mac project payload exists.
+- The prototype web payload still requires direct helper construction. Promoting
+  that path would preserve `classic_macos` compatibility behavior instead of
+  replacing it with the shared `macos` project flow.
+- This remains blocked by 012-013 and the shared project/schema extension needed
+  to expose source/container/listing state through the normal route.

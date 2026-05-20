@@ -1,4 +1,4 @@
-Status: Open
+Status: blocked
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -77,3 +77,10 @@ Required tests:
 - Drift check for the committed `asm.s`.
 - Regression check that existing Amiga/Atari target rendering still uses the
   shared framework path.
+
+Blocker recorded:
+- Do not commit a Mac target generated only by the current Python prototype.
+- The example target remains blocked until the C-backed Mac container/project
+  path can generate a normal target/subtarget and the shared listing framework
+  can render selected CODE resources as real m68k rows.
+- Timestamp-only or helper-only target state is not accepted as 012 progress.

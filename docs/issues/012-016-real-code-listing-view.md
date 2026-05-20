@@ -1,4 +1,4 @@
-Status: Open
+Status: blocked
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -26,3 +26,11 @@ Required tests:
 - Server API listing payload test for the Mac CODE segment.
 - Web smoke/e2e test showing CODE listing rows and container metadata together.
 - Regression test for existing raw binary listing behavior.
+
+Blocker recorded:
+- The Python container smoke path can extract `CODE 1 Main` bytes, but the
+  shared listing framework does not yet import a Mac CODE resource as a normal
+  project listing source/range.
+- Keeping the current word preview as the accepted UI listing would be a
+  Mac-only side path. This issue remains blocked by the C-backed container path
+  and shared listing/source schema work from 012-013 and 012-014.
