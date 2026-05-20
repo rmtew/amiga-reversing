@@ -702,7 +702,7 @@ The issue split should follow `docs/macos-initial-analysis-research.md` and keep
 source rendering separate from binary container import while covering both in
 the same starter milestone. Local working issues live under `docs/issues/`.
 
-1. HFS/fork role inventory
+1. HFS/fork role inventory - implemented
 
 ```text
 Classify source text, editor metadata, executable resource forks,
@@ -871,6 +871,18 @@ byte-for-byte roundtrip tests, if roundtrip becomes a goal
 cross-platform semantic mapping tests
 resources documentation coverage tests
 ```
+
+## Implementation Observations
+
+- 012-001 implemented fork-role classification as an enrichment layer over
+  `ext/macos_includes/mpw_gm/inventory.json`; the extractor keeps its historical
+  inventory output unless `--fork-roles` is requested.
+- The MPW `Asm` executable role can be classified from Finder metadata and local
+  research, but the observed `CODE: 28` count remains evidence from
+  `ext/macos_tools/mpw_gm/asm_code_resources.json`.
+- Full-tree mypy currently has unrelated strict typing failures outside the Mac
+  fork-role work; focused direct mypy is used for the new module until that
+  wider baseline is cleaned up.
 
 ## Open Questions
 

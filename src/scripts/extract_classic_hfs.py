@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from amiga_reversing.disasm.macos_fork_roles import classify_inventory_items
 
 CATALOG_ROOT_PARENT_ID = 1
 ROOT_DIR_ID = 2
@@ -207,6 +208,7 @@ def main() -> int:
     parser.add_argument("--extract", type=Path)
     parser.add_argument("--path-prefix", default="")
     parser.add_argument("--resource-forks", action="store_true")
+    parser.add_argument("--fork-roles", action="store_true")
     args = parser.parse_args()
 
     image = HFSImage(args.image.read_bytes())
@@ -244,6 +246,8 @@ def main() -> int:
             write_file(out_path, image.fork_bytes(file_record.resource_extents, file_record.resource_size))
 
     inventory["items"] = items
+    if args.fork_roles:
+        inventory["items"] = classify_inventory_items(items)
     if args.inventory:
         args.inventory.parent.mkdir(parents=True, exist_ok=True)
         args.inventory.write_text(json.dumps(inventory, indent=2) + "\n", encoding="utf-8")

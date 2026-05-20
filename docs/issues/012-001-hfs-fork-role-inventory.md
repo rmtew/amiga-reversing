@@ -1,4 +1,4 @@
-Status: Open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -44,3 +44,25 @@ into Proposal 012 or runtime docs.
 Notes for agents:
 Keep role classification separate from parsing. A source fork role does not
 mean the parser can fully understand MPW assembly yet.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_fork_roles` as a deterministic enrichment
+  layer over the committed MPW-GM inventory.
+- Added `--fork-roles` to `src/scripts/extract_classic_hfs.py`; the default
+  inventory output stays unchanged.
+- Focused roles implemented now: `source_text`, `editor_metadata`,
+  `executable_resource_fork`, `data_string_payload`, `object_payload`,
+  `unknown`, and `absent`.
+
+Review notes:
+- Role evidence cites `docs/macos-initial-analysis-research.md` plus committed
+  inventory metadata; `Asm` CODE count is attached only when the inspected
+  resource summary is supplied.
+- Unknown nonzero forks remain explicit `unknown`; no broad TEXT/MPS guessing.
+- Full-tree mypy currently reports unrelated existing failures. The new module
+  passes direct mypy.
+
+Verification:
+- `uv run python -m pytest tests\test_mac_fork_roles.py tests\test_mac_resource_fork.py -q`
+- `uv run ruff check amiga_reversing\disasm\macos_fork_roles.py src\scripts\extract_classic_hfs.py tests\test_mac_fork_roles.py`
+- `uv run mypy amiga_reversing\disasm\macos_fork_roles.py`
