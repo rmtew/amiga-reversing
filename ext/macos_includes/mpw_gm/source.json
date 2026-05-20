@@ -27,5 +27,17 @@
     "file_count": 1232,
     "byte_count": 33387084
   },
+  "derived_indexes": [
+    {
+      "path": "ext/macos_includes/mpw_gm/index.json",
+      "tool": "src/scripts/index_macos_includes.py",
+      "schema": "macos_include_index.v1",
+      "indexed_sets": [
+        "CIncludes/*.h",
+        "AIncludes/*.a",
+        "RIncludes/*.r"
+      ]
+    }
+  ],
   "purpose": "Base-truth Classic Mac OS interfaces for cross-checking parsed documentation and OCR/LLM-derived knowledge."
 }

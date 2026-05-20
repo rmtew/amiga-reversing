@@ -10,3 +10,10 @@ Current snapshot:
   - extracted from `resources/platform_macos/MPW-GM.img.bin`
   - contains MPW `Interfaces&Libraries:Interfaces` data forks
   - original Classic Mac line endings and bytes are preserved
+
+Derived files:
+
+- `mpw_gm/inventory.json`: full HFS catalog inventory from the decoded image.
+- `mpw_gm/source.json`: source and extraction metadata.
+- `mpw_gm/index.json`: conservative symbol index generated from C, assembler,
+  and Rez includes for cross-checking documentation-derived facts.
