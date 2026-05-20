@@ -6433,6 +6433,51 @@ def test_listing_representation_candidates_skip_bit_mask_immediates() -> None:
     assert reversing_loop._listing_representation_candidates([_byte_immediate_row(opcode="ori.b")]) == []
 
 
+def test_immediate_runtime_reference_report_accepts_known_runtime_range() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x120, end_offset=0x140)
+    data_row["runtime_address"] = 0x5C720
+
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x5C72A), data_row]
+    )
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["status"] == "accepted"
+    assert candidate["source_family"] == "runtime_address"
+    assert candidate["target"] == {"section_index": 0, "source_offset": 0x12A, "runtime_address": 0x5C72A}
+    assert candidate["instruction_context"]["operand_index"] == 0
+    assert candidate["current_render_state"]["text"] == "\tmove.l #$05C72A,$100\n"
+    assert candidate["write_policy"]["status"] == "report_only"
+
+
+def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> None:
+    first = _listing_row(row_key="data-row-1", kind="data", start_offset=0x120, end_offset=0x140)
+    first["runtime_address"] = 0x5C720
+    second = _listing_row(row_key="data-row-2", kind="data", start_offset=0x220, end_offset=0x240)
+    second["runtime_address"] = 0x5C720
+
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x5C72A), first, second]
+    )
+
+    assert candidates[0]["status"] == "conflicting"
+    assert candidates[0]["source_family"] == "ambiguous"
+    assert [conflict["target"]["source_offset"] for conflict in candidates[0]["conflicts"]] == [0x12A, 0x22A]
+
+
+def test_immediate_runtime_reference_report_skips_out_of_range_constants() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x120, end_offset=0x140)
+    data_row["runtime_address"] = 0x5C720
+
+    assert (
+        reversing_loop._listing_immediate_runtime_reference_report(
+            [_immediate_address_row(value=0x60000), data_row]
+        )
+        == []
+    )
+
+
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
     _target(tmp_path)
     _write_raw_source(tmp_path, entrypoint=2)
@@ -10956,6 +11001,30 @@ def _byte_immediate_row(*, opcode: str = "subi.b", width_bits: int = 8) -> dict[
             ],
             "operand_accesses": ["immediate", "register_write"],
             "operand_registers": [None, "D1"],
+        }
+    )
+    return row
+
+
+def _immediate_address_row(*, value: int) -> dict[str, object]:
+    row = _listing_row(row_key="code-row", text=f"\tmove.l #${value:06X},$100\n", start_offset=0x20, end_offset=0x26)
+    row.update(
+        {
+            "opcode_or_directive": "move.l",
+            "operand_text": f"#${value:06X},$100",
+            "operand_parts": [
+                {
+                    "kind": "immediate",
+                    "operand_index": 0,
+                    "value": value,
+                    "signed_value": value,
+                    "width_bits": 32,
+                    "width_bytes": 4,
+                    "metadata": {},
+                }
+            ],
+            "operand_accesses": ["immediate", "memory_write"],
+            "operand_registers": [None, None],
         }
     )
     return row

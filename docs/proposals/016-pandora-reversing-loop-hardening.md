@@ -67,3 +67,9 @@ there were no old issue files to delete.
   the same seed through both `action` and `actions`. Exact duplicate seed
   payloads and duplicate removal ids are collapsed before reporting, while
   distinct seed payloads remain visible.
+- 016-004 added a read-only `immediate-ref-report` for immediate constants that
+  fall inside known source/runtime ranges. The first Pandora validation was too
+  noisy because small immediates such as `#1` matched early source offsets, so
+  the report now ignores small constants and remains report-only until a
+  verifier-backed interpretation path exists. Pandora validation found 10
+  candidates after filtering, including one runtime-address family candidate.

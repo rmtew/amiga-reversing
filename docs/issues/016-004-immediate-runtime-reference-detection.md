@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Source proposal: docs/proposals/016-pandora-reversing-loop-hardening.md
 Moved from: docs/proposals/015-agent-reversing-pandora-target.md D006
 
@@ -24,3 +24,10 @@ Acceptance:
 - The report surfaces actionable Pandora immediate-reference candidates without
   mutating metadata.
 - Planner writes remain blocked until verifier-backed interpretation exists.
+
+Implementation:
+- Added `immediate-ref-report`, a read-only listing-backed report for immediate
+  constants that fall inside known source/runtime ranges.
+- Report entries include source family, target location, instruction context,
+  conflicts, current render state, and an explicit report-only write policy.
+- Focused tests cover accepted, conflicting, and out-of-range constants.

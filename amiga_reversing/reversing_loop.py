@@ -34,6 +34,7 @@ PARTIAL_ITERATION_STATUSES = frozenset({"started", "running", "partial"})
 _LISTING_COMMENT_SEARCH_ROW_COUNT = 512
 _LISTING_SOURCE_CANDIDATE_ROW_COUNT = 2048
 _LISTING_SOURCE_CANDIDATE_MAX_ROWS = 16384
+_MIN_IMMEDIATE_REFERENCE_VALUE = 0x1000
 _COMMAND_RANK = {
     "label.rename": 100,
     "review.seed.code": 92,
@@ -142,6 +143,10 @@ def _parse_int_auto(value: str) -> int:
     return int(value, 0)
 
 
+def _int_or_none(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Operate the agentic reversing loop.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
@@ -164,6 +169,13 @@ def main(argv: list[str] | None = None) -> int:
     callback_parser.add_argument("--slot-symbol")
     callback_parser.add_argument("--slot-offset", type=_parse_int_auto)
     callback_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    immediate_ref_parser = subparsers.add_parser(
+        "immediate-ref-report",
+        help="Report immediate constants that fall inside known source/runtime ranges.",
+    )
+    immediate_ref_parser.add_argument("--target", required=True)
+    immediate_ref_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
@@ -209,6 +221,15 @@ def main(argv: list[str] | None = None) -> int:
                 args.target,
                 slot_symbol=args.slot_symbol,
                 slot_offset=args.slot_offset,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "immediate-ref-report":
+        _print_json(
+            inspect_immediate_runtime_refs(
+                args.target,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
             )
@@ -284,6 +305,29 @@ def inspect_callback_slots(
         slot_symbol=slot_symbol,
         slot_offset=slot_offset,
     )
+    return report
+
+
+def inspect_immediate_runtime_refs(
+    target_id: str,
+    *,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    report: dict[str, object] = {
+        "target_id": target_id,
+        "hygiene": hygiene.to_dict(),
+        "safe_to_mutate": False,
+        "interpretation_policy": _immediate_reference_interpretation_policy(),
+    }
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    report["listing_open"] = listing_ready
+    if listing_ready.get("status") != "ready":
+        report["immediate_reference_candidates"] = []
+        return report
+    rows = _listing_all_rows(target_id)
+    report["immediate_reference_candidates"] = _listing_immediate_runtime_reference_report(rows)
     return report
 
 
@@ -1495,6 +1539,169 @@ def _listing_representation_candidates(
                 }
             )
     return candidates
+
+
+def _listing_immediate_runtime_reference_report(rows: list[object]) -> list[dict[str, object]]:
+    mapping_rows = [row for row in rows if isinstance(row, Mapping)]
+    known_ranges = _known_listing_address_ranges(mapping_rows)
+    candidates: list[dict[str, object]] = []
+    for row in mapping_rows:
+        locator = row.get("locator")
+        if not _is_full_listing_locator(locator):
+            continue
+        element_row = dict(row)
+        if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
+            element_row["stable_key"] = element_row["row_key"]
+        for context in listing_element_contexts(element_row):
+            if context.get("element_kind") != "immediate":
+                continue
+            value = context.get("value")
+            if not isinstance(value, int):
+                continue
+            if value < _MIN_IMMEDIATE_REFERENCE_VALUE:
+                continue
+            matches = _matching_known_address_ranges(value, known_ranges)
+            if not matches:
+                continue
+            row_key = cast(dict[str, object], locator).get("row_key")
+            operand_index = context.get("operand_index")
+            candidate_id = f"immediate-runtime-ref:{row_key}:{operand_index}:{value:08X}"
+            candidates.append(
+                {
+                    "id": candidate_id,
+                    "candidate_id": candidate_id,
+                    "kind": "immediate_runtime_reference",
+                    "status": "accepted" if len(matches) == 1 else "conflicting",
+                    "source_family": matches[0]["source_family"] if len(matches) == 1 else "ambiguous",
+                    "target": matches[0]["target"] if len(matches) == 1 else None,
+                    "source_range": matches[0] if len(matches) == 1 else None,
+                    "conflicts": [] if len(matches) == 1 else matches,
+                    "instruction_context": {
+                        "locator": dict(cast(dict[str, object], locator)),
+                        "row_key": row_key,
+                        "opcode": row.get("opcode_or_directive"),
+                        "operand_text": row.get("operand_text"),
+                        "element_id": context.get("element_id"),
+                        "operand_index": operand_index,
+                        "value": value,
+                        "width_bits": context.get("width_bits"),
+                        "width_bytes": context.get("width_bytes"),
+                    },
+                    "current_render_state": {
+                        "row_kind": row.get("kind"),
+                        "text": row.get("text"),
+                        "operand_text": row.get("operand_text"),
+                    },
+                    "write_policy": _immediate_reference_interpretation_policy(),
+                }
+            )
+    return sorted(
+        candidates,
+        key=lambda candidate: (
+            str(candidate.get("status")),
+            str(candidate.get("candidate_id")),
+        ),
+    )
+
+
+def _known_listing_address_ranges(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
+    ranges: list[dict[str, object]] = []
+    for row in rows:
+        locator = row.get("locator")
+        locator_payload = locator if isinstance(locator, Mapping) else row
+        section_index = _int_or_none(locator_payload.get("section_index"))
+        start = _int_or_none(locator_payload.get("start_offset"))
+        end = _int_or_none(locator_payload.get("end_offset"))
+        if section_index is not None and start is not None and end is not None and end > start:
+            ranges.append(
+                {
+                    "source_family": "source_offset",
+                    "section_index": section_index,
+                    "start": start,
+                    "end": end,
+                    "target": {"section_index": section_index, "source_offset": start},
+                }
+            )
+            runtime_address = _int_or_none(row.get("runtime_address"))
+            if runtime_address is not None:
+                ranges.append(
+                    {
+                        "source_family": "runtime_address",
+                        "section_index": section_index,
+                        "source_start": start,
+                        "source_end": end,
+                        "runtime_start": runtime_address,
+                        "runtime_end": runtime_address + (end - start),
+                        "target": {
+                            "section_index": section_index,
+                            "source_offset": start,
+                            "runtime_address": runtime_address,
+                        },
+                    }
+                )
+        for ref in _mapping_sequence(row.get("runtime_address_refs") or row.get("runtimeAddressRefs")):
+            ref_section = _int_or_none(ref.get("target_section_index") or ref.get("targetSectionIndex"))
+            ref_offset = _int_or_none(ref.get("target_offset") or ref.get("targetOffset"))
+            ref_runtime = _int_or_none(ref.get("runtime_address") or ref.get("runtimeAddress"))
+            ref_size = _int_or_none(ref.get("size")) or 1
+            if ref_section is None or ref_offset is None or ref_runtime is None or ref_size <= 0:
+                continue
+            ranges.append(
+                {
+                    "source_family": "runtime_address_ref",
+                    "section_index": ref_section,
+                    "source_start": ref_offset,
+                    "source_end": ref_offset + ref_size,
+                    "runtime_start": ref_runtime,
+                    "runtime_end": ref_runtime + ref_size,
+                    "data_class": ref.get("data_class") or ref.get("dataClass"),
+                    "target": {
+                        "section_index": ref_section,
+                        "source_offset": ref_offset,
+                        "runtime_address": ref_runtime,
+                    },
+                }
+            )
+    return ranges
+
+
+def _matching_known_address_ranges(value: int, known_ranges: list[dict[str, object]]) -> list[dict[str, object]]:
+    matches: list[dict[str, object]] = []
+    for address_range in known_ranges:
+        source_family = address_range.get("source_family")
+        if source_family == "source_offset":
+            start = _int_or_none(address_range.get("start"))
+            end = _int_or_none(address_range.get("end"))
+            if start is None or end is None or not start <= value < end:
+                continue
+            matched = dict(address_range)
+            matched["target"] = {
+                "section_index": address_range.get("section_index"),
+                "source_offset": value,
+            }
+            matches.append(matched)
+            continue
+        runtime_start = _int_or_none(address_range.get("runtime_start"))
+        runtime_end = _int_or_none(address_range.get("runtime_end"))
+        source_start = _int_or_none(address_range.get("source_start"))
+        if runtime_start is None or runtime_end is None or source_start is None or not runtime_start <= value < runtime_end:
+            continue
+        matched = dict(address_range)
+        matched["target"] = {
+            "section_index": address_range.get("section_index"),
+            "source_offset": source_start + (value - runtime_start),
+            "runtime_address": value,
+        }
+        matches.append(matched)
+    return matches
+
+
+def _immediate_reference_interpretation_policy() -> dict[str, object]:
+    return {
+        "status": "report_only",
+        "symbolic_reference_allowed": False,
+        "reason": "planner writes remain blocked until verifier-backed immediate reference interpretation exists",
+    }
 
 
 def _opcode_uses_immediate_as_bit_mask(opcode: str) -> bool:
