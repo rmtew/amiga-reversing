@@ -1,1 +1,2 @@
 ext/amiga_includes/** text eol=lf
+ext/macos_includes/** -text

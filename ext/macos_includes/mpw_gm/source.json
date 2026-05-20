@@ -1,0 +1,31 @@
+{
+  "id": "mpw_gm",
+  "title": "MPW-GM Interfaces",
+  "source_path": "resources/platform_macos/MPW-GM.img.bin",
+  "source_sha256": "99bbfa95bb9800c8ffc572fce6d72e561f012331c5c623fa45f732502b6fa872",
+  "source_container": {
+    "format": "MacBinary II",
+    "type": "rohd",
+    "creator": "ddsk",
+    "data_fork_size": 25105337,
+    "resource_fork_size": 4131
+  },
+  "decoded_raw_hfs": {
+    "tool": "ext/tools/ndif2raw/ndif2raw.exe",
+    "tool_format": "macbinary",
+    "sha256": "e1a484df0ba543b1fffff175204d2b266c7e23b84c2f202f2f3b6785a8a6c0bc",
+    "size": 78558208,
+    "volume_name": "MPW-GM"
+  },
+  "extraction": {
+    "tool": "src/scripts/extract_classic_hfs.py",
+    "command": "uv run python src/scripts/extract_classic_hfs.py tmp/MPW-GM.ext-tool.raw --inventory ext/macos_includes/mpw_gm/inventory.json --extract <temp> --path-prefix MPW-GM/Interfaces&Libraries/Interfaces",
+    "copied_path": "MPW-GM/Interfaces&Libraries/Interfaces",
+    "output_path": "ext/macos_includes/mpw_gm/Interfaces",
+    "data_forks_only": true,
+    "resource_forks_copied": false,
+    "file_count": 1232,
+    "byte_count": 33387084
+  },
+  "purpose": "Base-truth Classic Mac OS interfaces for cross-checking parsed documentation and OCR/LLM-derived knowledge."
+}
