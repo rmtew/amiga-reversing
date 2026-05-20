@@ -66,6 +66,7 @@ measured blocker needed for that improvement.
 14. `017-014`: A5 custom-register base-offset report identity.
 15. `017-015`: A5 zero-displacement hardware-ref rendering.
 16. `017-016`: A5 accepted-provenance verifier status.
+17. `017-017`: A5 `intreq(a5)` focused hardware-ref mutation.
 
 ## Recommended Order
 
@@ -240,3 +241,9 @@ repeatable work to `docs\issues\017-*`.
   revalidation of action `manual-5f2c6ead224244dabec3cadaff7d2d98` now passes
   manual-log, provenance, semantic-reload, rendered-source, and exact round-trip
   layers.
+- 017-017 continued the focused A5 path with the next unrecorded command-backed
+  Pandora candidate, `s0:000004AE`, from evidence
+  `a5-custom-cfg:h0:00000498->000004AE:op1:d009C`. Action
+  `manual-c2202ab8723a407eb25ebccbfdf48476` renders `move.w d0,intreq(a5)`
+  and passes manual-log, provenance, semantic-reload, rendered-source, and exact
+  round-trip layers.
