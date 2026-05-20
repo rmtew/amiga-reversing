@@ -921,11 +921,21 @@ resources documentation coverage tests
   model. The tests assert useful output for `Initialize`, `GoGetRect`, Memory's
   `_PBHGetVInfoSync` path, and the `Count` MPW tool/runtime/resource summary,
   while keeping unsupported `CODE` import and MPW roundtrip gaps visible.
+- 012-008 added the binary-side MPW `Asm` container import. The importer uses
+  the committed MacBinary NDIF fixture through the committed `ndif2raw`
+  provider, extracts HFS forks in temp space, preserves Finder metadata,
+  treats the data fork as data/string material, parses the resource fork,
+  represents `CODE 0` as jump-table/application metadata, exposes all named
+  `CODE` resources, and proves `CODE 1 Main` can pass through the existing raw
+  m68k listing backend. Relocation/fixups, complete Segment Loader behavior,
+  source mapping, and byte-for-byte roundtrip remain explicit unsupported
+  state.
 
 ## Open Questions
 
-- Should the starter target import one selected CODE segment or all nonzero CODE
-  resources as separate ranges?
+- Should later target creation import all nonzero CODE resources as separate
+  ranges? The starter container import now selects `CODE 1 Main` for listing
+  and exposes the remaining `CODE` resources as inventory.
 - Should the MPW Asm binary forks remain temporary-only, with committed metadata
   and hashes, or should any extracted fork be committed under `ext/`?
 - Should resource-fork parsing live in `src/scripts` only for now or move
