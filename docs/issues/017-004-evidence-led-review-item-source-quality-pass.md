@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -31,3 +31,14 @@ Acceptance:
 
 Blocked by:
 - 017-001.
+
+Implementation notes:
+- Current `reversing_loop inspect` for the Pandora sub-target reports zero
+  Review Items and zero candidate work.
+- No structured source fact was applied, because there is no durable Review
+  Item id/evidence fingerprint to resolve.
+- Review-count reduction is not counted as progress; this issue closes as a
+  no-op until new evidence-led Review Items appear.
+
+Verification:
+- `reversing_loop inspect --target ...`

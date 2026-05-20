@@ -123,3 +123,6 @@ repeatable work to `docs\issues\017-*`.
   `linear_listing_between_a5_writes` scope, but its path/lifetime verdict is
   still `unknown` because no control-flow proof shows A5 remains `_custom` on
   every path to the use. Hardware register rendering remains blocked.
+- 017-004 found no current Review Items or candidate work from the Review
+  dialog source for the Pandora sub-target, so there is no durable Review Item
+  to resolve. Review-count reduction is not treated as progress.
