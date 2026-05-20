@@ -132,3 +132,7 @@ repeatable work to `docs\issues\017-*`.
   `rsset.binding.*` candidate was available. RSSET command/verifier plumbing
   exists, but this target currently lacks accepted source evidence for a new
   binding or field refinement.
+- 017-006 did not identify a performance blocker. The active Pandora report and
+  dry-run commands observed during this pass completed in roughly 8-9 seconds,
+  below the issue's 30 second investigation threshold, so no speculative
+  performance refactor was started.

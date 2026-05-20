@@ -1,4 +1,4 @@
-Status: proposed
+Status: deferred
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -29,3 +29,14 @@ Acceptance:
 
 Blocked by:
 - A measured slow phase from 017 work.
+
+Implementation notes:
+- No measured slow phase blocked the active 017 Pandora work.
+- `immediate-ref-report`, `a5-hardware-report`, and `run-one --dry-run` were
+  observed around 8-9 seconds for this target, below the 30 second threshold in
+  this issue.
+- No performance refactor was started because there is no concrete bottleneck
+  to prove before/after.
+
+Verification:
+- Timed active Pandora report/dry-run commands from 017-001 through 017-005.
