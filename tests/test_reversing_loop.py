@@ -228,15 +228,17 @@ def test_run_one_dry_run_selects_command_without_execution(
     monkeypatch.setattr(
         reversing_loop.server,
         "route_request",
-        lambda method, path, query, body=None: calls.append(method) or {"data": {}},
+        lambda method, path, query, body=None: calls.append(method)
+        or {"data": {"commands": [{"command_id": "comment.edit"}]}},
     )
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
 
-    assert calls == []
+    assert calls == ["GET"]
     assert report["action"]["command_id"] == "comment.edit"
     assert report["action"]["parameters"] == {"text": "xref-backed test comment"}
     assert report["action_result"]["status"] == "dry_run"
+    assert report["planner"]["selection_drift"]["status"] == "stable"
     assert not (tmp_path / "targets" / "demo" / "manual_actions.jsonl").exists()
 
 
@@ -4549,6 +4551,103 @@ def test_run_one_uses_available_alternate_command_when_selected_catalog_action_i
     assert executed == ["data_symbol.rename"]
     assert report["action"]["command_id"] == "data_symbol.rename"
     assert report["action_result"]["status"] == "executed"
+    assert report["planner"]["selected_before_availability"]["command_id"] == "row.seed.code"
+    assert report["planner"]["selected_after_availability"]["command_id"] == "data_symbol.rename"
+    assert report["planner"]["selection_drift"] == {
+        "status": "changed",
+        "before": {"candidate_id": "multi-command", "command_id": "row.seed.code", "planner_score": 110},
+        "after": {"candidate_id": "multi-command", "command_id": "data_symbol.rename", "planner_score": 102},
+        "reason": "selected command unavailable; used next available catalog command",
+    }
+
+
+def test_run_one_dry_run_uses_same_available_alternate_trace_as_execute(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        {
+            "id": "multi-command",
+            "candidate_id": "multi-command",
+            "kind": "data_symbol_name",
+            "locator": _listing_locator(kind="data"),
+            "suggested_action_kinds": ["row.seed.code", "data_symbol.rename"],
+            "new_name": "player_table",
+            "default_verifier": "round_trip",
+            "confidence": "high",
+            "actionable": True,
+        }
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/commands"):
+            return {
+                "data": {
+                    "commands": [
+                        {
+                            "command_id": "data_symbol.rename",
+                            "parameters": {"hunk": 0, "addr": 0, "end": 2},
+                        }
+                    ]
+                }
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "data_symbol.rename"
+    assert report["action_result"]["status"] == "dry_run"
+    assert report["planner"]["availability_checks"] == [
+        {
+            "candidate_id": "multi-command",
+            "command_id": "row.seed.code",
+            "planner_score": 110,
+            "status": "unavailable",
+            "reason": "command not present in catalog for selected context",
+        },
+        {
+            "candidate_id": "multi-command",
+            "command_id": "data_symbol.rename",
+            "planner_score": 102,
+            "status": "available",
+        },
+    ]
+    assert report["planner"]["selection_drift"]["status"] == "changed"
+
+
+def test_run_one_reports_stale_selected_command_availability(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: _inspect_with_locator())
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        raise reversing_loop.server.CommandContractError(
+            "missing_locator",
+            "locator row_key is not in current projection",
+        )
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action_result"]["status"] == "blocked"
+    assert report["verification"]["layers"][0]["layer"] == "command_availability"
+    assert report["planner"]["availability_checks"][0]["error"] == {
+        "code": "missing_locator",
+        "message": "locator row_key is not in current projection",
+    }
+    assert report["planner"]["selection_drift"]["reason"] == (
+        "selected command unavailable and no alternate command was available"
+    )
 
 
 def test_planner_selects_rsset_region_add_candidate(
@@ -4753,6 +4852,8 @@ def test_run_one_uses_listing_entrypoint_label_candidate_when_inspect_empty(
             }
         if path.endswith("/listing/navigation"):
             return {"data": {}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "label.rename"}]}}
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
@@ -6243,6 +6344,8 @@ def test_run_one_uses_listing_rsset_suggestion_when_inspect_empty(
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if path.endswith("/listing/navigation"):
             return {"data": _rsset_suggestion_navigation_payload()}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "target.rsset_region.add"}]}}
         if path.endswith("/listing"):
             return {"data": {"rows": []}}
         raise AssertionError(path)
@@ -7729,6 +7832,8 @@ def test_run_one_uses_listing_struct_pointer_candidate_when_inspect_empty(
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if path.endswith("/listing/navigation"):
             return {"data": {"groups": {}}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "semantic.register.struct_ptr"}]}}
         if path.endswith("/listing"):
             return {"data": {"rows": [_struct_pointer_row()]}}
         raise AssertionError(path)
@@ -7756,6 +7861,8 @@ def test_run_one_uses_listing_library_base_candidate_when_inspect_empty(
     def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
         if path.endswith("/listing/navigation"):
             return {"data": {"groups": {}}}
+        if path.endswith("/commands"):
+            return {"data": {"commands": [{"command_id": "semantic.library_base.intuition.library"}]}}
         if path.endswith("/listing"):
             return {"data": {"rows": [_library_base_row()]}}
         raise AssertionError(path)

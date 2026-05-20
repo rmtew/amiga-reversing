@@ -55,3 +55,11 @@ Moved from remaining Proposal 015 deferred work:
 
 No `docs\issues\015-*` files were present in the tree at creation time, so
 there were no old issue files to delete.
+
+## Implementation Notes
+
+- 016-001 hardened `run-one` selection traceability. Dry-run now performs the
+  same command-catalog availability resolution as execute, planner reports show
+  selected-before-availability and selected-after-availability, availability
+  checks include stale locator/catalog errors, and fallback selection drift is
+  explicit. No Pandora target mutation was needed.

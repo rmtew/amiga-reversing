@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Source proposal: docs/proposals/016-pandora-reversing-loop-hardening.md
 Moved from: docs/proposals/015-agent-reversing-pandora-target.md D008
 
@@ -27,3 +27,12 @@ Acceptance:
 - Execute either applies the same selected candidate for unchanged state or
   reports the precise skip/fallback that changed selection.
 - No output-affecting Pandora action is required unless needed for repro.
+
+Implementation:
+- `run-one --dry-run` now runs the same command-catalog availability resolution
+  used by execute, without executing the command.
+- Planner reports include selected-before-availability,
+  selected-after-availability, availability checks, skipped candidate ids, and
+  stable/changed selection drift.
+- Stale locator availability failures and alternate command fallback are covered
+  by focused tests.

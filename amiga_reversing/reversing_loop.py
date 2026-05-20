@@ -725,23 +725,6 @@ def run_one_iteration(
         return write_iteration_report(target_id, report, project_root=project_root)
 
     command = cast(dict[str, object], selected["command"])
-    if dry_run:
-        report = _iteration_report(
-            run_state=run_result.run_state,
-            iteration_id=iteration_id,
-            inspect_report=inspect_report,
-            selected_work_item=cast(dict[str, object], selected["work_item"]),
-            command=command,
-            action_result={"status": "dry_run"},
-            verification={"status": "not_run", "layers": []},
-            workflow_profile=None,
-            next_recommendation=recommend_next_step(
-                inspect_report=inspect_report,
-                verification={"status": "not_run", "layers": []},
-            ),
-        )
-        return write_iteration_report(target_id, report, project_root=project_root)
-
     command_policy = _command_execution_policy_blocker(command)
     if command_policy is not None:
         verification = {"status": "failed", "layers": [command_policy]}
@@ -850,14 +833,27 @@ def run_one_iteration(
 
     availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
     catalog_entry = _available_catalog_command(command, availability)
+    _record_planner_availability_check(inspect_report, selected, command, availability, catalog_entry)
     if catalog_entry is None:
         alternate = _select_available_command_action(target_id, inspect_report, excluded_command=command)
         if alternate is not None:
+            _record_planner_selection_drift(
+                inspect_report,
+                before=selected,
+                after=alternate,
+                reason="selected command unavailable; used next available catalog command",
+            )
             selected = alternate
             command = cast(dict[str, object], selected["command"])
             availability = cast(dict[str, object], selected["availability"])
             catalog_entry = _available_catalog_command(command, availability)
         else:
+            _record_planner_selection_drift(
+                inspect_report,
+                before=selected,
+                after=None,
+                reason="selected command unavailable and no alternate command was available",
+            )
             availability_layer = {
                 "layer": "command_availability",
                 "status": "failed",
@@ -884,6 +880,8 @@ def run_one_iteration(
                 ),
             )
             return write_iteration_report(target_id, report, project_root=project_root)
+    else:
+        _record_planner_selection_drift(inspect_report, before=selected, after=selected, reason=None)
 
     catalog_policy = _command_execution_policy_blocker(command, catalog_entry)
     if catalog_policy is not None:
@@ -901,6 +899,64 @@ def run_one_iteration(
                 inspect_report=inspect_report,
                 verification=verification,
                 evidence={"kind": "api_gap", "name": "command_execution_policy"},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    if _comment_text_missing(command):
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "comment_text",
+                    "status": "failed",
+                    "message": "comment.edit requires explicit evidence-backed comment text",
+                }
+            ],
+        }
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked", "availability": availability},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "missing_domain_judgment", "name": "comment_text"},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    command_verifier = _candidate_verifier(cast(dict[str, object], selected["work_item"]), command)
+    if command_verifier is None:
+        verification = {
+            "status": "failed",
+            "layers": [
+                {
+                    "layer": "verifier",
+                    "status": "failed",
+                    "message": "source-converging action requires an action-specific verifier",
+                    "command_id": command.get("command_id"),
+                }
+            ],
+        }
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "blocked", "availability": availability},
+            verification=verification,
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification=verification,
+                evidence={"kind": "missing_verifier", "name": str(command.get("command_id") or "")},
             ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
@@ -925,6 +981,23 @@ def run_one_iteration(
                 inspect_report=inspect_report,
                 verification=verification,
                 evidence={"kind": "unavailable_oracle", "name": "round_trip"},
+            ),
+        )
+        return write_iteration_report(target_id, report, project_root=project_root)
+
+    if dry_run:
+        report = _iteration_report(
+            run_state=run_result.run_state,
+            iteration_id=iteration_id,
+            inspect_report=inspect_report,
+            selected_work_item=cast(dict[str, object], selected["work_item"]),
+            command=command,
+            action_result={"status": "dry_run", "availability": availability},
+            verification={"status": "not_run", "layers": []},
+            workflow_profile=None,
+            next_recommendation=recommend_next_step(
+                inspect_report=inspect_report,
+                verification={"status": "not_run", "layers": []},
             ),
         )
         return write_iteration_report(target_id, report, project_root=project_root)
@@ -8324,11 +8397,12 @@ def _select_available_command_action(
                     "planner_score": _candidate_score(candidate, option),
                 }
             )
-    eligible.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
+    eligible.sort(key=_planner_sort_key)
     for item in eligible:
         command = cast(dict[str, object], item["command"])
         availability = _command_availability(target_id, cast(dict[str, object], command["context"]))
         catalog_entry = _available_catalog_command(command, availability)
+        _record_planner_availability_check(inspect_report, item, command, availability, catalog_entry)
         if catalog_entry is not None and _command_execution_policy_blocker(command, catalog_entry) is None:
             item["availability"] = availability
             return item
@@ -8390,8 +8464,8 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
         selected = dict(candidate)
         selected["planner_score"] = score
         eligible.append({"work_item": selected, "command": command, "planner_score": score})
-    eligible.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
-    ranked.sort(key=lambda item: cast(int, item["planner_score"]), reverse=True)
+    eligible.sort(key=_planner_sort_key)
+    ranked.sort(key=lambda item: (-cast(int, item["planner_score"]), str(_candidate_id(item))))
     if not eligible:
         inspect_report["planner"] = {
             "status": "no_candidate",
@@ -8406,13 +8480,104 @@ def _select_command_action(inspect_report: dict[str, object]) -> dict[str, objec
         "status": "selected",
         "ranked_candidates": ranked,
         "skipped_candidates": skipped,
+        "skipped_candidate_ids": [
+            {"candidate_id": _candidate_id(candidate), "reason": candidate.get("stop_reason")} for candidate in skipped
+        ],
         "selected_candidate_id": cast(dict[str, object], selected["work_item"]).get("candidate_id")
         or cast(dict[str, object], selected["work_item"]).get("id"),
         "selected_command_id": command.get("command_id"),
+        "selected_before_availability": _selected_action_summary(selected),
         "selected_verifier": _candidate_verifier(cast(dict[str, object], selected["work_item"]), command),
         "selection_reason": "highest-ranked supported source-converging command",
     }
-    return {"work_item": cast(dict[str, object], selected["work_item"]), "command": command}
+    return {
+        "work_item": cast(dict[str, object], selected["work_item"]),
+        "command": command,
+        "planner_score": selected["planner_score"],
+    }
+
+
+def _planner_sort_key(item: dict[str, object]) -> tuple[int, str, str]:
+    command = item.get("command")
+    return (
+        -cast(int, item["planner_score"]),
+        str(_candidate_id(cast(dict[str, object], item.get("work_item") or item))),
+        str(command.get("command_id") if isinstance(command, dict) else ""),
+    )
+
+
+def _candidate_id(candidate: dict[str, object]) -> object:
+    return candidate.get("candidate_id") or candidate.get("durable_id") or candidate.get("id")
+
+
+def _selected_action_summary(selected: dict[str, object] | None) -> dict[str, object] | None:
+    if selected is None:
+        return None
+    work_item = selected.get("work_item")
+    command = selected.get("command")
+    return {
+        "candidate_id": _candidate_id(cast(dict[str, object], work_item)) if isinstance(work_item, dict) else None,
+        "command_id": command.get("command_id") if isinstance(command, dict) else None,
+        "planner_score": selected.get("planner_score"),
+    }
+
+
+def _record_planner_availability_check(
+    inspect_report: dict[str, object],
+    selected: dict[str, object],
+    command: dict[str, object],
+    availability: dict[str, object],
+    catalog_entry: dict[str, object] | None,
+) -> None:
+    planner = inspect_report.setdefault("planner", {})
+    if not isinstance(planner, dict):
+        return
+    checks = planner.setdefault("availability_checks", [])
+    if not isinstance(checks, list):
+        return
+    status = "available" if catalog_entry is not None else "unavailable"
+    check: dict[str, object] = {
+        **(cast(dict[str, object], _selected_action_summary(selected)) or {}),
+        "status": status,
+    }
+    error = availability.get("error")
+    if isinstance(error, dict):
+        check["error"] = dict(error)
+        check["reason"] = "command availability query failed"
+    elif catalog_entry is None:
+        check["reason"] = "command not present in catalog for selected context"
+    else:
+        policy = _command_execution_policy_blocker(command, catalog_entry)
+        if policy is not None:
+            check["status"] = "unavailable"
+            check["reason"] = policy.get("message")
+            check["error"] = policy
+    checks.append(check)
+
+
+def _record_planner_selection_drift(
+    inspect_report: dict[str, object],
+    *,
+    before: dict[str, object],
+    after: dict[str, object] | None,
+    reason: str | None,
+) -> None:
+    planner = inspect_report.setdefault("planner", {})
+    if not isinstance(planner, dict):
+        return
+    before_summary = _selected_action_summary(before)
+    after_summary = _selected_action_summary(after)
+    changed = before_summary != after_summary
+    planner["selected_after_availability"] = after_summary
+    if after_summary is not None:
+        planner["selected_candidate_id"] = after_summary.get("candidate_id")
+        planner["selected_command_id"] = after_summary.get("command_id")
+    planner["selection_drift"] = {
+        "status": "changed" if changed else "stable",
+        "before": before_summary,
+        "after": after_summary,
+        "reason": reason,
+    }
 
 
 def _is_full_listing_locator(value: object) -> bool:
