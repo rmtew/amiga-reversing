@@ -607,6 +607,44 @@ the intended location.
   execution; repeated ASCII/font-index candidates may justify a stronger
   grouped report or candidate rationale.
 
+### 015-015: Seed callback-driven orphan code from review items
+
+* Candidate: Pandora Manual Review Items pass for medium-confidence
+  `orphan_code_candidate` entries.
+* Evidence: after opening the listing artifact, the Review surface reported
+  111 items: 9 `orphan_code_candidate` entries and 102 low-confidence
+  `unreconciled_data_range` entries. The actionable entries were selected from
+  durable review item ids plus listing context, not from count reduction:
+  * `orphan_code_candidate:h0:$00000aa2-$00000ab8`, fingerprint
+    `4f09083a4463059f7464d0a751b6caf34d6d4e71da99e8ee59730625c413dc86`,
+    is loaded with `lea.l abs_0_00010AA2(pc),a0` and stored to
+    `app_0360(a6)`, the callback slot later reached by indirect `jsr (a0)`.
+  * `orphan_code_candidate:h0:$00000d9c-$00000dae`, fingerprint
+    `8a0be6cfc1b01cec4afa9e0c391678fad9eb7153d0f319ce8bf901e010e30dc2`,
+    is loaded into `a3`; the accepted drawing dispatch at
+    `abs_0_00010C58` reaches continuation code through `jmp (a3)`.
+* Command: executed `review.seed.code` for both review item ids through the
+  command catalog.
+* Verifier: Manual Action Log count advanced locally from 7 to 9; both
+  manual-seed state checks passed; exact reproduction was rerun after each
+  seed and remained `status: exact`, `stale: false`, rebuilt SHA matching the
+  original.
+* Timing: review summary/listing query about 5.4s; first command plus exact
+  reproduction 8.7s; second command plus exact reproduction 8.7s.
+* Result: rendered source now shows the callback chain at
+  `abs_0_00010AA2`/`abs_0_00010AB8` and the drawing continuation at
+  `abs_0_00010D9C` as instructions instead of raw bytes. Review count dropped
+  from 111 to 109 because the underlying code classification issues were
+  resolved.
+* Review: remaining orphan-code review items still need item-specific evidence.
+  Several are terminal-decode-only or adjacent to plausible code, but command
+  availability alone is not sufficient. The `abs_0_00010DAE` continuation was
+  exposed by the second seed but is not currently a surfaced orphan-code review
+  item, so it was left unchanged.
+* Next recommendation: continue the Manual Review Items pass with the remaining
+  orphan entries; execute only items with concrete control-flow, callback,
+  dispatch-table, or same-family source context plus the manual-seed verifier.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -882,6 +920,27 @@ Triage by scope:
 * Status: fixed for bitwise-immediate mask opcodes by 015-012. Broader
   opcode/context-aware representation policy remains open if arithmetic
   candidates prove weak.
+
+#### D011: Manual seed verifier reports duplicate expected seeds
+
+* Date/source: 015-015 review-item `review.seed.code` executions.
+* Location: `_verify_manual_seed_mutation` verifier output for
+  `orphan_code_candidate:h0:$00000aa2-$00000ab8` and
+  `orphan_code_candidate:h0:$00000d9c-$00000dae`.
+* Evidence:
+  * command execution returns both `action` and `actions`,
+  * `_manual_seeds_from_durable_result` reads the same seed from both fields,
+  * verifier output lists duplicate `expected_manual_seeds` and
+    `matching_manual_seeds` while still passing correctly.
+* Expected source improvement:
+  * cleaner verifier reports for manual-seed actions, reducing review noise
+    without changing target semantics.
+* Missing tool/report/action:
+  * de-duplicate verifier seed identities when `action` is also the first
+    element of `actions`.
+* Pull-in condition: fix when touching manual-seed verifier reporting or if the
+  duplicate output starts obscuring real seed mismatches.
+* Status: open.
 
 ## Stop Conditions
 
