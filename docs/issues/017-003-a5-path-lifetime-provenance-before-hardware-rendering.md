@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -30,3 +30,21 @@ Acceptance:
 
 Blocked by:
 - 017-001.
+
+Implementation notes:
+- Selected concrete use: `s0:000004A6:instruction:313`,
+  `move.w d0,dmacon(a5)`.
+- The linear report links that use to definition
+  `s0:00000498:instruction:310` with scope id `a5-linear-lifetime-2` and scope
+  kind `linear_listing_between_a5_writes`.
+- The selected use remains `probable_custom_candidate` for listing-state
+  evidence, but its `path_lifetime_status` is `unknown`; no accepted
+  path/lifetime proof exists that A5 remains `_custom` on every path to the
+  use.
+- Hardware register rendering stays blocked:
+  `durable_accepted_hardware_base_evidence=false`,
+  `hardware_register_rendering_allowed=false`.
+
+Verification:
+- `reversing_loop a5-hardware-report --target ...`
+- `pytest tests/test_reversing_loop.py -q`

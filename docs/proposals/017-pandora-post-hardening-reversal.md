@@ -117,3 +117,9 @@ repeatable work to `docs\issues\017-*`.
   reference, and no projection/semantic reload verifier for that rendered
   immediate-reference target. The report now exposes those gates structurally
   and keeps `symbolic_reference_allowed=false` and `rendering_allowed=false`.
+- 017-003 checked the A5 hardware family without rendering. The concrete
+  selected use was `s0:000004A6` (`move.w d0,dmacon(a5)`), reached from the
+  linear A5 definition at `s0:00000498`. The report now gives this a concrete
+  `linear_listing_between_a5_writes` scope, but its path/lifetime verdict is
+  still `unknown` because no control-flow proof shows A5 remains `_custom` on
+  every path to the use. Hardware register rendering remains blocked.

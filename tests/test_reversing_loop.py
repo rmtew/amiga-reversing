@@ -6538,6 +6538,11 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert report["uses"][0]["hardware_register_candidate"] is True
     assert report["uses"][0]["lifetime_status"]["status"] == "probable_custom_candidate"
     assert report["uses"][0]["lifetime_status"]["accepted_hardware_base_evidence"] is False
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_status"] == "unknown"
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_scope"]["id"] == "a5-linear-lifetime-1"
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_scope"]["accepted_hardware_base_evidence"] is False
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_scope"]["definition_locator"]["row_key"] == "a5-def-custom"
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_scope"]["use_locator"]["row_key"] == "a5-use-96"
     assert report["lifetimes"] == [{"status": "probable_custom_candidate", "definition_count": 1, "use_count": 1}]
     assert report["verifier_gate"]["hardware_register_rendering_allowed"] is False
     assert report["verifier_gate"]["requires_accepted_path_lifetime_scope"] is True
@@ -6548,6 +6553,7 @@ def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -
     report = reversing_loop._listing_a5_hardware_lifetime_report([_a5_use_row(displacement=0x96)])
 
     assert report["uses"][0]["lifetime_status"]["status"] == "unknown"
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_status"] == "unknown"
     assert report["lifetimes"] == [{"status": "unknown", "definition_count": 0, "use_count": 1}]
 
 
@@ -6564,6 +6570,7 @@ def test_a5_hardware_lifetime_report_marks_clobber_and_conflicting_offset() -> N
 
     assert report["uses"][0]["hardware_register_candidate"] is False
     assert report["uses"][0]["lifetime_status"]["status"] == "conflicting"
+    assert report["uses"][0]["lifetime_status"]["path_lifetime_status"] == "conflicting"
     assert report["clobbers"][0]["status"] == "non_custom_or_unknown"
     assert [boundary["kind"] for boundary in report["save_restore_boundaries"]] == ["save", "restore"]
 

@@ -1766,6 +1766,7 @@ def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object
     clobbers: list[dict[str, object]] = []
     boundaries: list[dict[str, object]] = []
     active_definition: dict[str, object] | None = None
+    lifetime_index = 0
     for row in rows:
         if not isinstance(row, Mapping):
             continue
@@ -1779,6 +1780,8 @@ def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object
             definition["locator"] = dict(cast(dict[str, object], locator))
             definitions.append(definition)
             if definition["status"] == "custom_base":
+                lifetime_index += 1
+                definition["linear_lifetime_id"] = f"a5-linear-lifetime-{lifetime_index}"
                 active_definition = definition
             else:
                 clobbers.append(definition)
@@ -1897,6 +1900,7 @@ def _a5_use_lifetime_status(
             "status": "unknown",
             "accepted_hardware_base_evidence": False,
             "evidence_scope": "linear_listing_state",
+            "path_lifetime_status": "unknown",
             "reason": "no active _custom base candidate reaches this A5-relative use",
         }
     if use.get("hardware_register_candidate") is not True:
@@ -1904,6 +1908,7 @@ def _a5_use_lifetime_status(
             "status": "conflicting",
             "accepted_hardware_base_evidence": False,
             "evidence_scope": "linear_listing_state",
+            "path_lifetime_status": "conflicting",
             "reason": "A5 displacement is outside the Amiga custom register offset range",
             "definition": active_definition,
         }
@@ -1911,6 +1916,15 @@ def _a5_use_lifetime_status(
         "status": "probable_custom_candidate",
         "accepted_hardware_base_evidence": False,
         "evidence_scope": "linear_listing_state",
+        "path_lifetime_status": "unknown",
+        "path_lifetime_scope": {
+            "id": active_definition.get("linear_lifetime_id"),
+            "kind": "linear_listing_between_a5_writes",
+            "definition_locator": active_definition.get("locator"),
+            "use_locator": use.get("locator"),
+            "accepted_hardware_base_evidence": False,
+            "missing_verifier": "control-flow path/lifetime proof that A5 remains _custom on every path to this use",
+        },
         "reason": "linear listing state suggests an active A5 _custom base and in-range custom register displacement",
         "definition": active_definition,
     }
