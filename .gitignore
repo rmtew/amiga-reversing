@@ -19,6 +19,7 @@ ext/*.lha
 *.obj
 *.exe
 !ext/tools/ancient/Ancient.exe
+!ext/tools/ndif2raw/ndif2raw.exe
 *.pyc
 __pycache__/
 *.prof
@@ -32,6 +33,15 @@ bin/*
 !bin/*benchmark.json
 resources/*
 !resources/.gitkeep
+!resources/clone_common/
+resources/clone_common/*
+!resources/clone_common/ndif2raw/
+!resources/clone_common/ndif2raw/*.c
+!resources/clone_common/ndif2raw/*.h
+!resources/clone_common/ndif2raw/COPYRIGHT
+!resources/clone_common/ndif2raw/README.md
+!resources/clone_common/ndif2raw/build.bat
+resources/clone_common/ndif2raw/build/
 
 # Per-target output (disassembly and benchmark artifacts)
 targets/*
