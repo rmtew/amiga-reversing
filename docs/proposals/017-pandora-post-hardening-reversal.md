@@ -67,6 +67,7 @@ measured blocker needed for that improvement.
 15. `017-015`: A5 zero-displacement hardware-ref rendering.
 16. `017-016`: A5 accepted-provenance verifier status.
 17. `017-017`: A5 `intreq(a5)` focused hardware-ref mutation.
+18. `017-018`: A5 `bltafwm(a5)` focused hardware-ref mutation.
 
 ## Recommended Order
 
@@ -247,3 +248,8 @@ repeatable work to `docs\issues\017-*`.
   `manual-c2202ab8723a407eb25ebccbfdf48476` renders `move.w d0,intreq(a5)`
   and passes manual-log, provenance, semantic-reload, rendered-source, and exact
   round-trip layers.
+- 017-018 recorded the next render-safe A5 candidate, `s0:000004C0`, from
+  evidence `a5-custom-cfg:h0:00000498->000004C0:op1:d0044`. Action
+  `manual-fa2c2e177ce645968850a0e8c3779158` renders
+  `move.w d0,bltafwm(a5)` and passes manual-log, provenance, semantic-reload,
+  rendered-source, and exact round-trip layers.
