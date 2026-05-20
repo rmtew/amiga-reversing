@@ -522,6 +522,28 @@ the intended location.
 * Next recommendation: fix or block generic printable-immediate character
   representation before executing another Pandora mutation.
 
+### 015-012: Character representation skips bit masks
+
+* Candidate: printable-immediate representation candidate surfaced by 015-011.
+* Evidence: Pandora dry-run selected `representation.character` for
+  `s0:00000C28:instruction:760`, source text `andi.b #63,d1`, proposing to
+  render the mask value as `#'?'`.
+* Command: changed listing representation candidate mining to skip printable
+  byte immediates used by bitwise immediate opcodes `andi.b`, `eori.b`, and
+  `ori.b`.
+* Verifier: `tests\test_reversing_loop.py -q` passed with 285 tests; focused
+  `ruff` passed; the original Pandora dry-run now selects the next
+  representation candidate at `s0:00006088:instruction:3320`, source text
+  `subi.b #32,d0`.
+* Timing: focused pytest 2.88s; focused ruff 0.9s; Pandora dry-run 7.0s.
+* Result: the loop no longer proposes character rendering for obvious bit-mask
+  immediates. Arithmetic ASCII-offset candidates remain eligible.
+* Review: support-code fix only; no Pandora mutation occurred and exact
+  round-trip was not required. The fix is intentionally narrow to the observed
+  false positive.
+* Next recommendation: inspect the `subi.b #32,d0` context; execute only if the
+  surrounding flow supports ASCII/font-index semantics.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -794,7 +816,9 @@ Triage by scope:
     printable-but-not-character-context immediates.
 * Pull-in condition: immediate representation is the next selected Pandora
   action.
-* Status: open.
+* Status: fixed for bitwise-immediate mask opcodes by 015-012. Broader
+  opcode/context-aware representation policy remains open if arithmetic
+  candidates prove weak.
 
 ## Stop Conditions
 

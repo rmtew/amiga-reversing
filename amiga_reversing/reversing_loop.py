@@ -1276,6 +1276,8 @@ def _listing_representation_candidates(
         opcode = row.get("opcode_or_directive")
         if not isinstance(opcode, str) or not opcode.endswith(".b"):
             continue
+        if _opcode_uses_immediate_as_bit_mask(opcode):
+            continue
         element_row = dict(row)
         if not isinstance(element_row.get("stable_key"), str) and isinstance(element_row.get("row_key"), str):
             element_row["stable_key"] = element_row["row_key"]
@@ -1341,6 +1343,10 @@ def _listing_representation_candidates(
                 }
             )
     return candidates
+
+
+def _opcode_uses_immediate_as_bit_mask(opcode: str) -> bool:
+    return opcode.lower() in {"andi.b", "eori.b", "ori.b"}
 
 
 def _listing_data_symbol_candidates(

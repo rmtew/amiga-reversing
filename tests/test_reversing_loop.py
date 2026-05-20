@@ -6267,6 +6267,12 @@ def test_listing_representation_candidates_skip_non_byte_immediates() -> None:
     assert long_candidates == []
 
 
+def test_listing_representation_candidates_skip_bit_mask_immediates() -> None:
+    assert reversing_loop._listing_representation_candidates([_byte_immediate_row(opcode="andi.b")]) == []
+    assert reversing_loop._listing_representation_candidates([_byte_immediate_row(opcode="eori.b")]) == []
+    assert reversing_loop._listing_representation_candidates([_byte_immediate_row(opcode="ori.b")]) == []
+
+
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
     _target(tmp_path)
     _write_raw_source(tmp_path, entrypoint=2)
