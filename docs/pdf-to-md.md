@@ -374,6 +374,55 @@ uv run python src\scripts\kb\glm_ocr_amendments.py `
   --force
 ```
 
+## Audited Corpus Pattern
+
+For a platform corpus that will be kept under `ext/`, use durable audit files
+instead of one-off cleanup notes. The Classic Mac OS corpus is the current pilot:
+
+```text
+ext/docs_macos/
+  *.md                                      final page-cited Markdown
+  *.source.json                             source paths, hashes, probe data
+  macos_include_audit.json                  active symbol audit findings
+  macos_include_amendments.json             accepted include-backed fixes
+  macos_text_audit.json                     active text-quality findings
+  macos_text_amendments.json                accepted deterministic text fixes
+  macos_source_amendments.json              reviewed source-context fixes
+  macos_text_audit_suppressions.json        accepted non-fixes
+```
+
+The workflow is:
+
+```text
+1. Generate or refresh final Markdown and source metadata.
+2. Run include/symbol audits against extracted platform headers where available.
+3. Apply only high-confidence amendments, recording each accepted class.
+4. Run text-quality audits for OCR garbage and readability damage.
+5. Suppress accepted non-fixes explicitly, with reasons.
+6. Refresh final Markdown hashes in `*.source.json`.
+7. Run a single verification gate before treating the corpus as citeable.
+```
+
+For Classic Mac OS, the final gate is:
+
+```powershell
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python src\scripts\verify_macos_docs.py
+```
+
+The verifier reruns `macos_include_audit.json` and `macos_text_audit.json` and
+requires `finding_count == 0` for both. It also checks `.md`/`.source.json`
+pairing, final Markdown hashes, and amendment/suppression counts.
+
+Use `--update-source-hashes` only immediately after intentional Markdown edits:
+
+```powershell
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python src\scripts\verify_macos_docs.py --update-source-hashes
+```
+
+This pattern should be copied for Atari ST once its document set has equivalent
+platform-specific audits. Until then, Atari books can still use the baseline
+metadata, GLM amendments, and manual quality checklist.
+
 ## Metadata JSON
 
 Each final document should have a metadata file:
@@ -550,6 +599,9 @@ Before treating a document as usable:
 - Empty and low-text pages are listed in metadata.
 - GLM repairs are stored as amendments, not silently overwritten.
 - Code/symbol/opcode pages are manually reviewed before validation.
+- Platform audit files are clean, or unresolved findings are explicitly
+  recorded as source-review work or suppressions.
+- Final Markdown hashes in `.source.json` match the current files.
 - Search finds expected domain terms.
 - Source inventory row exists or is planned.
 - KB facts cite `source_id` plus page.
