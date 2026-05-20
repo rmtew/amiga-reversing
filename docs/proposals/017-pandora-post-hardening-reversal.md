@@ -70,6 +70,7 @@ measured blocker needed for that improvement.
 18. `017-018`: A5 `bltafwm(a5)` focused hardware-ref mutation.
 19. `017-019`: remaining render-safe A5 hardware-ref sweep.
 20. `017-020`: immediate-reference report candidate write policy.
+21. `017-021`: A5 report suppression for already-recorded hardware refs.
 
 ## Recommended Order
 
@@ -267,3 +268,8 @@ repeatable work to `docs\issues\017-*`.
   but source-offset report-only candidates still advertised supported
   candidate-level write policy. Candidate policy now stays report-only unless an
   actual `immediate_ref.interpret` command payload is present.
+- 017-021 fixes the analogous A5 post-sweep report state: accepted path/lifetime
+  evidence remains visible, but A5 uses already present in
+  `manual_state.a5_hardware_refs` no longer count as fresh command candidates.
+  Pandora now reports the render-safe A5 queue as exhausted instead of inviting
+  duplicate mutations.

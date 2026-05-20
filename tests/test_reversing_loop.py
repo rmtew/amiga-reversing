@@ -7048,6 +7048,46 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert "proven" not in json.dumps(report)
 
 
+def test_a5_hardware_lifetime_report_suppresses_existing_manual_ref_candidate() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    use = report["cfg_path_lifetime_report"]["uses"][0]
+    source_evidence_id = use["source_evidence_id"]
+    existing_ref = {
+        "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
+        "source_evidence_id": source_evidence_id,
+        "source_evidence_status": "accepted",
+        "owner_action_id": "manual-a5",
+    }
+
+    updated = reversing_loop._a5_hardware_lifetime_report_with_existing_refs(
+        report,
+        {source_evidence_id: existing_ref},
+    )
+    updated_cfg = updated["cfg_path_lifetime_report"]
+    updated_use = updated_cfg["uses"][0]
+
+    assert updated_cfg["accepted_custom_base_evidence_count"] == 1
+    assert updated_cfg["safe_to_mutate"] is False
+    assert updated_cfg["rendering_allowed"] is False
+    assert updated_cfg["rendering_gate"]["missing_gates"] == ["command_candidate"]
+    assert updated_cfg["rendering_gate"]["command_support"]["command_candidate_count"] == 0
+    assert updated_cfg["rendering_gate"]["command_support"]["status"] == "available"
+    assert updated_cfg["rendering_gate"]["verifier_support"]["status"] == "available"
+    assert "suggested_action_kinds" not in updated_use
+    assert "default_verifier" not in updated_use
+    assert "parameters" not in updated_use
+    assert updated_use["existing_manual_state"] == {
+        "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
+        "source_evidence_id": source_evidence_id,
+        "owner_action_id": "manual-a5",
+    }
+
+
 def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:
     report = reversing_loop._listing_a5_hardware_lifetime_report(
         [

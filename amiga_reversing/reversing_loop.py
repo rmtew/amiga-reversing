@@ -403,6 +403,10 @@ def inspect_a5_hardware_lifetimes(
         return report
     rows = _listing_all_rows(target_id)
     lifetime_report = _listing_a5_hardware_lifetime_report(rows)
+    lifetime_report = _a5_hardware_lifetime_report_with_existing_refs(
+        lifetime_report,
+        _existing_a5_hardware_ref_index(target_id, project_root=project_root),
+    )
     report["a5_hardware_lifetimes"] = lifetime_report
     cfg_report = lifetime_report.get("cfg_path_lifetime_report")
     if isinstance(cfg_report, dict):
@@ -2217,6 +2221,94 @@ def _a5_hardware_candidate_is_command_backed(candidate: Mapping[str, object]) ->
     )
 
 
+def _existing_a5_hardware_ref_index(
+    target_id: str,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, dict[str, object]]:
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return {}
+    manual_state = project.manual_state
+    refs = manual_state.get("a5_hardware_refs") if isinstance(manual_state, Mapping) else None
+    if not isinstance(refs, Sequence) or isinstance(refs, str):
+        return {}
+    result: dict[str, dict[str, object]] = {}
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        status = ref.get("source_evidence_status")
+        if isinstance(status, str) and status not in _ACCEPTED_PROVENANCE_STATUSES:
+            continue
+        for key in ("source_evidence_id", "a5_hardware_ref_id"):
+            value = ref.get(key)
+            if isinstance(value, str) and value:
+                result[value] = ref
+    return result
+
+
+def _a5_hardware_lifetime_report_with_existing_refs(
+    report: dict[str, object],
+    existing_refs: Mapping[str, dict[str, object]],
+) -> dict[str, object]:
+    if not existing_refs:
+        return report
+    cfg_report = report.get("cfg_path_lifetime_report")
+    if not isinstance(cfg_report, dict):
+        return report
+    uses = cfg_report.get("uses")
+    if not isinstance(uses, Sequence) or isinstance(uses, str):
+        return report
+    updated_uses: list[object] = []
+    for use in uses:
+        if not isinstance(use, dict):
+            updated_uses.append(use)
+            continue
+        updated = dict(use)
+        existing = _existing_a5_hardware_ref_for_candidate(updated, existing_refs)
+        if existing is not None:
+            updated.pop("suggested_action_kinds", None)
+            updated.pop("default_verifier", None)
+            updated.pop("parameters", None)
+            updated["existing_manual_state"] = {
+                key: existing[key]
+                for key in ("a5_hardware_ref_id", "source_evidence_id", "owner_action_id")
+                if isinstance(existing.get(key), str)
+            }
+        updated_uses.append(updated)
+    accepted_count = sum(
+        1 for use in updated_uses if isinstance(use, Mapping) and use.get("status") == "accepted_custom_base"
+    )
+    command_count = sum(
+        1 for use in updated_uses if isinstance(use, Mapping) and _a5_hardware_candidate_is_command_backed(use)
+    )
+    updated_cfg = dict(cfg_report)
+    updated_cfg["uses"] = updated_uses
+    updated_cfg["accepted_custom_base_evidence_count"] = accepted_count
+    updated_cfg["safe_to_mutate"] = command_count > 0
+    updated_cfg["rendering_allowed"] = command_count > 0
+    updated_cfg["rendering_gate"] = _a5_hardware_rendering_gate(accepted_count, command_count)
+    updated_report = dict(report)
+    updated_report["cfg_path_lifetime_report"] = updated_cfg
+    return updated_report
+
+
+def _existing_a5_hardware_ref_for_candidate(
+    candidate: Mapping[str, object],
+    existing_refs: Mapping[str, dict[str, object]],
+) -> dict[str, object] | None:
+    parameters = candidate.get("parameters")
+    for value in (
+        candidate.get("source_evidence_id"),
+        parameters.get("source_evidence_id") if isinstance(parameters, Mapping) else None,
+        parameters.get("a5_hardware_ref_id") if isinstance(parameters, Mapping) else None,
+    ):
+        if isinstance(value, str) and value in existing_refs:
+            return existing_refs[value]
+    return None
+
+
 def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, object] | None:
     path_lifetime_scope = candidate.get("path_lifetime_scope")
     use_locator = candidate.get("use_locator")
@@ -2623,22 +2715,22 @@ def _a5_hardware_verifier_gate() -> dict[str, object]:
 def _a5_hardware_rendering_gate(accepted_evidence_count: int, command_candidate_count: int) -> dict[str, object]:
     available = accepted_evidence_count > 0 and command_candidate_count > 0
     missing_gates = []
+    if accepted_evidence_count == 0:
+        missing_gates.append("accepted_path_lifetime_evidence")
     if command_candidate_count == 0:
-        missing_gates.append("command_support")
-    if command_candidate_count == 0:
-        missing_gates.append("verifier_support")
+        missing_gates.append("command_candidate")
     return {
         "status": "available" if available else "blocked",
         "accepted_path_lifetime_evidence_available": accepted_evidence_count > 0,
         "accepted_path_lifetime_evidence_count": accepted_evidence_count,
         "command_support": {
             "command_id": "a5_hardware_ref.interpret",
-            "status": "available" if command_candidate_count > 0 else "missing",
+            "status": "available",
             "command_candidate_count": command_candidate_count,
         },
         "verifier_support": {
             "verifier": _A5_HARDWARE_REF_VERIFIER,
-            "status": "available" if command_candidate_count > 0 else "missing",
+            "status": "available",
         },
         "exact_round_trip": "required_for_output_affecting_mutation",
         "missing_gates": missing_gates,
