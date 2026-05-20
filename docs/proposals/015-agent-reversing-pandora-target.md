@@ -645,6 +645,42 @@ the intended location.
   orphan entries; execute only items with concrete control-flow, callback,
   dispatch-table, or same-family source context plus the manual-seed verifier.
 
+### 015-016: Seed handler-stub orphan code from review items
+
+* Candidate: remaining medium-confidence `orphan_code_candidate` entries in
+  the `abs_0_0005D2FE`/`abs_0_0005D330` handler-dispatch region.
+* Evidence: three review items were embedded in a run of accepted code stubs
+  that set `d0` selector values and branch to `abs_0_0005D330`, followed by
+  adjacent accepted state/handler routines:
+  * `orphan_code_candidate:h0:$0004d304-$0004d30a`, fingerprint
+    `c2d9aaf1469ee3730611e381723c21830eb3397013de9cb66cebc16263ab90dc`,
+    decodes as `move.w #$300,d0` then `bra.b abs_0_0005D330`.
+  * `orphan_code_candidate:h0:$0004d320-$0004d326`, fingerprint
+    `9cbe2b6d3ef83dbf01f5d309bf166db2ec44f98bc338a931d4fc3036741eaa20`,
+    decodes as `move.w #$30F,d0` then `bra.b abs_0_0005D330`.
+  * `orphan_code_candidate:h0:$0004d34c-$0004d368`, fingerprint
+    `6d66834fa6e036c53a5bd3cf536a563e19953acbce60fbb95c914ad9317b5cbb`,
+    decodes as a state-gated handler that sets `app_033D(a6)`, calls
+    `abs_0_0005D7DE`, and returns before the accepted routine at
+    `abs_0_0005D368`.
+* Command: executed `review.seed.code` for all three durable review item ids.
+* Verifier: Manual Action Log count advanced locally from 9 to 12; each
+  manual-seed state check passed; exact reproduction was rerun after each seed
+  and remained `status: exact`, `stale: false`, rebuilt SHA matching the
+  original.
+* Timing: three command/reproduction/verification cycles took about 20.2s
+  total.
+* Result: rendered source now shows `abs_0_0005D304`,
+  `abs_0_0005D320`, and `abs_0_0005D34C` as code. Review count dropped from
+  109 to 106, leaving four `orphan_code_candidate` entries.
+* Review: this remained within the surfaced review-item path and did not clear
+  any item by acknowledgement. The larger raw region after `abs_0_0005D37E`
+  still looks like plausible handler code, but there is no current surfaced
+  review item for most of it; broad conversion remains out of scope without a
+  durable item/evidence path.
+* Next recommendation: inspect the remaining four orphan-code review items and
+  record blockers for any item that has only terminal-decode evidence.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
