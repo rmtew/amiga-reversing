@@ -569,6 +569,31 @@ the intended location.
   after checking nearby comparison/arithmetic context; otherwise move to the
   next non-generic candidate family.
 
+### 015-014: Render ASCII space in font table index
+
+* Candidate: Pandora representation candidate at
+  `s0:00006160:instruction:3412`.
+* Evidence: listing context shows a byte read from `(a3)+`, zero terminator
+  check, `subi.b #32,d0`, indexed load from `$0(a4,d0.w)`, then scaling and
+  adding `app_01F0(a6)` before glyph/render work. This supports space-based
+  ASCII-to-font-table indexing.
+* Command: executed `representation.character` for the immediate value 32 at
+  `subi.b #32,d0`.
+* Verifier: Manual Action Log sequence 7 was appended locally; durable payload,
+  semantic reload, projected listing row, and exact round-trip all passed.
+  `reproduction.json` reports `status: exact`, `stale: false`, rebuilt SHA
+  matching original.
+* Timing: listing context query 3.7s; command execution 11.1s including exact
+  reproduction; projection check 3.7s.
+* Result: projected source now renders `subi.b #' ',d0`, making the
+  string-to-font-index mapping clearer.
+* Review: output-affecting Pandora mutation only. Target-local Manual Action
+  Log state remains local; `.project.json` timestamp churn is not meaningful
+  and should not be committed.
+* Next recommendation: inspect the next `subi.b` representation candidate before
+  execution; repeated ASCII/font-index candidates may justify a stronger
+  grouped report or candidate rationale.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
