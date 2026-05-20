@@ -178,7 +178,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
-link %LDFLAGS% /OUT:%C_TEST_EXE% ^
+link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_c_main.obj ^
     %OUTDIR%\test_m68k_parse_util.obj ^
     %OUTDIR%\test_m68k_instruction_spec.obj ^
