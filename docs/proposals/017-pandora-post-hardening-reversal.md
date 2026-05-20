@@ -69,6 +69,7 @@ measured blocker needed for that improvement.
 17. `017-017`: A5 `intreq(a5)` focused hardware-ref mutation.
 18. `017-018`: A5 `bltafwm(a5)` focused hardware-ref mutation.
 19. `017-019`: remaining render-safe A5 hardware-ref sweep.
+20. `017-020`: immediate-reference report candidate write policy.
 
 ## Recommended Order
 
@@ -261,3 +262,8 @@ repeatable work to `docs\issues\017-*`.
   command-backed A5 candidates after existing manual refs are excluded. Blocked
   zero-displacement/non-zero-custom-base A5 refs remain semantic-only pending
   exact symbol-delta rendering support.
+- 017-020 fixes the remaining immediate-reference report inconsistency found
+  after the A5 sweep: top-level `mutation_gate.safe_to_mutate=false` was correct,
+  but source-offset report-only candidates still advertised supported
+  candidate-level write policy. Candidate policy now stays report-only unless an
+  actual `immediate_ref.interpret` command payload is present.

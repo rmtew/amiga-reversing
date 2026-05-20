@@ -1727,7 +1727,15 @@ def _immediate_reference_candidate_payload(
             "text": row.get("text"),
             "operand_text": row.get("operand_text"),
         },
-        "write_policy": _immediate_reference_interpretation_policy(),
+        "write_policy": _immediate_reference_report_only_policy(
+            _immediate_reference_report_only_reason(
+                accepted=accepted,
+                source_family=source_family,
+                context=context,
+                target=target,
+                value=value,
+            )
+        ),
     }
     if accepted and isinstance(target, dict):
         target_hunk = _int_or_none(target.get("section_index"))
@@ -1763,6 +1771,7 @@ def _immediate_reference_candidate_payload(
                     "locator": dict(locator),
                     "element_id": context.get("element_id"),
                     "operand_index": context.get("operand_index"),
+                    "write_policy": _immediate_reference_interpretation_policy(),
                     "suggested_action_kinds": ["immediate_ref.interpret"],
                     "default_verifier": _IMMEDIATE_REF_VERIFIER,
                     "parameters": parameters,
@@ -1884,6 +1893,49 @@ def _immediate_reference_interpretation_policy() -> dict[str, object]:
         },
         "reason": "accepted conflict-free immediate references can be promoted through command and verifier gates",
     }
+
+
+def _immediate_reference_report_only_policy(reason: str) -> dict[str, object]:
+    return {
+        "status": "report_only",
+        "symbolic_reference_allowed": False,
+        "rendering_allowed": False,
+        "command_support": {
+            "status": "unavailable",
+            "command_id": "immediate_ref.interpret",
+        },
+        "verifier_support": {
+            "status": "unavailable",
+            "verifier": _IMMEDIATE_REF_VERIFIER,
+        },
+        "reason": reason,
+    }
+
+
+def _immediate_reference_report_only_reason(
+    *,
+    accepted: bool,
+    source_family: object,
+    context: Mapping[str, object],
+    target: object,
+    value: int,
+) -> str:
+    if not accepted:
+        return "conflicting immediate reference ranges require disambiguation before mutation"
+    if source_family not in {"runtime_address", "runtime_address_ref"}:
+        return "source-offset immediate matches are report-only until accepted runtime-address provenance exists"
+    if not isinstance(target, Mapping):
+        return "matched immediate reference range lacks a concrete target"
+    target_hunk = _int_or_none(target.get("section_index"))
+    target_offset = _int_or_none(target.get("source_offset"))
+    if target_hunk is None or target_offset is None:
+        return "matched immediate reference range lacks target hunk or offset"
+    width = _int_or_none(context.get("width_bytes"))
+    if width not in {1, 2, 4}:
+        return "immediate operand width is unsupported for interpreted-reference mutation"
+    if not 0 <= value < (1 << (width * 8)):
+        return "immediate value does not fit the operand width for rendered symbolic replacement"
+    return "immediate reference lacks command-backed runtime-address evidence"
 
 
 def _immediate_reference_mutation_gate(candidates: Sequence[Mapping[str, object]]) -> dict[str, object]:

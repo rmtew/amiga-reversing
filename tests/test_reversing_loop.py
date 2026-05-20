@@ -6913,6 +6913,14 @@ def test_immediate_runtime_reference_report_blocks_width_mismatch_mutation() -> 
     candidates = reversing_loop._listing_immediate_runtime_reference_report([immediate_row, data_row])
 
     assert candidates[0]["status"] == "accepted"
+    assert candidates[0]["write_policy"]["status"] == "report_only"
+    assert candidates[0]["write_policy"]["symbolic_reference_allowed"] is False
+    assert candidates[0]["write_policy"]["rendering_allowed"] is False
+    assert candidates[0]["write_policy"]["command_support"]["status"] == "unavailable"
+    assert candidates[0]["write_policy"]["verifier_support"]["status"] == "unavailable"
+    assert candidates[0]["write_policy"]["reason"] == (
+        "immediate value does not fit the operand width for rendered symbolic replacement"
+    )
     assert "suggested_action_kinds" not in candidates[0]
     assert "parameters" not in candidates[0]
 
@@ -6926,6 +6934,20 @@ def test_immediate_runtime_reference_report_keeps_source_offset_matches_report_o
 
     assert candidates[0]["status"] == "accepted"
     assert candidates[0]["source_family"] == "source_offset"
+    assert candidates[0]["write_policy"]["status"] == "report_only"
+    assert candidates[0]["write_policy"]["symbolic_reference_allowed"] is False
+    assert candidates[0]["write_policy"]["rendering_allowed"] is False
+    assert candidates[0]["write_policy"]["command_support"] == {
+        "status": "unavailable",
+        "command_id": "immediate_ref.interpret",
+    }
+    assert candidates[0]["write_policy"]["verifier_support"] == {
+        "status": "unavailable",
+        "verifier": "immediate_interpreted_ref_state",
+    }
+    assert candidates[0]["write_policy"]["reason"] == (
+        "source-offset immediate matches are report-only until accepted runtime-address provenance exists"
+    )
     assert "suggested_action_kinds" not in candidates[0]
     assert "parameters" not in candidates[0]
     assert reversing_loop._immediate_reference_mutation_gate(candidates) == {
@@ -6950,6 +6972,11 @@ def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> Non
 
     assert candidates[0]["status"] == "conflicting"
     assert candidates[0]["source_family"] == "ambiguous"
+    assert candidates[0]["write_policy"]["status"] == "report_only"
+    assert candidates[0]["write_policy"]["command_support"]["status"] == "unavailable"
+    assert candidates[0]["write_policy"]["reason"] == (
+        "conflicting immediate reference ranges require disambiguation before mutation"
+    )
     assert [conflict["target"]["source_offset"] for conflict in candidates[0]["conflicts"]] == [0x12A, 0x22A]
 
 
