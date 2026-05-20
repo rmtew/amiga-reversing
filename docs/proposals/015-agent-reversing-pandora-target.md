@@ -760,6 +760,36 @@ the intended location.
   `orphan_code_candidate` review items, or document/use an explicit
   `row.seed.code` verifier path for callback report evidence.
 
+### 015-019: Classify the callback-reached palette handler
+
+* Candidate: `abs_0_00010E14`, the remaining `app_0360` stored target found by
+  `callback-report`.
+* Evidence: `s0:00000E0A:instruction:925` loads
+  `abs_0_00010E14(pc)` into `a0`; `s0:00000E0E:instruction:926` stores `a0` to
+  `app_0360(a6)`; the interrupt path reads `app_0360(a6)` into `a0` and calls
+  `jsr (a0)`.
+* Command: executed `row.seed.code` on durable listing row
+  `s0:00000E14:data:929`. This used the row classification path rather than
+  `review.seed.code`, because the surfaced Review item was still
+  `unreconciled_data_range`, not `orphan_code_candidate`.
+* Verifier: Manual Action Log count advanced locally from 12 to 13; manual seed
+  state matched `hunk: 0`, `addr: 3604`, `end: 3620`, `kind: code`; exact
+  reproduction reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  matching the original
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: `abs_0_00010E14` now renders as code. The newly exposed code includes
+  a palette/COP register-looking loop, then further callback-slot stores to
+  `abs_0_00010E4E` and back to `abs_0_00010DE0`; those new stored targets also
+  render as code. Refreshing `callback-report` for `app_0360` now reports nine
+  assignments and `concrete_missed_code_target_count: 0`.
+* Review: this did not clear a Review item by count reduction. It resolved the
+  concrete source issue found by D001 with a supported row classification
+  command plus manual-seed and exact-round-trip verification.
+* Observation: after the seed, a listing `source_offset` window for `$0E14`
+  could anchor earlier than the requested address; `_listing_all_rows` still
+  showed the correct rows. Record this as a query-surface follow-up if it
+  repeats.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -809,11 +839,12 @@ Triage by scope:
 * Missing tool/report/action:
   * fixed by 015-018: query/report for "stored pointer later consumed by
     indirect jump/call",
-  * remaining: a clean classification path when the stored target is surfaced
-    only as an `unreconciled_data_range` instead of an orphan-code candidate.
+  * resolved for the concrete Pandora candidate by 015-019 through the supported
+    `row.seed.code` path when Review item identity was data-range only.
 * Pull-in condition: work on RSSET/app-slot provenance reaches function-pointer
   typed slots, or code/data classification stalls on stored callback targets.
-* Status: partly fixed by 015-018; callback target classification remains open.
+* Status: fixed for the concrete `app_0360` missed target by 015-018 and
+  015-019. Broader function-pointer slot typing remains future app-slot work.
 
 #### D002: Orphan-code heuristics should be evidence-led
 
@@ -840,6 +871,9 @@ Triage by scope:
 * Scope note: subordinate to D001 during this proposal. Do not run a broad
   orphan-code heuristic pass for Pandora unless callback-slot evidence first
   produces concrete missed-code candidates.
+* Update: 015-019 resolved the concrete `abs_0_00010E14` case through
+  callback-slot evidence plus row classification. Broad terminal-decode
+  heuristics remain out of scope for Pandora.
 
 #### D003: RSSET field coverage is inconsistent around app table state
 
