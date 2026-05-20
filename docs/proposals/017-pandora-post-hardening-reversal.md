@@ -68,6 +68,7 @@ measured blocker needed for that improvement.
 16. `017-016`: A5 accepted-provenance verifier status.
 17. `017-017`: A5 `intreq(a5)` focused hardware-ref mutation.
 18. `017-018`: A5 `bltafwm(a5)` focused hardware-ref mutation.
+19. `017-019`: remaining render-safe A5 hardware-ref sweep.
 
 ## Recommended Order
 
@@ -253,3 +254,10 @@ repeatable work to `docs\issues\017-*`.
   `manual-fa2c2e177ce645968850a0e8c3779158` renders
   `move.w d0,bltafwm(a5)` and passes manual-log, provenance, semantic-reload,
   rendered-source, and exact round-trip layers.
+- 017-019 exhausted the remaining render-safe, command-backed A5 candidates in
+  the same accepted-evidence family. Fifteen additional A5 refs passed
+  manual-log, provenance, semantic-reload, rendered-source, and exact round-trip
+  verification; `a5-hardware-report` now has zero remaining unrecorded
+  command-backed A5 candidates after existing manual refs are excluded. Blocked
+  zero-displacement/non-zero-custom-base A5 refs remain semantic-only pending
+  exact symbol-delta rendering support.
