@@ -30,6 +30,8 @@ Acceptance:
   relying on unstated local state.
 - Timestamp-only target metadata churn is not committed as progress.
 - Proposal 017 records the chosen evidence boundary.
+- Resolving the evidence boundary is not a closeout by itself; continue to the
+  next 017 rerun issue unless the proposal records a fundamental blocker.
 
 Blocked by:
 - 017-022.

@@ -136,6 +136,11 @@ non-zero custom-base-offset refs, `017-025` for RSSET/A6 candidates, or
 `017-027` to rerun the current reports/tests and re-close the proposal only if
 the gates still agree.
 
+Rerun priority: complete `017-023`, then continue through `017-024`,
+`017-025`, and `017-026` unless a blocker is fundamental and recorded with
+exact missing evidence/tooling. Do not stop after resolving the evidence
+artifact boundary. Finish with `017-027`.
+
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
 present. Stop for human review only when the top candidate is ambiguous,
