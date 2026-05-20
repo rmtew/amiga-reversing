@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "_meta": {
-    "name": "mac_os_file_manager",
-    "description": "Seed Classic Mac OS File Manager facts for asm analysis and C type inference.",
+    "name": "mac_os",
+    "description": "Seed Classic Mac OS facts for asm analysis and C type inference.",
     "status": "seeded",
     "primary_sources": [
       {
@@ -34,7 +34,11 @@
     ],
     "scope": "C and asm interfaces are primary. Markdown docs provide explanatory citations only. Pascal interfaces are not used as primary facts."
   },
-  "calling_conventions": {
+  "api_families": {
+    "file_manager": {
+      "status": "seeded",
+      "description": "Classic Mac OS File Manager parameter-block and trap-call seed.",
+      "calling_conventions": {
     "pb_trap_68k": {
       "parameter_registers": {
         "paramBlock": "A0"
@@ -49,7 +53,7 @@
       }
     }
   },
-  "record_types": {
+      "record_types": {
     "ParamBlockRec": {
       "kind": "union",
       "pointer_typedefs": ["ParmBlkPtr"],
@@ -114,7 +118,7 @@
       ]
     }
   },
-  "common_parameter_block_header": {
+      "common_parameter_block_header": {
     "role": "shared queue and File Manager dispatch header",
     "fields": [
       {
@@ -183,7 +187,7 @@
       "lines": [476, 484]
     }
   },
-  "routines": [
+      "routines": [
     {
       "name": "PBGetVInfoSync",
       "family": "FileManager",
@@ -231,7 +235,7 @@
       },
       "asm_source": {
         "path": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
-        "lines": [3150, 3158]
+        "lines": [3150, 3161]
       },
       "macro_alias": "PBCatMove"
     },
@@ -253,7 +257,7 @@
       "macro_alias": "PBHGetVInfo"
     }
   ],
-  "macro_aliases": {
+      "macro_aliases": {
     "PBGetVInfo": {
       "sync": "PBGetVInfoSync",
       "async": "PBGetVInfoAsync",
@@ -286,13 +290,15 @@
         "line": 4997
       }
     }
+      }
+    }
   },
   "review": {
     "status": "seeded",
     "notes": [
-      "This seed intentionally covers only a small File Manager slice.",
+      "This seed intentionally covers only a small File Manager slice under api_families.file_manager.",
       "C and asm include files are primary. Markdown citations are explanatory.",
-      "Async variants and complete field variants should be generated or parsed in a follow-up."
+      "Async variants, complete field variants, traps, resources, and low-memory globals should be generated or parsed in follow-ups inside this file rather than by adding one JSON file per Mac OS subsystem."
     ]
   }
 }
