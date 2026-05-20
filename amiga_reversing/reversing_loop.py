@@ -1581,6 +1581,7 @@ def _listing_representation_candidates(
                     "verifier": {"kind": "projected_representation_text", "requires_semantic_reload": True},
                     "confidence": "high",
                     "rationale": "byte instruction uses a printable immediate value",
+                    "autonomous_progress_value": "low",
                     "actionable": True,
                     "stop_reason": None,
                 }
@@ -8076,6 +8077,8 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
         return "data symbol name is only class/address styling"
     if _candidate_already_satisfied(candidate, command):
         return "candidate already satisfied in projected semantic state"
+    if _literal_representation_candidate_is_syntax_only(candidate, command):
+        return "literal representation is syntax-only and low semantic value"
     command_id = command.get("command_id")
     if isinstance(command_id, str) and _is_typed_field_command_id(command_id) and _typed_field_command_shape_mismatch(command):
         return "typed field shape mismatch"
@@ -8084,6 +8087,38 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
     if not _command_context_complete(command):
         return "missing durable command context"
     return None
+
+
+def _literal_representation_candidate_is_syntax_only(
+    candidate: dict[str, object],
+    command: dict[str, object],
+) -> bool:
+    command_id = command.get("command_id")
+    if not isinstance(command_id, str) or not command_id.startswith("representation."):
+        return False
+    if candidate.get("kind") != "literal_representation":
+        return False
+    if candidate.get("autonomous_progress_value") == "semantic":
+        return False
+    evidence_id = candidate.get("source_evidence_id")
+    evidence_status = candidate.get("source_evidence_status")
+    source_family = candidate.get("source_family")
+    path_scope = candidate.get("path_lifetime_scope")
+    if (
+        isinstance(evidence_id, str)
+        and evidence_id
+        and isinstance(source_family, str)
+        and source_family
+        and isinstance(evidence_status, str)
+        and evidence_status in _ACCEPTED_PROVENANCE_STATUSES
+        and (path_scope is None or isinstance(path_scope, dict))
+    ):
+        return False
+    evidence = candidate.get("evidence")
+    evidence_kind = evidence.get("evidence_kind") if isinstance(evidence, dict) else None
+    if evidence_kind == "byte_printable_immediate":
+        return True
+    return candidate.get("autonomous_progress_value") == "low"
 
 
 def _data_symbol_candidate_is_class_address_only(

@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017 baseline observation
@@ -30,5 +30,14 @@ Acceptance:
 - Higher-value blocked families remain visible with actionable blocker reasons.
 - Existing valid semantic representation actions are not disabled broadly.
 
-Blocked by:
-- 017-001.
+Result:
+- Syntax-led printable byte immediates now carry
+  `autonomous_progress_value=low` and are skipped by autonomous planner
+  selection with the explicit reason
+  `literal representation is syntax-only and low semantic value`.
+- Semantically evidenced representation candidates remain selectable when they
+  carry accepted source evidence and path/lifetime scope.
+- Pandora dry-run no longer promotes the previous `representation.character`
+  fallback as progress. It returns no action while keeping the skipped
+  low-value representation and generic class/address data-symbol blockers
+  visible in planner output.

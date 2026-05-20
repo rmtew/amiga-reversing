@@ -4326,7 +4326,28 @@ def test_target_command_verification_requires_rename_previous_name() -> None:
     assert reversing_loop._verify_projection_metadata(command, durable_result)["status"] == "failed"
 
 
-def test_planner_ranks_source_converging_representation_before_comment(
+def test_planner_ranks_semantic_representation_before_comment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    inspect_report = _inspect_with_locator()
+    inspect_report["verification_paths"] = [{"kind": "round_trip", "available": True}]
+    inspect_report["candidate_work"] = [
+        inspect_report["candidate_work"][0],
+        _representation_candidate(current_representation="hex", semantic_evidence=True),
+    ]
+    monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: inspect_report)
+
+    report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
+
+    assert report["action"]["command_id"] == "representation.character"
+    assert report["selected_work_item"]["candidate_id"] == "repr-candidate"
+    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render immediate 65 as #'A'"
+    assert report["planner"]["selected_command_id"] == "representation.character"
+
+
+def test_planner_skips_syntax_only_literal_representation_before_comment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4341,10 +4362,10 @@ def test_planner_ranks_source_converging_representation_before_comment(
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
 
-    assert report["action"]["command_id"] == "representation.character"
-    assert report["selected_work_item"]["candidate_id"] == "repr-candidate"
-    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render immediate 65 as #'A'"
-    assert report["planner"]["selected_command_id"] == "representation.character"
+    assert report["action"]["command_id"] == "comment.edit"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "repr-candidate"
+    assert skipped[0]["stop_reason"] == "literal representation is syntax-only and low semantic value"
 
 
 def test_planner_skips_already_satisfied_projected_candidate(
@@ -4893,7 +4914,7 @@ def test_planner_selects_review_seed_command_from_inspect_candidate(
     assert report["planner"]["selected_command_id"] == "review.seed.code"
 
 
-def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
+def test_run_one_blocks_listing_printable_immediate_candidate_when_inspect_empty(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4912,10 +4933,12 @@ def test_run_one_uses_listing_printable_immediate_candidate_when_inspect_empty(
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
 
-    assert report["action"]["command_id"] == "representation.character"
-    assert report["action"]["parameters"] == {"representation": "character"}
-    assert report["selected_work_item"]["expected_rendered_source_improvement"] == "render byte immediate 48 as #'0'"
-    assert report["planner"]["selected_command_id"] == "representation.character"
+    assert report["action"] is None
+    assert report["selected_work_item"] is None
+    assert report["planner"]["status"] == "no_candidate"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["candidate_id"] == "representation:row-1:0:48:character"
+    assert skipped[0]["stop_reason"] == "literal representation is syntax-only and low semantic value"
 
 
 def test_run_one_uses_listing_entrypoint_label_candidate_when_inspect_empty(
@@ -6377,7 +6400,7 @@ def test_projected_data_symbol_verifier_checks_all_matching_rows(monkeypatch: py
     assert layer["row_key"] == "data-label"
 
 
-def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
+def test_run_one_does_not_promote_low_value_listing_representation_when_all_else_skips(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -6396,11 +6419,13 @@ def test_run_one_retries_listing_candidates_when_inspect_candidates_all_skip(
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
 
-    assert report["action"]["command_id"] == "representation.character"
-    assert report["selected_work_item"]["candidate_id"] == "representation:row-1:0:48:character"
+    assert report["action"] is None
+    assert report["selected_work_item"] is None
     skipped = report["planner"]["skipped_candidates"]
     assert skipped[0]["candidate_id"] == "repr-candidate"
     assert skipped[0]["stop_reason"] == "candidate already satisfied in projected semantic state"
+    assert skipped[1]["candidate_id"] == "representation:row-1:0:48:character"
+    assert skipped[1]["stop_reason"] == "literal representation is syntax-only and low semantic value"
 
 
 def test_run_one_tries_listing_candidates_before_accepting_comment(
@@ -6421,8 +6446,12 @@ def test_run_one_tries_listing_candidates_before_accepting_comment(
 
     report = reversing_loop.run_one_iteration("demo", mode="clean-run", dry_run=True, project_root=tmp_path)
 
-    assert report["action"]["command_id"] == "representation.character"
-    assert report["selected_work_item"]["candidate_id"] == "representation:row-1:0:48:character"
+    assert report["action"]["command_id"] == "comment.edit"
+    assert report["planner"]["skipped_candidates"][0]["candidate_id"] == "representation:row-1:0:48:character"
+    assert (
+        report["planner"]["skipped_candidates"][0]["stop_reason"]
+        == "literal representation is syntax-only and low semantic value"
+    )
     ranked_ids = [
         candidate.get("candidate_id") or candidate.get("id") for candidate in report["planner"]["ranked_candidates"]
     ]
@@ -10602,7 +10631,7 @@ def _inspect_with_representation(*, round_trip: bool = True) -> dict[str, object
 
 
 def _representation_command(*, output_affecting: bool = True) -> dict[str, object]:
-    command = {
+    command: dict[str, object] = {
         "kind": "command",
         "command_id": "representation.character",
         "context": {
@@ -10622,8 +10651,8 @@ def _representation_command(*, output_affecting: bool = True) -> dict[str, objec
     return command
 
 
-def _representation_candidate(*, current_representation: str) -> dict[str, object]:
-    return {
+def _representation_candidate(*, current_representation: str, semantic_evidence: bool = False) -> dict[str, object]:
+    candidate: dict[str, object] = {
         "id": "repr-candidate",
         "candidate_id": "repr-candidate",
         "kind": "literal_representation",
@@ -10634,7 +10663,7 @@ def _representation_candidate(*, current_representation: str) -> dict[str, objec
         "value": 65,
         "width_bits": 8,
         "width_bytes": 1,
-        "evidence": {"source": "listing", "value": 65},
+        "evidence": {"source": "listing", "evidence_kind": "byte_printable_immediate", "value": 65},
         "current_metadata": {"representation": current_representation},
         "expected_rendered_source_improvement": "render immediate 65 as #'A'",
         "suggested_action_kinds": ["representation.character"],
@@ -10643,6 +10672,17 @@ def _representation_candidate(*, current_representation: str) -> dict[str, objec
         "confidence": "high",
         "actionable": True,
     }
+    if semantic_evidence:
+        candidate.update(
+            {
+                "source_evidence_id": "semantic-representation:row-1:0",
+                "source_family": "constant_or_equ",
+                "source_evidence_status": "manual_classified",
+                "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0},
+                "autonomous_progress_value": "semantic",
+            }
+        )
+    return candidate
 
 
 def _data_symbol_candidate(*, current_name: str, new_name: str) -> dict[str, object]:

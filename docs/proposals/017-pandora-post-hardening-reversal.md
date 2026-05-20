@@ -161,3 +161,10 @@ repeatable work to `docs\issues\017-*`.
   `$50000`, but the report remains read-only: `safe_to_mutate=false`,
   command support is missing, verifier support is missing, and rendering is
   blocked. No output-affecting action was taken.
+- 017-010 changes the autonomous planner, not the manual command catalog:
+  printable-byte `literal_representation` candidates from listing syntax are
+  still reported but are now marked low value and skipped as autonomous
+  progress unless accepted semantic evidence is attached. A Pandora dry-run
+  now returns no action instead of selecting `representation.character`; the
+  planner output keeps those skipped representation candidates and the existing
+  generic class/address data-symbol blockers visible.
