@@ -6520,7 +6520,7 @@ def test_immediate_runtime_reference_report_skips_out_of_range_constants() -> No
     )
 
 
-def test_a5_hardware_lifetime_report_proves_custom_base_use() -> None:
+def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> None:
     report = reversing_loop._listing_a5_hardware_lifetime_report(
         [
             _a5_definition_row(custom=True),
@@ -6529,10 +6529,15 @@ def test_a5_hardware_lifetime_report_proves_custom_base_use() -> None:
     )
 
     assert report["definitions"][0]["status"] == "custom_base"
+    assert report["evidence_scope"] == "linear_listing_state"
+    assert report["durable_accepted_hardware_base_evidence"] is False
     assert report["uses"][0]["hardware_register_candidate"] is True
-    assert report["uses"][0]["lifetime_status"]["status"] == "proven_custom"
-    assert report["lifetimes"] == [{"status": "proven_custom", "definition_count": 1, "use_count": 1}]
+    assert report["uses"][0]["lifetime_status"]["status"] == "probable_custom_candidate"
+    assert report["uses"][0]["lifetime_status"]["accepted_hardware_base_evidence"] is False
+    assert report["lifetimes"] == [{"status": "probable_custom_candidate", "definition_count": 1, "use_count": 1}]
     assert report["verifier_gate"]["hardware_register_rendering_allowed"] is False
+    assert report["verifier_gate"]["requires_accepted_path_lifetime_scope"] is True
+    assert "proven" not in json.dumps(report)
 
 
 def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -> None:

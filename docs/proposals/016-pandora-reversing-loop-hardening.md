@@ -31,7 +31,7 @@ needs them for proof.
 
 1. `016-001`: dry-run/execute selected-action traceability.
 2. `016-002`: manual-seed verifier output dedupe.
-3. `016-003`: A5 hardware-base lifetime provenance.
+3. `016-003`: A5 hardware-base listing-state candidate report.
 4. `016-004`: immediate runtime-reference detection.
 5. `016-005`: evidence-led orphan-code candidate scoring.
 
@@ -78,12 +78,13 @@ there were no old issue files to delete.
   score. Terminal-decode-only or false-positive-risk items stay report-only, and
   the planner requires evidence-led orphan-code scoring before selecting a
   code-seed action.
-- 016-003 added a read-only `a5-hardware-report` for A5 `_custom` lifetime
-  provenance. The report records definitions, uses, clobbers, save/restore
-  boundaries, proven/unknown/conflicting status, and the verifier gate that
-  keeps raw A5 displacement rendering blocked. Pandora validation reported 114
-  A5 definitions, 525 uses, 98 clobbers, and 26 save/restore boundaries, with
-  324 uses proven custom and 201 still unknown.
+- 016-003 added a read-only `a5-hardware-report` for A5 `_custom` listing-state
+  candidates. The report records definitions, uses, clobbers, save/restore
+  boundaries, probable-candidate/unknown/conflicting status, and the verifier
+  gate that keeps raw A5 displacement rendering blocked until real
+  path/lifetime scope verification exists. Pandora validation reported 114 A5
+  definitions, 525 uses, 98 clobbers, and 26 save/restore boundaries, with 324
+  probable custom candidates and 201 still unknown.
 
 ## Final Verification
 

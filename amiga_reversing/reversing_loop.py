@@ -187,7 +187,7 @@ def main(argv: list[str] | None = None) -> int:
 
     a5_hardware_parser = subparsers.add_parser(
         "a5-hardware-report",
-        help="Report read-only A5 custom-chip base lifetime provenance.",
+        help="Report read-only A5 custom-chip base listing candidates.",
     )
     a5_hardware_parser.add_argument("--target", required=True)
     a5_hardware_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
@@ -1781,6 +1781,8 @@ def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object
     return {
         "register": "A5",
         "custom_base_address": _AMIGA_CUSTOM_BASE_ADDRESS,
+        "evidence_scope": "linear_listing_state",
+        "durable_accepted_hardware_base_evidence": False,
         "definitions": definitions,
         "uses": uses,
         "clobbers": clobbers,
@@ -1794,6 +1796,8 @@ def _empty_a5_hardware_lifetime_report() -> dict[str, object]:
     return {
         "register": "A5",
         "custom_base_address": _AMIGA_CUSTOM_BASE_ADDRESS,
+        "evidence_scope": "linear_listing_state",
+        "durable_accepted_hardware_base_evidence": False,
         "definitions": [],
         "uses": [],
         "clobbers": [],
@@ -1812,7 +1816,7 @@ def _a5_definition(row: Mapping[str, object]) -> dict[str, object] | None:
         "status": status,
         "opcode": row.get("opcode_or_directive"),
         "text": row.get("text"),
-        "reason": "A5 loaded with Amiga custom-chip base" if status == "custom_base" else "A5 write is not proven custom base",
+        "reason": "A5 loaded with Amiga custom-chip base" if status == "custom_base" else "A5 write is not accepted custom-base evidence",
     }
 
 
@@ -1882,17 +1886,23 @@ def _a5_use_lifetime_status(
     if active_definition is None:
         return {
             "status": "unknown",
-            "reason": "no active proven _custom base definition reaches this A5-relative use",
+            "accepted_hardware_base_evidence": False,
+            "evidence_scope": "linear_listing_state",
+            "reason": "no active _custom base candidate reaches this A5-relative use",
         }
     if use.get("hardware_register_candidate") is not True:
         return {
             "status": "conflicting",
+            "accepted_hardware_base_evidence": False,
+            "evidence_scope": "linear_listing_state",
             "reason": "A5 displacement is outside the Amiga custom register offset range",
             "definition": active_definition,
         }
     return {
-        "status": "proven_custom",
-        "reason": "active A5 definition is _custom and displacement is in the custom register range",
+        "status": "probable_custom_candidate",
+        "accepted_hardware_base_evidence": False,
+        "evidence_scope": "linear_listing_state",
+        "reason": "linear listing state suggests an active A5 _custom base and in-range custom register displacement",
         "definition": active_definition,
     }
 
@@ -1917,8 +1927,8 @@ def _a5_lifetime_summaries(
         status = "conflicting"
     elif "unknown" in statuses:
         status = "unknown"
-    elif "proven_custom" in statuses:
-        status = "proven_custom"
+    elif "probable_custom_candidate" in statuses:
+        status = "probable_custom_candidate"
     else:
         status = "unknown"
     return [{"status": status, "definition_count": len(definitions), "use_count": len(uses)}]
@@ -1928,7 +1938,8 @@ def _a5_hardware_verifier_gate() -> dict[str, object]:
     return {
         "status": "blocked",
         "hardware_register_rendering_allowed": False,
-        "reason": "raw A5 displacements remain report-only until a specific _custom lifetime is accepted and verified",
+        "requires_accepted_path_lifetime_scope": True,
+        "reason": "raw A5 displacements remain report-only until path/lifetime scope is accepted and verified",
         "knowledge_source": "knowledge/amiga_hw_reference.md base $DFF000",
     }
 
