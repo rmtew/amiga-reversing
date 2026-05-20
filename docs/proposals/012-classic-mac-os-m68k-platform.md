@@ -1,6 +1,6 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: starter milestone implemented; future work deferred.
+Status: starter research slice implemented; full platform completion remains open.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -25,7 +25,8 @@ The goal is not full Classic Mac OS emulation, full Segment Loader behavior, or
 complete Toolbox annotation. The goal is to prove that the platform layer can
 render useful Classic Mac OS source semantics and recognize/import a real Mac
 m68k executable container without forcing either into Amiga HUNK or Atari PRG
-assumptions.
+assumptions. The proof is not complete until the durable platform path follows
+the same C-backed architecture used by Amiga and Atari ST.
 
 Proposal 011 covers Atari ST platform knowledge cleanup. This proposal is the
 Mac counterpart and architecture pressure test.
@@ -40,6 +41,7 @@ Mac counterpart and architecture pressure test.
 - Platform Shape
 - Build Provenance And Deferred Roundtrip Model
 - Provenance And KB Policy
+- Implementation Quality Policy
 - Implementation Slices
 - Issue Breakdown Seed
 - Artifact Ownership
@@ -179,7 +181,7 @@ src/scripts/inspect_mac_resource_fork.py
 tests/test_mac_resource_fork.py
 ```
 
-Implemented starter paths:
+Implemented research/prototype paths:
 
 ```text
 Mac source structure, Rez/resource, and MPW build provenance parsers
@@ -190,10 +192,17 @@ starter Classic Mac OS source/container web payload and renderer branch
 optional fixture/resource documentation and Mac source inventory check
 ```
 
-Still deferred beyond the starter milestone:
+Still required before this proposal is complete:
 
 ```text
+Mac platform parsing/import logic promoted to C where Amiga/Atari equivalents
+  already live in C
 full Classic Mac OS target lifecycle creation in project JSON
+server API emits a real classic_macos project payload
+web UI opens that payload through the normal project route
+generated Mac OS metadata feeds render/analysis, not handcrafted Python dicts
+selected CODE segment renders as actual m68k listing rows in the web UI
+shared platform abstractions are extended where Mac exposes framework gaps
 complete Segment Loader relocation/fixup interpretation
 byte-for-byte MPW Asm/Link/Rez roundtrip
 complete Toolbox/OS trap/API annotation coverage
@@ -437,6 +446,43 @@ decision: parse, cite_manually, defer, unsupported
 ```
 
 No Mac runtime fact should enter C consumers without structured provenance.
+
+## Implementation Quality Policy
+
+Classic Mac OS support must cleanly extend the core platform framework. It must
+not add a legacy side path, compatibility shim, or Mac-only bypass for behavior
+that should be represented generically.
+
+The expected split is:
+
+```text
+C owns durable platform parsing, import, generated runtime tables, and listing
+  data used by runtime consumers.
+Python owns extraction orchestration, reports, tests, local fixture preparation,
+  and editing/workflow layers over the C API.
+```
+
+If a Mac feature is implemented in Python but the equivalent Amiga or Atari ST
+feature is implemented in C, the Mac feature is not complete until a C API or C
+runtime path owns the durable behavior. Python may remain as a wrapper over that
+C path, but it must not be the only implementation used by project import,
+listing, metadata lookup, or web/API payload generation.
+
+If the current framework cannot support Mac cleanly, the work must improve the
+framework or raise the blocker. It must not work around the framework with a
+parallel Mac-only route, duplicate metadata model, or hidden compatibility
+branch.
+
+This applies at least to:
+
+```text
+HFS/file/fork container parsing
+resource fork parsing and CODE resource inventory
+CODE 0 and nonzero CODE segment metadata
+selected CODE segment listing input
+generated Mac OS record/call lookup
+project metadata emitted to the web API
+```
 
 ## Implementation Slices
 
@@ -782,6 +828,42 @@ fork, CODE resource, and unsupported state.
 Document optional MPW-GM fixture paths and the Mac platform inventory check.
 ```
 
+012-013. C-backed Mac platform parser/import parity - open
+
+```text
+Promote durable Mac HFS, fork, resource fork, CODE metadata, and selected CODE
+segment import behavior into C APIs matching the Amiga/Atari platform boundary.
+Keep Python as wrapper/report/editing code only.
+```
+
+012-014. Mac project/API/web integration - open
+
+```text
+Create a real Classic Mac OS project path whose server payload includes
+`classic_macos` and whose web UI opens through the normal project/listing route.
+```
+
+012-015. Generated Mac metadata consumption - open
+
+```text
+Feed source render and analysis from generated Mac OS metadata, not handcrafted
+Python dictionaries in tests or view assembly.
+```
+
+012-016. Real CODE listing view - open
+
+```text
+Render selected nonzero CODE resources as actual m68k listing rows in the web
+UI, not just a word preview in a container summary.
+```
+
+012-017. Core platform framework cleanup - open
+
+```text
+Remove any Mac-only side paths discovered during implementation by extending
+shared platform source/container/project/listing abstractions cleanly.
+```
+
 ## Artifact Ownership
 
 Candidate artifacts:
@@ -844,6 +926,20 @@ reports own provenance and review visibility
   recipe.
 - Source segment mapping is distinct from observed binary `CODE` resources.
 - The imported target is viewable in the web UI project/listing flow.
+- The `classic_macos` web payload is emitted by the normal server project API,
+  not only by test fixtures or direct helper calls.
+- Durable Mac platform parsing/import behavior lives behind C APIs wherever the
+  Amiga or Atari ST equivalent is C-backed.
+- Python Mac code is limited to wrappers, extraction/reporting, tests, and
+  editing workflow layers over durable C behavior.
+- Source/project rendering consumes generated Mac OS metadata rather than
+  handcrafted duplicate dictionaries.
+- The selected CODE segment is rendered as actual m68k listing rows in the web
+  UI, with container metadata linked to that listing.
+- Mac support extends shared project/source/container/listing abstractions; any
+  framework gap is fixed or explicitly raised, not worked around.
+- No Mac-specific compatibility branch, legacy payload, or duplicate metadata
+  model remains on the completion path.
 - Baseline analysis annotates cited Mac OS calls and call patterns visible in
   documentation or MPW-GM examples.
 - Unsupported Mac platform areas are reported explicitly.
@@ -990,15 +1086,29 @@ resources documentation coverage tests
 
 ## Closeout Checklist
 
-Starter milestone closeout state:
+Current state:
 
-- Durable issue reasoning is promoted into this proposal's implementation
-  observations.
-- Completed `docs/issues/012-*` issue files are intentionally retained while
-  the active working objective still references them as per-issue evidence.
-- Stale unchecked checkpoint markers have been removed.
-- Skipped external checks are represented by optional-fixture skips in the Mac
-  tests and by `RESOURCES.md` fixture documentation.
+- The starter research slice is useful and tested, but it does not yet close
+  this proposal.
+- Completed `docs/issues/012-001` through `012-012` remain as evidence for the
+  prototype/research path.
+- Open completion issues must close the C/API/UI gaps before this proposal can
+  move to implemented.
+
+Full closeout requires:
+
+- C-backed Mac parser/import APIs for platform behavior that Amiga/Atari already
+  implement in C.
+- A real Classic Mac OS project record and server payload with `classic_macos`
+  data emitted through the normal API.
+- Web UI navigation to the Mac source/container/listing view through the normal
+  project flow.
+- Generated Mac OS metadata consumed by render/analysis paths.
+- A selected CODE segment rendered as actual m68k listing rows.
+- Any shared framework limitations resolved in the core abstractions, or
+  recorded as explicit blockers.
+- No Mac-only workaround path kept as accepted design.
+- Optional-fixture skips separated from required completion gates.
 
 ## Verification
 

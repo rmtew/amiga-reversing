@@ -1,4 +1,4 @@
-Status: implemented
+Status: implemented; superseded by open completion issues
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -21,3 +21,8 @@ Result:
 - The proposal now uses a neutral section index and documents that issue-file
   deletion is deferred until after this active objective no longer needs the
   per-issue evidence trail.
+
+Superseding note:
+The neutral index remains valid, but the proposal is not closed. Open completion
+issues now define the remaining work needed for full Classic Mac OS platform
+support without legacy paths or prototype-only compatibility shims.

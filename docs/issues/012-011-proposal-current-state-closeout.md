@@ -1,4 +1,4 @@
-Status: implemented
+Status: implemented; superseded by open completion issues
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -25,3 +25,10 @@ Result:
 - Proposal 012 now separates implemented starter support from explicit deferred
   work and records that this closeout was a documentation-state fix, not a new
   importer or UI feature.
+
+Superseding note:
+The later review raised the completion bar. The previous "starter milestone
+implemented" wording is no longer sufficient for proposal closeout. Proposal
+012 now requires C-backed core-framework integration, normal project/API/web
+reachability, generated metadata consumption, and real CODE listing views before
+it can be marked implemented.
