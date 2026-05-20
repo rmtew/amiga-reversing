@@ -8459,6 +8459,60 @@ def test_real_dll_metadata_named_rsset_layout_preserves_explicit_size(tmp_path: 
     assert "work_SIZEOF EQU __RS\n" in rendered
 
 
+def test_real_dll_metadata_named_rsset_layout_renders_byte_array_kind(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "stage.bin"
+    binary_path.write_bytes(b"\x4e\x75")
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "raw_binary",
+                "entry_register_seeds": [],
+                "bootblock": None,
+                "resident": None,
+                "library": None,
+                "custom_structs": [],
+                "rsset_layout_regions": [
+                    {
+                        "offset": 4,
+                        "size": 4,
+                        "layout_name": "work",
+                        "base_symbol": "__game_work_base__",
+                        "sizeof_symbol": "work_SIZEOF",
+                        "symbol": "work_item_ids",
+                        "struct_name": None,
+                        "pointer_struct": None,
+                        "storage_kind": "byte_array",
+                        "semantic_type": "item_ids",
+                        "seed_origin": "manual_analysis",
+                        "review_status": "seeded",
+                        "citation": "test",
+                    }
+                ],
+                "execution_views": [],
+                "absolute_code_labels": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    artifact = c_backend.CListingArtifact.create(
+        c_backend._CBackendSourceFile(binary_path, "amiga-raw", 0),
+        metadata_text=str(metadata_path),
+        include_dir="",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        rendered, _profile = artifact.source_text_with_profile()
+    finally:
+        artifact.close()
+
+    assert "work_item_ids RS.B 4\n" in rendered
+    assert "work_item_ids RS.L 1\n" not in rendered
+    assert "work_SIZEOF EQU __RS\n" in rendered
+
+
 def test_real_dll_metadata_named_rsset_layout_symbols_seeded_base_access(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "stage.bin"

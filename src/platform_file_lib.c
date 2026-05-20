@@ -645,6 +645,7 @@ static uint8_t rsset_layout_region_storage_kind_id_from_text_local(const char *s
     { "struct_pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER },
     { "pointer", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER },
     { "scalar", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR },
+    { "byte_array", M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY },
   };
   return text_u8_id_from_map_local(storage_kind_names, sizeof(storage_kind_names) / sizeof(storage_kind_names[0]),
     storage_kind, M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN);
@@ -656,12 +657,13 @@ static const char *rsset_layout_region_storage_kind_name_local(uint8_t storage_k
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER: return "struct_pointer";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER: return "pointer";
     case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_SCALAR: return "scalar";
+    case M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY: return "byte_array";
     default: return NULL;
   }
 }
 
 static uint8_t rsset_layout_region_size_from_storage_kind_id_local(uint8_t storage_kind_id) {
-  (void)storage_kind_id;
+  if (storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY) return 1U;
   return 4U;
 }
 

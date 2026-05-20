@@ -767,6 +767,14 @@ class IrPolicyDllTests(unittest.TestCase):
                                 "symbol": "app_NameOnly",
                                 "storage_kind": "scalar",
                             },
+                            {
+                                "offset": 0x28,
+                                "layout_name": "app",
+                                "base_symbol": "__amiga_app_base__",
+                                "symbol": "app_ItemIds",
+                                "storage_kind": "byte_array",
+                                "size": 4,
+                            },
                         ],
                     },
                 ),
@@ -789,6 +797,8 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(regions[0]["flags"], 1)
         self.assertEqual(regions[1]["storage_kind_id"], 4)
         self.assertEqual(regions[1]["flags"], 2)
+        self.assertEqual(regions[2]["storage_kind_id"], 5)
+        self.assertEqual(regions[2]["storage_kind"], "byte_array")
 
     def test_effective_policy_exports_structured_data_ids(self) -> None:
         library = _file_library()

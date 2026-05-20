@@ -1386,6 +1386,31 @@ def test_target_rsset_layout_region_command_payload() -> None:
     }
 
 
+def test_target_rsset_layout_region_command_payload_accepts_byte_array_storage() -> None:
+    kind, payload = target_catalog_manual_payload(
+        "target.rsset_region.add",
+        {
+            "offset": 0x196,
+            "size": 4,
+            "symbol": "app_pocket_item_ids",
+            "storage_kind": "byte_array",
+            "semantic_type": "item_id_array",
+        },
+    )
+
+    assert kind == "create_manual_rsset_layout_region"
+    assert payload == {
+        "rsset_layout_region": {
+            "rsset_layout_region_id": "catalog-rsset-region-app-0196",
+            "offset": 0x196,
+            "size": 4,
+            "symbol": "app_pocket_item_ids",
+            "storage_kind": "byte_array",
+            "semantic_type": "item_id_array",
+        }
+    }
+
+
 def test_target_rsset_layout_region_edit_and_rename_command_payloads() -> None:
     for command_id in ("target.rsset_region.edit", "target.rsset_region.rename"):
         kind, payload = target_catalog_manual_payload(

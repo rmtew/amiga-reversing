@@ -3207,7 +3207,7 @@ def _app_slot_rename_parameter_schema() -> dict[str, object]:
             "size": {"type": "integer", "minimum": 1, "maximum": 255},
             "storage_kind": {
                 "type": "string",
-                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
+                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer", "byte_array"],
             },
             "semantic_type": {"type": "string"},
             "parser_role": {"type": "string"},
@@ -3496,7 +3496,7 @@ def _rsset_layout_region_parameter_schema() -> dict[str, object]:
             "pointer_struct": {"type": "string"},
             "storage_kind": {
                 "type": "string",
-                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer"],
+                "enum": ["scalar", "pointer", "struct_instance", "struct_pointer", "byte_array"],
             },
             "semantic_type": {"type": "string"},
             "parser_role": {"type": "string"},

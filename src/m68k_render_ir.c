@@ -6558,6 +6558,7 @@ typedef struct M68kRenderAppRsSlot {
   uint8_t source_kind;
   uint8_t layout_kind;
   uint8_t base_kind;
+  uint8_t storage_kind;
   size_t source_section_index;
   uint32_t source_offset;
   char layout_name[32];
@@ -6626,6 +6627,27 @@ static int render_app_rs_policy_region_size_for_slot(const M68kAnalysisPolicy *p
   if (found == 0 || out_size == NULL) return found;
   *out_size = found_size;
   return 1;
+}
+
+static int render_app_rs_policy_region_storage_kind_for_slot(const M68kAnalysisPolicy *policy,
+    const char *symbol_name, int32_t displacement, uint8_t *out_storage_kind) {
+  uint16_t index;
+  if (out_storage_kind != NULL) *out_storage_kind = M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_UNKNOWN;
+  if (policy == NULL || symbol_name == NULL || symbol_name[0] == '\0' || displacement < 0) return 0;
+  for (index = 0U; index < policy->rsset_layout_region_count &&
+       index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
+    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+    if (!render_app_rs_layout_kind_is_app(render_app_rs_policy_layout_kind(region)) ||
+        strcmp(base_symbol, M68K_RENDER_APP_BASE_SYMBOL) != 0 ||
+        region->symbol[0] == '\0' || strcmp(region->symbol, symbol_name) != 0 ||
+        region->offset != (uint32_t)displacement) {
+      continue;
+    }
+    if (out_storage_kind != NULL) *out_storage_kind = region->storage_kind_id;
+    return 1;
+  }
+  return 0;
 }
 
 static int render_app_rs_slot_compare(const void *left, const void *right) {
@@ -6806,7 +6828,13 @@ static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analys
 
 static void render_app_rs_format_slot_directive(const M68kRenderAppRsSlot *slot, char *line, size_t line_size) {
   if (slot == NULL || line == NULL || line_size == 0U) return;
-  if (slot->size == 4) {
+  if (slot->storage_kind == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_BYTE_ARRAY) {
+    if (slot->size == 1) {
+      snprintf(line, line_size, "%s RS.B 1\n", slot->name);
+    } else {
+      snprintf(line, line_size, "%s RS.B %d\n", slot->name, (int)slot->size);
+    }
+  } else if (slot->size == 4) {
     snprintf(line, line_size, "%s RS.L 1\n", slot->name);
   } else if (slot->size == 2 && (slot->displacement & 1) == 0) {
     snprintf(line, line_size, "%s RS.W 1\n", slot->name);
@@ -6934,6 +6962,8 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       : (region_size > 0
       ? region_size
       : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1)));
+    (void)render_app_rs_policy_region_storage_kind_for_slot(lookup->policy, symbol_name, slot->displacement,
+      &slots[slot_count].storage_kind);
     snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), M68K_RENDER_APP_LAYOUT_NAME);
     slots[slot_count].layout_kind = (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
     slots[slot_count].base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
@@ -6980,6 +7010,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       snprintf(slots[slot_count].name, sizeof(slots[slot_count].name), "%s", region->symbol);
       slots[slot_count].displacement = (int32_t)region->offset;
       slots[slot_count].size = region->size;
+      slots[slot_count].storage_kind = region->storage_kind_id;
       slots[slot_count].source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
       ++slot_count;
     }

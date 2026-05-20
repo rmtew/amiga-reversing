@@ -38,6 +38,7 @@ class RssetLayoutStorageKind(StrEnum):
     STRUCT_POINTER = "struct_pointer"
     POINTER = "pointer"
     SCALAR = "scalar"
+    BYTE_ARRAY = "byte_array"
 
 
 class EntryRegisterSeedKind(StrEnum):

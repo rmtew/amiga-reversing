@@ -364,6 +364,18 @@ def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path:
                     parser_routine="sub_ab00",
                     parse_order=0,
                 ),
+                RssetLayoutRegionMetadata(
+                    offset=0x196,
+                    seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+                    review_status=TargetMetadataReviewStatus.SEEDED,
+                    citation="manual",
+                    size=4,
+                    layout_name="app",
+                    base_symbol="__amiga_app_base__",
+                    symbol="app_item_ids",
+                    storage_kind=RssetLayoutStorageKind.BYTE_ARRAY,
+                    semantic_type="item_id_array",
+                ),
             ),
         ),
     )
@@ -380,6 +392,8 @@ def test_load_target_metadata_preserves_extended_rsset_layout_metadata(tmp_path:
     assert loaded.rsset_layout_regions[0].parser_role == "option_source"
     assert loaded.rsset_layout_regions[0].parser_routine == "sub_ab00"
     assert loaded.rsset_layout_regions[0].parse_order == 0
+    assert loaded.rsset_layout_regions[1].storage_kind is RssetLayoutStorageKind.BYTE_ARRAY
+    assert loaded.rsset_layout_regions[1].semantic_type == "item_id_array"
 
 
 def test_load_target_metadata_applies_corrections_over_generated_seeded(tmp_path: Path) -> None:

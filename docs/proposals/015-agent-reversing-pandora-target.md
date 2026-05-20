@@ -1134,6 +1134,49 @@ the intended location.
   base, inventory/pocket byte arrays at `$0196(a6)`/`$019A(a6)`, or item/object
   type values; those need their own supported evidence pass.
 
+### 015-033: Support and name byte-array item app slots
+
+* Candidate: blocked D012 app-state arrays at `$0196(a6)` and `$019A(a6)`,
+  where four byte-sized item ids are cleared as longwords but later indexed as
+  bytes.
+* Evidence: `s0:000029EA` iterates four byte entries from both arrays and
+  expands them through item-offset tables into pointer tables at
+  `abs_0_00013416` and `abs_0_00013442`; interaction code swaps object item id
+  byte `$0046(a4)` with indexed bytes from both arrays; `s0:00002778` checks
+  item `$6C` across both arrays; the nearby failure string is
+  `" IS TOO LARGE FOR YOUR POCKETS"` for the `$019A(a6)` path.
+* Support-code fix: added a `byte_array` RSSET layout storage kind to target
+  metadata, manual command schema validation, C policy loading/export, and
+  rendering. Explicit byte-array regions now render as `RS.B <size>`, so a
+  four-byte slot is not misdeclared as `RS.L 1`.
+* Command: executed two `target.rsset_region.add` commands through the target
+  command catalog with app layout, `__amiga_app_base__` base symbol, size 4,
+  and byte-array storage kind: `$0196` as `app_carried_item_ids` and `$019A`
+  as `app_pocket_item_ids`.
+* Verifier: focused support tests passed
+  (`tests\test_manual_action_catalog.py::test_target_rsset_layout_region_command_payload_accepts_byte_array_storage`,
+  `tests\test_disasm_projects.py::test_load_target_metadata_preserves_extended_rsset_layout_metadata`,
+  `tests\test_c_backend.py::test_real_dll_metadata_named_rsset_layout_renders_byte_array_kind`,
+  `src\tests\test_ir_policy_dll.py::IrPolicyDllTests::test_effective_policy_exports_rsset_storage_kind_id`);
+  ruff passed for touched Python files and import/error checks for the C DLL
+  unittest; Manual Action Log count is 35 with head hash
+  `89d206316f4711358fa29702dc246b66c408f9c54a9b98f5f5c02cbacc93e2bb`;
+  semantic reload shows both byte-array RSSET regions; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Timing: C DLL rebuild took about 17s; focused pytest took about 1s; grouped
+  target command execution completed in under 1s; listing projection readback
+  was about 10s; exact reproduction completed in about 21s.
+* Result: rendered source now defines `app_carried_item_ids RS.B 4` and
+  `app_pocket_item_ids RS.B 4`. Listing projection shows six rows containing
+  `app_carried_item_ids` and five rows containing `app_pocket_item_ids`.
+* Review: `$019A(a6)` has pocket-specific evidence from the failure path.
+  `$0196(a6)` is deliberately named at the broader carried-item level because
+  current evidence proves item-slot display/swap behavior but not a narrower
+  left/right hand role. The new storage kind is intentionally explicit policy:
+  plain size-4 app regions continue to render as long storage unless the
+  command records byte-array semantics.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -1485,14 +1528,12 @@ Triage by scope:
   * preserve indexed byte access and four-byte zeroing evidence in the rendered
     RSSET layout.
 * Missing tool/report/action:
-  * `target.rsset_region.add` can name a size-4 app region, but current RSSET
-    rendering formats any size-4 slot as `RS.L 1`; size 1 would understate the
-    indexed array and leave three anonymous bytes. A byte-array storage kind or
-    explicit element-size/count metadata is needed before this is a clean target
-    mutation.
+  * fixed by 015-033: `target.rsset_region.add` now accepts a `byte_array`
+    storage kind, and explicit byte-array slots render as `RS.B <size>`.
 * Pull-in condition: app-slot byte arrays become the next best Pandora
   source-converging action, or typed app-slot array rendering is being changed.
-* Status: blocked for target mutation; no Manual Action Log change was made.
+* Status: fixed by 015-033. Pandora `$0196(a6)` and `$019A(a6)` were named
+  through supported commands and exact round-trip verified.
 
 #### D013: RSSET subfield accesses need alias/offset rendering
 
