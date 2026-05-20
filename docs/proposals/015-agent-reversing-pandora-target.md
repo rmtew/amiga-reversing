@@ -544,6 +544,31 @@ the intended location.
 * Next recommendation: inspect the `subi.b #32,d0` context; execute only if the
   surrounding flow supports ASCII/font-index semantics.
 
+### 015-013: Render ASCII space in lowercase fold
+
+* Candidate: Pandora representation candidate at
+  `s0:00006088:instruction:3320`.
+* Evidence: listing window around hunk 0 `$00006088` shows
+  `cmp.b #$61,d0`, branch if below, then `subi.b #32,d0`, followed by
+  `lsl.w #3,d0` and `add.l app_01E8(a6),d0` before drawing. This supports
+  ASCII lowercase-to-uppercase/font-index semantics for subtracting space.
+* Command: executed `representation.character` for the immediate value 32 at
+  `subi.b #32,d0`.
+* Verifier: Manual Action Log sequence 6 was appended locally; durable payload,
+  semantic reload, projected listing row, and exact round-trip all passed.
+  `reproduction.json` reports `status: exact`, `stale: false`, rebuilt SHA
+  matching original.
+* Timing: listing context query 3.9s; command execution 11.4s including exact
+  reproduction; projection check 3.8s.
+* Result: projected source now renders `subi.b #' ',d0`, making the ASCII
+  folding intent visible at the font-index calculation.
+* Review: output-affecting Pandora mutation only. Target-local Manual Action
+  Log state remains local; `.project.json` timestamp churn is not meaningful
+  and should not be committed.
+* Next recommendation: continue with the next representation candidate only
+  after checking nearby comparison/arithmetic context; otherwise move to the
+  next non-generic candidate family.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
