@@ -119,6 +119,7 @@ def test_agent_reversing_loop_smoke(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert report["next"]["recommendation"] == "continue"
     assert calls == [
         ("GET", "/api/projects/demo/commands"),
+        ("GET", "/api/projects/demo/commands"),
         ("POST", "/api/projects/demo/commands/execute"),
         ("GET", "/api/projects/demo"),
         ("GET", "/api/projects/demo/listing"),
@@ -276,7 +277,7 @@ def test_agent_real_genam_autonomous_lvo_library_base_candidate_converges(
     assert matching_seeds[0]["library_name"] == "exec.library"
 
 
-def test_agent_real_genam_autonomous_data_symbol_candidate_converges(
+def test_agent_real_genam_autonomous_data_symbol_candidate_is_not_generic_progress(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -309,12 +310,12 @@ def test_agent_real_genam_autonomous_data_symbol_candidate_converges(
 
     report = reversing_loop.run_one_iteration(project_id, mode="clean-run", project_root=project_root)
 
-    assert report["selected_work_item"]["kind"] == "data_symbol_name"
-    assert report["action"]["command_id"] in {"data_symbol.rename", "data_symbol.rename_existing"}
-    assert report["verification"]["status"] == "passed"
-    expected_name = report["selected_work_item"]["new_name"]
-    projection = next(layer for layer in report["verification"]["layers"] if layer["layer"] == "projection")
-    assert projection["expected_data_symbol_name"] == expected_name
+    assert report["selected_work_item"] is None
+    assert report["action_result"]["status"] == "not_run"
+    assert report["verification"]["status"] == "not_run"
+    skipped = report["planner"]["skipped_candidates"]
+    assert skipped[0]["kind"] == "data_symbol_name"
+    assert skipped[0]["stop_reason"] == "data symbol name is only class/address styling"
 
 
 def _project(review_items: tuple[dict[str, object], ...]) -> ProjectRecord:

@@ -905,6 +905,11 @@ resources documentation coverage tests
   logical-line parsing accepts MacRoman continuation glyphs as well as
   backslash, and fork role classification treats `XCOF`/`stub` library-like data
   forks as object payloads alongside `OBJ `.
+- Follow-up verification aligned test gates with that cleanup: the active import
+  policy now permits the Mac parsers' standard-library dependencies (`ast`,
+  `operator`, `shlex`), and the agent-loop regression tests now expect generic
+  class/address data-symbol styling to be skipped as non-semantic autonomous
+  progress. Full `tests` passed after this adjustment.
 - 012-005 added a narrow MPW include generator for baseline Mac OS records and
   calls. It keeps `_NumToString` as a package macro rather than an OPWORD alias,
   records `_PBHGetVInfoSync` A0/D0 protocol evidence, and generates C/H lookup
