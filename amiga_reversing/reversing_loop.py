@@ -6019,7 +6019,7 @@ def _manual_seeds_from_durable_result(durable_result: dict[str, object]) -> list
             seed = _manual_seed_from_action(raw_action)
             if seed is not None:
                 seeds.append(seed)
-    return seeds
+    return _dedupe_manual_seed_payloads(seeds)
 
 
 def _manual_seed_from_action(action: object) -> dict[str, object] | None:
@@ -6047,7 +6047,19 @@ def _manual_seed_removals_from_durable_result(durable_result: dict[str, object])
             seed_id = _manual_seed_removal_from_action(raw_action)
             if seed_id is not None:
                 seed_ids.append(seed_id)
-    return seed_ids
+    return list(dict.fromkeys(seed_ids))
+
+
+def _dedupe_manual_seed_payloads(seeds: list[dict[str, object]]) -> list[dict[str, object]]:
+    deduped: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for seed in seeds:
+        identity = json.dumps(seed, sort_keys=True, separators=(",", ":"), default=str)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        deduped.append(seed)
+    return deduped
 
 
 def _manual_seed_removal_from_action(action: object) -> str | None:

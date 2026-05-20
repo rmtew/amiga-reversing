@@ -63,3 +63,7 @@ there were no old issue files to delete.
   selected-before-availability and selected-after-availability, availability
   checks include stale locator/catalog errors, and fallback selection drift is
   explicit. No Pandora target mutation was needed.
+- 016-002 deduped manual-seed verifier payloads when command execution exposes
+  the same seed through both `action` and `actions`. Exact duplicate seed
+  payloads and duplicate removal ids are collapsed before reporting, while
+  distinct seed payloads remain visible.

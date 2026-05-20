@@ -3833,6 +3833,63 @@ def test_manual_seed_verifier_rejects_mismatched_payload_field(
     assert verification["layers"][1]["matching_manual_seeds"] == []
 
 
+def test_manual_seed_verifier_dedupes_action_and_actions_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    seed = {"seed_id": "catalog-seed-1", "kind": "data", "mode": "required", "hunk": 0, "addr": 0}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed]}),
+    )
+    durable_result = _executed_manual_seed_payload(tmp_path, seed)
+    durable_result["actions"] = [durable_result["action"]]
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "row.seed.data.raw",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["expected_manual_seeds"] == [seed]
+    assert verification["layers"][1]["matching_manual_seeds"] == [seed]
+
+
+def test_manual_seed_verifier_keeps_distinct_action_and_actions_payloads(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_manual_log(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    seed_1 = {"seed_id": "catalog-seed-1", "kind": "data", "mode": "required", "hunk": 0, "addr": 0}
+    seed_2 = {"seed_id": "catalog-seed-2", "kind": "code", "mode": "required", "hunk": 0, "addr": 4}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(_project(()), manual_state={"seeds": [seed_1, seed_2]}),
+    )
+    durable_result = _executed_manual_seed_payload(tmp_path, seed_1)
+    durable_result["actions"] = [{"action_id": "manual-2", "payload": {"seed": seed_2}}]
+
+    verification = reversing_loop._verify_manual_seed_mutation(
+        "demo",
+        "row.seed.data.raw",
+        durable_result,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "passed"
+    assert verification["layers"][1]["expected_manual_seeds"] == [seed_1, seed_2]
+    assert verification["layers"][1]["matching_manual_seeds"] == [seed_1, seed_2]
+
+
 def test_manual_seed_verifier_rejects_sparse_creation_payload(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
