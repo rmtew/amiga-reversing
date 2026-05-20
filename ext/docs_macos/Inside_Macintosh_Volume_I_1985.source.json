@@ -101,9 +101,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_I_1985.amendments/page_007.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "GLM TOC rewrite drops internal page-number detail; keep baseline for page-cited reference use."
     },
     {
       "page": 14,
@@ -446,6 +448,11 @@
       "blank_line_collapse": 0,
       "empty_table_drop": 0
     },
+    "final_md_sha256_after": "eeebc175a23b8816f6717a3b5340e1a869a9580ae6adef0806c467c66a979188"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [],
     "final_md_sha256_after": "eeebc175a23b8816f6717a3b5340e1a869a9580ae6adef0806c467c66a979188"
   }
 }

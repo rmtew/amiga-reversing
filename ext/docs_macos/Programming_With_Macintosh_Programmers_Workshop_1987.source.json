@@ -68,5 +68,10 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "10a88bf548569d05b424ca46ed723252957d21543975c51b85ee1fcfa14f575d"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [],
+    "final_md_sha256_after": "10a88bf548569d05b424ca46ed723252957d21543975c51b85ee1fcfa14f575d"
   }
 }

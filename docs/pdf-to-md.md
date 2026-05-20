@@ -238,7 +238,8 @@ llama-server -hf ggml-org/GLM-OCR-GGUF:Q8_0 `
   --host 127.0.0.1 `
   --temp 0.1 `
   --top-k 1 `
-  --ctx-size 4096 `
+  --ctx-size 8192 `
+  --predict 4096 `
   --no-webui
 ```
 
@@ -264,9 +265,24 @@ llama-server `
   --host 127.0.0.1 `
   --temp 0.1 `
   --top-k 1 `
-  --ctx-size 4096 `
+  --ctx-size 8192 `
+  --predict 4096 `
   --no-webui
 ```
+
+`--ctx-size` is the total context budget for prompt, image tokens, and output.
+`--predict` is the server-side generation cap. The request must also set
+`max_tokens` high enough, otherwise the server may be capable of longer output
+but the response will still stop early.
+
+Current local finding: `max_tokens = 2048` was too small for dense Classic Mac
+OS prose pages. It truncated Inside Macintosh Volume II page 96 and Volume III
+page 25 before the end of the source page. Restarting `llama-server` with
+`--ctx-size 8192 --predict 4096` and rerunning those pages with
+`--max-tokens 4096` produced complete page transcriptions. The higher-token
+result still required review: Volume III page 25 changed `$FFFFFF` to
+`$FFFFF`, so the accepted amendment was corrected against the baseline before
+being applied.
 
 ### Rendering Pages
 
@@ -289,7 +305,7 @@ $b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($image))
 $body = @{
   model = 'glm-ocr'
   temperature = 0.1
-  max_tokens = 2048
+  max_tokens = 4096
   messages = @(
     @{
       role = 'user'
@@ -325,7 +341,8 @@ the endpoint by hand:
 
 ```powershell
 uv run python src\scripts\kb\glm_ocr_amendments.py `
-  ext\docs_atari_st\SomeBook.source.json
+  ext\docs_atari_st\SomeBook.source.json `
+  --max-tokens 4096
 ```
 
 The script reads `remaining_review.weak_pages`, renders those pages from the
@@ -333,6 +350,16 @@ recorded source PDF, writes `*.amendments/page_NNN.glm.md`, and records seeded
 amendments in the document metadata. Review generated amendments before applying
 them to final Markdown, especially for code, symbols, opcodes, and numeric
 tables.
+
+To rerun only selected pages, use `--pages` with 1-based source page numbers:
+
+```powershell
+uv run python src\scripts\kb\glm_ocr_amendments.py `
+  ext\docs_macos\Inside_Macintosh_Volume_II_1985.source.json `
+  --pages 96 `
+  --max-tokens 4096 `
+  --force
+```
 
 ## Metadata JSON
 

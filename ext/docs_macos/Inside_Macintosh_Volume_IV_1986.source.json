@@ -19,7 +19,7 @@
     "source_pdf": "17bb3f9719523b18b4a3e70343c622b6c1a19e9d1c2c0ef0e2e409527ed17a50",
     "ocr_pdf": null,
     "baseline_md": "4edd611dadca51498fa6379b05e81b1a3b54be980043eeb585c2ae6ab8482991",
-    "final_md": "8bf93772c0c0029774ddea2b0176492797c7629eaa1d30c9f8761469d4f01353"
+    "final_md": "88419852ffc711558bb2bcf904a51e4893e5453ba03f07e138a13d27d3bbbfeb"
   },
   "conversion": {
     "ocr_tool": null,
@@ -58,9 +58,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_001.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as cover-page readability repair; not used as parsed truth."
     },
     {
       "page": 4,
@@ -76,9 +78,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.amendments/page_006.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as contents-page readability repair while retaining section/page references; not used as parsed truth."
     },
     {
       "page": 11,
@@ -282,5 +286,13 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "8bf93772c0c0029774ddea2b0176492797c7629eaa1d30c9f8761469d4f01353"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [
+      1,
+      6
+    ],
+    "final_md_sha256_after": "88419852ffc711558bb2bcf904a51e4893e5453ba03f07e138a13d27d3bbbfeb"
   }
 }

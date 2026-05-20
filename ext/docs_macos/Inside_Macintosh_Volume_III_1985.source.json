@@ -19,7 +19,7 @@
     "source_pdf": "4c0de9a3a4d41c41b8462b2a77aad8b95b92e1980afff165c1f986da0a81988b",
     "ocr_pdf": null,
     "baseline_md": "8bef2acfc0e4ac2f86ad39372638feed5ae6cbdeb36855fa528b9d2f0b9f72b0",
-    "final_md": "ccfb75589cbf6a60bf2f138012309b6b8dc8bb0dde0556edf23f2ff2f8107368"
+    "final_md": "fdfcd0e05b1d7c9b98af67166784a3cb0025697280bc89bd8400f3fb28f73912"
   },
   "conversion": {
     "ocr_tool": null,
@@ -68,9 +68,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.amendments/page_006.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "GLM TOC rewrite drops internal page-number detail; keep baseline for page-cited reference use."
     },
     {
       "page": 9,
@@ -113,9 +115,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.amendments/page_025.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted after rerun with llama-server --ctx-size 8192 --predict 4096 and request --max-tokens 4096; output reached end of page and repairs OCR-confused hardware prose. Not used as parsed truth. Reviewed correction retained baseline $FFFFFF address."
     },
     {
       "page": 55,
@@ -194,5 +198,12 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "ccfb75589cbf6a60bf2f138012309b6b8dc8bb0dde0556edf23f2ff2f8107368"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [
+      25
+    ],
+    "final_md_sha256_after": "fdfcd0e05b1d7c9b98af67166784a3cb0025697280bc89bd8400f3fb28f73912"
   }
 }

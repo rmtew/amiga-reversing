@@ -18,6 +18,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--endpoint", default="http://127.0.0.1:18080/v1/chat/completions")
     parser.add_argument("--dpi", type=int, default=180)
     parser.add_argument("--max-tokens", type=int, default=2048)
+    parser.add_argument("--pages", nargs="+", type=int, help="Only process these 1-based PDF page numbers.")
     parser.add_argument("--review-status", default="seeded")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args(argv)
@@ -28,6 +29,7 @@ def main(argv: list[str] | None = None) -> int:
             endpoint=args.endpoint,
             dpi=args.dpi,
             max_tokens=args.max_tokens,
+            pages=args.pages,
             review_status=args.review_status,
             force=args.force,
         )
@@ -40,6 +42,7 @@ def process_source_json(
     endpoint: str,
     dpi: int,
     max_tokens: int,
+    pages: list[int] | None,
     review_status: str,
     force: bool,
 ) -> None:
@@ -47,6 +50,12 @@ def process_source_json(
     final_md = Path(cast(str, cast(dict[str, object], metadata["paths"])["final_md"]))
     source_pdf = Path(cast(str, cast(dict[str, object], metadata["paths"])["source_pdf"]))
     weak_pages = [int(page) for page in cast(dict[str, list[int]], metadata["remaining_review"])["weak_pages"]]
+    if pages is not None:
+        weak_page_set = set(weak_pages)
+        unknown_pages = sorted(set(pages) - weak_page_set)
+        if unknown_pages:
+            raise ValueError(f"{source_json}: pages are not in remaining_review.weak_pages: {unknown_pages}")
+        weak_pages = pages
     amendments_dir = final_md.with_suffix("").with_name(final_md.stem + ".amendments")
     amendments_dir.mkdir(parents=True, exist_ok=True)
 

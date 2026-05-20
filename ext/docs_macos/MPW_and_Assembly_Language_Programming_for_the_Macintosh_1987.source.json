@@ -20,7 +20,7 @@
     "source_pdf": "60218aa233a2d1615a987a4d1691f855e31bf3149029c9b38b7edc08aba47ce8",
     "ocr_pdf": null,
     "baseline_md": "c5550dcfa4c1c71d5b8d50cfc82bd096d0d0ea659fa9c01bfb230b291578d816",
-    "final_md": "c5ee9b49878d45d54f25c65a26eeafd2039955c9fae3cbd4633941f7acb7d2f3"
+    "final_md": "e43794dcf531993e05015fcedefd8c95062b6cfb281a13101fe77b6d69aa2cd1"
   },
   "conversion": {
     "ocr_tool": null,
@@ -53,18 +53,22 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_002.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as title-page readability repair for OCR-confused words; not used as parsed truth."
     },
     {
       "page": 142,
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.amendments/page_142.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "risky_code_or_symbol"
+      "quality": "risky_code_or_symbol",
+      "reviewed_by": "codex",
+      "review_note": "Accepted as obvious D1/A1 and (A1)+ addressing-mode OCR repair; cite manually before using as structured fact."
     },
     {
       "page": 334,
@@ -107,5 +111,13 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "c5ee9b49878d45d54f25c65a26eeafd2039955c9fae3cbd4633941f7acb7d2f3"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [
+      2,
+      142
+    ],
+    "final_md_sha256_after": "e43794dcf531993e05015fcedefd8c95062b6cfb281a13101fe77b6d69aa2cd1"
   }
 }

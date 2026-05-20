@@ -4277,52 +4277,21 @@ MountVol to mount volumes.
 <!-- source-page: 96 -->
 ## Page 96
 
-The File Manager
-After a volume has been mounted, your application can can GetVollnfo, which will return the
-name of the volume, the amount of unused space on the volume, and a volume reference number
-that you can use to refer to that volume.
-To minimize the amount of memory used by mounted volumes, an application can unmount or
-place off-line any volumes that aren't currently being used. To unmount a volume, call
-UnmountVol, which flushes a volume (by calling FlushVol) and releases all of the memory used
-for it (about 1 to l.5K bytes). To place a volume off-line, call OftLine, which flushes a volume
-and releases all of the memory used for it except for 94 bytes of descriptive information about the
-volume. Off-line volumes are placed on-line by the File Manager as needed, but your application
-must remount any unmounted volumes it wants to access. The File Manager itself may place
-volumes off-line during its normal operation.
-If you would like an File Manager calls to apply to one volume, you can specify that volume as
-the default You can use SetVol to set the default volume to any mounted volume, and GetVol to
-learn the name and volume reference number of the default volume.
-Normally, volume initialization and naming is handled by the Standard File Package, which calls
-the Disk Initialization Package. If you want to initialize a volume explicitly or erase all files from
-a volume, you can call the Disk Initialization Package directly. When you want to change the
-name of a volume, call the File Manager function Rename.
-Whenever a disk has been reconstructed in an attempt to salvage lost files (because its directory or
-other file-access information has been destroyed), the logical end-of-file of each file will probably
-be equal to each physical end-of-file, regardless of where the actual logical end-of-file is. The
-first time an application attempts to read from a file on a reconstructed volume~ it will blindly pass
-the correct logical end-of-file and read misinformation until it reaches the new, incorrect logical
-end-of-file. To prevent this from happening, an application should always maintain an
-independent record of the logical end-of-file of each file it uses. To determine the File Manager's
-conception of the length of a file, or find out how many bytes have yet to be read from it, call
-GetEOF, which returns the logical end-of-file. You can change the length of a file by calling
-SetEOF.
-Allocation blocks are automatically added to and deleted from a file as necessary. If this happens
-to a number of files alternately, each of the files will be contained in allocation blocks scattered
-throughout the volume, which increases the time required to access those files. To prevent such
-fragmentation of files, you can allocate a number of contiguous allocation blocks to an open file
-by calling Allocate.
-Instead of calling Flush Vol, an unusual application might call FlushFile. FlushFile forces the
-contents of a file's volume buffer and access path buffer (if any) to be written to its volume.
-FlushFile doesn't update the descriptive information contained on the volume, so the volume
-information won't be correct until you call Flush Vol.
-To get information about a file stored on a volume (such as its name and creation date), call
-GetFilelnfo. You can change this information by calling SetFileinfo. Changing the name or
-version number of a file is accomplished by calling Rename or SetFilType, respectively; they
-have a similar effect, since both the file name and version number are needed to identify a file.
-You can lock or unlock a file by calling SetFilLock or RstFilLock, respectively. Given a path
-reference number, you can get the volume reference number of the volume containing that file by
-calling GetVRefNum.
-Using the File Manager II-87
+After a volume has been mounted, your application can call GetVolInfo, which will return the name of the volume, the amount of unused space on the volume, and a volume reference number that you can use to refer to that volume.
+
+To minimize the amount of memory used by mounted volumes, an application can unmount or place off-line any volumes that aren't currently being used. To unmount a volume, call UnmountVol, which flushes a volume (by calling FlushVol) and releases all of the memory used for it (about 1 to 1.5K bytes). To place a volume off-line, call OffLine, which flushes a volume and releases all of the memory used for it except for 94 bytes of descriptive information about the volume. Off-line volumes are placed on-line by the File Manager as needed, but your application must remount any unmounted volumes it wants to access. The File Manager itself may place volumes off-line during its normal operation.
+
+If you would like all File Manager calls to apply to one volume, you can specify that volume as the default. You can use SetVol to set the default volume to any mounted volume, and GetVol to learn the name and volume reference number of the default volume.
+
+Normally, volume initialization and naming is handled by the Standard File Package, which calls the Disk Initialization Package. If you want to initialize a volume explicitly or erase all files from a volume, you can call the Disk Initialization Package directly. When you want to change the name of a volume, call the File Manager function Rename.
+
+Whenever a disk has been reconstructed in an attempt to salvage lost files (because its directory or other file-access information has been destroyed), the logical end-of-file of each file will probably be equal to each physical end-of-file, regardless of where the actual logical end-of-file is. The first time an application attempts to read from a file on a reconstructed volume, it will blindly pass the correct logical end-of-file and read misinformation until it reaches the new, incorrect logical end-of-file. To prevent this from happening, an application should always maintain an independent record of the logical end-of-file of each file it uses. To determine the File Manager's conception of the length of a file, or find out how many bytes have yet to be read from it, call GetEOF, which returns the logical end-of-file. You can change the length of a file by calling SetEOF.
+
+Allocation blocks are automatically added to and deleted from a file as necessary. If this happens to a number of files alternately, each of the files will be contained in allocation blocks scattered throughout the volume, which increases the time required to access those files. To prevent such fragmentation of files, you can allocate a number of contiguous allocation blocks to an open file by calling Allocate.
+
+Instead of calling FlushVol, an unusual application might call FlushFile. FlushFile forces the contents of a file's volume buffer and access path buffer (if any) to be written to its volume. FlushFile doesn't update the descriptive information contained on the volume, so the volume information won't be correct until you call FlushVol.
+
+To get information about a file stored on a volume (such as its name and creation date), call GetFileInfo. You can change this information by calling SetFileInfo. Changing the name or version number of a file is accomplished by calling Rename or SetFilType, respectively; they have a similar effect, since both the file name and version number are needed to identify a file. You can lock or unlock a file by calling SetFilLock or RstFilLock, respectively. Given a path reference number, you can get the volume reference number of the volume containing that file by calling GetVRefNum.
 
 <!-- source-page: 97 -->
 ## Page 97

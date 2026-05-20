@@ -19,7 +19,7 @@
     "source_pdf": "7f78f94fa90eead5d4787875c21556fb97372a1bca7de86a0747f81466129edc",
     "ocr_pdf": null,
     "baseline_md": "0f7e11f5c0b7ac5e026987273195f18ea1a522845b9b04cc40bb20193e0ea0d7",
-    "final_md": "bb24f13b6005d58410dd4a5b828582217aa9fc00acaaaf0d4939604e9fbb899b"
+    "final_md": "d520f08f923116c1e36f89ce9956ff92d94a241a4d4604563b9b6b913b8bc4b0"
   },
   "conversion": {
     "ocr_tool": null,
@@ -84,9 +84,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_006.glm.md",
-      "review_status": "seeded",
+      "review_status": "rejected",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "GLM TOC rewrite drops internal page-number detail; keep baseline for page-cited reference use."
     },
     {
       "page": 11,
@@ -156,9 +158,11 @@
       "method": "glm-ocr-q8_0",
       "reason": "baseline OCR page has low or empty text",
       "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.amendments/page_096.glm.md",
-      "review_status": "seeded",
+      "review_status": "validated",
       "dpi": 180,
-      "quality": "candidate_repair"
+      "quality": "candidate_repair",
+      "reviewed_by": "codex",
+      "review_note": "Accepted after rerun with llama-server --ctx-size 8192 --predict 4096 and request --max-tokens 4096; output reached end of page and repairs OCR-confused API names/prose. Not used as parsed truth."
     },
     {
       "page": 155,
@@ -370,5 +374,12 @@
       "empty_table_drop": 0
     },
     "final_md_sha256_after": "bb24f13b6005d58410dd4a5b828582217aa9fc00acaaaf0d4939604e9fbb899b"
+  },
+  "applied_amendments": {
+    "tool": "src/scripts/kb/apply_pdf_md_amendments.py",
+    "pages": [
+      96
+    ],
+    "final_md_sha256_after": "d520f08f923116c1e36f89ce9956ff92d94a241a4d4604563b9b6b913b8bc4b0"
   }
 }

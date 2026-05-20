@@ -4,13 +4,13 @@
 <!-- source-page: 2 -->
 ## Page 2
 
-MPW® and Asselllbly
-Language
-Progralllllling
+MPW® and Assembly Language Programming
 For the Macintosh®
+
 Scott Kronick
-HOWARD W. SAMS &.COMPANY
-A Division of Macmillan. Inc.
+
+HOWARD W. SAMS & COMPANY
+A Division of Macmillan, Inc.
 4300 West 62nd Street
 Indianapolis, Indiana 46268 USA
 
@@ -7037,47 +7037,19 @@ D1,(A1)+
 <!-- source-page: 142 -->
 ## Page 142
 
-139
-Chapter 15
-This form of addressing is one of many different ways of addressing mem -
-ory. How many different ways are there? Who the heck cares? This isn't a
-book of statistics. If you tried to read about all methods of addressing at
-once, you'd forget about the first long before you got to the last. (When Mr.
-Moss starts getting surly you know a fear and loathing sidetrack is near.)
-The command MOVE.L D1,(A1) + places the long word contents of register Dl into the location specified by register Al, and then increments the
-address of that location by a long word. This is called postincrement indirect
-addressing. This addressing mode results in the following. The contents of
-Dl are not placed into register Al because the parentheses around Al
-indicate an indirection. The destination specified by (A 1) is not the register
-itself, but the location addressed by the contents of A 1. For example 1 if D 1
-contained #7 and Al contained $300, the statement's indirection would move
-the value 7 to memory location $300.
-The plus sign after (A1) indicates a postincrement of the contents of Al.
-The address contained in Al is incremented by one unit after the MOVE takes
-place. For example, if Dl contained #7 and Al contained $300, the statement's postincrement indirection would move the value 7 to memory loca -
-tion $300, then increment the contents of Al by a long word. Dl still
-contains #71 memory location $300 also contains #7, and Al contains $304.
-The unit of increment for the statement is 4 bytes (a long word).
-At this point, you may be able to see the convenience of this kind of
-addressing for the task of filling all 20K of screen memory. With the ScrnBase
-address (the original contents of Al) automatically incremented by the (A1) +
-addressing mode, you can repeatedly move the pattern (stored in Dl) until
-the entire screen is filled.
-The statement DBRA DO,Doloop keeps a count of the exact number of
-repetitions necessary to fill the screen. The original value of DO is assigned
-to #5471, the number of long words Oess the one already filled) in screen
-memory. The DBRA instruction (test condition, decrement, and branch) subtracts 1 from DO before each branch to Doloop. It continues to do so 5,471
-times, until the test condition shows DO equal to -1, which results in no
-branch.
-The Macintosh 2 and Macintoshes using full page displays have a different screen size than #5472 long words. If you run Fourplay, LightsOut, or
-the next chapter's program on a machine with a different screen size, the
-effect is different. But current, and likely future, Macintoshes use the system
-term ScrnBase as the name for the bottom address of screen memory. Also,
-the system equate term ScreenBits.bounds can be accessed to find the exact
-boundary coordinates of the current screen in use.
-This illustrates an important lesson in Macintosh programming: Protect
-your programs from system obsolescence. Mr. Moss has chosen to use a
-creaky device only because it allows you to write extremely short sample
+This form of addressing is one of many different ways of addressing memory. How many different ways are there? Who the heck cares? This isn't a book of statistics. If you tried to read about all methods of addressing at once, you'd forget about the first long before you got to the last. (When Mr. Moss starts getting surly you know a fear and loathing sidetrack is near.)
+
+The command MOVE.L D1,(A1)+ places the long word contents of register D1 into the location specified by register A1, and then increments the address of that location by a long word. This is called postincrement indirect addressing. This addressing mode results in the following. The contents of D1 are not placed into register A1 because the parentheses around A1 indicate an indirection. The destination specified by (A1) is not the register itself, but the location addressed by the contents of A1. For example, if D1 contained #7 and A1 contained $300, the statement's indirection would move the value 7 to memory location $300.
+
+The plus sign after (A1) indicates a postincrement of the contents of A1. The address contained in A1 is incremented by one unit after the MOVE takes place. For example, if D1 contained #7 and A1 contained $300, the statement's postincrement indirection would move the value 7 to memory location $300, then increment the contents of A1 by a long word. D1 still contains #7, memory location $300 also contains #7, and A1 contains $304. The unit of increment for the statement is 4 bytes (a long word).
+
+At this point, you may be able to see the convenience of this kind of addressing for the task of filling all 20K of screen memory. With the ScrnBase address (the original contents of A1) automatically incremented by the (A1)+ addressing mode, you can repeatedly move the pattern (stored in D1) until the entire screen is filled.
+
+The statement DBRA D0,DoLoop keeps a count of the exact number of repetitions necessary to fill the screen. The original value of D0 is assigned to #5471, the number of long words (less the one already filled) in screen memory. The DBRA instruction (test condition, decrement, and branch) subtracts 1 from D0 before each branch to DoLoop. It continues to do so 5,471 times, until the test condition shows D0 equal to -1, which results in no branch.
+
+The Macintosh 2 and Macintoshes using full page displays have a different screen size than #5472 long words. If you run Fourplay, LightsOut, or the next chapter's program on a machine with a different screen size, the effect is different. But current, and likely future, Macintoshes use the system term ScrnBase as the name for the bottom address of screen memory. Also, the system equate term ScreenBits.bounds can be accessed to find the exact boundary coordinates of the current screen in use.
+
+This illustrates an important lesson in Macintosh programming: Protect your programs from system obsolescence. Mr. Moss has chosen to use a creaky device only because it allows you to write extremely short sample
 
 <!-- source-page: 143 -->
 ## Page 143
