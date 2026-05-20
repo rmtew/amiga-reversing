@@ -174,3 +174,9 @@ repeatable work to `docs\issues\017-*`.
   The report exposes `rsset.binding.report` and catalog-visible
   `rsset.binding.bind` context while keeping `safe_to_mutate=false`; no target
   mutation was performed.
+- 017-008 extends `a5-hardware-report` with a conservative straight-line CFG
+  path/lifetime report. Pandora now classifies the selected `s0:000004A6`
+  A5 use as `accepted_custom_base` with source evidence
+  `a5-custom-cfg:h0:00000498->000004A6:op1:d0096`, but hardware register
+  rendering remains blocked because verifier consumption/render support is
+  still separate work.

@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-003 blocker
@@ -34,3 +34,18 @@ Acceptance:
 
 Blocked by:
 - 017-003.
+
+Result:
+- `a5-hardware-report` now includes a read-only
+  `cfg_path_lifetime_report` with stable `source_evidence_id` and
+  `path_lifetime_scope` payloads for conservative straight-line CFG slices.
+- Straight-line `_custom` definition-to-use paths are classified as
+  `accepted_custom_base`; branches, calls, save/restore boundaries, missing
+  definitions, and out-of-range displacements remain unknown/conflicting with
+  explicit blockers.
+- Pandora validation classified the selected `s0:000004A6` use as
+  `accepted_custom_base` with source evidence
+  `a5-custom-cfg:h0:00000498->000004A6:op1:d0096` and scope kind
+  `straight_line_cfg_between_definition_and_use`.
+- Hardware register rendering remains blocked: the report is read-only and
+  `rendering_allowed=false`.

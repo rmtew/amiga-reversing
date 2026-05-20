@@ -6575,6 +6575,12 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert report["lifetimes"] == [{"status": "probable_custom_candidate", "definition_count": 1, "use_count": 1}]
     assert report["verifier_gate"]["hardware_register_rendering_allowed"] is False
     assert report["verifier_gate"]["requires_accepted_path_lifetime_scope"] is True
+    cfg_report = report["cfg_path_lifetime_report"]
+    assert cfg_report["accepted_custom_base_evidence_count"] == 1
+    assert cfg_report["uses"][0]["status"] == "accepted_custom_base"
+    assert cfg_report["uses"][0]["accepted_hardware_base_evidence"] is True
+    assert cfg_report["uses"][0]["path_lifetime_scope"]["kind"] == "straight_line_cfg_between_definition_and_use"
+    assert cfg_report["rendering_allowed"] is False
     assert "proven" not in json.dumps(report)
 
 
@@ -6602,6 +6608,24 @@ def test_a5_hardware_lifetime_report_marks_clobber_and_conflicting_offset() -> N
     assert report["uses"][0]["lifetime_status"]["path_lifetime_status"] == "conflicting"
     assert report["clobbers"][0]["status"] == "non_custom_or_unknown"
     assert [boundary["kind"] for boundary in report["save_restore_boundaries"]] == ["save", "restore"]
+
+
+def test_a5_cfg_path_lifetime_report_blocks_branch_ambiguity() -> None:
+    branch = _listing_row(row_key="a5-branch", text="\tbeq.s loc_done\n", start_offset=0x38, end_offset=0x3A)
+    branch["opcode_or_directive"] = "beq.s"
+
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            branch,
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+
+    cfg_use = report["cfg_path_lifetime_report"]["uses"][0]
+    assert cfg_use["status"] == "unknown"
+    assert cfg_use["accepted_hardware_base_evidence"] is False
+    assert cfg_use["blockers"] == ["branch before selected use requires full CFG path proof"]
 
 
 def test_rsset_candidate_report_groups_raw_a6_operands() -> None:

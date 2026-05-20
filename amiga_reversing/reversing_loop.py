@@ -1840,6 +1840,7 @@ def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object
         "clobbers": clobbers,
         "save_restore_boundaries": boundaries,
         "lifetimes": _a5_lifetime_summaries(definitions, uses),
+        "cfg_path_lifetime_report": _listing_a5_cfg_path_lifetime_report(rows, definitions, uses),
         "verifier_gate": _a5_hardware_verifier_gate(),
     }
 
@@ -1855,7 +1856,222 @@ def _empty_a5_hardware_lifetime_report() -> dict[str, object]:
         "clobbers": [],
         "save_restore_boundaries": [],
         "lifetimes": [],
+        "cfg_path_lifetime_report": _empty_a5_cfg_path_lifetime_report(),
         "verifier_gate": _a5_hardware_verifier_gate(),
+    }
+
+
+def _empty_a5_cfg_path_lifetime_report() -> dict[str, object]:
+    return {
+        "kind": "a5_cfg_path_lifetime_report",
+        "path_model": "conservative_straight_line_cfg",
+        "accepted_custom_base_evidence_count": 0,
+        "use_count": 0,
+        "uses": [],
+        "rendering_allowed": False,
+    }
+
+
+def _listing_a5_cfg_path_lifetime_report(
+    rows: list[object],
+    definitions: list[dict[str, object]],
+    uses: list[dict[str, object]],
+) -> dict[str, object]:
+    mapping_rows = [row for row in rows if isinstance(row, Mapping) and _is_full_listing_locator(row.get("locator"))]
+    row_positions = {
+        cast(dict[str, object], row["locator"]).get("row_key"): index
+        for index, row in enumerate(mapping_rows)
+        if isinstance(cast(dict[str, object], row["locator"]).get("row_key"), str)
+    }
+    custom_definitions = [definition for definition in definitions if definition.get("status") == "custom_base"]
+    statuses = [
+        _a5_cfg_use_status(use, mapping_rows, row_positions, custom_definitions)
+        for use in uses
+    ]
+    accepted_count = sum(1 for status in statuses if status.get("status") == "accepted_custom_base")
+    return {
+        "kind": "a5_cfg_path_lifetime_report",
+        "path_model": "conservative_straight_line_cfg",
+        "accepted_custom_base_evidence_count": accepted_count,
+        "use_count": len(statuses),
+        "uses": statuses,
+        "rendering_allowed": False,
+        "rendering_blocked_reason": "hardware register rendering still requires verifier consumption of accepted path/lifetime evidence",
+    }
+
+
+def _a5_cfg_use_status(
+    use: dict[str, object],
+    rows: list[Mapping[str, object]],
+    row_positions: dict[object, int],
+    custom_definitions: list[dict[str, object]],
+) -> dict[str, object]:
+    use_locator = use.get("locator")
+    use_key = use_locator.get("row_key") if isinstance(use_locator, dict) else None
+    use_index = row_positions.get(use_key)
+    if use_index is None:
+        return _a5_cfg_unknown_status(use, None, ["use row is not present in CFG row index"])
+    definition = _nearest_prior_a5_custom_definition(use, custom_definitions, row_positions, use_index)
+    if definition is None:
+        return _a5_cfg_unknown_status(use, None, ["no prior A5 _custom definition reaches selected use"])
+    definition_locator = definition.get("locator")
+    definition_key = definition_locator.get("row_key") if isinstance(definition_locator, dict) else None
+    definition_index = row_positions.get(definition_key)
+    if definition_index is None:
+        return _a5_cfg_unknown_status(use, definition, ["definition row is not present in CFG row index"])
+    blockers = _a5_cfg_slice_blockers(rows[definition_index + 1 : use_index])
+    if use.get("hardware_register_candidate") is not True:
+        return _a5_cfg_conflicting_status(use, definition, ["A5 displacement is outside custom register range"])
+    if blockers:
+        return _a5_cfg_unknown_status(use, definition, blockers)
+    return _a5_cfg_accepted_status(use, definition)
+
+
+def _nearest_prior_a5_custom_definition(
+    use: dict[str, object],
+    definitions: list[dict[str, object]],
+    row_positions: dict[object, int],
+    use_index: int,
+) -> dict[str, object] | None:
+    use_locator = use.get("locator")
+    use_hunk = use_locator.get("section_index") if isinstance(use_locator, dict) else None
+    candidates: list[tuple[int, dict[str, object]]] = []
+    for definition in definitions:
+        locator = definition.get("locator")
+        if not isinstance(locator, dict):
+            continue
+        if use_hunk is not None and locator.get("section_index") != use_hunk:
+            continue
+        position = row_positions.get(locator.get("row_key"))
+        if position is not None and position < use_index:
+            candidates.append((position, definition))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    return candidates[0][1]
+
+
+def _a5_cfg_slice_blockers(rows: list[Mapping[str, object]]) -> list[str]:
+    blockers: list[str] = []
+    for row in rows:
+        if _a5_save_restore_boundary(row) is not None:
+            blockers.append("A5 save/restore boundary requires interprocedural lifetime proof")
+        definition = _a5_definition(row)
+        if definition is not None:
+            blockers.append("A5 is redefined before selected use")
+        opcode = _row_opcode_base(row)
+        if opcode in {"jsr", "bsr"}:
+            blockers.append("call before selected use may clobber A5")
+        elif opcode in {"jmp", "bra"} or _is_conditional_branch_opcode(opcode):
+            blockers.append("branch before selected use requires full CFG path proof")
+        elif opcode in {"rts", "rte", "rtr"}:
+            blockers.append("return before selected use breaks local path proof")
+    return sorted(set(blockers))
+
+
+def _a5_cfg_unknown_status(
+    use: dict[str, object],
+    definition: dict[str, object] | None,
+    blockers: list[str],
+) -> dict[str, object]:
+    return _a5_cfg_status_payload(use, definition, "unknown", blockers, accepted=False)
+
+
+def _a5_cfg_conflicting_status(
+    use: dict[str, object],
+    definition: dict[str, object] | None,
+    blockers: list[str],
+) -> dict[str, object]:
+    return _a5_cfg_status_payload(use, definition, "conflicting", blockers, accepted=False)
+
+
+def _a5_cfg_accepted_status(use: dict[str, object], definition: dict[str, object]) -> dict[str, object]:
+    return _a5_cfg_status_payload(use, definition, "accepted_custom_base", [], accepted=True)
+
+
+def _a5_cfg_status_payload(
+    use: dict[str, object],
+    definition: dict[str, object] | None,
+    status: str,
+    blockers: list[str],
+    *,
+    accepted: bool,
+) -> dict[str, object]:
+    scope = _a5_cfg_path_lifetime_scope(use, definition, accepted=accepted)
+    payload = {
+        "status": status,
+        "accepted_hardware_base_evidence": accepted,
+        "source_family": "amiga_custom_base" if accepted else "candidate_amiga_custom_base",
+        "source_evidence_id": scope.get("source_evidence_id"),
+        "path_lifetime_scope": scope,
+        "definition_locator": definition.get("locator") if isinstance(definition, dict) else None,
+        "use_locator": use.get("locator"),
+        "operand_index": use.get("operand_index"),
+        "displacement": use.get("displacement"),
+        "hardware_register_candidate": use.get("hardware_register_candidate") is True,
+        "blockers": blockers,
+    }
+    return {key: value for key, value in payload.items() if value not in (None, [])}
+
+
+def _a5_cfg_path_lifetime_scope(
+    use: dict[str, object],
+    definition: dict[str, object] | None,
+    *,
+    accepted: bool,
+) -> dict[str, object]:
+    use_locator = use.get("locator") if isinstance(use.get("locator"), dict) else {}
+    definition_locator = definition.get("locator") if isinstance(definition, dict) and isinstance(definition.get("locator"), dict) else {}
+    hunk = use_locator.get("section_index")
+    definition_addr = definition_locator.get("start_offset")
+    use_addr = use_locator.get("start_offset")
+    operand_index = use.get("operand_index")
+    displacement = use.get("displacement")
+    source_evidence_id = (
+        f"a5-custom-cfg:h{hunk}:{int(definition_addr):08X}->{int(use_addr):08X}:"
+        f"op{int(operand_index)}:d{int(displacement):04X}"
+        if isinstance(hunk, int)
+        and isinstance(definition_addr, int)
+        and isinstance(use_addr, int)
+        and isinstance(operand_index, int)
+        and isinstance(displacement, int)
+        else "a5-custom-cfg:unknown"
+    )
+    return {
+        "id": source_evidence_id,
+        "source_evidence_id": source_evidence_id,
+        "kind": "straight_line_cfg_between_definition_and_use",
+        "hunk": hunk,
+        "definition_locator": definition_locator or None,
+        "use_locator": use_locator or None,
+        "accepted_hardware_base_evidence": accepted,
+        "path_model": "conservative_straight_line_cfg",
+    }
+
+
+def _row_opcode_base(row: Mapping[str, object]) -> str:
+    opcode = str(row.get("opcode_or_directive") or row.get("opcode") or "").strip().lower()
+    return opcode.split(".", 1)[0]
+
+
+def _is_conditional_branch_opcode(opcode: str) -> bool:
+    return opcode in {
+        "bcc",
+        "bcs",
+        "beq",
+        "bge",
+        "bgt",
+        "bhs",
+        "bhi",
+        "ble",
+        "blo",
+        "bls",
+        "blt",
+        "bmi",
+        "bne",
+        "bpl",
+        "bvc",
+        "bvs",
     }
 
 
