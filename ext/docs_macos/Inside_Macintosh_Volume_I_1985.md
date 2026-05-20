@@ -5314,9 +5314,9 @@ Normally when you want to access a resource for the first time, you'll specify i
 number (or type and name) in a call to GetResource (or GetNamedResource). In special
 situations, you may want to get every resource of each type. There are two routines which, used
 together, will tell you all the resource types that are in all open resource files: CountTypes and
-GetlndType. Similarly, CountResources and GetindResource may be used to get all resources of
+GetIndType. Similarly, CountResources and GetIndResource may be used to get all resources of
 a particular type.
-If you don't specify otherwise, GetResource, GetNamedResource, and GetlndResource read the
+If you don't specify otherwise, GetResource, GetNamedResource, and GetIndResource read the
 resource data into memory and return a handle to it. Sometimes, however, you may not need the
 data to be in memory. You can use a procedure named SetResLoad to tell the Resource Manager
 not to read the resource data into memory when you get a resource; in this case, the handle
@@ -5339,7 +5339,7 @@ opened. In some situations, you may want to change which file is searched first.
 this with the UseResFile procedure. One such situation might be when you want a resource to be
 read from the same file as another resource; in this case, you can find out which resource file the
 other resource was read from by calling the HomeResFile function.
-Once you have a handle to a resource, you can call GetReslnfo or GetResAttrs to get the
+Once you have a handle to a resource, you can call GetResInfo or GetResAttrs to get the
 information that's stored for that resource in the resource map, or you can access the resource
 data through the handle. (If the resource was designated as purgeable, first call LoadResource to
 ensure that the data is in memory.)
@@ -5354,7 +5354,7 @@ for it. To make a copy of an existing resource, call DetachResource followed by 
 • If you've changed the resource data for a resource and want the changed data to be written
 to the resource file, call Changed.Resource; it signals the Resource Manager to write the data
 out when the resource file is later updated.
-• To change the information stored for a resource in the resource map, call SetReslnfo or
+• To change the information stored for a resource in the resource map, call SetResInfo or
 SetResAttrs. If you want the change to be written to the resource file, call
 ChangedResource. (Remember that ChangedResource will also cause the resource data
 itself to be written out.)
@@ -5388,8 +5388,8 @@ SysMapHndl.
 Note: The application doesn't need the reference number for the system resource file,
 because every Resource Manager routine that has a reference number as a parameter
 interprets 0 to mean the system resource file.
-PROCEDURE RsrcZoneinit;
-RsrcZonelnit is called automatically when your application starts up, to initialize the resource map
+PROCEDURE RsrcZoneInit;
+RsrcZoneInit is called automatically when your application starts up, to initialize the resource map
 read from the system resource file; normally you'll have no need to call it directly. It "cleans up"
 after any resource access that may have been done by a previous application. First it closes all
 open resource files except the system resource file. Then, for every system resource that was
@@ -5529,8 +5529,8 @@ resource files opened while the accessory was open.
 Getting Resource Types
 FUNCTION CountTypes : INTEGER;
 CountTypes returns the number of resource types in all open resource files.
-PROCEDURE GetindType (VAR theType: ResType ; index: INTEGER);
-Given an index ranging from I to CountTypes (above), GetlndType returns a resource type in
+PROCEDURE GetIndType (VAR theType: ResType ; index: INTEGER);
+Given an index ranging from I to CountTypes (above), GetIndType returns a resource type in
 theType. Called repeatedly over the entire range for the index, it returns all the resource types in
 Resource Manager Routines 1-117
 
@@ -5538,7 +5538,7 @@ Resource Manager Routines 1-117
 ## Page 130
 
 Inside Macintosh
-all open resource files. If the given index isn't in the range from 1 to CountTypes, GetlndType
+all open resource files. If the given index isn't in the range from 1 to CountTypes, GetIndType
 returns four NUL characters (ASCII code 0).
 Getting and Disposing of Resources
 PROCEDURE SetResLoad (load: BOOLEAN);
@@ -5552,24 +5552,24 @@ Assembly-language note: The current SetResLoad state is stored in the global var
 ResLoad.
 FUNCTION CountResources (theType: ResType) : INTEGER;
 CountResources returns the total number of resources of the given type in all open resource files.
-FUNCTION GetindResource (theType: ResType; index: INTEGER)
+FUNCTION GetIndResource (theType: ResType; index: INTEGER)
 Handle;
-Given an index ranging from 1 to CountResources(theType), GetlndResource returns a handle to
+Given an index ranging from 1 to CountResources(theType), GetIndResource returns a handle to
 a resource of the given type (see CountResources, above). Called repeatedly over the entire range
 for the index, it returns handles to all resources of the given type in all open resource files.
-GetlndResource reads the resource data into memory if it's not already in memory, unless you've
+GetIndResource reads the resource data into memory if it's not already in memory, unless you've
 called SetResLoad(F ALSE).
 Warning: The handle returned will be an empty handle if you've called
 SetResLoad(FALSE) (and the data isn't already in memory). The handle will become
 empty if the resource data for a purgeable resource is read in but later purged. (You can
 test for an empty handle with, for example, myHndl" =NIL.) To read in the data and
 make the handle no longer be empty, you can call LoadResource.
-GetlndResource returns handles for all resources in the most recently opened resource file first,
+GetIndResource returns handles for all resources in the most recently opened resource file first,
 and then for those in the resource files opened before it, in the reverse of the order that they were
 opened.
 Note: The UseResFile procedure affects which file the Resource Manager searches first
 when looking for a particular resource but not when getting indexed resources with
-GetlndResource.
+GetIndResource.
 I-118 Resource Manager Routines
 
 <!-- source-page: 131 -->
@@ -5577,21 +5577,21 @@ I-118 Resource Manager Routines
 
 The Resource Manager
 If you want to find out how many resources of a given type are in a particular resource file, you
-can do so as follows: Call GetlndResource repeatedly with the index ranging from 1 to the
+can do so as follows: Call GetIndResource repeatedly with the index ranging from 1 to the
 number of resources of that type (CountResources(theType)). Pass each handle returned by
-GetlndResource to HomeResFile and count all occurrences where the reference number returned
+GetIndResource to HomeResFile and count all occurrences where the reference number returned
 is that of the desired file. Be sure to start the index from 1, and to call SetResLoad(F ALSE) so
 the resources won't be read in.
-If the given index is 0 or negative, GetlndResource returns NIL, but the ResError function will
+If the given index is 0 or negative, GetIndResource returns NIL, but the ResError function will
 return the result code noErr. If the given index is larger than the value CountResources(theType ),
-GetlndResource returns NIL and the ResError function will return the result code resNotFound.
-GetlndResource also returns NIL if the resource is to be read into memory but won't fit; in this
+GetIndResource returns NIL and the ResError function will return the result code resNotFound.
+GetIndResource also returns NIL if the resource is to be read into memory but won't fit; in this
 case, ResError will return an appropriate Operating System result code.
 FUNCTION GetResource (theType: ResType; theID: INTEGER)
 : Handle;
 GetResource returns a handle to the resource having the given type and ID number, reading
 the resource data into memory if it's not already in memory and if you haven't called
-SetResLoad(F ALSE) (see the warning above for GetlndResource ). If the resource data is already
+SetResLoad(F ALSE) (see the warning above for GetIndResource ). If the resource data is already
 in memory, GetResource just returns the handle to the resource.
 GetResource looks in the current resource file and all resource files opened before it, in the
 reverse of the order that they were opened; the system resource file is searched last. If it doesn't
@@ -5605,7 +5605,7 @@ Handle;
 GetNamedResource is the same as GetResource (above) except that you pass a resource name
 instead of an ID number.
 PROCEDURE LoadResource (theResource: Handle);
-Given a handle to a resource (returned by GetlndResource, GetResource, or
+Given a handle to a resource (returned by GetIndResource, GetResource, or
 GetNamedResource), LoadResource reads that resource into memory. It does nothing ifthe
 resource is already in memory or if the given handle isn't a handle to a resource; in the latter case,
 the ResError function will return the result code resNotFound. Call this procedure if you want to
@@ -5631,7 +5631,7 @@ is subsequently called to get the released resource, a new handle will be alloca
 procedure only after you're completely through with a resource.
 TYPE myHndl: Handle;
 myHndl : =
-GetRe3ource(type, ID)
+GetResource(type, ID)
 After
 Re I ea3eRe3ource(myHnd I)
 re3ource map
@@ -5642,7 +5642,7 @@ myHndl
 ma3ter
 pointer
 After
-DetachRe3ource(myHnd I)
+DetachResource(myHnd I)
 re3ource map
 myHndl
 ma3ter
@@ -5680,10 +5680,10 @@ resource file ensures that you won't duplicate a resource ID and override an exi
 Warning: It's possible that UniqueID will return an ID in the range reserved for system
 resources (0 to 127). You should check that the ID returned is greater than 127; if it isn't,
 call UniqueID again.
-PROCEDURE GetResinfo (theResource: Handle; V'AR theID: INTEGER;
+PROCEDURE GetResInfo (theResource: Handle; V'AR theID: INTEGER;
 VAR theType: ResType; VAR name: Str255);
-Given a handle to a resource, GetReslnfo returns the ID number, type, and name of the resource.
-If the given handle isn't a handle to a resource, GetReslnfo will do nothing and the ResError
+Given a handle to a resource, GetResInfo returns the ID number, type, and name of the resource.
+If the given handle isn't a handle to a resource, GetResInfo will do nothing and the ResError
 function will return the result code resNotFound.
 FUNCTION GetResAttrs (theResource: Handle) : INTEGER;
 Given a handle to a resource, GetResAttrs returns the resource attributes for the resource.
@@ -5707,16 +5707,16 @@ Inside Macintosh
 Modifying Resources
 Except for UpdateResFile and WriteResource, all the routines described below change the
 resource map in memory and not the resource file itself.
-PROCEDURE SetResinfo (theResource: Handle; theID: INTEGER; name:
+PROCEDURE SetResInfo (theResource: Handle; theID: INTEGER; name:
 Str255);
-Given a handle to a resource, SetResinfo changes the ID number and name of the resource to the
+Given a handle to a resource, SetResInfo changes the ID number and name of the resource to the
 given ID number and name.
 Assembly-language note: If you pass 0 for the name parameter, the name will not be
 changed.
 Warning: It's a dangerous practice to change the ID number and name of a system
 resource, because other applications may already access the resource and may no longer
 work properly.
-The change will be written to the resource file when the file is updated if you follow SetResinfo
+The change will be written to the resource file when the file is updated if you follow SetResInfo
 with a call to ChangedResource.
 Warning: Even if you don't call ChangedResource for this resource, the change
 may be written to the resource file when the file is updated. If you've ever called
@@ -5725,7 +5725,7 @@ the Resource Manager will write out the entire resource map when it updates the 
 changes made to resource information in the map will become permanent. If you want any
 of the changes to be temporary, you'll have to restore the original information before the
 file is updated.
-SetResinfo does nothing in the following cases:
+SetResInfo does nothing in the following cases:
 •The given handle isn't a handle to a resource. The ResError function will return the result
 code resNotFound.
 •The resource map becomes too large to fit in memory (which can happen if a name is
@@ -5750,19 +5750,19 @@ GetResAttrs.
 The attributes set with SetResAttrs will be written to the resource file when the file is updated if
 you follow SetResAttrs with a call to ChangedResource. However, even if you don't call
 ChangedResource for this resource, the change may be written to the resource file when the file is
-updated. See the last warning for SetReslnfo (above).
+updated. See the last warning for SetResInfo (above).
 If the given handle isn't a handle to a resource, SetResAttrs will do nothing and the ResError
 function will return the result code resNotFound.
 PROCEDURE ChangedResource (theResource: Handle);
 Call ChangedResource after changing either the information about a resource in the resource map
-(as described above under SetReslnfo and SetResAttrs) or the resource data for a resource, if you
+(as described above under SetResInfo and SetResAttrs) or the resource data for a resource, if you
 want the change to be permanent. Given a handle to a resource, ChangedResource sets the
 resChanged attribute for the resource. This attribute tells the Resource Manager to do both of the
 following:
 • write the resource data for the resource to the resource file when the file is updated or when
 WriteResource is called
 • write the entire resource map to the resource file when the file is updated
-Warning: If you change information in the resource map with SetReslnfo or SetResAttrs
+Warning: If you change information in the resource map with SetResInfo or SetResAttrs
 and then call ChangedResource, remember that not only the resource map but also the
 resource data will be written out when the resource file is updated.
 To change the resource data for a purgeable resource and make the change permanent, you have
@@ -6235,7 +6235,7 @@ Routines
 Initialization
 FUNCTION
 InitResources
-PROCEDURE RsrcZoneinit;
+PROCEDURE RsrcZoneInit;
 INTEGER;
 Opening and Closing Resource Files
 PROCEDURE CreateResFile (fileName: Str255);
@@ -6263,7 +6263,7 @@ Getting Resource Types
 FUNCTION
 CountTypes : INTEGER;
 INTEGER;
-PROCEDURE GetindType
+PROCEDURE GetIndType
 (VAR theType: ResType; index: INTEGER);
 Getting and Disposing of Resources
 PROCEDURE SetResLoad
@@ -6273,7 +6273,7 @@ CountResources
 (theType: Res Type)
 : INTEGER;
 FUNCTION
-GetindResource
+GetIndResource
 (theType: ResType; index: INTEGER)
 FUNCTION
 GetResource
@@ -6292,13 +6292,13 @@ PROCEDURE DetachResource
 Getting Resource Information
 FUNCTION
 UniqueID
-PROCEDURE GetResinfo
+PROCEDURE GetResInfo
 FUNCTION
 GetResAttrs
 FUNCTION
 SizeResource
 Modifying Resources
-PROCEDURE SetResinfo
+PROCEDURE SetResInfo
 (theType: ResType) : INTEGER;
 (theResource: Handle; VAR theID: INTEGER; VAR
 theType: ResType; VAR name: Str255);
@@ -8283,8 +8283,8 @@ TextWidth returns the width of the text stored in the arbitrary structure in mem
 textBuf, starting firstByte bytes into the structure and continuing for byteCount bytes (firstByte
 starts at 0). TextWidth calculates the width by adding the CharWidths of all the characters in the
 text. (See CharWidth, above.)
-PROCEDURE GetFontinfo (VAR info: Fontinfo);
-GetFontlnfo returns the following information about the current grafPort's character font, taking
+PROCEDURE GetFontInfo (VAR info: Fontinfo);
+GetFontInfo returns the following information about the current grafPort's character font, taking
 into consideration the style and size in which the characters will be drawn: the ascent, descent,
 maximum character width (the greatest distance the pen will move when a character is drawn),
 and leading (the vertical distance between the descent line and the ascent line below it), all in
@@ -8501,7 +8501,7 @@ PROCEDURE Inver tRound.Rect
 INTEGER) ;
 Assembly-language note: The macro you invoke to call InvertRoundRect from
 assembly language is named _ InverRoundRect
-lnvertRoundRect inverts the pixels enclosed by the specified rounded-comer rectangle: Every
+InvertRoundRect inverts the pixels enclosed by the specified rounded-comer rectangle: Every
 white pixel becomes black and every black pixel becomes white. OvalWidth and ovalHeight
 specify the diameters of curvature for the comers. The grafPort's pnPat, pnMode, and bkPat are
 all ignored; the pen location is not changed.
@@ -8745,10 +8745,10 @@ regions.
 FUNCTION PtinRgn (pt: Point; rgn: RgnHandle) : BOOLEAN;
 PtlnRgn checks whether the pixel below and to the right of the given coordinate point is within
 the specified region, and returns TRUE if so or FALSE if not.
-FUNCTION RectinRgn (r: Rect1 rgn: RgnHandle) : BOOLEAN;
-RectlnRgn checks whether the given rectangle intersects the specified region, and returns TRUE
+FUNCTION RectInRgn (r: Rect1 rgn: RgnHandle) : BOOLEAN;
+RectInRgn checks whether the given rectangle intersects the specified region, and returns TRUE
 if the intersection encloses at least one bit or FALSE if not.
-Note: RectlnRgn will sometimes return TRUE when the rectangle merely intersects the
+Note: RectInRgn will sometimes return TRUE when the rectangle merely intersects the
 region's enclosing rectangle. If you need to know exactly whether a given rectangle
 intersects the actual region, you can use RectRgn to set the rectangle to a region, and call
 SectRgn to see whether the two regions intersect: If the result of SectRgn is an empty
@@ -8786,7 +8786,7 @@ drawn with the pnPat, according to the pattern transfer mode specified by pnMode
 will never go outside the region boundary. The pen location is not changed by this procedure.
 If a region is open and being formed, the outside outline of the region being framed is
 mathematically added to that region's boundary.
-Note: FrameRgn actually does a CopyRgn, an lnsetRgn, and a DiffRgn; it may
+Note: FrameRgn actually does a CopyRgn, an InsetRgn, and a DiffRgn; it may
 temporarily use heap space that's three times the size of the original region.
 PROCEDURE PaintRgn (rgn: RgnHandle);
 PaintRgn paints the specified region with the current grafPort's pen pattern and pen mode. The
@@ -9947,7 +9947,7 @@ PROCEDURE XorRgn
 FUNCTION
 PtinRgn
 FUNCTION
-RectinRgn
+RectInRgn
 FUNCTION
 EqualRgn
 FUNCTION
@@ -11118,7 +11118,7 @@ will be produced. It then stores this information in a font output record:
 <!-- source-page: 239 -->
 ## Page 239
 
-TYPE FMOUtput =
+TYPE FMOutput =
 PACKED RECORD
 errNum:
 fontHandle:
@@ -11178,11 +11178,11 @@ if you want to determine exactly how they're used.) Extra indicates the number o
 each character has been widened by stylistic variation. For example, using the screen values
 shown in Figure 4, the extra field for bold shadowed characters would be 3. Ascent, descent,
 widMax, and leading are the same as the fields of the Fontinfo record returned by the QuickDraw
-procedure GetFontlnfo. Numer and denom contain the scaling factors.
+procedure GetFontInfo. Numer and denom contain the scaling factors.
 Just before returning this record to QuickDraw, the Font Manager calls the device driver's control
 routine to allow the driver to make any final modifications to the record. Finally, the font
 information is returned to QuickDraw via a pointer to the record, defined as follows:
-TYPE FMOutPtr = ~FMOUtput;
+TYPE FMOutPtr = ~FMOutput;
 Note: If you want to make your own calls to the device driver's Control function, the
 reference number must be the driver reference number from the font input record's device
 field, csCode must be 8, csParam must be a pointer to the font output record, and
@@ -13086,7 +13086,7 @@ networkMask
 driverMask
 2048;
 {device driver}
-applMask
+app1Mask
 4096;
 {application- defined}
 app2Mask
@@ -13591,7 +13591,7 @@ networkMask
 driverMask
 2048;
 {device driver}
-applMask
+app1Mask
 4096;
 {application-defined}
 app2Mask
@@ -14503,12 +14503,12 @@ creating the window; when you no longer need a window, call Close Window if you 
 storage, or Dispose Window if not.
 When the Toolbox Event Manager function GetNextEvent reports that an update event has
 occurred, call BeginUpdate, draw the visRgn or the entire content region, and call EndUpdate
-(see "How a Window is Drawn"). You can also use lnvalRect or InvalRgn to prepare a window
+(see "How a Window is Drawn"). You can also use InvalRect or InvalRgn to prepare a window
 for updating, and V alidRect or V alidRgn to protect portions of the window from updating.
 When drawing the contents of a window that contains a size box in its content region, you'll
 draw the size box if the window is active or just the lines delimiting the size box and scroll bar
 areas if it's inactive. The FrontWindow function tells you which is the active window; the
-DrawGrowlcon procedure helps you draw the size box or delimiting lines. You'll also call the
+DrawGrowIcon procedure helps you draw the size box or delimiting lines. You'll also call the
 latter procedure when an activate event occurs that makes the window active or inactive.
 Note: Before drawing in a window or making a call that affects the update region,
 remember to set the window to be the current gratPort with the QuickDraw procedure
@@ -14562,13 +14562,13 @@ Window Manager Routines 1-281
 ## Page 294
 
 Inside Macintosh
-Warning: lnitWindows creates the Window Manager port as a nonrelocatable block in the
+Warning: InitWindows creates the Window Manager port as a nonrelocatable block in the
 application heap. To prevent heap fragmentation, call InitWindows in the main segment of
 your program, before any references to routines in other segments.
 Assembly-language note: InitWindows initializes the global variable GrayRgn to be a
 handle to the desktop region (a rounded-comer rectangle occupying the entire screen,
 minus the menu bar), and draws this region. It initializes the global variable DeskPattern to
-the pattern whose resource ID is deskPatlD, and paints the desktop with this pattern. Any
+the pattern whose resource ID is deskPatID, and paints the desktop with this pattern. Any
 subsequent time that the desktop needs to be drawn, such as when a new area of it is
 exposed after a window is closed or moved, the Window Manager calls the procedure
 pointed to by the global variable DeskHook, if any (normally DeskHook is 0). The
@@ -14778,16 +14778,16 @@ pointer to a window that's not to be considered frontmost even if it is (for exa
 want to have a special editing window always present and floating above all the others). If
 the window pointed to by GhostWindow is the first window in the window list,
 FrontWindow will return a pointer to the next visible window.
-PROCEDURE DrawGrowicon (theWindow: WindowPtr);
-Call DrawGrowlcon in response to an update or activate event involving a window that contains a
-size box in its content region. If the Window is active, DrawGrowicon draws the size box;
+PROCEDURE DrawGrowIcon (theWindow: WindowPtr);
+Call DrawGrowIcon in response to an update or activate event involving a window that contains a
+size box in its content region. If the Window is active, DrawGrowIcon draws the size box;
 otherwise, it draws whatever is appropriate to show that the window temporarily cannot be sized.
 The exact appearance and location of what's drawn depend on the window definition function.
-For an active document window, DrawGrowicon draws the size box icon in the bottom right
+For an active document window, DrawGrowIcon draws the size box icon in the bottom right
 comer of the portRect of the window's grafPort, along with the lines delimiting the size box and
 scroll bar areas ( 15 pixels in from the right edge and bottom of the portRect). It doesn't erase the
 scroll bar areas, so if the window doesn't contain scroll bars you should erase those areas
-yourself after the window's size changes. For an inactive document window, DrawGrowlcon
+yourself after the window's size changes. For an inactive document window, DrawGrowIcon
 draws only the lines delimiting the size box and scroll bar areas, and erases the size box icon.
 Mouse Location
 FUNCTION FindWindow (thePt: Point; VAR whichWindow: WindowPtr)
@@ -14992,11 +14992,11 @@ the original window
 After SizeWindow:
 the new window
 In case the window is enlarged,
-cal I lnvalRect for ~
+cal I InvalRect for ~
 and I
 11
 In case the window was made sma 11 er,
-cal I lnvalRect for D
+cal I InvalRect for D
 and I
 I I
 Figure 10. Update Region Maintenance with InvalRect
@@ -15331,7 +15331,7 @@ wDispose
 wGrow
 5;
 {draw window's grow image}
-wDrawGicon
+wDrawGIcon
 6;
 {draw size box in content region}
 As described below in the discussions of the routines that perform these operations, the value
@@ -15361,9 +15361,9 @@ Defining Your Own Windows 1-299
 ## Page 312
 
 Inside Macintosh
-Special action should be taken if the value of pararn is wlnGoAway (a predefined constant,
+Special action should be taken if the value of pararn is wInGoAway (a predefined constant,
 equal to 4, which is one of those returned by the hit routine described below). If pararn is
-wlnGoAway, the routine should do nothing but "toggle" the state of the window's go-away
+wInGoAway, the routine should do nothing but "toggle" the state of the window's go-away
 region from unhighlighted to highlighted or vice versa. The highlighting should be whatever is
 appropriate to show that the mouse button has been pressed inside the region. Simple inverse
 highlighting may be used or, as in document windows, the appearance of the region may change
@@ -15422,7 +15422,7 @@ The Window Manager
 Usually, wNoHit means the given point isn't anywhere within the window, but this is not
 necessarily so. For example, the document window's hit routine returns wNoHit if the point is
 in the window frame but not in the title bar.
-The constants wlnGrow and wlnGoAway should be returned only if the window is active, since
+The constants wlnGrow and wInGoAway should be returned only if the window is active, since
 by convention the size box and go-away region won't be drawn if the window is inactive (or, if
 drawn, won't be operable). In an inactive document window, if the mouse button is pressed in
 the title bar where the close box would be if the window were active, the hit routine returns
@@ -15471,7 +15471,7 @@ conform to the Macintosh User Interface Guidelines.
 The grow routine for a standard document window draws a dotted (gray) outline of the window
 and also the lines delimiting the title bar, size box, and scroll bar areas.
 The Draw Size Box Routine
-If the window's grow region is in the content region, the wDrawGlcon message tells the window
+If the window's grow region is in the content region, the wDrawGIcon message tells the window
 definition function to draw the size box in the grow region if the window is active (highlighted);
 if the window is inactive it should draw whatever is appropriate to show that the window
 temporarily can't be sized. For active document windows, this routine draws the size box icon in
@@ -15586,7 +15586,7 @@ wDispose
 wGrow
 5;
 {draw window's grow image}
-wDrawGicon
+wDrawGIcon
 6;
 {draw size box in content region}
 { Values returned by window definition function's hit routine }
@@ -15719,7 +15719,7 @@ FrontWindow :
 (theWindow: WindowPtr);
 (theWindow,behindWindow: WindowPtr);
 WindowPtr;
-PROCEDURE DrawGrowicon
+PROCEDURE DrawGrowIcon
 (theWindow: WindowPtr);
 Mouse Location
 FUNCTION FindWindow
@@ -16473,7 +16473,7 @@ access for any purpose.
 ContrlTitle is the control's title, if any.
 USING THE CONTROL MANAGER
 To use the Control Manager, you must have previously called InitGraf to initialize QuickDraw,
-lnitFonts to initialize the Font Manager, and lnitWindows to initialize the Window Manager.
+InitFonts to initialize the Font Manager, and InitWindows to initialize the Window Manager.
 Note: For controls in dialogs or alerts, the Dialog Manager makes some of the basic
 Control Manager calls for you; see chapter 13 for more information.
 Where appropriate in your program, use NewControl or GetNewControl to create any controls
@@ -17923,8 +17923,8 @@ Note: The Font Manager also defines constants for certain other special characte
 can't normally be typed from the keyboard: the apple symbol, the Command key symbol,
 and a diamond symbol. These symbols can be specified in the same way as the check
 mark.
-You can call the SetltemMark or Checkltem procedures to change or clear the mark, and the
-GetltemMark procedure to find out what mark, if any, is being used.
+You can call the SetItemMark or Checkltem procedures to change or clear the mark, and the
+GetItemMark procedure to find out what mark, if any, is being used.
 Character Style of Items
 The system font is the only font available for menus; however, you can vary the character style of
 menu items for clarity and distinction. The meta-character for specifying the character style of an
@@ -17940,7 +17940,7 @@ Underline
 Outline
 <S
 Shadow
-The SetltemStyle procedure allows you to assign any combination of stylistic variations to an
+The SetItemStyle procedure allows you to assign any combination of stylistic variations to an
 item. For a further discussion of character style, see chapter 6.
 Items with Keyboard Equivalents
 A slash (/) followed by a character associates that character with the item, allowing the item to be
@@ -17967,7 +17967,7 @@ them.
 You can change the enabled or disabled state of a menu item with the Disableltem and Enableltem
 procedures.
 USING THE MENU MANAGER
-To use the Menu Manager, you must have previously called lnitGraf to initialize QuickDraw,
+To use the Menu Manager, you must have previously called InitGraf to initialize QuickDraw,
 InitFonts to initialize the Font Manager, and InitWindows to initialize the Window Manager. The
 first Menu Manager routine to call is the initialization procedure InitMenus.
 Your application can set up the menus it needs in any number of ways:
@@ -17980,7 +17980,7 @@ them in the menu bar using InsertMenu.
 • Allocate a menu with NewMenu, fill it with items using AddResMenu to get the names of
 all available resources of a given type, and place the menu in the menu bar using
 lnsertMenu.
-You can use AddResMenu or lnsertResMenu to add items from resource files to any menu,
+You can use AddResMenu or InsertResMenu to add items from resource files to any menu,
 regardless of how you created the menu or whether it already contains any items.
 When you no longer need a menu, call the Resource Manager procedure ReleaseResource if you
 read the menu from a resource file, or DisposeMenu if you allocated it with New Menu.
@@ -18000,7 +18000,7 @@ After setting up the menu bar, you need to draw it with the DrawMenuBar procedur
 You can use the Setltem and Getltem procedures to change or examine a menu item's text at any
 time-for example, to change between the two forms of a toggled command. You can set or
 examine an item's icon, style, or mark with the procedures Setltemlcon, Getltemlcon,
-SetltemStyle, GetltemStyle, Checkltem, SetltemMark, and GetltemMark. Individual items or
+SetItemStyle, GetItemStyle, Checkltem, SetItemMark, and GetItemMark. Individual items or
 whole menus can be enabled or disabled with the Enableltem and Disableltem procedures. You
 can change the number of menus in the menu list with InsertMenu or DeleteMenu, remove all the
 menus with ClearMenuBar, or change the entire menu list with GetNewMBar or GetMenuBar
@@ -18032,7 +18032,7 @@ described above. Applications should respond the same way to auto-key events as 
 events when the Command key is held down if the command being invoked is repeatable.
 Note: You can use the Toolbox Utility routines Lo Word and HiWord to extract the highorder and low-order words of a given long integer, as described in chapter 16.
 There are several miscellaneous Menu Manager routines that you normally won't need to use.
-CalcMenuSize calculates the dimensions of a menu. CountMitems counts the number of items in
+CalcMenuSize calculates the dimensions of a menu. CountMItems counts the number of items in
 a menu. GetMHandle returns the handle of a menu in the menu list. FlashMenuBar inverts the
 menu bar. SetMenuFlash controls the number of times a menu item blinks when it's chosen.
 I-350 Using the Menu Manager
@@ -18373,9 +18373,9 @@ I-358 Menu Manager Routines
 The Menu Mana.ger
 PROCEDURE SetiternMark (theMenu: MenuHandle; item: INTEGER;
 markChar: CHAR);
-Assembly-language note: The macro you invoke to call SetltemMark from assembly
+Assembly-language note: The macro you invoke to call SetItemMark from assembly
 language is named _ SetltmMark.
-SetltemMark marks the given menu item in a more general manner than Checkltem. It allows you
+SetItemMark marks the given menu item in a more general manner than Checkltem. It allows you
 to place any character in the system font, not just the check mark, to the left of the item. The
 character is passed in the markChar parameter.
 Note: The Font Manager defines constants for the check mark and other special characters
@@ -18387,9 +18387,9 @@ CONST noMark
 0;
 PROCEDURE GetiternMark (theMenu: MenuHandle; item: INTEGER; VAR
 markChar: CHAR);
-Assembly-language note: The macro you invoke to call GetltemMark from assembly
+Assembly-language note: The macro you invoke to call GetItemMark from assembly
 language is named _ GetltmMark.
-GetltemMark returns in markChar whatever character the given menu item is marked with, or the
+GetItemMark returns in markChar whatever character the given menu item is marked with, or the
 predefined constant noMark if no mark is present
 PROCEDURE Setitemicon (theMenu: MenuHandle; item: INTEGER; icon:
 Byte);
@@ -18415,21 +18415,21 @@ language is named_ Getltmlcon.
 Getltemlcon returns the icon number associated with the given menu item, as an integer from 1 to
 255, or 0 if the item has not been associated with an icon. The icon number is 256 less than the
 icon's resource ID.
-PROCEDURE SetitemStyle (theMenu: MenuHandle; item: INTEGER;
+PROCEDURE SetItemStyle (theMenu: MenuHandle; item: INTEGER;
 chStyle: Style);
-Assembly-language note: The macro you invoke to call SetltemStyle from assembly
+Assembly-language note: The macro you invoke to call SetItemStyle from assembly
 language is named _ SetltmStyle.
-SetltemStyle changes the character style of the given menu item to chStyle. For example:
-SetitemStyle(thisMenu,1, [bold, italic])
+SetItemStyle changes the character style of the given menu item to chStyle. For example:
+SetItemStyle(thisMenu,1, [bold, italic])
 {bold and italic}
 Menu items are initially in the plain character style unless you specify otherwise (such as with the
 11 <
 11 meta-character in a call to AppendMenu).
-PROCEDURE GetitemStyle (theMenu: MenuHandle; item: INTEGER; VAR
+PROCEDURE GetItemStyle (theMenu: MenuHandle; item: INTEGER; VAR
 chStyle: Style);
-Assembly-language note: The macro you invoke to call GetltemStyle from assembly
+Assembly-language note: The macro you invoke to call GetItemStyle from assembly
 language is named _ GetltmStyle.
-GetltemStyle returns the character style of the given menu item in chStyle.
+GetItemStyle returns the character style of the given menu item in chStyle.
 1-360 Menu Manager Routines
 
 <!-- source-page: 373 -->
@@ -18441,8 +18441,8 @@ PROCEDURE CalcMenuSize (theMenu: MenuHandle);
 You can use CalcMenuSize to recalculate the horizontal and vertical dimensions of a menu whose
 contents have been changed (and store them in the appropriate fields of the menu record).
 CalcMenuSize is called internally by the Menu Manager after every routine that changes a menu.
-FUNCTION CountMitems (theMenu: MenuHandle) : INTEGER;
-CountMitems rewms the number of menu items in the given menu.
+FUNCTION CountMItems (theMenu: MenuHandle) : INTEGER;
+CountMItems rewms the number of menu items in the given menu.
 FUNCTION GetMHandle (menuID: INTEGER)
 : MenuHandle;
 Given the menu ID of a menu currently installed in the menu list, GetMHandle returns a handle to
@@ -18708,7 +18708,7 @@ PROCEDURE InsertMenu
 PROCEDURE DrawMenuBar;
 PROCEDURE DeleteMenu
 (menuID: INTEGER);
-PROCEDURE ClearMenUBar;
+PROCEDURE ClearMenuBar;
 FUNCTION
 GetNewMBar
 (menuBarID: INTEGER)
@@ -18751,16 +18751,16 @@ PROCEDURE Setitemicon
 PROCEDURE Getitemicon
 (theMenu: MenuHandle; item: INTEGER;
 Byte);
-PROCEDURE SetitemStyle
+PROCEDURE SetItemStyle
 (theMenu: MenuHandle; item: INTEGER;
 Style);
-PROCEDURE GetltemStyle
+PROCEDURE GetItemStyle
 (theMenu: MenuHandle; item: INTEGER;
 Style);
 Miscellaneous Routines
 PROCEDURE CalcMenuSize
 FUNCTION
-CountMitems
+CountMItems
 FUNCTION
 GetMHandle
 PROCEDURE FlashMenuBar
@@ -18850,12 +18850,12 @@ Special Macro Names
 Pascal name
 DisposeMenu
 Getltemlcon
-GetltemMark
-GetltemStyle
+GetItemMark
+GetItemStyle
 GetMenu
 Setltemlcon
-SetltemMark
-SetltemStyle
+SetItemMark
+SetItemStyle
 SetMenuFlash
 Variables
 MenuList
@@ -18875,7 +18875,7 @@ _ GetltmStyle
 GetRMenu
 - Setltmlcon
 SetltmMark
-_SetltmStyle
+_SetItmStyle
 SetMFlash
 Handle to current menu list
 Nonzero if menu bar belongs to a desk accessory (word)
@@ -19282,7 +19282,7 @@ fontAscent fields by the same amount, otherwise the placement of the caret or hi
 selection range may not look right. For example, to double the line spacing, add the value of
 lineHeight to both fields. (This doesn't change the size of the characters; it affects only the
 spacing between lines.) If you change the size of the text, you should also change these fields;
-you can get font measurements you'll need with the QuickDraw procedure GetFontlnfo.
+you can get font measurements you'll need with the QuickDraw procedure GetFontInfo.
 Assembly-language note: The se!Point field (whose assembly-language offset is
 named teSelPoint) contains the point selected with the mouse, in the local coordinates of
 the current grafPort. You'll need this for hit-testing if you use the routine pointed to by the
@@ -19418,7 +19418,7 @@ this handle as a parameter.
 When you've finished working with the text of an edit record, you can get a handle to the text as a
 packed array of characters with the TEGetText function.
 Note: To convert text from an edit record to a Pascal string, you can use the Dialog
-Manager procedure GetlText, passing it the text handle from the edit record.
+Manager procedure GetIText, passing it the text handle from the edit record.
 When you're completely done with an edit record and want to dispose of it, call TEDispose.
 To make a blinking caret appear at the insertion point, call the TEldle procedure as often as
 possible (at least once each time through the main event loop); if it's not called often enough, the
@@ -19469,7 +19469,7 @@ activate event for a text editing lindow. TEActivate simply highlights the selec
 displays a caret at the insertion point; TEDeactivate unhighlights the selection range or removes the
 caret
 To specify the justification of the text. you can use TESetJust. If you change the justification, be
-sure to call lnvalRect so the text will be updated.
+sure to call InvalRect so the text will be updated.
 To scroll text within the view rectangle, .you can use the TEScroll procedure.
 The TESetText procedure lets you change the text being edited. For example, if your application
 has several separate pieces of text that must be edited one at a time, you don't have to allocate an
@@ -20786,7 +20786,7 @@ see the alert routines under "Invoking Alerts" in the "Dialog Manager Routines" 
 USING THE DIALOG MANAGER
 Before using the Dialog Manager, you must initialize QuickDraw, the Font Manager, the Window
 Manager, the Menu Manager, and TextEdit, in that order. The first Dialog Manager routine to call
-is lnitDialogs, which initializes the Dialog Manager. If you want the font in your dialog and alert
+is InitDialogs, which initializes the Dialog Manager. If you want the font in your dialog and alert
 windows to be other than the system font, call SetDAFont to change the font.
 Where appropriate in your program, call New Dialog or GetNewDialog to create any dialogs you
 need. Usually you'll call GetNewDialog, which takes descriptive information about the dialog
@@ -21329,11 +21329,11 @@ Window Manager procedure ShowWindow to display the dialog window.
 Note: Do not use SetDitem to change the text of a statText or editText item or to change
 or move a control. See the description of GetDitem above for more information.
 PROCEDURE GetIText (item: Handle; VAR text: Str255);
-Given a handle to a statText or editText item in a dialog box, as returned by GetDitem, GetlText
+Given a handle to a statText or editText item in a dialog box, as returned by GetDitem, GetIText
 returns the text of the item in the text parameter. (If the user typed more than 255 characters in an
-editText item, GetlText returns only the first 255.)
+editText item, GetIText returns only the first 255.)
 PROCEDURE SetIText (item: Handle; text: Str255);
-Given a handle to a statText or editText item in a dialog box, as returned by GetDitem, SetlText
+Given a handle to a statText or editText item in a dialog box, as returned by GetDitem, SetIText
 sets the text of the item to the specified text and draws the item. For example, suppose the exact
 content of a dialog's text item cannot be determined until the application is running, but the
 display rectangle is defined in the resource file: Call GetDitem to get a handle to the item, and call
@@ -22957,7 +22957,7 @@ scrap and the application itself. If there won't be enough room for the scrap, c
 write the scrap from memory onto the disk.
 InfoScrap also provides a handle to the desk scrap if it's in memory, its file name on the disk,
 and a count that changes when the contents of the desk scrap change. If your application
-supports display of the Clipboard, you can call lnfoScrap each time through your main event loop
+supports display of the Clipboard, you can call InfoScrap each time through your main event loop
 to check this count: If the Clipboard window is visible, it needs to be updated whenever the
 count changes.
 When a Cut or Copy command is given, you need to write the cut or copied data to the desk
@@ -22988,7 +22988,7 @@ otherwise, a Scrap Manager result code is returned, as indicated in the routine 
 Appendix A in Volume ill for a list of all result codes.)
 Getting Desk Scrap Information
 FUNCTION InfoScrap : PScrapStuff;
-lnfoScrap returns a pointer to information about the desk scrap. The PScrapStuff data type is
+InfoScrap returns a pointer to information about the desk scrap. The PScrapStuff data type is
 defined as follows:
 TYPE PScrapStuff = "ScrapStuff;
 ScrapStuff
@@ -23029,7 +23029,7 @@ Scrap Manager Routines I-457
 ## Page 470
 
 Inside Macintosh
-Note: lnfoScrap assumes that the scrap file has a version number of 0 and is on the
+Note: InfoScrap assumes that the scrap file has a version number of 0 and is on the
 default volume. (Version numbers and volumes are described in chapter 4 of Volume II.)
 Assembly-language note: The scrap information is available in global variables that
 have the same names as the Pascal fields.
@@ -23400,11 +23400,11 @@ Note: Like NewString, GetString returns a handle to a string whose size is based
 actual length.
 Note: If your application uses a large number of strings, storing them in a strng list in the
 resource file will be more efficient. You can access strings in a string list with
-GetlndString, as described below.
-PROCEDURE GetindString (VAR theString: Str255; strList ID:
+GetIndString, as described below.
+PROCEDURE GetIndString (VAR theString: Str255; strList ID:
 INTEGER; index: INTEGER) ;
 [Not in ROM]
-GetlndString returns in theString a string in the string list that has the resource ID strListlD. It
+GetIndString returns in theString a string in the string list that has the resource ID strListlD. It
 reads the string list from the resource file if necessary, by calling the Resource Manager function
 GetResource('STR#' ,strListlD). It returns the string specified by the index parameter, which can
 range from 1 to the number of strings in the list. If the resource can't be read or the index is out
@@ -23619,7 +23619,7 @@ TYPE PatPtr
 PatHandle
 "Pattern ;
 "PatPtr;
-PROCEDURE GetindPattern (VAR thePattern: Pattern; patListID:
+PROCEDURE GetIndPattern (VAR thePattern: Pattern; patListID:
 INTEGER; index : INTEGER) ;
 [Not in ROM]
 GedndPattern returns in thePattern a pattern in the pattern list that has the resource ID patListID.
@@ -23837,7 +23837,7 @@ NewString
 PROCEDURE SetString
 FUNCTION
 GetString
-PROCEDURE GetindString
+PROCEDURE GetIndString
 (theString: Str255) : StringHandle;
 (h: StringHandle; theString: Str255);
 (stringID: INTEGER) : StringHandle;
@@ -23896,7 +23896,7 @@ Getlcon
 PROCEDURE Plotlcon
 FUNCTION
 GetPattern
-PROCEDURE GetindPattern
+PROCEDURE GetIndPattern
 (VAR scrnHRes, scrnVRes : INTEGER) ;
 [Not in ROM]
 (iconID: INTEGER) : Handle;
@@ -24441,15 +24441,15 @@ Figure 1. Standard International Formats
 International Resource 0
 The International Utilities Package contains the following data types for accessing international
 resource 0:
-TYPE IntlOHndl = "IntlOPtr;
-IntlOPtr
-= "IntlORec;
+TYPE Intl0Hndl = "Intl0Ptr;
+Intl0Ptr
+= "Intl0Rec;
 I-496 International Resources
 
 <!-- source-page: 509 -->
 ## Page 509
 
-IntlORec
+Intl0Rec
 PACKED RECORD
 decimalPt:
 thous Sep:
@@ -24679,7 +24679,7 @@ verDenmark
 9;
 verPortugal
 10;
-verFrcanada
+verFrCanada
 11;
 verNorway
 12;
@@ -24718,11 +24718,11 @@ Inside Macintosh
 International Resource 1
 The International Utilities Package contains the following data types for accessing international
 resource 1:
-TYPE IntllHndl
-IntllPtr
-"IntllPtr;
-"IntllRec;
-IntllRec
+TYPE Intl1Hndl
+Intl1Ptr
+"Intl1Ptr;
+"Intl1Rec;
+Intl1Rec
 PACKED RECORD
 days:
 months:
@@ -25146,9 +25146,9 @@ IUGetlntl returns a handle to the international resource numbered theID (0 or 1)
 Resource Manager function GetResource('INTL',theID). For example, if you want to access
 individual fields of international resource 0, you can do the following:
 VAR myHndl: Handle;
-intO: IntlOHndl;
+intO: Intl0Hndl;
 myHndl := IUGetintl(O);
-into := IntlOHndl(myHndl}
+into := Intl0Hndl(myHndl}
 International Utilities Package Routines I-505
 
 <!-- source-page: 518 -->
@@ -25209,7 +25209,7 @@ programmers; there's no trap for it. It eventually calls IUMagIDString, which is
 should use from assembly language.
 FUNCTION IUMagIDString (a Ptr ,bPtr: Ptr; aLen,bLen : INTEGER) :
 INTEGER;
-IUMaglDString is the same as IUEqualString (above) except that instead of comparing two
+IUMagIDString is the same as IUEqualString (above) except that instead of comparing two
 Pascal strings, it compares the string defined by aPtr and aLen to the string defined by bPtr and
 bLen. The pointer points to the first character of the string (any byte in memory, not necessarily
 word-aligned), and the length specifies the number of characters in the string.
@@ -25323,11 +25323,11 @@ verTurkey
 verYugoslavia
 25;
 Data Types
-TYPE IntlOHndl
-IntlOPtr
-"IntlOPtr;
-"IntlORec;
-IntlORec
+TYPE Intl0Hndl
+Intl0Ptr
+"Intl0Ptr;
+"Intl0Rec;
+Intl0Rec
 PACKED RECORD
 decirnalPt:
 thousSep:
@@ -25395,10 +25395,10 @@ Summary of the International Utilities Package 1-509
 ## Page 522
 
 Inside Macintosh
-IntllHndl = "IntllPtr;
-IntllPtr
-"IntllRec;
-IntllRec
+Intl1Hndl = "Intl1Ptr;
+Intl1Ptr
+"Intl1Rec;
+Intl1Rec
 PACKED RECORD
 days:
 months:
@@ -25961,7 +25961,7 @@ below.
 with the first field of the reply record set to FALSE.
 Note: Notice that disk insertion is one of the user actions listed above, even though
 ModalDialog normally ignores disk-inserted events. The reason this works is that
-SFPutFile calls ModaIDialog with a filterProc function that lets it receive disk-inserted
+SFPutFile calls ModalDialog with a filterProc function that lets it receive disk-inserted
 events.
 I-520 Standard File Package Routines
 
@@ -26103,7 +26103,7 @@ The filterProc parameter determines how ModalDialog will filter events when call
 SFPPutFile. If filterProc is NIL, ModalDialog does the standard filtering that it does when called
 by SFPutFile; otherwise, filterProc should point to a function for ModalDialog to execute after
 doing the standard filtering. The function must be the same as one you would pass directly to
-ModaIDialog in its filterProc parameter. (See chapter 13 for more information.)
+ModalDialog in its filterProc parameter. (See chapter 13 for more information.)
 PROCEDURE SFGetFile (where: Point; prompt: Str255; fileFilter:
 ProcPtr; numTypes: INTEGER; typeList: SFTypeList;
 dlgHook : ProcPtr; V'AR reply: SFReply);
@@ -26636,9 +26636,9 @@ application parameters II-20
 application space II-20
 application window I-270
 ApplicZone function II-32
-AppILimit global variable II-19, 21, 29
+ApplLimit global variable II-19, 21, 29
 ApplScratch global variable I-85
-AppIZone global variable II-19, 21, 32
+ApplZone global variable II-19, 21, 32
 AppParmHandle global variable II-57
 arrow cursor 1-163, 167
 arrow global variable I-147, 163
@@ -26845,7 +26845,7 @@ CopyRgn procedure I-183
 CouldAJert procedure 1-420
 CouldDialog procedure 1-415
 CountAppFiles procedure 11-57
-CountMltems function I-361
+CountMItems function I-361
 CountResources function 1-118
 CountTypes function 1-117
 Create function
@@ -27046,7 +27046,7 @@ Drag Window procedure 1-289
 DrawChar procedure 1-172
 DrawControls procedure 1-322
 DrawDialog procedure 1-418
-DrawGrowlcon procedure 1-287
+DrawGrowIcon procedure 1-287
 drawing 1-155
 color 1-158, 173
 DrawMenuBar procedure 1-354
@@ -27180,7 +27180,7 @@ Finder interface II-55, 84; III-7
 FinderName global variable II-59
 FindWindow function 1-287
 Finfo data type II-84
-FlnitQueue procedure 11-103
+FInitQueue procedure 11-103
 Fixed data type I-79
 1-536
 fixed-point
@@ -27301,7 +27301,7 @@ low-level II-115
 GetFinfo function II-95
 GetFName procedure I-223
 GetFNum procedure I-223
-GetFontlnfo procedure I-173
+GetFontInfo procedure I-173
 GetFontName procedure I-223
 Getf Pos function
 high-level 11-92
@@ -27310,13 +27310,13 @@ GetFSQHdr function II-125
 GetHandJeSize function 11-33
 Getlcon function I-473
 GetindPattem procedure I-473
-GetlndResource function I-118
-GetlndString procedure I-468
-GetlndType procedure I-117
+GetIndResource function I-118
+GetIndString procedure I-468
+GetIndType procedure I-117
 Getltem procedure I-358
 Getltemlcon procedure 1-360
-GetltemMark procedure I-359
-GetltemStyle procedure 1-360
+GetItemMark procedure I-359
+GetItemStyle procedure 1-360
 GetIText procedure 1-422
 Getltrnlcon procedure I-360
 GetltmMark procedure I-359
@@ -27346,7 +27346,7 @@ GetPtrSize function II-37
 GetRequest function II-317
 GetResAttrs function 1-121
 GetResFileAttrs function I-127
-GetReslnfo procedure I-121
+GetResInfo procedure I-121
 GetResource function I-119
 GetRMenu function 1-351
 GetScrap function 1-469
@@ -27453,15 +27453,15 @@ InitAIIPacks procedure 1-484
 InitApplZone procedure 11-28
 InitCursorprocedure I-167
 InitDialogs procedure I-411
-lnitFonts procedure I-222
-lnitGraf procedure 1-162
+InitFonts procedure I-222
+InitGraf procedure 1-162
 InitMenus procedure I-351
 InitPack procedure 1-484
 InitPortprocedure I-164
 InitQueue procedure 11-103
 InitResources function 1-114
-lnitUtil function 11-380
-lnitWindows procedure 1-281
+InitUtil function 11-380
+InitWindows procedure 1-281
 Init.Zone procedure 11-29
 
 <!-- source-page: 551 -->
@@ -27489,12 +27489,12 @@ intenupt handler II-195
 writing your own II-200
 intenupt priority level II-196
 intenupt vector 11-196
-IntlOHndl data type 1-496
-IntlOPtr data type 1-496
-IntlORec data type I-497
-IntllHndl data type 1-500
-IntllPtr data type 1-500
-IntllRec data type 1-500
+Intl0Hndl data type 1-496
+Intl0Ptr data type 1-496
+Intl0Rec data type I-497
+Intl1Hndl data type 1-500
+Intl1Ptr data type 1-500
+Intl1Rec data type 1-500
 InvalRect procedure 1-291
 InvalRgn procedure 1-291
 InverRectprocedure 1-177
@@ -27514,8 +27514,8 @@ window 1-274
 IODonefunction 11-195
 1/0 queue See driver 1/0 queue or file 1/0 queue
 1/0 request 11-97, 180
-lsATPOpen function 11-304
-lsDialogEvent function 1-416
+IsATPOpen function 11-304
+IsDialogEvent function 1-416
 IsMPPOpen function 11-304
 item
 dialog/alert I-403
@@ -27877,7 +27877,7 @@ PBEject function 11-107
 PBFlushFile function 11-114
 PBFlushVol function II-105
 PBGetEOF function II-112
-PBGetFinfo function 11-115
+PBGetFInfo function 11-115
 PBGetFPos function 11-111
 PBGetVInfo function 11-104
 PBGetVol function Il-104
@@ -28062,7 +28062,7 @@ RecoverHandle function IJ-35
 Rect data type 1-141
 rectangle I-140
 routines 1-174
-RectlnRgn function 1-185
+RectInRgn function 1-185
 RectRgn procedure 1-183
 reference number of a resource file I-I 05
 reference value
@@ -28148,7 +28148,7 @@ routine selector I-483
 routing table II-265
 Routing Table Maintenance Protocol II-265
 row width 1-143
-RsrcZonelnit procedure 1-114
+RsrcZoneInit procedure 1-114
 RstFilLock function
 high-level 11-96
 low-level 11-117
@@ -28204,7 +28204,7 @@ Segment Loader I-12; II-53
 routines II-57
 selection range 1-375
 SelectWindow procedure 1-284
-SeIIText procedure 1-422
+SelIText procedure 1-422
 SendBehind procedure I-286
 SendRequest function 11-316
 SendResponse function II-317
@@ -28260,7 +28260,7 @@ Index
 ## Page 558
 
 Inside Macintosh
-SetFlnfo function 11-95
+SetFInfo function 11-95
 SetFLock function 11-95
 SetFontLock procedure 1-223
 SetFPos function
@@ -28270,8 +28270,8 @@ SetGrowZone procedure 11-42
 SetHandleSize procedure Il-34
 Setltem procedure I-357
 Setltemlcon procedure I-359
-SetitemMark procedure I-359
-SetltemStyle procedure I-360
+SetItemMark procedure I-359
+SetItemStyle procedure I-360
 SetIText procedure 1-422
 Setltmlcon procedure I-359
 SetitmMark procedure I-359
@@ -28293,7 +28293,7 @@ SetRect procedure 1-174
 SetRectRgn procedure 1-183
 SetResAttrs procedure I-122
 SetResFileAttrs procedure 1-127
-SetReslnfo procedure 1-122
+SetResInfo procedure 1-122
 SetResLoad procedure 1-118
 SetResPurge procedure 1-126
 SetSoundVol procedure II-233
@@ -28585,7 +28585,7 @@ Undo command I-59
 unimplemented instruction I-88
 UnionRect procedure I-175
 UnionRgn procedure 1-184
-UniquelD function I-121
+UniqueID function I-121
 unit number Il-191
 unittable 11-191
 Unload.NBP function II-324

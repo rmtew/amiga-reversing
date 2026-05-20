@@ -918,27 +918,27 @@ ROM routines but search only the current resource file, and two routines are new
 Additional standard resource types have been defined, two new result codes have been
 added, and the reporting of error conditions has been improved.
 RESOURCE MANAGER ROUTINES
-FUNCTION CountlTypes : INTEGER;
+FUNCTION Count1Types : INTEGER;
 Countl Types is the same as CountTypes except that it returns the number of resource types
 in the current resource file only.
 PROCEDURE GetlindType (VAR theType: ResType; index: INTEGER);
 Assembly-language note: The macro you invoke to call GetllndType from
 assembly language is named _GetllxType.
-GetllndType is the same as GetlndType except that it searches the current resource file
-only. Given an index ranging from 1 to CountlTypes (above), GetllndType returns a
+GetllndType is the same as GetIndType except that it searches the current resource file
+only. Given an index ranging from 1 to Count1Types (above), GetllndType returns a
 resource type in theType. Called repeatedly over the entire range for the index, it returns all
 the resource types in the current resource file. If the given index isn't in the range from 1
 to Countl Types, GetllndType returns four NUL characters (ASCII code 0).
-FUNCTION CountlResources (theType: ResType) : INTEGER;
-CountlResources is the same as CountResources except that it returns the total number of
+FUNCTION Count1Resources (theType: ResType) : INTEGER;
+Count1Resources is the same as CountResources except that it returns the total number of
 resources of the given type in the current resource file only.
 FUNCTION GetlindResource (theType: ResType; index: INTEGER)
 Handle;
-Assembly-language note: The macro you invoke to call GetllndResource from
-assembly language is named _GetllxResource.
-GetllndResource is the same as GetindResource except that it searches the current resource
-file only. Given an index ranging from 1 to CountlResources(theType), GetlindResource
-returns a handle to a resource of the given type (see CountlResources, above). Called
+Assembly-language note: The macro you invoke to call Get1IndResource from
+assembly language is named _Get1IxResource.
+Get1IndResource is the same as GetIndResource except that it searches the current resource
+file only. Given an index ranging from 1 to Count1Resources(theType), GetlindResource
+returns a handle to a resource of the given type (see Count1Resources, above). Called
 Resource Manager Routines IV-15
 
 <!-- source-page: 28 -->
@@ -947,15 +947,15 @@ Resource Manager Routines IV-15
 Inside Macintosh
 repeatedly over the entire range for the index, it returns handles to all resources of the given
 type in the current resource file.
-FUNCTION GetlResource (theType: ResType; theID: INTEGER} : Handle;
-GetlResource is the same as GetR.esource except that it searches the current resource file
+FUNCTION Get1Resource (theType: ResType; theID: INTEGER} : Handle;
+Get1Resource is the same as GetR.esource except that it searches the current resource file
 only.
-FUNCTION GetlNamedResource (theType: ResType; name: Str255} :
+FUNCTION Get1NamedResource (theType: ResType; name: Str255} :
 Handle;
-GetlNamedResource is the same as GetNamedResource except that it searches the current
+Get1NamedResource is the same as GetNamedResource except that it searches the current
 resource file only.
-FUNCTION UniquelID (theType: ResType} : INTEGER;
-UniquelID is the same as UniqueID except that the ID number it returns is unique only
+FUNCTION Unique1ID (theType: ResType} : INTEGER;
+Unique1ID is the same as UniqueID except that the ID number it returns is unique only
 with respect to resources in the current resource file.
 FUNCTION MaxSizeRsrc (theResource: Handle} : LONGINT;
 MaxSizeRsrc is similar to SizeResource except that it does not cause the disk to be read;
@@ -1055,18 +1055,18 @@ In the 128K ROM, the following error conditions ate reported by ResError:
 internally consistent; if it isn't, ResError returns mapReadError.
 • The CloseResFile procedure calls UpdateResFile. If UpdateResFile returns a nonzero
 result code, that result code will be returned by CloseResFile.
-• If you provide an index to GetlndResource (or GetllndResource) that's either 0 or
+• If you provide an index to GetIndResource (or Get1IndResource) that's either 0 or
 negative, the ResError function will return the result code resNotFound.
 • If you call DetachResource to detach a resource whose resChanged attribute has been
 set, ResError will return the result code resAttrErr.
-• If you call SetReslnfo but the resProtected attribute is set, ResError will return the
+• If you call SetResInfo but the resProtected attribute is set, ResError will return the
 result code resAttrErr.
 • If you call ChangedResource but the resProtected attribute for the modified resource is
 set, the ResError function will return the result code resAttrErr.
 • If you call UpdateResFile but the mapRead.Only attribute for the resource file is set
 (described in the "Advanced Routines" section of the Resource Manager chapter),
 ResError will return the result code mapRea.dErr.
-Warning: If you call the GetResource and GetlResource functions with a resource
+Warning: If you call the GetResource and Get1Resource functions with a resource
 type that isn't in any open resource file, they return NIL but the ResError function
 will return the result code noErr. With these calls, you must check that the handle
 returned is nonzero.
@@ -1143,21 +1143,21 @@ Resource Manager creates a special heap zone within the system heap, and builds 
 resource map that points to the ROM resources.
 In order to use the ROM resources in your calls to the Resource Manager, the ROM map
 must be inserted in front of the map for the system resource file prior to making the call.
-The global variable RomMaplnsert is used for this purpose; it tells the Resource Manager to
+The global variable RomMapInsert is used for this purpose; it tells the Resource Manager to
 insert the ROM map for the next call only. An adjacent global variable, TmpResLoad, is
-also useful; when RomMapinsert is TRUE, TmpResLoad determines whether the value of
+also useful; when RomMapInsert is TRUE, TmpResLoad determines whether the value of
 the global variable ResLoad is taken to be TRUE or FALSE (overriding the actual value of
 ResLoad) for the next call only. Figure 1 shows these two variables.
-RomMaplnsert (byte) I TmpResload (byte)
-Figure 1. RomMapinsert and TmpResLoad
+RomMapInsert (byte) I TmpResLoad (byte)
+Figure 1. RomMapInsert and TmpResLoad
 Two global constants, each a word in length, are provided for setting these variables in
 tandem: mapTrue inserts the ROM map with SetResLoad(TRUE) and mapFalse inserts the
-ROM map with SetResLoad(F ALSE). As noted, both RomMaplnsert and TmpResLoad
+ROM map with SetResLoad(F ALSE). As noted, both RomMapInsert and TmpResLoad
 are cleared after each Resource Manager call.
 Note: There is no real resource file associated with the ROM resources; the ROM
 map has a path reference number of 1 (an illegal path reference number). There are
 two ways to determine if a handle references a ROM resource. First, you can set up
-TmpResLoad and RomMaplnsert and call HomeResFile; if 1 is returned, the handle
+TmpResLoad and RomMapInsert and call HomeResFile; if 1 is returned, the handle
 is to a ROM resource. Second, you can dereference the handle and see if the master
 pointer points into the ROM space by comparing it to the global variable ROMBase.
 ROM Resources IV-19
@@ -1214,18 +1214,18 @@ Routines
 -198;
 -199;
 FUNCTION
-CountlTypes :
+Count1Types :
 PROCEDURE GetlindType
 FUNCTION
-CountlResources
+Count1Resources
 FUNCTION
 GetlindResource
 FUNCTION
-GetlResource
+Get1Resource
 FUNCTION
-GetlNamedResource
+Get1NamedResource
 FUNCTION
-UniquelID
+Unique1ID
 FUNCTION
 MaxSizeRsrc
 FUNCTION
@@ -1259,7 +1259,7 @@ mapReadErr
 ;attribute inconsistent with operation
 -199
 ;map inconsistent with operation
-; Values for setting RomMapinsert and TmpResLoad
+; Values for setting RomMapInsert and TmpResLoad
 mapTrue
 mapFalse
 .EQU
@@ -1282,10 +1282,10 @@ Summary of the Resource Manager W-21
 
 Inside Macintosh
 Variables
-RomMaplnsert
+RomMapInsert
 Flag for whether to insert map to the ROM resources (byte)
 TmpResLoad
-Temporary SetResLoad state for calls using RomMaplnsert (byte)
+Temporary SetResLoad state for calls using RomMapInsert (byte)
 IV-22 Summary of the Resource Manager
 
 <!-- source-page: 35 -->
@@ -1305,7 +1305,7 @@ contains the low 16 bits of the real size. Old code will work fine for pictures 
 bytes. To check whether you have run out of memory during picture creation, test
 EmptyRect(picFrame); it returns TRUE if you have.
 The following bugs have been fixed:
-• RectinRgn used to return TRUE occasionally when the rectangle intersected the
+• RectInRgn used to return TRUE occasionally when the rectangle intersected the
 region's enclosing rectangle but not the actual region.
 • SectRgn, DiffRgn, U nionRgn, XorRgn, and FrameRgn used to cause a stack
 overflow for regions with more than 25 rectangles in one scan line. Since this is no
@@ -1604,7 +1604,7 @@ To improve the speed and readability of text display in your application, use th
 SetFractEnable and SetFScaleDisable procedures to enable fractional character widths and
 disable font scaling. Certain applications do not work properly when fractional character
 widths are used and font scaling is disabled, so these features are turned off by default.
-The FontMetrics function is much like QuickDraw's GetFontlnfo function except that it
+The FontMetrics function is much like QuickDraw's GetFontInfo function except that it
 returns fixed-point values, letting you draw characters in more precise locations on the
 screen.
 Font Manager Routines W-31
@@ -1617,7 +1617,7 @@ If there's a 'FOND' resource associated with the most recently drawn font, makin
 resource purgeable or unpurgeable with the SetFontLock procedure will make the 'FOND'
 resource resource purgeable or unpurgeable as well.
 PROCEDURE FontMetrics (VAR theMetrics: FMetricRec);
-FontMetrics is similar to the QuickDraw procedure GetFontlnfo except that it returns fixedpoint values for greater accuracy in high-resolution printing.
+FontMetrics is similar to the QuickDraw procedure GetFontInfo except that it returns fixedpoint values for greater accuracy in high-resolution printing.
 The FMetricRec data structure is defined as follows:
 TYPE FMetricRec =
 RECORD
@@ -1638,7 +1638,7 @@ Handle;
 {maximum character width}
 {handle to global width table}
 Ascent, descent, leading, and widMax are identical in function to their counterparts in
-GetFontlnfo. WTabHandle is a handle to the global width table (described below).
+GetFontInfo. WTabHandle is a handle to the global width table (described below).
 PROCEDURE SetFractEnable (fractEnable: BOOLEAN) [NotinROM]
 SetFractEnable lets you enable or disable fractional character widths. If fractEnable is
 TRUE, fractional character widths are enabled; if it's FALSE, the Font Manager uses
@@ -2175,7 +2175,7 @@ pointers, may become invalicl after a call to the Meniocy Map.ager.
 .
 The global variable WidthLis~d is a handle to a list of handles to up to l2 recentlyused width tables. You can ·scan this list, looking for width t!ibles thai match the family
 number, size, and style of the font you wish to measure. If you reach a width handle
-that's equal to -1, that width table is invalid, and you inust ~~an FMSwapfont call
+that's equal to -1, that width table is invalid, and you inust ~~an FMSwapFont call
 to get a valid one. When you reach a handle that's zero, you've reached the end of the
 list.
 You should not use the global width table when special internationaj. interface software
@@ -2724,7 +2724,7 @@ CONST inZoomin
 {in zoom box for zooming in}
 inZoomOut = 8;
 {in zoom box for zooming out}
-InZoom.In and inZoomOut both indicate that the mouse button was pressed in the zoomwindow box of the window. FindWindow returns inZoomln when the window is in the
+InZoom.In and inZoomOut both indicate that the mouse button was pressed in the zoomwindow box of the window. FindWindow returns inZoomIn when the window is in the
 standard state (and will be zoomed in), and inZoomOut when it's in the user state (and will
 be zoomed out).
 If either of these constants are returned by FindWindow, call the TrackBox function
@@ -2761,7 +2761,7 @@ application should do nothing).
 PROCEDURE ZoomWindow (theWindow: WindowPtr; partCode: INTEGER;
 front: BOOLEAN);
 Call Zoom Window after a call to TrackBox that returiis '.ffi..UE. The partCode parameter
-contairts the constant (either inZoomln or inZoqmOut) ryturned by FindWindow. The
+contairts the constant (either inZoomIn or inZoqmOut) ryturned by FindWindow. The
 window will be zoomed either out or in, depending on the stl;te of the window specified by
 partCode. If the window is already irt the state specified by partCode, Zoom Window does
 nothing. If the front parameter is TRUE, the window will be brought to the front;
@@ -2899,7 +2899,7 @@ UpdateRgn should be set to the visRgn of the Window's port (for more details, se
 BeginUpdate procedure in the Window Manager chapter).
 Note: In general, controls are in a dialog box and are automatically drawn by the
 DrawDialog procedure.
-PROCEDURE DrawlControl (theControl: ControlHandle);
+PROCEDURE Draw1Control (theControl: ControlHandle);
 Drawl Control draws the specified control if it's visible within the window.
 THE CONTROL DEFINITION FUNCTION
 A new version of the control definition function (version 4 or greater) in the 128K ROM
@@ -2925,7 +2925,7 @@ SUMMARY OF THE CONTROL MANAGER
 Routine
 PROCEDURE UpdtControl
 (theWindow: WindowPtr; updateRgn: RgnHandle);
-PROCEDURE DrawlControl (theControl: ControlHandle);
+PROCEDURE Draw1Control (theControl: ControlHandle);
 IV-54 Summary of the Control Manager
 
 <!-- source-page: 67 -->
@@ -2945,7 +2945,7 @@ menu; the order of items already in the menu, however, is unaffected. Neither ro
 enables the items.
 Note: If the name of your desk accessory appears not to have been sorted and is
 inserted at the end of the Apple menu, the name is missing the leading null character.
-Two new routines, InsMenultem and DelMenultem, let you insert and delete individual
+Two new routines, InsMenuItem and DelMenuItem, let you insert and delete individual
 items from an existing menu. Use of these routines is discouraged except in certain
 situations where the user expects a menu to change (such as list of open windows).
 Warning: Menu resources should never be marked as purgeable. If a Menu
@@ -2956,9 +2956,9 @@ down an empty menu (one with no items), an unsightly empty menu of arbitrary siz
 was displayed. In the 128K ROM version, the menu title is highlighted but the menu
 is not pulled down at all.
 MENU MANAGER ROUTINES
-PROCEDURE InsMenuitem (theMenu: MenuHandle; itemString: Str255;
+PROCEDURE InsMenuItem (theMenu: MenuHandle; itemString: Str255;
 afteritem: INTEGER);
-InsMenuitem inserts an item or items into the given menu where specified by the afterltem
+InsMenuItem inserts an item or items into the given menu where specified by the afterltem
 parameter. If afterltem is 0, the items are inserted before the first menu item; if it's the item
 number of an item in the menu, they're inserted after that item; if it's equal to or greater
 than the last item number, they're appended to the menu.
@@ -2970,9 +2970,9 @@ Menu Manager Routines IV-55
 ## Page 68
 
 Inside Macintosh
-PROCEDURE DelMenuitem (theMenu: MenuHandle; item: INTEGER);
-DelMenuitem deletes the specified item from the given menu.
-Note: DelMenuitem is intended for maintaining dynamic menus (such as a list of
+PROCEDURE DelMenuItem (theMenu: MenuHandle; item: INTEGER);
+DelMenuItem deletes the specified item from the given menu.
+Note: DelMenuItem is intended for maintaining dynamic menus (such as a list of
 open windows). It should not be used for disabling items; you should use
 Disableltem instead.
 THE MENU DEFINITION PROCEDURE
@@ -2983,7 +2983,7 @@ Note: These features will work with the 64K ROM if the new menu definition
 procedure is in the system resource file.
 Variable Size Fonts
 Menus are displayed in the system font. Since the system font and font size can now be
-changed, the menu definition procedure calls the QuickDraw procedure GetFontinfo for the
+changed, the menu definition procedure calls the QuickDraw procedure GetFontInfo for the
 system font to determine the height of menu items
 Scrolling Menus
 The default menu definition procedure allows longer menus by implementing automatic
@@ -2998,9 +2998,9 @@ than 31 items because the enableFlags field of the MenuinfoRec can only
 handle 31 items.
 SUMMARY OF THE MENU MANAGER
 Routines
-PROCEDURE InsMenuitem (theMenu: MenuHandle; itemString: Str255;
+PROCEDURE InsMenuItem (theMenu: MenuHandle; itemString: Str255;
 afteritem: INTEGER);
-PROCEDURE DelMenuitem (theMenu: MenuHandle; item: INTEGER);
+PROCEDURE DelMenuItem (theMenu: MenuHandle; item: INTEGER);
 IV-56 Summary of the Menu Mana.ger
 
 <!-- source-page: 69 -->
@@ -3062,19 +3062,19 @@ IV-58 Summary of TextEdit
 ## Page 71
 
 10 THE DIALOG MANAGER
-Four routines-HideDitem, ShowDitem, Find.Dltem, and UpdtDialog-have been added
+Four routines-HideDItem, ShowDItem, Find.Dltem, and UpdtDialog-have been added
 to the Dialog Manager.
 Advanced programmers: The standard filterProc function called by ModalDialog now
 returns 1 in itemHit and a function result of TRUE only if the first item is enabled.
 Automatic scrolling is supported in editText items.
 DIALOG MANAGER ROUTINES
-PROCEDURE HideDitem (theDialog: DialogPtr; itemNo: INTEGER);
-HideDitem hides the item numbered itemNo in the given dialog's item list by giving the
+PROCEDURE HideDItem (theDialog: DialogPtr; itemNo: INTEGER);
+HideDItem hides the item numbered itemNo in the given dialog's item list by giving the
 item a display rectangle that's off the screen. (Specifically, if the left coordinate of the
-item's display rectangle is less than 8192, ShowDitem adds 16384 to both the left and right
+item's display rectangle is less than 8192, ShowDItem adds 16384 to both the left and right
 coordinates the rectangle.) If the item is already hidden (that is, if the left coordinate is
-greater than 8192), HideDitem does nothing,
-HideDitem calls the EraseRect procedure on the item's enclosing rectangle and adds the
+greater than 8192), HideDItem does nothing,
+HideDItem calls the EraseRect procedure on the item's enclosing rectangle and adds the
 rectangle that contained the item (not necessarily the item's display rectangle) to the update
 region. If the specified item is an active editText item, the item is first deactivated (by
 calling TEDeactivate ).
@@ -3082,31 +3082,31 @@ calling TEDeactivate ).
 Note: If you have items that are close to each other, be aware that the Dialog
 Manager draws outside of the enclosing rectangle by 3 pixels for editText items and
 by 4 pixels for a default button.
-An item that's been hidden by HideDitem can be redisplayeq by the ShowDitem procedure.
+An item that's been hidden by HideDItem can be redisplayeq by the ShowDItem procedure.
 Note: To create a hidden item in a dialog item list, simply add 16384 to the left and
 right coordinates of the display rectangle.
-PROCEDURE ShowDitem (theDialog: DialogPtr; itemNo: INTEGER);
-ShowDitem redisplays the item numbered itemNo, previously hidden by HideDitem, by
-giving the item the display rectangle it h<J.d prior to the HideDitem call. (Specifically, if the
-left coordinate of the item's display rectangle is greater than 8192, ShowDitem subtracts
+PROCEDURE ShowDItem (theDialog: DialogPtr; itemNo: INTEGER);
+ShowDItem redisplays the item numbered itemNo, previously hidden by HideDItem, by
+giving the item the display rectangle it h<J.d prior to the HideDItem call. (Specifically, if the
+left coordinate of the item's display rectangle is greater than 8192, ShowDItem subtracts
 163 84 from both the left and right coordinates the rect<J.Ilgle.) If the item is already visible
-(that is, if the left coordinate is less than 8192), ShowDitem does nothing.
-ShowDitem adds the rectangle that contained the item (not necessarily the item's display
+(that is, if the left coordinate is less than 8192), ShowDItem does nothing.
+ShowDItem adds the rectangle that contained the item (not necessarily the item's display
 rectangle) to the update region so that it will be drawn. If the item becomes the only
-editText item, ShowDitem activates it (by calling TEActivate).
+editText item, ShowDItem activates it (by calling TEActivate).
 Dialog Manager Routines IV-59
 
 <!-- source-page: 72 -->
 ## Page 72
 
 Inside Macintosh
-FUNCTION FindDitem (theDialog: DialogPtr; thePt: Point) : INTEGER;
-FindDitem returns the item number of the item containing the point specified, in local
-coordinates, by thePt. If the point doesn't lie within the item's rectangle, FindDitem
+FUNCTION FindDItem (theDialog: DialogPtr; thePt: Point) : INTEGER;
+FindDItem returns the item number of the item containing the point specified, in local
+coordinates, by thePt. If the point doesn't lie within the item's rectangle, FindDItem
 returns -1. If there are overlapping items, it returns the item number of the first item in the
-list containing the point. FindDitem is useful for changing the cursor when it's over a
+list containing the point. FindDItem is useful for changing the cursor when it's over a
 particular item.
-Note: FindDitem will return the item number of disabled items as well.
+Note: FindDItem will return the item number of disabled items as well.
 PROCEDURE UpdtDialog (theDialog: DialogPtr; updateRgn:
 RgnHandle);
 UpdtDialog is a faster version of the DrawDialog procedure. Instead of drawing the entire
@@ -3117,10 +3117,10 @@ UpdateRgn should be set to the visRgn of the Window's port. (For more details, s
 BeginUpdate procedure in chapter9 of Volume I.)
 SUMMARY OF THE DIALOG MANAGER
 Routines
-PROCEDURE HideDitem
-PROCEDURE ShowDitem
+PROCEDURE HideDItem
+PROCEDURE ShowDItem
 FUNCTION
-FindDitem
+FindDItem
 PROCEDURE UpdtDialog
 (theDialog: DialogPtr; itemNo: INTEGER);
 (theDialog: DialogPtr; itemNo: INTEGER);
@@ -3412,7 +3412,7 @@ FUNCTION :FracCos
 (x: Fixed) : Fract;
 FUNCTION FracSin
 (x: Fixed) : Fract;
-FUNCTION FiXATan2
+FUNCTION FixATan2
 (x,y: LONG INT) : Fixed;
 Conversion Functions
 FUNCTION Long2Fix
@@ -4604,7 +4604,7 @@ use them.
 The second group of hierarchical routines consists of calls that perform operations unique
 to the hierarchical file directory. The routines in this group are: SetVollnfo, LockRng,
 UnlockRng, DirCreate, QetCatlnfo, SetCatlnfo, CatMove, OpenWD, CloseWD,
-GetWDinfo, and GetFCBinfo.
+GetWDInfo, and GetFCBinfo.
 Warning: Using any of the routines in this second group on a Macintosh equipped
 only with th~ 64K ROM version of the File Manager will result in a system error.
 Using them on a flat volume will have no effect on "folders" and will result in File
@@ -4806,7 +4806,7 @@ subdirectories, however, complicates the situation. A faster and more reliable t
 to begin with an index of 1 and continue until the result code fnfErr (file not found) is
 returned.
 The routines that allow you to provide an index are: GetVollnfo, GetFilelnfo, GetCatlnfo,
-GetWDinfo, and GetFCBinfo. Respectively, they provide information about mounted
+GetWDInfo, and GetFCBinfo. Respectively, they provide information about mounted
 volumes, files in a given directory, files and directories in a given directory, working
 directories, and file control blocks.
 On flat volumes, programmers can use the function GetFilelnfo to index through all the
@@ -4939,7 +4939,7 @@ number of the volume containing that file by calling either GetVRefNum or GetFCB
 SetFilType.
 To make a particular directory a working directory, call Open WD; you can remove a
 working directory with CloseWD. To get information about a working directory (from its
-working directory control block), call GetWDinfo.
+working directory control block), call GetWDInfo.
 INFORMATION USED BY THE FINDER
 The file directory (whether hierarchical or flat) lists information about all the files and
 directories on a volume. This information is returned by the GetFilelnf o and GetCatlnfo
@@ -5584,7 +5584,7 @@ Inside Macintosh
 FUNCTION SetFinfo (fileName: Str255; vRefNum: INTEGER; fndr!nfo:
 Finfo) : OSErr;
 [Not in ROM]
-For the file having the name fileName on the specified volume, SetFlnfo sets information
+For the file having the name fileName on the specified volume, SetFInfo sets information
 used by the Finder to fndrlnfo (see the section "Information Used by the Finder").
 Result codes
 no Err
@@ -6196,10 +6196,10 @@ call should be executed immediately.) The setting of this bit tells the File Man
 expect a larger parameter block containing the additional fields (such as a directory
 ID) needed to handle a hierarchical directory volume. You can set or test bit 9 of a
 trap word by using the global contstant hfsBit.
-Three parameter block records-ClnfoPBRec, CMovePBRec, and WDPBRec-are used
+Three parameter block records-CInfoPBRec, CMovePBRec, and WDPBRec-are used
 by routines that deal specifically with the hierarchical file directory. These routines work
 only with the 128K ROM version of the File Manager.
-Finally, the record FCBPBRec is used by a single routine, PBGetFCBinfo, to gain access
+Finally, the record FCBPBRec is used by a single routine, PBGetFCBInfo, to gain access
 to the contents of a file's file control block; this routine also works only with the 128K
 ROM version of the File Manager.
 Assembly-language note: You can invoke each of the routines that deal
@@ -6218,7 +6218,7 @@ CatMove
 5
 DirCreate
 6
-GetWDinfo
+GetWDInfo
 7
 GetFCBinfo
 8
@@ -6479,11 +6479,11 @@ LONGINT);
 {physical end-of-file of resource fork}
 {date apd time of creation}
 {date and time of last modification}
-IOFDirlndex can be used with the PBGetFinfo and PBHGetFinfo to index through the
+IOFDirlndex can be used with the PBGetFInfo and PBHGetFInfo to index through the
 files in a given directory.
 Warning: When used with GetFilelnfo, ioFDirlndex will index only the files in a
 directory. To index both files and directories, you can use ioFDirlndex with
-PBGetCatlnfo.
+PBGetCatInfo.
 IOFlAttrib contains the following file attributes:
 Bit
 Meaning
@@ -6692,10 +6692,10 @@ IV-124 Low-Level File Manager Routines
 The File Manager
 Most programmers needn't be concerned with the other parameters, but interested
 programmers can read the section "Data Organization on Volumes".
-ClnfoPBRec
+CInfoPBRec
 The routines GetCatlnfo and SetCatlnfo are used for getting and setting information about
 the files and directories within a directory. With files, you'll use the following 19
-additional fields after the standard eight fields in the parameter block record ClnfoPBRec:
+additional fields after the standard eight fields in the parameter block record CInfoPBRec:
 ioFRefNum:
 ioFVersNum:
 fillerl:
@@ -6759,7 +6759,7 @@ LONGINT);
 { Finder}
 {file's parent directory ID (integer)}
 {file's clump size}
-IOFDirlndex can be used with the function PBGetCatlnfo to index through the files and
+IOFDirlndex can be used with the function PBGetCatInfo to index through the files and
 directories in a given directory. For each iteration of the function, you can determine
 whether it's a file or a directory by testing bit 4 (the fifth least significant bit) of ioFlAttrib.
 You can test for a directory by using the Toolbox Utilities BitTst function in the following
@@ -6849,7 +6849,7 @@ OF INTEGER; {not used}
 { Finder}
 {directory's parent directory ID }
 { (integer) }
-IOFDirindex can be used with the function PBGetCatlnfo to index through the files and
+IOFDirindex can be used with the function PBGetCatInfo to index through the files and
 directories in a given directory. For each iteration of the function, you can determine
 whether it's a file or a directory by testing bit 4 of ioFlAttrib.
 When passed to a routine, ioDrDirID contains a directory ID; it can be used to refer to a
@@ -6916,7 +6916,7 @@ ARRAY [l .. 7] OF INTEGER;
 ioWDDirID:
 LONG INT);
 {working directory's directory ID}
-IOWDindex can be used with the function PBGetWDinfo to index through the current
+IOWDindex can be used with the function PBGetWDInfo to index through the current
 working directories.
 IOWDProcID is an identifier that's used to distinguish between working directories set up
 by different users; you should use the application's signature (discussed in the Finder
@@ -6955,7 +6955,7 @@ Initializing the File 1/0 Queue
 PROCEDURE FinitQueue;
 Trap macro
 _InitQueue
-FlnitQueue clears all queued File Manager calls except the current one.
+FInitQueue clears all queued File Manager calls except the current one.
 Accessing Volumes
 To get the volume reference number of a volume, given the path reference number of a file
 on that volume, both Pascal and assembly-language programmers can call the high-level
@@ -7010,7 +7010,7 @@ Volume already on-line
 FUNCTION PBGetVInfo (paramBlock: ParmBlkPtr; async: BOOLEAN}
 OSErr;
 Trap macro
-_GetVollnfo
+_GetVolInfo
 Parameter block
 ->
 12
@@ -8535,7 +8535,7 @@ PBCreate creates a new file (both forks) having the name pointed to by ioNamePtr
 flat volumes, the version number io VersNum) on the volume specified by io VRefNum.
 The new file is unlocked and empty. The date and time of its creation and last modification
 are set to the current date and time. If the file created isn't temporary (that is, if it will exist
-after the application terminates), the application should call PBSetFinfo (after PBCreate) to
+after the application terminates), the application should call PBSetFInfo (after PBCreate) to
 fill in the information needed by the Finder.
 Assembly-language note: If a desk accessory creates a file, it should always
 create it in the directory containing the system folder. The working directory
@@ -8782,7 +8782,7 @@ l/Oerror
 Software volume lock
 Hardware volume lock
 Changing Information About Files and Directories
-FUNCTION PBGetFinfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _ GetFilelnfo
@@ -8859,7 +8859,7 @@ longword
 76
 ioFIMdDat
 longword
-PBGetFinfo returns information about the specified file. If ioFDirlndex is positive, the
+PBGetFInfo returns information about the specified file. If ioFDirlndex is positive, the
 File Manager returns information about the file whose directory index is ioFDirlndex on the
 volume specified by io VRefNum. (See the section "Data Organization on Volumes" if
 you're interested in using this method.)
@@ -8892,10 +8892,10 @@ File not found
 1/0 error
 No such volume
 No default volume
-FUNCTION PBHGetFinfo (paramBlock: HParrnBlkPtr; async: BOOLEAN)
+FUNCTION PBHGetFInfo (paramBlock: HParrnBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
-_HGetFilelnfo
+_HGetFileInfo
 Parameter block
 ->
 12
@@ -8963,7 +8963,7 @@ longword
 76
 ioFlMdDat
 long word
-PBHGetFlnfo is identical to PBGetFinfo except that it accepts a directory ID in ioDirID.
+PBHGetFInfo is identical to PBGetFInfo except that it accepts a directory ID in ioDirID.
 Result codes
 noErr
 bdNamErr
@@ -8987,7 +8987,7 @@ Low-Level File Manager Routines IV-149
 ## Page 160
 
 Inside Macintosh
-FUNCTION PBSetFinfo (paramBlock: ParrnBlkPtr; async: BOOLEAN}
+FUNCTION PBSetFInfo (paramBlock: ParrnBlkPtr; async: BOOLEAN}
 OSErr;
 Trap macro
 _SetFilelnf o
@@ -9024,10 +9024,10 @@ longword
 76
 ioFlMdDat
 longword
-PBSetFinfo sets information (including the date and time of creation and modification, and
+PBSetFInfo sets information (including the date and time of creation and modification, and
 information needed by the Finder) about the file having the name pointed to by ioNamePtr
 (and on flat volumes, the version number ioFVersNum) on the volume specified by
-ioVRefNum. You should call PBGetFinfo just before PBSetFinfo, so the current
+ioVRefNum. You should call PBGetFInfo just before PBSetFInfo, so the current
 information is present in the parameter block.
 Result codes
 noErr
@@ -9048,10 +9048,10 @@ J/Oerror
 No such volume
 Software volume lock
 Hardware volume lock
-FUNCTION PBHSetFinfo (paramBlock: HParrnBlkPtr; async: BOOLEAN}
+FUNCTION PBHSetFInfo (paramBlock: HParrnBlkPtr; async: BOOLEAN}
 OSErr;
 Trap macro
-_HSetFilelnfo
+_HSetFileInfo
 Parameter block
 ->
 12
@@ -9085,7 +9085,7 @@ longword
 76
 ioFlMdDat
 longword
-PBHSetFinfo is identical to PBSetFinfo except that it accepts a directory ID in ioDirID.
+PBHSetFInfo is identical to PBSetFInfo except that it accepts a directory ID in ioDirID.
 W-150 Low-Level File Manager Routines
 
 <!-- source-page: 161 -->
@@ -9496,7 +9496,7 @@ The File Manager
 Warning: The routines described in this section operate only with the hierarchical
 version of the File Manager; if used on a Macintosh equipped only with the 64K
 ROM version of the File Manager, they will generate a system error.
-FUNCTION PBGetCatinfo (paramBlock: CinfoPBPtr; async: BOOLEAN):
+FUNCTION PBGetCatInfo (paramBlock: CinfoPBPtr; async: BOOLEAN):
 OSErr;
 Trap macro
 _ GetCatinfo
@@ -9641,9 +9641,9 @@ long word
 <-
 104 ioFlClpSiz
 longword
-PBGetCatlnfo gets information about the files and directories in a file catalog. To
+PBGetCatInfo gets information about the files and directories in a file catalog. To
 determine whether the information is for a file or a directory, test bit 4 of ioFIAttrib, as
-described in the section "ClnfoPBRec". The information that's returned for files is shown
+described in the section "CInfoPBRec". The information that's returned for files is shown
 in the left column, and the corresponding information for directories is shown in the right
 column.
 If ioFDirlndex is positive, the File Manager returns information about the file or directory
@@ -9660,7 +9660,7 @@ specified by ioNamePtr, in the directory specified by io VRefNum (again, this wi
 root directory if a volume reference number is provided).
 If ioFDirindex is negative, the File Manager ignores ioNamePtr and returns information
 about the directory specified by ioDirID.
-With files, PBGetCatinfo is similar to PBHGetFileinfo but returns some additional
+With files, PBGetCatInfo is similar to PBHGetFileinfo but returns some additional
 information. If the file is open, the reference number of the first access path found is
 returned in ioFRefNum, and the name of the file is returned in ioNamePtr (unless
 ioNamePtr is NIL).
@@ -9681,7 +9681,7 @@ File not found
 J/O error
 No such volume
 No default volume
-FUNCTION PBSetCatinfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
+FUNCTION PBSetCatInfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _SetCatinfo
@@ -9776,7 +9776,7 @@ ioDrFndrlnfo
 ->
 104 ioFIClpSiz
 longword
-PBSetCatinfo sets information about the files and directories in a catalog. With files, it's
+PBSetCatInfo sets information about the files and directories in a catalog. With files, it's
 similar to PBHSetFilelnfo but lets you set some additional information. The information
 that can be set for files is shown in the left column, and the corresponding information for
 directories is shown in the right column.
@@ -9951,7 +9951,7 @@ W-158 Low-Level File Manager Routines
 ## Page 169
 
 The File Manager
-FUNCTION PBGetWDinfo (paramBlock: WDPBPtr; async: BOOLEAN) : OSErr;
+FUNCTION PBGetWDInfo (paramBlock: WDPBPtr; async: BOOLEAN) : OSErr;
 Trap macro
 _GetWDinfo
 Parameter block
@@ -9986,7 +9986,7 @@ ioWDVRefNum word
 48
 ioWDDirID
 long word
-PBGetWDinfo returns information about the specified working directory. The working
+PBGetWDInfo returns information about the specified working directory. The working
 directory can be specified either by its working directory reference number in io VRefNum
 (in which case ioWDindex should be 0), or by its index number in ioWDindex. In the
 latter case, if ioVRefNum is nonzero, it's interpreted as a volume specification (volume
@@ -11087,7 +11087,7 @@ opened by your applicatfon.
 Note: The size of the file-control-block buffer is determined by the system startup
 information stored on a volume.
 You can get information from the file control block allocated for an open file by calling the
-File Manager function PBGetFCBinfo. When you call PBGetFCBinfo, you'll use the
+File Manager function PBGetFCBInfo. When you call PBGetFCBInfo, you'll use the
 IV-178 Data Structures in Memory
 
 <!-- source-page: 189 -->
@@ -11130,7 +11130,7 @@ LONG INT;
 {volume reference number}
 {file clump size}
 {parent directory ID}
-FUNCTION PBGetFCBinfo (paramBlock: FCBPBPtr; async: BOOLEAN)
+FUNCTION PBGetFCBInfo (paramBlock: FCBPBPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _GetFCBinfo
@@ -11267,7 +11267,7 @@ Figure 23. A File Control Block
 the File Manager is a subset of the above structure. The old file control block
 contained only the fields up to and including fcbFlPos.
 FCBMdRByt (which corresponds to ioFCBFlags in the parameter block for
-PBGetFCBinfo) contains flags that describe the status of the file, as follows:
+PBGetFCBInfo) contains flags that describe the status of the file, as follows:
 Bit
 Meaning
 0
@@ -13393,7 +13393,7 @@ word
 ioDirID
 longword
 Changing Information About Files and Directories
-FUNCTION PBGetFinfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -13547,7 +13547,7 @@ longword
 76
 ioFlMdDat
 longword
-FUNCTION PBSetFinfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -13581,7 +13581,7 @@ long word
 76
 ioFlMdDat
 long word
-FUNCTION PBHSetFinfo (paramBlock: HParmBlkPtr; async: BOOLEAN)
+FUNCTION PBHSetFInfo (paramBlock: HParmBlkPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -13788,7 +13788,7 @@ pointer
 ioDirID
 longword
 Hierarchical Directory Routines
-FUNCTION PBGetCatinfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
+FUNCTION PBGetCatInfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -13909,7 +13909,7 @@ longword
 <-
 104 ioFl.ClpSiz
 longword
-FUNCTION PBSetCatinfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
+FUNCTION PBSetCatInfo (paramBlock: CinfoPBPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -14063,7 +14063,7 @@ word
 22
 ioVRefNum
 word
-FUNCTION PBGetWDinfo (paramBlock: WDPBPtr; async: BOOLEAN)
+FUNCTION PBGetWDInfo (paramBlock: WDPBPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -14106,7 +14106,7 @@ QHdrPtr;
 FUNCTION GetDrvQHdr
 QHdrPtr;
 [Not in ROM]
-FUNCTION PBGetFCBinfo (paramBlock: FCBPBPtr; async: BOOLEAN)
+FUNCTION PBGetFCBInfo (paramBlock: FCBPBPtr; async: BOOLEAN)
 OSErr;
 ->
 12
@@ -14204,7 +14204,7 @@ fnfErr
 -43
 fnOpnErr
 -38
-fsDSintErr
+fsDSIntErr
 -127
 fsRnErr
 -59
@@ -15085,7 +15085,7 @@ Pascal name
 FinitQueue
 PBMountVol
 PBGetVInfo
-PBHGetVlnfo
+PBHGetVInfo
 PBSetVInfo
 Pointer to next queue entry
 Queue type (word)
@@ -15097,7 +15097,7 @@ Additional field to handle large drive size (word)
 Macro name
 _lnitQueue
 _MountVol
-_GetVollnfo
+_GetVolInfo
 _HGetVInfo
 _SetVollnfo
 W-210 Summary of the File Manager
@@ -15158,14 +15158,14 @@ PBHCreate
 _HCreate
 PBDirCreate
 _DirCreate
-PBGetFinfo
+PBGetFInfo
 _ GetFilelnfo
-PBHGetFinfo
-_HGetFilelnfo
-PBSetFinfo
-_SetFilelnfo
-PBHSetFinfo
-_HSetFilelnfo
+PBHGetFInfo
+_HGetFileInfo
+PBSetFInfo
+_SetFileInfo
+PBHSetFInfo
+_HSetFileInfo
 PBSetFLock
 _SetFilLock
 PBHSetFLock
@@ -15184,9 +15184,9 @@ PBDelete
 =Delete
 PBHDelete
 _HDelete
-PBGetCatinfo
+PBGetCatInfo
 _GetCatlnfo
-PBSetCatlnfo
+PBSetCatInfo
 _SetCatlnfo
 PBCatMove
 _CatMove
@@ -15194,9 +15194,9 @@ PBOpenWD
 _OpenWD
 PBCloseWD
 _CloseWD
-PBGetWDinfo
+PBGetWDInfo
 _GetWDinfo
-PBGetFCBinfo _GetFCBinfo
+PBGetFCBInfo _GetFCBinfo
 The File Manager
 Summary of the File Manager IV-211
 
@@ -15803,7 +15803,7 @@ For best results, include the RAM Serial Drivers as resources of type 'SERD' in 
 resource fork of your application and continue to use RAMSDOpen and RAMSDClose. If
 the 128K ROM is present, the new driver is automatically substituted.
 The new Serial Driver verifies that the serial port is qo:rrectly configured and free; if not, the
-result code portNotCf or portlnUse is returned. When opened, the Serial Driver defaults to
+result code portNotCf or portInUse is returned. When opened, the Serial Driver defaults to
 hardware handshake on (as did the old ROM driver).
 The Data Terminal Ready (DTR) line in the RS232 interface is now automatically asserted
 when the Serial Driver is opened; DTR is negated when it is closed. Control calls let you
@@ -15873,7 +15873,7 @@ CONST
 { Indication that DTR is negated }
 dtrNegated = $40;
 { Result codes }
-portinUse
+portInUse
 -97
 f driver Open error, port already in use}
 portNotCf
@@ -15936,7 +15936,7 @@ Inside Macintosh
 Assembly-Language lnfonnation
 Constants
 ; Result codes
-portinUse
+portInUse
 .EQU
 -97
 ;driver Open error, port already in use
@@ -15978,7 +15978,7 @@ your application must link to the appropriate object files.
 On the Macintosh Plus, you need only open the .MPP driver, this will also load the .ATP
 driver and NBP code automatically. Since, in the 128K ROM, device drivers return errors,
 it's no longer necessary to check whether port B is free and configured for AppleTalk. If
-port B isn't available, the .MPP driver won't open and the result code portinUse or
+port B isn't available, the .MPP driver won't open and the result code portInUse or
 portNotCf will be returned.
 Assembly-language note: When called from assembly language, the Datagram
 Delivery Protocol (DDP) allows 14 (instead of 12) open sockets.
@@ -17119,7 +17119,7 @@ system resource file. Instead of putting your code in the system resource file, 
 create a separate file with a file type of 'INIT' (or for Chooser devices, file type 'RDEV').
 A special initialization resource in the system resource file, 'INIT' resource 31, searches
 the System Folder of the system startup volume for files of type 'INIT' or 'RDEV'. When
-it finds one, it opens the file (with ResLoad set to FALSE) and uses GetindResource (with
+it finds one, it opens the file (with ResLoad set to FALSE) and uses GetIndResource (with
 ResLoad set to TRUE) to find all resources in that file of type 'INIT'. It calls each
 resource it finds. After calling the last resource, it closes the file, and continues searching
 for other files of type 'INIT' or 'RDEV'.
@@ -17562,8 +17562,8 @@ meaning of these flags is explained below in the section "Cell Selection Algorit
 listFlags field contains automatic scrolling flags; the List Manager sets these flags
 automatically when you specify scroll bars. There are predefined constants that let you set
 or test the status of the corresponding bits:
-CONST lDoVAutoScroll = 2; {set to allow automatic vertical scrolling}
-lDoHAutoScroll = l; {set to allow automatic horizontal }
+CONST lDoVAutoscroll = 2; {set to allow automatic vertical scrolling}
+lDoHAutoscroll = l; {set to allow automatic horizontal }
 { scrolling}
 ClikLoc is the position of the last mouse click in local coordinates; you can use it in the list
 definition procedure to get the position within the cell. LClikLoop is a pointer to the
@@ -17853,7 +17853,7 @@ initialized; thus, it can use any of the values in the list record (or set parti
 as the indent distance).
 If hasGrow is TRUE, the scroll bars are sized so that there's room for a size box in the
 standard position. It's up to the program to display the size box (using the Window
-Manager procedure DrawGrowlcon). If scrollHoriz is TRUE, a horizontal scroll bar is
+Manager procedure DrawGrowIcon). If scrollHoriz is TRUE, a horizontal scroll bar is
 placed immediately below rView and all horizontal scrolling functions are implemented. If
 scroll Vert is TRUE, a vertical scroll bar is placed immediately to the right of rView and all
 vertical scrolling functions are implemented.
@@ -18137,13 +18137,13 @@ clipping region of the list's window to this rectangle.
 LDataOffset is the offset into the cell data of the cell to be drawn; lDataLen is the length of
 that cell's data in bytes.
 The Highlight Routine
-The definition procedure receives a IHiliteMsg message when a cell's data is visible and its
+The definition procedure receives a lHiliteMsg message when a cell's data is visible and its
 highlight state needs to be inverted (from selected to deselected or vice versa). This routine
 is provided for the extra speed usually gained by using an invert operation instead of a
 combination of the draw and highlight operations.
 The parameters for this routine are identical to those for the lDrawMsg routine. If you want
 (for instance, if highlighting is more complicated than mere inversion), you can simply call
-your lDrawMsg routine when you get a IHiliteMsg message.
+your lDrawMsg routine when you get a lHiliteMsg message.
 The Close Routine
 The definition procedure receives a lCloseMsg message in response to a LDispose call. If
 any private storage was allocated by the definition procedure, this routine should dispose
@@ -19460,16 +19460,16 @@ This appendix lists all the new routines that may move or purge blocks in the he
 described in chapter 1 of Volume II, calling these routines may cause problems if a handle
 has been dereferenced. None of these routines may be called from within an intenupt,
 such as in a completion routine or a VBL task.
-DelMenultem
+DelMenuItem
 Drawl Control
-FindDitem
+FindDItem
 FontMetrics
 CietllndR.esource
 CietlindType
 CietlNamedR.esource
 CietlResource
-HideDitem
-InsMenultem
+HideDItem
+InsMenuItem
 Measure Text
 MoveHHi
 New Empty Handle
@@ -19477,7 +19477,7 @@ OpenRFPerm
 PStr2Dec
 Dec2Str
 CStr2Dec
-ShowDitem
+ShowDItem
 TEAutoView
 TEPinScroll
 TESelView
@@ -19523,15 +19523,15 @@ Copy Mask
 A817
 DirCreate
 (6)
-CountlResources
+Count1Resources
 A80D
-GetWDinfo
+GetWDInfo
 (7)
 Countl Types
 A81C
 GetFCBinfo
 (8)
-DelMenultem
+DelMenuItem
 A952
 GetCatlnfo
 (9)
@@ -19539,7 +19539,7 @@ Drawl Control
 A96D
 SetCatlnfo
 (10)
-FindDitem
+FindDItem
 A984
 SetVollnfo
 (11)
@@ -19555,9 +19555,9 @@ Fix2X
 A843
 HGetState
 A069
-FixAtan2
+FixATan2
 A818
-HideDitem
+HideDItem
 A827
 FixDiv
 A84D
@@ -19569,7 +19569,7 @@ HSetState
 A06A
 Frac2Fix
 A842
-InsMenultem
+InsMenuItem
 A826
 Frac2X
 A845
@@ -19613,7 +19613,7 @@ GetlNamedR.esource
 A820
 LAddColumn
 (4)
-GetlResource
+Get1Resource
 A81F
 LAddR.ow
 (8)
@@ -19665,7 +19665,7 @@ TrackBox
 A83B
 LDraw
 (48)
-UniquelID
+Unique1ID
 A810
 LFind
 (52)
@@ -19765,7 +19765,7 @@ DirCreate
 (6)
 PPostEvent
 A12F
-GetWDinfo
+GetWDInfo
 (7)
 PurgeSpace
 A062
@@ -19810,11 +19810,11 @@ GetllndType
 SCSIInstall
 (7)
 A810
-UniquelID
+Unique1ID
 SCSIRBlind
 (8)
 A81C
-CountlTypes
+Count1Types
 SCSIWBlind
 (9)
 A81F
@@ -19831,7 +19831,7 @@ SetFScaleDisable
 A834
 A813
 TEAutoView
-ShowDitem
+ShowDItem
 A828
 IV-306 System Traps
 
@@ -19869,7 +19869,7 @@ FixDiv
 SCSIRead
 (5)
 A952
-DelMenultem
+DelMenuItem
 SCSIWrite
 (6)
 A953
@@ -19884,7 +19884,7 @@ A978
 UpdtDialog
 S~SIWBlind (9)
 A984
-FindDitem
+FindDItem
 SCSIStat
 (10)
 A9C4
@@ -19898,11 +19898,11 @@ Copy Mask
 A9E7
 PackO
 A818
-FixAtan2
+FixATan2
 LActivate
 (0)
 A820
-GetlNamedResource
+Get1NamedResource
 LAddColumn (4)
 A821
 MaxSizeRsrc
@@ -19944,15 +19944,15 @@ FontMetrics
 LDoDraw
 (44)
 A826
-InsMenultem
+InsMenuItem
 LDraw
 (48)
 A827
-HideDitem
+HideDItem
 LFind
 (52)
 A828
-ShowDitem
+ShowDItem
 LGetCell
 (56)
 A836
@@ -20072,7 +20072,7 @@ Current value of MemError (word)
 ROMBase
 $2AE
 Base address of ROM
-RomMaplnsert
+RomMapInsert
 $B9E
 Flag for whether to insert map to the ROM
 resources (byte)
@@ -20419,8 +20419,8 @@ Chooser IV-216
 communication with IV-217
 operation of IV-219
 writing a driver to run under IV-221
-ClnfoPBPtr data type IV-117
-ClnfoPBRec data type IV-125
+CInfoPBPtr data type IV-117
+CInfoPBRec data type IV-125
 ClnfoType data type IV-117
 CMovePBPtr data type IV-117
 CMovePBRec data type IV-127
@@ -20445,7 +20445,7 @@ control definition function IV-53
 Control Manager IV-53
 routines IV-53
 CopyMask procedure IV-24
-CountlResources function IV-15
+Count1Resources function IV-15
 Countl Types function IV-15
 Create function
 high-level IV-112
@@ -20465,7 +20465,7 @@ DefVCBPtr global variable IV-178
 Delete function
 high-level IV-113
 low-level IV-147
-DelMenultem procedure IV-56
+DelMenuItem procedure IV-56
 Index IV-319
 
 <!-- source-page: 326 -->
@@ -20545,11 +20545,11 @@ for queue access IV-176, 178, 181
 file name IV-90
 file number IV-163
 file record IV-172
-FindDitem function IV-60
+FindDItem function IV-60
 Finder infonnation IV-104
 Finder Interface IV-243
 Flnfo data type IV-104
-FlnitQueue procedure IV-128
+FInitQueue procedure IV-128
 FixA Tan2 function IV-65
 FixDiv function IV-64
 Fix2Frac function IV-65
@@ -20611,19 +20611,19 @@ GetFCBinfo function IV-179
 GetFilelnfo function
 high-level IV-113
 low-level IV-148
-GetFlnfo function IV-113
+GetFInfo function IV-113
 GetFPos function
 high-level IV-110
 low-level IV-141
 GetFSQHdr function IV-175
 GetMaskTable function IV-25
-GetllndResource function IV-15
+Get1IndResource function IV-15
 GetllndType procedure IV-15
-GetlNamedResource function IV-15
-GetlResource function IV-16
+Get1NamedResource function IV-15
+Get1Resource function IV-16
 GetTrapAddress function IV-234
 GetVCBQHdrfunction IV-178
-GetVlnfo function IV-107
+GetVInfo function IV-107
 GetVol function
 high-level IV-107
 low-level IV-131
@@ -20631,7 +20631,7 @@ GetVollnfo function
 high-level IV-107
 low-level IV-129
 GetVRefNum function IV-107
-GetWDinfo function IV-159
+GetWDInfo function IV-159
 global variables, list of IV-309
 global width table IV-41
 H
@@ -20645,7 +20645,7 @@ HGetFilelnfo function IV-149
 HGetState function IV-79
 HGetVInfo function IV-130
 HGetVol function IV-132
-HideDitem procedure IV-59
+HideDItem procedure IV-59
 hierarchical file directory IV -89
 HOpen function IV-136
 HOpenRF function IV-137
@@ -20814,24 +20814,24 @@ PBDirCreate function IV-146
 PBEject function IV-135
 PBFlushFile function IV-144
 PBFlushVol function IV-133
-PBGetCatlnfo function IV-155
+PBGetCatInfo function IV-155
 PBGetEOF function IV-142
-PBGetFCBinfo function IV-179
-PBGetFinfo function IV-148
+PBGetFCBInfo function IV-179
+PBGetFInfo function IV-148
 PBGetFPos function IV-141
 PBGetVInfo function IV-129
 PBGetVol function IV-131
-PBGetWDinfo function IV-159
+PBGetWDInfo function IV-159
 PBHCreate function IV-146
 PBHDeletefunction IV-147
-PBHGetFinfo function IV-149
+PBHGetFInfo function IV-149
 PBHGetVInfo function IV-130
 PBHGetVol function IV-132
 PBHOpen function IV-136
 PBHOpenRF function IV-137
 PBHRename function IV-154
 PBHRstFLock function IV-152
-PBHSetFinfo function IV-150
+PBHSetFInfo function IV-150
 PBHSetFLock function IV-151
 PBHSetVol function IV-133
 PBLockRange function IV-138
@@ -20843,7 +20843,7 @@ PBOpenWD function IV-158
 PBRead function IV-139
 PBRename function IV-153
 PBRstFLock function IV-152
-PBSetCatlnfo function IV-156
+PBSetCatInfo function IV-156
 PBSetEOF function IV-142
 PB~~!Elnfo function IV-150
 PBSetFLock function IV-151
@@ -20963,7 +20963,7 @@ SetVol function
 high-level IV-107
 low-level IV-132
 SFSaveDisk global variable IV-72
-ShowDitem procedure IV-59
+ShowDItem procedure IV-59
 SIMM See Single In-Line Memory Module
 Single In-Line Memory Module IV-246
 Small Computer Standarq Interface IV-251,

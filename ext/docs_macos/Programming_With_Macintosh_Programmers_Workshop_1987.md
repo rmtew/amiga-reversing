@@ -5750,9 +5750,9 @@ Other routines may need to reliably access global variables of the
 application. This might include a VBL task or a completion routine for an
 asynchronous File Manager call. The value of A5 at the time of such an
 interrupt is not reliable; instead, you must use the application's value for A5,
-as stored in the system global CurrentAS. If you're writing in Pascal (or C),
+as stored in the system global CurrentA5. If you're writing in Pascal (or C),
 the SetUpAS routine in the OS Utilities will save the actual value of A5 and
-set A5 to CurrentAS, thus allowing you to directly reference application
+set A5 to CurrentA5, thus allowing you to directly reference application
 globals. RestoreAS must be called before the end of the routine to reverse
 the process.
 In addition to the variables declared at the outermost scope of a program,
@@ -13825,7 +13825,7 @@ would look for strings such as
 AOOO
 _Open
 A810
-_UniquelID
+_Unique1ID
 while discarding any character preceeding or following such strings on the
 same line.
 There's no reason Replace must be limited to program source or data. It
@@ -23063,7 +23063,7 @@ declared as CHAR or Byte.
 However, Pascal arrays and records (structs) declared as PACKED will
 be stored in the more compact form. The Inside Macintosh declaration
 TYPE
-IntlORec = PACKED RECORD
+Intl0Rec = PACKED RECORD
 decimalPt: CHAR; { 1 byte
 
 <!-- source-page: 458 -->
@@ -23077,12 +23077,12 @@ intlOVers: INTEGER;
 { 16 bits
 END;
 in the C header <Packages. h> becomes:
-typedef struct IntlORec
+typedef struct Intl0Rec
 char decimalPt;
 char thousSep;
 unsigned char metricSys;
 short intlOVers;
-IntlORec;
+Intl0Rec;
 When in packed records, you should realize that the rules are:
 CHAR becomes char
 Byte becomes unsigned char
@@ -23090,12 +23090,12 @@ c
 437
 However, ifthe previous Pascal record had not been declared as packed, it
 would be equivalent to the C type:
-typedef struct IntlORec
+typedef struct Intl0Rec
 short decimalPt;
 short thousSep;
 short metricSys;
 short intlOVers;
-IntlORec;
+Intl0Rec;
 A few of the interfaces described in Inside Macintosh make extensive use
 of Pascal's variant records, which are different variants of a single record
 type. For example; the File Manager parameter block has four variants and
@@ -23296,7 +23296,7 @@ Version 2.0 also allows you to declare Pascal-style string literals by
 prefixing the string with "\p"; then the call
 DRAWSTRING ("\pHello");
 would pass the address of a five-character Pascal literal string to the
-QuickDraw ROM trap _Drawstring.
+QuickDraw ROM trap _DrawString.
 char *p2cstr();
 char *c2pstr();
 Each takes a single argument, the string (pointer) to be converted. The
@@ -24696,7 +24696,7 @@ number to a 32-bit DirID
 ((WDPBRec *)&pbbuff)->ioWDindex = 0;
 /*use
 ioVRefNum */
-if (err= PBGetWDinfo(&pbbuff,false))
+if (err= PBGetWDInfo(&pbbuff,false))
 return (err);
 /*FAILED*/
 /* DirID in pbbuff.ioWDDirID, used by GetCatinfo()
@@ -24709,7 +24709,7 @@ do
 /*Continue to the root ... */
 /* info on this DirID */
 pbbuff.ioFDirindex = -1;
-if (err= PBGetCatinfo(&pbbuff, false))
+if (err= PBGetCatInfo(&pbbuff, false))
 return (err);
 /*FAILED*/
 len = Length(vnambuff);
@@ -36432,9 +36432,9 @@ Apple DeskTop Bus Manager (OS)
 ADBOp
 ADBRelnit
 CountADBs
-GetADBlnfo
-GetlndADB
-SetADBlnfo
+GetADBInfo
+GetIndADB
+SetADBInfo
 A07C
 A07B
 A077
@@ -36502,7 +36502,7 @@ Pas ca/IC
 Assembler
 Word
 Selector Compatibility
-lnvertColor
+InvertColor
 AA35
 Color
 Make IT able
@@ -36526,7 +36526,7 @@ Color
 SaveEntries
 AA49
 Color
-SetClientlD
+SetClientID
 AA3C
 Color
 SetEntries
@@ -36686,7 +36686,7 @@ A001
 PBControl#
 _Control
 A004
-PBKilllO#
+PBKillIO#
 KilllO
 A006
 -
@@ -36705,7 +36705,7 @@ A003
 Slntlnstall
 A075
 Macll
-SlntRemove
+SIntRemove
 A076
 Macll
 # Also used by File Manager
@@ -36738,25 +36738,25 @@ DrawDialog
 A981
 ErrorSound
 A98C
-FindDltem
+FindDItem
 A984
 128K
 FreeAlert
 A98A
 Free Dialog
 A97A
-GetDltem
+GetDItem
 A98D
-GetlText
+GetIText
 A990
 GetNewDialog
 A97C
-HideDitem
+HideDItem
 A827
 128K
-lnitDialogs
+InitDialogs
 A97B
-lsDialogEvent
+IsDialogEvent
 A97F
 Modal Dialog
 A991
@@ -36769,13 +36769,13 @@ NoteAlert
 A987
 ParamText
 A98B
-SellText
+SelIText
 A97E
-SetDltem
+SetDItem
 A98E
-SetlText
+SetIText
 A98F
-ShowDltem
+ShowDItem
 A828
 128K
 StopAlert
@@ -36805,7 +36805,7 @@ A9E9
 File Manager (OS)
 Add Drive
 A04E
-FlnitQueue
+FInitQueue
 lnitQueue
 A016
 -
@@ -36871,7 +36871,7 @@ A045
 PBFlushVol
 _Flush Vol
 A013
-PBGetCatlnfo
+PBGetCatInfo
 _GetCatlnfo
 A260
 9
@@ -36879,24 +36879,24 @@ HFS
 PBGetEOF
 _GetEOF
 A011
-PBGetFCBlnfo
+PBGetFCBInfo
 _GetFCBlnfo
 A260
 8
 HFS
-PBGetFlnfo
-_GetFilelnfo
+PBGetFInfo
+_GetFileInfo
 AOOC
 PBGetFPos
 _GetFPos
 A018
-PBGetVlnfo
-_GetVollnfo
+PBGetVInfo
+_GetVolInfo
 A007
 PBGetVol
 _GetVol
 A014
-PBGetWDlnfo
+PBGetWDInfo
 _GetWDlnfo
 A260
 7
@@ -36920,7 +36920,7 @@ PBHGetDir Access
 _GetDirAccess A260
 50
 Share
-PBHGetFlnfo
+PBHGetFInfo
 HGetFilelnfo
 A20C
 HFS
@@ -36930,7 +36930,7 @@ _Getloglnlnfo
 A260
 49
 Share
-PBHGetVlnfo
+PBHGetVInfo
 HGetVlnfo
 A207
 HFS
@@ -36940,7 +36940,7 @@ _GetVolParms
 A260
 48
 Share
-PBHMaplD
+PBHMapID
 _MaplD
 A260
 52
@@ -36986,7 +36986,7 @@ PBHSetDir Access
 _SetDirAccess A260
 51
 Share
-PBHSetFlnfo
+PBHSetFInfo
 HSetFilelnfo
 A20D
 HFS
@@ -36994,7 +36994,7 @@ PBHSetFLock#
 _HSetFLock
 A241
 HFS
-PBKilllO
+PBKillIO
 KilllO
 A006
 -
@@ -37006,8 +37006,8 @@ HFS
 PBMountVol
 _MountVol
 AOOF
-PBOffline
-_Offline
+PBOffLine
+_OffLine
 A035
 PBOpen#
 _Open
@@ -37029,7 +37029,7 @@ AOOB
 PBRstFLock
 RstFillock
 A042
-PBSetCatlnfo
+PBSetCatInfo
 _SetCatlnfo
 A260
 10
@@ -37047,11 +37047,11 @@ Selector Compatlblllty
 PBSetEOF
 _SetEOF
 A012
-PBSetFlnfo
+PBSetFInfo
 _Setfillnfo
 AOOD
 PBSetFLock
-_SetFillock
+_SetFilLock
 A041
 PBSetFPos
 _SetFPos
@@ -37059,7 +37059,7 @@ A044
 PBSetFVers
 _SetFilType
 A043
-PBSetVlnfo
+PBSetVInfo
 _SetVollnfo
 A260
 11
@@ -37100,7 +37100,7 @@ Share
 # Also used by Device Manager
 ## 16-bit selector in DO
 Font Manager (Toolbox)
-FMSwapfont
+FMSwapFont
 A901
 FontMetrics
 A835
@@ -37110,7 +37110,7 @@ A900
 GetFontName
 _GetFName
 ABFF
-lnitFonts
+InitFonts
 ABFE
 Real Font
 A902
@@ -37141,7 +37141,7 @@ A9ED
 IUSetlntl
 A9ED
 8
-IUTimePstring
+IUTimePString
 A9ED
 14
 IUTimeString
@@ -37319,9 +37319,9 @@ A06A
 128K
 HUnlock
 A02A
-lnitApplZone
+InitApplZone
 A02C
-lnitZone
+InitZone
 A019
 MaxApplZone
 A063
@@ -37360,7 +37360,7 @@ A040
 SetApplBase
 _SetAppBase
 A057
-SetAppllimit
+SetApplLimit
 A02D
 SetGrowZone
 A04B
@@ -37387,19 +37387,19 @@ Checkltem
 A945
 Clear Me nu Bar
 A934
-CountMltems
+CountMItems
 A950
 DeleteMenu
 A936
 DelMCEntries
 AA60
 Color
-DelMenultem
+DelMenuItem
 A952
 128K
 Disable Item
 A93A
-DispMClnfo
+DispMCInfo
 AA63
 Color
 DisposeMenu
@@ -37413,7 +37413,7 @@ FlashMenuBar
 A94C
 Getltem
 A946
-GetltemCmd
+GetItemCmd
 A84F
 Sys4.1t
 
@@ -37429,16 +37429,16 @@ Selector Compatibility
 Get Item Icon
 _Getltmlcon
 A93F
-GetltemMark
-_GetltmMark
+GetItemMark
+_GetItmMark
 A943
-GetltemStyle
+GetItemStyle
 _ GetltmStyle
 A941
 GetMCEntry
 AA64
 Color
-GetMClnfo
+GetMCInfo
 AA61
 Color
 GetMenu
@@ -37452,14 +37452,14 @@ GetNewMBar
 A9CO
 HiliteMenu
 A938
-lnitMenus
+InitMenus
 A930
-lnitProcMenu
+InitProcMenu
 ABOS
 Sys4.1t
 lnsertMenu
 A935
-lnsertResMenu
+InsertResMenu
 A951
 Ins Menu Item
 A826
@@ -37480,22 +37480,22 @@ ABOS
 Sys4.1t
 Set Item
 A947
-SetltemCmd
+SetItemCmd
 A84E
 Sys4.1t
 Setltemlcon
 _Setltmlcon
 A940
 Set Item Mark
-_SetltmMark
+_SetItmMark
 A944
 Set Item Style
-_SetltmStyle
+_SetItmStyle
 A942
 SetMCEntries
 AA65
 Color
-SetMClnfo
+SetMCInfo
 AA62
 Color
 SetMenuBar
@@ -37539,7 +37539,7 @@ Word
 Selector Compatibility
 HandToHand
 A9E1
-lnitUtil
+InitUtil
 A03F
 PtrAndHand
 A9EF
@@ -37566,9 +37566,9 @@ A9C8
 WriteParam
 A038
 Package Manager (Toolbox)
-lnitAllPacks
+InitAllPacks
 A9E6
-lnitPack
+InitPack
 A9ES
 Packages use 16-bit selector on stack#
 PackO
@@ -37659,7 +37659,7 @@ Color
 GetPalette
 AA96
 Color
-lnitPalettes
+InitPalettes
 AA90
 Color
 NewPalette
@@ -37779,7 +37779,7 @@ PrStlDialog
 A8FD
 $2A040484
 Sys 3.3
-PrStllnit
+PrStlInit
 A8FD
 $3C04040C
 Sys 3.3
@@ -37970,7 +37970,7 @@ Color
 GetCCursor
 AA1B
 Color
-GetClcon
+GetCIcon
 AA1E
 Color
 GetClip
@@ -37981,10 +37981,10 @@ Color
 GetCTable
 AA18
 Color
-GetDevicelist
+GetDeviceList
 AA29
 Color
-GetFontlnfo
+GetFontInfo
 A88B
 GetForeColor
 AA19
@@ -38026,12 +38026,12 @@ A896
 HiliteColor
 AA22
 Color
-lnitCPort
+InitCPort
 AA01
 Color
-lnitCursor
+InitCursor
 A850
-lnitGDevice
+InitGDevice
 AA2E
 Color
 
@@ -38044,17 +38044,17 @@ Pas ca/IC
 Assembler
 Word
 Selector Compatibility
-lnitGraf
+InitGraf
 A86E
-lnitPort
+InitPort
 A860
 lnsetRect
 A8A9
-lnsetRgn
+InsetRgn
 A8E1
-lnvertArc
+InvertArc
 A8C1
-lnvertOval
+InvertOval
 ASBA
 Invert Poly
 A8C9
@@ -38062,9 +38062,9 @@ lnvertRect
 - lnverRect
 A8A4
 lnvertRgn
-_lnverRgn
+_InverRgn
 A805
-lnvertRoundRect
+InvertRoundRect
 - lnverRoundRect A883
 KillPicture
 A8F5
@@ -38169,7 +38169,7 @@ PicComment
 A8F2
 PinRect
 A94E
-PlotClcon
+PlotCIcon
 AA1F
 Color
 PortSize
@@ -38184,7 +38184,7 @@ PtToAngle
 A8C3
 Random
 A861
-RectlnRgn
+RectInRgn
 A8E9
 RectRgn
 ASDF
@@ -38356,9 +38356,9 @@ AS20
 Get1 Resource
 AS1F
 12SK
-GetlndResource
+GetIndResource
 A99D
-GetlndType
+GetIndType
 A99F
 GetNamedResource
 A9A1
@@ -38378,13 +38378,13 @@ GetResAttrs
 A9A6
 GetResFileAttrs
 A9F6
-GetReslnfo
+GetResInfo
 A9A8
 GetResource
 A9AO
 Home Res File
 A9A4
-lnitResources
+InitResources
 A995
 Load Resource
 A9A2
@@ -38408,15 +38408,15 @@ A9AD
 RsrcMapEntry
 A9C5
 128K
-RsrcZonelnit
+RsrcZoneInit
 A996
 SetResAttrs
 A9A7
 SetResFileAttrs
 A9F7
-SetReslnfo
+SetResInfo
 A9A9
-SetResload
+SetResLoad
 A99B
 SetResPurge
 A993
@@ -38437,7 +38437,7 @@ A9BO
 Scrap Manager (Toolbox)
 Get Scrap
 A9FD
-lnfoScrap
+InfoScrap
 A9F9
 Load Scrap
 _LodeScrap
@@ -38496,7 +38496,7 @@ HiliteText
 ABBS
 $BOOE001C
 Sys4.1
-lntlScript
+IntlScript
 ABBS
 $B2000002
 Sys4.1
@@ -38645,7 +38645,7 @@ hutDwnStart
 A895
 1
 Sys4.0
-_Shutdown#
+_ShutDown#
 A895
 Sys4.0
 # 16-bit selector on stack
@@ -38812,7 +38812,7 @@ Macll
 SndDoCommand
 A803
 Macll
-SndDolmmediate
+SndDoImmediate
 A804
 Macll
 SndNewChannel
@@ -39040,7 +39040,7 @@ A840
 Fix2X
 A843
 128K
-FixAtan2
+FixATan2
 A818
 128K
 Fix Div
@@ -39125,7 +39125,7 @@ Macll
 DoVBLTask
 A072
 Mac II
-SlotVlnstall
+SlotVInstall
 AOGF
 Mac II
 SlotVRemove
@@ -39159,7 +39159,7 @@ DragTheRgn
 A926
 Drag Window
 A925
-DrawGrowlcon
+DrawGrowIcon
 A904
 DrawNew
 A90F
@@ -39199,9 +39199,9 @@ HiliteWindow
 A91C
 In it Windows
 A912
-lnvalRect
+InvalRect
 A928
-lnvalRgn
+InvalRgn
 A927
 Move Window
 A918

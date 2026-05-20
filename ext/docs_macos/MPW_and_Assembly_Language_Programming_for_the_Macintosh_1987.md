@@ -1686,7 +1686,7 @@ MOVE.L
 Move To
 PEA
 CoinLetters
-_Drawstring
+_DrawString
 SystemTask
 SUBQ
 #4,SP
@@ -1740,7 +1740,7 @@ MOVE.L
 D3,-(SP)
 PEA
 CoinSize
-_PtinRect
+_PtInRect
 TST.B
 (SP)+
 BEQ.S
@@ -2342,7 +2342,7 @@ windowName:str255;
 begin
 setRect(windowSize,60,80,450,290);
 windowName := •cornered Coin';
-coinWindow :; newWindow(nil,windowSize,windowName,true,O,pointer(-1),false,0);
+coinWindow :; newwindow(nil,windowSize,windowName,true,O,pointer(-1),false,0);
 setPort(coinWindow);
 end;
 (----------------DRAW COIN-----------------}
@@ -2351,7 +2351,7 @@ begin
 setRect(r,100,80,290,130);
 frameRect(r);
 rnoveTo(l22,lll);
-drawString('BlackHeads/WhiteTails')
+drawstring('BlackHeads/WhiteTails')
 end;
 
 <!-- source-page: 47 -->
@@ -2371,7 +2371,7 @@ pt:point;
 begin
 systemTask;
 getMouse(pt);
-if ptinRect(pt,r) then
+if ptinrect(pt,r) then
 invertRect(r)
 end;
 {------------------MAIN--------------------}
@@ -8047,7 +8047,7 @@ f$006E007A,-(SP)
 MoveTo
 PEA
 CoinLetters
-_Drawstring
+_DrawString
 SUBQ
 #2,SP
 Button
@@ -8266,9 +8266,9 @@ programmer's repertoire. But when you get sick of repeatedly compiling
 and linking, you'll see that it pays to figure out beforehand what the heck
 you are doing.
 Now that you have the Quickdraw pen placed at coordinate point
-(110,122), you can use the _Drawstring trap to write text on the screen.
+(110,122), you can use the _DrawString trap to write text on the screen.
 Procedure Drawstring (stringName) requires only that its single parameter be
-pushed onto the stack. In InsideStuff, the subject for the _Drawstring trap is
+pushed onto the stack. In InsideStuff, the subject for the _DrawString trap is
 the reference name Coinletters.
 At the bottom of the program code, you can see that Coinletters is
 defined as a constant by
@@ -8289,11 +8289,11 @@ The effective address of the reference name Coinletters is pushed onto
 the stack by the statement
 PEA
 Coin Letters
-The _Drawstring trap uses this effective address to find the contents of its
+The _DrawString trap uses this effective address to find the contents of its
 string parameter, draw the string on the screen, and empty the stack.
 String parameters, like all parameters, have bounds within which they
 can be used. The dictionary will help you avoid using parameters outside
-acceptable limits. For instance, the _Drawstring parameter is defined by the
+acceptable limits. For instance, the _DrawString parameter is defined by the
 Macintosh construct Str255, which is a string type from Oto 255 characters.
 Using a string outside that range would cause problems.
 That's about it for this section. You have drawn an object and text inside
@@ -8484,7 +8484,7 @@ MOVE.L
 Move To
 PEA
 CoinLetters
-_Drawstring
+_DrawString
 SystemTask
 SUBQ
 #4,SP
@@ -8704,12 +8704,12 @@ the point lies within the rectangle. A series of compare and branch statements c
 The Tuolbox, however, has a trap that does this work for you. You
 simply provide the point and the rectangle as subject parameters, and the
 trap returns a boolean result of true if the point is within the rectangle, or
-false if it is not. The three statements preceding _PtlnRect prepare the stack
+false if it is not. The three statements preceding _PtInRect prepare the stack
 accordingly.
 From your experience using other trap calls, you should recognize how
 the stack is being prepared. SUBQ #2,SP reserves space on the stack for the
 boolean result Oike you did for _Button). MOVE.L D3,-(SP) moves the coordinate point _GetMouse retrieved onto the stack. PEA CoinSize pushes the effective address of the rectangle onto the stack Oike you did for _FrameRect).
-The trap call _PtlnRect empties the stack of the point and rectangle
+The trap call _PtInRect empties the stack of the point and rectangle
 parameters, and leaves the boolean result in the 2-byte space you reserved.
 The parameter list:
 _ PtlnRect(pointName, rectName) : boolean
@@ -8733,14 +8733,14 @@ set to 1 when there is a zero result. The Z flag is cleared to 0 when there is a
 nonzero result. The Z flag provides a true (1) response when its name (zero)
 is true.
 You should be able to follow the two courses of action that depend on
-the result of _PtlnRect. When the cursor point is detected within the rectan-
+the result of _PtInRect. When the cursor point is detected within the rectan-
 
 <!-- source-page: 177 -->
 ## Page 177
 
 177
 Chapter 19
-gle, the two statements PEA CoinSize and _lnverRect are performed. _lnverRect
+gle, the two statements PEA CoinSize and _InverRect are performed. _InverRect
 works identically to _FrameRect, except the rectangle parameter is inverted
 rather than framed. When the cursor point is detected outside the rectangle, the branch to TryButton jumps over the inverting code, and the button test
 to end the program commences.
@@ -9563,13 +9563,13 @@ the rectangles in the GetRect program. The difference derives from the
 alternative method of reading the mouse's location coordinates. The
 _GetMouse command is replaced with the point field of the event record. This
 change must be accompanied by another Toolbox command called
-_GlobalTolocal to correctly interpret the mouse's location.
-The _GlobalTolocal call converts a point's coordinates from global dimensions (think of the Macintosh screen as a global port) to local dimensions
+_GlobalToLocal to correctly interpret the mouse's location.
+The _GlobalToLocal call converts a point's coordinates from global dimensions (think of the Macintosh screen as a global port) to local dimensions
 (think of your program's window as the local port). Because the point field of
 the event record returns coordinates expressed as global coordinates, the
 global-to-local conversion is necessary for using the mouse within the current window port. This conversion was not necessary when you used
 _GetMouse because _GetMouse returned coordinates expressed in the dimensions of the current window port.
-The command _GlobalTolocal requires a point parameter. This effective
+The command _GlobalToLocal requires a point parameter. This effective
 address of the point is put on the stack with the PEA instruction. After
 the command is called, all references to the point field are in local dimensions.
 
@@ -10716,8 +10716,8 @@ the stack for the handle result and provide a menu resource ID constant.
 The menu resource ID matches the constant value written in the resource
 file. _GetRMenu reads resource information into memory, returning with the
 menu handle left on the stack.
-The menu handle is used by the next Tuolbox command, _lnsertMenu.
-_lnsertMenu puts a specified menu at a particular position on a menu list. The
+The menu handle is used by the next Tuolbox command, _InsertMenu.
+_InsertMenu puts a specified menu at a particular position on a menu list. The
 CLR.W instruction provides a beforelD value of O, indicating the given menu
 should be added to the list after any others. (With multiple menus, the
 beforeID parameter would insert the menu in the menu list before the menu
@@ -11068,7 +11068,7 @@ DCB Define Constant Block
 DIVS Signed Divide
 DIVU Unsigned Divide
 _DrawMenuBar ROM Trap
-_Drawstring ROM Trap
+_DrawString ROM Trap
 DS Define Storage
 END End of Source
 EOR El(.clusive OR Logical
@@ -11089,17 +11089,17 @@ _GetRMenu ROM Trap
 _ GlobalToLoeal ROM Trap
 ILLEGAL Illegal Instruction
 INCLUDE Include Source File
-_lnitCursor ROM Trap
-_lnitFonts ROM Trap
-_lnitGraf ROM Trap
+_InitCursor ROM Trap
+_InitFonts ROM Trap
+_InitGraf ROM Trap
 
 <!-- source-page: 218 -->
 ## Page 218
 
-_lnitMenus ROM Trap
-_lnitWindows ROM Trap
-_lnsertMenu ROM Trap
-_lnverRect ROM Trap
+_InitMenus ROM Trap
+_InitWindows ROM Trap
+_InsertMenu ROM Trap
+_InverRect ROM Trap
 JMP Jump
 JSR Jump to Subroutine
 LEA Load Effective Address
@@ -13670,7 +13670,7 @@ bar. The trap should be used to redraw the menu whenever the menu list
 has been changed by any prior sequence of calls that insert, delete, clear,
 set, or otherwise alter a menu list. No parameters are used.
 _ lnsertMenu can be used to add a menu into the menu list at a specified
-position along the menu bar. _GetRMenu can be used to read a menu resource and provide the handle parameter for _lnsertMenu. After such
+position along the menu bar. _GetRMenu can be used to read a menu resource and provide the handle parameter for _InsertMenu. After such
 changes, _DrawMenuBar redraws the menu bar according to the current
 menu list.
 
@@ -13679,15 +13679,15 @@ menu list.
 
 292
 Part Three
-_Drawstring ROM Trap
+_DrawString ROM Trap
 PROCEDURE Drawstring (s: Str255);
-_Drawstring places the parameter string into the current Grafl>ort to the
+_DrawString places the parameter string into the current Grafl>ort to the
 right of the Quickdraw pen location. The variable s is of the predefined
 Quickdraw type str255, a string of not more than 255 characters.
 The current pen location moves to the right of each character as the
-string is drawn. _Drawstring performs no carriage returns, linefeeds, or text
+string is drawn. _DrawString performs no carriage returns, linefeeds, or text
 formatting.
-Tu prepare the stack for _Drawstring: Push a pointer to the string.
+Tu prepare the stack for _DrawString: Push a pointer to the string.
 On return: The stack is clear.
 DS Define Storage (MPW Data Allocation Directive)
 Reserve the specified number of uninitialized memory slots at a position
@@ -14085,20 +14085,20 @@ Tu prepare the stack for _GetRMenu: Subtract 4 bytes from the stack
 pointer to store the handle result. Push an integer value representing a
 menu resource ID.
 On return: The menu handle to a menu record is left on the stack.
-The menu data can be placed in the menu list by calling _lnsertMenu.
-_lnsertMenu uses the handle provided by _GetRMenu to find the menu data.
+The menu data can be placed in the menu list by calling _InsertMenu.
+_InsertMenu uses the handle provided by _GetRMenu to find the menu data.
 Then, the current menu list can be drawn on the screen by calling
 _Draw Menu Bar.
 _GetMenu returns NIL if a menu cannot be read from a resource file.
 After _GetRMenu has been called for a particular menu and is in memory,
 you can use resource traps to get the handle or release the memory occupied by the menu data.
 _GlobalToLocal ROM Trap
-PROCEDURE GlobalTolocal (VAR pt: Point) ;
-_GlobalTolocal converts a point expressed in global coordinates-such as
+PROCEDURE GlobalToLocal (VAR pt: Point) ;
+_GlobalToLocal converts a point expressed in global coordinates-such as
 the Macintosh screen-to the local coordinates of the current GrafFort. For
 example, global coordinates from the where field of an event record can be
 converted to local coordinates of the active window. A pointer to the global
-coordinates is put on the stack, tfien the call to _GlobalTolocal converts the
+coordinates is put on the stack, tfien the call to _GlobalToLocal converts the
 point to local coordinates.
 
 <!-- source-page: 297 -->
@@ -14129,9 +14129,9 @@ INCLUDE Filename
 Include source code of Filename into the assembly.
 _InitCursor ROM Trap
 _InitFonts ROM Trap
-_lnitGraf ROM Trap
-_lnitMenus ROM Trap
-_lnitWindows ROM Trap
+_InitGraf ROM Trap
+_InitMenus ROM Trap
+_InitWindows ROM Trap
 Each of the following traps is an initialization of routines in a Tuolbox
 Manager. These initializations should be called once, and only once, before
 any other trap calls that use the relevant manager.
@@ -14144,36 +14144,36 @@ Dependencies among the various Managers require that certain initial-
 Part Three
 izations be called before others. Using the following order of initializations
 satisfies these dependencies:
-_ lnitGraf
-_lnitFonts
-_lnitWindows
-_lnitMenus
-_lnitCursor
-_lnitCursor works within QuickDraw to initialize the current cursor to
+_ InitGraf
+_InitFonts
+_InitWindows
+_InitMenus
+_InitCursor
+_InitCursor works within QuickDraw to initialize the current cursor to
 the standard arrow and makes the cursor visible by setting the cursor level
 to 0. The cursor level works as a counter for calls to the cursor routines that
 hide and show the cursor.
-_lnitFonts initializes the Font Manager, making sure the system font has
-been read into memory. The call to _lnitFonts should follow the initialization
+_InitFonts initializes the Font Manager, making sure the system font has
+been read into memory. The call to _InitFonts should follow the initialization
 of QuickDraw and precede the initialization of the Window Manager (windows require fonts).
-_lnitGraf initializes Quickdraw, the graphics manager that controls all
-screen activity. QuickDraw uses global variables that are allocated immediately below the location pointed to by register AS. The call to _lnitGraf
+_InitGraf initializes Quickdraw, the graphics manager that controls all
+screen activity. QuickDraw uses global variables that are allocated immediately below the location pointed to by register AS. The call to _InitGraf
 requires a parameter that points to the first QuickDraw global variable,
 thePort. Because thePort is 4 bytes, the effective address given by PEA-4(A5)
-provides the pointer parameter required by _lnitGraf.
-_lnitMenus initializes the Menu Manager, allocating space for the menu
+provides the pointer parameter required by _InitGraf.
+_InitMenus initializes the Menu Manager, allocating space for the menu
 list and redrawing a blank, white menu bar.
-_lnitWindows initializes the Window Manager, allocating space for the
+_InitWindows initializes the Window Manager, allocating space for the
 Window Manager port, drawing the desktop (as a rounded-corner rectangle
 in the current desktop pattern) and a blank, white menu bar.
-To call any of the traps except _lnitGraf, use the trap name alone. Only
-_lnitGraf uses parameters.
-Tu prepare the stack for _lnitGraf: Push a pointer to QuickDraw globals
+To call any of the traps except _InitGraf, use the trap name alone. Only
+_InitGraf uses parameters.
+Tu prepare the stack for _InitGraf: Push a pointer to QuickDraw globals
 at -4(A5).
 On return: The stack is clear.
-_lnsertMenu ROM Trap
+_InsertMenu ROM Trap
 PROCEDURE lnsertMenu (theMenu: MenuHandle; betore/D: INTEGER);
-_lnsertMenu puts a menu into the menu list at a specified position along
+_InsertMenu puts a menu into the menu list at a specified position along
 the menu bar. The parameter theMenu is a handle (pointer to a pointer) of
 the menu's data. The parameter beforeID is an integer equal to the menu ID
 
@@ -14186,32 +14186,32 @@ of the menu that will follow the inserted one. A new menu will be inserted
 after all others if beforelD is O or does not match a current menu ID.
 _I nsertMenu is ignored if the menu list is full or if the menu already exists on
 the menu list.
-Tu prepare the stack for _lnsertMenu: Push a menu handle to a menu
+Tu prepare the stack for _InsertMenu: Push a menu handle to a menu
 record. Push an integer representing a menu ID for positioning.
 On return: The stack is clear.
-_lnsertMenu affects the menu list, yet performs no drawing on the
+_InsertMenu affects the menu list, yet performs no drawing on the
 screen. Tu draw a menu bar, call _DrawMenuBar. _DrawMenuBar uses the cur·
 rent contents of the menu list to draw a menu bar.
 _GetRMenu can be used to read a menu resource and provide the handle
-parameter for _lnsertMenu.
-_lnverRect ROM Trap
+parameter for _InsertMenu.
+_InverRect ROM Trap
 PROCEDURE lnvertRect (r: Rect);
-Note: Assembly uses _lnverRect; Pascal uses lnvertRect. _lnverRect inverts
+Note: Assembly uses _InverRect; Pascal uses lnvertRect. _InverRect inverts
 the dots enclosed in a rectangle whose dimensions are set by its parameter.
 Every black dot becomes white, and every white dot becomes black.
 The type rect parameter points to four integers representing the rectangle's boundary coordinates: top, left, bottom, and right, respectively.
-Tu prepare the stack for _lnverRect: Push a pointer to a rectangle. A
+Tu prepare the stack for _InverRect: Push a pointer to a rectangle. A
 rectangle is defined by four integers or two variables of type point.
 On return: The stack is clear.
 The Quickdraw pen's pattern and draw-over mode, as well as the background pattern, are ignored. The pen location is unaffected. See _PenMode
 for more information on the Quickdraw pen.
-QuickDraw also offers three closely related trap calls: _lnvertOval, _In·
-vertArc, and _lnverRoundRect.
-PROCEDURE lnvertOval (r: Rect);
-PROCEDURE lnvertArc (r: Rect; startAng/e,arcAngle: INTEGER);
-PROCEDURE lnvertRoundRect (r: Rect; ova/Width,ova/Height: INTEGER);
-Note: Assembly uses _JnverRoundRect; Pascal uses lnvertRoundRect.
-_lnvertOval inverts the dots enclosed in an oval that fits within the
+QuickDraw also offers three closely related trap calls: _InvertOval, _In·
+vertArc, and _InverRoundRect.
+PROCEDURE InvertOval (r: Rect);
+PROCEDURE InvertArc (r: Rect; startAng/e,arcAngle: INTEGER);
+PROCEDURE InvertRoundRect (r: Rect; ova/Width,ova/Height: INTEGER);
+Note: Assembly uses _JnverRoundRect; Pascal uses InvertRoundRect.
+_InvertOval inverts the dots enclosed in an oval that fits within the
 rectangular dimensions set by its parameter. _JnvertArc inverts the dots
 enclosed in a wedge. The wedge is specified by the oval that fits within the
 rectangular dimensions set by its rectangle parameter. The parameter
@@ -14227,13 +14227,13 @@ clock: O points to 12 o'clock, 90 points to 3 o'clock, 180 points to 6 o'clock,
 and so on. The parameter arcAngle is a degree value between -359 and 359
 that sets the extent of the arc, positive angles extending clockwise, negative
 angles extending counterclockwise.
-_lnverRoundRect inverts the dots enclosed in a rounded-corner rectangle
+_InverRoundRect inverts the dots enclosed in a rounded-corner rectangle
 whose dimensions are set by its rectangle parameter. The curvature of the
 rounded corners is set by two integers that specify the diameters of an oval
 shape suggested by the rounded corners.
 Similar sets of Quickdraw routines are available for other types of
 drawing using the four shapes. Each shape is prefaced by a type of action.
-For example, in addition to _lnverRect, rectangle shapes are manipulated by
+For example, in addition to _InverRect, rectangle shapes are manipulated by
 _FrameRect, _PaintRect, _EraseRect, and _FillRect.
 Continue program execution at the subject's effective address.
 Size: No size.
@@ -14903,13 +14903,13 @@ system font size of 12 points. Any size can be selected. If the system does not
 have the font in the selected size, however, the nearest size will be scaled.
 This could result in funny-looking letters. An even multiple of an available
 size for the font produces the best approximation.
-_PtlnRect ROM Trap
+_PtInRect ROM Trap
 FUNCTION PtlnRect (pt: Point; r: Rect) : BOOLEAN;
-_PtlnRect evaluates a point type and a rect type parameter, and returns
+_PtInRect evaluates a point type and a rect type parameter, and returns
 the boolean result of true if the dot below and to the right of the coordinate
 point is enclosed in the given rectangle. Otherwise the trap returns a value
 of false.
-Tu call _PtlnRect: Subtract 2 bytes from the stack pointer for the boolean
+Tu call _PtInRect: Subtract 2 bytes from the stack pointer for the boolean
 result. Push a long word containing a point's two integer coordinates. Push a
 pointer to the rectangle.
 On return: A boolean value of true is left on the stack if the point is in
@@ -15511,7 +15511,7 @@ DIVS, 290-291
 DIVU, 291
 Dollar sign, 125, 135
 _DrawMenuBar, 213, 291
-_Drawstring, 166-167, 292
+_DrawString, 166-167, 292
 DS, 182, 184-185, 292
 DumpCode, 240-241
 DumpObj, 241-242
@@ -15726,7 +15726,7 @@ Print, 22, 29, 261-262
 ProcNames, 262
 Program counter, 96, 102
 Program execution, 109-110
-_PtlnRect, 176-177, 319
+_PtInRect, 176-177, 319
 Quick.a file, 183
 Quit, 262
 Quit file, 8, 47

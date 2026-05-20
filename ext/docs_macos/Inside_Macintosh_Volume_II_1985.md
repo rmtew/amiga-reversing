@@ -1030,7 +1030,7 @@ jump table
 32 {
 eppl icetion parameters
 1-----------1 ~
-AS = (CurrentAS)
+AS = (CurrentA5)
 eppl icetion globals
 206 {
 QuickDrew globals
@@ -1129,7 +1129,7 @@ jump table
 32 {
 application parameters
 1----------~ ~
-AS = (CurrentAS)
+AS = (CurrentA5)
 application globals
 206 {
 QuickDraw globals
@@ -1488,7 +1488,7 @@ Trap macro
 On exit
 _InitApptzone
 DO: result code (word)
-lnitApplZone initializes the application heap zone and makes it the current zone. The contents of
+InitApplZone initializes the application heap zone and makes it the current zone. The contents of
 any previous application zone are lost; all previously existing blocks in that zone are discarded.
 The zone's grow zone function is set to NIL. InitApplZone is called by the Segment Loader
 when starting up an application; you shouldn't normally need to call it.
@@ -2615,7 +2615,7 @@ Tag byte and physical block size (long)
 Relocatable block: relative handle
 Nonrelocatable block: zone pointer
 First byte of block contents
-Parameter Block Structure for lnitZone
+Parameter Block Structure for InitZone
 startPtr
 limitPtr
 cMoreMasters
@@ -3521,7 +3521,7 @@ diskMask
 activMask
 networkMask
 driverMask
-applMask
+app1Mask
 app2Mask
 app3Mask
 app4Mask
@@ -4765,7 +4765,7 @@ to be open.
 FUNCTION GetFinfo (fileName: Str255; vRefNum: INTEGER; VAR
 fndrinfo: Finfo) : OSErr;
 [Not in ROM]
-For the file having the name fileName on the specified volume, GetFlnfo returns information
+For the file having the name fileName on the specified volume, GetFInfo returns information
 used by the Finder in fndrlnfo (see the section "File Information Used by the Finder").
 Result codes
 no Err
@@ -5303,7 +5303,7 @@ Initializing the File 110 Queue
 PROCEDURE FinitQueue;
 Trap macro
 _InitQueue
-FlnitQueue clears all queued File Manager calls except the current one.
+FInitQueue clears all queued File Manager calls except the current one.
 Accessing Volumes
 To get the volume reference number of a volume, given the path reference number of a file on that
 volume, both Pascal and assembly-language programmers should call the high-level File Manager
@@ -5685,7 +5685,7 @@ PBCreate creates a new file (both forks) having the name ioNamePtr and the versi
 ioFVersNum, on the volume specified by ioVRefNum. The new file is unlocked and empty.
 The date and time of its creation and last modification are set to the current date and time. If the
 file created isn't temporary (that is, if it will exist after the application terminates), the application
-should call PBSetFinfo (after PBCreate) to fill in the information needed by the Finder.
+should call PBSetFInfo (after PBCreate) to fill in the information needed by the Finder.
 Low-Level File Manager Routines II-107
 
 <!-- source-page: 117 -->
@@ -6305,7 +6305,7 @@ The File Manager
 Changing Information About Files
 All of the routines described in this section affect both forks of a file, and don't require the file to
 be open.
-FUNCTION PBGetFinfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _ GetFilelnfo
@@ -6386,7 +6386,7 @@ f-
 76
 ioFIMdDat
 long word
-PBGetFinfo returns information about the specified file. If ioFDirlndex is positive, the File
+PBGetFInfo returns information about the specified file. If ioFDirlndex is positive, the File
 Manager returns information about the file whose sequence number is ioFDirlndex on the volume
 specified by ioVRefNum (see the section "Data Organization on Volumes" if you're interested in
 using this method). If ioFDirlndex is negative or 0, the File Manager returns information about
@@ -6415,7 +6415,7 @@ Low-Level File Manager Routines II-115
 ## Page 125
 
 Inside Macintosh
-FUNCTION PBSetFinfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 SetFilelnfo
@@ -6451,10 +6451,10 @@ long word
 76
 ioFIMdDat
 long word
-PBSetFinfo sets information (including the date and time of creation and modification, and
+PBSetFInfo sets information (including the date and time of creation and modification, and
 information needed by the Finder) about the file having the name ioNamePtr and the version
-number ioFVersNum, on the volume specified by ioVRetNum. You should call PBGetFinfo
-just before PBSetFlnfo, so the current information is present in the parameter block.
+number ioFVersNum, on the volume specified by ioVRetNum. You should call PBGetFInfo
+just before PBSetFInfo, so the current information is present in the parameter block.
 Result codes
 no Err
 bdNamErr
@@ -8207,7 +8207,7 @@ word
 ioRefNurn
 word
 Changing Information About Files
-FUNCTION PBGetFinfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFInfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8280,7 +8280,7 @@ f-
 76
 ioFlMdDat
 long word
-FUNCTION PBSetFinfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8462,7 +8462,7 @@ Name
 fsRnErr
 gfpErr
 ioErr
-memFulIErr
+memFullErr
 no Err
 noMacDskErr
 nsDrvErr
@@ -8863,7 +8863,7 @@ File-system identifier (word)
 Number of logical blocks (word)
 Macro Names
 Pascal name
-FlnitQueue
+FInitQueue
 PBMountVol
 PBGetVInfo
 PBGetVol
@@ -8884,8 +8884,8 @@ PBSetEOF
 PB Allocate
 PBFlushFile
 PBClose
-PBGetFinfo
-PBSetFinfo
+PBGetFInfo
+PBSetFInfo
 PBSetFLock
 PBRstFLock
 Macro name
@@ -9878,7 +9878,7 @@ PrCtlCall(iPrDevCtl,lPrReset,0,0)
 to reset the printer to its standard initial state. This call should be made only once per document.
 You can also specify the number of copies to make in the low-order byte of this parameter; for
 example, a value of $00010002 specifies two copies.
-The IPrLineFeed and IPrLFSixth parameters allow you to achieve the effect of carriage returns
+The lPrLineFeed and lPrLFSixth parameters allow you to achieve the effect of carriage returns
 and line feeds in a printer-independent way:
 • LPrLineFeed specifies a carriage return only (with a line feed of 0).
 • LPrLFSixth causes a carriage return and advances the paper by 1/6 inch (the standard "CR
@@ -9907,7 +9907,7 @@ l;
 {square dots (72 by 72)}
 The Imagewriter, in standard resolution, normally prints rectangular dots that are taller than they
 are wide (80 dots per inch horizontally by 72 vertically). Since the Macintosh 128K and 512K
-screen has square pixels (approximately 72 per inch both horizontally and vertically), IPaintBits
+screen has square pixels (approximately 72 per inch both horizontally and vertically), lPaintBits
 gives a truer reproduction of the screen, although printing is somewhat slower.
 On the LaserWriter, !Control should always be set to lPaintBits.
 //-164 The Printer Driver
@@ -10587,7 +10587,7 @@ refNum.
 Result codes
 noErr
 badUnitErr
-dlnstErr
+dInstErr
 openErr
 unitEmptyErr
 No error
@@ -10978,7 +10978,7 @@ permission.
 Result codes
 noErr
 badUnitErr
-dlnstErr
+dInstErr
 openErr
 unitEmptyErr
 No error
@@ -13211,7 +13211,7 @@ Tried to read side 2 of a disk in a single-sided drive
 initIWMErr
 -77
 Can't initialize disk controller chip
-tkOBadErr
+tk0BadErr
 -76
 Can't find track 0
 cantStepErr
@@ -16772,7 +16772,7 @@ If serial port B isn't configured for AppleTalk, or is already in use, the .MPP 
 and an appropriate result code is returned.
 Result codes
 no Err
-portlnUse
+portInUse
 portNotCf
 No error
 Port B is already in use
@@ -17327,7 +17327,7 @@ packets even if retCksumErrs is FALSE.
 Result codes
 no Err
 buf2Smal1Err
-cksumErr
+ckSumErr
 ddpLenErr
 ddpSktErr
 readQErr
@@ -17690,7 +17690,7 @@ Note: On a Macintosh 512K or XL, ATPLoad and MPPOpen perform essentially the
 same function.
 Result codes
 no Err
-portlnUse
+portInUse
 portNotCf
 No error
 Port B is already in use
@@ -17873,7 +17873,7 @@ A TPRequest is functionally analogous to ATPSndRequest. It sends a request to an
 but doesn't require the caller to set up and use the BDS data structure to describe the response
 buffers. ATPAddress indicates the socket to which the request should be sent. ATPDataPtr and
 atpReqCount specify the location and size of a buffer that contains the request information to be
-sent. ATPUserData contains the user bytes to be sent in the request's ATP header. ATPTimeOut
+sent. ATPuserData contains the user bytes to be sent in the request's ATP header. ATPTimeOut
 indicates the length of time that A TPRequest should wait for a response before retransmitting the
 request. A TPRetries indicates the maximum number of retries A TPRequest should attempt.
 To use this call, you must have an area of contiguous buffer space that's large enough to receive
@@ -18101,7 +18101,7 @@ atpNumRsp
 ATP AddRsp sends one additional response packet to a socket that has already been sent the initial
 part of a response via A TPSndRsp. A TPSocket contains the socket number from which the
 response should be sent and atpAddress contains the internet address of the socket to which the
-response should be sent. ATPTransID must contain the transaction ID. ATPDataPtr and
+response should be sent. ATPtransID must contain the transaction ID. ATPDataPtr and
 atpReqCount specify the location and size of a buffer that contains the information to send;
 atpNumRsp is the sequence number of the response. A TPEOM is TRUE if this response
 datagram is the final packet in a transaction composed of a group of packets. A TPU serData
@@ -18295,7 +18295,7 @@ points to a buffer containing the data. When data is received via NBP, nbpBufPtr
 buffer in which the incoming data can be stored and nbpBufSize indicates the size of the buffer in
 bytes. NBPAddress is used in some calls to give the internet address of a named entity. The
 AddrBlock data type is described above under "Datagram Delivery Protocol".
-NBPEntityPtr points to a variable of type Entity Name, which has the following data structure:
+NBPentityPtr points to a variable of type Entity Name, which has the following data structure:
 TYPE EntityName = RECORD
 objStr: Str32;
 typeStr: Str32;
@@ -18372,7 +18372,7 @@ nbpRetransmitlnfo
 {buffer size in bytes}
 {socket address}
 {retransmission information}
-NBPRegister adds the name and address of an entity to the node's names table. NBPEntityPtr
+NBPRegister adds the name and address of an entity to the node's names table. NBPentityPtr
 points to a variable of type Entity Name containing the entity's name. If the name is already
 registered, NBPRegister returns the result code nbpDuplicate. NBPAddress indicates the socket
 for which the name should be registered. NBPBufPtr and nbpBufSize specify the location and
@@ -18424,7 +18424,7 @@ nbpRetransmitlnfo
 {buffer size in bytes}
 {number of addresses received}
 {retransmission information}
-NBPLookup returns the addresses of all entities with a specified name. NBPEntityPtr points to a
+NBPLookup returns the addresses of all entities with a specified name. NBPentityPtr points to a
 variable of type Entity Name containing the name of the entity whose address should be returned.
 (Meta-characters are allowed in the entity name.) NBPBufPtr and nbpBufSize contain the
 location and size of an area of memory in which the entity names and their corresponding
@@ -18483,7 +18483,7 @@ nbpAddress
 nbpRetransmitlnfo
 {retransmission information}
 NBPConfirm confirms that an entity known by name and address still exists (is still entered in the
-names directory). NBPEntityPtr points to a variable of type EntityName that contains the name to
+names directory). NBPentityPtr points to a variable of type EntityName that contains the name to
 confirm, and nbpAddress specifies the address to be confirmed. (No meta-characters are allowed
 in the entity name.) NBPRetransmitlnfo contains the retry interval and the retry count. The
 socket number of the entity is returned in nbpDataField. NBPConfirm is more efficient than
@@ -18655,7 +18655,7 @@ No error
 MPP driver not installed
 FUNCTION IsMPPOpen : BOOLEAN;
 [Not in ROM]
-lsMPPOpen returns TRUE if the .MPP driver is loaded and running.
+IsMPPOpen returns TRUE if the .MPP driver is loaded and running.
 FUNCTION IsATPOpen : BOOLEAN;
 [Not in ROM]
 IsATPOpen returns TRUE if the .ATP driver is loaded and running.
@@ -18785,7 +18785,7 @@ Al,ioFileName(AO)
 ;set in queue entry
 @30
 @20
-#portinUse,DO
+#portInUse,DO
 #$0F,Dl
 #useATalk,Dl
 @30
@@ -21269,7 +21269,7 @@ buf2Sma11Err
 -3101
 cbNotFound
 -1102
-cksumErr
+ckSumErr
 -3103
 ddpLenErr
 -92
@@ -21307,7 +21307,7 @@ no Err
 noMPPError
 noRelErr
 noSendResp
-portlnUse
+portInUse
 portNotCf
 readQErr
 recNotFnd
@@ -21385,7 +21385,7 @@ Constants
 ; Serial port use types
 useFree
 useATalk
-useASync
+useAsync
 .EQU
 . EQU
 . EQU
@@ -22964,7 +22964,7 @@ dsNoPk7
 dsMemFullErr
 dsBadLaunch
 dsFSErr
-dsStkNHeap
+dsStknHeap
 dsReinsert
 dsSysErr
 Routines
@@ -23672,7 +23672,7 @@ DO: result code (word)
 <!-- source-page: 390 -->
 ## Page 390
 
-lnitUtil
+InitUtil
 The Operating System Utilities
 GetSysPPtr returns e pointer
 to here
@@ -23694,7 +23694,7 @@ low-memory copy of parameter RAM; these values are then written to the clock chi
 Result codes
 noErr
 No error
-prlnitErr
+prInitErr
 Validity status not $A8
 FUNCTION GetSysPPtr : SysPPtr;
 [Not in ROM]
@@ -23924,7 +23924,7 @@ memFullErr
 memWZErr
 nilHandleErr
 no Err
-prinitErr
+prInitErr
 prWrErr
 qErr
 Data Types
@@ -24213,7 +24213,7 @@ no Err
 .EQU
 0
 ;no error
-prinitErr
+prInitErr
 .EQU
 -88
 ;validity status is not $AB
@@ -24567,7 +24567,7 @@ Figure 3. Dialog for Naming a Disk
 Result codes
 noErr
 extFSErr
-memFulIErr
+memFullErr
 nsDrvErr
 paramErr
 volOnLinErr
@@ -25415,7 +25415,7 @@ DragWindow procedure 1-289
 DrawChar procedure 1-172
 DrawControls procedure 1-322
 DrawDialog procedure 1-418
-DrawGrowlcon procedure 1-287
+DrawGrowIcon procedure 1-287
 drawing 1-155
 color 1-158, 173
 DrawMenuBar procedure 1-354
@@ -25657,7 +25657,7 @@ GetCursor function 1-474
 GetDateTime procedure 11-378
 GetDblTime function 1-260
 GetDCtlEntry function II-190
-GetDltem procedure 1-421
+GetDItem procedure 1-421
 GetDrvQHdr function II-128
 GetEOF function
 high-level 11-93
@@ -25674,10 +25674,10 @@ GetEvQHdr function II-71
 GetFilelnfo function
 high-level 11-95
 low-level 11-115
-GetFlnfo function II-95
+GetFInfo function II-95
 GetFName procedure 1-223
 GetFNum procedure 1-223
-GetFontlnfo procedure 1-173
+GetFontInfo procedure 1-173
 GetFontName procedure 1-223
 GetFPos function
 high-level 11-92
@@ -25686,13 +25686,13 @@ GetFSQHdr function II-125
 GetHandleSize function 11-33
 Getlcon function I-473
 GetlndPattem procedure 1-473
-GetlndResource function 1-118
-GetlndString procedure 1-468
-GetlndType procedure 1-117
+GetIndResource function 1-118
+GetIndString procedure 1-468
+GetIndType procedure 1-117
 Getltem procedure 1-358
 Getlternlcon procedure 1-360
-GetitemMark procedure I-359
-GetltemStyle procedure 1-360
+GetItemMark procedure I-359
+GetItemStyle procedure 1-360
 GetIText procedure 1-422
 Getltmlcon procedure 1-360
 GetitmMark procedure 1-359
@@ -25723,7 +25723,7 @@ GetRequest function 11-317
 GetResAttrs function 1-121
 //-416
 GetResFileAttrs function 1-127
-GetReslnfo procedure I-121
+GetResInfo procedure I-121
 GetResource function 1-119
 GetRMenu function 1-351
 GetScrap function 1-469
@@ -25820,27 +25820,27 @@ inactive
 control 1-313
 window 1-46, 270
 indicatorofadial 1-312
-lnfoScrap function 1-457
-lnitAllPacks procedure I-484
-lnitApplZone procedure 11-28
+InfoScrap function 1-457
+InitAllPacks procedure I-484
+InitApplZone procedure 11-28
 InitCursor procedure I-167
-lnitDialogs procedure 1-411
+InitDialogs procedure 1-411
 InitFonts procedure 1-222
-lnitGraf procedure I-162
-lnitMenus procedure 1-351
+InitGraf procedure I-162
+InitMenus procedure 1-351
 InitPack procedure I-484
-lnitPort procedure 1-164
+InitPort procedure 1-164
 lnitQueue procedure 11-103
-lnitResources function 1-114
-lnitUtil function 11-380
+InitResources function 1-114
+InitUtil function 11-380
 InitWindows procedure 1-281
-lnitZone procedure II-29
+InitZone procedure II-29
 input driver II-246
 insertion point 1-41, 375
 lnsertMenu procedure 1-353
-lnsertResMenu procedure 1-353
+InsertResMenu procedure 1-353
 InsetRect procedure 1-17 5
-lnsetRgn procedure 1-184
+InsetRgn procedure 1-184
 lnt64Bit data type I-472
 interface routine 1-95
 Index
@@ -25865,13 +25865,13 @@ lntllHndl data type 1-500
 lntllPtr data type I-500
 lntllRec data type 1-500
 InvalRect procedure 1-291
-lnvalRgn procedure 1-291
+InvalRgn procedure 1-291
 InverRect procedure 1-177
 lnverRgn procedure 1-186
 lnverRoundRect procedure 1-179
-lnvertArc procedure 1-181
-lnvertOval procedure 1-178
-lnvertPoly procedure 1-192
+InvertArc procedure 1-181
+InvertOval procedure 1-178
+InvertPoly procedure 1-192
 lnvertRect procedure 1-177
 lnvertRgn procedure 1-186
 InvertRoundRect procedure I-179
@@ -25891,9 +25891,9 @@ IODone function 11-195
 110 queue See driver 110 queue or file 110
 queue
 110 request 11-97, 180
-lsATPOpen function 11-304
+IsATPOpen function 11-304
 IsDialogEvent function 1-416
-lsMPPOpen function 11-304
+IsMPPOpen function 11-304
 item
 dialog/alert 1-403
 menu 1-341
@@ -25908,7 +25908,7 @@ IUDatePString procedure 1-505
 IUDateString procedure 1-504
 IUEqualString function 1-506
 IUGetlntl function 1-505
-IUMaglDString function 1-507
+IUMagIDString function 1-507
 IUMagString function 1-506
 IUMetric function 1-505
 IUSetlntl procedure 1-506
@@ -26253,9 +26253,9 @@ PBEject function Il-107
 PBFlushFile function 11-114
 PBFlushVol function II-105
 PBGetEOF function II-112
-PBGetFinfo function Il-115
+PBGetFInfo function Il-115
 PBGetFPos function Il-111
-PBGetVlnfo function 11-104
+PBGetVInfo function 11-104
 PBGetVol function 11-104
 PBKillIO function II-187
 PBMountVol function 11-103
@@ -26270,7 +26270,7 @@ File Manager II-110
 PBRename function II-118
 PBRstFLock function II-117
 PBSetEOF function II-112
-PBSetFlnfo function ll-116
+PBSetFInfo function ll-116
 PBSetFLock function II-116
 PBSetFPos function 11-111
 PBSetFVers function Il-117
@@ -26439,7 +26439,7 @@ RecoverHandle function II-35
 Rect data type I-141
 rectangle I-140
 routines 1-17 4
-RectlnRgn function I-185
+RectInRgn function I-185
 RectRgn procedure 1-183
 reference number of a resource file I-105
 reference value
@@ -26528,7 +26528,7 @@ routine selector 1-483
 routing table 11-265
 Routing Table Maintenance Protocol 11-265
 row width 1-143
-RsrcZonelnit procedure 1-114
+RsrcZoneInit procedure 1-114
 RstFilLock function
 high-level II-96
 low-level 11-117
@@ -26648,8 +26648,8 @@ SetGrowZone procedure II-42
 SetHandleSize procedure Il-34
 Setltem procedure I-357
 Setltemlcon procedure I-359
-SetltemMark procedure I-359
-SetltemStyle procedure I-360
+SetItemMark procedure I-359
+SetItemStyle procedure I-360
 SetIText procedure I-422
 Setltmlcon procedure 1-359
 SetltmMark procedure I-359
@@ -26671,7 +26671,7 @@ SetRect procedure I-17 4
 SetRectRgn procedure 1-183
 SetResAttrs procedure I-122
 SetResFileAttrs procedure I-127
-SetReslnfo procedure I-122
+SetResInfo procedure I-122
 SetResLoad procedure I-118
 SetResPurge procedure I-126
 SetSoundVol procedure II-233
@@ -26937,7 +26937,7 @@ TPrJob data type II-151
 TPrPort data type 11-147
 TPrStatus data type 11-161
 TPrStl data type 11-152
-TPrXlnfo data type 11-152
+TPrXInfo data type 11-152
 track on a disk 11-211
 TrackControl function I-323
 TrackGoAway function 1-288

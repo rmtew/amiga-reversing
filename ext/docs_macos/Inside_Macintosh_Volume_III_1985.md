@@ -3473,7 +3473,7 @@ buf2Smal1Err
 -3101
 cbNotFound
 - 1102
-cksumErr
+ckSumErr
 -3103
 Meaning
 Bad response from A TPRequest
@@ -3527,7 +3527,7 @@ noRelErr
 - 1101
 noSendResp
 - 1103
-portlnUse
+portInUse
 - 97
 portNotCf
 -98
@@ -3589,7 +3589,7 @@ Constants
 ; Serial port use types
 useFree
 useATalk
-useASync
+useAsync
 ; Bit in
 .EQU
 .EQU
@@ -5288,7 +5288,7 @@ Name
 abortErr
 badUnitErr
 controlErr
-dlnstErr
+dInstErr
 dRemovErr
 no Err
 notOpenErr
@@ -5586,7 +5586,7 @@ PB Read
 PB Write
 PB Control
 PB Status
-PBKilllO
+PBKillIO
 Macro name
 Read
 Write
@@ -6168,7 +6168,7 @@ Tried to read side 2 of a disk in a single-sided drive
 initIWMErr
 - 77
 Can't initialize disk controller chip
-tkOBadErr
+tk0BadErr
 - 76
 Can't find track 0
 cantStepErr
@@ -6456,7 +6456,7 @@ diskMask
 activMask
 networkMask
 driverMask
-applMask
+app1Mask
 app2Mask
 app3Mask
 app4Mask
@@ -6820,7 +6820,7 @@ diskMask
 activMask
 networkMask
 driverMask
-applMask
+app1Mask
 app2Mask
 app3Mask
 app4Mask
@@ -8020,7 +8020,7 @@ long word
 ~ 76
 ioFIMdDat
 long word
-FUNCTION PBSetFinfo (pararnBlock: PannBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (pararnBlock: PannBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8598,7 +8598,7 @@ File-system identifier (word)
 Number of logical blocks (word)
 Macro Names
 Pascal name
-FlnitQueue
+FInitQueue
 PB Mount Vol
 PBGetVInfo
 PBGetVol
@@ -8619,8 +8619,8 @@ PBSetEOF
 PB Allocate
 PBFlushFile
 PB Close
-PBGetFlnfo
-PBSetFlnfo
+PBGetFInfo
+PBSetFInfo
 PBSetFLock
 PBRstFLock
 Macro name
@@ -9071,7 +9071,7 @@ Special Macro Names
 Pascal name
 GetFontName
 Variables
-ApFontlD
+ApFontID
 FScaleDisable
 ROMFontO
 Macro name
@@ -9186,11 +9186,11 @@ verTurkey
 verYugoslavia
 25;
 Data Types
-TYPE IntlOHndl
-IntlOPtr
-"IntlOPtr;
-"IntlORec;
-IntlORec
+TYPE Intl0Hndl
+Intl0Ptr
+"Intl0Ptr;
+"Intl0Rec;
+Intl0Rec
 PACKED RECORD
 decirnalPt :
 thousSep:
@@ -9259,9 +9259,9 @@ International Utilities Package III-119
 ## Page 127
 
 Inside Macintosh
-IntllHndl = " IntllPtr;
-IntllPtr = " IntllRec;
-IntllRec
+Intl1Hndl = " Intl1Ptr;
+Intl1Ptr = " Intl1Rec;
+Intl1Rec
 PACKED RECORD
 days :
 months:
@@ -9911,7 +9911,7 @@ Tag byte and physical block size (long)
 Relocatable block: relative handle
 Nonrelocatable block: zone pointer
 First byte of block contents
-Parameter Block Structure for lnitZone
+Parameter Block Structure for InitZone
 startPtr
 limitPtr
 cMoreMasters
@@ -10185,22 +10185,22 @@ PROCEDURE Enable Item
 PROCEDURE Checkitem
 (t heMenu : MenuHandle; item: INTEGER;
 BOOLEAN);
-PROCEDURE SetitemMark (theMenu: MenuHandle; item: INTEGER;
+PROCEDURE SetItemMark (theMenu: MenuHandle; item: INTEGER;
 CHAR);
-PROCEDURE GetitemMark (theMenu: MenuHandle; item: INTEGER;
+PROCEDURE GetItemMark (theMenu: MenuHandle; item: INTEGER;
 markChar: CHAR);
 PROCEDURE Setitemicon
 (t heMenu : MenuHandle; item: INTEGER;
 PROCEDURE Getitemicon (theMenu : MenuHandle; item : I NTEGER;
 Byte);
-PROCEDURE SetitemStyle (theMenu: MenuHandle; item: INTEGER;
+PROCEDURE SetItemStyle (theMenu: MenuHandle; item: INTEGER;
 Style);
-PROCEDURE GetitemStyle (theMenu : MenuHandle; item: INTEGER;
+PROCEDURE GetItemStyle (theMenu : MenuHandle; item: INTEGER;
 Style);
 Miscellaneous Routines
 PROCEDURE CalcMenuSize (theMenu : MenuHandle) ;
 FUNCTION
-CountMitems
+CountMItems
 (theMenu: MenuHandle)
 : INTEGER;
 FUNCTION
@@ -10290,12 +10290,12 @@ Special Macro Names
 Pascal name
 DisposeMenu
 Getltemlcon
-GetltemMark
-GetltemStyle
+GetItemMark
+GetItemStyle
 GetMenu
 Seti tern Icon
-SetltemMark
-SetltemStyle
+SetItemMark
+SetItemStyle
 SetMenuFlash
 Variables
 MenuList
@@ -11264,7 +11264,7 @@ FUNCTION
 StringWidth
 FUNCTION
 Text Width
-PROCEDURE GetFontinfo
+PROCEDURE GetFontInfo
 (VAR pt: Point);
 (VAR pnState : PenState) ;
 (pnState: PenState);
@@ -11410,7 +11410,7 @@ PtinRgn
 FUNCTION
 FUNCTION
 FUNCTION
-RectinRgn
+RectInRgn
 EqualRgn
 EmptyRgn
 (rgn: RgnHandle; dh,dv: INTEGER) ;
@@ -11937,7 +11937,7 @@ Routines
 Initialization
 FUNCTION
 InitResources
-PROCEDURE RsrcZoneinit;
+PROCEDURE RsrcZoneInit;
 INTEGER;
 Opening and Closing Resource Files
 PROCEDURE CreateResFile (fileName: Str255);
@@ -11965,7 +11965,7 @@ Getting Resource Types
 FUNCTION
 CountTypes : INTEGER;
 INTEGER;
-PROCEDURE GetindType
+PROCEDURE GetIndType
 (VAR theType: ResType; index: INTEGER);
 Getting and Disposing of Resources
 PROCEDURE SetResLoad
@@ -11995,13 +11995,13 @@ PROCEDURE DetachResource
 Getting Resource Information
 FUNCTION
 UniqueID
-PROCEDURE GetResinfo
+PROCEDURE GetResInfo
 FUNCTION
 GetResAttrs
 FUNCTION
 SizeResource
 Modifying Resources
-PROCEDURE SetResinfo
+PROCEDURE SetResInfo
 (theType: ResType) : INTEGER;
 (theResource: Handle; VA~ theID: INTEGER; VAR
 theType: ResType; VAR name: Str255);
@@ -12347,11 +12347,11 @@ data8
 3072;
 {8 data bits}
 { Masks for errors
-sWOverrunErr = l;
+swOverrunErr = l;
 {set if software overrun error}
 parityErr
 16; {set if parity error}
-hWOverrunErr = 32; {set if hardware overrun error}
+hwOverrunErr = 32; {set if hardware overrun error}
 frarningErr
 64; {set if framing error}
 { Masks for changes that cause events to be posted }
@@ -14328,7 +14328,7 @@ dsNoPk7
 dsMernFullErr
 dsBad.Launch
 dsFSErr
-dsStkNHeap
+dsStknHeap
 dsReinsert
 dsSysErr
 Routines
@@ -14721,7 +14721,7 @@ memFullErr
 memWZErr
 nilHandleErr
 no Err
-prinitErr
+prInitErr
 prWrErr
 qErr
 Data Types
@@ -15255,7 +15255,7 @@ NewString
 PROCEDURE SetString
 FUNCTION
 GetString
-PROCEDURE GetindString
+PROCEDURE GetIndString
 (theString: Str255) : StringHandle;
 (h: StringHandle; theString: Str255);
 (stringID: INTEGER) : StringHandle;
@@ -15309,7 +15309,7 @@ PROCEDURE ScreenRes
 FUNCTION Geticon
 PROCEDURE Ploticon
 FUNCTION GetPattern
-PROCEDURE GetindPattern
+PROCEDURE GetIndPattern
 (VAR scrnHRes, scrnVRes : INTEGER) ;
 [Not in ROM]
 (iconID: INTEGER) : Handle;
@@ -15540,7 +15540,7 @@ wDispose
 wGrow
 5;
 {draw window's grow image}
-wDrawGicon
+wDrawGIcon
 6;
 {draw size box in content region}
 { Values returned by window definition function's hit routine }
@@ -16462,7 +16462,7 @@ badUnitErr
 unitEmptyErr
 openErr
 dRemovErr
-dlnstErr
+dInstErr
 Event type not designated in system event mask
 Application or user requested abort
 Saving spool file
@@ -16616,7 +16616,7 @@ wrUnderrun
 -75
 cantStepErr
 -76
-tkOBadErr
+tk0BadErr
 -77
 initIWMErr
 - 78
@@ -16662,7 +16662,7 @@ clkWrErr
 -87
 prWrErr
 -88
-prlnitErr
+prInitErr
 First of the range of low-level disk errors
 Last of the range of low-level disk errors
 Unable to read clock
@@ -16688,7 +16688,7 @@ ddpLenErr
 noBridgeErr
 lapProtErr
 excessCollsns
-portlnUse
+portInUse
 portNotCf
 Scrap Manager Errors
 -100
@@ -16803,7 +16803,7 @@ DDP datagram too large for buffer
 noMPPError
 MPP driver not installed
 -3103
-cksumErr
+ckSumErr
 DDP bad checksum
 -3104
 extractErr
@@ -16967,12 +16967,12 @@ Inside Macintosh
 GetDCtlEntry
 GetDitem
 GetFNum
-GetFontlnfo
+GetFontInfo
 GetFontN ame
 Getlcon
 GetlndPattem
-GetlndResource
-GetlndString
+GetIndResource
+GetIndString
 GetKeys
 GetMenu
 GetMenuBar
@@ -17003,7 +17003,7 @@ InitMenus
 InitPack
 InitPort
 InitResources
-lnitWindows
+InitWindows
 InitZone
 lnsertMenu
 InsertResMenu
@@ -17129,12 +17129,12 @@ ReleaseResource
 ResrvMem
 Restart
 RmveResource
-RsrcZonelnit
+RsrcZoneInit
 SaveOld
 ScrollRect
 SectRgn
 SelectWindow
-SellText
+SelIText
 SendBehind
 SerClrBrk
 SerGetBrk
@@ -17155,12 +17155,12 @@ SetFontLock
 SetHandleSize
 Seti tern
 Setltemlcon
-SetltemMark
-SetltemStyle
-SetlText
+SetItemMark
+SetItemStyle
+SetIText
 SetPtrSize
 SetRectRgn
-SetReslnfo
+SetResInfo
 SetString
 SetTagBuffer
 SetWTitle
@@ -17370,7 +17370,7 @@ CouldDialog
 A979
 CautionAlert
 A988
-CountMitems
+CountMItems
 A950
 Chain
 A9F3
@@ -17514,7 +17514,7 @@ Draw Dialog
 A981
 FP68K
 A9EB
-DrawGrowlcon
+DrawGrowIcon
 A904
 Frame Arc
 A8BE
@@ -17604,7 +17604,7 @@ GetFilelnfo
 AOOC
 Get Vol
 A014
-PBGetFinfo
+PBGetFInfo
 PBGetVol
 GetFName
 A8FF
@@ -17616,7 +17616,7 @@ GetFNum
 A900
 GetWindowPic
 A92F
-GetFontlnfo
+GetFontInfo
 A88B
 GetWMgrPort
 A910
@@ -17635,11 +17635,11 @@ Getlcon
 A9BB
 GlobalToLocal
 A871
-GetlndResource
+GetIndResource
 A99D
 GrafDevice
 A872
-GetlndType
+GetIndType
 A99F
 Grow Window
 A92B
@@ -17662,14 +17662,14 @@ GetltmMark
 A943
 HideCursor
 A852
-GetltemMark
+GetItemMark
 HidePen
 A896
 GetltmStyle
 A941
 Hide Window
 A916
-GetltemStyle
+GetItemStyle
 HiliteControl
 A95D
 GetKeys
@@ -17724,7 +17724,7 @@ InitDialogs
 A97B
 GetNextEvent
 A970
-lnitFonts
+InitFonts
 A8FE
 GetOSEvent
 A031
@@ -17732,7 +17732,7 @@ InitGraf
 A86E
 GetPattem
 A9B8
-lnitMenus
+InitMenus
 A930
 GetPen
 A89A
@@ -17765,7 +17765,7 @@ GetResFileAttrs
 A9F6
 InitZone
 A019
-GetReslnfo
+GetResInfo
 A9A8
 lnsertMenu
 A935
@@ -17807,7 +17807,7 @@ Offiine
 A035
 InverRgn
 A8D5
-PBOffline
+PBOffLine
 InvertRgn
 OffsetPoly
 A8CE
@@ -17828,7 +17828,7 @@ AOOO
 InvertPoly
 A8C9
 PB Open
-lsDialogEvent
+IsDialogEvent
 A97F
 OpenDeskAcc
 A9B6
@@ -18007,7 +18007,7 @@ Select Window
 A91F
 PaintPoly
 A8C7
-SeIIText
+SelIText
 A97E
 PaintRect
 A8A2
@@ -18042,7 +18042,7 @@ SetCtlAction
 A96B
 PicComment
 A8F2
-SetCtIValue
+SetCtlValue
 A963
 PinRect
 A94E
@@ -18073,7 +18073,7 @@ SetFilelnfo
 AOOD
 PtrAndHand
 A9EF
-PBSetFinfo
+PBSetFInfo
 PtrToHand
 A9E3
 SetFiILock
@@ -18126,14 +18126,14 @@ SetltmMark
 A944
 RecoverHandle
 A128
-SetltemMark
-RectlnRgn
+SetItemMark
+RectInRgn
 A8E9
 SetltmStyle
 A942
 RectRgn
 A8DF
-SetltemStyle
+SetItemStyle
 ReleaseResource
 A9A3
 SetMaxCtl
@@ -18155,7 +18155,7 @@ RmveResource
 A9AD
 SetMinCtl
 A964
-RsrcZonelnit
+RsrcZoneInit
 A996
 SetCtlMin
 RstFilLock
@@ -18212,7 +18212,7 @@ SetResFileAttrs
 A9F7
 SystemMenu
 A9B5
-SetReslnfo
+SetResInfo
 A9A9
 System Task
 A9B4
@@ -18343,7 +18343,7 @@ UnionRgn
 A8E5
 Std.PutPic
 A8FO
-UniquelD
+UniqueID
 A9Cl
 StdRect
 A8AO
@@ -18445,7 +18445,7 @@ PB Rename
 GetFilelnfo
 PBGetlnfo
 SetFilelnfo
-PBSetFinfo
+PBSetFInfo
 UnmountVol
 PB Unmount Vol
 Mount Vol
@@ -18547,7 +18547,7 @@ FlushEvents
 Vlnstall
 VRemove
 Offline
-PBOffline
+PBOffLine
 MoreMasters
 System Traps I-221
 
@@ -18722,7 +18722,7 @@ TextSize
 A858
 BitAnd
 A88B
-GetFontlnfo
+GetFontInfo
 A859
 BitXor
 A88C
@@ -18905,7 +18905,7 @@ PtlnRgn
 A8BA
 InvertOval
 A8E9
-RectlnRgn
+RectInRgn
 A8BB
 Fill Oval
 A8EA
@@ -19015,7 +19015,7 @@ SetFontLoek
 A933
 AppendMenu
 A904
-DrawGrowlcon
+DrawGrowIcon
 A934
 ClearMenuBar
 A905
@@ -19083,21 +19083,21 @@ Dispos Window
 A942
 SetltrnStyle
 Dispose Window
-SetltemStyle
+SetItemStyle
 A915
 Show Window
 A943
 GetltrnMark
 A916
 Hide Window
-GetltemMark
+GetItemMark
 A917
 GetWRefCon
 A944
 SetltrnMark
 A918
 SetWRefCon
-SetltemMark
+SetItemMark
 A919
 GetWfitle
 A945
@@ -19148,7 +19148,7 @@ DeltaPoint
 A925
 Drag Window
 A950
-CountMltems
+CountMItems
 A926
 DragTheRgn
 A951
@@ -19211,7 +19211,7 @@ SetIText
 A95E
 GetCTitle
 A990
-GetlText
+GetIText
 A95F
 SetCTitle
 A991
@@ -19233,7 +19233,7 @@ A995
 InitResources
 GetCtlMax
 A996
-RsrcZonelnit
+RsrcZoneInit
 A963
 SetCtlValue
 A997
@@ -19259,7 +19259,7 @@ CountResources
 A967
 DragControl
 A99D
-GetlndResource
+GetIndResource
 A968
 TrackControl
 A99E
@@ -19267,7 +19267,7 @@ CountTypes
 A969
 DrawControls
 A99F
-GetlndType
+GetIndType
 A96A
 GetCtlAction
 A9AO
@@ -19306,11 +19306,11 @@ SetResAttrs
 A974
 Button
 A9A8
-GetReslnfo
+GetResInfo
 A975
 TickCount
 A9A9
-SetReslnfo
+SetResInfo
 A976
 GetKeys
 A9AA
@@ -21167,7 +21167,7 @@ application window 1-270
 ApplicZone function 11-32
 App!Limit global variable 11-19, 21, 29
 AppIScratch global variable 1-85
-AppIZone global variable II-19, 21, 32
+ApplZone global variable II-19, 21, 32
 AppParmHandle global variable II-57
 a1rnw cursor 1-163, 167
 arrow global variable 1-147, 163
@@ -21376,7 +21376,7 @@ CopyRgn procedure 1-183
 CouldAlert procedure 1-420
 CouldDialog procedure I-415
 CountAppFiles procedure II-57
-CountMitems function 1-361
+CountMItems function 1-361
 CountResources function 1-118
 CountTypes function 1-117
 Create function
@@ -21579,7 +21579,7 @@ DragWindow procedure 1-289
 DrawChar procedure 1-172
 DrawControls procedure 1-322
 DrawDialog procedure 1-418
-DrawGrowlcon procedure 1-287
+DrawGrowIcon procedure 1-287
 drawing 1-155
 color 1-158, 173
 DrawMenuBar procedure 1-354
@@ -21821,7 +21821,7 @@ GetCursor function 1-474
 GetDateTime procedure 11-378
 GetDblTime function 1-260
 GetDCtlEntry function 11-190
-GetDltem procedure 1-421
+GetDItem procedure 1-421
 GetDrvQHdr function 11-128
 GetEOF function
 high-level 11-93
@@ -21840,7 +21840,7 @@ low-level 11-115
 GetFinfo function II-95
 GetFName procedure 1-223
 GetFNum procedure 1-223
-GetFontlnfo procedure 1-173
+GetFontInfo procedure 1-173
 GetFontName procedure 1-223
 GetFPos function
 high-level II-92
@@ -21848,15 +21848,15 @@ low-level 11-111
 GetFSQHdr function 11-125
 GetHandleSize function 11-33
 Getlcon function 1-473
-GetlndPattern procedure 1-473
-GetlndResource function 1-118
-GetlndString procedure 1-468
-GetlndType procedure 1-117
+GetIndPattern procedure 1-473
+GetIndResource function 1-118
+GetIndString procedure 1-468
+GetIndType procedure 1-117
 Getltem procedure 1-358
 Getltemlcon procedure 1-360
-GetltemMark procedure 1-359
-GetltemStyle procedure 1-360
-GetlText procedure I-422
+GetItemMark procedure 1-359
+GetItemStyle procedure 1-360
+GetIText procedure I-422
 Getltmlcon procedure 1-360
 GetltmMark procedure 1-359
 GetltmStyle procedure I-360
@@ -21886,7 +21886,7 @@ GetRequest function 11-317
 GetResAttrs function 1-121
 ///-268
 GetResFileAttrs function 1-127
-GetReslnfo procedure 1-121
+GetResInfo procedure 1-121
 GetResource function 1-119
 GetRMenu function 1-351
 GetScrap function 1-469
@@ -21983,16 +21983,16 @@ inactive
 control I-313
 window 1-46, 270
 indicator of a dial 1-312
-lnfoScrap function 1-457
+InfoScrap function 1-457
 InitAUPacks procedure 1-484
-lnitApplZone procedure II-28
+InitApplZone procedure II-28
 Ini tCursor procedure 1-167
-lnitDialogs procedure 1-411
-lnitFonts procedure I-222
+InitDialogs procedure 1-411
+InitFonts procedure I-222
 Ini tGraf procedure 1-162
-lnitMenus procedure 1-351
-lnitPack procedure 1-484
-lnitPort procedure 1-164
+InitMenus procedure 1-351
+InitPack procedure 1-484
+InitPort procedure 1-164
 InitQueue procedure 11-103
 InitResources function 1-114
 InitUtil function 11-380
@@ -22001,7 +22001,7 @@ InitZone procedure 11-29
 input driver 11-246
 insertion point 1-41, 375
 lnsertMenu procedure 1-353
-lnsertResMenu procedure 1-353
+InsertResMenu procedure 1-353
 lnsetRect procedure 1-175
 InsetRgn procedure 1-184
 lnt64Bit data type 1-472
@@ -22021,18 +22021,18 @@ interrupt handler 11-195
 writing your own 11-200
 interrupt priority level 11-196
 interrupt vector 11-196
-IntlOHndl data type 1-496
-IntlOPtr data type I-496
-IntlORec data type 1-497
+Intl0Hndl data type 1-496
+Intl0Ptr data type I-496
+Intl0Rec data type 1-497
 lntllHndl data type 1-500
 lntllPtr data type 1-500
-IntllRec data type 1-500
+Intl1Rec data type 1-500
 InvalRect procedure 1-291
-lnvalRgn procedure 1-291
+InvalRgn procedure 1-291
 lnverRect procedure 1-177
 lnverRgn procedure 1-186
 lnverRoundRect procedure 1-179
-lnvertArc procedure 1-181
+InvertArc procedure 1-181
 InvertOval procedure 1-178
 InvertPol y procedure 1-192
 InvertRect procedure 1-177
@@ -22053,9 +22053,9 @@ IODone function 11-195
 1/0 queue See driver 1/0 queue or file 1/0
 queue
 1/0 request 11-97, 180
-lsATPOpen function 11-304
-lsDialogEvent function 1-416
-lsMPPOpen function II-304
+IsATPOpen function 11-304
+IsDialogEvent function 1-416
+IsMPPOpen function II-304
 item
 dialog/alert 1-403
 menu I-341
@@ -22070,7 +22070,7 @@ IUDatePString procedure 1-505
 IUDateString procedure 1-504
 IUEqua!String function 1-506
 IUGetlntl function 1-505
-IUMaglDString function 1-507
+IUMagIDString function 1-507
 IUMagString function 1-506
 IUMetric function 1-505
 IUSetlntl procedure 1-506
@@ -22414,7 +22414,7 @@ PBEject function 11-107
 PBFlushFile function II-114
 PBFlushVol function II-105
 PBGetEOF function II-112
-PBGetFinfo function 11-115
+PBGetFInfo function 11-115
 PBGetFPos function II-111
 PBGetVInfo function 11-104
 PBGetVol function 11-104
@@ -22431,7 +22431,7 @@ File Manager 11-110
 PBRename function 11-118
 PBRstFLock function 11-117
 PBSetEOF function 11-112
-PBSetFlnfo function 11-116
+PBSetFInfo function 11-116
 PBSetFLock function 11-116
 PBSetFPos function 11-111
 PBSetFVers function 11-117
@@ -22599,7 +22599,7 @@ RecoverHandle function II-35
 Rect data type 1-141
 rectangle 1-140
 routines 1-174
-RectlnRgn function 1-185
+RectInRgn function 1-185
 RectRgn procedure 1-183
 reference number of a resource file 1-105
 reference value
@@ -22687,7 +22687,7 @@ routine selector 1-483
 routing table II-265
 Routing Table Maintenance Protocol II-265
 row width 1-143
-RsrcZonelnit procedure 1-114
+RsrcZoneInit procedure 1-114
 RstFilLock function
 high-level II-96
 low-level II-117
@@ -22744,7 +22744,7 @@ Segment Loader 1-12; II-53
 routines ll-57
 selection range 1-375
 SelectWindow procedure 1-284
-SeIIText procedure 1-422
+SelIText procedure 1-422
 SendBehind procedure 1-286
 SendRequest function 11-316
 SendResponse function 11-317
@@ -22807,9 +22807,9 @@ SetGrowZone procedure 11-42
 SetHandleSize procedure II-34
 Setltem procedure 1-357
 Setltemlcon procedure 1-359
-SetltemMark procedure 1-359
-SetltemStyle procedure 1-360
-SetlText procedure 1-422
+SetItemMark procedure 1-359
+SetItemStyle procedure 1-360
+SetIText procedure 1-422
 Setltmlcon procedure 1-359
 SetitmMark procedure 1-359
 SetltmStyle procedure 1-360
@@ -22830,7 +22830,7 @@ SetRect procedure 1-174
 SetRectRgn procedure 1-183
 SetResAttrs procedure 1-122
 SetResFileAttrs procedure 1-127
-SetReslnfo procedure I-122
+SetResInfo procedure I-122
 SetResLoad procedure 1-118
 SetResPurge procedure 1-126
 SetSoundVol procedure 11-233
