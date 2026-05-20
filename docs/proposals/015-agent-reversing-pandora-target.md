@@ -911,6 +911,37 @@ the intended location.
   draw/display names require stronger lifetime evidence than the current pass
   has.
 
+### 015-024: Name text cursor pointer app slot
+
+* Candidate: D003 RSSET/app-base coverage for the raw `$01E4(a6)` long field,
+  which had the highest remaining raw A6 use count in the current listing scan.
+* Evidence: text rendering at `s0:00006056` saves `$01E4(a6)`, reloads it into
+  `a1`, writes glyph bytes through `a1`, advances `a1`, and stores the updated
+  pointer back to `$01E4(a6)`. Newline handling restores the saved pointer and
+  advances it by `$0500`. Coordinate setup routines at `s0:00006108` and
+  `s0:00006126` compute a screen address from x/y inputs and store it to
+  `$01E4(a6)`. Additional text/glyph routines increment the same field by one,
+  four, or `1280` bytes as they advance their destination cursor.
+* Command: executed `target.rsset_region.add` through the target command
+  catalog with `layout_name: app`, `base_symbol: __amiga_app_base__`,
+  `offset: $01E4`, `size: 4`, `storage_kind: pointer`, and
+  `symbol: app_text_cursor_ptr`.
+* Verifier: Manual Action Log count is 22 with head hash
+  `bbb4bb56bd9dcdf0ccff5c2e257fa0c0fb3613dcbdca420595de7f96db0c350d`;
+  semantic reload shows `$01E4` as a 4-byte pointer RSSET region; exact
+  reproduction reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_text_cursor_ptr RS.L 1` and the
+  listing projection shows 19 rows containing `app_text_cursor_ptr`, including
+  `movea.l app_text_cursor_ptr(a6),a1`,
+  `move.l a1,app_text_cursor_ptr(a6)`,
+  `addi.l #1280,app_text_cursor_ptr(a6)`, and
+  `movea.l app_text_cursor_ptr(a6),a2`.
+* Review: this is a supported, high-impact RSSET naming action. The name is
+  intentionally about the mutable text/glyph destination pointer, not a broader
+  framebuffer role, because some setup paths derive it from `$01D4(a6)` while
+  others derive it from the fixed `$70000` screen base.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -1023,6 +1054,9 @@ Triage by scope:
   * 015-023 resolved `$01DC(a6)` as `app_display_bitplane_base`, a 4-byte
     pointer RSSET app field copied into the custom chip bitplane pointer
     registers.
+  * 015-024 resolved `$01E4(a6)` as `app_text_cursor_ptr`, a 4-byte pointer
+    RSSET app field used as the mutable destination cursor for text/glyph
+    rendering.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -1039,9 +1073,9 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 through 015-023 for `$01BA`, `$01BC`,
-  `$01BE`, `$01C2`, `$01C4`, and `$01DC`. Adjacent raw fields remain open
-  pending stronger names or accepted base/gap evidence.
+* Status: partly fixed by 015-020 through 015-024 for `$01BA`, `$01BC`,
+  `$01BE`, `$01C2`, `$01C4`, `$01DC`, and `$01E4`. Adjacent raw fields remain
+  open pending stronger names or accepted base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
