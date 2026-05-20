@@ -301,6 +301,7 @@ def listing_row_action_catalog(
         ),
     ]
     actions.extend(_data_symbol_actions(context, row))
+    actions.extend(_a5_hardware_ref_actions(context, row))
     actions.extend(_suppress_seeded_item_actions(context, row))
     actions.extend(_row_data_role_actions(context))
     if _row_allows_data_seed(row):
@@ -388,6 +389,7 @@ def listing_element_action_catalog(
                 _immediate_ref_parameter_schema(),
             )
         )
+    actions.extend(_a5_hardware_ref_actions(context, row))
     if element_kind == "data_literal":
         actions.append(
             _context_log_action(
@@ -1765,6 +1767,10 @@ def listing_catalog_manual_payload(
     if ui_action == "interpret_manual_immediate_ref":
         return "interpret_manual_immediate_ref", {
             "immediate_interpreted_ref": _immediate_ref_payload(row, element_context, params)
+        }
+    if ui_action == "interpret_manual_a5_hardware_ref":
+        return "interpret_manual_a5_hardware_ref", {
+            "a5_hardware_ref": _a5_hardware_ref_payload(row, element_context or row_context or {}, params)
         }
     if ui_action == "remove_manual_data_block_element_ref":
         return "remove_manual_data_block_element_ref", {
@@ -4221,6 +4227,138 @@ def _immediate_ref_payload(
         value = params.get(key)
         if isinstance(value, dict | list):
             ref[key] = value
+    row_key = row.get("row_key")
+    if isinstance(row_key, str) and row_key:
+        ref["row_key"] = row_key
+    element_id = context.get("element_id")
+    if isinstance(element_id, str) and element_id:
+        ref["element_id"] = element_id
+    return ref
+
+
+def _a5_hardware_ref_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "a5_hardware_ref_id": {"type": "string"},
+            "source_family": {"type": "string", "enum": ["amiga_custom_base"]},
+            "source_evidence_status": {"type": "string", "enum": ["accepted"]},
+            "source_evidence_id": {"type": "string"},
+            "path_lifetime_scope": {"type": "object"},
+            "operand_index": {"type": "integer", "minimum": 0},
+            "displacement": {"type": "integer", "minimum": 0, "maximum": 510},
+            "symbol": {"type": "string"},
+            "hardware_register_address": {"type": "integer", "minimum": 0},
+        },
+        "required": [
+            "source_family",
+            "source_evidence_status",
+            "source_evidence_id",
+            "path_lifetime_scope",
+            "displacement",
+            "symbol",
+        ],
+    }
+
+
+def _a5_hardware_ref_actions(context: Mapping[str, object], row: Mapping[str, object]) -> list[dict[str, object]]:
+    if not _context_or_row_has_a5_displacement(context, row):
+        return []
+    return [
+        _context_log_action(
+            "a5_hardware_ref.interpret",
+            "Interpret A5 hardware reference",
+            "interpret_manual_a5_hardware_ref",
+            context,
+            {},
+            _a5_hardware_ref_parameter_schema(),
+        )
+    ]
+
+
+def _context_or_row_has_a5_displacement(context: Mapping[str, object], row: Mapping[str, object]) -> bool:
+    if (
+        str(context.get("base_register") or context.get("register") or "").upper() == "A5"
+        and _optional_int(context.get("displacement")) is not None
+    ):
+        return True
+    operand_parts = row.get("operand_parts") or row.get("operandParts")
+    if not isinstance(operand_parts, Sequence) or isinstance(operand_parts, (str, bytes, bytearray)):
+        return False
+    for part in operand_parts:
+        if not isinstance(part, Mapping):
+            continue
+        base_register = str(part.get("base_register") or part.get("baseRegister") or "").upper()
+        if base_register == "A5" and _optional_int(part.get("displacement")) is not None:
+            return True
+    return False
+
+
+def _a5_hardware_ref_payload(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    hunk = _int_field(row, "section_index", default=_optional_int(row.get("hunk")) or 0)
+    addr = _int_field(row, "start_offset", fallback="addr")
+    end = _optional_int(row.get("end_offset"))
+    if end is None or end <= addr:
+        raise ValueError("interpret_manual_a5_hardware_ref requires row end_offset")
+    operand_index = _optional_int(params.get("operand_index"))
+    if operand_index is None:
+        operand_index = _optional_int(context.get("operand_index"))
+    if operand_index is None or operand_index < 0:
+        raise ValueError("interpret_manual_a5_hardware_ref requires non-negative operand_index")
+    displacement = _optional_int(params.get("displacement"))
+    if displacement is None:
+        displacement = _optional_int(context.get("displacement"))
+    if displacement is None or displacement < 0 or displacement > 0x1FE:
+        raise ValueError("interpret_manual_a5_hardware_ref requires custom-chip displacement")
+    symbol = str(params.get("symbol") or "").strip()
+    if not symbol:
+        raise ValueError("interpret_manual_a5_hardware_ref requires hardware register symbol")
+    source_family = str(params.get("source_family") or "").strip()
+    source_status = str(params.get("source_evidence_status") or "").strip()
+    source_evidence_id = str(params.get("source_evidence_id") or "").strip()
+    if source_family != "amiga_custom_base":
+        raise ValueError("interpret_manual_a5_hardware_ref requires amiga_custom_base source_family")
+    if source_status != "accepted":
+        raise ValueError("interpret_manual_a5_hardware_ref requires accepted source evidence")
+    if not source_evidence_id:
+        raise ValueError("interpret_manual_a5_hardware_ref requires source_evidence_id")
+    path_lifetime_scope = params.get("path_lifetime_scope")
+    if not isinstance(path_lifetime_scope, Mapping) or path_lifetime_scope.get("accepted_hardware_base_evidence") is not True:
+        raise ValueError("interpret_manual_a5_hardware_ref requires accepted path/lifetime scope")
+    hardware_address = _optional_int(params.get("hardware_register_address"))
+    if hardware_address is None:
+        hardware_address = 0xDFF000 + displacement
+    if hardware_address != 0xDFF000 + displacement:
+        raise ValueError("interpret_manual_a5_hardware_ref hardware address must match _custom plus displacement")
+    ref_id = str(params.get("a5_hardware_ref_id") or "").strip()
+    if not ref_id:
+        ref_id = f"a5-hw:h{hunk}:{addr:08X}:op{operand_index}:d{displacement:04X}"
+    ref: dict[str, object] = {
+        "a5_hardware_ref_id": ref_id,
+        "hunk": hunk,
+        "addr": addr,
+        "end": end,
+        "operand_index": operand_index,
+        "base_register": "A5",
+        "displacement": displacement,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_address": hardware_address,
+        "reference_kind": "custom_register_displacement",
+        "source_family": source_family,
+        "source_evidence_status": source_status,
+        "source_evidence_id": source_evidence_id,
+        "path_lifetime_scope": dict(path_lifetime_scope),
+        "symbol": symbol,
+        "conflicts": list(params.get("conflicts")) if isinstance(params.get("conflicts"), list) else [],
+    }
+    for key in ("definition_locator", "use_locator"):
+        value = params.get(key)
+        if isinstance(value, Mapping):
+            ref[key] = dict(value)
     row_key = row.get("row_key")
     if isinstance(row_key, str) and row_key:
         ref["row_key"] = row_key

@@ -2763,6 +2763,10 @@ def _manual_action_application_payload(
         ref = action_payload.get("immediate_interpreted_ref")
         if isinstance(ref, Mapping):
             local_effects.append({"kind": "immediate_interpreted_ref", "immediate_interpreted_ref": dict(ref)})
+    elif kind == "interpret_manual_a5_hardware_ref":
+        ref = action_payload.get("a5_hardware_ref")
+        if isinstance(ref, Mapping):
+            local_effects.append({"kind": "a5_hardware_ref", "a5_hardware_ref": dict(ref)})
     elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
         custom_struct = action_payload.get("custom_struct")
         if isinstance(custom_struct, Mapping):

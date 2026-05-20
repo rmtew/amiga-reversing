@@ -10,6 +10,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import cast
 
@@ -71,6 +72,7 @@ _COMMAND_RANK = {
     "representation.binary": 75,
     "representation.character": 75,
     "immediate_ref.interpret": 84,
+    "a5_hardware_ref.interpret": 83,
     "semantic.register.struct_ptr": 73,
     "target.equate.add": 72,
     "target.equate.edit": 72,
@@ -142,6 +144,7 @@ _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
 }
 
 _IMMEDIATE_REF_VERIFIER = "immediate_interpreted_ref_state"
+_A5_HARDWARE_REF_VERIFIER = "a5_hardware_ref_state"
 
 
 def _parse_int_auto(value: str) -> int:
@@ -399,7 +402,11 @@ def inspect_a5_hardware_lifetimes(
         report["a5_hardware_lifetimes"] = _empty_a5_hardware_lifetime_report()
         return report
     rows = _listing_all_rows(target_id)
-    report["a5_hardware_lifetimes"] = _listing_a5_hardware_lifetime_report(rows)
+    lifetime_report = _listing_a5_hardware_lifetime_report(rows)
+    report["a5_hardware_lifetimes"] = lifetime_report
+    cfg_report = lifetime_report.get("cfg_path_lifetime_report")
+    if isinstance(cfg_report, dict):
+        report["safe_to_mutate"] = cfg_report.get("safe_to_mutate") is True
     return report
 
 
@@ -1985,7 +1992,7 @@ def _empty_a5_cfg_path_lifetime_report() -> dict[str, object]:
         "safe_to_mutate": False,
         "mutation_policy": "report_only_requires_render_command_and_verifier",
         "rendering_allowed": False,
-        "rendering_gate": _a5_hardware_rendering_gate(0),
+        "rendering_gate": _a5_hardware_rendering_gate(0, 0),
     }
 
 
@@ -2006,17 +2013,17 @@ def _listing_a5_cfg_path_lifetime_report(
         for use in uses
     ]
     accepted_count = sum(1 for status in statuses if status.get("status") == "accepted_custom_base")
+    command_count = sum(1 for status in statuses if _a5_hardware_candidate_is_command_backed(status))
     return {
         "kind": "a5_cfg_path_lifetime_report",
         "path_model": "conservative_straight_line_cfg",
         "accepted_custom_base_evidence_count": accepted_count,
         "use_count": len(statuses),
         "uses": statuses,
-        "safe_to_mutate": False,
-        "mutation_policy": "report_only_requires_render_command_and_verifier",
-        "rendering_allowed": False,
-        "rendering_blocked_reason": "hardware register rendering still requires verifier consumption of accepted path/lifetime evidence",
-        "rendering_gate": _a5_hardware_rendering_gate(accepted_count),
+        "safe_to_mutate": command_count > 0,
+        "mutation_policy": "requires_accepted_path_lifetime_command_verifier_and_exact_round_trip",
+        "rendering_allowed": command_count > 0,
+        "rendering_gate": _a5_hardware_rendering_gate(accepted_count, command_count),
     }
 
 
@@ -2106,7 +2113,13 @@ def _a5_cfg_conflicting_status(
 
 
 def _a5_cfg_accepted_status(use: dict[str, object], definition: dict[str, object]) -> dict[str, object]:
-    return _a5_cfg_status_payload(use, definition, "accepted_custom_base", [], accepted=True)
+    payload = _a5_cfg_status_payload(use, definition, "accepted_custom_base", [], accepted=True)
+    parameters = _a5_hardware_ref_parameters(payload)
+    if parameters is not None:
+        payload["suggested_action_kinds"] = ["a5_hardware_ref.interpret"]
+        payload["default_verifier"] = _A5_HARDWARE_REF_VERIFIER
+        payload["parameters"] = parameters
+    return payload
 
 
 def _a5_cfg_status_payload(
@@ -2132,6 +2145,90 @@ def _a5_cfg_status_payload(
         "blockers": blockers,
     }
     return {key: value for key, value in payload.items() if value not in (None, [])}
+
+
+def _a5_hardware_candidate_is_command_backed(candidate: Mapping[str, object]) -> bool:
+    actions = candidate.get("suggested_action_kinds")
+    parameters = candidate.get("parameters")
+    return (
+        isinstance(actions, Sequence)
+        and not isinstance(actions, str)
+        and "a5_hardware_ref.interpret" in actions
+        and isinstance(parameters, Mapping)
+    )
+
+
+def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, object] | None:
+    path_lifetime_scope = candidate.get("path_lifetime_scope")
+    use_locator = candidate.get("use_locator")
+    displacement = _int_or_none(candidate.get("displacement"))
+    operand_index = _int_or_none(candidate.get("operand_index"))
+    source_evidence_id = candidate.get("source_evidence_id")
+    if (
+        not isinstance(path_lifetime_scope, Mapping)
+        or path_lifetime_scope.get("accepted_hardware_base_evidence") is not True
+        or not isinstance(use_locator, Mapping)
+        or displacement is None
+        or operand_index is None
+        or not isinstance(source_evidence_id, str)
+        or not source_evidence_id
+    ):
+        return None
+    symbol = _amiga_custom_register_symbol(displacement)
+    if symbol is None:
+        return None
+    addr = _int_or_none(use_locator.get("start_offset"))
+    if addr is None:
+        return None
+    hunk = _int_or_none(use_locator.get("section_index")) or 0
+    return {
+        "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": source_evidence_id,
+        "path_lifetime_scope": dict(path_lifetime_scope),
+        "operand_index": operand_index,
+        "displacement": displacement,
+        "symbol": symbol,
+        "hardware_register_address": _AMIGA_CUSTOM_BASE_ADDRESS + displacement,
+        "definition_locator": candidate.get("definition_locator"),
+        "use_locator": dict(use_locator),
+        "conflicts": [],
+        "hunk": hunk,
+        "addr": addr,
+    }
+
+
+@lru_cache(maxsize=1)
+def _amiga_custom_register_symbols_by_offset() -> dict[int, str]:
+    symbols_path = PROJECT_ROOT / "knowledge" / "amiga_hw_symbols.json"
+    payload = json.loads(symbols_path.read_text(encoding="utf-8"))
+    rows = payload.get("registers")
+    result: dict[int, str] = {}
+    if not isinstance(rows, list):
+        return result
+    for row in rows:
+        if not isinstance(row, Mapping) or row.get("base_symbol") != "_custom":
+            continue
+        raw_offset = row.get("offset")
+        if isinstance(raw_offset, str):
+            try:
+                offset = int(raw_offset, 0)
+            except ValueError:
+                offset = None
+        else:
+            offset = _int_or_none(raw_offset)
+        symbols = row.get("symbols")
+        if offset is None or not isinstance(symbols, list) or not symbols:
+            continue
+        first_symbol = symbols[0]
+        if isinstance(first_symbol, str) and first_symbol:
+            result[offset] = first_symbol
+    return result
+
+
+def _amiga_custom_register_symbol(displacement: int) -> str | None:
+    return _amiga_custom_register_symbols_by_offset().get(displacement)
 
 
 def _a5_cfg_path_lifetime_scope(
@@ -2345,21 +2442,28 @@ def _a5_hardware_verifier_gate() -> dict[str, object]:
     }
 
 
-def _a5_hardware_rendering_gate(accepted_evidence_count: int) -> dict[str, object]:
+def _a5_hardware_rendering_gate(accepted_evidence_count: int, command_candidate_count: int) -> dict[str, object]:
+    available = accepted_evidence_count > 0 and command_candidate_count > 0
+    missing_gates = []
+    if command_candidate_count == 0:
+        missing_gates.append("command_support")
+    if command_candidate_count == 0:
+        missing_gates.append("verifier_support")
     return {
-        "status": "blocked",
+        "status": "available" if available else "blocked",
         "accepted_path_lifetime_evidence_available": accepted_evidence_count > 0,
         "accepted_path_lifetime_evidence_count": accepted_evidence_count,
         "command_support": {
             "command_id": "a5_hardware_ref.interpret",
-            "status": "missing",
+            "status": "available" if command_candidate_count > 0 else "missing",
+            "command_candidate_count": command_candidate_count,
         },
         "verifier_support": {
-            "verifier": "a5_hardware_ref_state",
-            "status": "missing",
+            "verifier": _A5_HARDWARE_REF_VERIFIER,
+            "status": "available" if command_candidate_count > 0 else "missing",
         },
         "exact_round_trip": "required_for_output_affecting_mutation",
-        "missing_gates": ["command_support", "verifier_support"],
+        "missing_gates": missing_gates,
     }
 
 
@@ -4193,6 +4297,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "rsset_binding_state"
     if "immediate_ref.interpret" in actions:
         return _IMMEDIATE_REF_VERIFIER
+    if "a5_hardware_ref.interpret" in actions:
+        return _A5_HARDWARE_REF_VERIFIER
     if any(action in {"row.data_block.layout.create", "range.data_block.layout.create"} for action in actions):
         return "data_block_layout_state"
     if any(
@@ -4388,6 +4494,13 @@ def _verify_manual_mutation(
         )
     if command_id == "immediate_ref.interpret":
         return _verify_immediate_interpreted_ref_mutation(
+            target_id,
+            command,
+            durable_result,
+            project_root=project_root,
+        )
+    if command_id == "a5_hardware_ref.interpret":
+        return _verify_a5_hardware_ref_mutation(
             target_id,
             command,
             durable_result,
@@ -6410,6 +6523,222 @@ def _immediate_interpreted_ref_symbol(expected: dict[str, object]) -> str | None
         if isinstance(runtime_address, int):
             return _immediate_reference_symbol(target_hunk, target_offset, runtime_address)
         return _immediate_reference_symbol(target_hunk, target_offset, None)
+    return None
+
+
+def _verify_a5_hardware_ref_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _a5_hardware_ref_from_durable_result(durable_result)
+    _open_and_wait_listing(target_id, timeout_seconds=10.0)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_a5_hardware_ref(target_id, expected, project_root=project_root),
+        _verify_projected_a5_hardware_ref_rendered_source(
+            target_id,
+            command,
+            expected,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _a5_hardware_ref_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    ref = _a5_hardware_ref_from_action(action)
+    if ref is not None:
+        return ref
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            ref = _a5_hardware_ref_from_action(raw_action)
+            if ref is not None:
+                return ref
+    return None
+
+
+def _a5_hardware_ref_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    ref = action.get("a5_hardware_ref")
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    payload = action.get("payload")
+    ref = payload.get("a5_hardware_ref") if isinstance(payload, dict) else None
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    return None
+
+
+def _verify_project_a5_hardware_ref(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing A5 hardware ref payload"}
+    missing_identity_fields = _a5_hardware_ref_missing_required_identity_fields(expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "A5 hardware ref payload missing accepted path/lifetime identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_a5_hardware_ref": expected,
+        }
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    refs = manual_state.get("a5_hardware_refs") if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual A5 hardware refs were not reloaded"}
+    matches = [ref for ref in refs if isinstance(ref, dict) and _a5_hardware_ref_matches(ref, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_a5_hardware_ref": expected,
+        "matching_a5_hardware_refs": matches,
+        "state_key": "a5_hardware_refs",
+    }
+
+
+def _project_a5_hardware_ref_state_match(
+    target_id: str,
+    expected: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    if _a5_hardware_ref_missing_required_identity_fields(expected):
+        return None
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    refs = manual_state.get("a5_hardware_refs") if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return None
+    for ref in refs:
+        if isinstance(ref, dict) and _a5_hardware_ref_matches(ref, expected):
+            return cast(dict[str, object], ref)
+    return None
+
+
+def _a5_hardware_ref_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    expected_ref_id = expected.get("a5_hardware_ref_id")
+    return isinstance(expected_ref_id, str) and actual.get("a5_hardware_ref_id") == expected_ref_id and all(
+        actual.get(key) == value for key, value in expected.items()
+    )
+
+
+def _a5_hardware_ref_missing_required_identity_fields(expected: dict[str, object]) -> list[str]:
+    fields = [
+        "a5_hardware_ref_id",
+        "hunk",
+        "addr",
+        "end",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "custom_base_address",
+        "hardware_register_address",
+        "reference_kind",
+        "source_family",
+        "source_evidence_status",
+        "source_evidence_id",
+        "path_lifetime_scope",
+        "symbol",
+    ]
+    missing = [field for field in fields if field not in expected]
+    scope = expected.get("path_lifetime_scope")
+    if not isinstance(scope, dict) or scope.get("accepted_hardware_base_evidence") is not True:
+        missing.append("path_lifetime_scope.accepted_hardware_base_evidence")
+    return missing
+
+
+def _verify_projected_a5_hardware_ref_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing A5 hardware ref payload"}
+    render_expected = _project_a5_hardware_ref_state_match(target_id, expected, project_root=project_root) or expected
+    location = _a5_hardware_ref_location(command, render_expected)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "A5 hardware ref source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"section_index": [str(section_index)], "source_offset": [str(source_offset)], "before": ["1"], "after": ["2"]},
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    rows = _listing_rows_from_response(listing)
+    affected = _listing_row_at_source(rows, section_index, source_offset)
+    if affected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "affected listing row missing after reload"}
+    symbol = expected.get("symbol")
+    operand_index = expected.get("operand_index")
+    selected_operands = [
+        part
+        for part in _mapping_sequence(affected.get("operand_parts") or affected.get("operandParts"))
+        if part.get("operand_index") == operand_index
+    ]
+    has_a5_operand = any(
+        str(part.get("base_register") or part.get("baseRegister") or part.get("register") or "").upper() == "A5"
+        for part in selected_operands
+    )
+    has_symbol_operand = any(
+        part.get("symbol") == symbol
+        or (isinstance(part.get("metadata"), dict) and part["metadata"].get("symbol") == symbol)
+        for part in selected_operands
+    )
+    rendered_text = str(affected.get("text") or "")
+    has_symbol_text = isinstance(symbol, str) and _rendered_source_contains_token(rendered_text, symbol)
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if has_a5_operand and has_symbol_operand and has_symbol_text else "failed",
+        "source_offset": source_offset,
+        "expected_symbol": symbol,
+        "operand_index": operand_index,
+        "matched_a5_operand": has_a5_operand,
+        "matched_symbol_operand": has_symbol_operand,
+        "matched_symbol_text": has_symbol_text,
+        "affected_rendered_text": rendered_text,
+        "selected_operands": selected_operands,
+    }
+
+
+def _a5_hardware_ref_location(
+    command: dict[str, object],
+    expected: dict[str, object],
+) -> tuple[int, int] | None:
+    hunk = expected.get("hunk")
+    addr = expected.get("addr")
+    if isinstance(hunk, int) and isinstance(addr, int):
+        return hunk, addr
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if isinstance(locator, dict):
+        hunk = _int_or_none(locator.get("section_index"))
+        addr = _int_or_none(locator.get("start_offset"))
+        if hunk is not None and addr is not None:
+            return hunk, addr
     return None
 
 
@@ -8664,6 +8993,14 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "kind": "command",
             "command_id": action,
             "context": {"kind": "element", "locator": locator, "element_id": element_id},
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action == "a5_hardware_ref.interpret":
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "row", "locator": locator},
             "parameters": parameter_payload,
             "output_affecting": True,
         }

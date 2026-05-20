@@ -3481,6 +3481,77 @@ def test_immediate_interpreted_ref_verifier_rejects_sparse_payload(
     ) is None
 
 
+def test_a5_hardware_ref_verifier_requires_accepted_state_and_symbolic_operand(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(row_key="a5-use-96", start_offset=0x40, end_offset=0x44)
+    ref = {
+        "a5_hardware_ref_id": "a5-hw:a5-custom-cfg:h0:00000030->00000040:op0:d0096",
+        "hunk": 0,
+        "addr": 0x40,
+        "end": 0x44,
+        "operand_index": 0,
+        "base_register": "A5",
+        "displacement": 0x96,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_address": 0xDFF096,
+        "reference_kind": "custom_register_displacement",
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "a5-custom-cfg:h0:00000030->00000040:op0:d0096",
+        "path_lifetime_scope": {
+            "accepted_hardware_base_evidence": True,
+            "kind": "straight_line_cfg_between_definition_and_use",
+        },
+        "symbol": "dmacon",
+        "conflicts": [],
+    }
+    command = {
+        "kind": "command",
+        "command_id": "a5_hardware_ref.interpret",
+        "context": {"kind": "row", "locator": locator},
+        "parameters": dict(ref),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"a5_hardware_refs": [{**ref, "owner_action_id": "manual-1"}]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            row = _a5_use_row(displacement=0x96)
+            row["operand_parts"][0]["symbol"] = "dmacon"
+            row["text"] = "\tmove.w d0,dmacon(a5)\n"
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    _write_manual_log(tmp_path)
+    report = reversing_loop._verify_a5_hardware_ref_mutation(
+        "demo",
+        command,
+        _executed_a5_hardware_ref_payload(tmp_path, ref),
+        project_root=tmp_path,
+    )
+
+    assert reversing_loop._candidate_verifier(
+        {"suggested_action_kinds": ["a5_hardware_ref.interpret"], "default_verifier": "a5_hardware_ref_state"},
+        command,
+    ) == "a5_hardware_ref_state"
+    assert report["status"] == "passed", report
+    assert report["layers"][1]["state_key"] == "a5_hardware_refs"
+    assert report["layers"][2]["layer"] == "rendered_source"
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -6827,17 +6898,26 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert cfg_report["uses"][0]["status"] == "accepted_custom_base"
     assert cfg_report["uses"][0]["accepted_hardware_base_evidence"] is True
     assert cfg_report["uses"][0]["path_lifetime_scope"]["kind"] == "straight_line_cfg_between_definition_and_use"
-    assert cfg_report["safe_to_mutate"] is False
-    assert cfg_report["rendering_allowed"] is False
-    assert cfg_report["mutation_policy"] == "report_only_requires_render_command_and_verifier"
+    assert cfg_report["safe_to_mutate"] is True
+    assert cfg_report["rendering_allowed"] is True
+    assert cfg_report["mutation_policy"] == "requires_accepted_path_lifetime_command_verifier_and_exact_round_trip"
+    assert cfg_report["uses"][0]["suggested_action_kinds"] == ["a5_hardware_ref.interpret"]
+    assert cfg_report["uses"][0]["default_verifier"] == "a5_hardware_ref_state"
+    assert cfg_report["uses"][0]["parameters"]["symbol"] == "dmacon"
+    assert cfg_report["uses"][0]["parameters"]["source_evidence_status"] == "accepted"
+    assert cfg_report["uses"][0]["parameters"]["path_lifetime_scope"]["accepted_hardware_base_evidence"] is True
     assert cfg_report["rendering_gate"] == {
-        "status": "blocked",
+        "status": "available",
         "accepted_path_lifetime_evidence_available": True,
         "accepted_path_lifetime_evidence_count": 1,
-        "command_support": {"command_id": "a5_hardware_ref.interpret", "status": "missing"},
-        "verifier_support": {"verifier": "a5_hardware_ref_state", "status": "missing"},
+        "command_support": {
+            "command_id": "a5_hardware_ref.interpret",
+            "status": "available",
+            "command_candidate_count": 1,
+        },
+        "verifier_support": {"verifier": "a5_hardware_ref_state", "status": "available"},
         "exact_round_trip": "required_for_output_affecting_mutation",
-        "missing_gates": ["command_support", "verifier_support"],
+        "missing_gates": [],
     }
     assert "proven" not in json.dumps(report)
 
@@ -11379,6 +11459,30 @@ def _executed_immediate_interpreted_ref_payload(
             {
                 "kind": "immediate_interpreted_ref",
                 "immediate_interpreted_ref": dict(immediate_interpreted_ref),
+            }
+        ],
+    }
+    return payload
+
+
+def _executed_a5_hardware_ref_payload(
+    tmp_path: Path,
+    a5_hardware_ref: dict[str, object],
+) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {
+        "action_id": "manual-1",
+        "payload": {"a5_hardware_ref": dict(a5_hardware_ref)},
+    }
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [
+            {
+                "kind": "a5_hardware_ref",
+                "a5_hardware_ref": dict(a5_hardware_ref),
             }
         ],
     }

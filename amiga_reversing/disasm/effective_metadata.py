@@ -1468,6 +1468,32 @@ def _immediate_interpreted_ref_representation(ref: Mapping[str, object]) -> Manu
     )
 
 
+def _a5_hardware_ref_representation(ref: Mapping[str, object]) -> ManualRepresentationMetadata | None:
+    symbol = _manual_seed_text(ref, "symbol")
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    end = _manual_seed_int(ref, "end")
+    operand_index = _manual_seed_int(ref, "operand_index")
+    if symbol is None or hunk is None or addr is None or end is None or end <= addr:
+        return None
+    if operand_index is None or operand_index < 0:
+        return None
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=hunk,
+        style=ManualRepresentationStyle.SYMBOL,
+        element_kind="a5_hardware_ref",
+        operand_index=operand_index,
+        symbol=symbol,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "a5_hardware_ref_id"),
+        source_id="manual_action_log",
+        source_locator=str(ref.get("a5_hardware_ref_id") or ""),
+    )
+
+
 def _immediate_interpreted_ref_runtime_address_ref(ref: Mapping[str, object]) -> ManualRuntimeAddressRefMetadata | None:
     hunk = _manual_seed_int(ref, "hunk")
     addr = _manual_seed_int(ref, "addr")
@@ -1606,6 +1632,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     data_block_interpreted_ref_projections = projection.data_block_interpreted_refs
     removed_data_block_interpreted_ref_projections = projection.removed_data_block_interpreted_refs
     immediate_interpreted_ref_projections = projection.immediate_interpreted_refs
+    a5_hardware_ref_projections = projection.a5_hardware_refs
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -1636,6 +1663,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not data_block_interpreted_ref_projections
         and not removed_data_block_interpreted_ref_projections
         and not immediate_interpreted_ref_projections
+        and not a5_hardware_ref_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -1852,6 +1880,10 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             manual_representations.append(immediate_representation)
             if immediate_runtime_ref is not None:
                 manual_runtime_address_refs.append(immediate_runtime_ref)
+    for ref in a5_hardware_ref_projections:
+        a5_representation = _a5_hardware_ref_representation(ref)
+        if a5_representation is not None:
+            manual_representations.append(a5_representation)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     for struct in custom_struct_projections:
         custom_struct = _manual_custom_struct_to_metadata(struct)

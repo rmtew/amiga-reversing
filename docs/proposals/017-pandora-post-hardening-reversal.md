@@ -62,6 +62,7 @@ measured blocker needed for that improvement.
 10. `017-010`: planner treatment for low-value representation candidates.
 11. `017-011`: A5 accepted-evidence hardware render gate report.
 12. `017-012`: immediate-reference report mutation gate.
+13. `017-013`: A5 hardware-reference command and verifier.
 
 ## Recommended Order
 
@@ -204,3 +205,14 @@ repeatable work to `docs\issues\017-*`.
   command payloads. The report now exposes a `mutation_gate` and keeps
   top-level `safe_to_mutate=false` unless at least one command-backed
   `immediate_ref.interpret` candidate remains.
+- 017-013 adds the durable A5 hardware-reference command/verifier path. Accepted
+  CFG A5 uses now advertise `a5_hardware_ref.interpret` only when they carry
+  accepted path/lifetime evidence, and the verifier requires Manual Action Log
+  state in `a5_hardware_refs`, rendered symbolic operand state, and exact
+  round-trip. Linear listing-state A5 candidates remain non-durable report
+  evidence.
+- After 017-013 support was present, Pandora `s0:000004A6`
+  (`move.w d0,dmacon(a5)`) was recorded as durable A5 hardware-ref state from
+  accepted evidence `a5-custom-cfg:h0:00000498->000004A6:op1:d0096`. The
+  verifier passed manual-log, semantic reload, rendered-source, and exact
+  round-trip layers. This did not require a broad Pandora mutation run.

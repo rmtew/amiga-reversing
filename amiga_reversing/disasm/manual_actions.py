@@ -171,6 +171,7 @@ class ManualActionKind(StrEnum):
     INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF = "interpret_manual_data_block_element_ref"
     REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF = "remove_manual_data_block_element_ref"
     INTERPRET_MANUAL_IMMEDIATE_REF = "interpret_manual_immediate_ref"
+    INTERPRET_MANUAL_A5_HARDWARE_REF = "interpret_manual_a5_hardware_ref"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -221,6 +222,7 @@ class ManualActionLogProjection:
     data_block_interpreted_refs: tuple[dict[str, object], ...]
     removed_data_block_interpreted_refs: tuple[dict[str, object], ...]
     immediate_interpreted_refs: tuple[dict[str, object], ...]
+    a5_hardware_refs: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -391,6 +393,7 @@ def _empty_projection(
         data_block_interpreted_refs=(),
         removed_data_block_interpreted_refs=(),
         immediate_interpreted_refs=(),
+        a5_hardware_refs=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -1329,6 +1332,64 @@ def _validated_immediate_interpreted_ref(ref: dict[str, object], *, action_id: s
     return result
 
 
+def _a5_hardware_ref_key(ref: dict[str, object]) -> str:
+    ref_id = ref.get("a5_hardware_ref_id")
+    if not isinstance(ref_id, str) or not ref_id:
+        raise ValueError("a5_hardware_ref requires a5_hardware_ref_id")
+    return ref_id
+
+
+def _validated_a5_hardware_ref(ref: dict[str, object], *, action_id: str) -> dict[str, object]:
+    _a5_hardware_ref_key(ref)
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    end = _manual_seed_int(ref, "end")
+    operand_index = _manual_seed_int(ref, "operand_index")
+    displacement = _manual_seed_int(ref, "displacement")
+    custom_base = _manual_seed_int(ref, "custom_base_address")
+    hardware_address = _manual_seed_int(ref, "hardware_register_address")
+    if hunk is None or hunk < 0:
+        raise ValueError("a5_hardware_ref requires non-negative hunk")
+    if addr is None or addr < 0:
+        raise ValueError("a5_hardware_ref requires non-negative addr")
+    if end is None or end <= addr:
+        raise ValueError("a5_hardware_ref requires end greater than addr")
+    if operand_index is None or operand_index < 0:
+        raise ValueError("a5_hardware_ref requires non-negative operand_index")
+    if str(ref.get("base_register") or "").upper() != "A5":
+        raise ValueError("a5_hardware_ref requires A5 base_register")
+    if displacement is None or displacement < 0 or displacement > 0x1FE:
+        raise ValueError("a5_hardware_ref displacement must be a custom-chip register offset")
+    if custom_base != 0xDFF000:
+        raise ValueError("a5_hardware_ref requires _custom base address")
+    if hardware_address != custom_base + displacement:
+        raise ValueError("a5_hardware_ref hardware_register_address must match base plus displacement")
+    if ref.get("reference_kind") != "custom_register_displacement":
+        raise ValueError("a5_hardware_ref requires custom_register_displacement reference_kind")
+    if ref.get("source_family") != "amiga_custom_base":
+        raise ValueError("a5_hardware_ref requires amiga_custom_base source_family")
+    if ref.get("source_evidence_status") != "accepted":
+        raise ValueError("a5_hardware_ref requires accepted source evidence")
+    source_evidence_id = ref.get("source_evidence_id")
+    if not isinstance(source_evidence_id, str) or not source_evidence_id:
+        raise ValueError("a5_hardware_ref requires source_evidence_id")
+    path_lifetime_scope = ref.get("path_lifetime_scope")
+    if not isinstance(path_lifetime_scope, dict):
+        raise ValueError("a5_hardware_ref requires path_lifetime_scope")
+    if path_lifetime_scope.get("accepted_hardware_base_evidence") is not True:
+        raise ValueError("a5_hardware_ref requires accepted path/lifetime scope")
+    symbol = ref.get("symbol")
+    if not isinstance(symbol, str) or not symbol.strip():
+        raise ValueError("a5_hardware_ref requires hardware register symbol")
+    conflicts = ref.get("conflicts")
+    if isinstance(conflicts, list) and conflicts:
+        raise ValueError("a5_hardware_ref accepted evidence must be conflict-free")
+    result = dict(ref)
+    result["base_register"] = "A5"
+    result["owner_action_id"] = action_id
+    return result
+
+
 def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
     struct_name = field.get("struct_name")
     offset = _manual_seed_int(field, "offset")
@@ -1592,6 +1653,7 @@ def _project_actions(
     data_block_interpreted_refs: dict[str, dict[str, object]] = {}
     removed_data_block_interpreted_refs: dict[str, dict[str, object]] = {}
     immediate_interpreted_refs: dict[str, dict[str, object]] = {}
+    a5_hardware_refs: dict[str, dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1847,6 +1909,12 @@ def _project_actions(
                 action_id=action.action_id,
             )
             immediate_interpreted_refs[_immediate_interpreted_ref_key(ref)] = ref
+        elif action.kind is ManualActionKind.INTERPRET_MANUAL_A5_HARDWARE_REF:
+            ref = _validated_a5_hardware_ref(
+                _action_object(action, "a5_hardware_ref"),
+                action_id=action.action_id,
+            )
+            a5_hardware_refs[_a5_hardware_ref_key(ref)] = ref
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = dict(_action_object(action, "execution_view"))
             view["owner_action_id"] = action.action_id
@@ -1920,6 +1988,7 @@ def _project_actions(
         data_block_interpreted_refs=tuple(data_block_interpreted_refs.values()),
         removed_data_block_interpreted_refs=tuple(removed_data_block_interpreted_refs.values()),
         immediate_interpreted_refs=tuple(immediate_interpreted_refs.values()),
+        a5_hardware_refs=tuple(a5_hardware_refs.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),
