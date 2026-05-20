@@ -52,6 +52,14 @@ uv run python -m src.scripts.parse_hw_manual resources/Hardware_Manual.html
 uv run python -m src.scripts.kb.ndk_parser /path/to/NDK_3.1
 ```
 
+Classic Mac OS source inventory checks use the committed
+`knowledge/macos_source_inventory.json` metadata:
+
+```
+uv run macos-platform-kb report
+uv run macos-platform-kb check
+```
+
 ## PDF OCR prep
 
 For scanned platform reference PDFs, add a searchable text layer before

@@ -766,6 +766,12 @@ Expose pivots by source file, segment, routine, resource, trap/API fact, binary
 fork, CODE resource, and unsupported state.
 ```
 
+10. Classic Mac OS resource documentation
+
+```text
+Document optional MPW-GM fixture paths and the Mac platform inventory check.
+```
+
 ## Artifact Ownership
 
 Candidate artifacts:
@@ -942,6 +948,11 @@ resources documentation coverage tests
   `Sample` source facts separate from observed `MPW/Tools/Asm` binary facts.
   This is a view slice only; full Mac project creation and roundtrip remain
   outside the starter branch.
+- 012-010 closed the immediate documentation gap for optional Mac fixture
+  inputs: `RESOURCES.md` now records the MPW-GM image and `ndif2raw` provider
+  paths used by the source/container tests, and `README.md` documents the
+  `macos-platform-kb` report/check command for committed Mac source inventory
+  metadata.
 
 ## Open Questions
 
@@ -964,7 +975,6 @@ Before closing this proposal:
 - Promote durable issue reasoning into this proposal.
 - Delete completed `docs/issues/012-*` issue files.
 - Remove stale TODO entries.
-- Document implemented Mac commands in `README.md` or `RESOURCES.md`.
 - Record skipped external checks and why.
 
 ## Verification

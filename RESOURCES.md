@@ -55,6 +55,19 @@ below.
 - **Source:** User-supplied archived book/PDF. Keep OCR derivatives local unless
   redistribution rights are clear.
 
+## Classic Mac OS MPW-GM image (optional, for Mac platform tests)
+
+- **File:** `resources/platform_macos/MPW-GM.img.bin`
+- **Provider:** `ext/tools/ndif2raw/ndif2raw.exe`
+- **Used by:** Classic Mac OS proposal 012 tests and import helpers:
+  `amiga_reversing.disasm.macos_asm_container`, `tests/test_macos_asm_container.py`,
+  and `tests/test_macos_web_view.py`.
+- **What it enables:** HFS catalog/fork inspection for
+  `MPW-GM/MPW/Tools/Asm`, resource-fork parsing, `CODE 0` metadata, `CODE 1 Main`
+  listing smoke checks, and the starter source/container web payload.
+- **Source:** User-supplied MPW Golden Master disk image. Keep extracted forks
+  and rebuilt artifacts local unless redistribution rights are clear.
+
 ## amitools / machine68k (optional, for oracle testing)
 
 - **Install:** `uv tool install "./resources/amitools[vamos]" --with "machine68k"`
