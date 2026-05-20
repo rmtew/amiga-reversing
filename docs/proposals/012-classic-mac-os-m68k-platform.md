@@ -198,11 +198,12 @@ Still required before this proposal is complete:
 Mac platform parsing/import logic promoted to C where Amiga/Atari equivalents
   already live in C
 full Classic Mac OS target lifecycle creation in project JSON
-server API emits a real classic_macos project payload
+server API emits a real `macos` project payload
 web UI opens that payload through the normal project route
 generated Mac OS metadata feeds render/analysis, not handcrafted Python dicts
 selected CODE segment renders as actual m68k listing rows in the web UI
 shared platform abstractions are extended where Mac exposes framework gaps
+committed illustrative Mac OS target/subtarget under `targets/`
 complete Segment Loader relocation/fixup interpretation
 byte-for-byte MPW Asm/Link/Rez roundtrip
 complete Toolbox/OS trap/API annotation coverage
@@ -615,7 +616,7 @@ show source structure, binary container metadata, and enough platform metadata
 to make the source clear:
 
 ```text
-platform: classic_macos
+platform: macos
 source fixture: MPW-GM/MPW/Examples/AExamples/Sample
 source pivots: file/segment/routine/resource/build recipe
 binary fixture: MPW-GM/MPW/Tools/Asm
@@ -839,8 +840,9 @@ Keep Python as wrapper/report/editing code only.
 012-014. Mac project/API/web integration - open
 
 ```text
-Create a real Classic Mac OS project path whose server payload includes
-`classic_macos` and whose web UI opens through the normal project/listing route.
+Create a real Mac OS project path whose server payload uses `macos` and whose
+web UI opens through the normal project/listing route. Replace prototype
+`classic_macos` identifiers rather than preserving aliases.
 ```
 
 012-015. Generated Mac metadata consumption - open
@@ -864,6 +866,15 @@ Remove any Mac-only side paths discovered during implementation by extending
 shared platform source/container/project/listing abstractions cleanly.
 ```
 
+012-018. Mac OS example target artifact - open
+
+```text
+Commit an illustrative evolving Mac OS target under `targets/macos_hfs_mpw_gm/`
+with `MPW/Tools/Asm` as
+`targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`, rendered as
+a whole Mac executable shape rather than a standalone CODE fragment.
+```
+
 ## Artifact Ownership
 
 Candidate artifacts:
@@ -879,7 +890,9 @@ ext/docs_macos/
 docs/macos-file-structure.md
 docs/macos-build-model.md
 docs/macos-initial-analysis-research.md
+docs/macos-targets.md
 docs/proposals/012-classic-mac-os-m68k-platform.md
+targets/macos_hfs_mpw_gm/
 RESOURCES.md
 ```
 
@@ -926,8 +939,10 @@ reports own provenance and review visibility
   recipe.
 - Source segment mapping is distinct from observed binary `CODE` resources.
 - The imported target is viewable in the web UI project/listing flow.
-- The `classic_macos` web payload is emitted by the normal server project API,
+- The `macos` web payload is emitted by the normal server project API,
   not only by test fixtures or direct helper calls.
+- Durable implementation names use `macos`, not `classic_macos`; no compatibility
+  alias or migration shim is kept for the prototype name.
 - Durable Mac platform parsing/import behavior lives behind C APIs wherever the
   Amiga or Atari ST equivalent is C-backed.
 - Python Mac code is limited to wrappers, extraction/reporting, tests, and
@@ -940,6 +955,15 @@ reports own provenance and review visibility
   framework gap is fixed or explicitly raised, not worked around.
 - No Mac-specific compatibility branch, legacy payload, or duplicate metadata
   model remains on the completion path.
+- A committed illustrative target exists at `targets/macos_hfs_mpw_gm/` with an
+  `MPW/Tools/Asm` subtarget at
+  `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/`.
+- The `Asm` subtarget commits `asm.s`, rendering the whole Mac executable file
+  shape in readable period-authentic Mac assembly style: data fork/resource fork
+  context, `CODE 0`, CODE segments, non-CODE resources, placeholders, and
+  unsupported state.
+- The committed target has regeneration/drift checks so `asm.s` does not go
+  stale as rendering improves.
 - Baseline analysis annotates cited Mac OS calls and call patterns visible in
   documentation or MPW-GM examples.
 - Unsupported Mac platform areas are reported explicitly.
@@ -1099,12 +1123,16 @@ Full closeout requires:
 
 - C-backed Mac parser/import APIs for platform behavior that Amiga/Atari already
   implement in C.
-- A real Classic Mac OS project record and server payload with `classic_macos`
-  data emitted through the normal API.
+- A real Mac OS project record and server payload with durable `macos` data
+  emitted through the normal API, replacing the prototype `classic_macos` name.
 - Web UI navigation to the Mac source/container/listing view through the normal
   project flow.
 - Generated Mac OS metadata consumed by render/analysis paths.
 - A selected CODE segment rendered as actual m68k listing rows.
+- An illustrative committed target/subtarget under `targets/macos_hfs_mpw_gm/`
+  with `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`.
+- `docs/macos-targets.md` explains Mac OS target layout, illustrative committed
+  artifacts, manual/progress facts, and how to read the generated `.s`.
 - Any shared framework limitations resolved in the core abstractions, or
   recorded as explicit blockers.
 - No Mac-only workaround path kept as accepted design.
