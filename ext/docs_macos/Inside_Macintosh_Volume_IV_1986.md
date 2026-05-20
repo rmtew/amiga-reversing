@@ -1152,7 +1152,7 @@ RomMapInsert (byte) I TmpResLoad (byte)
 Figure 1. RomMapInsert and TmpResLoad
 Two global constants, each a word in length, are provided for setting these variables in
 tandem: mapTrue inserts the ROM map with SetResLoad(TRUE) and mapFalse inserts the
-ROM map with SetResLoad(F ALSE). As noted, both RomMapInsert and TmpResLoad
+ROM map with SetResLoad(FALSE). As noted, both RomMapInsert and TmpResLoad
 are cleared after each Resource Manager call.
 Note: There is no real resource file associated with the ROM resources; the ROM
 map has a path reference number of 1 (an illegal path reference number). There are
@@ -7105,7 +7105,7 @@ nsvErr
 paramErr
 No such volume
 No default volume
-FUNCTION P~HGetVInfo (paramBlock: HParrnBlkPtr; async: BOOLEAN)
+FUNCTION P~HGetVInfo (paramBlock: HParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _HGetVInfo
@@ -7703,7 +7703,7 @@ No such volume
 File already open for writing
 Attempt to open locked file for writing
 Too many files open
-FUNCTION PBHOpen (pararnBlock: HParrnBlkPtr; async: BOOLEAN)
+FUNCTION PBHOpen (paramBlock: HParmBlkPtr; async: BOOLEAN)
 Trap macro
 _HOpen
 Parameter block
@@ -8566,7 +8566,7 @@ Low-Level File Manager Routines IV-145
 ## Page 156
 
 Inside Macintosh
-FUNCTION PBHCreate (pararnBlock: HParrnBlkPtr; async: BOOLEAN)
+FUNCTION PBHCreate (paramBlock: HParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _HCreate
@@ -8614,7 +8614,7 @@ I/O error
 No such volume
 Software volume lock
 Hardware volume lock
-FUNCTION PBDirCreate (pararnBlock: HParrnBlkPtr; async: BOOLEAN):
+FUNCTION PBDirCreate (paramBlock: HParmBlkPtr; async: BOOLEAN):
 OSErr;
 Trap macro
 _DirCr~ate
@@ -8892,7 +8892,7 @@ File not found
 1/0 error
 No such volume
 No default volume
-FUNCTION PBHGetFInfo (paramBlock: HParrnBlkPtr; async: BOOLEAN)
+FUNCTION PBHGetFInfo (paramBlock: HParmBlkPtr; async: BOOLEAN)
 OSErr;
 Trap macro
 _HGetFileInfo
@@ -8987,7 +8987,7 @@ Low-Level File Manager Routines IV-149
 ## Page 160
 
 Inside Macintosh
-FUNCTION PBSetFInfo (paramBlock: ParrnBlkPtr; async: BOOLEAN}
+FUNCTION PBSetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN}
 OSErr;
 Trap macro
 _SetFilelnf o
@@ -9048,7 +9048,7 @@ J/Oerror
 No such volume
 Software volume lock
 Hardware volume lock
-FUNCTION PBHSetFInfo (paramBlock: HParrnBlkPtr; async: BOOLEAN}
+FUNCTION PBHSetFInfo (paramBlock: HParmBlkPtr; async: BOOLEAN}
 OSErr;
 Trap macro
 _HSetFileInfo

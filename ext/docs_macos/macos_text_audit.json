@@ -1,0 +1,1629 @@
+{
+  "schema": "macos_doc_text_audit.v1",
+  "docs": "ext/docs_macos",
+  "finding_count": 161,
+  "counts_by_rule": {
+    "routine_page_ref_roman": 116,
+    "split_pascal_assignment": 45
+  },
+  "counts_by_document": {
+    "Inside_Macintosh_Volume_III_1985.md": 25,
+    "Inside_Macintosh_Volume_II_1985.md": 60,
+    "Inside_Macintosh_Volume_IV_1986.md": 2,
+    "Inside_Macintosh_Volume_I_1985.md": 55,
+    "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md": 1,
+    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 18
+  },
+  "findings": [
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26569,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-274",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ABProtoType data type Il-274"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26571,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-274",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ABRecPtr data type Il-274"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26572,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-274",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ABusRecord data type Il-274"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26592,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-318",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Add.Response function Il-318"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26634,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-17",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "limit Il-17, 29"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26660,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-290",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ATPOpenSocket function Il-290"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 543,
+      "line": 26666,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-294",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ATPSnd.Rsp function Il-294"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 544,
+      "line": 26687,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-288",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "BDSElement data type Il-288"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 544,
+      "line": 26714,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-10",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "block header Il-10"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 544,
+      "line": 26716,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-122",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "block map Il-122"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 544,
+      "line": 26720,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-246",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "break Il-246"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 544,
+      "line": 26744,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-59",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Chain procedure Il-59"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 545,
+      "line": 26827,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-179",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "high-level Il-179"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 545,
+      "line": 26886,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-83",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "data buffer Il-83, 176"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 547,
+      "line": 27062,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-176",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "driver reference number Il-176"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 547,
+      "line": 27079,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-14",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "empty handle I-76; Il-14, 40"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 548,
+      "line": 27159,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-125",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "for queue access Il-125, 126, 128"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 549,
+      "line": 27268,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-179",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Device Manager Il-179"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 552,
+      "line": 27598,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-277",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "LAPWrite function Il-277"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 552,
+      "line": 27616,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-10",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "locked block I-76; Il-10"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 553,
+      "line": 27693,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-17",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "MinStack global variable Il-17"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 553,
+      "line": 27730,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-266",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "names information socket Il-266"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 553,
+      "line": 27756,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-263",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "node ID Il-263"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 554,
+      "line": 27811,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-65",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Operating System Event Manager 1-13; Il-65"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 554,
+      "line": 27883,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-104",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBGetVol function Il-104"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 554,
+      "line": 27894,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-118",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBRename function Il-118"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 554,
+      "line": 27898,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-116",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBSetFLock function Il-116"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 554,
+      "line": 27906,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-110",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "File Manager Il-110"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28270,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-34",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SetHandleSize procedure Il-34"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28302,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-214",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SetTagBuffer function Il-214"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28303,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-380",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SetTime procedure Il-380"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28307,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-89",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "high-level Il-89"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28346,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-265",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "socket number Il-265"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 558,
+      "line": 28351,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-233",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "hardware Il-233"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 559,
+      "line": 28444,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-70",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SysEvtMask global variable Il-70"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 559,
+      "line": 28453,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-18",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "System Error Handler I-13; Il-18, 355"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 559,
+      "line": 28455,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-357",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "system error ID Il-357"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 559,
+      "line": 28462,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-120",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "system startup information Il-120"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 560,
+      "line": 28559,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-1",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "TPrXInfo data type Il-1 52"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 560,
+      "line": 28589,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-191",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "unit number Il-191"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28622,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-374",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "routines Il-374"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28633,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-350",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "VBL task Il-350"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28636,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-125",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "VCB data type Il-125"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28639,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-196",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "vector table Il-196"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28642,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-81",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "version number of a file Il-81"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28668,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-121",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "volume information Il-121"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28669,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-79",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "volume name Il-79"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 561,
+      "line": 28674,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-227",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Wave data type Il-227"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 562,
+      "line": 28721,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-185",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Device Manager Il-185"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 90,
+      "line": 3781,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "aProcPtr : = @MyProc"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 132,
+      "line": 5633,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "myHndl : ="
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 194,
+      "line": 8635,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "barbell : = NewRgn;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 310,
+      "line": 15291,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "defHandle : = GetResource ('WDEF', resource ID)"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 341,
+      "line": 16915,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "defHandle : = GetResource (' CDEF', resource ID)"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 497,
+      "line": 24126,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "(synonym: =Elems68K)"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 82,
+      "line": 3645,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-73",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Summary of the Operating System Event Manager Il-73"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 125,
+      "line": 6506,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-116",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Il-116 Low-Level File Manager Routines"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 156,
+      "line": 9050,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-147",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "About the Printing Manager Il-147"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 184,
+      "line": 10492,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-175",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "About the Device Manager Il-175"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 186,
+      "line": 10573,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-177",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Device Manager Routines Il-177"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 200,
+      "line": 11539,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-191",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "The Structure of a Device Driver Il-191"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 246,
+      "line": 14313,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-237",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Summary of the Sound Driver Il-237"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 282,
+      "line": 16683,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-273",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Calling the AppleTalk Manager from Pascal Il-273"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 298,
+      "line": 17663,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-289",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Calling the AppleTalk Manager from Pascal Il-289"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 300,
+      "line": 17799,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-291",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Calling the AppleTalkManager from Pascal Il-291"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 330,
+      "line": 19970,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-321",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Calling the AppleTalk Manager from Assembly Language Il-321"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 379,
+      "line": 23146,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-370",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Il-370 Parameter RAM"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 418,
+      "line": 24936,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-274",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ABRecPtr data type Il-274"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 418,
+      "line": 25004,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-19",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ApplLimit global variable Il-19, 21, 29"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 420,
+      "line": 25196,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-176",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "control information Il-176"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 420,
+      "line": 25239,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-411",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Il-411"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 421,
+      "line": 25269,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-379",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Date2Secs procedure Il-379"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 421,
+      "line": 25279,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-284",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "DDPRdCancel function Il-284"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 421,
+      "line": 25289,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-126",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "DefVCBPtr global variable Il-126"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 423,
+      "line": 25553,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-103",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "FinitQueue procedure Il-103"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 427,
+      "line": 25921,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-195",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "JIODone global variable Il-195"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 430,
+      "line": 26252,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-107",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBEject function Il-107"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 430,
+      "line": 26256,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-115",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBGetFInfo function Il-115"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 430,
+      "line": 26257,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-111",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBGetFPos function Il-111"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 430,
+      "line": 26276,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-117",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBSetFVers function Il-117"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 431,
+      "line": 26317,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-11",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "pointer (to memory) I-75, 78; Il-11"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 431,
+      "line": 26340,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-161",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PrError function Il-161"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 431,
+      "line": 26372,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-158",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PrValidate function Il-158"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 432,
+      "line": 26437,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-35",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ReallocHandle procedure Il-35"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 433,
+      "line": 26550,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-198",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "sec interrupts Il-198"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 433,
+      "line": 26573,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-19",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "ScrnBase global variable Il-19, 21"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 433,
+      "line": 26601,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-254",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "advanced Control calls Il-254"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 433,
+      "line": 26602,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-248",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Device Manager calls Il-248"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 433,
+      "line": 26605,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-252",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SerSetBrk function Il-252"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 434,
+      "line": 26639,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-116",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "low-level Il-116"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 434,
+      "line": 26648,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-34",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SetHandleSize procedure Il-34"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 434,
+      "line": 26686,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-105",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "low-level Il-105"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 435,
+      "line": 26776,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-231",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "StartSound procedure Il-231"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 435,
+      "line": 26781,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-176",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "status information Il-176"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 436,
+      "line": 26859,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-32",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "SystemZone function Il-32"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 436,
+      "line": 26935,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-149",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "TPrint data type Il-149"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 437,
+      "line": 27026,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-196",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "vector table Il-196"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 438,
+      "line": 27117,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-266",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "AppleTalk Manager Il-266"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 25,
+      "line": 882,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "aHandleAA.field : = NewHandle( .. . )"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 97,
+      "line": 4320,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "result : = GetVol(@myStr,myRefNum)"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 237,
+      "line": 13672,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "rnyFFPtrA .count : = FixRatio(l,1);"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 288,
+      "line": 17009,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "errCode : = MPPOpen;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 288,
+      "line": 17017,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "myABRecord : = ABRecHandle(NewHandle(lapSize));"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 288,
+      "line": 17018,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "myLAPType : = 73;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 289,
+      "line": 17045,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "buffer[l] : = CHR(dataLen MOD 256); {low byte of data length}"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 289,
+      "line": 17058,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "errCode : = LAPWrite(myABRecord,async);"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 294,
+      "line": 17388,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "errCode : = DDPOpenSocket(mySocket,NIL);"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 294,
+      "line": 17411,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "ddpReqCount : = dataLen;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 306,
+      "line": 18221,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "buffPtr : = @myBuffer;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 306,
+      "line": 18231,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "atpAddress.aNet : = 0;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 306,
+      "line": 18234,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "atpAddress . aSocket : = 15;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 306,
+      "line": 18236,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "atpReqCount : = 1;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 306,
+      "line": 18243,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "atpXO : = FALSE;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 311,
+      "line": 18570,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "nbpRetransrnitinfo.retransinterval : = 8;"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "page": 312,
+      "line": 18597,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "zoneStr : = '*';"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 98,
+      "line": 6576,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-9",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Event Manager, Operating System /Il-9/"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 269,
+      "line": 21212,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-153",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "background procedure Il-153"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 270,
+      "line": 21326,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-178",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "CloseDriver function Il-178"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 271,
+      "line": 21484,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-193",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "writing your own Il-193"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 271,
+      "line": 21488,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-190",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "device control entry access Il-190"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 271,
+      "line": 21490,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-180",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "low-level Il-180"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 271,
+      "line": 21491,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-194",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "for writing drivers Il-194"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 271,
+      "line": 21510,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-398",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "DIFormat function Il-398"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 272,
+      "line": 21535,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-80",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "disk-switch dialog Il-80"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 272,
+      "line": 21598,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-128",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "DrvQHdr global variable Il-128"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 272,
+      "line": 21612,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-14",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "empty handle 1-76; Il-14, 40"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 273,
+      "line": 21662,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-71",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "EventQueue global variable Il-71"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 279,
+      "line": 22329,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-187",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "of a driver Il-187, 193"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 279,
+      "line": 22345,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-68",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "routines Il-68"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 280,
+      "line": 22409,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-114",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "File Manager Il-114"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 280,
+      "line": 22410,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-186",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PBControl function Il-186"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 281,
+      "line": 22517,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-159",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PrJobMerge procedure Il-159"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 281,
+      "line": 22522,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-159",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PrOpenDoc function Il-159"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 281,
+      "line": 22539,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-375",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "PtrToHand function Il-375"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 282,
+      "line": 22594,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-83",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "read/write permission Il-83"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 282,
+      "line": 22657,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-385",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "Restart procedure Il-385"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 286,
+      "line": 23095,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-147",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "TPrPort data type Il-147"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 287,
+      "line": 23181,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-126",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "VCBQHdr global variable Il-126"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 287,
+      "line": 23182,
+      "rule": "routine_page_ref_roman",
+      "match": "Il-196",
+      "auto_replacement": null,
+      "description": "Likely OCR damage for Roman numeral II page references.",
+      "context": "vector Il-196"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "page": 80,
+      "line": 4974,
+      "rule": "split_pascal_assignment",
+      "match": ":\n=",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "qLink:"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "page": 127,
+      "line": 5854,
+      "rule": "split_pascal_assignment",
+      "match": ":\n=",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "qLink:"
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "page": 195,
+      "line": 11651,
+      "rule": "split_pascal_assignment",
+      "match": ":\n=",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "qLink:"
+    },
+    {
+      "document": "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md",
+      "page": 255,
+      "line": 12396,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "-y Display : = without surrounding spaces (y + )."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 149,
+      "line": 7507,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "newlen : = 0;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 149,
+      "line": 7517,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "s [newlen] : = c;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 150,
+      "line": 7556,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "FOR col : = 1 to account DO"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 225,
+      "line": 11568,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "menuidO : =~AA.menuIDno[men);\u00ad"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 362,
+      "line": 18042,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "PA : = 2;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 366,
+      "line": 18259,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": ": = 'X' ;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19048,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "i : = ORD ( s [ 0 ] ) + 1 ;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19050,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": ": = CHR ( i ) ;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19065,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "s 2 [ 0 ] : = CHR ( w) ;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19074,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": ": ="
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 389,
+      "line": 19423,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "BSL : = 0;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 389,
+      "line": 19434,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "BST : = 0;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 398,
+      "line": 20011,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "{$SETC kernel : = level > 3}"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 417,
+      "line": 20903,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "Suppress spaces on either side of : ="
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 423,
+      "line": 21236,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "sumthem : = sum;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 433,
+      "line": 21886,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "ArgVIndex : = 0;"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 435,
+      "line": 21979,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "off : = off + Length(str)"
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 594,
+      "line": 30567,
+      "rule": "split_pascal_assignment",
+      "match": ": =",
+      "auto_replacement": null,
+      "description": "Split Pascal assignment operator.",
+      "context": "/\u2022 [A-Za-z]+: =On/ \"\""
+    }
+  ]
+}

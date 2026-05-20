@@ -7820,7 +7820,7 @@ H
 46
 ioPosOffset
 long word
-FUNCTION PBGetFPos (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFPos (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ---7
 12
@@ -7928,7 +7928,7 @@ t-
 40
 ioActCount
 long word
-FUNCTION PBFlushFile (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBFlushFile (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ---7
 12
@@ -7948,7 +7948,7 @@ III-104 File Manager
 ## Page 112
 
 Summary
-FUNCTION PBClose (pararnBlock: PannBlkPtr; async : BOOLEAN)
+FUNCTION PBClose (paramBlock: ParmBlkPtr; async : BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -7960,7 +7960,7 @@ word
 ioRefNurn
 word
 Changing Information About Files
-FUNCTION PBGetFinf o (pararnBlock: ParrnBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFinf o (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8020,7 +8020,7 @@ long word
 ~ 76
 ioFIMdDat
 long word
-FUNCTION PBSetFInfo (pararnBlock: PannBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8046,7 +8046,7 @@ long word
 ~ 76
 ioFIMdDat
 long word
-FUNCTION PBSetFLock (pararnBlock: PannBlkPtr; async : BOOLEAN)
+FUNCTION PBSetFLock (paramBlock: ParmBlkPtr; async : BOOLEAN)
 OSEr r;
 ~ 12
 ioCompletion
@@ -8063,7 +8063,7 @@ word
 ~ 26
 ioFVersNum
 byte
-FUNCTION PBRstFLock (pararnBlock: PannBlkPtr; async: BOOLEAN)
+FUNCTION PBRstFLock (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion

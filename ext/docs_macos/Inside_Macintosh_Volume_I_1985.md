@@ -5558,7 +5558,7 @@ Given an index ranging from 1 to CountResources(theType), GetIndResource returns
 a resource of the given type (see CountResources, above). Called repeatedly over the entire range
 for the index, it returns handles to all resources of the given type in all open resource files.
 GetIndResource reads the resource data into memory if it's not already in memory, unless you've
-called SetResLoad(F ALSE).
+called SetResLoad(FALSE).
 Warning: The handle returned will be an empty handle if you've called
 SetResLoad(FALSE) (and the data isn't already in memory). The handle will become
 empty if the resource data for a purgeable resource is read in but later purged. (You can
@@ -5580,7 +5580,7 @@ If you want to find out how many resources of a given type are in a particular r
 can do so as follows: Call GetIndResource repeatedly with the index ranging from 1 to the
 number of resources of that type (CountResources(theType)). Pass each handle returned by
 GetIndResource to HomeResFile and count all occurrences where the reference number returned
-is that of the desired file. Be sure to start the index from 1, and to call SetResLoad(F ALSE) so
+is that of the desired file. Be sure to start the index from 1, and to call SetResLoad(FALSE) so
 the resources won't be read in.
 If the given index is 0 or negative, GetIndResource returns NIL, but the ResError function will
 return the result code noErr. If the given index is larger than the value CountResources(theType ),
@@ -5591,7 +5591,7 @@ FUNCTION GetResource (theType: ResType; theID: INTEGER)
 : Handle;
 GetResource returns a handle to the resource having the given type and ID number, reading
 the resource data into memory if it's not already in memory and if you haven't called
-SetResLoad(F ALSE) (see the warning above for GetIndResource ). If the resource data is already
+SetResLoad(FALSE) (see the warning above for GetIndResource ). If the resource data is already
 in memory, GetResource just returns the handle to the resource.
 GetResource looks in the current resource file and all resource files opened before it, in the
 reverse of the order that they were opened; the system resource file is searched last. If it doesn't
@@ -5887,7 +5887,7 @@ specified by a handle, the Memory Manager will first pass the handle to the Reso
 The Resource Manager will determine whether the handle is that of a resource in the application
 heap and, if so, will call WriteResource to write the resource data for that resource to the resource
 file if its resChanged attribute is set (see ChangedResource and WriteResource).
-SetResPurge(F ALSE) restores the normal state, clearing the hook so that the Memory Manager
+SetResPurge(FALSE) restores the normal state, clearing the hook so that the Memory Manager
 will once again purge without checking with the Resource Manager.
 SetResPurge(TRUE) is useful in applications that modify purgeable resources. You still have to
 make the resources temporarily unpurgeable while making the changes, as shown in the
@@ -10820,7 +10820,7 @@ Getting Font Information
 Warning: Before returning, the routines in this section issue the Resource Manager call
 SetResLoad(TRUE). If your program previously called SetResLoad(FALSE) and you still
 want that to be in effect after calling one of these Font Manager routines, you'll have to call
-SetResLoad(F ALSE) again.
+SetResLoad(FALSE) again.
 1-222 Font Scaling
 
 <!-- source-page: 235 -->
@@ -15361,8 +15361,8 @@ Defining Your Own Windows 1-299
 ## Page 312
 
 Inside Macintosh
-Special action should be taken if the value of pararn is wInGoAway (a predefined constant,
-equal to 4, which is one of those returned by the hit routine described below). If pararn is
+Special action should be taken if the value of param is wInGoAway (a predefined constant,
+equal to 4, which is one of those returned by the hit routine described below). If param is
 wInGoAway, the routine should do nothing but "toggle" the state of the window's go-away
 region from unhighlighted to highlighted or vice versa. The highlighting should be whatever is
 appropriate to show that the mouse button has been pressed inside the region. Simple inverse
@@ -15393,7 +15393,7 @@ and system font size. The Window Manager port will already be set to use the sys
 system font size.
 Note: Nothing drawn outside the window's structure region will be visible.
 The Hit Routine
-When the window definition function receives a wHit message, it also receives as its pararn value
+When the window definition function receives a wHit message, it also receives as its param value
 the point where the mouse button was pressed. This point is given in global coordinates, with
 the vertical coordinate in the high-order word of the long integer and the horizontal coordinate in
 the low-order word. The window definition function should determine where the mouse button
@@ -25155,7 +25155,7 @@ International Utilities Package Routines I-505
 ## Page 518
 
 Inside Macintosh
-PROCEDURE IUSetintl (refNum: INTEGER; theID: INTEGER; intl Pararn:
+PROCEDURE IUSetintl (refNum: INTEGER; theID: INTEGER; intl Param:
 Handle};
 In the resource file having the reference number refNum, IUSetintl sets the international resource
 numbered theID (0 or 1) to the data specified by intlParam. The data may be either an existing

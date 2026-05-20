@@ -1,0 +1,358 @@
+{
+  "schema": "macos_doc_text_amendments.v1",
+  "audit": "ext/docs_macos/macos_text_audit.json",
+  "docs": "ext/docs_macos",
+  "selection": "Auto-applied only fixed text substitutions listed by the text audit rules. Mojibake and ambiguous Roman numeral/page-reference findings stay review-only.",
+  "dry_run": false,
+  "amendment_count": 22,
+  "replacement_count": 51,
+  "amendments": [
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "PannBlkPtr",
+      "replacement": "ParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        112
+      ],
+      "audit_lines": [
+        7951,
+        8023,
+        8049,
+        8066
+      ],
+      "occurrences_before": 4,
+      "occurrences_replaced": 4
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "ParrnBlkPtr",
+      "replacement": "ParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        112
+      ],
+      "audit_lines": [
+        7963
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "pararnBlock",
+      "replacement": "paramBlock",
+      "rule": "param_ocr",
+      "pages": [
+        111,
+        112
+      ],
+      "audit_lines": [
+        7823,
+        7931,
+        7951,
+        7963,
+        8023,
+        8049,
+        8066
+      ],
+      "occurrences_before": 7,
+      "occurrences_replaced": 7
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "App leTelk",
+      "replacement": "AppleTalk",
+      "rule": "appletalk_ocr",
+      "pages": [
+        201
+      ],
+      "audit_lines": [
+        11574
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "AppleTelk",
+      "replacement": "AppleTalk",
+      "rule": "appletalk_ocr",
+      "pages": [
+        201
+      ],
+      "audit_lines": [
+        11575
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "PannBlkPtr",
+      "replacement": "ParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        190
+      ],
+      "audit_lines": [
+        10802
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "PararnBlock",
+      "replacement": "ParamBlock",
+      "rule": "param_ocr",
+      "pages": [
+        210
+      ],
+      "audit_lines": [
+        12034
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "ParrnBlkPtr",
+      "replacement": "ParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        210
+      ],
+      "audit_lines": [
+        12033
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "cntrlPararn",
+      "replacement": "cntrlParam",
+      "rule": "param_ocr",
+      "pages": [
+        107
+      ],
+      "audit_lines": [
+        4971
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "csPararn",
+      "replacement": "csParam",
+      "rule": "param_ocr",
+      "pages": [
+        211
+      ],
+      "audit_lines": [
+        12106
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "filePararn",
+      "replacement": "fileParam",
+      "rule": "param_ocr",
+      "pages": [
+        210
+      ],
+      "audit_lines": [
+        12073
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "ioPararn",
+      "replacement": "ioParam",
+      "rule": "param_ocr",
+      "pages": [
+        107,
+        210
+      ],
+      "audit_lines": [
+        4971,
+        12032,
+        12046
+      ],
+      "occurrences_before": 3,
+      "occurrences_replaced": 3
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "pararnBlock",
+      "replacement": "paramBlock",
+      "rule": "param_ocr",
+      "pages": [
+        146
+      ],
+      "audit_lines": [
+        8197,
+        8210,
+        8283,
+        8310,
+        8328
+      ],
+      "occurrences_before": 5,
+      "occurrences_replaced": 5
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "volumePararn",
+      "replacement": "volumeParam",
+      "rule": "volume_ocr",
+      "pages": [
+        107
+      ],
+      "audit_lines": [
+        4971
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "volurnePararn",
+      "replacement": "volumeParam",
+      "rule": "volume_ocr",
+      "pages": [
+        210
+      ],
+      "audit_lines": [
+        12032,
+        12075
+      ],
+      "occurrences_before": 2,
+      "occurrences_replaced": 2
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "match": "F ALSE",
+      "replacement": "FALSE",
+      "rule": "boolean_split",
+      "pages": [
+        31
+      ],
+      "audit_lines": [
+        1155
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "match": "HParrnBlkPtr",
+      "replacement": "HParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        140,
+        146,
+        156,
+        159,
+        160
+      ],
+      "audit_lines": [
+        7108,
+        7706,
+        8569,
+        8617,
+        8895,
+        9051
+      ],
+      "occurrences_before": 6,
+      "occurrences_replaced": 6
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "match": "ParrnBlkPtr",
+      "replacement": "ParmBlkPtr",
+      "rule": "param_ocr",
+      "pages": [
+        160
+      ],
+      "audit_lines": [
+        8990
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_IV_1986.md",
+      "match": "pararnBlock",
+      "replacement": "paramBlock",
+      "rule": "param_ocr",
+      "pages": [
+        146,
+        156
+      ],
+      "audit_lines": [
+        7706,
+        8569,
+        8617
+      ],
+      "occurrences_before": 3,
+      "occurrences_replaced": 3
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "F ALSE",
+      "replacement": "FALSE",
+      "rule": "boolean_split",
+      "pages": [
+        130,
+        131,
+        138,
+        234
+      ],
+      "audit_lines": [
+        5561,
+        5583,
+        5594,
+        5890,
+        10823
+      ],
+      "occurrences_before": 5,
+      "occurrences_replaced": 5
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Pararn",
+      "replacement": "Param",
+      "rule": "param_ocr",
+      "pages": [
+        518
+      ],
+      "audit_lines": [
+        25158
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "pararn",
+      "replacement": "param",
+      "rule": "param_ocr",
+      "pages": [
+        312
+      ],
+      "audit_lines": [
+        15364,
+        15365,
+        15396
+      ],
+      "occurrences_before": 3,
+      "occurrences_replaced": 3
+    }
+  ]
+}

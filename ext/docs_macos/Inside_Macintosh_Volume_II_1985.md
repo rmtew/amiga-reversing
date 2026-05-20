@@ -4968,7 +4968,7 @@ Manager and File Manager use this same data structure, but only the parts releva
 Manager are discussed here. Each kind of parameter block contains eight fields of standard
 information and nine to 16 fields of additional information:
 TYPE PararnBlkType -
-(ioPararn,fileParam, volumePararn,cntrlPararn);
+(ioParam,fileParam, volumeParam,cntrlParam);
 ParamBlockRec
 RECORD
 ParmBlkPtr
@@ -8194,7 +8194,7 @@ II-136 Summary of the File Manager
 ## Page 146
 
 The File Manager
-FUNCTION PBClose (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBClose (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8207,7 +8207,7 @@ word
 ioRefNurn
 word
 Changing Information About Files
-FUNCTION PBGetFInfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBGetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8280,7 +8280,7 @@ f-
 76
 ioFlMdDat
 long word
-FUNCTION PBSetFInfo (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFInfo (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8307,7 +8307,7 @@ long word
 ~ 76
 ioFJMdDat
 long word
-FUNCTION PBSetFLock (pararnBlock: ParmBlkPtr; async: BOOLEAN)
+FUNCTION PBSetFLock (paramBlock: ParmBlkPtr; async: BOOLEAN)
 OSErr;
 ~ 12
 ioCompletion
@@ -8325,7 +8325,7 @@ word
 ~ 26
 ioFVersNum
 byte
-FUNCTION PBRstFLock (pararnBlock: ParmBlkPtr; async: BOOLEAN) · : OSErr;
+FUNCTION PBRstFLock (paramBlock: ParmBlkPtr; async: BOOLEAN) · : OSErr;
 ~ 12
 ioCompletion
 pointer
@@ -10799,7 +10799,7 @@ volumeParam:
 ... {used by the File Manager}
 cntrlParam:
 ... {Control and Status call parameters}
-PannBlkPtr = AParamBlockRec;
+ParmBlkPtr = AParamBlockRec;
 The first four fields in each parameter block are handled entirely by the Device Manager, and most
 programmers needn't be concerned with them; programmers who are interested in them should
 see the section "The Structure of a Device Driver".
@@ -11571,8 +11571,8 @@ Serial Driver port A input
 Serie I Driver port A output
 Serial Driver port B input
 Serie I Driver port B output
-App leTelk .MPP Driver
-AppleTelk .ATP Driver
+AppleTalk .MPP Driver
+AppleTalk .ATP Driver
 reserved
 Calculator
 Alarm Clock
@@ -12029,9 +12029,9 @@ l;
 (add to above for read-verify}
 Data Types
 TYPE PararnBlkType
-(ioPararn,fileParam,volurnePararn,cntrlParam);
-ParrnBlkPtr
-PararnBlock.Rec
+(ioParam,fileParam,volumeParam,cntrlParam);
+ParmBlkPtr
+ParamBlock.Rec
 qLink:
 "PararnBlockRec;
 RECORD
@@ -12043,7 +12043,7 @@ ioResult:
 ioNarnePtr:
 ioVRefNurn:
 CASE PararnBlkType
-ioPararn:
+ioParam:
 QElernPtr;
 INTEGER;
 INTEGER;
@@ -12070,9 +12070,9 @@ LONGINT;
 LONGINT;
 INTEGER;
 ioPosOffset: LONGINT) ;
-filePararn:
+fileParam:
 . . . {used by File Manager}
-volurnePararn:
+volumeParam:
 . . . {used by File Manager}
 (next queue entry)
 (queue type)
@@ -12103,7 +12103,7 @@ cntrlParam:
 csCode:
 INTEGER;
 {type of Control or Status call}
-csPararn:
+csParam:
 ARRAY[O .. 10) OF INTEGER) {control or status information}
 END;
 DCtlHandle
