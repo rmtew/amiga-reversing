@@ -1,4 +1,4 @@
-Status: Open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -50,3 +50,25 @@ Delete after MPW source structure parsing is implemented and covered by tests.
 Notes for agents:
 Preserve MacRoman text handling. Do not "fix" MPW source encoding as part of
 this parser unless a test proves the conversion is wrong.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_source_structure`, a MacRoman MPW source
+  structure parser.
+- The parser emits file-level includes, imports, exports, source segments,
+  routines, source `MAIN` entry markers, records, `WITH` scopes, and line
+  ranges.
+- Source `SEG` membership is explicitly represented as source-only and never
+  mapped to observed `MPW/Tools/Asm` `CODE` resources by name alone.
+- `MAIN` is represented as `source_main_entry`; it does not claim application
+  `CODE 1 Main` or a linked program kind.
+
+Validation notes:
+- Local extracted AExamples sources are ignored inputs, so tests use committed
+  synthetic fixtures with the required filenames and real MPW source shapes.
+- Local validation against ignored extracted files parsed:
+  `Sample.a`, `SampleMisc.a`, `Sample.inc1.a`, `MemorySrc.a`, and `Count.a`.
+
+Verification:
+- `uv run python -m pytest tests\test_macos_source_structure.py -q`
+- `uv run ruff check amiga_reversing\disasm\macos_source_structure.py tests\test_macos_source_structure.py`
+- `uv run mypy amiga_reversing\disasm\macos_source_structure.py`

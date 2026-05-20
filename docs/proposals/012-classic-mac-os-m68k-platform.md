@@ -709,7 +709,7 @@ Classify source text, editor metadata, executable resource forks,
 data/string payloads, and object payloads from MPW-GM inventory.
 ```
 
-2. MPW source structure parser
+2. MPW source structure parser - implemented
 
 ```text
 Parse INCLUDE, IMPORT, EXPORT, SEG, MAIN, PROC, FUNC, RECORD, WITH, and routine
@@ -883,6 +883,11 @@ resources documentation coverage tests
 - Full-tree mypy currently has unrelated strict typing failures outside the Mac
   fork-role work; focused direct mypy is used for the new module until that
   wider baseline is cleaned up.
+- 012-002 added a MacRoman MPW source structure parser. It records source-only
+  SEG membership, routines, MAIN entry markers, imports/exports, records, WITH
+  scopes, and line ranges. Local validation against ignored extracted AExamples
+  sources succeeded, but committed tests use small fixtures because the full
+  extracted source files remain local inputs.
 
 ## Open Questions
 
