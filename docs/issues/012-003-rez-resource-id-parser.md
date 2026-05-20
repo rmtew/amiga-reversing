@@ -1,4 +1,4 @@
-Status: Open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -49,3 +49,26 @@ Delete after resource ID parsing is implemented and durable notes are promoted.
 Notes for agents:
 This is source/resource semantic parsing, not resource-fork binary parsing. Keep
 it separate from the `Asm` `CODE` resource importer.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_resource_model`, a source-level
+  Rez/resource parser separate from binary resource-fork parsing.
+- The parser inventories Rez resource declarations with type, symbolic ID,
+  resolved numeric ID, attributes, source path, and line range.
+- `Sample.h` `#define` constants and `Sample.inc1.a` `EQU` constants are merged
+  for resource ID resolution.
+- Assembly source xrefs connect immediate resource symbols to resource
+  declarations for `_GetNewWindow`, `_GetNewMBar`, `GoGetRect`, and `_Alert`.
+- `_GetResource` is represented as a caller-supplied ID lookup with observed
+  resource type, not a guessed concrete ID.
+- `ALRT` and `DITL` share symbolic IDs; xref resolution uses call context so
+  `_Alert` points at `ALRT`, not the same-ID `DITL`.
+
+Validation notes:
+- Local ignored AExamples validation found 13 `Sample.r` resources, one
+  `Count.r` `cmdo`, and the expected Sample/SampleMisc xrefs.
+
+Verification:
+- `uv run python -m pytest tests\test_macos_resource_model.py -q`
+- `uv run ruff check amiga_reversing\disasm\macos_resource_model.py tests\test_macos_resource_model.py`
+- `uv run mypy amiga_reversing\disasm\macos_resource_model.py`

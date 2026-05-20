@@ -716,7 +716,7 @@ Parse INCLUDE, IMPORT, EXPORT, SEG, MAIN, PROC, FUNC, RECORD, WITH, and routine
 boundaries from Sample/Memory/Count source.
 ```
 
-3. Rez/resource ID parser
+3. Rez/resource ID parser - implemented
 
 ```text
 Connect Sample.r declarations to Sample.h/Sample.inc1.a constants and source
@@ -888,6 +888,11 @@ resources documentation coverage tests
   scopes, and line ranges. Local validation against ignored extracted AExamples
   sources succeeded, but committed tests use small fixtures because the full
   extracted source files remain local inputs.
+- 012-003 added source-level Rez/resource parsing. It resolves Sample resource
+  IDs from both `Sample.h` and `Sample.inc1.a`, inventories `Sample.r` and
+  `Count.r` resource declarations, and connects assembly call sites to resource
+  declarations. `ALRT`/`DITL` shared IDs require call-context resolution; `_Alert`
+  must bind to `ALRT`, while `_GetResource` remains a caller-supplied ID lookup.
 
 ## Open Questions
 
