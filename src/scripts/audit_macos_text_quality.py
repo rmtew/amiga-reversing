@@ -84,9 +84,35 @@ def auto_replacement(rule_id: str, token: str, rule_replacements: dict[str, str]
         if re.search(r"\b(?:I|II|III|IV)-\d+", context) or re.search(r"\bIl-\d+", context):
             return token.replace("Il-", "II-", 1)
         return None
+    if rule_id == "split_pascal_assignment":
+        if split_assignment_classification(token, context) == "auto_candidate":
+            return ":="
+        return None
     if rule_replacements:
         return rule_replacements.get(token)
     return None
+
+
+def split_assignment_classification(token: str, context: str) -> str:
+    if "\n" in token:
+        return "source_review"
+    if context in {": =", ": = 'X' ;", ": = CHR ( i ) ;"}:
+        return "source_review"
+    if "Suppress spaces" in context or "Display : =" in context or ": =On/" in context:
+        return "manual_review"
+    if "(synonym: =" in context:
+        return "manual_review"
+    if re.search(r"[A-Za-z0-9_\]\)\.]\s*:\s+=\s*\S", context):
+        return "auto_candidate"
+    return "source_review"
+
+
+def classification(rule_id: str, token: str, replacement: str | None, context: str) -> str:
+    if rule_id == "split_pascal_assignment":
+        return split_assignment_classification(token, context)
+    if replacement:
+        return "auto_candidate"
+    return "manual_review"
 
 
 def page_for_offset(offset: int, page_markers: list[tuple[int, int]]) -> int | None:
@@ -135,6 +161,7 @@ def audit_doc(path: Path) -> list[dict[str, Any]]:
                     "rule": rule["id"],
                     "match": token,
                     "auto_replacement": replacement,
+                    "classification": classification(rule["id"], token, replacement, context),
                     "description": rule["description"],
                     "context": context,
                 }
@@ -159,6 +186,7 @@ def main() -> int:
         "docs": str(args.docs).replace("\\", "/"),
         "finding_count": len(findings),
         "counts_by_rule": dict(sorted(Counter(finding["rule"] for finding in findings).items())),
+        "counts_by_classification": dict(sorted(Counter(finding["classification"] for finding in findings).items())),
         "counts_by_document": dict(sorted(Counter(finding["document"] for finding in findings).items())),
         "findings": findings,
     }

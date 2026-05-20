@@ -1,29 +1,22 @@
 {
   "schema": "macos_doc_text_audit.v1",
   "docs": "ext/docs_macos",
-  "finding_count": 45,
+  "finding_count": 11,
   "counts_by_rule": {
-    "split_pascal_assignment": 45
+    "split_pascal_assignment": 11
+  },
+  "counts_by_classification": {
+    "manual_review": 4,
+    "source_review": 7
   },
   "counts_by_document": {
     "Inside_Macintosh_Volume_III_1985.md": 1,
-    "Inside_Macintosh_Volume_II_1985.md": 17,
     "Inside_Macintosh_Volume_IV_1986.md": 2,
-    "Inside_Macintosh_Volume_I_1985.md": 6,
+    "Inside_Macintosh_Volume_I_1985.md": 2,
     "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md": 1,
-    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 18
+    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 5
   },
   "findings": [
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 90,
-      "line": 3781,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "aProcPtr : = @MyProc"
-    },
     {
       "document": "Inside_Macintosh_Volume_I_1985.md",
       "page": 132,
@@ -31,38 +24,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": "myHndl : ="
-    },
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 194,
-      "line": 8635,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "barbell : = NewRgn;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 310,
-      "line": 15291,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "defHandle : = GetResource ('WDEF', resource ID)"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 341,
-      "line": 16915,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "defHandle : = GetResource (' CDEF', resource ID)"
     },
     {
       "document": "Inside_Macintosh_Volume_I_1985.md",
@@ -71,178 +35,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "manual_review",
       "description": "Split Pascal assignment operator.",
       "context": "(synonym: =Elems68K)"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 25,
-      "line": 882,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "aHandleAA.field : = NewHandle( .. . )"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 97,
-      "line": 4320,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "result : = GetVol(@myStr,myRefNum)"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 237,
-      "line": 13672,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "rnyFFPtrA .count : = FixRatio(l,1);"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 288,
-      "line": 17009,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "errCode : = MPPOpen;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 288,
-      "line": 17017,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "myABRecord : = ABRecHandle(NewHandle(lapSize));"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 288,
-      "line": 17018,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "myLAPType : = 73;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 289,
-      "line": 17045,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "buffer[l] : = CHR(dataLen MOD 256); {low byte of data length}"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 289,
-      "line": 17058,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "errCode : = LAPWrite(myABRecord,async);"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 294,
-      "line": 17388,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "errCode : = DDPOpenSocket(mySocket,NIL);"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 294,
-      "line": 17411,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "ddpReqCount : = dataLen;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 306,
-      "line": 18221,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "buffPtr : = @myBuffer;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 306,
-      "line": 18231,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "atpAddress.aNet : = 0;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 306,
-      "line": 18234,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "atpAddress . aSocket : = 15;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 306,
-      "line": 18236,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "atpReqCount : = 1;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 306,
-      "line": 18243,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "atpXO : = FALSE;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 311,
-      "line": 18570,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "nbpRetransrnitinfo.retransinterval : = 8;"
-    },
-    {
-      "document": "Inside_Macintosh_Volume_II_1985.md",
-      "page": 312,
-      "line": 18597,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "zoneStr : = '*';"
     },
     {
       "document": "Inside_Macintosh_Volume_III_1985.md",
@@ -251,6 +46,7 @@
       "rule": "split_pascal_assignment",
       "match": ":\n=",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": "qLink:"
     },
@@ -261,6 +57,7 @@
       "rule": "split_pascal_assignment",
       "match": ":\n=",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": "qLink:"
     },
@@ -271,6 +68,7 @@
       "rule": "split_pascal_assignment",
       "match": ":\n=",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": "qLink:"
     },
@@ -281,58 +79,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "manual_review",
       "description": "Split Pascal assignment operator.",
       "context": "-y Display : = without surrounding spaces (y + )."
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 149,
-      "line": 7507,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "newlen : = 0;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 149,
-      "line": 7517,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "s [newlen] : = c;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 150,
-      "line": 7556,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "FOR col : = 1 to account DO"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 225,
-      "line": 11568,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "menuidO : =~AA.menuIDno[men);\u00ad"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 362,
-      "line": 18042,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "PA : = 2;"
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
@@ -341,18 +90,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": ": = 'X' ;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 383,
-      "line": 19048,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "i : = ORD ( s [ 0 ] ) + 1 ;"
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
@@ -361,18 +101,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": ": = CHR ( i ) ;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 383,
-      "line": 19065,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "s 2 [ 0 ] : = CHR ( w) ;"
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
@@ -381,38 +112,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "source_review",
       "description": "Split Pascal assignment operator.",
       "context": ": ="
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 389,
-      "line": 19423,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "BSL : = 0;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 389,
-      "line": 19434,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "BST : = 0;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 398,
-      "line": 20011,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "{$SETC kernel : = level > 3}"
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
@@ -421,38 +123,9 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "manual_review",
       "description": "Split Pascal assignment operator.",
       "context": "Suppress spaces on either side of : ="
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 423,
-      "line": 21236,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "sumthem : = sum;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 433,
-      "line": 21886,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "ArgVIndex : = 0;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 435,
-      "line": 21979,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "description": "Split Pascal assignment operator.",
-      "context": "off : = off + Length(str)"
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
@@ -461,6 +134,7 @@
       "rule": "split_pascal_assignment",
       "match": ": =",
       "auto_replacement": null,
+      "classification": "manual_review",
       "description": "Split Pascal assignment operator.",
       "context": "/\u2022 [A-Za-z]+: =On/ \"\""
     }

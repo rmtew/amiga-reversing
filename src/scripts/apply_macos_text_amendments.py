@@ -18,12 +18,13 @@ def whole_token_pattern(token: str) -> re.Pattern[str]:
 
 
 def build_amendments(audit: dict[str, Any]) -> list[dict[str, Any]]:
-    grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    grouped: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
     for finding in audit["findings"]:
         replacement = finding.get("auto_replacement")
         if not replacement:
             continue
-        key = (finding["document"], finding["match"], replacement, finding["rule"])
+        context = finding["context"] if finding["rule"] == "split_pascal_assignment" else ""
+        key = (finding["document"], finding["match"], replacement, finding["rule"], context)
         item = grouped.setdefault(
             key,
             {
@@ -31,6 +32,7 @@ def build_amendments(audit: dict[str, Any]) -> list[dict[str, Any]]:
                 "match": finding["match"],
                 "replacement": replacement,
                 "rule": finding["rule"],
+                **({"context": context} if context else {}),
                 "pages": [],
                 "audit_lines": [],
             },
@@ -59,20 +61,28 @@ def apply_amendments(docs_dir: Path, amendments: list[dict[str, Any]], dry_run: 
         path = docs_dir / document
         text = path.read_text(encoding="utf-8")
         for item in items:
-            pattern = whole_token_pattern(item["match"])
-            matches = list(pattern.finditer(text))
-            item["occurrences_before"] = len(matches)
-            if matches:
-                text = pattern.sub(item["replacement"], text)
-            item["occurrences_replaced"] = len(matches)
+            if item["rule"] == "split_pascal_assignment":
+                context = item["context"]
+                replacement_context = context.replace(item["match"], item["replacement"], 1)
+                item["occurrences_before"] = text.count(context)
+                if item["occurrences_before"]:
+                    text = text.replace(context, replacement_context)
+                item["occurrences_replaced"] = item["occurrences_before"]
+            else:
+                pattern = whole_token_pattern(item["match"])
+                matches = list(pattern.finditer(text))
+                item["occurrences_before"] = len(matches)
+                if matches:
+                    text = pattern.sub(item["replacement"], text)
+                item["occurrences_replaced"] = len(matches)
         if not dry_run:
             path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def merge_amendments(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    merged: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    merged: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
     for item in [*existing, *new]:
-        key = (item["document"], item["match"], item["replacement"], item["rule"])
+        key = (item["document"], item["match"], item["replacement"], item["rule"], item.get("context", ""))
         if key not in merged:
             merged[key] = item
             continue
@@ -81,7 +91,7 @@ def merge_amendments(existing: list[dict[str, Any]], new: list[dict[str, Any]]) 
         current["audit_lines"] = sorted(set(current.get("audit_lines", [])) | set(item.get("audit_lines", [])))
         current["occurrences_before"] = current.get("occurrences_before", 0) + item.get("occurrences_before", 0)
         current["occurrences_replaced"] = current.get("occurrences_replaced", 0) + item.get("occurrences_replaced", 0)
-    return sorted(merged.values(), key=lambda item: (item["document"], item["rule"], item["match"]))
+    return sorted(merged.values(), key=lambda item: (item["document"], item["rule"], item["match"], item.get("context", "")))
 
 
 def main() -> int:
@@ -108,6 +118,7 @@ def main() -> int:
         "selection": (
             "Auto-applied only fixed text substitutions listed by the text audit rules. "
             "Roman page references are auto-applied for Il-/II- OCR confusion; "
+            "split Pascal assignment fixes are applied only to exact audited context lines; "
             "mojibake and ambiguous spacing findings stay review-only."
         ),
         "dry_run": args.dry_run,

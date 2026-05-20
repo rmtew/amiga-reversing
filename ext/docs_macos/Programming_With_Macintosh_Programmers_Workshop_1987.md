@@ -7504,7 +7504,7 @@ BEGIN
 S ·= '' .
 •
 I
-newlen : = 0;
+newlen := 0;
 WHILE NOT Eoln DO
 BEGIN
 Read (c);
@@ -7514,7 +7514,7 @@ LEAVE;
 { Lisa/MPW extension to ISO Pascal }
 newlen := newlen+l;
 s [0] := CHR(newlen);
-s [newlen] : = c;
+s [newlen] := c;
 END;
 END; { MyReadString }
 Manually set length }
@@ -7553,7 +7553,7 @@ MyReadint(account);
 MyReadString(amount);
 ReadLn;
 Write(check,tabchar,date);
-FOR col : = 1 to account DO
+FOR col := 1 to account DO
 Write(tabchar);
 WriteLn(amount);
 END;
@@ -11565,7 +11565,7 @@ equivalent.
 ID
 HD:MPW:Sources:Normal
 HD:MPW:Sources:Show lnulslbles
-menuidO : =~AA.menuIDno[men);­
+menuidO :=~AA.menuIDno[men);­
 IFOVerboseFlagOTHEN-
 OHOEEGIN-
 6
@@ -18039,7 +18039,7 @@ i: INTEGER;
 p: IntPtr;
 BEGIN
 p := @i;
-PA : = 2;
+PA := 2;
 { address of i; Ai is a syntax error }
 { dereference p; p@ is a syntax error }
 Among the various Pascal dialects, one of the most influential was
@@ -19045,7 +19045,7 @@ Programming with Macintosh Programmer's Workshop
 VAR
 i : INTEGER;
 BEGIN
-i : = ORD ( s [ 0 ] ) + 1 ;
+i := ORD ( s [ 0 ] ) + 1 ;
 s [ 0 ]
 : = CHR ( i ) ;
 s[i] := c;
@@ -19062,7 +19062,7 @@ s2
 INTEGER;
 Str255;
 BEGIN
-s 2 [ 0 ] : = CHR ( w) ;
+s 2 [ 0 ] := CHR ( w) ;
 WHILE w > 0 DO
 BEGIN
 d := BAND(n,$F);
@@ -19420,7 +19420,7 @@ IF (count MOD 64) < 32 THEN
 BSL :=
 BitShift (num, count)
 ELSE
-BSL : = 0;
+BSL := 0;
 END;
 BitShift uses MOD 32 }
 32-63 always 0 }
@@ -19431,7 +19431,7 @@ IF (count MOD 64) < 32 THEN
 BST := BitShift (num, -count)
 { BitShift uses MOD 32 }
 ELSE
-BST : = 0;
+BST := 0;
 32-63 always 0 }
 END;
 FUNCTION BAND (nl,n2 : LONG INT)
@@ -20008,7 +20008,7 @@ The variable can be assigned to an expression involving constants or
 other compile-time variables within the { $SETC} directive in a syntax
 reminiscent of the Pascal assignment statement. The directives
 {$SETC level := 5}
-{$SETC kernel : = level > 3}
+{$SETC kernel := level > 3}
 
 <!-- source-page: 399 -->
 ## Page 399
@@ -21233,7 +21233,7 @@ leave;
 22
 1
 22
-sumthem : = sum;
+sumthem := sum;
 23
 1
 23 -0 A end; (* SumThem *)
@@ -21883,7 +21883,7 @@ RetCode := RC_Normal;
 { install handler }
 PrevSig := IEsigset(SIGALLSIGS,
 @Intr);
-ArgVIndex : = 0;
+ArgVIndex := 0;
 limit := ArgC -1;
 WHILE ArgVIndex <
 BEGIN
@@ -21976,7 +21976,7 @@ off,
 str);
 Write (f,
 str);
-off : = off + Length(str)
+off := off + Length(str)
 UNTIL len <= 0;
 { no more characters left }
 END;

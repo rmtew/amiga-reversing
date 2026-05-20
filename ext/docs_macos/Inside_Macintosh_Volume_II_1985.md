@@ -879,7 +879,7 @@ following cases:
 · WITH aHandle"" DO ...
 • Assigning the result of a function that can move or purge blocks (or of any function in a
 package or another segment) to a field in a record referred to by a handle, such as
-aHandleAA.field : = NewHandle( .. . )
+aHandleAA.field := NewHandle( .. . )
 A problem may arise because the compiler generates code that dereferences the handle
 before calling NewHandle-and NewHandle may move the block containing the field.
 • Passing an argument of more than four bytes referred to by a handle, to a routine that can
@@ -4317,7 +4317,7 @@ sure that memory has been allocated for the variable. For example, the following
 statements will ensure that memory is allocated for the variable myStr:
 VAR
 myStr: Str255;
-result : = GetVol(@myStr,myRefNum)
+result := GetVol(@myStr,myRefNum)
 When accessing a closed file on a volume, you must identify the volume by the method given
 above, and identify the file by its name in the fileName parameter. (The high-level File Manager
 routines will work only with files having a version number of 0.) FileName can contain either the
@@ -13669,7 +13669,7 @@ HLock(rnyHandle);
 rnyPtr := rnyHandleA;
 rnyFFPtr := FFSynthPtr(rnyPtr);
 rnyFFPtrA .rnode := ffMode;
-rnyFFPtrA .count : = FixRatio(l,1);
+rnyFFPtrA .count := FixRatio(l,1);
 rnyFFPtrA.waveBytes[O] := O;
 {allocate space for the buffer}
 {lock the buffer}
@@ -17006,7 +17006,7 @@ errCode,index,dataLen: INTEGER;
 someText: Str255;
 async : BOOLEAN;
 BEGIN
-errCode : = MPPOpen;
+errCode := MPPOpen;
 IF errCode <> noErr
 THEN
 WRITELN('Error in opening AppleTalk')
@@ -17014,8 +17014,8 @@ WRITELN('Error in opening AppleTalk')
 ELSE
 BEGIN
 {Call Memory Manager to allocate ABusRecord}
-myABRecord : = ABRecHandle(NewHandle(lapSize));
-myLAPType : = 73;
+myABRecord := ABRecHandle(NewHandle(lapSize));
+myLAPType := 73;
 {Enter myLAPType into protocol handler table and install default
 { handler to service frames of that ALAP type.
 No packets of }
@@ -17042,7 +17042,7 @@ Inside Macintosh
 {including the length bytes themselves.}
 dataLen := LENGTH(someText)+2;
 buffer[O] ·= CHR(dataLen DIV 256); {high byte of data length}
-buffer[l] : = CHR(dataLen MOD 256); {low byte of data length}
+buffer[l] := CHR(dataLen MOD 256); {low byte of data length}
 FOR index := 1 TO dataLen-2 DO {stuff buffer with packet data}
 buffer[index+l] := someText[index];
 async := FALSE;
@@ -17055,7 +17055,7 @@ lapReqCount := dataLen;
 lapDataPtr := @buffer;
 END;
 {Send the frame}
-errCode : = LAPWrite(myABRecord,async);
+errCode := LAPWrite(myABRecord,async);
 {In the case of a sync call, errCode and the abResult field of }
 { the myABRecord will contain the same result code .
 We can also
@@ -17385,7 +17385,7 @@ mySocket := 30;
 { to service datagrams addressed to that socket.
 No packets }
 { addressed to mySocket will be received until we call DDPRead.}
-errCode : = DDPOpenSocket(mySocket,NIL);
+errCode := DDPOpenSocket(mySocket,NIL);
 IF errCode <> noErr
 THEN
 WRITELN('Error while opening the socket')
@@ -17408,7 +17408,7 @@ ddpAddress.aNet := O;
 {send on "our" network}
 ddpAddress.aNode := 34;
 ddpAddress .aSocket := mySocket;
-ddpReqCount : = dataLen;
+ddpReqCount := dataLen;
 ddpDataPtr := @myBuffer;
 END;
 doChecksum := FALSE;
@@ -18218,7 +18218,7 @@ myBDSPtr := BDSPtr(NewPtr(SIZEOF(BDSElement)));
 WITH myBDSPtrA[O] DO
 BEGIN
 buffSize := 512;
-buffPtr : = @myBuffer;
+buffPtr := @myBuffer;
 END;
 {Prepare the ABusRecord}
 {size of our buffer used in reception}
@@ -18228,19 +18228,19 @@ myBuffer [O] := CHR(l);
 myABRecord := ABRecHandle(NewHandle(atpSize)) ;
 WITH myABRecordAA DO
 BEGIN
-atpAddress.aNet : = 0;
+atpAddress.aNet := 0;
 atpAddress .aNode := 30;
 {we probably got this from an NBP call}
-atpAddress . aSocket : = 15;
+atpAddress . aSocket := 15;
 {socket to send request t o}
-atpReqCount : = 1;
+atpReqCount := 1;
 {size of request data f ield (disk block #)}
 atpDataPtr := @myBuffer;
 {ptr to request to be sent}
 atpRspBDSPtr := @myBDSPtr;
 atpUserData := O;
 {for your use)
-atpXO : = FALSE;
+atpXO := FALSE;
 {at-least-once service}
 atpTimeOut := 5;
 {5-second timeout)
@@ -18567,7 +18567,7 @@ nbpBufPtr := nbpNamePtr;
 {buffer used by NBP internally}
 nbpBufSize := nbpNarneBufSize;
 nbpAddress.aSocket := mySocket; {socket
-nbpRetransrnitinfo.retransinterval : = 8;
+nbpRetransrnitinfo.retransinterval := 8;
 nbpRetransmitinfo.retransCount := 3;
 END;
 async := FALSE;
@@ -18594,7 +18594,7 @@ WITH myEntity DO
 BEGIN
 objStr := '=';
 typeStr ·= 'PrintSpooler';
-zoneStr : = '*';
+zoneStr := '*';
 END;
 WITH myABRecordAA DO
 BEGIN

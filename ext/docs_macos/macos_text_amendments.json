@@ -2,12 +2,12 @@
   "schema": "macos_doc_text_amendments.v1",
   "audit": "ext/docs_macos/macos_text_audit.json",
   "docs": "ext/docs_macos",
-  "selection": "Auto-applied only fixed text substitutions listed by the text audit rules. Roman page references are auto-applied for Il-/II- OCR confusion; mojibake and ambiguous spacing findings stay review-only.",
+  "selection": "Auto-applied only fixed text substitutions listed by the text audit rules. Roman page references are auto-applied for Il-/II- OCR confusion; split Pascal assignment fixes are applied only to exact audited context lines; mojibake and ambiguous spacing findings stay review-only.",
   "dry_run": false,
-  "new_amendment_count": 0,
-  "new_replacement_count": 0,
-  "amendment_count": 128,
-  "replacement_count": 171,
+  "new_amendment_count": 34,
+  "new_replacement_count": 34,
+  "amendment_count": 162,
+  "replacement_count": 205,
   "amendments": [
     {
       "document": "Inside_Macintosh_Volume_III_1985.md",
@@ -1099,6 +1099,261 @@
     },
     {
       "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "aHandleAA.field : = NewHandle( .. . )",
+      "pages": [
+        25
+      ],
+      "audit_lines": [
+        882
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "atpAddress . aSocket : = 15;",
+      "pages": [
+        306
+      ],
+      "audit_lines": [
+        18234
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "atpAddress.aNet : = 0;",
+      "pages": [
+        306
+      ],
+      "audit_lines": [
+        18231
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "atpReqCount : = 1;",
+      "pages": [
+        306
+      ],
+      "audit_lines": [
+        18236
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "atpXO : = FALSE;",
+      "pages": [
+        306
+      ],
+      "audit_lines": [
+        18243
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "buffPtr : = @myBuffer;",
+      "pages": [
+        306
+      ],
+      "audit_lines": [
+        18221
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "buffer[l] : = CHR(dataLen MOD 256); {low byte of data length}",
+      "pages": [
+        289
+      ],
+      "audit_lines": [
+        17045
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "ddpReqCount : = dataLen;",
+      "pages": [
+        294
+      ],
+      "audit_lines": [
+        17411
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "errCode : = DDPOpenSocket(mySocket,NIL);",
+      "pages": [
+        294
+      ],
+      "audit_lines": [
+        17388
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "errCode : = LAPWrite(myABRecord,async);",
+      "pages": [
+        289
+      ],
+      "audit_lines": [
+        17058
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "errCode : = MPPOpen;",
+      "pages": [
+        288
+      ],
+      "audit_lines": [
+        17009
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "myABRecord : = ABRecHandle(NewHandle(lapSize));",
+      "pages": [
+        288
+      ],
+      "audit_lines": [
+        17017
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "myLAPType : = 73;",
+      "pages": [
+        288
+      ],
+      "audit_lines": [
+        17018
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "nbpRetransrnitinfo.retransinterval : = 8;",
+      "pages": [
+        311
+      ],
+      "audit_lines": [
+        18570
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "result : = GetVol(@myStr,myRefNum)",
+      "pages": [
+        97
+      ],
+      "audit_lines": [
+        4320
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "rnyFFPtrA .count : = FixRatio(l,1);",
+      "pages": [
+        237
+      ],
+      "audit_lines": [
+        13672
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "zoneStr : = '*';",
+      "pages": [
+        312
+      ],
+      "audit_lines": [
+        18597
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
       "match": "volumePararn",
       "replacement": "volumeParam",
       "rule": "volume_ocr",
@@ -1853,6 +2108,261 @@
       ],
       "audit_lines": [
         28307
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "aProcPtr : = @MyProc",
+      "pages": [
+        90
+      ],
+      "audit_lines": [
+        3781
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "barbell : = NewRgn;",
+      "pages": [
+        194
+      ],
+      "audit_lines": [
+        8635
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "defHandle : = GetResource (' CDEF', resource ID)",
+      "pages": [
+        341
+      ],
+      "audit_lines": [
+        16915
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "defHandle : = GetResource ('WDEF', resource ID)",
+      "pages": [
+        310
+      ],
+      "audit_lines": [
+        15291
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "ArgVIndex : = 0;",
+      "pages": [
+        433
+      ],
+      "audit_lines": [
+        21886
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "BSL : = 0;",
+      "pages": [
+        389
+      ],
+      "audit_lines": [
+        19423
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "BST : = 0;",
+      "pages": [
+        389
+      ],
+      "audit_lines": [
+        19434
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "FOR col : = 1 to account DO",
+      "pages": [
+        150
+      ],
+      "audit_lines": [
+        7556
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "PA : = 2;",
+      "pages": [
+        362
+      ],
+      "audit_lines": [
+        18042
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "i : = ORD ( s [ 0 ] ) + 1 ;",
+      "pages": [
+        383
+      ],
+      "audit_lines": [
+        19048
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "menuidO : =~AA.menuIDno[men);\u00ad",
+      "pages": [
+        225
+      ],
+      "audit_lines": [
+        11568
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "newlen : = 0;",
+      "pages": [
+        149
+      ],
+      "audit_lines": [
+        7507
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "off : = off + Length(str)",
+      "pages": [
+        435
+      ],
+      "audit_lines": [
+        21979
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "s 2 [ 0 ] : = CHR ( w) ;",
+      "pages": [
+        383
+      ],
+      "audit_lines": [
+        19065
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "s [newlen] : = c;",
+      "pages": [
+        149
+      ],
+      "audit_lines": [
+        7517
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "sumthem : = sum;",
+      "pages": [
+        423
+      ],
+      "audit_lines": [
+        21236
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "match": ": =",
+      "replacement": ":=",
+      "rule": "split_pascal_assignment",
+      "context": "{$SETC kernel : = level > 3}",
+      "pages": [
+        398
+      ],
+      "audit_lines": [
+        20011
       ],
       "occurrences_before": 1,
       "occurrences_replaced": 1

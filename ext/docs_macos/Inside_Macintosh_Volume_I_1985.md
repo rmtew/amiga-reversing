@@ -3778,7 +3778,7 @@ PROCEDURE MyProc;
 BEGIN
 END;
 you can make aProcPtr point to MyProc by using Lisa Pascal's @ operator, as follows:
-aProcPtr : = @MyProc
+aProcPtr := @MyProc
 With the @ operator, you can assign procedures and functions to variables of type ProcPtr,
 embed them in data structures, and pass them as arguments to other routines. Notice, however,
 that the data type ProcPtr technically points to an arbitrary byte (SignedByte), not an actual
@@ -8632,7 +8632,7 @@ only one CloseRgn for every OpenRgn. CloseRgn calls ShowPen, balancing the HideP
 made by OpenRgn.
 Here's an example of how to create and open a region, define a barbell shape, close the region,
 draw it, and dispose of it:
-barbell : = NewRgn;
+barbell := NewRgn;
 OpenRgn;
 SetRect(ternpRect,20,20,30,50);
 FrameOval(ternpRect);
@@ -15288,7 +15288,7 @@ resourcelD
 code
 function and variation code)
 The Window Manager ca 11 s the Resource Manager with
-defHandle : = GetResource ('WDEF', resource ID)
+defHandle := GetResource ('WDEF', resource ID)
 and stores into the windowDefProc field of the window record:
 I code I
 defHandle
@@ -16912,7 +16912,7 @@ lcodel
 (resource ID of control definition
 function and variation code)
 The Control Manager calls the Resource Manager with
-defHandle : = GetResource (' CDEF', resource ID)
+defHandle := GetResource (' CDEF', resource ID)
 and stores into the contrlDefProc field of the control record:
 I code I
 def Handle
