@@ -745,7 +745,7 @@ Represent Sample as source files, segments, routines, resources, build recipe,
 and generated Mac facts. Keep this separate from executable CODE resources.
 ```
 
-7. Concrete semantic render smoke tests
+7. Concrete semantic render smoke tests - implemented
 
 ```text
 Snapshot useful rendered output for Sample.a Initialize, SampleMisc.a GoGetRect,
@@ -917,6 +917,10 @@ resources documentation coverage tests
   OS facts into navigable entities. It explicitly requires no built binary,
   ROM, or emulator, and keeps source `SEG` facts separate from observed `Asm`
   executable `CODE` resources.
+- 012-007 added compact structured render smoke views for the source project
+  model. The tests assert useful output for `Initialize`, `GoGetRect`, Memory's
+  `_PBHGetVInfoSync` path, and the `Count` MPW tool/runtime/resource summary,
+  while keeping unsupported `CODE` import and MPW roundtrip gaps visible.
 
 ## Open Questions
 

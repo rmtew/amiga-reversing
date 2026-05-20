@@ -1,4 +1,4 @@
-Status: Open
+Status: Implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -45,3 +45,18 @@ Delete after smoke tests are implemented and stable.
 Notes for agents:
 These tests define "useful source view." Keep expected output compact and
 structural, not prose-heavy.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_source_render` to render compact
+  structured routine/product views from the source-first Mac project model.
+- Smoke tests cover `Sample.a` `Initialize`, `SampleMisc.a` `GoGetRect`,
+  `MemorySrc.a` `_PBHGetVInfoSync`, and `Count` tool/runtime/resource
+  provenance.
+- Rendered facts come from parsed source/resources/build metadata plus
+  generated/structured Mac OS facts supplied to the source project model.
+- Unsupported areas remain explicit: executable `CODE` import and byte-for-byte
+  MPW Link/Rez roundtrip are not guessed.
+
+Verification:
+- `pytest tests/test_macos_source_render.py -q`
+- `pytest tests/test_macos_source_project.py tests/test_macos_source_render.py tests/test_macos_source_structure.py tests/test_macos_resource_model.py tests/test_macos_build_provenance.py tests/test_macos_runtime_generation.py -q`
