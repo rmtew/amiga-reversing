@@ -1,6 +1,6 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: proposed.
+Status: focused pass complete; remaining work is blocked/report-only or deferred.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -71,6 +71,41 @@ measured blocker needed for that improvement.
 19. `017-019`: remaining render-safe A5 hardware-ref sweep.
 20. `017-020`: immediate-reference report candidate write policy.
 21. `017-021`: A5 report suppression for already-recorded hardware refs.
+22. `017-022`: current gate closeout.
+
+## Current Gate State
+
+The focused post-hardening Pandora pass is exhausted as of 017-022:
+
+```text
+immediate-ref-report:
+  safe_to_mutate=false
+  command_candidate_count=0
+  report_only_candidate_count=9
+
+a5-hardware-report:
+  safe_to_mutate=false
+  accepted_path_lifetime_evidence_count=20
+  existing_manual_state_uses=20
+  command_candidate_count=0
+  missing_gates: command_candidate
+
+rsset-candidate-report:
+  safe_to_mutate=false
+  candidate_count=125
+  mutation_policy=report_only
+
+run-one dry run:
+  action=null
+  planner_message=no supported source-converging command candidate
+  remaining candidates are generic data-symbol styling or low-value literal
+  representation work
+```
+
+Restart 017 only when new durable evidence or new tooling turns one of those
+families into a command-backed, verifier-backed, exact-round-trip mutation.
+The deferred 017-006 performance issue remains closed for this pass because no
+measured slow phase crossed its investigation threshold.
 
 ## Recommended Order
 
@@ -273,3 +308,8 @@ repeatable work to `docs\issues\017-*`.
   `manual_state.a5_hardware_refs` no longer count as fresh command candidates.
   Pandora now reports the render-safe A5 queue as exhausted instead of inviting
   duplicate mutations.
+- 017-022 records the current end state of the focused Pandora pass. The
+  immediate-reference, A5, RSSET, and planner gates now all agree that no safe
+  source-converging mutation remains without new evidence or tooling; remaining
+  generic class/address data-symbol styling and low-value literal
+  representation candidates are not accepted as 017 progress.
