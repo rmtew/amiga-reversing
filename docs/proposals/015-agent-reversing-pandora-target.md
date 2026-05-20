@@ -1494,6 +1494,31 @@ Triage by scope:
   source-converging action, or typed app-slot array rendering is being changed.
 * Status: blocked for target mutation; no Manual Action Log change was made.
 
+#### D013: RSSET subfield accesses need alias/offset rendering
+
+* Date/source: 015-032 manual review of remaining raw Pandora A6 fields.
+* Location: `$01AD(a6)`, inside the existing 4-byte `app_frame_counter` region
+  at `$01AA(a6)`.
+* Evidence:
+  * 015-026 named `$01AA(a6)` as `app_frame_counter` from frame increment and
+    wait-loop evidence,
+  * the remaining `$01AD(a6)` uses are byte accesses to the low byte of that
+    long field: `btst.b #0,$01AD(a6)` controls the palette rotation path and
+    `move.b $01AD(a6),app_022D(a6)` copies the current frame low byte when
+    the surrounding display state allows it.
+* Expected source improvement:
+  * render byte-offset uses as an expression or alias of `app_frame_counter`
+    rather than as a new independent raw app slot.
+* Missing tool/report/action:
+  * `target.rsset_region.add` can add another region at `$01AD`, but that would
+    overlap the accepted `app_frame_counter` long and falsely model the byte as
+    independent state. The manual command surface needs an alias/subfield or
+    offset-expression path for byte/word accesses inside an accepted RSSET
+    region.
+* Pull-in condition: overlapping RSSET byte/word accesses become the next best
+  source-converging action, or app-slot alias rendering is being changed.
+* Status: blocked for target mutation; no Manual Action Log change was made.
+
 ## Stop Conditions
 
 Stop and report rather than continuing when:
