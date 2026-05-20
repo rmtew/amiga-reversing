@@ -1,6 +1,6 @@
 # Proposal 016: Pandora Reversing Loop Hardening
 
-Status: proposed follow-up to closed Proposal 015.
+Status: Complete.
 
 Proposal 015 is the closed Pandora trial archive. This proposal owns the
 remaining actionable tooling work that came out of that trial before another
@@ -84,3 +84,8 @@ there were no old issue files to delete.
   keeps raw A5 displacement rendering blocked. Pandora validation reported 114
   A5 definitions, 525 uses, 98 clobbers, and 26 save/restore boundaries, with
   324 uses proven custom and 201 still unknown.
+
+## Final Verification
+
+`cmd /c src\precommit.bat` passed after all 016 issue commits. The generated
+`src/benchmark.json` timing-only diff from that run was discarded as pure churn.
