@@ -1,6 +1,6 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: Draft.
+Status: starter milestone implemented; future work deferred.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -179,15 +179,25 @@ src/scripts/inspect_mac_resource_fork.py
 tests/test_mac_resource_fork.py
 ```
 
-Still absent:
+Implemented starter paths:
 
 ```text
-runtime Classic Mac OS platform loader
-Mac target import path
-generated src/generated/mac_os_*.c/.h
-Mac target metadata in project JSON
-web UI Mac project/listing smoke test
-resource/CODE parser promoted from script to reusable library code
+Mac source structure, Rez/resource, and MPW build provenance parsers
+generated Mac OS runtime metadata tables and C consumer lookup tests
+reusable resource fork and MPW Asm CODE container import helpers
+MPW/Tools/Asm HFS file/fork metadata and CODE 1 Main listing smoke test
+starter Classic Mac OS source/container web payload and renderer branch
+optional fixture/resource documentation and Mac source inventory check
+```
+
+Still deferred beyond the starter milestone:
+
+```text
+full Classic Mac OS target lifecycle creation in project JSON
+complete Segment Loader relocation/fixup interpretation
+byte-for-byte MPW Asm/Link/Rez roundtrip
+complete Toolbox/OS trap/API annotation coverage
+cross-program source-to-CODE segment mapping
 ```
 
 ## Research Path Before Issue Breakdown
@@ -759,7 +769,7 @@ Import MPW/Tools/Asm as HFS file metadata, data fork as data/string material,
 resource fork, CODE 0 metadata, CODE 1 Main listing, and unsupported state.
 ```
 
-9. Web UI source/container view
+9. Web UI source/container view - implemented
 
 ```text
 Expose pivots by source file, segment, routine, resource, trap/API fact, binary
@@ -953,6 +963,12 @@ resources documentation coverage tests
   paths used by the source/container tests, and `README.md` documents the
   `macos-platform-kb` report/check command for committed Mac source inventory
   metadata.
+- 012-011 reconciled this proposal's current-state text with implemented code:
+  the starter milestone now has source parsers, generated Mac OS runtime
+  metadata, reusable resource/CODE parsing, MPW `Asm` container import, a CODE 1
+  listing smoke path, and starter web payload/rendering tests. Full Mac target
+  lifecycle creation, Segment Loader fixups, source-to-CODE mapping, and
+  byte-for-byte roundtrip remain explicit future work.
 
 ## Open Questions
 
