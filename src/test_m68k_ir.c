@@ -13313,7 +13313,7 @@ static int test_facts_v2_render_asm_source_supports_named_rsset_layouts(void) {
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
-  policy.rsset_layout_region_count = 2U;
+  policy.rsset_layout_region_count = 3U;
   policy.rsset_layout_regions[0].offset = 0x0004U;
   policy.rsset_layout_regions[0].size = 4U;
   policy.rsset_layout_regions[0].flags = M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT;
@@ -13321,17 +13321,24 @@ static int test_facts_v2_render_asm_source_supports_named_rsset_layouts(void) {
   snprintf(policy.rsset_layout_regions[0].base_symbol, sizeof(policy.rsset_layout_regions[0].base_symbol),
     "__amiga_app_base__");
   snprintf(policy.rsset_layout_regions[0].symbol, sizeof(policy.rsset_layout_regions[0].symbol), "app_Window");
-  snprintf(policy.rsset_layout_regions[1].layout_name, sizeof(policy.rsset_layout_regions[1].layout_name), "work");
-  snprintf(policy.rsset_layout_regions[1].base_symbol, sizeof(policy.rsset_layout_regions[1].base_symbol),
-    "__game_work_base__");
-  snprintf(policy.rsset_layout_regions[1].sizeof_symbol, sizeof(policy.rsset_layout_regions[1].sizeof_symbol),
-    "work_SIZEOF");
   policy.rsset_layout_regions[1].offset = 0x0002U;
   policy.rsset_layout_regions[1].size = 2U;
-  snprintf(policy.rsset_layout_regions[1].symbol, sizeof(policy.rsset_layout_regions[1].symbol), "work_flags");
+  snprintf(policy.rsset_layout_regions[1].layout_name, sizeof(policy.rsset_layout_regions[1].layout_name), "app");
+  snprintf(policy.rsset_layout_regions[1].base_symbol, sizeof(policy.rsset_layout_regions[1].base_symbol),
+    "__amiga_app_base__");
+  snprintf(policy.rsset_layout_regions[1].symbol, sizeof(policy.rsset_layout_regions[1].symbol), "app_flags");
+  snprintf(policy.rsset_layout_regions[2].layout_name, sizeof(policy.rsset_layout_regions[2].layout_name), "work");
+  snprintf(policy.rsset_layout_regions[2].base_symbol, sizeof(policy.rsset_layout_regions[2].base_symbol),
+    "__game_work_base__");
+  snprintf(policy.rsset_layout_regions[2].sizeof_symbol, sizeof(policy.rsset_layout_regions[2].sizeof_symbol),
+    "work_SIZEOF");
+  policy.rsset_layout_regions[2].offset = 0x0002U;
+  policy.rsset_layout_regions[2].size = 2U;
+  snprintf(policy.rsset_layout_regions[2].symbol, sizeof(policy.rsset_layout_regions[2].symbol), "work_flags");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "app_flags RS.W 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_Window RS.L 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_SIZEOF EQU __RS\n") != NULL);
   M68K_C_ASSERT(strstr(source, "work_flags RS.W 1\n") != NULL);

@@ -813,6 +813,42 @@ the intended location.
   such as `$01BA`, `$01BC`, `$01C2`, and `$01C4` look related but need their own
   evidence and naming pass.
 
+### 015-021: Name tilemap row and column app slots
+
+* Candidate: D003 RSSET/app-base coverage for the adjacent raw `$01BA(a6)` and
+  `$01BC(a6)` word fields.
+* Evidence: the scroll/update flow stores clamped/scaled coordinates into these
+  fields: `$01B8(a6)` is shifted by four and stored to `$01BC(a6)`, while
+  `$01B6(a6)` is shifted by four and stored to `$01BA(a6)` around
+  `s0:00007D86`. The blitter/tile calculation then multiplies `$01BC(a6)` by
+  the row stride, adds `$01BA(a6)`, scales the result, and adds
+  `app_tilemap_base(a6)` around `s0:0000675E`.
+* Command: executed `target.rsset_region.add` for `$01BA` as
+  `app_tile_column` and `$01BC` as `app_tile_row`, both with
+  `layout_name: app`, `base_symbol: __amiga_app_base__`, and `size: 2`.
+  Follow-up `target.rsset_region.edit` actions removed the weak
+  `storage_kind: scalar` hint after review.
+* Support fix: the first projection rendered both 2-byte manual app regions as
+  `RS.L 1`. Fixed `m68k_render_ir.c` so canonical app-layout policy regions
+  (`layout_name: app`, `base_symbol: __amiga_app_base__`) keep their explicit
+  region size when formatting app RSSET directives. Added a C regression for a
+  2-byte app policy region without an app-layout flag.
+* Verifier: Manual Action Log count is 18; semantic reload shows `$01BA` and
+  `$01BC` effective metadata with `size: 2`; `cmd /c src\precommit.bat`
+  passed; Pandora exact reproduction reran and remained `status: exact`,
+  `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_tile_column RS.W 1`,
+  `app_tile_row RS.W 1`, and `app_tilemap_base RS.L 1`. Listing projection
+  shows four `app_tile_column` uses, four `app_tile_row` uses, and six
+  `app_tilemap_base` uses, including `mulu.w app_tile_row(a6),d0`,
+  `add.w app_tile_column(a6),d0`, and `clr.w app_tile_column(a6)`.
+* Review: this is a source-quality improvement and exposed a real support-code
+  defect. Remaining nearby offsets such as `$01C2`, `$01C4`, `$01D4`, and
+  `$01D8` still need separate evidence; the selected-use
+  `rsset.binding.report` path remains blocked by missing base evidence and no
+  bind/refine command.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -917,6 +953,8 @@ Triage by scope:
     `$01D8(a6)` still appear raw in related table/indexing code.
   * 015-020 resolved `$01BE(a6)` as `app_tilemap_base`, a long pointer
     initialized to `#$4000` and used as the base in tile/address calculations.
+  * 015-021 resolved `$01BA(a6)` as `app_tile_column` and `$01BC(a6)` as
+    `app_tile_row`, both 2-byte RSSET app fields used in tilemap indexing.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -933,8 +971,9 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 for `$01BE(a6)`. Adjacent raw fields remain
-  open pending stronger names or accepted base/gap evidence.
+* Status: partly fixed by 015-020 and 015-021 for `$01BA`, `$01BC`, and
+  `$01BE`. Adjacent raw fields remain open pending stronger names or accepted
+  base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 

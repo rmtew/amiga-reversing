@@ -6589,11 +6589,43 @@ static int render_app_rs_layout_kind_is_app(uint8_t layout_kind) {
 }
 
 static uint8_t render_app_rs_policy_layout_kind(const M68kAnalysisRssetLayoutRegion *region) {
-  if (region != NULL &&
-      (region->flags & (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U) {
+  const char *layout_name;
+  const char *base_symbol;
+  if (region == NULL) return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_NAMED;
+  layout_name = region->layout_name[0] != '\0' ? region->layout_name : M68K_RENDER_APP_LAYOUT_NAME;
+  base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+  if ((region->flags & (uint8_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT) != 0U ||
+      (strcmp(layout_name, M68K_RENDER_APP_LAYOUT_NAME) == 0 &&
+       strcmp(base_symbol, M68K_RENDER_APP_BASE_SYMBOL) == 0)) {
     return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
   }
   return (uint8_t)M68K_RENDER_APP_RS_LAYOUT_NAMED;
+}
+
+static int render_app_rs_policy_region_size_for_slot(const M68kAnalysisPolicy *policy, const char *symbol_name,
+    int32_t displacement, int32_t *out_size) {
+  uint16_t index;
+  int found = 0;
+  int32_t found_size = 0;
+  if (out_size != NULL) *out_size = 0;
+  if (policy == NULL || symbol_name == NULL || symbol_name[0] == '\0' || displacement < 0) return 0;
+  for (index = 0U; index < policy->rsset_layout_region_count &&
+       index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
+    const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+    if (!render_app_rs_layout_kind_is_app(render_app_rs_policy_layout_kind(region)) ||
+        strcmp(base_symbol, M68K_RENDER_APP_BASE_SYMBOL) != 0 ||
+        region->symbol[0] == '\0' || strcmp(region->symbol, symbol_name) != 0 ||
+        region->offset != (uint32_t)displacement || region->size == 0U) {
+      continue;
+    }
+    if (found != 0 && found_size != (int32_t)region->size) return 0;
+    found = 1;
+    found_size = (int32_t)region->size;
+  }
+  if (found == 0 || out_size == NULL) return found;
+  *out_size = found_size;
+  return 1;
 }
 
 static int render_app_rs_slot_compare(const void *left, const void *right) {
@@ -6861,6 +6893,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     char region_symbol_name[64], field_expr[96];
     int conflict = 0;
     int32_t extent_end;
+    int32_t policy_region_size;
     int32_t region_size;
     if (slot->conflicted != 0U || !render_base_field_slot_owner_is_app_base(slot)) continue;
     if ((int32_t)slot->displacement < base_offset) continue;
@@ -6892,11 +6925,15 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       continue;
     }
     slots[slot_count].displacement = slot->displacement;
+    (void)render_app_rs_policy_region_size_for_slot(lookup->policy, symbol_name, slot->displacement,
+      &policy_region_size);
     region_size = lookup_typed_app_slot_region_size(lookup, slot->displacement,
       slots[slot_count].owner_struct_name, sizeof(slots[slot_count].owner_struct_name));
-    slots[slot_count].size = region_size > 0
+    slots[slot_count].size = policy_region_size > 0
+      ? policy_region_size
+      : (region_size > 0
       ? region_size
-      : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1));
+      : (slot->observed_access_size != 0U ? slot->observed_access_size : ((slot->displacement & 1) == 0 ? 4 : 1)));
     snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), M68K_RENDER_APP_LAYOUT_NAME);
     slots[slot_count].layout_kind = (uint8_t)M68K_RENDER_APP_RS_LAYOUT_APP;
     slots[slot_count].base_kind = M68K_BASE_LAYOUT_BASE_KIND_APP;
