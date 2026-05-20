@@ -3202,7 +3202,8 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
         has_xrefs = _has_xref_evidence(item)
         actions = _suggested_action_kinds(item)
         verifier = _default_verifier_for_actions(actions)
-        confidence = "high" if locator is not None and has_xrefs and verifier is not None else "low"
+        orphan_code_blocker = _orphan_code_action_blocker(item)
+        confidence = "high" if locator is not None and has_xrefs and verifier is not None and orphan_code_blocker is None else "low"
         suggested_comment_text = _clean_comment_text(item.get("suggested_comment_text"))
         candidate: dict[str, object] = {
             "id": durable_identity or _locator_candidate_id(locator),
@@ -3215,6 +3216,7 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
                 "has_xrefs": has_xrefs,
                 "message": item.get("message"),
                 "confidence": item.get("review_confidence"),
+                "orphan_code_score": item.get("orphan_code_score"),
             },
             "xref_summary": item.get("refs") if isinstance(item.get("refs"), list) else [],
             "current_metadata": {
@@ -3228,7 +3230,9 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
             "confidence": confidence,
             "rationale": "open manual review item with xref evidence and locator" if confidence == "high" else None,
             "actionable": confidence == "high",
-            "stop_reason": None if confidence == "high" else "candidate lacks locator, xref evidence, or verifier",
+            "stop_reason": None
+            if confidence == "high"
+            else orphan_code_blocker or "candidate lacks locator, xref evidence, or verifier",
         }
         if suggested_comment_text is not None:
             candidate["suggested_comment_text"] = suggested_comment_text
@@ -3259,11 +3263,30 @@ def _locator_candidate_id(locator: dict[str, object] | None) -> str:
 
 
 def _has_xref_evidence(item: dict[str, object]) -> bool:
+    if item.get("kind") == "orphan_code_candidate":
+        score = item.get("orphan_code_score")
+        if isinstance(score, dict):
+            evidence = score.get("durable_evidence")
+            return isinstance(evidence, list) and bool(evidence)
     refs = item.get("refs")
     if isinstance(refs, list) and refs:
         return True
     ref_count = item.get("ref_count")
     return isinstance(ref_count, int) and ref_count > 0
+
+
+def _orphan_code_action_blocker(item: dict[str, object]) -> str | None:
+    if item.get("kind") != "orphan_code_candidate":
+        return None
+    score = item.get("orphan_code_score")
+    if not isinstance(score, dict):
+        return "orphan code candidate lacks durable evidence score"
+    if score.get("category") != "evidence_led":
+        return "orphan code candidate is report-only without durable control/data-flow evidence"
+    checks = score.get("false_positive_checks")
+    if isinstance(checks, list) and any(isinstance(check, dict) and check.get("status") == "risk" for check in checks):
+        return "orphan code candidate has false-positive risk"
+    return None
 
 
 def _suggested_action_kinds(item: dict[str, object]) -> list[str]:

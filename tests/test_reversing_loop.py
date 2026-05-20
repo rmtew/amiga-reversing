@@ -93,6 +93,11 @@ def test_inspect_candidates_include_durable_identity_or_locator(
         "end": 0x12,
         "ref_count": 2,
         "message": "orphan code",
+        "orphan_code_score": {
+            "category": "evidence_led",
+            "durable_evidence": [{"kind": "callback_slot"}],
+            "false_positive_checks": [],
+        },
         "suggested_actions": [{"action": "create_manual_seed"}],
     }
     monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))
@@ -105,6 +110,38 @@ def test_inspect_candidates_include_durable_identity_or_locator(
     assert candidate["evidence"]["has_xrefs"] is True
     assert candidate["confidence"] == "high"
     assert candidate["default_verifier"] == "manual_seed_state"
+
+
+def test_orphan_code_candidate_without_durable_evidence_is_report_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    item = {
+        "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
+        "scope": ReviewItemScope.RANGE,
+        "state": ReviewItemState.OPEN,
+        "item_id": "orphan:h0:$00000010-$00000012",
+        "hunk": 0,
+        "start": 0x10,
+        "end": 0x12,
+        "ref_count": 2,
+        "message": "orphan code",
+        "orphan_code_score": {
+            "category": "terminal_decode_only",
+            "durable_evidence": [],
+            "false_positive_checks": [],
+        },
+        "suggested_actions": [{"action": "create_manual_seed"}],
+    }
+    monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))
+
+    report = reversing_loop.inspect_target("demo", project_root=tmp_path)
+    candidate = report["candidate_work"][0]
+
+    assert candidate["actionable"] is False
+    assert candidate["confidence"] == "low"
+    assert candidate["stop_reason"] == "orphan code candidate is report-only without durable control/data-flow evidence"
 
 
 def test_inspect_unsafe_hygiene_blocks_mutation_readiness(
@@ -4835,6 +4872,11 @@ def test_planner_selects_review_seed_command_from_inspect_candidate(
         "end": 0x12,
         "ref_count": 2,
         "message": "orphan code",
+        "orphan_code_score": {
+            "category": "evidence_led",
+            "durable_evidence": [{"kind": "callback_slot"}],
+            "false_positive_checks": [],
+        },
         "suggested_actions": [{"action": "create_manual_seed"}],
     }
     monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))

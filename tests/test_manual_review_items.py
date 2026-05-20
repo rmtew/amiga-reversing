@@ -48,6 +48,7 @@ def test_analysis_review_items_emit_orphan_unreconciled_and_suspicious_items() -
     assert (8, 12) in unreconciled_ranges
     assert by_kind["orphan_code_candidate"]["start"] == 8
     assert by_kind["orphan_code_candidate"]["reason"] == "callback"
+    assert by_kind["orphan_code_candidate"]["orphan_code_score"]["category"] == "evidence_led"
     assert by_kind["suspicious_instruction_decode"]["start"] == 10
     assert by_kind["suspicious_instruction_decode"]["required_cpu"] == "68020"
     for item in items:
@@ -55,6 +56,77 @@ def test_analysis_review_items_emit_orphan_unreconciled_and_suspicious_items() -
         assert isinstance(item["evidence_fingerprint"], str)
         assert item["state"] == "open"
         assert isinstance(item["suggested_actions"], list)
+
+
+def test_orphan_code_terminal_decode_only_is_report_only() -> None:
+    item = next(
+        item
+        for item in analysis_review_items(
+            {
+                "sections": [
+                    {
+                        "section_index": 0,
+                        "section_size": 8,
+                        "blocks": [{"start_offset": 0, "end_offset": 2}],
+                        "orphan_code_signals": [
+                            {
+                                "offset": 4,
+                                "size": 2,
+                                "reason_name": "terminal_decode",
+                                "decode_plausibility": "valid_terminal",
+                            },
+                        ],
+                    }
+                ]
+            }
+        )
+        if item["kind"] == "orphan_code_candidate"
+    )
+
+    assert item["review_confidence"] == "low"
+    assert item["orphan_code_score"]["category"] == "terminal_decode_only"
+    assert item["suggested_actions"] == [
+        {"action": "navigate", "scope": "range", "hunk": 0, "addr": 4},
+        {"action": "resolve_as_data_or_padding"},
+    ]
+
+
+def test_orphan_code_false_positive_checks_are_reported() -> None:
+    item = next(
+        item
+        for item in analysis_review_items(
+            {
+                "sections": [
+                    {
+                        "section_index": 0,
+                        "section_size": 8,
+                        "blocks": [{"start_offset": 0, "end_offset": 2}],
+                        "orphan_code_signals": [
+                            {
+                                "offset": 4,
+                                "size": 2,
+                                "reason_name": "callback",
+                                "all_zero_data": True,
+                                "required_cpu_name": "68020",
+                                "unexpected_a_line": True,
+                                "suspicious_register_state": True,
+                            },
+                        ],
+                    }
+                ]
+            }
+        )
+        if item["kind"] == "orphan_code_candidate"
+    )
+
+    checks = item["orphan_code_score"]["false_positive_checks"]
+    assert item["orphan_code_score"]["category"] == "false_positive_risk"
+    assert {check["kind"] for check in checks if check["status"] == "risk"} == {
+        "all_zero_data",
+        "post_68000_instruction",
+        "unexpected_a_line_f_line",
+        "suspicious_register_state",
+    }
 
 
 def test_analysis_review_items_emit_decompression_blocker_without_sections() -> None:

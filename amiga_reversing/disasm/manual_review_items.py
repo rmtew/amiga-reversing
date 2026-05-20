@@ -109,22 +109,129 @@ def _orphan_code_items(section: dict[str, object], section_index: int) -> list[d
             continue
         start = _int_field(signal, "offset", _int_field(signal, "start_offset", 0))
         size = max(1, _int_field(signal, "size", 2))
-        items.append(
-            {
-                "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
-                "scope": ReviewItemScope.RANGE,
-                "state": ReviewItemState.OPEN,
-                "hunk": section_index,
-                "start": start,
-                "end": start + size,
-                "review_confidence": ReviewConfidence.MEDIUM,
-                "reason": signal.get("reason_name") or signal.get("reason"),
-                "signal_status": status,
-                "message": "Potential code has no accepted inbound evidence",
-                "source": "analysis",
-            }
-        )
+        score = _orphan_code_score(signal)
+        item = {
+            "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
+            "scope": ReviewItemScope.RANGE,
+            "state": ReviewItemState.OPEN,
+            "hunk": section_index,
+            "start": start,
+            "end": start + size,
+            "review_confidence": ReviewConfidence.HIGH
+            if score["category"] == "evidence_led"
+            else ReviewConfidence.LOW,
+            "reason": signal.get("reason_name") or signal.get("reason"),
+            "signal_status": status,
+            "orphan_code_score": score,
+            "message": _orphan_code_message(score),
+            "source": "analysis",
+        }
+        if score["category"] != "evidence_led":
+            item["suggested_actions"] = [
+                {
+                    "action": "navigate",
+                    "scope": ReviewItemScope.RANGE,
+                    "hunk": section_index,
+                    "addr": start,
+                },
+                {"action": "resolve_as_data_or_padding"},
+            ]
+        items.append(item)
     return items
+
+
+def _orphan_code_score(signal: dict[str, object]) -> dict[str, object]:
+    durable_evidence = _orphan_code_durable_evidence(signal)
+    false_positive_checks = _orphan_code_false_positive_checks(signal)
+    decode_plausibility = signal.get("decode_plausibility") or signal.get("terminal_decode")
+    if any(check["status"] == "risk" for check in false_positive_checks):
+        category = "false_positive_risk"
+    elif durable_evidence:
+        category = "evidence_led"
+    else:
+        category = "terminal_decode_only"
+    return {
+        "category": category,
+        "score": _orphan_code_numeric_score(category, durable_evidence, false_positive_checks),
+        "durable_evidence": durable_evidence,
+        "decode_plausibility": decode_plausibility if isinstance(decode_plausibility, str | int | float | bool) else None,
+        "false_positive_checks": false_positive_checks,
+    }
+
+
+def _orphan_code_durable_evidence(signal: dict[str, object]) -> list[dict[str, object]]:
+    evidence: list[dict[str, object]] = []
+    reason = signal.get("reason_name") or signal.get("reason")
+    reason_map = {
+        "callback": "callback_slot",
+        "callback_slot": "callback_slot",
+        "dispatch_table": "dispatch_table",
+        "stored_code_pointer": "stored_code_pointer",
+        "inbound_control_ref": "inbound_control_ref",
+        "control_target": "inbound_control_ref",
+        "same_family": "same_family",
+    }
+    if isinstance(reason, str) and reason in reason_map:
+        evidence.append({"kind": reason_map[reason], "source": "reason"})
+    for key in ("callback_slot", "dispatch_table", "stored_code_pointer", "inbound_control_ref", "same_family"):
+        value = signal.get(key)
+        if value:
+            evidence.append({"kind": key, "source": key, "value": value})
+    refs = signal.get("refs")
+    if isinstance(refs, list) and refs:
+        evidence.append({"kind": "inbound_control_ref", "source": "refs", "count": len(refs)})
+    return evidence
+
+
+def _orphan_code_false_positive_checks(signal: dict[str, object]) -> list[dict[str, object]]:
+    required_cpu = signal.get("required_cpu_name") or signal.get("required_cpu")
+    return [
+        {
+            "kind": "all_zero_data",
+            "status": "risk" if signal.get("all_zero_data") is True or signal.get("all_zero") is True else "clear",
+        },
+        {
+            "kind": "post_68000_instruction",
+            "status": "risk" if isinstance(required_cpu, str) and required_cpu not in {"68000", "m68000"} else "clear",
+            "required_cpu": required_cpu,
+        },
+        {
+            "kind": "unexpected_a_line_f_line",
+            "status": "risk"
+            if signal.get("unexpected_a_line") is True
+            or signal.get("unexpected_f_line") is True
+            or signal.get("a_line") is True
+            or signal.get("f_line") is True
+            else "clear",
+        },
+        {
+            "kind": "suspicious_register_state",
+            "status": "risk" if signal.get("suspicious_register_state") is True else "clear",
+        },
+    ]
+
+
+def _orphan_code_numeric_score(
+    category: str,
+    durable_evidence: list[dict[str, object]],
+    false_positive_checks: list[dict[str, object]],
+) -> int:
+    if category == "false_positive_risk":
+        return 0
+    if category == "terminal_decode_only":
+        return 10
+    return 80 + min(20, len(durable_evidence) * 5) - sum(
+        20 for check in false_positive_checks if check["status"] == "risk"
+    )
+
+
+def _orphan_code_message(score: dict[str, object]) -> str:
+    category = score.get("category")
+    if category == "evidence_led":
+        return "Evidence-led missed-code candidate has durable inbound evidence"
+    if category == "false_positive_risk":
+        return "Potential code has false-positive risk and remains report-only"
+    return "Potential code is terminal-decode-only and remains report-only"
 
 
 def _suspicious_instruction_items(section: dict[str, object], section_index: int) -> list[dict[str, object]]:

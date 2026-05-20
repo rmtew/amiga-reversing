@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Source proposal: docs/proposals/016-pandora-reversing-loop-hardening.md
 Moved from: docs/proposals/015-agent-reversing-pandora-target.md D002
 
@@ -27,3 +27,11 @@ Acceptance:
 - The planner cannot clear orphan-code review items just to reduce count.
 - Pandora follow-up work can choose concrete missed-code candidates with a
   reason chain.
+
+Implementation:
+- Orphan-code review items now carry `orphan_code_score` with durable evidence,
+  decode plausibility, false-positive checks, category, and numeric score.
+- Terminal-decode-only and false-positive-risk orphan items are report-only and
+  do not expose a code-seed planner action.
+- The reversing-loop planner only treats orphan-code candidates as actionable
+  when their score is evidence-led and has no false-positive risk.

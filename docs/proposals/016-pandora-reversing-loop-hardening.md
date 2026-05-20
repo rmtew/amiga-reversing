@@ -73,3 +73,8 @@ there were no old issue files to delete.
   the report now ignores small constants and remains report-only until a
   verifier-backed interpretation path exists. Pandora validation found 10
   candidates after filtering, including one runtime-address family candidate.
+- 016-005 made orphan-code review scoring evidence-led. Review items now expose
+  durable evidence, decode plausibility, false-positive checks, category, and
+  score. Terminal-decode-only or false-positive-risk items stay report-only, and
+  the planner requires evidence-led orphan-code scoring before selecting a
+  code-seed action.
