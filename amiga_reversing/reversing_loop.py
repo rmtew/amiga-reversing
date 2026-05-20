@@ -18,6 +18,7 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.callback_slot_report import callback_slot_report
 from amiga_reversing.disasm.effective_metadata import effective_target_metadata
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
@@ -155,6 +156,15 @@ def main(argv: list[str] | None = None) -> int:
     inspect_parser = subparsers.add_parser("inspect", help="Emit read-only target state and candidate work.")
     inspect_parser.add_argument("--target", required=True)
 
+    callback_parser = subparsers.add_parser(
+        "callback-report",
+        help="Report app-slot code pointers consumed by indirect calls or jumps.",
+    )
+    callback_parser.add_argument("--target", required=True)
+    callback_parser.add_argument("--slot-symbol")
+    callback_parser.add_argument("--slot-offset", type=_parse_int_auto)
+    callback_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
@@ -192,6 +202,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "inspect":
         _print_json(inspect_target(args.target, project_root=args.project_root))
+        return 0
+    if args.command == "callback-report":
+        _print_json(
+            inspect_callback_slots(
+                args.target,
+                slot_symbol=args.slot_symbol,
+                slot_offset=args.slot_offset,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
         return 0
     if args.command == "run-one":
         if args.listing_backed_label_rename:
@@ -232,6 +253,38 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def inspect_callback_slots(
+    target_id: str,
+    *,
+    slot_symbol: str | None = None,
+    slot_offset: int | None = None,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    report: dict[str, object] = {
+        "target_id": target_id,
+        "hygiene": hygiene.to_dict(),
+        "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
+    }
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    report["listing_open"] = listing_ready
+    if listing_ready.get("status") != "ready":
+        return report
+    rows = _listing_all_rows(target_id)
+    project_response = server.route_request("GET", f"/api/projects/{target_id}", {})
+    project_data = project_response.get("data")
+    project_payload = project_data.get("project") if isinstance(project_data, dict) else {}
+    review_items = project_payload.get("review_items") if isinstance(project_payload, dict) else None
+    report["callback_slots"] = callback_slot_report(
+        [row for row in rows if isinstance(row, Mapping)],
+        [item for item in review_items if isinstance(item, Mapping)] if isinstance(review_items, list) else (),
+        slot_symbol=slot_symbol,
+        slot_offset=slot_offset,
+    )
+    return report
 
 
 def run_listing_backed_label_rename_iteration(
@@ -1153,6 +1206,32 @@ def _listing_source_candidate_rows(target_id: str) -> list[object]:
             "GET",
             f"/api/projects/{target_id}/listing",
             {"start": [str(start)], "count": [str(count)]},
+        )
+        data = listing.get("data")
+        if not isinstance(data, dict):
+            break
+        page_rows = data.get("rows")
+        if not isinstance(page_rows, list) or not page_rows:
+            break
+        rows.extend(page_rows)
+        if data.get("has_more_after") is not True:
+            break
+        raw_end = data.get("end")
+        next_start = raw_end if isinstance(raw_end, int) and not isinstance(raw_end, bool) else None
+        if next_start is None or next_start <= start:
+            next_start = start + len(page_rows)
+        start = next_start
+    return rows
+
+
+def _listing_all_rows(target_id: str) -> list[object]:
+    rows: list[object] = []
+    start = 0
+    while True:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"start": [str(start)], "count": [str(_LISTING_SOURCE_CANDIDATE_ROW_COUNT)]},
         )
         data = listing.get("data")
         if not isinstance(data, dict):

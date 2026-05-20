@@ -726,6 +726,40 @@ the intended location.
   targeted stored-pointer/callback-slot report or another source-converging
   candidate family rather than clearing terminal-decode-only items.
 
+### 015-018: Report callback-slot targets before mutation
+
+* Candidate: D001 stored callback slot support for `app_0360`, after the
+  Manual Review Items pass stopped on missing callback evidence.
+* Evidence: added `reversing_loop callback-report`, backed by listing rows and
+  Review item identities. The Pandora report finds one `app_0360` consumer:
+  `movea.l app_0360(a6),a0` at `s0:000008FE:instruction:587`, followed by
+  `jsr (a0)` at `s0:00000902:instruction:588`.
+* Result: the report finds seven PC-relative assignments into `app_0360`.
+  Six already target rendered instructions. One concrete missed target remains:
+  `lea.l abs_0_00010E14(pc),a0` at `s0:00000E0A:instruction:925`, stored by
+  `move.l a0,app_0360(a6)` at `s0:00000E0E:instruction:926`, while
+  `s0:00000E14:data:929` still renders as `dc.b`.
+* Blocker: the matched Review item for `$00000e14-$00000ed8` is
+  `unreconciled_data_range`, fingerprint
+  `82394e9037d6abc31417c8c3a395470b04581fee5f3328c9f78b05788f601f91`, not
+  `orphan_code_candidate`. The report therefore marks the action blocked
+  (`review_item_is_not_code_classification`) instead of treating a data-range
+  review item as safe for `review.seed.code`.
+* Command/verifier: no Pandora mutation. Support code was verified with
+  `ruff check amiga_reversing\disasm\callback_slot_report.py
+  amiga_reversing\reversing_loop.py tests\test_callback_slot_report.py` and
+  `python -m pytest tests\test_callback_slot_report.py
+  tests\test_reversing_loop.py -q` (`288 passed`).
+* Review: this fixes the missing report surface from D001 without clearing any
+  review item. It also exposes the next real blocker: either callback-backed
+  targets need a code-classification review item, or the row/range
+  classification path needs an explicit verifier-backed rule for this evidence
+  chain.
+* Next recommendation: before converting `abs_0_00010E14`, choose the clean
+  supported path: promote callback-backed data targets into durable
+  `orphan_code_candidate` review items, or document/use an explicit
+  `row.seed.code` verifier path for callback report evidence.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -773,12 +807,13 @@ Triage by scope:
   * convert accepted callback targets to code only through supported
     classification actions and exact round-trip verification.
 * Missing tool/report/action:
-  * query/report for "stored pointer later consumed by indirect jump/call",
-  * candidate evidence that links the store site, slot identity, load site, and
-    indirect control-transfer use.
+  * fixed by 015-018: query/report for "stored pointer later consumed by
+    indirect jump/call",
+  * remaining: a clean classification path when the stored target is surfaced
+    only as an `unreconciled_data_range` instead of an orphan-code candidate.
 * Pull-in condition: work on RSSET/app-slot provenance reaches function-pointer
   typed slots, or code/data classification stalls on stored callback targets.
-* Status: open.
+* Status: partly fixed by 015-018; callback target classification remains open.
 
 #### D002: Orphan-code heuristics should be evidence-led
 
