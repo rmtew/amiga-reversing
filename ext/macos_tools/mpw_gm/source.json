@@ -1,0 +1,25 @@
+{
+  "id": "mpw_gm_tools",
+  "title": "MPW-GM tool executable metadata",
+  "source_path": "resources/platform_macos/MPW-GM.img.bin",
+  "source_sha256": "99bbfa95bb9800c8ffc572fce6d72e561f012331c5c623fa45f732502b6fa872",
+  "decoded_raw_hfs": {
+    "path": "tmp/MPW-GM.ext-tool.raw",
+    "sha256": "e1a484df0ba543b1fffff175204d2b266c7e23b84c2f202f2f3b6785a8a6c0bc",
+    "size": 78558208
+  },
+  "inventory": {
+    "path": "ext/macos_includes/mpw_gm/inventory.json",
+    "volume_name": "MPW-GM",
+    "files": 2176
+  },
+  "derived_files": [
+    {
+      "path": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+      "tool": "src/scripts/inspect_mac_resource_fork.py",
+      "source_fork": "MPW-GM/MPW/Tools/Asm resource fork",
+      "resource_type": "CODE",
+      "purpose": "Segment inventory for the MPW 68K assembler executable without committing the executable fork."
+    }
+  ]
+}

@@ -2,98 +2,106 @@
 
 Status: Draft.
 
-This proposal defines a future path for classic Mac OS / Macintosh m68k platform
-support. The repo now has a committed Classic Mac OS reference Markdown corpus
-and a source inventory/check command, but no meaningful Mac OS runtime platform
-support yet: no executable/resource loader, file-system model, trap/API runtime
-metadata, or generated Mac-specific C consumers.
+This proposal defines the path to a viewable Classic Mac OS m68k starter target.
+The first milestone is deliberately narrow but has two linked views:
 
-The immediate purpose is not to implement Mac support in one step. It is to
-define a source-discovery and minimal-support path that tests whether the
-platform architecture is generic enough for three m68k platforms: Amiga, Atari
-ST, and classic Mac OS.
+```text
+semantic source view:
+  resources/platform_macos/MPW-GM.img.bin
+    -> HFS files MPW-GM/MPW/Examples/AExamples/Sample*
+    -> MPW assembly/Rez/make source structure
+    -> generated Mac OS facts
+    -> web UI source/segment/resource/call view
 
-Proposal 011 defines the Atari ST platform knowledge cleanup. This proposal
-should reuse the same platform pattern where it fits, while deliberately
-pressuring areas Atari ST does not cover: resource forks, Finder metadata,
-MacBinary/BinHex wrappers, HFS/MFS, ROM/Toolbox traps, and application
-packaging.
+binary container view:
+  resources/platform_macos/MPW-GM.img.bin
+    -> HFS file MPW-GM/MPW/Tools/Asm
+    -> data fork + resource fork
+    -> CODE resources
+    -> web UI binary/container/listing view
+```
+
+The goal is not full Classic Mac OS emulation, full Segment Loader behavior, or
+complete Toolbox annotation. The goal is to prove that the platform layer can
+render useful Classic Mac OS source semantics and recognize/import a real Mac
+m68k executable container without forcing either into Amiga HUNK or Atari PRG
+assumptions.
+
+Proposal 011 covers Atari ST platform knowledge cleanup. This proposal is the
+Mac counterpart and architecture pressure test.
 
 ## Checkpoint Index
 
-- [ ] Clean Target Model
+- [ ] Target Outcome
 - [ ] Why This Exists
+- [ ] Evidence
 - [ ] Current Inputs
-- [ ] Source Inventory Schema
-- [ ] Source Discovery Policy
-- [ ] Tutorial: Build The Mac Platform KB Report
-- [ ] Tutorial: Pick A Minimal Fixture
-- [ ] Tutorial: Model File Containers And Resource Forks
-- [ ] Tutorial: Add Trap/API Knowledge
-- [ ] Tutorial: Generate Runtime Metadata
-- [ ] Tutorial: Platform Architecture Pressure Test
-- [ ] Larger Architecture Observations
+- [ ] Research Path Before Issue Breakdown
+- [ ] Platform Shape
+- [ ] Build Provenance And Deferred Roundtrip Model
+- [ ] Provenance And KB Policy
 - [ ] Implementation Slices
+- [ ] Issue Breakdown Seed
 - [ ] Artifact Ownership
 - [ ] Non-Goals
 - [ ] Acceptance Criteria
 - [ ] Verification Plan
+- [ ] Open Questions
 - [ ] Deletion Checklist
 
-## Clean Target Model
+## Target Outcome
 
-The clean Mac platform path should follow the same broad architecture as Amiga
-and Atari ST:
-
-```text
-source discovery / fixture corpus
-  -> source inventory with availability, tier, and decision
-  -> parser extraction where possible
-  -> cited parser assertions or reviewed corrections where necessary
-  -> knowledge/mac_os_*.json
-  -> generated src/generated/mac_os_*.c/.h
-  -> platform loader, analyzer, renderer, writer, and reproduction consumers
-  -> report/check and fixture feedback
-```
-
-The first useful question is:
+The first useful Mac support milestone has two linked parts:
 
 ```text
-What is the smallest cited, tested platform slice that proves the codebase can
-load, identify, and reason about a real m68k Mac artifact?
+Semantic source baseline:
+  render MPW-GM/MPW/Examples/AExamples/Sample with source files, segments,
+  routines, resources, build provenance, and cited Mac OS call annotations.
+
+Executable container baseline:
+  import MPW-GM/MPW/Tools/Asm as a Classic Mac OS target and view its data fork,
+  resource fork, CODE resources, and selected CODE listing in the web UI.
 ```
 
-The target is not a full classic Mac OS environment. The target is a minimal,
-legal, cited fixture path that proves the abstractions can handle a third m68k
-platform without forcing Mac artifacts into Amiga HUNK or Atari PRG shapes.
+Minimum behavior:
 
-Runtime consumers should see generated facts:
+- Recognize the source as Classic Mac OS, not as a flat binary.
+- Preserve provenance back to `resources/platform_macos/MPW-GM.img.bin`.
+- Select `MPW-GM/MPW/Tools/Asm` from the HFS catalog.
+- Report file type `MPST`, creator `MPS`, data fork size, and resource fork size.
+- Parse the resource map.
+- List `CODE` resources.
+- Treat `CODE 0` as jump-table/application metadata, not ordinary code.
+- Treat nonzero `CODE` resources as candidate m68k code segments.
+- Import at least one selected segment into a target project.
+- Preserve the `Asm` data fork as data/string material, not code.
+- Render `Sample` by source file, segment, routine, resource, and build recipe.
+- Annotate cited system calls and common Classic Mac OS call patterns seen in
+  documentation or MPW-GM examples.
+- Show the imported target through the existing web UI project/listing path.
+- Report unsupported details explicitly.
 
-```c
-/* desired C shape: generated Mac facts only */
-const MacOsTrapInfo *trap = mac_os_find_trap(trap_word);
-if (trap != NULL) {
-    render_symbol(mac_os_name(MAC_OS_NAME_DOMAIN_TRAP, trap->name_id));
-}
-```
-
-Provenance should stay in reports and review tools:
+Unsupported at the starter level:
 
 ```text
-Inside Macintosh / MPW / emulator source / file format reference
-  -> inventory row
-  -> parsed fact or correction
-  -> generated runtime metadata
-  -> runtime consumer
+complete Segment Loader emulation
+complete jump-table fixup interpretation
+relocation and loader patching
+full resource semantics
+complete trap/API annotation coverage
+runtime reproduction
 ```
+
+This gives a concrete acceptance test while keeping the first implementation
+small enough to verify.
 
 ## Why This Exists
 
-Amiga and Atari ST support exercise two platform shapes:
+The project already supports two m68k platform shapes:
 
 ```text
 Amiga:
-  HUNK executables, libraries/devices, NDK-derived OS knowledge, custom chips
+  HUNK executables, disks, NDK-derived OS knowledge, custom chips
 
 Atari ST:
   PRG/TOS/TTP executables, GEMDOS disks, traps, Devpac/EmuTOS/Hatari sources
@@ -103,283 +111,550 @@ Classic Mac OS is a third shape:
 
 ```text
 Mac OS:
-  data forks, resource forks, Finder metadata, MacBinary/BinHex wrappers,
-  HFS/MFS disk images, ROM/Toolbox traps, resource-centric applications
+  data forks, resource forks, Finder metadata, MacBinary/NDIF/HFS,
+  CODE resources, Segment Loader conventions, ROM/Toolbox traps
 ```
 
-Adding even minimal Mac support should reveal platform assumptions in import,
-listing, source export, reproduction comparison, generated runtime metadata,
-platform KB reporting, and web/API payloads.
+Adding a viewable Mac target should expose platform assumptions in import,
+listing, source export, generated metadata, API payloads, and the web UI. Those
+assumptions should be fixed generically where possible, not hidden inside Mac
+special cases.
 
-Longer term, comparable platform facts may help with porting assistance between
+Longer term, comparable platform facts may help porting assistance between
 Mac OS, Amiga, and Atari ST. That is not the first implementation goal.
 
-## Current Inputs
+## Evidence
 
-Current repo source-prep support:
+Local documentation supports the resource-centric executable model:
 
 ```text
 ext/docs_macos/Inside_Macintosh_Volume_I_1985.md
+  page 117: files have data and resource forks; application code lives in the
+  resource fork and may be split into resources.
+
 ext/docs_macos/Inside_Macintosh_Volume_II_1985.md
-ext/docs_macos/Inside_Macintosh_Volume_III_1985.md
-ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md
+  pages 69-71: the Segment Loader uses CODE resources; CODE 0 contains the
+  jump table; CODE 1 is the main segment.
+```
+
+The MPW-GM image provides a real candidate artifact:
+
+```text
+MPW-GM/MPW/Tools/Asm
+type: MPST
+creator: MPS
+data fork: 10752 bytes
+resource fork: 213850 bytes
+```
+
+The current resource-fork inspector finds:
+
+```text
+ext/macos_tools/mpw_gm/asm_code_resources.json
+  CODE resources: 28
+  total CODE payload bytes: 206404
+  CODE 0: jump-table/application metadata
+  named segments: Main, Init, Macros, OpTable, Pass2, Directives, ...
+```
+
+This is enough to justify the starter import path.
+
+## Current Inputs
+
+Committed or locally derived inputs already present:
+
+```text
+resources/platform_macos/MPW-GM.img.bin
+ext/docs_macos/*.md
+ext/docs_macos/*.source.json
+ext/macos_includes/mpw_gm/Interfaces/
+ext/macos_includes/mpw_gm/index.json
+ext/macos_includes/mpw_gm/inventory.json
+ext/macos_tools/mpw_gm/source.json
+ext/macos_tools/mpw_gm/asm_code_resources.json
+knowledge/mac_os.json
+knowledge/macos_source_inventory.json
+src/scripts/extract_classic_hfs.py
+src/scripts/inspect_mac_resource_fork.py
+tests/test_mac_resource_fork.py
+```
+
+Still absent:
+
+```text
+runtime Classic Mac OS platform loader
+Mac target import path
+generated src/generated/mac_os_*.c/.h
+Mac target metadata in project JSON
+web UI Mac project/listing smoke test
+resource/CODE parser promoted from script to reusable library code
+```
+
+## Research Path Before Issue Breakdown
+
+Before splitting this proposal into implementation issues, do a short research
+pass over the MPW image, example source, resource scripts, headers, tools, and
+Markdown manuals. The goal is to decide what the first analysis should
+recognize, and to make those decisions evidence-backed.
+
+The research should produce a committed summary, likely
+`docs/macos-initial-analysis-research.md`, plus any structured metadata that is
+small, source-derived, and useful for checks.
+
+Research inputs:
+
+```text
+tmp/MPW-GM-extracted/data/MPW-GM/MPW/Examples/AExamples/
+  Count.a
+  FStubs.a
+  MemorySrc.a
+  Sample.a
+  SampleMisc.a
+  Sample.inc1.a
+  Count.r
+  Sample.r
+  MakeFile
+  Sample.make
+  Instructions
+
+tmp/MPW-GM-extracted/data/MPW-GM/MPW/Examples/32BitAExamples/
+tmp/MPW-GM-extracted/data/MPW-GM/Interfaces&Libraries/Interfaces/
+tmp/MPW-GM-extracted/data/MPW-GM/Interfaces&Libraries/Libraries/
+tmp/MPW-GM-extracted/data/MPW-GM/MPW/Tools/
+
+ext/docs_macos/Inside_Macintosh_*.md
 ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md
 ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md
-knowledge/macos_source_inventory.json
 ```
 
-Each committed Markdown source has a matching `.source.json` metadata file with
-source PDF path, hashes, probe results, cleanup metadata, and amendment review
-state. These are cited source-prep artifacts, not parsed truth.
-
-Runtime platform support is still absent. There is currently no known committed
-equivalent of:
-
+Research questions:
 
 ```text
-knowledge/mac_os_*.json
-src/generated/mac_os_*.c/.h
-src/platform_mac_os*.c
-ext/mac_os_includes
+Which example programs are best starter fixtures?
+Which source-level calls and macros appear repeatedly?
+Which calls compile down to Toolbox/OS traps?
+Which calls use parameter blocks or A-line trap conventions?
+Which resource types are required to understand application shape?
+Which startup/runtime/library objects appear in Link recipes?
+Which data structures can be cross-checked against MPW headers?
+Which doc pages cite the same facts seen in source or binaries?
+Which facts are useful for porting reference even if not needed for loading?
 ```
 
-This proposal should therefore begin with source discovery, source inventory,
-and fixture selection.
-
-Mac local/external source requirements must be documented in `RESOURCES.md`
-when sources are selected. That documentation should include expected paths,
-acquisition notes, redistribution limits, and which generated artifacts or tests
-depend on each source.
-
-## Source Inventory Schema
-
-Current source inventory:
+Expected outputs:
 
 ```text
-knowledge/macos_source_inventory.json
+ranked starter fixture candidates
+example build recipe inventory
+source call/macro inventory
+resource type inventory
+candidate trap/API facts with citations
+candidate structure/type facts with citations
+list of generated macos .c/.h tables needed for baseline analysis
+known unknowns and deferred roundtrip-only facts
+concrete issue breakdown for source rendering and binary container import
 ```
 
-Use the same inventory vocabulary as Proposal 011. Keep availability,
-extraction state, review state, and planning decision separate.
+This research pass should prefer source examples over tool binaries when
+choosing the first semantic target. MPW `Asm` is useful as a real executable
+container; small examples such as `Count`, `Sample`, or `Memory` are more useful
+for validating that the analysis renders understandable Classic Mac OS program
+intent.
 
-Suggested shape:
+## Platform Shape
 
-```json
-{
-  "schema_version": 1,
-  "sources": [
-    {
-      "id": "inside-macintosh-toolbox",
-      "title": "Inside Macintosh Toolbox Reference",
-      "publisher": "Apple",
-      "domain": ["toolbox", "traps", "api"],
-      "tier": 1,
-      "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
-      "metadata_path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.source.json",
-      "url": null,
-      "availability": "committed",
-      "machine_readable": false,
-      "citation_quality": "page",
-      "parser_feasibility": "targeted",
-      "extraction_status": "candidate",
-      "review_status": "seeded",
-      "decision": "cite_manually",
-      "license_notes": "Committed Markdown derived from local user-supplied reference material.",
-      "known_conflicts": []
-    }
-  ]
-}
-```
-
-Allowed values:
-
-```text
-availability:
-  committed
-  optional_local
-  required_local
-  missing_external
-
-extraction_status:
-  parsed
-  parser_asserted
-  candidate
-  deferred
-  unsupported
-
-review_status:
-  not_applicable
-  seeded
-  validated
-
-decision:
-  parse
-  cite_manually
-  defer
-  unsupported
-```
-
-## Source Discovery Policy
-
-Mac OS source discovery must produce committed inventory rows, not private
-notes.
-
-Initial source classes to investigate:
-
-- Inside Macintosh volumes and related Apple developer references.
-- MPW / classic Mac development headers if legally obtainable.
-- Emulator/source references such as Mini vMac, Basilisk II, SheepShaver, or
-  MAME Mac drivers where useful.
-- File-format references for resource forks, MacBinary, BinHex, HFS/MFS, and
-  application packaging.
-- Existing open-source tools that parse classic Mac resource files or HFS.
-
-No Mac platform fact should enter runtime consumers without structured
-provenance. Sources that cannot be committed may still be referenced through
-inventory rows and documented in `RESOURCES.md`.
-
-## Tutorial: Build The Mac Platform KB Report
-
-Start with a read-only command surface:
-
-```powershell
-uv run macos-platform-kb report
-uv run macos-platform-kb check
-```
-
-The first implemented report establishes the committed source inventory and
-validates Markdown/page-marker metadata. It does not yet report fixture state or
-runtime coverage.
-
-Current report sections:
-
-```text
-Classic Mac OS Platform KB
-
-Source inventory:
-  sources: 6
-  availability: committed=6
-  extraction: candidate=6
-  review: seeded=6
-  decision: cite_manually=6
-
-Committed Markdown sources:
-  inside-macintosh-volume-i-1985-md: markers=564/564
-  ...
-```
-
-Strict checks should fail on:
-
-```text
-duplicate source ids
-unknown availability / extraction_status / review_status / decision values
-required local sources missing for selected scope
-uncited parser assertions or corrections
-unknown correction review statuses
-generated artifact drift once generation exists
-fixture metadata malformed once fixtures exist
-```
-
-## Tutorial: Pick A Minimal Fixture
-
-Pick one legally usable tiny m68k Mac artifact. The fixture should be small
-enough to commit or generated from source in tests.
-
-The first smoke test should prove:
-
-```text
-fixture recognized as Mac platform input
-container metadata extracted
-m68k code region identified
-listing can be produced
-unsupported parts are reported explicitly
-```
-
-The fixture should not require a full emulator or a copyrighted ROM. If no
-legal binary fixture is available, generate a small resource/container fixture
-from source data in tests.
-
-## Tutorial: Model File Containers And Resource Forks
-
-Mac support must separate these layers:
+Mac support must keep these layers separate:
 
 ```text
 transport wrapper:
-  MacBinary, BinHex, raw files, disk image
+  MacBinary, NDIF, BinHex, raw files, disk images
 
 filesystem/container:
-  HFS, MFS, data fork, resource fork, Finder metadata
+  HFS/MFS catalog, Finder type/creator, data fork, resource fork
+
+resource format:
+  resource header, resource map, type list, reference list, names, payloads
 
 executable/code:
-  CODE resources, jump tables, segments, init/runtime conventions
+  CODE 0 application metadata, nonzero CODE segments, Segment Loader conventions
 
 platform APIs:
-  OS traps, Toolbox traps, ROM APIs, resource manager calls
+  OS traps, Toolbox traps, Resource Manager, File Manager, runtime glue
 ```
 
-Resource forks are core, not optional. For Mac applications, resources often
-describe the application structure. A loader that sees only a flat data fork
-misses the platform's semantic center.
-
-Minimal resource metadata shape:
-
-```json
-{
-  "schema_version": 1,
-  "resources": [
-    {
-      "type": "CODE",
-      "id": 1,
-      "name": null,
-      "offset": 4096,
-      "length": 128,
-      "attributes": [],
-      "source_id": "fixture-minimal-mac-app"
-    }
-  ]
-}
-```
-
-## Tutorial: Add Trap/API Knowledge
-
-Mac OS API calls are commonly trap-based. A useful analyzer needs trap names,
-calling conventions, parameter/return facts, and source provenance.
-
-Add:
+The starter implementation needs only a thin vertical slice:
 
 ```text
-knowledge/mac_os_traps.json
-knowledge/mac_os_corrections.json
+HFS catalog file -> resource fork -> CODE resources -> m68k segment bytes
 ```
 
-Candidate trap fact:
+It should not flatten this into a generic binary import. The fork/resource
+metadata is platform data and must survive into the target metadata.
 
-```json
-{
-  "schema_version": 1,
-  "traps": [
-    {
-      "trap_word": 41385,
-      "name": "GetResource",
-      "family": "ResourceManager",
-      "source_id": "inside-macintosh-toolbox",
-      "citation": {
-        "path": "ext/docs_macos/Inside_Macintosh_Volume_IV_1986.md",
-        "page": 123
-      },
-      "review_status": "seeded"
-    }
-  ]
+## Build Provenance And Deferred Roundtrip Model
+
+The starter Mac goal is not byte-for-byte rebuild. The primary value is a
+rendered, analyzed, editable source view that is good enough to use as a
+porting reference and to cross-check OCR/manual-derived knowledge. Still, the
+build model matters because it explains what each file contribution means:
+
+```text
+source files
+  -> Asm/C/Pascal compiler output object files
+  -> Link output application/tool/driver segments and jump table
+  -> Rez output resource data
+  -> SetFile/Finder metadata
+  -> final data fork + resource fork + file type/creator
+```
+
+Local documentation and examples show the basic assembly path:
+
+```text
+asm -p Coin.a
+link -p Coin.a.o -o Coin
+```
+
+`MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md` pages 37-39
+describe `asm` producing an intermediary `.a.o` object file, then `link`
+turning that object into a standalone application. The link progress report
+mentions segments and jump-table entries.
+
+The MPW-GM examples provide stronger build evidence:
+
+```text
+MPW-GM/MPW/Examples/AExamples/MakeFile
+  Count:
+    Asm Count.a
+    Asm FStubs.a
+    Link -w -c 'MPS ' -t MPST Count.a.o FStubs.a.o \
+      "{Libraries}"Stubs.o \
+      "{Libraries}"MacRuntime.o \
+      "{Libraries}"IntEnv.o \
+      "{Libraries}"ToolLibs.o \
+      "{Libraries}"Interface.o \
+      -o Count
+    Rez Count.r -o Count -append
+
+  Memory:
+    Asm MemorySrc.a
+    Link -da -t dfil -c movr -rt DRVR=12 -sg Memory MemorySrc.a.o -o Memory
+
+MPW-GM/MPW/Examples/AExamples/Sample.make
+  Sample:
+    Link -o {Targ} Sample.a.o SampleMisc.a.o MacRuntime.o Interface.o
+    SetFile {Targ} -t APPL -c 'MOOS' -a B
+    Rez -rd -o {Targ} Sample.r -append
+```
+
+That research should record which bytes or metadata came from:
+
+```text
+Link-created CODE resources
+Link-created jump-table/application metadata
+linked runtime/library object code
+Rez-created UI/application resources
+Finder type/creator metadata
+data fork payload, if any
+```
+
+For the first viewable target, byte-for-byte rebuild is explicitly deferred.
+The useful output is a build-provenance model: enough to say which source,
+object, library, resource, and Finder metadata inputs contributed to the final
+artifact, without requiring the project to reproduce MPW Link/Rez output yet.
+
+## Provenance And KB Policy
+
+Runtime consumers should use generated or structured facts only:
+
+```c
+const MacOsTrapInfo *trap = mac_os_find_trap(trap_word);
+if (trap != NULL) {
+    render_symbol(mac_os_name(MAC_OS_NAME_DOMAIN_TRAP, trap->name_id));
 }
 ```
 
-Correction commands should mirror the shared platform flow unless Mac needs a
-specific divergence:
+Provenance belongs in reports, metadata, and review tools:
+
+```text
+Inside Macintosh / MPW image / MPW headers / parser output
+  -> source inventory row
+  -> parsed fact or reviewed correction
+  -> knowledge/mac_os.json
+  -> generated runtime metadata
+  -> runtime consumer
+```
+
+Use one broad Mac OS knowledge file until a real split is justified:
+
+```text
+knowledge/mac_os.json
+  _meta
+  format_families
+  api_families
+  reviewed_corrections
+```
+
+Avoid one JSON file per Mac subsystem unless it removes real complexity. In
+particular, do not drift back to scattered files such as
+`mac_os_file_manager.json`, `mac_os_resource_manager.json`, and so on.
+
+Source inventory rows should track:
+
+```text
+id
+title
+domain
+tier
+path / metadata_path
+availability
+machine_readable
+citation_quality
+parser_feasibility
+extraction_status
+review_status
+decision
+license_notes
+known_conflicts
+```
+
+Allowed status vocabulary should stay aligned with the Atari ST proposal:
+
+```text
+availability: committed, optional_local, required_local, missing_external
+extraction_status: parsed, parser_asserted, candidate, deferred, unsupported
+review_status: not_applicable, seeded, validated
+decision: parse, cite_manually, defer, unsupported
+```
+
+No Mac runtime fact should enter C consumers without structured provenance.
+
+## Implementation Slices
+
+### Slice 0: Research And Fixture Selection
+
+Complete the research pass before creating fine-grained implementation issues.
+This slice chooses the first semantic fixture and records why.
+
+Outputs:
+
+```text
+docs/macos-initial-analysis-research.md
+ranked fixture candidates
+example call/macro/resource inventory
+data fork/resource fork interpretation
+source segment rendering model
+source segment to CODE resource mapping model
+manual citations for baseline facts
+first generated table list
+deferred facts list
+```
+
+### Slice 1: Inventory And Evidence Baseline
+
+Keep the committed source inventory, docs metadata, MPW include index, MPW HFS
+inventory, and Asm CODE inventory valid.
+
+Artifacts:
+
+```text
+knowledge/macos_source_inventory.json
+ext/docs_macos/*.md
+ext/docs_macos/*.source.json
+ext/macos_includes/mpw_gm/inventory.json
+ext/macos_tools/mpw_gm/source.json
+ext/macos_tools/mpw_gm/asm_code_resources.json
+docs/macos-file-structure.md
+```
+
+### Slice 2: Resource Fork Parser
+
+Promote `src/scripts/inspect_mac_resource_fork.py` into reusable parser code or
+keep the script as a thin CLI over reusable code. The parser should validate:
+
+```text
+resource data/map offsets
+type list
+reference list
+resource names
+payload offsets/sizes
+CODE 0 metadata
+nonzero CODE segment metadata
+```
+
+Tests should include synthetic fixtures so parser correctness does not depend
+on committing MPW binary forks.
+
+### Slice 3: Mac Container Recognition
+
+Add Mac platform recognition for both starter paths:
+
+```text
+MPW-GM.img.bin -> raw HFS -> HFS catalog -> MPW-GM/MPW/Tools/Asm
+MPW-GM.img.bin -> raw HFS -> HFS catalog -> MPW-GM/MPW/Examples/AExamples/Sample*
+```
+
+The importer should expose:
+
+```text
+volume name
+file path
+CNID
+Finder type/creator
+data fork size
+resource fork size
+selected resource fork hash
+fork role: source text, executable CODE, data/string payload, editor metadata
+```
+
+### Slice 4: CODE Segment Import
+
+Select a conservative first code segment, likely `CODE 1 Main`, and import it
+as m68k bytes. Preserve segment metadata:
+
+```text
+resource type/id/name
+payload offset/size/hash
+role: code_segment
+unsupported: relocation, complete Segment Loader fixups
+```
+
+`CODE 0` should become platform metadata:
+
+```text
+above_a5_size
+below_a5_size
+jump_table_length
+jump_table_offset_from_a5
+role: jump_table_segment
+```
+
+### Slice 5: MPW Source Structure Import
+
+Parse only enough MPW source structure for the selected examples:
+
+```text
+source file
+SEG name
+PROC/FUNC routine boundaries
+IMPORT/EXPORT symbol boundaries
+RECORD/WITH layout scopes
+Rez resource type/id declarations
+makefile Asm/Link/SetFile/Rez recipe lines
+```
+
+Segment mapping must keep observed source facts separate from linked binary
+facts:
+
+```text
+Sample source SEG 'Main' -> expected linked CODE resource name Main
+MPW/Tools/Asm CODE 1 Main -> observed binary CODE resource
+```
+
+Do not infer that segments from different programs are the same.
+
+### Slice 6: Project And Web UI View
+
+Create a target/project that the existing web UI can open. The UI path should
+show source structure, binary container metadata, and enough platform metadata
+to make the source clear:
+
+```text
+platform: classic_macos
+source fixture: MPW-GM/MPW/Examples/AExamples/Sample
+source pivots: file/segment/routine/resource/build recipe
+binary fixture: MPW-GM/MPW/Tools/Asm
+binary pivots: data fork/resource fork/CODE resource
+file type/creator: MPST/MPS for Asm, TEXT/MPS for source files
+selected binary segment: CODE 1 Main
+unsupported: relocation/loader semantics/trap annotation
+```
+
+### Slice 7: MPW Build Provenance Discovery
+
+Use the MPW manuals and bundled `AExamples` source to document how Asm, Link,
+Rez, SetFile, object files, libraries, resource descriptions, file type/creator,
+segments, and jump-table entries contribute to final artifacts.
+
+The output should be a small build-provenance document or structured manifest
+shape that answers:
+
+```text
+which source/object/resource files contribute to each final fork?
+which tool creates CODE resources?
+which tool appends non-CODE resources?
+where is file type/creator assigned?
+which linked libraries are copied into the final executable?
+what would need byte-for-byte roundtrip later, and what is metadata-only?
+```
+
+### Slice 8: Generated Metadata Skeleton
+
+Generate only facts consumed by the starter import and baseline analysis:
+
+```text
+format constants
+resource type names
+CODE role hints
+trap/API names for cited examples
+parameter-block shapes for cited examples
+calling convention hints for cited examples
+```
+
+Input ownership stays in `knowledge/mac_os.json`; generated C owns runtime
+tables only.
+
+### Slice 9: Baseline Semantic Analysis
+
+The first analysis pass should render example code as recognizable Classic Mac
+OS programming, not just m68k instructions. Use documentation examples and
+MPW-GM example source/binaries as the baseline corpus.
+
+Initial output should cover only patterns seen in cited examples:
+
+```text
+Toolbox/OS trap names
+known parameter-block calls
+resource lookup/use patterns
+Segment Loader and application startup patterns
+MPW runtime/library call boundaries when identifiable
+```
+
+The data path should match the M68K KB pattern:
+
+```text
+manual md / example source / inspected binary evidence
+  -> parsed or curated JSON with citations
+  -> generated macos consumer .c/.h tables
+  -> importer/listing/analysis annotations
+```
+
+No Mac semantic fact should be hardcoded directly in importers, renderers, or
+web consumers. If the baseline code needs a name, call shape, or convention, it
+must come from `knowledge/mac_os.json` or generated metadata with source
+provenance.
+
+### Slice 10: Trap/API Knowledge Growth
+
+After the baseline examples are covered, add cited trap/API facts where they
+improve the listing. Start with small families already supported by source
+evidence:
+
+```text
+File Manager parameter-block traps
+Resource Manager traps
+Segment Loader traps
+```
+
+Seeded facts remain review debt until validated.
+
+### Slice 11: Corrections Review Flow
+
+Mirror the shared platform flow:
 
 ```powershell
 uv run macos-platform-kb corrections list
 uv run macos-platform-kb corrections check
-uv run macos-platform-kb corrections promote <correction_id> --reviewer <name>
+uv run macos-platform-kb corrections promote <id> --reviewer <name>
 ```
 
 Promotion rule:
@@ -391,67 +666,27 @@ unknown review_status fails check
 seeded consumed facts stay visible as review debt
 ```
 
-## Tutorial: Generate Runtime Metadata
+### Slice 12: Architecture Generalization Review
 
-Use generated runtime metadata once the source shape stabilizes:
-
-```text
-knowledge/mac_os_file_format.json
-knowledge/mac_os_resource_format.json
-knowledge/mac_os_traps.json
-knowledge/mac_os_corrections.json
-  -> src/generated/mac_os_*.c/.h
-```
-
-The first generator can be skeletal. It should prove the ownership pattern:
-
-```text
-structured KB owns facts
-generator emits C tables
-runtime consumers read generated metadata
-reports own provenance and review visibility
-```
-
-## Tutorial: Platform Architecture Pressure Test
-
-After the minimal fixture works, review whether code still assumes Amiga or
-Atari shapes:
+After the first Mac target imports, review assumptions in:
 
 ```text
 binary source kinds
-platform metadata JSON
+target metadata JSON
 generated runtime tables
 source include paths
-reproduction comparison
-web/API platform payloads
-target import
+project creation
 listing/export layout
+web/API payloads
+reproduction comparison
 ```
 
-Record architecture assumptions as explicit follow-up work. Do not hide them
-inside Mac-specific compatibility code.
+Fix generic platform assumptions where possible.
 
-## Larger Architecture Observations
+### Slice 13: Cross-Porting Feasibility Notes
 
-### 1. Platform Code Must Not Assume Amiga Or Atari Shapes
-
-Mac OS should be allowed to have resource-centric structure without forcing it
-into HUNK or PRG concepts.
-
-### 2. File Containers And OS Metadata Are Separate Axes
-
-Mac support may need disk image parsing, wrapper parsing, resource parsing, code
-segment parsing, and OS API parsing as separate layers.
-
-### 3. Weak Sources Need The Same Provenance Model
-
-Like Atari ST, Mac OS may need local PDFs, scans, headers, emulator sources, and
-tooling references. Use the shared inventory fields rather than inventing a
-Mac-only status model.
-
-### 4. Cross-Porting Requires Comparable Semantic Facts
-
-Longer-term porting assistance depends on comparable facts:
+Only after import/listing works, document which semantic facts would be needed
+for Mac-to-Amiga or Mac-to-Atari assistance:
 
 ```text
 OS call intent
@@ -461,80 +696,91 @@ memory model assumptions
 startup/runtime conventions
 ```
 
-## Implementation Slices
+## Issue Breakdown Seed
 
-### Slice 1: Source Discovery, Inventory, And Resources Documentation
+The issue split should follow `docs/macos-initial-analysis-research.md` and keep
+source rendering separate from binary container import while covering both in
+the same starter milestone. Local working issues live under `docs/issues/`.
 
-Add:
-
-```text
-knowledge/macos_source_inventory.json
-macos-platform-kb report
-macos-platform-kb check
-ext/docs_macos/*.md
-ext/docs_macos/*.source.json
-```
-
-The committed Markdown corpus is now usable as page-cited source material.
-Future work should identify which sections become parsed input, cited
-corrections, or deferred reference material.
-
-### Slice 2: Minimal Fixture Corpus
-
-Find or generate a legally usable m68k Mac artifact for tests. The fixture must
-not require copyrighted ROMs or system disks.
-
-### Slice 3: Mac Binary/Resource Container Model
-
-Model the minimum file/resource structure needed by the fixture. Treat resource
-fork metadata as first-class platform metadata.
-
-### Slice 4: Trap/API Knowledge Seed
-
-Seed a cited trap/API knowledge shape with review status. Do not generate
-runtime trap facts from uncited constants.
-
-### Slice 5: Corrections Review Flow
-
-Add:
+1. HFS/fork role inventory
 
 ```text
-knowledge/mac_os_corrections.json
-macos-platform-kb corrections list
-macos-platform-kb corrections check
-macos-platform-kb corrections promote <id> --reviewer <name>
+Classify source text, editor metadata, executable resource forks,
+data/string payloads, and object payloads from MPW-GM inventory.
 ```
 
-### Slice 6: Generated Runtime Metadata Skeleton
+2. MPW source structure parser
 
-Generate minimal runtime tables from structured JSON.
+```text
+Parse INCLUDE, IMPORT, EXPORT, SEG, MAIN, PROC, FUNC, RECORD, WITH, and routine
+boundaries from Sample/Memory/Count source.
+```
 
-### Slice 7: Import And Listing Smoke Test
+3. Rez/resource ID parser
 
-Prove that a Mac fixture imports and produces a useful listing with explicit
-unsupported metadata.
+```text
+Connect Sample.r declarations to Sample.h/Sample.inc1.a constants and source
+call sites for MBAR, MENU, ALRT, DITL, WIND, RECT, SIZE, and cmdo.
+```
 
-### Slice 8: Architecture Generalization Review
+4. Build provenance parser
 
-Review and remove platform assumptions exposed by adding a third m68k platform.
+```text
+Parse Asm, Link, SetFile, Rez, object inputs, library inputs, output
+type/creator, and program kind from Sample.make and MakeFile.
+```
 
-### Slice 9: Cross-Porting Feasibility Notes
+5. Baseline include/trap/record extractor
 
-Document which semantic facts would be needed to support Mac-to-Amiga or
-Mac-to-Atari porting assistance.
+```text
+Generate only cited records and calls used by the baseline examples:
+Point, Rect, EventRecord, HVolumeParam, QDGlobals, WindowRecord, DCtlEntry,
+SysEnvRec, and observed Toolbox/OS traps.
+```
+
+6. Mac source project model
+
+```text
+Represent Sample as source files, segments, routines, resources, build recipe,
+and generated Mac facts. Keep this separate from executable CODE resources.
+```
+
+7. Concrete semantic render smoke tests
+
+```text
+Snapshot useful rendered output for Sample.a Initialize, SampleMisc.a GoGetRect,
+MemorySrc.a PBHGetVInfoSync, and Count tool/runtime summary.
+```
+
+8. Real Asm CODE import
+
+```text
+Import MPW/Tools/Asm as HFS file metadata, data fork as data/string material,
+resource fork, CODE 0 metadata, CODE 1 Main listing, and unsupported state.
+```
+
+9. Web UI source/container view
+
+```text
+Expose pivots by source file, segment, routine, resource, trap/API fact, binary
+fork, CODE resource, and unsupported state.
+```
 
 ## Artifact Ownership
 
 Candidate artifacts:
 
 ```text
+knowledge/mac_os.json
 knowledge/macos_source_inventory.json
-knowledge/mac_os_file_format.json
-knowledge/mac_os_resource_format.json
-knowledge/mac_os_traps.json
-knowledge/mac_os_corrections.json
 src/generated/mac_os_*.c/.h
+src/scripts/inspect_mac_resource_fork.py
+ext/macos_tools/mpw_gm/
+ext/macos_includes/mpw_gm/
 ext/docs_macos/
+docs/macos-file-structure.md
+docs/macos-build-model.md
+docs/macos-initial-analysis-research.md
 docs/proposals/012-classic-mac-os-m68k-platform.md
 RESOURCES.md
 ```
@@ -543,6 +789,7 @@ Ownership rule:
 
 ```text
 structured KB owns facts
+parsers own extraction from source artifacts
 generators own C table emission
 runtime consumers read generated metadata
 reports own provenance and review visibility
@@ -550,38 +797,66 @@ reports own provenance and review visibility
 
 ## Non-Goals
 
-- Do not promise full classic Mac OS support in the first implementation.
-- Do not add uncited Mac platform facts directly to C consumers.
+- Do not promise full Classic Mac OS support in the first implementation.
+- Do not require emulator automation for starter import.
+- Do not require ROMs.
+- Do not require complete Segment Loader emulation before a starter listing.
+- Do not require byte-for-byte roundtrip for the porting/reference starter
+  milestone.
+- Do not claim roundtrip support unless the MPW Asm/Link/Rez build model is
+  represented and tested.
 - Do not commit copyrighted ROMs, system disks, or proprietary SDK contents.
-- Do not make emulator automation a prerequisite for the first fixture import.
+- Do not add uncited Mac platform facts directly to C consumers.
+- Do not split Mac knowledge into subsystem JSON files prematurely.
 - Do not start cross-porting implementation before import/listing facts exist.
 - Do not fold Mac OS into the Atari ST proposal.
 
 ## Acceptance Criteria
 
-- Source discovery produces committed inventory with availability, extraction
-  status, review status, tier, citation quality, parser feasibility, and
-  decision fields.
-- Mac local/external source requirements are documented in `RESOURCES.md`.
-- No Mac OS runtime fact reaches C consumers without structured provenance.
-- A legal tiny fixture is identified or generated.
-- The fixture can be recognized as Mac platform input.
-- A m68k code region can be listed.
-- Resource/container metadata is represented explicitly, even if incomplete.
-- Unsupported Mac platform areas are reported, not silently ignored.
-- Adding Mac support identifies and records platform abstraction assumptions
-  that need cleanup.
+- A pre-issue research summary ranks MPW example fixtures and records the
+  source/doc evidence used to choose the baseline analysis target.
+- AExamples fork inventory identifies source data forks and low-value `MPSR`
+  editor metadata resource forks.
+- MPW `Asm` or a synthetic equivalent is recognized as Classic Mac OS input.
+- The importer identifies data fork, resource fork, resource map, and `CODE`
+  resources.
+- Finder type/creator metadata is preserved.
+- `Asm` data fork is represented as data/string payload, not executable code.
+- `CODE 0` is represented as jump-table/application metadata.
+- At least one nonzero `CODE` resource is listed as m68k code.
+- `Sample` source is renderable by file, segment, routine, resources, and build
+  recipe.
+- Source segment mapping is distinct from observed binary `CODE` resources.
+- The imported target is viewable in the web UI project/listing flow.
+- Baseline analysis annotates cited Mac OS calls and call patterns visible in
+  documentation or MPW-GM examples.
+- Unsupported Mac platform areas are reported explicitly.
+- Build-provenance notes identify Link/Rez/SetFile inputs and any deferred
+  roundtrip gaps.
+- Runtime-consumed Mac facts come from structured JSON or parser output.
+- Source inventory and generated metadata checks catch drift.
+- Adding Mac support records or removes exposed platform assumptions.
 
 ## Verification Plan
 
 Initial tests:
 
 ```text
+macos initial analysis research doc/check
 source inventory schema tests
-macos-platform-kb report/check tests
-fixture recognition test
-container/resource metadata smoke test
-m68k listing smoke test
+macos docs/source metadata checks
+AExamples fork role check
+AExamples source structure parser tests
+AExamples source/resource/build rendering smoke test
+resource map parser tests
+CODE 0 metadata parser tests
+MPW Asm CODE inventory drift check
+MPW AExamples build recipe extraction/check
+Mac input recognition test
+Mac target project creation smoke test
+m68k listing smoke test for selected CODE segment
+baseline Mac semantic annotation smoke test
+web UI project/listing smoke test
 unsupported-state reporting test
 cmd /c src\precommit.bat
 ```
@@ -591,11 +866,24 @@ Future tests:
 ```text
 trap/API generated runtime tests
 corrections list/check/promote tests
-resource map parser tests
 disk/file wrapper parser tests
+byte-for-byte roundtrip tests, if roundtrip becomes a goal
 cross-platform semantic mapping tests
 resources documentation coverage tests
 ```
+
+## Open Questions
+
+- Should the starter target import one selected CODE segment or all nonzero CODE
+  resources as separate ranges?
+- Should the MPW Asm binary forks remain temporary-only, with committed metadata
+  and hashes, or should any extracted fork be committed under `ext/`?
+- Should resource-fork parsing live in `src/scripts` only for now or move
+  directly into reusable platform runtime code?
+- If roundtrip becomes a goal, should it start from an assembly example such as
+  `Count` or from the MPW `Asm` executable itself?
+- What target metadata field names should be shared across Amiga, Atari ST, and
+  Mac for source container information?
 
 ## Deletion Checklist
 
@@ -604,11 +892,15 @@ Before closing this proposal:
 - Promote durable issue reasoning into this proposal.
 - Delete completed `docs/issues/012-*` issue files.
 - Remove stale TODO entries.
-- Document `macos-platform-kb report/check` if implemented.
+- Document implemented Mac commands in `README.md` or `RESOURCES.md`.
 - Record skipped external checks and why.
 
 ## Verification
 
 Draft created after a repo search showed no meaningful current Mac OS platform
-support. Updated to align with the shared platform knowledge pattern from
-Proposal 011.
+support. Revised after MPW `Asm` resource-fork inspection showed a concrete
+viewable starter target:
+
+```text
+HFS file metadata -> resource map -> CODE segments -> m68k listing
+```

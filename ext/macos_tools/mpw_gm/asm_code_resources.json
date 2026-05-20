@@ -1,0 +1,414 @@
+{
+  "header": {
+    "resource_data_length": 212884,
+    "resource_data_offset": 256,
+    "resource_map_length": 710,
+    "resource_map_offset": 213140
+  },
+  "resources": [
+    {
+      "attributes": 32,
+      "code": {
+        "above_a5_size": 2800,
+        "below_a5_size": 14624,
+        "jump_table_length": 2768,
+        "jump_table_offset_from_a5": 32,
+        "kind": "jump_table_segment"
+      },
+      "data_offset": 0,
+      "id": 0,
+      "name": null,
+      "sha256": "8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1",
+      "size": 2784,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 4674,
+      "id": 1,
+      "name": "Main",
+      "sha256": "4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5",
+      "size": 29024,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 33702,
+      "id": 2,
+      "name": "FPOpTable",
+      "sha256": "a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2",
+      "size": 7788,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 41494,
+      "id": 3,
+      "name": "Init",
+      "sha256": "331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4",
+      "size": 18252,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 59750,
+      "id": 4,
+      "name": "IOMgr",
+      "sha256": "a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca",
+      "size": 6426,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 66180,
+      "id": 5,
+      "name": "Macros",
+      "sha256": "90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc",
+      "size": 26638,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 92822,
+      "id": 6,
+      "name": "OpTable",
+      "sha256": "75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf",
+      "size": 15158,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 107984,
+      "id": 7,
+      "name": "POpTable",
+      "sha256": "3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e",
+      "size": 4142,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 112130,
+      "id": 8,
+      "name": "Listing",
+      "sha256": "5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9",
+      "size": 1852,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 113986,
+      "id": 9,
+      "name": "Pass2",
+      "sha256": "0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3",
+      "size": 13946,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 127936,
+      "id": 10,
+      "name": "FinishUp",
+      "sha256": "2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1",
+      "size": 1542,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 129482,
+      "id": 11,
+      "name": "Dbg",
+      "sha256": "04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503",
+      "size": 3678,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 133164,
+      "id": 12,
+      "name": "LoadDump",
+      "sha256": "9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb",
+      "size": 6928,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 140096,
+      "id": 13,
+      "name": "Directives",
+      "sha256": "1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8",
+      "size": 33354,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 173454,
+      "id": 14,
+      "name": "MemMgr",
+      "sha256": "14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70",
+      "size": 1886,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 175344,
+      "id": 15,
+      "name": "Errors",
+      "sha256": "ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd",
+      "size": 3452,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 178800,
+      "id": 16,
+      "name": "New",
+      "sha256": "51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37",
+      "size": 1034,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 179838,
+      "id": 17,
+      "name": "DispSymTbl",
+      "sha256": "e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9",
+      "size": 3674,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 183516,
+      "id": 18,
+      "name": "FinishDirectives",
+      "sha256": "96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6",
+      "size": 1974,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 185494,
+      "id": 19,
+      "name": "SetupArgV",
+      "sha256": "46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce",
+      "size": 556,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 186054,
+      "id": 20,
+      "name": "INTENV",
+      "sha256": "de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a",
+      "size": 5262,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 191320,
+      "id": 21,
+      "name": "SADEV",
+      "sha256": "927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687",
+      "size": 6794,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 198118,
+      "id": 22,
+      "name": "SANELIB",
+      "sha256": "6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8",
+      "size": 96,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 198218,
+      "id": 23,
+      "name": "STDCLIB",
+      "sha256": "ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969",
+      "size": 126,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 198348,
+      "id": 24,
+      "name": "STDIO",
+      "sha256": "f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a",
+      "size": 4970,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 203322,
+      "id": 25,
+      "name": "SANELib",
+      "sha256": "c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090",
+      "size": 246,
+      "type": "CODE"
+    },
+    {
+      "attributes": 32,
+      "code": {
+        "first_jump_table_entry_offset": 65535,
+        "jump_table_entry_count": 0,
+        "kind": "code_segment"
+      },
+      "data_offset": 203572,
+      "id": 26,
+      "name": "PASLIB",
+      "sha256": "62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae",
+      "size": 2940,
+      "type": "CODE"
+    },
+    {
+      "attributes": 20,
+      "code": {
+        "first_jump_table_entry_offset": 0,
+        "jump_table_entry_count": 1,
+        "kind": "code_segment"
+      },
+      "data_offset": 2788,
+      "id": 27,
+      "name": "32-bit bootstrap",
+      "sha256": "f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352",
+      "size": 1882,
+      "type": "CODE"
+    }
+  ],
+  "schema_version": 1,
+  "sha256": "c2f0dba686c522ce8c912b872e8b119e2377daf45a13061d2986b84253ccba26",
+  "size": 213850,
+  "source_path": "tmp/mpw_asm_resource_probe/resource/MPW-GM/MPW/Tools/Asm",
+  "types": [
+    {
+      "count": 28,
+      "type": "CODE"
+    }
+  ]
+}
