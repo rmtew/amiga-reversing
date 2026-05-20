@@ -141,6 +141,72 @@ def test_callback_slot_report_blocks_without_review_item_identity() -> None:
     }
 
 
+def test_callback_slot_report_ignores_store_after_source_register_clobber() -> None:
+    rows = [
+        {"kind": "label", "label": "abs_0_00010E14", "start_offset": 0x0E14},
+        {"kind": "data", "start_offset": 0x0E14, "end_offset": 0x0E20, "row_key": "data"},
+        {
+            "kind": "instruction",
+            "start_offset": 0x1000,
+            "opcode_or_directive": "lea.l",
+            "operand_registers": [None, "A0"],
+            "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010E14"}}],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x1004,
+            "opcode_or_directive": "movea.l",
+            "operand_registers": [None, "A0"],
+            "operand_parts": [],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x1008,
+            "opcode_or_directive": "move.l",
+            "operand_registers": ["A0", None],
+            "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+        },
+    ]
+
+    report = callback_slot_report(rows, slot_symbol="app_0360")
+
+    assignment = report["slots"][0]["assignments"][0]
+    assert assignment["stored_symbol"] is None
+    assert assignment["stored_source_offset"] is None
+    assert assignment["target"] is None
+
+
+def test_callback_slot_report_ignores_consumer_after_transfer_register_clobber() -> None:
+    rows = [
+        {
+            "kind": "instruction",
+            "start_offset": 0x2000,
+            "opcode_or_directive": "movea.l",
+            "operand_registers": [None, "A0"],
+            "operand_text": "app_0360(a6),a0",
+            "app_slot_refs": [{"access": "read", "symbol": "app_0360", "displacement": 0x0360}],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x2004,
+            "opcode_or_directive": "movea.l",
+            "operand_registers": [None, "A0"],
+            "operand_text": "(a1),a0",
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x2008,
+            "opcode_or_directive": "jsr",
+            "operand_text": "(a0)",
+        },
+    ]
+
+    report = callback_slot_report(rows, slot_symbol="app_0360")
+
+    assert report["summary"]["consumer_count"] == 0
+    assert report["slot_count"] == 0
+
+
 def test_callback_slot_report_does_not_treat_data_review_item_as_code_seed_ready() -> None:
     rows = [
         {"kind": "label", "label": "abs_0_00010E14", "start_offset": 0x0E14},

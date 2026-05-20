@@ -1666,10 +1666,10 @@ Review findings:
   closeout review.
 * Output-affecting target changes consistently report exact round-trip
   verification, and final rendered-source evidence is now tracked.
-* Closeout validation rebuilt the C artifacts and passed style/dead-code stages,
-  but `src\build\m68k_c_unit_tests.exe` exited 1 without diagnostic output, so
-  the full `src\precommit.bat` did not complete. This should be investigated as
-  a validation/tooling issue before treating the whole tree as green.
+* Closeout validation initially found a silent native C unit failure. Follow-up
+  diagnosis identified a Windows stack overflow in the native test executable,
+  made the test harness output unbuffered, increased the native unit-test stack,
+  and then reran `src\precommit.bat` successfully end to end.
 * The main architectural weakness remains that many successful app-slot edits
   used target-level RSSET region commands. The selected `rsset.binding.report`
   path is still too often report-only because accepted base evidence and

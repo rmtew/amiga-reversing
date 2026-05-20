@@ -217,6 +217,8 @@ def _following_indirect_transfer(
 ) -> Mapping[str, object] | None:
     expected = f"({register.lower()})"
     for candidate in rows[index + 1 : index + 1 + lookahead_rows]:
+        if _destination_register(candidate) == register:
+            return None
         opcode = str(candidate.get("opcode_or_directive") or "").lower()
         if opcode not in {"jsr", "jmp"}:
             continue
@@ -235,10 +237,14 @@ def _previous_symbol_load(
     if register is None:
         return None
     for candidate in reversed(rows[max(0, index - lookback_rows) : index]):
-        if _destination_register(candidate) != register:
+        destination = _destination_register(candidate)
+        if destination is None:
+            continue
+        if destination != register:
             continue
         if _symbol_operand(candidate) is not None:
             return candidate
+        return None
     return None
 
 
