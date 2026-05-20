@@ -144,6 +144,19 @@ produces real source improvement, saturates, or hits a blocker, then move to the
 next family. Do not chase isolated raw displacements unless they unlock broader
 base, structure, type, or naming improvement.
 
+When generic `run-one` candidates become mechanical, low-value, or framework
+policy work, switch to a Manual Review Items pass before continuing ordinary
+planner iteration. Inspect the same review list surfaced by the Review dialog or
+`inspect`, then choose only items that identify concrete Pandora source-quality
+blockers: orphan code candidates, unreconciled data ranges, suspicious decode,
+manual-seed conflicts, label scope conflicts, reproduction mismatches, and
+typed/classification conflicts. For each candidate, collect the durable review
+item id and evidence fingerprint, inspect surrounding listing/xrefs, discover
+commands from the review item or affected range, and execute only if durable
+identity, command support, type-specific verifier, and exact round-trip gates
+are present. Reducing the review count is progress only when the underlying
+source issue is resolved through a structured verified fact.
+
 ## Acceptance Criteria
 
 Each accepted reversing action must have:

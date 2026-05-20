@@ -72,6 +72,17 @@ to `string_0002109E`; implement that as general analysis/rendering policy, or
 log it as framework work, unless the current target action is to fix that
 general policy.
 
+When normal planner candidates become mechanical or low-value, inspect Manual
+Review Items as the next candidate source. Treat the review list as an
+evidence-backed work queue, not as a checklist to clear. Prefer items that name
+concrete source-quality blockers such as orphan code, unreconciled data,
+suspicious decode, seed conflicts, label scope conflicts, reproduction
+mismatches, or typed/classification conflicts. Resolve a review item only when
+the action has durable review item identity, type-specific command support,
+type-specific verification, and exact round-trip where output-affecting. If the
+item exposes missing evidence, command support, or verifier coverage, record
+that blocker instead of resolving it with a note or generic comment.
+
 Use `docs/proposals/014-source-converging-manual-action-surface.md` as the
 capability map. If the best source-converging action is not in the matrix, or
 the matrix says identity/command/verifier support is missing, report that as
