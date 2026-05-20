@@ -1131,6 +1131,42 @@ def test_provenance_backed_mutation_verifier_accepts_scoped_evidence() -> None:
     assert provenance_layer["owner_action_id"] == "action-1"
 
 
+def test_provenance_backed_mutation_verifier_accepts_a5_accepted_evidence_status() -> None:
+    command = {
+        "command_id": "a5_hardware_ref.interpret",
+        "parameters": {
+            "source_evidence_id": "a5-custom-cfg:h0:00000498->000004AA:op1:d009A",
+            "source_family": "amiga_custom_base",
+            "source_evidence_status": "accepted",
+            "path_lifetime_scope": {"kind": "straight_line_cfg_between_definition_and_use"},
+            "conflicts": [],
+        },
+    }
+    durable_result = {
+        "action": {
+            "action_id": "action-a5",
+            "payload": {
+                "a5_hardware_ref": {
+                    "source_evidence_id": "a5-custom-cfg:h0:00000498->000004AA:op1:d009A",
+                    "source_family": "amiga_custom_base",
+                    "source_evidence_status": "accepted",
+                    "path_lifetime_scope": {"kind": "straight_line_cfg_between_definition_and_use"},
+                    "conflicts": [],
+                }
+            },
+        }
+    }
+    verification = {"status": "passed", "layers": [{"layer": "manual_action_log", "status": "passed"}]}
+
+    report = reversing_loop._verify_provenance_backed_mutation(command, durable_result, verification)
+
+    provenance_layer = report["layers"][1]
+    assert report["status"] == "passed"
+    assert provenance_layer["layer"] == "provenance_evidence"
+    assert provenance_layer["status"] == "passed"
+    assert provenance_layer["source_evidence_status"] == "accepted"
+
+
 def test_provenance_backed_mutation_verifier_rejects_mismatched_command_evidence() -> None:
     command = {
         "command_id": "row.data_block.element.interpret_ref",

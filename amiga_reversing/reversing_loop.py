@@ -4682,7 +4682,9 @@ def _verify_manual_mutation(
     return {"status": status, "layers": layers}
 
 
-_ACCEPTED_PROVENANCE_STATUSES = frozenset({"analysis_proven", "path_specific", "manual_classified", "manual_override"})
+_ACCEPTED_PROVENANCE_STATUSES = frozenset(
+    {"accepted", "analysis_proven", "path_specific", "manual_classified", "manual_override"}
+)
 _PROVENANCE_COMMAND_IDENTITY_KEYS = (
     "source_evidence_id",
     "source_family",

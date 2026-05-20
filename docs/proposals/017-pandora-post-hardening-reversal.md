@@ -65,6 +65,7 @@ measured blocker needed for that improvement.
 13. `017-013`: A5 hardware-reference command and verifier.
 14. `017-014`: A5 custom-register base-offset report identity.
 15. `017-015`: A5 zero-displacement hardware-ref rendering.
+16. `017-016`: A5 accepted-provenance verifier status.
 
 ## Recommended Order
 
@@ -232,3 +233,10 @@ repeatable work to `docs\issues\017-*`.
   keeps zero-displacement/non-zero-custom-base A5 refs semantic-only until
   exact symbol-delta rendering exists. Focused Pandora validation now blocks
   `s0:0000045C` with that reason while leaving `s0:000004A6` command-backed.
+- The next safe A5 mutation selected Pandora `s0:000004AA` and rendered
+  `intena(a5)` exactly, but the generic provenance wrapper rejected
+  `source_evidence_status=accepted` even though the A5 action-specific verifier
+  passed. 017-016 adds `accepted` to the generic accepted-provenance statuses;
+  revalidation of action `manual-5f2c6ead224244dabec3cadaff7d2d98` now passes
+  manual-log, provenance, semantic-reload, rendered-source, and exact round-trip
+  layers.
