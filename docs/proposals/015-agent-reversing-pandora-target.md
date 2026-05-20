@@ -1102,6 +1102,38 @@ the intended location.
   only shows repeated stores of `$70000` before rendering calls, not a clear
   durable load/use role.
 
+### 015-030: Name object focus and interaction app slots
+
+* Candidate: related raw app-state coverage for `$019E(a6)` and `$01A2(a6)`,
+  the object pointers shared by the nearby-object scan and interaction/effect
+  paths.
+* Evidence: the object scan around `s0:000082F0` iterates the object list,
+  compares object position fields against the current/player object, updates
+  the best distance, and writes the selected candidate pointer to `$019E(a6)`.
+  Later paths test and load `$019E(a6)` before copying it into `$01A2(a6)` at
+  `s0:00002F02`; the interaction/effect routines then repeatedly load
+  `$01A2(a6)` into `a5` before checking object flags, object type, held item
+  state, and applying interaction effects.
+* Command: executed two `target.rsset_region.add` commands through the target
+  command catalog with app layout, `__amiga_app_base__` base symbol, size 4,
+  and pointer storage kind: `$019E` as `app_nearest_object_ptr` and `$01A2` as
+  `app_interaction_object_ptr`.
+* Verifier: Manual Action Log count is 33 with head hash
+  `90d5c094ebf1bfe3001d8e3952899a4fbc12f45bf8c6289d7e6de0a797b93a1c`;
+  semantic reload shows both 4-byte pointer RSSET regions; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Timing: grouped command execution completed in about 1s; listing projection
+  regeneration/readback was about 10s; exact reproduction remained ready/exact.
+* Result: rendered source now defines `app_nearest_object_ptr RS.L 1` and
+  `app_interaction_object_ptr RS.L 1`. Listing projection shows eleven rows
+  containing `app_nearest_object_ptr` and nine rows containing
+  `app_interaction_object_ptr`.
+* Review: this batch keeps the names at pointer-role level because the concrete
+  object struct fields are still unnamed. It does not classify the object-list
+  base, inventory/pocket byte arrays at `$0196(a6)`/`$019A(a6)`, or item/object
+  type values; those need their own supported evidence pass.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
