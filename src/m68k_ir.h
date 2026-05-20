@@ -256,7 +256,7 @@ typedef struct M68kAnalysisRssetUseSiteBinding {
   char layout_name[32];
   char base_symbol[64];
   char base_evidence_id[96];
-  char binding_id[96];
+  char binding_id[256];
   char owner_action_id[96];
 } M68kAnalysisRssetUseSiteBinding;
 

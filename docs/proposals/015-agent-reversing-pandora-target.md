@@ -1177,6 +1177,43 @@ the intended location.
   plain size-4 app regions continue to render as long storage unless the
   command records byte-array semantics.
 
+### 015-034: Render Pandora frame-counter byte suboffset uses
+
+* Candidate: blocked D013 byte uses at `$01AD(a6)`, which are inside the
+  existing four-byte `$01AA(a6)` `app_frame_counter` RSSET region.
+* Evidence: 015-026 named `$01AA(a6)` as `app_frame_counter`; at
+  `s0:00000F6A`, `btst.b #0,$01AD(a6)` gates the palette rotation path; at
+  `s0:00002DA8`, `move.b $01AD(a6),app_022D(a6)` copies the low frame-counter
+  byte to display/palette state.
+* Support-code fix: selected RSSET use-site bindings now resolve offsets inside
+  a named RSSET region as `<region_symbol>+<delta>` instead of requiring an
+  exact region start match or creating an overlapping slot. The C metadata
+  parser and policy ABI now also accept long generated RSSET binding ids.
+* Command: executed two `rsset.binding.bind` commands through the
+  listing/command API with explicit A6 app-base evidence
+  `selected-base:A6:__amiga_app_base__`: action
+  `manual-5d8f01b9c5924605b924eb3296d883e6` for `s0:00000F6A` and action
+  `manual-de8d9e46aba54273b712ee0218d7946e` for `s0:00002DA8`.
+* Verifier: C backend rebuild passed; focused pytest passed for the existing
+  selected-use binding tests plus the new suboffset regression; ruff import/error
+  check passed for `tests\test_c_backend.py`; inspect reports Manual Action Log
+  count 37, head hash
+  `eefed19c83e02b0145c2b82c1ed0144e314339d2e069dd996557b5455c3846a0`,
+  review state clear, and exact round-trip. Listing projection shows exactly
+  `btst.b #0,app_frame_counter+3(a6)` at `s0:00000F6A` and
+  `move.b app_frame_counter+3(a6),app_022D(a6)` at `s0:00002DA8`, with no
+  remaining raw `$01AD(a6)` hits. Exact reproduction reran with `status: exact`,
+  `stale: false`, and rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Timing: C DLL rebuild took about 18s; focused pytest took about 1s; listing
+  open/query was about 5s; exact reproduction source rendering was about 1s.
+* Result: rendered source uses `app_frame_counter+3(a6)` for the two proven
+  byte reads without introducing an overlapping `$01AD` app slot.
+* Review: the bindings remain selected-use and path-specific. This does not name
+  `app_022D` or infer a narrower frame-byte semantic. The binding-id parser gap
+  was found after the first real Manual Action Log action and fixed before the
+  second action.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -1551,14 +1588,14 @@ Triage by scope:
   * render byte-offset uses as an expression or alias of `app_frame_counter`
     rather than as a new independent raw app slot.
 * Missing tool/report/action:
-  * `target.rsset_region.add` can add another region at `$01AD`, but that would
-    overlap the accepted `app_frame_counter` long and falsely model the byte as
-    independent state. The manual command surface needs an alias/subfield or
-    offset-expression path for byte/word accesses inside an accepted RSSET
-    region.
+  * fixed by 015-034: selected `rsset.binding.bind` use-site bindings can now
+    render displacements inside an accepted RSSET region as
+    `<region_symbol>+<delta>` without adding an overlapping region.
 * Pull-in condition: overlapping RSSET byte/word accesses become the next best
   source-converging action, or app-slot alias rendering is being changed.
-* Status: blocked for target mutation; no Manual Action Log change was made.
+* Status: fixed by 015-034. The two proved Pandora `$01AD(a6)` byte uses now
+  render as `app_frame_counter+3(a6)` through supported commands, and exact
+  round-trip was verified.
 
 ## Stop Conditions
 

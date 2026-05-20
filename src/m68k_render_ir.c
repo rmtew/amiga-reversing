@@ -4258,7 +4258,7 @@ static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup,
 
 static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    char *symbol_name, size_t symbol_name_size);
+    char *symbol_name, size_t symbol_name_size, int32_t *out_addend);
 
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *state, size_t section_index, uint32_t offset,
@@ -4272,15 +4272,17 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     int16_t displacement = 0;
     char symbol_name[64], field_expr[96];
     int32_t field_offset = 0;
+    int32_t symbol_addend = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
     if (lookup_rsset_use_site_binding_symbol_name(lookup, section_index, offset, (uint8_t)operand_index,
-        base_reg, displacement, symbol_name, sizeof(symbol_name))) {
+        base_reg, displacement, symbol_name, sizeof(symbol_name), &symbol_addend)) {
       m68k_ir_symbol_ref_init(&operand->symbol_ref);
       operand->symbol_ref.has_name = 1U;
       operand->symbol_ref.name_is_generated = 0U;
       operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
       operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
+      operand->symbol_ref.addend = symbol_addend;
       snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
       attached = 1;
       continue;
@@ -6508,12 +6510,14 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
 
 static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    char *symbol_name, size_t symbol_name_size) {
+    char *symbol_name, size_t symbol_name_size, int32_t *out_addend) {
   const M68kAnalysisPolicy *policy;
   uint16_t binding_index;
   int found = 0;
   char found_symbol[64];
+  int32_t found_addend = 0;
   if (symbol_name != NULL && symbol_name_size > 0U) symbol_name[0] = '\0';
+  if (out_addend != NULL) *out_addend = 0;
   if (lookup == NULL || lookup->policy == NULL || displacement < 0) return 0;
   policy = lookup->policy;
   found_symbol[0] = '\0';
@@ -6532,18 +6536,25 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
       const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[region_index];
       const char *region_layout = region->layout_name[0] != '\0' ? region->layout_name : M68K_RENDER_APP_LAYOUT_NAME;
       const char *region_base = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
-      if (region->offset != binding->displacement || region->symbol[0] == '\0' ||
+      uint32_t region_end;
+      int32_t candidate_addend;
+      if (region->symbol[0] == '\0' || region->size == 0U ||
           strcmp(region_layout, binding->layout_name) != 0 ||
           strcmp(region_base, binding->base_symbol) != 0) {
         continue;
       }
-      if (found != 0 && strcmp(found_symbol, region->symbol) != 0) return 0;
+      region_end = region->size <= UINT32_MAX - region->offset ? region->offset + region->size : UINT32_MAX;
+      if (binding->displacement < region->offset || binding->displacement >= region_end) continue;
+      candidate_addend = (int32_t)(binding->displacement - region->offset);
+      if (found != 0 && (strcmp(found_symbol, region->symbol) != 0 || found_addend != candidate_addend)) return 0;
       snprintf(found_symbol, sizeof(found_symbol), "%s", region->symbol);
+      found_addend = candidate_addend;
       found = 1;
     }
   }
   if (found == 0 || symbol_name == NULL || symbol_name_size == 0U) return found;
   snprintf(symbol_name, symbol_name_size, "%s", found_symbol);
+  if (out_addend != NULL) *out_addend = found_addend;
   return strlen(found_symbol) < symbol_name_size;
 }
 

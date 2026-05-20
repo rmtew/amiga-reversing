@@ -4298,7 +4298,7 @@ static int append_metadata_rsset_use_site_binding_local(const char *object_start
   char layout_name[32];
   char base_symbol[64];
   char base_evidence_id[96];
-  char binding_id[96];
+  char binding_id[256];
   char owner_action_id[96];
   base_register[0] = '\0';
   layout_name[0] = '\0';
