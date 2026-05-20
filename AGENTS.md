@@ -78,6 +78,17 @@ summarize it in reports unless tracked support code or docs also changed.
 - Original binaries in `bin/` must never be modified.
 - Rebuilt binaries go in `bin/rebuilt/` and are gitignored.
 
+## Local Environment
+
+- `rg` may be unavailable in the sandbox PATH. Use PowerShell
+  `Get-ChildItem ... | Select-String ...` as the sandbox fallback, or escalated
+  Windows `rg` when needed.
+- `uv run` may fail in the sandbox with access denied to the uv-managed Python
+  shim.
+- Prefer escalated Windows for repo commands that need `uv run`, with inline
+  cache:
+  `$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run ...`
+
 ## Knowledge Files
 
 - `knowledge/m68k.md`
