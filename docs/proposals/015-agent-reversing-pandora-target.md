@@ -942,6 +942,38 @@ the intended location.
   framebuffer role, because some setup paths derive it from `$01D4(a6)` while
   others derive it from the fixed `$70000` screen base.
 
+### 015-025: Name tilemap scroll origin app slots
+
+* Candidate: D003 RSSET/app-base coverage for raw `$01B6(a6)` and `$01B8(a6)`,
+  the pixel scroll origins feeding the already named tile row/column fields.
+* Evidence: the update path at `s0:0000818A` clamps `$01B8(a6)` against
+  `(app_tilemap_height - 8) << 4`, stores it back, shifts it right by four, and
+  stores the tile result to `app_tile_row(a6)`. The same path adds
+  `app_0296(a6)` to `$01B6(a6)`, stores it back, shifts it right by four, and
+  stores the tile result to `app_tile_column(a6)`. Initialization at
+  `s0:00009EE0` sets `app_tile_row` to 51, stores `51 << 4` into `$01B8(a6)`,
+  and clears `$01B6(a6)`. The screen-bound helper at `s0:0000680A` uses
+  `$01B6(a6)+320` and `$01B8(a6)+128`, matching pixel-space viewport extents.
+* Command: executed `target.rsset_region.add` twice through the target command
+  catalog: `$01B6`, `size: 2`, `symbol: app_tilemap_scroll_x`; `$01B8`,
+  `size: 2`, `symbol: app_tilemap_scroll_y`; both use `layout_name: app` and
+  `base_symbol: __amiga_app_base__`.
+* Verifier: Manual Action Log count is 24 with head hash
+  `52484268beb9eb71d4b9e1b99aaea643aac8c90984f7ae32860c5ad518b2515c`;
+  semantic reload shows both RSSET regions with `size: 2`; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_tilemap_scroll_x RS.W 1` and
+  `app_tilemap_scroll_y RS.W 1`. Listing projection shows seven rows for each
+  name, including `move.w app_tilemap_scroll_x(a6),d0`,
+  `move.w d0,app_tilemap_scroll_x(a6)`,
+  `move.w app_tilemap_scroll_y(a6),d0`, and
+  `move.w d0,app_tilemap_scroll_y(a6)`.
+* Review: this completes the high-confidence tilemap scroll/size/base cluster
+  currently backed by direct same-flow evidence. Remaining raw slots should be
+  treated as separate candidate families rather than folded into D003 by
+  adjacency alone.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -1057,6 +1089,9 @@ Triage by scope:
   * 015-024 resolved `$01E4(a6)` as `app_text_cursor_ptr`, a 4-byte pointer
     RSSET app field used as the mutable destination cursor for text/glyph
     rendering.
+  * 015-025 resolved `$01B6(a6)` as `app_tilemap_scroll_x` and `$01B8(a6)` as
+    `app_tilemap_scroll_y`, both 2-byte RSSET app fields used as pixel-space
+    scroll origins for tilemap row/column derivation.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -1073,9 +1108,9 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 through 015-024 for `$01BA`, `$01BC`,
-  `$01BE`, `$01C2`, `$01C4`, `$01DC`, and `$01E4`. Adjacent raw fields remain
-  open pending stronger names or accepted base/gap evidence.
+* Status: partly fixed by 015-020 through 015-025 for `$01B6`, `$01B8`,
+  `$01BA`, `$01BC`, `$01BE`, `$01C2`, `$01C4`, `$01DC`, and `$01E4`. Adjacent
+  raw fields remain open pending stronger names or accepted base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
