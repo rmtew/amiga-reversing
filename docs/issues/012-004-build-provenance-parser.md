@@ -1,4 +1,4 @@
-Status: Open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -40,3 +40,29 @@ Delete after build provenance parsing is implemented and tested.
 Notes for agents:
 The value here is explanatory provenance for rendered source and future
 round-trip research. It is not a commitment to rebuilding MPW outputs.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_build_provenance`, a source-level MPW
+  recipe parser for variables, target dependencies, and `Asm`/`Link`/`SetFile`/
+  `Rez` commands.
+- The parser records `AOptions`, `AObjs`, object recipes, primary assembly
+  source inputs, link object/library inputs, link output, type/creator,
+  driver/tool/application program kind, SetFile metadata, and Rez append inputs.
+- Source recipe provenance is explicitly separated from executable binary
+  import provenance. Parsed build recipes do not claim byte-for-byte roundtrip
+  support and do not map source recipes to observed `Asm` `CODE` resources.
+- Real MPW make files decode dependency and continuation glyphs as U+0192 and
+  U+2202 under MacRoman; tests cover those forms and PowerShell display
+  equivalents.
+
+Validation notes:
+- Local ignored AExamples validation parsed `Sample.make` into one `Sample`
+  product with Link/SetFile/Rez commands.
+- Local ignored AExamples validation parsed `MakeFile` into `Count` and
+  `Memory` products, including Count Rez/link/library inputs and Memory driver
+  link metadata.
+
+Verification:
+- `uv run python -m pytest tests\test_macos_build_provenance.py -q`
+- `uv run ruff check amiga_reversing\disasm\macos_build_provenance.py tests\test_macos_build_provenance.py`
+- `uv run mypy amiga_reversing\disasm\macos_build_provenance.py`

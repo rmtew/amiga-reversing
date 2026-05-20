@@ -723,7 +723,7 @@ Connect Sample.r declarations to Sample.h/Sample.inc1.a constants and source
 call sites for MBAR, MENU, ALRT, DITL, WIND, RECT, SIZE, and cmdo.
 ```
 
-4. Build provenance parser
+4. Build provenance parser - implemented
 
 ```text
 Parse Asm, Link, SetFile, Rez, object inputs, library inputs, output
@@ -893,6 +893,13 @@ resources documentation coverage tests
   `Count.r` resource declarations, and connects assembly call sites to resource
   declarations. `ALRT`/`DITL` shared IDs require call-context resolution; `_Alert`
   must bind to `ALRT`, while `_GetResource` remains a caller-supplied ID lookup.
+- 012-004 added source-level MPW build recipe provenance parsing. The parser
+  records variables, object recipes, Link/SetFile/Rez commands, library inputs,
+  output type/creator, and Count/Memory/Sample product metadata without claiming
+  byte-for-byte roundtrip or executable `Asm` `CODE` import provenance. Real
+  MacRoman make files decode MPW dependency/continuation glyphs as U+0192 and
+  U+2202, so parser tests cover those forms separately from display-normalized
+  text.
 
 ## Open Questions
 
