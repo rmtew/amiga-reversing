@@ -1,4 +1,4 @@
-Status: Open
+Status: Implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -49,3 +49,18 @@ Delete after the source project model is implemented and accepted.
 Notes for agents:
 This issue makes the source view real. It should not be reduced to a text file
 browser.
+
+Implementation notes:
+- Added `amiga_reversing.disasm.macos_source_project` to compose MPW source
+  structure, Rez resources, build provenance, resource xrefs, and generated Mac
+  OS facts into a source-first project model.
+- The model records navigable source files, segments, routines, records,
+  imports/exports, resource declarations, build products, object recipes, and
+  Mac OS fact annotations.
+- The project model explicitly requires no built binary, ROM, or emulator, and
+  does not import executable `CODE` resources or map source `SEG` facts to
+  observed `Asm` `CODE` resources.
+
+Verification:
+- `pytest tests/test_macos_source_project.py -q`
+- `pytest tests/test_macos_source_project.py tests/test_macos_source_structure.py tests/test_macos_resource_model.py tests/test_macos_build_provenance.py tests/test_macos_runtime_generation.py -q`

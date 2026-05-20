@@ -738,7 +738,7 @@ Point, Rect, EventRecord, HVolumeParam, QDGlobals, WindowRecord, DCtlEntry,
 SysEnvRec, and observed Toolbox/OS traps.
 ```
 
-6. Mac source project model
+6. Mac source project model - implemented
 
 ```text
 Represent Sample as source files, segments, routines, resources, build recipe,
@@ -912,6 +912,11 @@ resources documentation coverage tests
   by C runtime tests; source/project render integration remains part of the
   next Mac project-model/render slices because no Classic Mac backend object
   exists yet.
+- 012-006 added a source-first Classic Mac OS project model that composes MPW
+  source structure, Rez declarations/xrefs, build provenance, and generated Mac
+  OS facts into navigable entities. It explicitly requires no built binary,
+  ROM, or emulator, and keeps source `SEG` facts separate from observed `Asm`
+  executable `CODE` resources.
 
 ## Open Questions
 
