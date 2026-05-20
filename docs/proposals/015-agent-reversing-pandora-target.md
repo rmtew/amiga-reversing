@@ -881,6 +881,36 @@ the intended location.
   look like display/copper buffer pointers, but their semantics are broader
   than tilemap indexing and need a separate evidence pass before naming.
 
+### 015-023: Name display bitplane base app slot
+
+* Candidate: D003 RSSET/app-base coverage for the raw `$01DC(a6)` long field.
+* Evidence: `$01DC(a6)` is initialized to `#$78000` during startup beside the
+  `$01D8(a6)` and `$01D4(a6)` buffer setup. During the frame-buffer swap at
+  `s0:000005A8`, the value moved into `$01D4(a6)` is also stored into
+  `$01DC(a6)`. The interrupt/display routine at `s0:0000094E` loads
+  `$01DC(a6)` into `a0` and writes `a0`, `a0+$28`, `a0+$50`, and `a0+$78` to
+  custom chip bitplane pointer registers `$00E0/$00E4/$00E8/$00EC`, making it
+  the display bitplane base.
+* Command: executed `target.rsset_region.add` through the target command
+  catalog with `layout_name: app`, `base_symbol: __amiga_app_base__`,
+  `offset: $01DC`, `size: 4`, `storage_kind: pointer`, and
+  `symbol: app_display_bitplane_base`.
+* Verifier: Manual Action Log count is 21 with head hash
+  `9d6c2c565c7b82ba502e4832c9f263faafc30f169d75472ed4b8bd995578c525`;
+  semantic reload shows `$01DC` as a 4-byte pointer RSSET region; exact
+  reproduction reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_display_bitplane_base RS.L 1` and
+  renders the three concrete uses:
+  `move.l #$78000,app_display_bitplane_base(a6)`,
+  `move.l d0,app_display_bitplane_base(a6)`, and
+  `movea.l app_display_bitplane_base(a6),a0`.
+* Review: this is a narrow source-quality improvement with direct hardware
+  evidence. `$01D4(a6)` and `$01D8(a6)` are still not named: they are swapped
+  around the frame loop and also feed drawing/blitter routines, so front/back or
+  draw/display names require stronger lifetime evidence than the current pass
+  has.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -990,6 +1020,9 @@ Triage by scope:
   * 015-022 resolved `$01C2(a6)` as `app_tilemap_width` and `$01C4(a6)` as
     `app_tilemap_height`, both 2-byte RSSET app fields used in tilemap sizing
     and indexing.
+  * 015-023 resolved `$01DC(a6)` as `app_display_bitplane_base`, a 4-byte
+    pointer RSSET app field copied into the custom chip bitplane pointer
+    registers.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -1006,9 +1039,9 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 through 015-022 for `$01BA`, `$01BC`,
-  `$01BE`, `$01C2`, and `$01C4`. Adjacent raw fields remain open pending
-  stronger names or accepted base/gap evidence.
+* Status: partly fixed by 015-020 through 015-023 for `$01BA`, `$01BC`,
+  `$01BE`, `$01C2`, `$01C4`, and `$01DC`. Adjacent raw fields remain open
+  pending stronger names or accepted base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
