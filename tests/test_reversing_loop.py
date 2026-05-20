@@ -6421,6 +6421,46 @@ def test_listing_data_symbol_candidates_use_rename_existing_for_named_rows() -> 
     assert command["context"] == {"kind": "row", "locator": row["locator"]}
 
 
+def test_listing_data_symbol_class_address_name_is_planner_skip() -> None:
+    row = _listing_row(
+        row_key="bitmap-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "bitmap"
+    row["runtime_address"] = 0x40120
+
+    candidate = reversing_loop._listing_data_symbol_candidates([row])[0]
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "data symbol name is only class/address styling"
+    )
+
+
+def test_listing_data_symbol_rename_existing_class_address_name_is_planner_skip() -> None:
+    row = _listing_row(
+        row_key="table-row",
+        kind="data",
+        text="\tdc.b $00,$01,$02,$03\n",
+        label="old_table",
+        start_offset=0x40,
+        end_offset=0x44,
+    )
+    row["data_class"] = "table"
+
+    candidate = reversing_loop._listing_data_symbol_candidates([row])[0]
+    command = reversing_loop._candidate_command_options(candidate)[0]
+
+    assert (
+        reversing_loop._candidate_skip_reason(candidate, command)
+        == "data symbol name is only class/address styling"
+    )
+
+
 def test_listing_data_symbol_candidates_skip_existing_manual_name() -> None:
     row = _listing_row(
         row_key="code-row",

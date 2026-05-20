@@ -495,6 +495,33 @@ the intended location.
   action adds semantic target meaning; otherwise implement the generic naming
   policy once or log it as deferred framework work.
 
+### 015-011: Planner skips generic typed-data names
+
+* Candidate: Pandora dry-run after 015-010's semantic-name policy update.
+* Evidence: `run-one --dry-run` still selected
+  `data_symbol.rename_existing` for row `s0:000009EA:data:656`, hunk 0
+  `$000009EA`, name `copper_list_000209EA`. The name was only
+  `<data_class>_<runtime_address>` styling, and the same dry-run contained many
+  similar `string_XXXXXXXX` candidates.
+* Command: changed planner skip policy so `data_symbol.rename` and
+  `data_symbol.rename_existing` candidates whose proposed name exactly matches
+  the generated class/address form remain visible in ranked/skipped candidates
+  but are not eligible for autonomous `run-one` execution.
+* Verifier: `tests\test_reversing_loop.py -q` passed with 284 tests; focused
+  `ruff` passed; the original Pandora dry-run now marks the copper-list and
+  string candidates with stop reason
+  `data symbol name is only class/address styling`.
+* Timing: focused pytest 2.57s; focused ruff 0.3s; Pandora dry-run 7.0s.
+* Result: target iterations no longer spend mutations on generic typed-data
+  label styling. The next selected candidate is `representation.character` for
+  `andi.b #63,d1`.
+* Review: support-code fix only; no Pandora mutation occurred and exact
+  round-trip was not required. The surfaced representation candidate appears
+  syntax-driven rather than semantic, because `#63` in `andi.b #63,d1` is likely
+  a bit mask, not a question-mark character.
+* Next recommendation: fix or block generic printable-immediate character
+  representation before executing another Pandora mutation.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -745,6 +772,28 @@ Triage by scope:
     instead of target progress.
 * Pull-in condition: generic typed-row renames dominate the planner, or a
   target action needs to replace a generic name with a semantic one.
+* Status: fixed for autonomous planner selection by 015-011. Framework-level
+  automatic styling remains separate future policy work.
+
+#### D010: Printable immediate character representation is too syntax-led
+
+* Date/source: 015-011 Pandora dry-run after generic data-symbol names were
+  skipped.
+* Location: selected candidate
+  `representation:s0:00000C28:instruction:760:0:63:character`.
+* Evidence:
+  * candidate evidence is only `byte_printable_immediate`,
+  * source text is `andi.b #63,d1`,
+  * rendering `63` as `#'?'` would likely obscure mask semantics.
+* Expected source improvement:
+  * character representation candidates should require semantic character
+    context, such as compare/transform code around ASCII input or output, not
+    mere printable byte values.
+* Missing tool/report/action:
+  * opcode/context-aware representation planning or a planner skip reason for
+    printable-but-not-character-context immediates.
+* Pull-in condition: immediate representation is the next selected Pandora
+  action.
 * Status: open.
 
 ## Stop Conditions

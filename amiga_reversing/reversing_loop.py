@@ -7409,6 +7409,8 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
     policy = _command_execution_policy_blocker(command)
     if policy is not None:
         return str(policy["message"])
+    if _data_symbol_candidate_is_class_address_only(candidate, command):
+        return "data symbol name is only class/address styling"
     if _candidate_already_satisfied(candidate, command):
         return "candidate already satisfied in projected semantic state"
     command_id = command.get("command_id")
@@ -7419,6 +7421,28 @@ def _candidate_skip_reason(candidate: dict[str, object], command: dict[str, obje
     if not _command_context_complete(command):
         return "missing durable command context"
     return None
+
+
+def _data_symbol_candidate_is_class_address_only(
+    candidate: dict[str, object],
+    command: dict[str, object],
+) -> bool:
+    command_id = command.get("command_id")
+    if command_id not in {"data_symbol.rename", "data_symbol.rename_existing"}:
+        return False
+    if candidate.get("kind") != "data_symbol_name":
+        return False
+    data_class = candidate.get("data_class")
+    target_hunk = candidate.get("target_hunk")
+    target_addr = candidate.get("target_addr")
+    if not isinstance(data_class, str) or not isinstance(target_hunk, int) or not isinstance(target_addr, int):
+        return False
+    expected = _data_ref_symbol_name(data_class, candidate.get("runtime_address"), target_hunk, target_addr)
+    if expected is None:
+        return False
+    parameters = command.get("parameters")
+    name = parameters.get("name") if isinstance(parameters, dict) else candidate.get("new_name")
+    return name == expected
 
 
 def _candidate_verifier(candidate: dict[str, object], command: dict[str, object] | None) -> str | None:
