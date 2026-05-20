@@ -3,6 +3,8 @@
 The scope of this proposal is that an agent runs the reversing loop using the
 editing features added in proposal 014.
 
+Status: closed after the 015-034 Pandora trial and final review.
+
 ## Goals
 
 * Agent runs the reversing loop to trial the editing features added in
@@ -1355,9 +1357,11 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: partly fixed by 015-020 through 015-025 for `$01B6`, `$01B8`,
-  `$01BA`, `$01BC`, `$01BE`, `$01C2`, `$01C4`, `$01DC`, and `$01E4`. Adjacent
-  raw fields remain open pending stronger names or accepted base/gap evidence.
+* Status: partly fixed by 015-020 through 015-034. The trial named the
+  high-confidence app-state fields for tilemap state, display/text pointers,
+  frame state, input, bitplane buffers, object pointers, item arrays, and
+  selected frame-counter byte uses. Adjacent raw fields remain open pending
+  stronger names, accepted base/gap evidence, or a narrower semantic pass.
   `$01B2`, `$01C6`, and `$01C8` were later fixed by 015-028 as an input-state
   subgroup. `$01D4` and `$01D8` were later fixed by 015-029 as the front/back
   bitplane buffer pair.
@@ -1622,15 +1626,101 @@ not as normal rollback.
 
 ## Final Retrospective
 
-At the end of the proposal 015 trial, record:
+Proposal 015 achieved its intended trial scope. The Pandora run exercised the
+proposal 014 manual action surface on a real target, improved the rendered
+source, exposed real support-code gaps, fixed the gaps that blocked worthwhile
+target progress, and stopped with explicit remaining blockers instead of
+continuing through weak evidence.
 
-* source-quality improvements made,
-* support-code fixes made,
-* performance findings and fixes,
-* deferred work remaining,
-* proposal 014 surfaces that worked well,
-* proposal 014 surfaces that failed or need redesign,
-* whether Pandora should continue as an ongoing target after the trial.
+Source-quality improvements made:
+
+* Restored the tracked Pandora `.s` render so source-control diffs show the
+  visible outcome of the target trial.
+* Added verified code classification for callback/handler ranges that were
+  previously rendered as data.
+* Replaced many raw A6 app-state operands with named RSSET fields, including
+  tilemap state, display/text pointers, frame state, input fields, bitplane
+  buffers, object pointers, and carried/pocket item arrays.
+* Added selected-use RSSET binding for proven subfield accesses, rendering
+  frame-counter byte reads as `app_frame_counter+3(a6)` without creating an
+  overlapping app slot.
+* Applied immediate representation only where surrounding code supported
+  character semantics, and blocked syntax-only printable-immediate churn.
+
+Support-code fixes made:
+
+* Hardened planner selection against low-value generic data/class names and
+  stale locator failures.
+* Added a callback-slot report for stored code pointers consumed by indirect
+  calls/jumps.
+* Fixed app RSSET rendering for explicit 2-byte regions and added byte-array
+  storage support.
+* Extended selected RSSET use-site binding rendering to allow offsets inside an
+  accepted region.
+* Increased the C metadata binding-id capacity after real generated binding ids
+  exceeded the old limit.
+
+Review findings:
+
+* No blocking correctness issue was found in the final 015 commits during
+  closeout review.
+* Output-affecting target changes consistently report exact round-trip
+  verification, and final rendered-source evidence is now tracked.
+* Closeout validation rebuilt the C artifacts and passed style/dead-code stages,
+  but `src\build\m68k_c_unit_tests.exe` exited 1 without diagnostic output, so
+  the full `src\precommit.bat` did not complete. This should be investigated as
+  a validation/tooling issue before treating the whole tree as green.
+* The main architectural weakness remains that many successful app-slot edits
+  used target-level RSSET region commands. The selected `rsset.binding.report`
+  path is still too often report-only because accepted base evidence and
+  bind/refine ownership are incomplete.
+* The app-slot naming pass should not continue indefinitely. Remaining raw A6
+  fields need a new focused evidence family, not adjacency-driven naming.
+
+Performance observations:
+
+* Manual command execution was usually fast, often under one second for grouped
+  app-slot actions.
+* Listing projection/readback commonly took about 9-10 seconds.
+* C DLL rebuild and final exact reproduction could dominate individual support
+  fixes; 015-033 recorded about 17 seconds for rebuild and about 21 seconds for
+  exact reproduction.
+
+Deferred work remaining:
+
+* D002: broad orphan-code heuristics remain open and should stay evidence-led.
+* D006: immediate runtime-reference detection remains open.
+* D007: A5 hardware-base lifetime proof remains open.
+* D008: dry-run/execute candidate drift remains open.
+* D011: duplicate expected manual seeds in verifier output remains open.
+* Broader framework work remains for provenance-backed RSSET bind/refine
+  actions and generated-descendant cleanup ownership.
+
+Proposal 014 surfaces that worked well:
+
+* Durable command ids and exact round-trip verification were sufficient for
+  repeated target mutations.
+* Review items were useful as a work queue when paired with durable ids and
+  evidence fingerprints.
+* Row-level code seeding and selected RSSET use-site bindings were useful
+  escape hatches when the review item family was not specific enough.
+* Recording deferred findings in the proposal prevented blockers from being
+  lost between candidate families.
+
+Proposal 014 surfaces that need redesign or follow-up:
+
+* RSSET report/bind/refine needs accepted base evidence, durable ownership, and
+  cleanup semantics strong enough to replace ad hoc target-level region adds.
+* The planner needs better selected-action traceability when dry-run and
+  execution diverge after availability checks.
+* Manual seed verifier reporting should de-duplicate command payloads that
+  expose the same action through both `action` and `actions`.
+* Hardware-base provenance needs first-class lifetime/conflict reporting before
+  A5-relative operands can safely render as custom register names.
+
+Pandora should continue only as a focused follow-up target. The next Pandora
+work should start from one of the remaining evidence families above rather than
+another broad reversing-loop pass.
 
 ## References
 
