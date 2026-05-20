@@ -790,6 +790,29 @@ the intended location.
   showed the correct rows. Record this as a query-surface follow-up if it
   repeats.
 
+### 015-020: Name the tilemap base app slot
+
+* Candidate: D003 RSSET/app-base coverage for the raw `$01BE(a6)` slot.
+* Evidence: `$01BE(a6)` is initialized once with `move.l #$4000,$01BE(a6)` at
+  `s0:00009EE0:instruction:7149`, then used as a long base pointer in tile or
+  address calculations: `movea.l $01BE(a6),a4` and
+  `add.l $01BE(a6),d0` in the blitter setup around `s0:00006752`.
+* Command: executed `target.rsset_region.add` with
+  `layout_name: app`, `base_symbol: __amiga_app_base__`, `offset: $01BE`,
+  `size: 4`, `storage_kind: pointer`, `symbol: app_tilemap_base`.
+* Verifier: Manual Action Log count is 14; semantic reload matched
+  `catalog-rsset-region-app-01BE`; exact reproduction reran and remained
+  `status: exact`, rebuilt SHA matching the original
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Result: rendered source now defines `app_tilemap_base RS.L 1`, renders
+  `move.l #$4000,app_tilemap_base(a6)`, and replaces repeated raw `$01BE(a6)`
+  uses with `app_tilemap_base(a6)`.
+* Review: this used a target-level RSSET region command rather than selected
+  `rsset.binding.report`, because selected raw-displacement reports still lack
+  accepted base evidence and remain read-only. Adjacent dimension/index fields
+  such as `$01BA`, `$01BC`, `$01C2`, and `$01C4` look related but need their own
+  evidence and naming pass.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -892,6 +915,8 @@ Triage by scope:
   * nearby offsets render as `app_01F0(a6)` and `app_020B(a6)`,
   * related offsets such as `$01BC(a6)`, `$01BA(a6)`, `$01BE(a6)`, and
     `$01D8(a6)` still appear raw in related table/indexing code.
+  * 015-020 resolved `$01BE(a6)` as `app_tilemap_base`, a long pointer
+    initialized to `#$4000` and used as the base in tile/address calculations.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -908,7 +933,8 @@ Triage by scope:
   (`$01D8(a6)` appears 9 times; `$01D4(a6)` appears 7 times), but not yet safe
   to bind.
 * Pull-in condition: first Pandora RSSET/app-base pass begins.
-* Status: open.
+* Status: partly fixed by 015-020 for `$01BE(a6)`. Adjacent raw fields remain
+  open pending stronger names or accepted base/gap evidence.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
