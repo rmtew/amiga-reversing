@@ -192,6 +192,13 @@ def main(argv: list[str] | None = None) -> int:
     a5_hardware_parser.add_argument("--target", required=True)
     a5_hardware_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    rsset_candidate_parser = subparsers.add_parser(
+        "rsset-candidate-report",
+        help="Report read-only RSSET/app-slot candidates from raw or weak A6 operands.",
+    )
+    rsset_candidate_parser.add_argument("--target", required=True)
+    rsset_candidate_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
@@ -253,6 +260,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "a5-hardware-report":
         _print_json(
             inspect_a5_hardware_lifetimes(
+                args.target,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "rsset-candidate-report":
+        _print_json(
+            inspect_rsset_candidates(
                 args.target,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
@@ -375,6 +391,29 @@ def inspect_a5_hardware_lifetimes(
         return report
     rows = _listing_all_rows(target_id)
     report["a5_hardware_lifetimes"] = _listing_a5_hardware_lifetime_report(rows)
+    return report
+
+
+def inspect_rsset_candidates(
+    target_id: str,
+    *,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    report: dict[str, object] = {
+        "target_id": target_id,
+        "hygiene": hygiene.to_dict(),
+        "safe_to_mutate": False,
+        "mutation_policy": "report_only",
+    }
+    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    report["listing_open"] = listing_ready
+    if listing_ready.get("status") != "ready":
+        report["rsset_candidate_report"] = _empty_rsset_candidate_report()
+        return report
+    rows = _listing_all_rows(target_id)
+    report["rsset_candidate_report"] = _listing_rsset_candidate_report(rows)
     return report
 
 
@@ -2617,6 +2656,213 @@ def _listing_rsset_region_candidates(
                 },
             )
     return candidates
+
+
+def _empty_rsset_candidate_report() -> dict[str, object]:
+    return {
+        "kind": "rsset_candidate_report",
+        "candidate_count": 0,
+        "use_count": 0,
+        "candidates": [],
+    }
+
+
+def _listing_rsset_candidate_report(rows: list[object]) -> dict[str, object]:
+    mapping_rows = [row for row in rows if isinstance(row, Mapping)]
+    uses: list[dict[str, object]] = []
+    for row in mapping_rows:
+        for context in listing_element_contexts(row):
+            use = _rsset_candidate_use_from_context(row, context)
+            if use is not None:
+                uses.append(use)
+
+    grouped: dict[tuple[str, int], list[dict[str, object]]] = {}
+    for use in uses:
+        base_register = use.get("base_register")
+        displacement = use.get("displacement")
+        if isinstance(base_register, str) and isinstance(displacement, int):
+            grouped.setdefault((base_register, displacement), []).append(use)
+
+    candidates = [
+        _rsset_candidate_group_summary(
+            base_register=base_register,
+            displacement=displacement,
+            uses=group_uses,
+        )
+        for (base_register, displacement), group_uses in grouped.items()
+    ]
+    candidates.sort(
+        key=lambda candidate: (
+            0 if candidate.get("status") == "actionable" else 1,
+            -cast(int, candidate.get("same_displacement_use_count") or 0),
+            str(candidate.get("candidate_id")),
+        )
+    )
+    return {
+        "kind": "rsset_candidate_report",
+        "candidate_count": len(candidates),
+        "use_count": len(uses),
+        "candidates": candidates,
+    }
+
+
+def _rsset_candidate_use_from_context(
+    row: Mapping[str, object],
+    context: dict[str, object],
+) -> dict[str, object] | None:
+    base_register = context.get("base_register")
+    displacement = _int_or_none(context.get("displacement"))
+    if not isinstance(base_register, str) or base_register.upper() != "A6":
+        return None
+    if displacement is None or displacement < 0 or displacement > 0x7FFF:
+        return None
+    operand_index = _int_or_none(context.get("operand_index"))
+    element_kind = context.get("element_kind")
+    if not isinstance(element_kind, str) or not element_kind:
+        return None
+    use: dict[str, object] = {
+        "hunk": _int_or_none(context.get("hunk")),
+        "addr": _int_or_none(context.get("addr") or context.get("start_offset")),
+        "stable_key": context.get("stable_key") or row.get("row_key") or row.get("stable_key"),
+        "row_text": str(row.get("text") or "").strip(),
+        "element_id": context.get("element_id"),
+        "element_kind": element_kind,
+        "base_register": base_register.upper(),
+        "displacement": displacement,
+        "signed_displacement": _signed_16(displacement),
+        "access": context.get("access") or "reference",
+        "width_bytes": _rsset_candidate_width_bytes(context, row),
+    }
+    if operand_index is not None:
+        use["operand_index"] = operand_index
+    for key in ("symbol", "source_kind", "field_name", "classification"):
+        value = context.get(key)
+        if isinstance(value, str) and value:
+            use[key] = value
+    for key in ("source_evidence_id", "source_family", "source_evidence_status", "path_lifetime_scope"):
+        value = context.get(key)
+        if value is not None:
+            use[key] = value
+    return {key: value for key, value in use.items() if value is not None}
+
+
+def _rsset_candidate_width_bytes(context: Mapping[str, object], row: Mapping[str, object]) -> int | None:
+    width_bytes = _int_or_none(context.get("width_bytes"))
+    if width_bytes is not None:
+        return width_bytes
+    opcode = str(row.get("opcode_or_directive") or row.get("opcode") or "")
+    if opcode.endswith(".b"):
+        return 1
+    if opcode.endswith(".w"):
+        return 2
+    if opcode.endswith(".l"):
+        return 4
+    return None
+
+
+def _signed_16(value: int) -> int:
+    return value - 0x10000 if value & 0x8000 else value
+
+
+def _rsset_candidate_group_summary(
+    *,
+    base_register: str,
+    displacement: int,
+    uses: list[dict[str, object]],
+) -> dict[str, object]:
+    selected_use = _rsset_candidate_selected_use(uses)
+    layout_context = _rsset_candidate_layout_context(uses, displacement)
+    has_base_evidence = _rsset_candidate_has_base_evidence(selected_use)
+    field_available = layout_context is not None
+    missing_gates: list[str] = []
+    if not has_base_evidence:
+        missing_gates.append("missing_accepted_base_evidence")
+    if not field_available:
+        missing_gates.append("missing_field_or_layout_refinement")
+    status = "actionable" if has_base_evidence and field_available else "blocked"
+    bind_support: dict[str, object]
+    if has_base_evidence:
+        bind_support = {"command_id": "rsset.binding.bind", "state": "available"}
+    else:
+        bind_support = {
+            "command_id": "rsset.binding.bind",
+            "state": "blocked",
+            "missing_gates": ["missing_accepted_base_evidence"],
+        }
+        if layout_context is not None and layout_context.get("element_kind") == "app_slot":
+            bind_support["catalog_state"] = "available_from_selected_app_slot"
+    return {
+        "candidate_id": f"rsset-raw-a6:{displacement:04X}",
+        "kind": "rsset_app_slot_candidate",
+        "status": status,
+        "base_register": base_register,
+        "displacement": displacement,
+        "signed_displacement": _signed_16(displacement),
+        "same_displacement_use_count": len(uses),
+        "raw_or_weak_use_count": sum(1 for use in uses if use.get("element_kind") != "app_slot"),
+        "access_counts": _rsset_candidate_value_counts(uses, "access"),
+        "width_counts": _rsset_candidate_value_counts(uses, "width_bytes"),
+        "selected_use": selected_use,
+        "same_displacement_uses": uses[:10],
+        "field_or_app_slot_context": layout_context,
+        "command_support": {
+            "report": {"command_id": "rsset.binding.report", "state": "available"},
+            "bind": bind_support,
+        },
+        "verifier_support": {
+            "binding_state": "available",
+            "selected_use_render": "ready_if_existing_field" if field_available else "blocked_until_field_refinement",
+            "exact_round_trip": "required_for_output_affecting_mutation",
+        },
+        "missing_gates": missing_gates,
+        "safe_to_mutate": False,
+        "mutation_policy": "report_only_requires_separate_verified_command",
+        "rationale": "A6 displacement use requires accepted app-base evidence and field/layout context before mutation",
+    }
+
+
+def _rsset_candidate_selected_use(uses: list[dict[str, object]]) -> dict[str, object]:
+    return dict(
+        sorted(
+            uses,
+            key=lambda use: (
+                0 if use.get("element_kind") != "app_slot" else 1,
+                int(use.get("addr") or 0),
+                int(use.get("operand_index") or 0),
+            ),
+        )[0]
+    )
+
+
+def _rsset_candidate_layout_context(uses: list[dict[str, object]], displacement: int) -> dict[str, object] | None:
+    app_slot_uses = [use for use in uses if use.get("element_kind") == "app_slot"]
+    if app_slot_uses:
+        return dict(app_slot_uses[0])
+    nearby = [
+        use
+        for use in uses
+        if use.get("symbol") and abs(cast(int, use.get("displacement", displacement)) - displacement) <= 8
+    ]
+    return dict(nearby[0]) if nearby else None
+
+
+def _rsset_candidate_has_base_evidence(selected_use: dict[str, object]) -> bool:
+    if isinstance(selected_use.get("base_evidence_id"), str):
+        return True
+    if isinstance(selected_use.get("source_evidence_id"), str) and selected_use.get("source_family") == "rsset_app_base":
+        return selected_use.get("source_evidence_status") in _ACCEPTED_PROVENANCE_STATUSES
+    return False
+
+
+def _rsset_candidate_value_counts(uses: list[dict[str, object]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for use in uses:
+        value = use.get(key)
+        if value is None:
+            continue
+        token = str(value)
+        counts[token] = counts.get(token, 0) + 1
+    return counts
 
 
 def _rsset_region_parameters_from_metadata(metadata: dict[str, object]) -> dict[str, object]:

@@ -168,3 +168,9 @@ repeatable work to `docs\issues\017-*`.
   now returns no action instead of selecting `representation.character`; the
   planner output keeps those skipped representation candidates and the existing
   generic class/address data-symbol blockers visible.
+- 017-009 added a read-only `rsset-candidate-report`. Pandora reports 125
+  grouped A6 displacement candidates from 994 uses; the top group is
+  `rsset-raw-a6:022E`, but it is blocked by `missing_accepted_base_evidence`.
+  The report exposes `rsset.binding.report` and catalog-visible
+  `rsset.binding.bind` context while keeping `safe_to_mutate=false`; no target
+  mutation was performed.

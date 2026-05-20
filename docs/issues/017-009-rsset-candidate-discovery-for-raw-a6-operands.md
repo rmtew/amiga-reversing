@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-005 blocker
@@ -33,3 +33,15 @@ Acceptance:
 
 Blocked by:
 - 017-005.
+
+Result:
+- Added a read-only `rsset-candidate-report` command that scans listing rows
+  for A6 displacement uses, groups same-displacement uses, reports access/width
+  counts, selected-use identity, nearby app-slot/layout context, and
+  `rsset.binding.report` / `rsset.binding.bind` command support.
+- Pandora validation found 125 grouped candidates and 994 A6 uses. The top
+  group is `rsset-raw-a6:022E`, but it remains blocked with
+  `missing_accepted_base_evidence`; `rsset.binding.bind` is only catalog-visible
+  from selected app-slot context and the report keeps `safe_to_mutate=false`.
+- No target mutation was performed. A later source-changing action still needs
+  accepted app-base evidence, the normal verifier path, and exact round-trip.

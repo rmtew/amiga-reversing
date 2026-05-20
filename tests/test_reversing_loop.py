@@ -6604,6 +6604,55 @@ def test_a5_hardware_lifetime_report_marks_clobber_and_conflicting_offset() -> N
     assert [boundary["kind"] for boundary in report["save_restore_boundaries"]] == ["save", "restore"]
 
 
+def test_rsset_candidate_report_groups_raw_a6_operands() -> None:
+    report = reversing_loop._listing_rsset_candidate_report(
+        [
+            _a6_use_row(row_key="a6-read", displacement=0x102, opcode="move.b", access="memory_read"),
+            _a6_use_row(row_key="a6-write", displacement=0x102, opcode="sf.b", access="memory_write"),
+        ]
+    )
+
+    candidate = report["candidates"][0]
+    assert report["candidate_count"] == 1
+    assert candidate["candidate_id"] == "rsset-raw-a6:0102"
+    assert candidate["status"] == "blocked"
+    assert candidate["same_displacement_use_count"] == 2
+    assert candidate["access_counts"] == {"memory_read": 1, "memory_write": 1}
+    assert candidate["width_counts"] == {"1": 2}
+    assert candidate["command_support"]["report"] == {"command_id": "rsset.binding.report", "state": "available"}
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["missing_gates"] == ["missing_accepted_base_evidence", "missing_field_or_layout_refinement"]
+    assert candidate["safe_to_mutate"] is False
+
+
+def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
+    row = _a6_use_row(row_key="a6-slot", displacement=0x20, opcode="move.w", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_status_flags",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x20,
+            "access": "read",
+        }
+    ]
+
+    report = reversing_loop._listing_rsset_candidate_report([row])
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["command_support"]["bind"] == {
+        "command_id": "rsset.binding.bind",
+        "state": "blocked",
+        "missing_gates": ["missing_accepted_base_evidence"],
+        "catalog_state": "available_from_selected_app_slot",
+    }
+    assert candidate["field_or_app_slot_context"]["symbol"] == "app_status_flags"
+    assert candidate["missing_gates"] == ["missing_accepted_base_evidence"]
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["mutation_policy"] == "report_only_requires_separate_verified_command"
+
+
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
     _target(tmp_path)
     _write_raw_source(tmp_path, entrypoint=2)
@@ -11195,6 +11244,33 @@ def _a5_use_row(*, displacement: int) -> dict[str, object]:
             ],
             "operand_accesses": ["memory_read", "register_write"],
             "operand_registers": ["A5", "D0"],
+        }
+    )
+    return row
+
+
+def _a6_use_row(
+    *,
+    row_key: str,
+    displacement: int,
+    opcode: str,
+    access: str,
+) -> dict[str, object]:
+    row = _listing_row(
+        row_key=row_key,
+        text=f"\t{opcode} ${displacement:04X}(a6)\n",
+        start_offset=0x60,
+        end_offset=0x64,
+    )
+    row.update(
+        {
+            "opcode_or_directive": opcode,
+            "operand_text": f"${displacement:04X}(a6)",
+            "operand_parts": [
+                {"kind": "register", "base_register": "A6", "displacement": displacement, "operand_index": 0},
+            ],
+            "operand_accesses": [access],
+            "operand_registers": ["A6"],
         }
     )
     return row
