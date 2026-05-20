@@ -170,6 +170,7 @@ class ManualActionKind(StrEnum):
     REPRESENT_MANUAL_DATA_BLOCK_ELEMENT = "represent_manual_data_block_element"
     INTERPRET_MANUAL_DATA_BLOCK_ELEMENT_REF = "interpret_manual_data_block_element_ref"
     REMOVE_MANUAL_DATA_BLOCK_ELEMENT_REF = "remove_manual_data_block_element_ref"
+    INTERPRET_MANUAL_IMMEDIATE_REF = "interpret_manual_immediate_ref"
     CREATE_MANUAL_EXECUTION_VIEW = "create_manual_execution_view"
     REMOVE_MANUAL_EXECUTION_VIEW = "remove_manual_execution_view"
     ADD_REVIEW_NOTE = "add_review_note"
@@ -219,6 +220,7 @@ class ManualActionLogProjection:
     removed_data_block_elements: tuple[dict[str, object], ...]
     data_block_interpreted_refs: tuple[dict[str, object], ...]
     removed_data_block_interpreted_refs: tuple[dict[str, object], ...]
+    immediate_interpreted_refs: tuple[dict[str, object], ...]
     execution_views: tuple[dict[str, object], ...]
     removed_execution_views: tuple[dict[str, object], ...]
     review_notes: tuple[dict[str, object], ...]
@@ -388,6 +390,7 @@ def _empty_projection(
         removed_data_block_elements=(),
         data_block_interpreted_refs=(),
         removed_data_block_interpreted_refs=(),
+        immediate_interpreted_refs=(),
         execution_views=(),
         removed_execution_views=(),
         review_notes=(),
@@ -1267,6 +1270,65 @@ def _validated_data_block_interpreted_ref(
     return dict(ref)
 
 
+def _immediate_interpreted_ref_key(ref: dict[str, object]) -> str:
+    ref_id = ref.get("immediate_ref_id")
+    if not isinstance(ref_id, str) or not ref_id:
+        raise ValueError("immediate_interpreted_ref requires immediate_ref_id")
+    return ref_id
+
+
+def _validated_immediate_interpreted_ref(ref: dict[str, object], *, action_id: str) -> dict[str, object]:
+    _immediate_interpreted_ref_key(ref)
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    end = _manual_seed_int(ref, "end")
+    operand_index = _manual_seed_int(ref, "operand_index")
+    width = _manual_seed_int(ref, "width")
+    source_value = _manual_seed_int(ref, "source_value")
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    if hunk is None or hunk < 0:
+        raise ValueError("immediate_interpreted_ref requires non-negative hunk")
+    if addr is None or addr < 0:
+        raise ValueError("immediate_interpreted_ref requires non-negative addr")
+    if end is None or end <= addr:
+        raise ValueError("immediate_interpreted_ref requires end greater than addr")
+    if operand_index is None or operand_index < 0:
+        raise ValueError("immediate_interpreted_ref requires non-negative operand_index")
+    if width not in {1, 2, 4}:
+        raise ValueError("immediate_interpreted_ref supports only byte, word, and long widths")
+    if source_value is None or source_value < 0 or source_value >= (1 << (width * 8)):
+        raise ValueError("immediate_interpreted_ref source_value does not fit width")
+    if ref.get("reference_kind") != "absolute":
+        raise ValueError("immediate_interpreted_ref supports only absolute references")
+    if ref.get("source_evidence_status") != "accepted":
+        raise ValueError("immediate_interpreted_ref requires accepted source evidence")
+    if ref.get("source_family") not in {"source_offset", "runtime_address", "runtime_address_ref"}:
+        raise ValueError("immediate_interpreted_ref requires supported source_family")
+    if target_hunk is None or target_hunk < 0:
+        raise ValueError("immediate_interpreted_ref requires non-negative target_hunk")
+    if target_offset is None or target_offset < 0:
+        raise ValueError("immediate_interpreted_ref requires non-negative target_offset")
+    target_locator = ref.get("target_locator")
+    if not isinstance(target_locator, dict):
+        raise ValueError("immediate_interpreted_ref requires target_locator")
+    if _manual_seed_int(target_locator, "hunk") != target_hunk:
+        raise ValueError("immediate_interpreted_ref target_locator must match target_hunk")
+    if _manual_seed_int(target_locator, "offset") != target_offset:
+        raise ValueError("immediate_interpreted_ref target_locator must match target_offset")
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if ref.get("source_family") in {"runtime_address", "runtime_address_ref"} and (
+        runtime_address is None or runtime_address != source_value
+    ):
+        raise ValueError("immediate_interpreted_ref runtime_address must match source_value")
+    conflicts = ref.get("conflicts")
+    if isinstance(conflicts, list) and conflicts:
+        raise ValueError("immediate_interpreted_ref accepted evidence must be conflict-free")
+    result = dict(ref)
+    result["owner_action_id"] = action_id
+    return result
+
+
 def _custom_struct_field_key(field: dict[str, object]) -> tuple[str, int]:
     struct_name = field.get("struct_name")
     offset = _manual_seed_int(field, "offset")
@@ -1529,6 +1591,7 @@ def _project_actions(
     removed_data_block_elements: dict[tuple[str, int], dict[str, object]] = {}
     data_block_interpreted_refs: dict[str, dict[str, object]] = {}
     removed_data_block_interpreted_refs: dict[str, dict[str, object]] = {}
+    immediate_interpreted_refs: dict[str, dict[str, object]] = {}
     execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     removed_execution_views: dict[tuple[int, int, int], dict[str, object]] = {}
     review_notes: dict[str, dict[str, object]] = {}
@@ -1778,6 +1841,12 @@ def _project_actions(
             removed = dict(existing or ref)
             removed["cleanup_action_id"] = action.action_id
             removed_data_block_interpreted_refs[ref_id] = removed
+        elif action.kind is ManualActionKind.INTERPRET_MANUAL_IMMEDIATE_REF:
+            ref = _validated_immediate_interpreted_ref(
+                _action_object(action, "immediate_interpreted_ref"),
+                action_id=action.action_id,
+            )
+            immediate_interpreted_refs[_immediate_interpreted_ref_key(ref)] = ref
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = dict(_action_object(action, "execution_view"))
             view["owner_action_id"] = action.action_id
@@ -1850,6 +1919,7 @@ def _project_actions(
         removed_data_block_elements=tuple(removed_data_block_elements.values()),
         data_block_interpreted_refs=tuple(data_block_interpreted_refs.values()),
         removed_data_block_interpreted_refs=tuple(removed_data_block_interpreted_refs.values()),
+        immediate_interpreted_refs=tuple(immediate_interpreted_refs.values()),
         execution_views=tuple(execution_views.values()),
         removed_execution_views=tuple(removed_execution_views.values()),
         review_notes=tuple(review_notes.values()),

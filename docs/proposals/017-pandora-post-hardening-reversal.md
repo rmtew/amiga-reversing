@@ -152,15 +152,25 @@ repeatable work to `docs\issues\017-*`.
   `017-007` for immediate-reference mutation/verifier support, `017-008` for
   CFG-backed A5 path/lifetime proof, `017-009` for RSSET candidate discovery,
   and `017-010` for planner handling of low-value representation candidates.
-- 017-007 re-established the post-hardening Pandora baseline before attempting
-  mutation: hygiene is clean, Review Items are clear, round-trip is exact, and
-  the Manual Action Log contains 37 actions at head hash
-  `eefed19c83e02b0145c2b82c1ed0144e314339d2e069dd996557b5455c3846a0`.
-  `immediate-ref-report` still finds 10 accepted conflict-free candidates, with
-  `s0:00006138` (`addi.l #458752,d0`) mapping runtime `$70000` to source
-  `$50000`, but the report remains read-only: `safe_to_mutate=false`,
-  command support is missing, verifier support is missing, and rendering is
-  blocked. No output-affecting action was taken.
+- 017-007 added the durable operand-level `immediate_ref.interpret` path for
+  accepted interpreted immediate references. The report now exposes command and
+  verifier support only when the candidate is accepted, conflict-free,
+  runtime-address backed, and fits the selected operand width. Plain
+  source-offset matches and the byte-sized `$523C` candidate remain report-only
+  because address-shaped constants can also be masks or counts.
+- 017-007 promoted Pandora `s0:00006138` (`addi.l #458752,d0`) after the
+  command/verifier gates were present. The source export now renders
+  `addi.l #imm_ref_h0_00050000_rt_00070000,d0`, with an xref to source offset
+  `$50000` / runtime `$70000`, and the next instruction stores the result to
+  `app_text_cursor_ptr(a6)`. The Manual Action Log advanced from 37 to 38 at
+  head hash
+  `924b8bd47d84ad8aabb01484808bf54f2e3434540480dd1b6fd1583f3cf5fa60`.
+- 017-007 verification initially exposed a cache-ordering gotcha: command
+  execution invalidates the listing cache, so render/xref verification must
+  reopen the listing before checking projected operands. After reopening, the
+  manual-log, semantic reload, rendered-source, xref-projection, and round-trip
+  layers all passed; round-trip remained exact. Persisting a refreshed tracked
+  `.s` export is separate from local Manual Action Log state.
 - 017-010 changes the autonomous planner, not the manual command catalog:
   printable-byte `literal_representation` candidates from listing syntax are
   still reported but are now marked low value and skipped as autonomous

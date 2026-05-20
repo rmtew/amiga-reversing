@@ -2759,6 +2759,10 @@ def _manual_action_application_payload(
         ref = action_payload.get("data_block_interpreted_ref")
         if isinstance(ref, Mapping):
             local_effects.append({"kind": "data_block_interpreted_ref_remove", "data_block_interpreted_ref": dict(ref)})
+    elif kind == "interpret_manual_immediate_ref":
+        ref = action_payload.get("immediate_interpreted_ref")
+        if isinstance(ref, Mapping):
+            local_effects.append({"kind": "immediate_interpreted_ref", "immediate_interpreted_ref": dict(ref)})
     elif kind in {"create_manual_custom_struct", "rename_manual_custom_struct"}:
         custom_struct = action_payload.get("custom_struct")
         if isinstance(custom_struct, Mapping):

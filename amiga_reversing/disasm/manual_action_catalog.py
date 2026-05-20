@@ -377,6 +377,17 @@ def listing_element_action_catalog(
                 ),
             ]
         )
+    if element_kind == "immediate":
+        actions.append(
+            _context_log_action(
+                "immediate_ref.interpret",
+                "Interpret immediate reference",
+                "interpret_manual_immediate_ref",
+                context,
+                {},
+                _immediate_ref_parameter_schema(),
+            )
+        )
     if element_kind == "data_literal":
         actions.append(
             _context_log_action(
@@ -1750,6 +1761,10 @@ def listing_catalog_manual_payload(
     if ui_action == "interpret_manual_data_block_element_ref":
         return "interpret_manual_data_block_element_ref", {
             "data_block_interpreted_ref": _data_block_element_ref_payload([row], params)
+        }
+    if ui_action == "interpret_manual_immediate_ref":
+        return "interpret_manual_immediate_ref", {
+            "immediate_interpreted_ref": _immediate_ref_payload(row, element_context, params)
         }
     if ui_action == "remove_manual_data_block_element_ref":
         return "remove_manual_data_block_element_ref", {
@@ -4117,6 +4132,101 @@ def _data_block_element_ref_payload(
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
             ref[field_name] = value.strip()
+    return ref
+
+
+def _immediate_ref_parameter_schema() -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "source_family": {"type": "string"},
+            "source_evidence_status": {"type": "string"},
+            "target_hunk": {"type": "integer", "minimum": 0},
+            "target_offset": {"type": "integer", "minimum": 0},
+            "runtime_address": {"type": "integer", "minimum": 0},
+            "source_value": {"type": "integer", "minimum": 0},
+            "width": {"type": "integer", "enum": [1, 2, 4]},
+            "symbol": {"type": "string"},
+            "immediate_ref_id": {"type": "string"},
+        },
+        "required": ["source_family", "source_evidence_status", "target_hunk", "target_offset"],
+    }
+
+
+def _immediate_ref_payload(
+    row: Mapping[str, object],
+    context: Mapping[str, object],
+    params: Mapping[str, object],
+) -> dict[str, object]:
+    hunk = _int_field(row, "section_index", default=_optional_int(row.get("hunk")) or 0)
+    addr = _int_field(row, "start_offset", fallback="addr")
+    end = _optional_int(row.get("end_offset"))
+    if end is None or end <= addr:
+        raise ValueError("interpret_manual_immediate_ref requires row end_offset")
+    operand_index = _optional_int(params.get("operand_index"))
+    if operand_index is None:
+        operand_index = _optional_int(context.get("operand_index"))
+    if operand_index is None or operand_index < 0:
+        raise ValueError("interpret_manual_immediate_ref requires non-negative operand_index")
+    source_value = _optional_int(params.get("source_value"))
+    if source_value is None:
+        source_value = _optional_int(context.get("value"))
+    if source_value is None or source_value < 0:
+        raise ValueError("interpret_manual_immediate_ref requires non-negative source_value")
+    width = _optional_int(params.get("width"))
+    if width is None:
+        width = _optional_int(params.get("width_bytes"))
+    if width is None:
+        width = _optional_int(context.get("width_bytes"))
+    if width not in {1, 2, 4}:
+        raise ValueError("interpret_manual_immediate_ref supports only byte, word, and long widths")
+    target_hunk = _optional_int(params.get("target_hunk"))
+    target_offset = _optional_int(params.get("target_offset"))
+    if target_hunk is None or target_hunk < 0:
+        raise ValueError("interpret_manual_immediate_ref requires non-negative target_hunk")
+    if target_offset is None or target_offset < 0:
+        raise ValueError("interpret_manual_immediate_ref requires non-negative target_offset")
+    source_family = str(params.get("source_family") or "").strip()
+    source_status = str(params.get("source_evidence_status") or "").strip()
+    if source_family not in {"source_offset", "runtime_address", "runtime_address_ref"}:
+        raise ValueError("interpret_manual_immediate_ref requires supported source_family")
+    if source_status != "accepted":
+        raise ValueError("interpret_manual_immediate_ref requires accepted source evidence")
+    ref_id = str(params.get("immediate_ref_id") or "").strip()
+    if not ref_id:
+        ref_id = f"h{hunk}:{addr:08X}:op{operand_index}:h{target_hunk}:{target_offset:08X}:{source_value:08X}"
+    ref: dict[str, object] = {
+        "immediate_ref_id": ref_id,
+        "hunk": hunk,
+        "addr": addr,
+        "end": end,
+        "operand_index": operand_index,
+        "width": width,
+        "reference_kind": "absolute",
+        "source_family": source_family,
+        "source_evidence_status": source_status,
+        "target_hunk": target_hunk,
+        "target_offset": target_offset,
+        "target_locator": {"hunk": target_hunk, "offset": target_offset},
+        "source_value": source_value,
+        "xref_generation_mode": str(params.get("xref_generation_mode") or "bidirectional"),
+    }
+    for key in ("runtime_address", "source_evidence_id", "symbol"):
+        value = params.get(key)
+        if isinstance(value, str) and value.strip():
+            ref[key] = value.strip()
+        elif isinstance(value, int) and not isinstance(value, bool):
+            ref[key] = value
+    for key in ("source_range", "conflicts"):
+        value = params.get(key)
+        if isinstance(value, dict | list):
+            ref[key] = value
+    row_key = row.get("row_key")
+    if isinstance(row_key, str) and row_key:
+        ref["row_key"] = row_key
+    element_id = context.get("element_id")
+    if isinstance(element_id, str) and element_id:
+        ref["element_id"] = element_id
     return ref
 
 

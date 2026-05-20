@@ -3318,6 +3318,169 @@ def test_data_block_interpreted_ref_verifier_rejects_sparse_clear_payload(
     )
 
 
+@pytest.mark.parametrize(
+    ("row_symbol", "xref_target_offset", "expected_status"),
+    [
+        ("imm_ref_h0_0000012A_rt_0005C72A", 0x12A, "passed"),
+        ("stale_symbol", 0x12A, "failed"),
+        ("imm_ref_h0_0000012A_rt_0005C72A", 0x22A, "failed"),
+    ],
+)
+def test_immediate_interpreted_ref_verifier_checks_selected_operand_and_xref(
+    row_symbol: str,
+    xref_target_offset: int,
+    expected_status: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    _write_reproduction_exact(tmp_path)
+    locator = _listing_locator(row_key="code-row", start_offset=0x20, end_offset=0x26)
+    interpreted_ref = {
+        "immediate_ref_id": "code-row:0:0005C72A",
+        "hunk": 0,
+        "addr": 0x20,
+        "end": 0x26,
+        "operand_index": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "source_family": "runtime_address",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "immediate-runtime-ref:code-row:0:0005C72A",
+        "source_value": 0x5C72A,
+        "runtime_address": 0x5C72A,
+        "target_hunk": 0,
+        "target_offset": 0x12A,
+        "target_locator": {"hunk": 0, "offset": 0x12A},
+        "symbol": "imm_ref_h0_0000012A_rt_0005C72A",
+        "conflicts": [],
+    }
+    command = {
+        "kind": "command",
+        "command_id": "immediate_ref.interpret",
+        "context": {"kind": "row", "locator": locator, "element_id": "code-row:immediate:0:0005C72A"},
+        "parameters": dict(interpreted_ref),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"immediate_interpreted_refs": [{**interpreted_ref, "owner_action_id": "manual-1"}]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            row = _listing_row(
+                row_key="code-row",
+                text=f"\tmove.l #{row_symbol},$100\n",
+                start_offset=0x20,
+                end_offset=0x26,
+                runtime_address_refs=[
+                    {
+                        "offset": 0x20,
+                        "target_section_index": 0,
+                        "target_offset": xref_target_offset,
+                        "runtime_address": 0x5C72A,
+                        "size": 4,
+                        "confidence": 3,
+                        "owner_kind": "immediate_interpreted_ref",
+                        "owner_id": "code-row:0:0005C72A",
+                        "owner_layout_id": "immediate",
+                        "owner_element_offset": 0,
+                        "xref_generation_mode": "bidirectional",
+                    }
+                ],
+            )
+            row["operand_parts"] = [
+                {
+                    "kind": "symbol",
+                    "operand_index": 0,
+                    "symbol": row_symbol,
+                    "metadata": {"symbol": row_symbol},
+                }
+            ]
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    _write_manual_log(tmp_path)
+    report = reversing_loop._verify_immediate_interpreted_ref_mutation(
+        "demo",
+        command,
+        _executed_immediate_interpreted_ref_payload(tmp_path, interpreted_ref),
+        project_root=tmp_path,
+    )
+
+    assert reversing_loop._candidate_verifier(
+        {"suggested_action_kinds": ["immediate_ref.interpret"], "default_verifier": "immediate_interpreted_ref_state"},
+        command,
+    ) == "immediate_interpreted_ref_state"
+    assert report["status"] == expected_status, report
+    assert report["layers"][1]["state_key"] == "immediate_interpreted_refs"
+    assert report["layers"][2]["layer"] == "rendered_source"
+    assert report["layers"][3]["layer"] == "xref_projection"
+
+
+def test_immediate_interpreted_ref_verifier_rejects_sparse_payload(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    interpreted_ref = {
+        "immediate_ref_id": "code-row:0:0005C72A",
+        "hunk": 0,
+        "addr": 0x20,
+        "end": 0x26,
+        "operand_index": 0,
+        "width": 4,
+        "reference_kind": "absolute",
+        "source_family": "runtime_address",
+        "source_evidence_status": "accepted",
+        "target_hunk": 0,
+        "target_offset": 0x12A,
+        "target_locator": {"hunk": 0, "offset": 0x12A},
+        "source_value": 0x5C72A,
+    }
+    sparse_ref = {"immediate_ref_id": "code-row:0:0005C72A", "hunk": 0, "addr": 0x20}
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"immediate_interpreted_refs": [interpreted_ref]},
+        ),
+    )
+
+    verification = reversing_loop._verify_project_immediate_interpreted_ref(
+        "demo",
+        sparse_ref,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["message"] == "immediate interpreted ref payload missing selected operand identity"
+    assert verification["missing_identity_fields"] == [
+        "end",
+        "operand_index",
+        "width",
+        "reference_kind",
+        "source_family",
+        "source_evidence_status",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+    ]
+    assert reversing_loop._project_immediate_interpreted_ref_state_match(
+        "demo",
+        sparse_ref,
+        project_root=tmp_path,
+    ) is None
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -6519,11 +6682,77 @@ def test_immediate_runtime_reference_report_accepts_known_runtime_range() -> Non
     assert candidate["target"] == {"section_index": 0, "source_offset": 0x12A, "runtime_address": 0x5C72A}
     assert candidate["instruction_context"]["operand_index"] == 0
     assert candidate["current_render_state"]["text"] == "\tmove.l #$05C72A,$100\n"
-    assert candidate["write_policy"]["status"] == "report_only"
-    assert candidate["write_policy"]["symbolic_reference_allowed"] is False
-    assert candidate["write_policy"]["rendering_allowed"] is False
-    assert candidate["write_policy"]["command_support"]["status"] == "missing"
-    assert candidate["write_policy"]["verifier_support"]["status"] == "missing"
+    assert candidate["write_policy"]["status"] == "supported"
+    assert candidate["write_policy"]["symbolic_reference_allowed"] is True
+    assert candidate["write_policy"]["rendering_allowed"] is True
+    assert candidate["write_policy"]["command_support"]["status"] == "available"
+    assert candidate["write_policy"]["verifier_support"]["status"] == "available"
+    assert candidate["suggested_action_kinds"] == ["immediate_ref.interpret"]
+    assert candidate["default_verifier"] == "immediate_interpreted_ref_state"
+    assert candidate["parameters"] == {
+        "immediate_ref_id": "code-row:0:0005C72A",
+        "source_family": "runtime_address",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "immediate-runtime-ref:code-row:0:0005C72A",
+        "source_value": 0x5C72A,
+        "width": 4,
+        "target_hunk": 0,
+        "target_offset": 0x12A,
+        "symbol": "imm_ref_h0_0000012A_rt_0005C72A",
+        "source_range": {
+            "source_family": "runtime_address",
+            "section_index": 0,
+            "source_start": 0x120,
+            "source_end": 0x140,
+            "runtime_start": 0x5C720,
+            "runtime_end": 0x5C740,
+            "target": {"section_index": 0, "source_offset": 0x12A, "runtime_address": 0x5C72A},
+        },
+        "conflicts": [],
+        "runtime_address": 0x5C72A,
+    }
+
+
+def test_immediate_runtime_reference_report_blocks_width_mismatch_mutation() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x120, end_offset=0x140)
+    data_row["runtime_address"] = 0x5230
+    immediate_row = _byte_immediate_row()
+    immediate_row.update(
+        {
+            "row_key": "code-row",
+            "text": "\tcmpi.b #$523C,d0\n",
+            "operand_parts": [
+                {
+                    "kind": "immediate",
+                    "operand_index": 0,
+                    "value": 0x523C,
+                    "signed_value": 0x523C,
+                    "width_bits": 8,
+                    "width_bytes": 1,
+                    "metadata": {},
+                }
+            ],
+        }
+    )
+
+    candidates = reversing_loop._listing_immediate_runtime_reference_report([immediate_row, data_row])
+
+    assert candidates[0]["status"] == "accepted"
+    assert "suggested_action_kinds" not in candidates[0]
+    assert "parameters" not in candidates[0]
+
+
+def test_immediate_runtime_reference_report_keeps_source_offset_matches_report_only() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x107C, end_offset=0x1082)
+
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x1080), data_row]
+    )
+
+    assert candidates[0]["status"] == "accepted"
+    assert candidates[0]["source_family"] == "source_offset"
+    assert "suggested_action_kinds" not in candidates[0]
+    assert "parameters" not in candidates[0]
 
 
 def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> None:
@@ -11097,6 +11326,30 @@ def _executed_data_block_interpreted_ref_payload(
             {
                 "kind": "data_block_interpreted_ref",
                 "data_block_interpreted_ref": dict(data_block_interpreted_ref),
+            }
+        ],
+    }
+    return payload
+
+
+def _executed_immediate_interpreted_ref_payload(
+    tmp_path: Path,
+    immediate_interpreted_ref: dict[str, object],
+) -> dict[str, object]:
+    payload = _executed_command_payload()
+    payload["action"] = {
+        "action_id": "manual-1",
+        "payload": {"immediate_interpreted_ref": dict(immediate_interpreted_ref)},
+    }
+    payload["mutation"]["manual_action_log_head_hash"] = reversing_loop._manual_action_log_state(
+        tmp_path / "targets" / "demo"
+    )["head_hash"]
+    payload["application"] = {
+        "status": "applied",
+        "local_effects": [
+            {
+                "kind": "immediate_interpreted_ref",
+                "immediate_interpreted_ref": dict(immediate_interpreted_ref),
             }
         ],
     }

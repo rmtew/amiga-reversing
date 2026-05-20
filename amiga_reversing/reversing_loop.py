@@ -70,6 +70,7 @@ _COMMAND_RANK = {
     "representation.hex": 75,
     "representation.binary": 75,
     "representation.character": 75,
+    "immediate_ref.interpret": 84,
     "semantic.register.struct_ptr": 73,
     "target.equate.add": 72,
     "target.equate.edit": 72,
@@ -139,6 +140,8 @@ _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
     "target.execution_view.edit": ("execution_view", "execution_view"),
     "target.execution_view.remove": ("execution_view_remove", "execution_view"),
 }
+
+_IMMEDIATE_REF_VERIFIER = "immediate_interpreted_ref_state"
 
 
 def _parse_int_auto(value: str) -> int:
@@ -358,7 +361,7 @@ def inspect_immediate_runtime_refs(
     report: dict[str, object] = {
         "target_id": target_id,
         "hygiene": hygiene.to_dict(),
-        "safe_to_mutate": False,
+        "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
         "interpretation_policy": _immediate_reference_interpretation_policy(),
     }
     listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
@@ -1654,33 +1657,15 @@ def _listing_immediate_runtime_reference_report(rows: list[object]) -> list[dict
             operand_index = context.get("operand_index")
             candidate_id = f"immediate-runtime-ref:{row_key}:{operand_index}:{value:08X}"
             candidates.append(
-                {
-                    "id": candidate_id,
-                    "candidate_id": candidate_id,
-                    "kind": "immediate_runtime_reference",
-                    "status": "accepted" if len(matches) == 1 else "conflicting",
-                    "source_family": matches[0]["source_family"] if len(matches) == 1 else "ambiguous",
-                    "target": matches[0]["target"] if len(matches) == 1 else None,
-                    "source_range": matches[0] if len(matches) == 1 else None,
-                    "conflicts": [] if len(matches) == 1 else matches,
-                    "instruction_context": {
-                        "locator": dict(cast(dict[str, object], locator)),
-                        "row_key": row_key,
-                        "opcode": row.get("opcode_or_directive"),
-                        "operand_text": row.get("operand_text"),
-                        "element_id": context.get("element_id"),
-                        "operand_index": operand_index,
-                        "value": value,
-                        "width_bits": context.get("width_bits"),
-                        "width_bytes": context.get("width_bytes"),
-                    },
-                    "current_render_state": {
-                        "row_kind": row.get("kind"),
-                        "text": row.get("text"),
-                        "operand_text": row.get("operand_text"),
-                    },
-                    "write_policy": _immediate_reference_interpretation_policy(),
-                }
+                _immediate_reference_candidate_payload(
+                    candidate_id=candidate_id,
+                    row=row,
+                    locator=cast(dict[str, object], locator),
+                    row_key=row_key,
+                    context=context,
+                    value=value,
+                    matches=matches,
+                )
             )
     return sorted(
         candidates,
@@ -1689,6 +1674,94 @@ def _listing_immediate_runtime_reference_report(rows: list[object]) -> list[dict
             str(candidate.get("candidate_id")),
         ),
     )
+
+
+def _immediate_reference_candidate_payload(
+    *,
+    candidate_id: str,
+    row: Mapping[str, object],
+    locator: dict[str, object],
+    row_key: object,
+    context: Mapping[str, object],
+    value: int,
+    matches: list[dict[str, object]],
+) -> dict[str, object]:
+    accepted = len(matches) == 1
+    target = matches[0]["target"] if accepted else None
+    source_family = matches[0]["source_family"] if accepted else "ambiguous"
+    candidate: dict[str, object] = {
+        "id": candidate_id,
+        "candidate_id": candidate_id,
+        "kind": "immediate_runtime_reference",
+        "status": "accepted" if accepted else "conflicting",
+        "source_family": source_family,
+        "target": target,
+        "source_range": matches[0] if accepted else None,
+        "conflicts": [] if accepted else matches,
+        "instruction_context": {
+            "locator": dict(locator),
+            "row_key": row_key,
+            "opcode": row.get("opcode_or_directive"),
+            "operand_text": row.get("operand_text"),
+            "element_id": context.get("element_id"),
+            "operand_index": context.get("operand_index"),
+            "value": value,
+            "width_bits": context.get("width_bits"),
+            "width_bytes": context.get("width_bytes"),
+        },
+        "current_render_state": {
+            "row_kind": row.get("kind"),
+            "text": row.get("text"),
+            "operand_text": row.get("operand_text"),
+        },
+        "write_policy": _immediate_reference_interpretation_policy(),
+    }
+    if accepted and isinstance(target, dict):
+        target_hunk = _int_or_none(target.get("section_index"))
+        target_offset = _int_or_none(target.get("source_offset"))
+        width = _int_or_none(context.get("width_bytes"))
+        if (
+            target_hunk is not None
+            and target_offset is not None
+            and width in {1, 2, 4}
+            and 0 <= value < (1 << (width * 8))
+            and source_family in {"runtime_address", "runtime_address_ref"}
+        ):
+            symbol = _immediate_reference_symbol(target_hunk, target_offset, _int_or_none(target.get("runtime_address")))
+            parameters: dict[str, object] = {
+                "immediate_ref_id": candidate_id.removeprefix("immediate-runtime-ref:"),
+                "source_family": source_family,
+                "source_evidence_status": "accepted",
+                "source_evidence_id": candidate_id,
+                "source_value": value,
+                "width": width,
+                "target_hunk": target_hunk,
+                "target_offset": target_offset,
+                "symbol": symbol,
+                "source_range": matches[0],
+                "conflicts": [],
+            }
+            runtime_address = _int_or_none(target.get("runtime_address"))
+            if runtime_address is not None:
+                parameters["runtime_address"] = runtime_address
+            candidate.update(
+                {
+                    "safe_to_mutate": True,
+                    "locator": dict(locator),
+                    "element_id": context.get("element_id"),
+                    "operand_index": context.get("operand_index"),
+                    "suggested_action_kinds": ["immediate_ref.interpret"],
+                    "default_verifier": _IMMEDIATE_REF_VERIFIER,
+                    "parameters": parameters,
+                }
+            )
+    return candidate
+
+
+def _immediate_reference_symbol(target_hunk: int, target_offset: int, runtime_address: int | None) -> str:
+    if runtime_address is not None:
+        return f"imm_ref_h{target_hunk}_{target_offset:08X}_rt_{runtime_address:08X}"
+    return f"imm_ref_h{target_hunk}_{target_offset:08X}"
 
 
 def _known_listing_address_ranges(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
@@ -1785,18 +1858,18 @@ def _matching_known_address_ranges(value: int, known_ranges: list[dict[str, obje
 
 def _immediate_reference_interpretation_policy() -> dict[str, object]:
     return {
-        "status": "report_only",
-        "symbolic_reference_allowed": False,
-        "rendering_allowed": False,
+        "status": "supported",
+        "symbolic_reference_allowed": True,
+        "rendering_allowed": True,
         "command_support": {
-            "status": "missing",
-            "required": "operand-level command that records a verified interpreted immediate reference",
+            "status": "available",
+            "command_id": "immediate_ref.interpret",
         },
         "verifier_support": {
-            "status": "missing",
-            "required": "projection/semantic reload verifier for the rendered immediate reference target",
+            "status": "available",
+            "verifier": _IMMEDIATE_REF_VERIFIER,
         },
-        "reason": "planner writes remain blocked until verifier-backed immediate reference interpretation exists",
+        "reason": "accepted conflict-free immediate references can be promoted through command and verifier gates",
     }
 
 
@@ -4051,6 +4124,8 @@ def _default_verifier_for_actions(actions: list[str]) -> str | None:
         return "rsset_region_state"
     if any(action.startswith("rsset.binding.") for action in actions):
         return "rsset_binding_state"
+    if "immediate_ref.interpret" in actions:
+        return _IMMEDIATE_REF_VERIFIER
     if any(action in {"row.data_block.layout.create", "range.data_block.layout.create"} for action in actions):
         return "data_block_layout_state"
     if any(
@@ -4241,6 +4316,13 @@ def _verify_manual_mutation(
             target_id,
             command,
             str(command_id),
+            durable_result,
+            project_root=project_root,
+        )
+    if command_id == "immediate_ref.interpret":
+        return _verify_immediate_interpreted_ref_mutation(
+            target_id,
+            command,
             durable_result,
             project_root=project_root,
         )
@@ -5980,6 +6062,312 @@ def _verify_projected_data_block_interpreted_ref_xrefs(
         "matching_runtime_address_refs": matching_refs,
         "runtime_address_refs": refs,
     }
+
+
+def _verify_immediate_interpreted_ref_mutation(
+    target_id: str,
+    command: dict[str, object],
+    durable_result: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected = _immediate_interpreted_ref_from_durable_result(durable_result)
+    layers = [
+        _verify_manual_log_matches_mutation(target_id, durable_result, project_root=project_root),
+        _verify_project_immediate_interpreted_ref(target_id, expected, project_root=project_root),
+        _verify_projected_immediate_interpreted_ref_rendered_source(
+            target_id,
+            command,
+            expected,
+            project_root=project_root,
+        ),
+        _verify_projected_immediate_interpreted_ref_xrefs(
+            target_id,
+            command,
+            expected,
+            project_root=project_root,
+        ),
+        _verify_round_trip_exact(target_id, project_root=project_root),
+    ]
+    status = "passed" if all(layer["status"] == "passed" for layer in layers) else "failed"
+    return {"status": status, "layers": layers}
+
+
+def _immediate_interpreted_ref_from_durable_result(durable_result: dict[str, object]) -> dict[str, object] | None:
+    action = durable_result.get("action")
+    ref = _immediate_interpreted_ref_from_action(action)
+    if ref is not None:
+        return ref
+    actions = durable_result.get("actions")
+    if isinstance(actions, list):
+        for raw_action in actions:
+            ref = _immediate_interpreted_ref_from_action(raw_action)
+            if ref is not None:
+                return ref
+    return None
+
+
+def _immediate_interpreted_ref_from_action(action: object) -> dict[str, object] | None:
+    if not isinstance(action, dict):
+        return None
+    ref = action.get("immediate_interpreted_ref")
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    payload = action.get("payload")
+    ref = payload.get("immediate_interpreted_ref") if isinstance(payload, dict) else None
+    if isinstance(ref, dict):
+        return cast(dict[str, object], ref)
+    return None
+
+
+def _verify_project_immediate_interpreted_ref(
+    target_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "semantic_reload", "status": "failed", "message": "missing immediate interpreted ref payload"}
+    missing_identity_fields = _immediate_interpreted_ref_missing_required_identity_fields(expected)
+    if missing_identity_fields:
+        return {
+            "layer": "semantic_reload",
+            "status": "failed",
+            "message": "immediate interpreted ref payload missing selected operand identity",
+            "missing_identity_fields": missing_identity_fields,
+            "expected_immediate_interpreted_ref": expected,
+        }
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    refs = manual_state.get("immediate_interpreted_refs") if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return {"layer": "semantic_reload", "status": "failed", "message": "manual immediate refs were not reloaded"}
+    matches = [ref for ref in refs if isinstance(ref, dict) and _immediate_interpreted_ref_matches(ref, expected)]
+    return {
+        "layer": "semantic_reload",
+        "status": "passed" if matches else "failed",
+        "expected_immediate_interpreted_ref": expected,
+        "matching_immediate_interpreted_refs": matches,
+        "state_key": "immediate_interpreted_refs",
+    }
+
+
+def _project_immediate_interpreted_ref_state_match(
+    target_id: str,
+    expected: dict[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    if _immediate_interpreted_ref_missing_required_identity_fields(expected):
+        return None
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    refs = manual_state.get("immediate_interpreted_refs") if isinstance(manual_state, dict) else None
+    if not isinstance(refs, list | tuple):
+        return None
+    for ref in refs:
+        if isinstance(ref, dict) and _immediate_interpreted_ref_matches(ref, expected):
+            return cast(dict[str, object], ref)
+    return None
+
+
+def _immediate_interpreted_ref_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
+    expected_ref_id = expected.get("immediate_ref_id")
+    return isinstance(expected_ref_id, str) and actual.get("immediate_ref_id") == expected_ref_id and all(
+        actual.get(key) == value for key, value in expected.items()
+    )
+
+
+def _immediate_interpreted_ref_missing_required_identity_fields(expected: dict[str, object]) -> list[str]:
+    fields = [
+        "immediate_ref_id",
+        "hunk",
+        "addr",
+        "end",
+        "operand_index",
+        "width",
+        "reference_kind",
+        "source_family",
+        "source_evidence_status",
+        "target_hunk",
+        "target_offset",
+        "target_locator",
+        "source_value",
+    ]
+    return [field for field in fields if field not in expected]
+
+
+def _verify_projected_immediate_interpreted_ref_rendered_source(
+    target_id: str,
+    command: dict[str, object],
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "missing immediate interpreted ref payload"}
+    render_expected = _project_immediate_interpreted_ref_state_match(
+        target_id,
+        expected,
+        project_root=project_root,
+    ) or expected
+    location = _immediate_interpreted_ref_location(command, render_expected)
+    if location is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "immediate ref source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"section_index": [str(section_index)], "source_offset": [str(source_offset)], "before": ["1"], "after": ["2"]},
+        )
+    except Exception as exc:
+        return {"layer": "rendered_source", "status": "failed", "message": str(exc)}
+    rows = _listing_rows_from_response(listing)
+    affected = _listing_row_at_source(rows, section_index, source_offset)
+    if affected is None:
+        return {"layer": "rendered_source", "status": "failed", "message": "affected listing row missing after reload"}
+    symbol = _immediate_interpreted_ref_symbol(render_expected)
+    operand_index = render_expected.get("operand_index")
+    selected_operands = [
+        part
+        for part in _mapping_sequence(affected.get("operand_parts") or affected.get("operandParts"))
+        if part.get("operand_index") == operand_index
+    ]
+    has_symbol_operand = any(
+        part.get("symbol") == symbol
+        or (isinstance(part.get("metadata"), dict) and part["metadata"].get("symbol") == symbol)
+        for part in selected_operands
+    )
+    rendered_text = str(affected.get("text") or "")
+    has_symbol_text = symbol is not None and _rendered_source_contains_token(rendered_text, symbol)
+    return {
+        "layer": "rendered_source",
+        "status": "passed" if symbol is not None and has_symbol_operand and has_symbol_text else "failed",
+        "source_offset": source_offset,
+        "expected_symbol": symbol,
+        "operand_index": operand_index,
+        "matched_symbol_operand": has_symbol_operand,
+        "matched_symbol_text": has_symbol_text,
+        "affected_rendered_text": rendered_text,
+        "selected_operands": selected_operands,
+    }
+
+
+def _verify_projected_immediate_interpreted_ref_xrefs(
+    target_id: str,
+    command: dict[str, object],
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "xref_projection", "status": "failed", "message": "missing immediate interpreted ref payload"}
+    render_expected = _project_immediate_interpreted_ref_state_match(
+        target_id,
+        expected,
+        project_root=project_root,
+    ) or expected
+    location = _immediate_interpreted_ref_location(command, render_expected)
+    if location is None:
+        return {"layer": "xref_projection", "status": "failed", "message": "immediate ref source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {"section_index": [str(section_index)], "source_offset": [str(source_offset)], "before": ["1"], "after": ["2"]},
+        )
+    except Exception as exc:
+        return {"layer": "xref_projection", "status": "failed", "message": str(exc)}
+    rows = _listing_rows_from_response(listing)
+    affected = _listing_row_at_source(rows, section_index, source_offset)
+    refs = _mapping_sequence(affected.get("runtime_address_refs") or affected.get("runtimeAddressRefs")) if affected else []
+    expected_ref_id = render_expected.get("immediate_ref_id")
+    target_hunk = render_expected.get("target_hunk")
+    target_offset = render_expected.get("target_offset")
+    operand_index = render_expected.get("operand_index")
+    matching_refs = [
+        ref
+        for ref in refs
+        if ref.get("owner_kind") == "immediate_interpreted_ref"
+        and ref.get("owner_id") == expected_ref_id
+        and ref.get("owner_element_offset") == operand_index
+        and ref.get("target_section_index") == target_hunk
+        and ref.get("target_offset") == target_offset
+    ]
+    return {
+        "layer": "xref_projection",
+        "status": "passed" if matching_refs else "failed",
+        "source_offset": source_offset,
+        "expected_owner_id": expected_ref_id,
+        "expected_target_hunk": target_hunk,
+        "expected_target_offset": target_offset,
+        "matching_runtime_address_refs": matching_refs,
+        "runtime_address_refs": refs,
+    }
+
+
+def _immediate_interpreted_ref_location(
+    command: dict[str, object],
+    expected: dict[str, object],
+) -> tuple[int, int] | None:
+    hunk = expected.get("hunk")
+    addr = expected.get("addr")
+    if isinstance(hunk, int) and isinstance(addr, int):
+        return hunk, addr
+    context = command.get("context")
+    locator = context.get("locator") if isinstance(context, dict) else None
+    if isinstance(locator, dict):
+        hunk = _int_or_none(locator.get("section_index"))
+        addr = _int_or_none(locator.get("start_offset"))
+        if hunk is not None and addr is not None:
+            return hunk, addr
+    return None
+
+
+def _immediate_interpreted_ref_symbol(expected: dict[str, object]) -> str | None:
+    symbol = expected.get("symbol")
+    if isinstance(symbol, str) and symbol:
+        return symbol
+    target_hunk = expected.get("target_hunk")
+    target_offset = expected.get("target_offset")
+    runtime_address = expected.get("runtime_address")
+    if isinstance(target_hunk, int) and isinstance(target_offset, int):
+        if isinstance(runtime_address, int):
+            return _immediate_reference_symbol(target_hunk, target_offset, runtime_address)
+        return _immediate_reference_symbol(target_hunk, target_offset, None)
+    return None
+
+
+def _listing_rows_from_response(listing: dict[str, object]) -> list[dict[str, object]]:
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return []
+    return [cast(dict[str, object], row) for row in rows if isinstance(row, dict)]
+
+
+def _listing_row_at_source(
+    rows: list[dict[str, object]],
+    section_index: int,
+    source_offset: int,
+) -> dict[str, object] | None:
+    for row in rows:
+        locator = row.get("locator")
+        locator_payload = locator if isinstance(locator, dict) else row
+        hunk = _int_or_none(locator_payload.get("section_index"))
+        start = _int_or_none(locator_payload.get("start_offset"))
+        end = _int_or_none(locator_payload.get("end_offset"))
+        if hunk == section_index and start is not None and end is not None and start <= source_offset < end:
+            return row
+    return None
 
 
 def _mapping_sequence(value: object) -> list[dict[str, object]]:
@@ -8198,6 +8586,17 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             "kind": "command",
             "command_id": action,
             "context": context,
+            "parameters": parameter_payload,
+            "output_affecting": True,
+        }
+    if action == "immediate_ref.interpret":
+        element_id = candidate.get("element_id")
+        if not isinstance(element_id, str) or not element_id:
+            return None
+        return {
+            "kind": "command",
+            "command_id": action,
+            "context": {"kind": "element", "locator": locator, "element_id": element_id},
             "parameters": parameter_payload,
             "output_affecting": True,
         }

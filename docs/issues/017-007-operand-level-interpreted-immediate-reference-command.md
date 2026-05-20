@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-002 blocker
@@ -35,18 +35,30 @@ Acceptance:
   exact round-trip status when output-affecting.
 
 Current result:
-- 2026-05-20 baseline is clean for
-  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`:
-  hygiene has no unknown files, Review Items are clear, and round-trip status
-  is exact.
-- `immediate-ref-report` still finds 10 accepted conflict-free candidates. The
-  strongest observed candidate remains `s0:00006138` / `addi.l #458752,d0`,
-  mapping runtime address `$70000` to section 0 source offset `$50000`.
-- No mutation was performed. The report policy remains `report_only` with
-  `safe_to_mutate=false`, `symbolic_reference_allowed=false`, and
-  `rendering_allowed=false` because command support and verifier support are
-  both still missing.
+- Added `immediate_ref.interpret` as a durable operand-level command backed by
+  `interpret_manual_immediate_ref` log projection, effective metadata projection,
+  target equate rendering, selected-operand representation, and runtime xref
+  projection.
+- `immediate-ref-report` now advertises mutation only for accepted,
+  conflict-free runtime-address candidates whose immediate value fits the
+  selected operand width. Plain source-offset matches and invalid-width
+  candidates remain report-only because address-shaped constants can also be
+  masks or counts.
+- The verifier checks manual-log append, semantic reload under
+  `immediate_interpreted_refs`, selected rendered operand symbol, projected xref
+  owner/target identity, and exact round-trip. Regression tests reject stale
+  selected operands, sparse payloads, mismatched xrefs, and byte-width overflow
+  candidates.
+- Pandora validation promoted `s0:00006138` / `addi.l #458752,d0`: runtime
+  `$70000` now renders as `#imm_ref_h0_00050000_rt_00070000`, targeting section
+  0 source offset `$50000`. Manual Action Log count advanced from 37 to 38 at
+  head hash
+  `924b8bd47d84ad8aabb01484808bf54f2e3434540480dd1b6fd1583f3cf5fa60`.
+- Final verification passed after reopening the listing cache: manual log,
+  semantic reload, rendered source, xref projection, and round-trip all passed;
+  round-trip status was exact.
 
 Deferred follow-up:
-- Implement the operand-level manual action, catalog command, projection, and
-  semantic/render verifier before this candidate can be promoted.
+- The command invalidates the listing cache after append, so verifier callers
+  must reopen the listing before render/xref checks. Persisting a refreshed
+  tracked `.s` export remains separate from the local Manual Action Log state.

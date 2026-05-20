@@ -1413,6 +1413,100 @@ def _data_block_element_interpreted_ref_runtime_address_ref(
     )
 
 
+def _immediate_interpreted_ref_symbol(ref: Mapping[str, object]) -> str | None:
+    explicit = _manual_seed_text(ref, "symbol")
+    if explicit is not None:
+        return explicit
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    runtime_address = _manual_seed_int(ref, "runtime_address")
+    if target_hunk is None or target_offset is None:
+        return None
+    if runtime_address is not None:
+        return f"imm_ref_h{target_hunk}_{target_offset:08X}_rt_{runtime_address:08X}"
+    return f"imm_ref_h{target_hunk}_{target_offset:08X}"
+
+
+def _immediate_interpreted_ref_equate(ref: Mapping[str, object]) -> TargetEquateMetadata | None:
+    symbol = _immediate_interpreted_ref_symbol(ref)
+    value = _manual_seed_int(ref, "source_value")
+    if symbol is None or value is None:
+        return None
+    return TargetEquateMetadata(
+        name=symbol,
+        value=value,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "immediate_ref_id"),
+        comment="immediate interpreted absolute reference",
+    )
+
+
+def _immediate_interpreted_ref_representation(ref: Mapping[str, object]) -> ManualRepresentationMetadata | None:
+    symbol = _immediate_interpreted_ref_symbol(ref)
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    end = _manual_seed_int(ref, "end")
+    operand_index = _manual_seed_int(ref, "operand_index")
+    if symbol is None or hunk is None or addr is None or end is None or end <= addr:
+        return None
+    if operand_index is None or operand_index < 0:
+        return None
+    return ManualRepresentationMetadata(
+        addr=addr,
+        end=end,
+        hunk=hunk,
+        style=ManualRepresentationStyle.SYMBOL,
+        element_kind="immediate_interpreted_ref",
+        operand_index=operand_index,
+        symbol=symbol,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "immediate_ref_id"),
+        source_id="manual_action_log",
+        source_locator=str(ref.get("immediate_ref_id") or ""),
+    )
+
+
+def _immediate_interpreted_ref_runtime_address_ref(ref: Mapping[str, object]) -> ManualRuntimeAddressRefMetadata | None:
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    width = _manual_seed_int(ref, "width")
+    target_hunk = _manual_seed_int(ref, "target_hunk")
+    target_offset = _manual_seed_int(ref, "target_offset")
+    runtime_address = _manual_seed_int(ref, "runtime_address") or _manual_seed_int(ref, "source_value")
+    operand_index = _manual_seed_int(ref, "operand_index")
+    ref_id = _manual_seed_text(ref, "immediate_ref_id")
+    if (
+        hunk is None
+        or addr is None
+        or width not in {1, 2, 4}
+        or target_hunk is None
+        or target_offset is None
+        or runtime_address is None
+        or operand_index is None
+        or ref_id is None
+    ):
+        return None
+    return ManualRuntimeAddressRefMetadata(
+        addr=addr,
+        hunk=hunk,
+        size=width,
+        target_hunk=target_hunk,
+        target_offset=target_offset,
+        runtime_address=runtime_address,
+        confidence=3,
+        owner_kind="immediate_interpreted_ref",
+        owner_id=ref_id,
+        owner_layout_id="immediate",
+        owner_element_offset=operand_index,
+        xref_generation_mode=str(ref.get("xref_generation_mode") or "bidirectional"),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(ref, "immediate_ref_id"),
+    )
+
+
 def _metadata_range_end(addr: int, end: int | None) -> int:
     return end if end is not None and end > addr else addr + 1
 
@@ -1511,6 +1605,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     removed_data_block_element_projections = projection.removed_data_block_elements
     data_block_interpreted_ref_projections = projection.data_block_interpreted_refs
     removed_data_block_interpreted_ref_projections = projection.removed_data_block_interpreted_refs
+    immediate_interpreted_ref_projections = projection.immediate_interpreted_refs
     execution_view_projections = projection.execution_views
     removed_execution_view_projections = projection.removed_execution_views
     if (
@@ -1540,6 +1635,7 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         and not removed_data_block_element_projections
         and not data_block_interpreted_ref_projections
         and not removed_data_block_interpreted_ref_projections
+        and not immediate_interpreted_ref_projections
         and not execution_view_projections
         and not removed_execution_view_projections
     ):
@@ -1747,6 +1843,15 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         target_equate = _manual_target_equate_to_metadata(equate)
         if target_equate is not None:
             target_equates.append(target_equate)
+    for ref in immediate_interpreted_ref_projections:
+        immediate_equate = _immediate_interpreted_ref_equate(ref)
+        immediate_representation = _immediate_interpreted_ref_representation(ref)
+        immediate_runtime_ref = _immediate_interpreted_ref_runtime_address_ref(ref)
+        if immediate_equate is not None and immediate_representation is not None:
+            target_equates.append(immediate_equate)
+            manual_representations.append(immediate_representation)
+            if immediate_runtime_ref is not None:
+                manual_runtime_address_refs.append(immediate_runtime_ref)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     for struct in custom_struct_projections:
         custom_struct = _manual_custom_struct_to_metadata(struct)
