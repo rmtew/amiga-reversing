@@ -12,6 +12,7 @@ int main(void) {
   failures += m68k_c_diagnostics_tests();
   failures += m68k_c_platform_decompression_tests();
   failures += m68k_c_container_metadata_tests();
+  failures += m68k_c_mac_os_runtime_tests();
   failures += m68k_c_util_arena_tests();
   return failures == 0 ? 0 : 1;
 }

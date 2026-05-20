@@ -80,6 +80,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\test_m68k_diagnostics.c ^
     src\test_platform_decompression.c ^
     src\test_m68k_container_metadata.c ^
+    src\test_mac_os_runtime.c ^
     src\test_m68k_c_main.c ^
     src\m68k_source_ir_render.c ^
     src\m68k_source_model.c ^
@@ -116,6 +117,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_atari_st_disk.c ^
     src\generated\amiga_os_runtime.c ^
     src\generated\atari_st_os_runtime.c ^
+    src\generated\mac_os_runtime.c ^
     src\generated\amiga_hunk_file_runtime.c ^
     src\generated\amiga_disk_file_runtime.c ^
     src\generated\atari_st_prg_file_runtime.c ^
@@ -188,6 +190,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_m68k_diagnostics.obj ^
     %OUTDIR%\test_platform_decompression.obj ^
     %OUTDIR%\test_m68k_container_metadata.obj ^
+    %OUTDIR%\test_mac_os_runtime.obj ^
     %OUTDIR%\test_util_arena.obj ^
     %OUTDIR%\m68k_c_unit_test.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -236,6 +239,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\platform_binary_io.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj ^
     %OUTDIR%\platform_common.obj ^

@@ -730,7 +730,7 @@ Parse Asm, Link, SetFile, Rez, object inputs, library inputs, output
 type/creator, and program kind from Sample.make and MakeFile.
 ```
 
-5. Baseline include/trap/record extractor
+5. Baseline include/trap/record extractor - implemented
 
 ```text
 Generate only cited records and calls used by the baseline examples:
@@ -905,6 +905,13 @@ resources documentation coverage tests
   logical-line parsing accepts MacRoman continuation glyphs as well as
   backslash, and fork role classification treats `XCOF`/`stub` library-like data
   forks as object payloads alongside `OBJ `.
+- 012-005 added a narrow MPW include generator for baseline Mac OS records and
+  calls. It keeps `_NumToString` as a package macro rather than an OPWORD alias,
+  records `_PBHGetVInfoSync` A0/D0 protocol evidence, and generates C/H lookup
+  tables with source path/line provenance. The generated table is now consumed
+  by C runtime tests; source/project render integration remains part of the
+  next Mac project-model/render slices because no Classic Mac backend object
+  exists yet.
 
 ## Open Questions
 
