@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -32,3 +32,20 @@ Acceptance:
 
 Blocked by:
 - 017-001.
+
+Implementation notes:
+- Current `immediate-ref-report` returns 10 accepted, conflict-free Pandora
+  candidates and no writable policy.
+- Candidate triaged first: `s0:00006138` / `addi.l #458752,d0`, family
+  `runtime_address`, target `section_index=0`, `source_offset=327680`,
+  `runtime_address=458752`. Local context stores the result in
+  `app_text_cursor_ptr(a6)`, so symbolic rendering could improve source clarity
+  once verified.
+- Promotion remains blocked. Missing support is now explicit in the report:
+  an operand-level command that records a verified interpreted immediate
+  reference, plus a projection/semantic reload verifier for the rendered target.
+- No immediate is rendered symbolically from report-only evidence.
+
+Verification:
+- `reversing_loop immediate-ref-report --target ...`
+- `pytest tests/test_reversing_loop.py -q`

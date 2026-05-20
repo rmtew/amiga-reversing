@@ -6491,6 +6491,10 @@ def test_immediate_runtime_reference_report_accepts_known_runtime_range() -> Non
     assert candidate["instruction_context"]["operand_index"] == 0
     assert candidate["current_render_state"]["text"] == "\tmove.l #$05C72A,$100\n"
     assert candidate["write_policy"]["status"] == "report_only"
+    assert candidate["write_policy"]["symbolic_reference_allowed"] is False
+    assert candidate["write_policy"]["rendering_allowed"] is False
+    assert candidate["write_policy"]["command_support"]["status"] == "missing"
+    assert candidate["write_policy"]["verifier_support"]["status"] == "missing"
 
 
 def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> None:

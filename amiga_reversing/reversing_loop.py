@@ -1747,6 +1747,15 @@ def _immediate_reference_interpretation_policy() -> dict[str, object]:
     return {
         "status": "report_only",
         "symbolic_reference_allowed": False,
+        "rendering_allowed": False,
+        "command_support": {
+            "status": "missing",
+            "required": "operand-level command that records a verified interpreted immediate reference",
+        },
+        "verifier_support": {
+            "status": "missing",
+            "required": "projection/semantic reload verifier for the rendered immediate reference target",
+        },
         "reason": "planner writes remain blocked until verifier-backed immediate reference interpretation exists",
     }
 

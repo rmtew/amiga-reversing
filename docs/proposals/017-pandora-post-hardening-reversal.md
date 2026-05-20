@@ -109,3 +109,11 @@ repeatable work to `docs\issues\017-*`.
 - The selected-action dry run currently prefers a mechanical printable byte
   immediate rendering action. That command is available, but it is lower value
   than reference/path provenance work and is not selected as 017 progress.
+- 017-002 triage attempted the strongest immediate-reference family. The report
+  found 10 accepted, conflict-free candidates; the best visible source-quality
+  candidate is `s0:00006138` (`addi.l #458752,d0`) because it computes
+  `app_text_cursor_ptr` from a runtime-address base. Promotion is blocked:
+  there is no operand-level command to record a verified interpreted immediate
+  reference, and no projection/semantic reload verifier for that rendered
+  immediate-reference target. The report now exposes those gates structurally
+  and keeps `symbolic_reference_allowed=false` and `rendering_allowed=false`.
