@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -34,3 +34,23 @@ Acceptance:
 
 Blocked by:
 None - can start immediately.
+
+Implementation notes:
+- Read-only hygiene and inspect were clean for the Pandora sub-target:
+  review state clear, no Review Items, project available, and round-trip exact.
+- `immediate-ref-report` produced concrete reference candidates, but they remain
+  report-only because verifier-backed immediate reference interpretation is not
+  available for planner writes yet.
+- `a5-hardware-report` produced probable custom-base candidates only. They are
+  non-durable listing-state evidence and cannot be used for hardware rendering
+  until `017-003` proves accepted path/lifetime scope.
+- Selected next candidate family: `017-002` immediate runtime-reference triage.
+- Baseline collection did not intentionally mutate target state; timestamp-only
+  target metadata churn remains outside this issue.
+
+Verification:
+- `reversing_loop hygiene --target ...`
+- `reversing_loop inspect --target ...`
+- `reversing_loop immediate-ref-report --target ...`
+- `reversing_loop a5-hardware-report --target ...`
+- `reversing_loop run-one --target ... --dry-run`

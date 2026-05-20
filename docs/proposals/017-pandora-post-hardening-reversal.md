@@ -94,3 +94,18 @@ repeatable work to `docs\issues\017-*`.
 
 - 016 A5 output is useful for choosing candidate families, but it is explicitly
   not durable accepted hardware-base evidence.
+- 017-001 baseline: hygiene and inspect are clean for
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`;
+  Review Items are clear, round-trip status is exact, and no baseline candidate
+  mutation was performed.
+- The selected next family is `017-002` immediate runtime-reference triage.
+  `immediate-ref-report` found concrete report-only candidates, including
+  runtime/source-offset immediates, but planner writes remain blocked until
+  verifier-backed immediate-reference interpretation exists.
+- `a5-hardware-report` is deferred to `017-003`: it found many probable A5
+  custom-register candidates, but all observed entries remain non-durable
+  listing-state evidence with no accepted path/lifetime scope. Hardware register
+  rendering remains blocked.
+- The selected-action dry run currently prefers a mechanical printable byte
+  immediate rendering action. That command is available, but it is lower value
+  than reference/path provenance work and is not selected as 017 progress.
