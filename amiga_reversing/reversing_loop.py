@@ -2114,6 +2114,9 @@ def _a5_cfg_conflicting_status(
 
 def _a5_cfg_accepted_status(use: dict[str, object], definition: dict[str, object]) -> dict[str, object]:
     payload = _a5_cfg_status_payload(use, definition, "accepted_custom_base", [], accepted=True)
+    render_blocker = _a5_hardware_ref_render_blocker(payload)
+    if render_blocker is not None:
+        payload["rendering_blocked_reason"] = render_blocker
     parameters = _a5_hardware_ref_parameters(payload)
     if parameters is not None:
         payload["suggested_action_kinds"] = ["a5_hardware_ref.interpret"]
@@ -2182,6 +2185,14 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         return None
     custom_base_offset = custom_base_offset or 0
     hardware_register_offset = hardware_register_offset if hardware_register_offset is not None else custom_base_offset + displacement
+    if _a5_hardware_ref_render_blocker(
+        {
+            "displacement": displacement,
+            "custom_base_offset": custom_base_offset,
+            "hardware_register_offset": hardware_register_offset,
+        }
+    ):
+        return None
     if hardware_register_offset != custom_base_offset + displacement:
         return None
     symbol = _amiga_custom_register_symbol(hardware_register_offset)
@@ -2209,6 +2220,16 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         "hunk": hunk,
         "addr": addr,
     }
+
+
+def _a5_hardware_ref_render_blocker(candidate: Mapping[str, object]) -> str | None:
+    displacement = _int_or_none(candidate.get("displacement"))
+    custom_base_offset = _int_or_none(candidate.get("custom_base_offset")) or 0
+    if displacement == 0:
+        return "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
+    if custom_base_offset != 0:
+        return "nonzero_a5_custom_base_offset_requires_symbol_delta_rendering"
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -6798,6 +6819,15 @@ def _verify_projected_a5_hardware_ref_rendered_source(
     if expected is None:
         return {"layer": "rendered_source", "status": "failed", "message": "missing A5 hardware ref payload"}
     render_expected = _project_a5_hardware_ref_state_match(target_id, expected, project_root=project_root) or expected
+    render_blocker = _a5_hardware_ref_render_blocker(render_expected)
+    if render_blocker is not None:
+        return {
+            "layer": "rendered_source",
+            "status": "failed",
+            "message": "A5 hardware ref cannot be projected as an exact symbolic operand yet",
+            "rendering_blocked_reason": render_blocker,
+            "expected_a5_hardware_ref": render_expected,
+        }
     location = _a5_hardware_ref_location(command, render_expected)
     if location is None:
         return {"layer": "rendered_source", "status": "failed", "message": "A5 hardware ref source location missing"}

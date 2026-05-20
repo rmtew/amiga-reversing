@@ -1474,9 +1474,13 @@ def _a5_hardware_ref_representation(ref: Mapping[str, object]) -> ManualRepresen
     addr = _manual_seed_int(ref, "addr")
     end = _manual_seed_int(ref, "end")
     operand_index = _manual_seed_int(ref, "operand_index")
+    displacement = _manual_seed_int(ref, "displacement")
+    custom_base_offset = _manual_seed_int(ref, "custom_base_offset") or 0
     if symbol is None or hunk is None or addr is None or end is None or end <= addr:
         return None
     if operand_index is None or operand_index < 0:
+        return None
+    if displacement == 0 or custom_base_offset != 0:
         return None
     return ManualRepresentationMetadata(
         addr=addr,

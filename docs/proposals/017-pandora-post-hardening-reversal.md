@@ -64,6 +64,7 @@ measured blocker needed for that improvement.
 12. `017-012`: immediate-reference report mutation gate.
 13. `017-013`: A5 hardware-reference command and verifier.
 14. `017-014`: A5 custom-register base-offset report identity.
+15. `017-015`: A5 zero-displacement hardware-ref rendering.
 
 ## Recommended Order
 
@@ -224,3 +225,10 @@ repeatable work to `docs\issues\017-*`.
   payloads, accepts signed displacements only through valid effective offsets,
   blocks out-of-range effective offsets, and keeps zero-offset evidence ids
   stable.
+- The first post-017-014 mutation, Pandora `s0:0000045C`, recorded durable
+  `dmaconr` A5 hardware-ref state and passed manual-log and semantic-reload,
+  but failed rendered-source projection. A forced `dmaconr(a5)` render changes
+  the address mode because A5 already points at `_custom+dmaconr`, so 017-015
+  keeps zero-displacement/non-zero-custom-base A5 refs semantic-only until
+  exact symbol-delta rendering exists. Focused Pandora validation now blocks
+  `s0:0000045C` with that reason while leaving `s0:000004A6` command-backed.

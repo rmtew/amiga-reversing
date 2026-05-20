@@ -3554,6 +3554,64 @@ def test_a5_hardware_ref_verifier_requires_accepted_state_and_symbolic_operand(
     assert report["layers"][2]["layer"] == "rendered_source"
 
 
+def test_a5_hardware_ref_render_verifier_blocks_zero_displacement_projection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    locator = _listing_locator(row_key="a5-use-zero", start_offset=0x40, end_offset=0x42)
+    ref = {
+        "a5_hardware_ref_id": "a5-hw:a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000",
+        "hunk": 0,
+        "addr": 0x40,
+        "end": 0x42,
+        "operand_index": 0,
+        "base_register": "A5",
+        "displacement": 0,
+        "custom_base_offset": 2,
+        "hardware_register_offset": 2,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_address": 0xDFF002,
+        "reference_kind": "custom_register_displacement",
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000",
+        "path_lifetime_scope": {
+            "accepted_hardware_base_evidence": True,
+            "kind": "straight_line_cfg_between_definition_and_use",
+        },
+        "symbol": "dmaconr",
+        "conflicts": [],
+    }
+    command = {
+        "kind": "command",
+        "command_id": "a5_hardware_ref.interpret",
+        "context": {"kind": "row", "locator": locator},
+        "parameters": dict(ref),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"a5_hardware_refs": [{**ref, "owner_action_id": "manual-1"}]},
+        ),
+    )
+
+    verification = reversing_loop._verify_projected_a5_hardware_ref_rendered_source(
+        "demo",
+        command,
+        ref,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed"
+    assert verification["rendering_blocked_reason"] == (
+        "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
+    )
+
+
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -6946,12 +7004,12 @@ def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:
     assert cfg_use["custom_base_offset"] == 2
     assert cfg_use["hardware_register_offset"] == 2
     assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000"
-    assert cfg_use["parameters"]["symbol"] == "dmaconr"
-    assert cfg_use["parameters"]["hardware_register_address"] == 0xDFF002
-    assert cfg_use["parameters"]["displacement"] == 0
-    assert cfg_use["parameters"]["custom_base_offset"] == 2
-    assert cfg_use["parameters"]["hardware_register_offset"] == 2
-    assert cfg_use["parameters"]["symbol"] != "bltddat"
+    assert cfg_use["rendering_blocked_reason"] == "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
+    assert "parameters" not in cfg_use
+    assert "suggested_action_kinds" not in cfg_use
+    assert report["cfg_path_lifetime_report"]["safe_to_mutate"] is False
+    assert report["cfg_path_lifetime_report"]["rendering_allowed"] is False
+    assert report["cfg_path_lifetime_report"]["rendering_gate"]["command_support"]["command_candidate_count"] == 0
 
 
 def test_a5_hardware_lifetime_report_rejects_out_of_range_effective_offset() -> None:
@@ -6985,11 +7043,8 @@ def test_a5_hardware_lifetime_report_accepts_negative_displacement_with_in_range
     assert cfg_use["hardware_register_candidate"] is True
     assert cfg_use["hardware_register_offset"] == 0
     assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d-0002"
-    assert cfg_use["parameters"]["displacement"] == -2
-    assert cfg_use["parameters"]["custom_base_offset"] == 2
-    assert cfg_use["parameters"]["hardware_register_offset"] == 0
-    assert cfg_use["parameters"]["hardware_register_address"] == 0xDFF000
-    assert cfg_use["parameters"]["symbol"] == "bltddat"
+    assert cfg_use["rendering_blocked_reason"] == "nonzero_a5_custom_base_offset_requires_symbol_delta_rendering"
+    assert "parameters" not in cfg_use
 
 
 def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -> None:

@@ -229,6 +229,88 @@ def test_effective_metadata_projects_equate_semantic_hint_to_symbol_representati
     ]
 
 
+def test_effective_metadata_projects_only_exact_a5_hardware_ref_representations(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _append_jsonl(
+        target_dir / MANUAL_ACTION_LOG_FILE_NAME,
+        [
+            {"record": "manual_action_log_header", "version": 1, "target_identity": {}},
+            _action(
+                "a5-safe",
+                1,
+                "interpret_manual_a5_hardware_ref",
+                a5_hardware_ref={
+                    "a5_hardware_ref_id": "a5-hw:safe",
+                    "hunk": 0,
+                    "addr": 0x300,
+                    "end": 0x304,
+                    "operand_index": 0,
+                    "base_register": "A5",
+                    "displacement": 0x96,
+                    "custom_base_offset": 0,
+                    "hardware_register_offset": 0x96,
+                    "custom_base_address": 0xDFF000,
+                    "hardware_register_address": 0xDFF096,
+                    "reference_kind": "custom_register_displacement",
+                    "source_family": "amiga_custom_base",
+                    "source_evidence_status": "accepted",
+                    "source_evidence_id": "a5-custom-cfg:safe",
+                    "path_lifetime_scope": {"accepted_hardware_base_evidence": True},
+                    "symbol": "dmacon",
+                    "conflicts": [],
+                },
+            ),
+            _action(
+                "a5-zero",
+                2,
+                "interpret_manual_a5_hardware_ref",
+                a5_hardware_ref={
+                    "a5_hardware_ref_id": "a5-hw:zero",
+                    "hunk": 0,
+                    "addr": 0x400,
+                    "end": 0x402,
+                    "operand_index": 0,
+                    "base_register": "A5",
+                    "displacement": 0,
+                    "custom_base_offset": 2,
+                    "hardware_register_offset": 2,
+                    "custom_base_address": 0xDFF000,
+                    "hardware_register_address": 0xDFF002,
+                    "reference_kind": "custom_register_displacement",
+                    "source_family": "amiga_custom_base",
+                    "source_evidence_status": "accepted",
+                    "source_evidence_id": "a5-custom-cfg:zero",
+                    "path_lifetime_scope": {"accepted_hardware_base_evidence": True},
+                    "symbol": "dmaconr",
+                    "conflicts": [],
+                },
+            ),
+        ],
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x300,
+            "citation": "manual_action_log:a5-hw:safe",
+            "element_kind": "a5_hardware_ref",
+            "end": 0x304,
+            "hunk": 0,
+            "operand_index": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "a5-hw:safe",
+            "source_path": None,
+            "style": "symbol",
+            "symbol": "dmacon",
+        }
+    ]
+
+
 def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
