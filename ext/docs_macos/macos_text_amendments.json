@@ -2,10 +2,12 @@
   "schema": "macos_doc_text_amendments.v1",
   "audit": "ext/docs_macos/macos_text_audit.json",
   "docs": "ext/docs_macos",
-  "selection": "Auto-applied only fixed text substitutions listed by the text audit rules. Mojibake and ambiguous Roman numeral/page-reference findings stay review-only.",
+  "selection": "Auto-applied only fixed text substitutions listed by the text audit rules. Roman page references are auto-applied for Il-/II- OCR confusion; mojibake and ambiguous spacing findings stay review-only.",
   "dry_run": false,
-  "amendment_count": 22,
-  "replacement_count": 51,
+  "new_amendment_count": 0,
+  "new_replacement_count": 0,
+  "amendment_count": 128,
+  "replacement_count": 171,
   "amendments": [
     {
       "document": "Inside_Macintosh_Volume_III_1985.md",
@@ -58,6 +60,329 @@
       ],
       "occurrences_before": 7,
       "occurrences_replaced": 7
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-114",
+      "replacement": "II-114",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        280
+      ],
+      "audit_lines": [
+        22409
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-126",
+      "replacement": "II-126",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        287
+      ],
+      "audit_lines": [
+        23181
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-128",
+      "replacement": "II-128",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        272
+      ],
+      "audit_lines": [
+        21598
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-14",
+      "replacement": "II-14",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        272
+      ],
+      "audit_lines": [
+        21612
+      ],
+      "occurrences_before": 3,
+      "occurrences_replaced": 3
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-147",
+      "replacement": "II-147",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        286
+      ],
+      "audit_lines": [
+        23095
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-153",
+      "replacement": "II-153",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        269
+      ],
+      "audit_lines": [
+        21212
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-159",
+      "replacement": "II-159",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        281
+      ],
+      "audit_lines": [
+        22517,
+        22522
+      ],
+      "occurrences_before": 2,
+      "occurrences_replaced": 2
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-178",
+      "replacement": "II-178",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        270
+      ],
+      "audit_lines": [
+        21326
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-180",
+      "replacement": "II-180",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        271
+      ],
+      "audit_lines": [
+        21490
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-186",
+      "replacement": "II-186",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        280
+      ],
+      "audit_lines": [
+        22410
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-187",
+      "replacement": "II-187",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        279
+      ],
+      "audit_lines": [
+        22329
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-190",
+      "replacement": "II-190",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        271
+      ],
+      "audit_lines": [
+        21488
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-193",
+      "replacement": "II-193",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        271
+      ],
+      "audit_lines": [
+        21484
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-194",
+      "replacement": "II-194",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        271
+      ],
+      "audit_lines": [
+        21491
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-196",
+      "replacement": "II-196",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        287
+      ],
+      "audit_lines": [
+        23182
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-375",
+      "replacement": "II-375",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        281
+      ],
+      "audit_lines": [
+        22539
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-385",
+      "replacement": "II-385",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        282
+      ],
+      "audit_lines": [
+        22657
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-398",
+      "replacement": "II-398",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        271
+      ],
+      "audit_lines": [
+        21510
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-68",
+      "replacement": "II-68",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        279
+      ],
+      "audit_lines": [
+        22345
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-71",
+      "replacement": "II-71",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        273
+      ],
+      "audit_lines": [
+        21662
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-80",
+      "replacement": "II-80",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        272
+      ],
+      "audit_lines": [
+        21535
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-83",
+      "replacement": "II-83",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        282
+      ],
+      "audit_lines": [
+        22594
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_III_1985.md",
+      "match": "Il-9",
+      "replacement": "II-9",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        98
+      ],
+      "audit_lines": [
+        6576
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
     },
     {
       "document": "Inside_Macintosh_Volume_II_1985.md",
@@ -208,6 +533,572 @@
     },
     {
       "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-103",
+      "replacement": "II-103",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        423
+      ],
+      "audit_lines": [
+        25553
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-105",
+      "replacement": "II-105",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        434
+      ],
+      "audit_lines": [
+        26686
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-107",
+      "replacement": "II-107",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        430
+      ],
+      "audit_lines": [
+        26252
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-11",
+      "replacement": "II-11",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        431
+      ],
+      "audit_lines": [
+        26317
+      ],
+      "occurrences_before": 6,
+      "occurrences_replaced": 6
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-111",
+      "replacement": "II-111",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        430
+      ],
+      "audit_lines": [
+        26257
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-115",
+      "replacement": "II-115",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        430
+      ],
+      "audit_lines": [
+        26256
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-116",
+      "replacement": "II-116",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        125,
+        434
+      ],
+      "audit_lines": [
+        6506,
+        26639
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-117",
+      "replacement": "II-117",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        430
+      ],
+      "audit_lines": [
+        26276
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-126",
+      "replacement": "II-126",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        421
+      ],
+      "audit_lines": [
+        25289
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-147",
+      "replacement": "II-147",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        156
+      ],
+      "audit_lines": [
+        9050
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-149",
+      "replacement": "II-149",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        436
+      ],
+      "audit_lines": [
+        26935
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-158",
+      "replacement": "II-158",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        431
+      ],
+      "audit_lines": [
+        26372
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-161",
+      "replacement": "II-161",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        431
+      ],
+      "audit_lines": [
+        26340
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-175",
+      "replacement": "II-175",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        184
+      ],
+      "audit_lines": [
+        10492
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-176",
+      "replacement": "II-176",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        420,
+        435
+      ],
+      "audit_lines": [
+        25196,
+        26781
+      ],
+      "occurrences_before": 2,
+      "occurrences_replaced": 2
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-177",
+      "replacement": "II-177",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        186
+      ],
+      "audit_lines": [
+        10573
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-19",
+      "replacement": "II-19",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        418,
+        433
+      ],
+      "audit_lines": [
+        25004,
+        26573
+      ],
+      "occurrences_before": 6,
+      "occurrences_replaced": 6
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-191",
+      "replacement": "II-191",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        200
+      ],
+      "audit_lines": [
+        11539
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-195",
+      "replacement": "II-195",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        427
+      ],
+      "audit_lines": [
+        25921
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-196",
+      "replacement": "II-196",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        437
+      ],
+      "audit_lines": [
+        27026
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-198",
+      "replacement": "II-198",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        433
+      ],
+      "audit_lines": [
+        26550
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-231",
+      "replacement": "II-231",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        435
+      ],
+      "audit_lines": [
+        26776
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-237",
+      "replacement": "II-237",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        246
+      ],
+      "audit_lines": [
+        14313
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-248",
+      "replacement": "II-248",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        433
+      ],
+      "audit_lines": [
+        26602
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-252",
+      "replacement": "II-252",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        433
+      ],
+      "audit_lines": [
+        26605
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-254",
+      "replacement": "II-254",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        433
+      ],
+      "audit_lines": [
+        26601
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-266",
+      "replacement": "II-266",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        438
+      ],
+      "audit_lines": [
+        27117
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-273",
+      "replacement": "II-273",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        282
+      ],
+      "audit_lines": [
+        16683
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-274",
+      "replacement": "II-274",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        418
+      ],
+      "audit_lines": [
+        24936
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-284",
+      "replacement": "II-284",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        421
+      ],
+      "audit_lines": [
+        25279
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-289",
+      "replacement": "II-289",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        298
+      ],
+      "audit_lines": [
+        17663
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-291",
+      "replacement": "II-291",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        300
+      ],
+      "audit_lines": [
+        17799
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-32",
+      "replacement": "II-32",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        436
+      ],
+      "audit_lines": [
+        26859
+      ],
+      "occurrences_before": 2,
+      "occurrences_replaced": 2
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-321",
+      "replacement": "II-321",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        330
+      ],
+      "audit_lines": [
+        19970
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-34",
+      "replacement": "II-34",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        434
+      ],
+      "audit_lines": [
+        26648
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-35",
+      "replacement": "II-35",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        432
+      ],
+      "audit_lines": [
+        26437
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-370",
+      "replacement": "II-370",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        379
+      ],
+      "audit_lines": [
+        23146
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-379",
+      "replacement": "II-379",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        421
+      ],
+      "audit_lines": [
+        25269
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-411",
+      "replacement": "II-411",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        420
+      ],
+      "audit_lines": [
+        25239
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
+      "match": "Il-73",
+      "replacement": "II-73",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        82
+      ],
+      "audit_lines": [
+        3645
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_II_1985.md",
       "match": "volumePararn",
       "replacement": "volumeParam",
       "rule": "volume_ocr",
@@ -353,6 +1244,618 @@
       ],
       "occurrences_before": 3,
       "occurrences_replaced": 3
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-1",
+      "replacement": "II-1",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        560
+      ],
+      "audit_lines": [
+        28559
+      ],
+      "occurrences_before": 25,
+      "occurrences_replaced": 25
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-10",
+      "replacement": "II-10",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        544,
+        552
+      ],
+      "audit_lines": [
+        26714,
+        27616
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-104",
+      "replacement": "II-104",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        554
+      ],
+      "audit_lines": [
+        27883
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-110",
+      "replacement": "II-110",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        554
+      ],
+      "audit_lines": [
+        27906
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-116",
+      "replacement": "II-116",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        554
+      ],
+      "audit_lines": [
+        27898
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-118",
+      "replacement": "II-118",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        554
+      ],
+      "audit_lines": [
+        27894
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-120",
+      "replacement": "II-120",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        559
+      ],
+      "audit_lines": [
+        28462
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-121",
+      "replacement": "II-121",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28668
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-122",
+      "replacement": "II-122",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        544
+      ],
+      "audit_lines": [
+        26716
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-125",
+      "replacement": "II-125",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        548,
+        561
+      ],
+      "audit_lines": [
+        27159,
+        28636
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-14",
+      "replacement": "II-14",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        547
+      ],
+      "audit_lines": [
+        27079
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-17",
+      "replacement": "II-17",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        543,
+        553
+      ],
+      "audit_lines": [
+        26634,
+        27693
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-176",
+      "replacement": "II-176",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        547
+      ],
+      "audit_lines": [
+        27062
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-179",
+      "replacement": "II-179",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        545,
+        549
+      ],
+      "audit_lines": [
+        26827,
+        27268
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-18",
+      "replacement": "II-18",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        559
+      ],
+      "audit_lines": [
+        28453
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-185",
+      "replacement": "II-185",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        562
+      ],
+      "audit_lines": [
+        28721
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-191",
+      "replacement": "II-191",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        560
+      ],
+      "audit_lines": [
+        28589
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-196",
+      "replacement": "II-196",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28639
+      ],
+      "occurrences_before": 0,
+      "occurrences_replaced": 0
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-214",
+      "replacement": "II-214",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28302
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-227",
+      "replacement": "II-227",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28674
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-233",
+      "replacement": "II-233",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28351
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-246",
+      "replacement": "II-246",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        544
+      ],
+      "audit_lines": [
+        26720
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-263",
+      "replacement": "II-263",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        553
+      ],
+      "audit_lines": [
+        27756
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-265",
+      "replacement": "II-265",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28346
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-266",
+      "replacement": "II-266",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        553
+      ],
+      "audit_lines": [
+        27730
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-274",
+      "replacement": "II-274",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        543
+      ],
+      "audit_lines": [
+        26569,
+        26571,
+        26572
+      ],
+      "occurrences_before": 3,
+      "occurrences_replaced": 3
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-277",
+      "replacement": "II-277",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        552
+      ],
+      "audit_lines": [
+        27598
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-288",
+      "replacement": "II-288",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        544
+      ],
+      "audit_lines": [
+        26687
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-290",
+      "replacement": "II-290",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        543
+      ],
+      "audit_lines": [
+        26660
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-294",
+      "replacement": "II-294",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        543
+      ],
+      "audit_lines": [
+        26666
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-318",
+      "replacement": "II-318",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        543
+      ],
+      "audit_lines": [
+        26592
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-34",
+      "replacement": "II-34",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28270
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-350",
+      "replacement": "II-350",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28633
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-357",
+      "replacement": "II-357",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        559
+      ],
+      "audit_lines": [
+        28455
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-374",
+      "replacement": "II-374",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28622
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-380",
+      "replacement": "II-380",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28303
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-59",
+      "replacement": "II-59",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        544
+      ],
+      "audit_lines": [
+        26744
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-65",
+      "replacement": "II-65",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        554
+      ],
+      "audit_lines": [
+        27811
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-70",
+      "replacement": "II-70",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        559
+      ],
+      "audit_lines": [
+        28444
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-79",
+      "replacement": "II-79",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28669
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-81",
+      "replacement": "II-81",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        561
+      ],
+      "audit_lines": [
+        28642
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-83",
+      "replacement": "II-83",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        545
+      ],
+      "audit_lines": [
+        26886
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
+    },
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "match": "Il-89",
+      "replacement": "II-89",
+      "rule": "routine_page_ref_roman",
+      "pages": [
+        558
+      ],
+      "audit_lines": [
+        28307
+      ],
+      "occurrences_before": 1,
+      "occurrences_replaced": 1
     }
   ]
 }

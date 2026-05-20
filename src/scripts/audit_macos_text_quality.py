@@ -79,6 +79,16 @@ RULES: list[dict[str, Any]] = [
 ]
 
 
+def auto_replacement(rule_id: str, token: str, rule_replacements: dict[str, str] | None, context: str) -> str | None:
+    if rule_id == "routine_page_ref_roman":
+        if re.search(r"\b(?:I|II|III|IV)-\d+", context) or re.search(r"\bIl-\d+", context):
+            return token.replace("Il-", "II-", 1)
+        return None
+    if rule_replacements:
+        return rule_replacements.get(token)
+    return None
+
+
 def page_for_offset(offset: int, page_markers: list[tuple[int, int]]) -> int | None:
     current: int | None = None
     for marker_offset, page in page_markers:
@@ -115,9 +125,8 @@ def audit_doc(path: Path) -> list[dict[str, Any]]:
             if key in seen:
                 continue
             seen.add(key)
-            replacement = None
-            if rule["auto_replacement"]:
-                replacement = rule["auto_replacement"].get(token)
+            context = context_line(text, match.start())
+            replacement = auto_replacement(rule["id"], token, rule["auto_replacement"], context)
             findings.append(
                 {
                     "document": path.name,
@@ -127,7 +136,7 @@ def audit_doc(path: Path) -> list[dict[str, Any]]:
                     "match": token,
                     "auto_replacement": replacement,
                     "description": rule["description"],
-                    "context": context_line(text, match.start()),
+                    "context": context,
                 }
             )
     return findings

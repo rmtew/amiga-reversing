@@ -26566,10 +26566,10 @@ INDEX
 A
 ABByte data type II-276
 ABCallType data type II-274
-ABProtoType data type Il-274
+ABProtoType data type II-274
 ABRecHandle data type II-274
-ABRecPtr data type Il-274
-ABusRecord data type Il-274
+ABRecPtr data type II-274
+ABusRecord data type II-274
 ALAP parameters II-276
 ATP parameters II-287
 DDP parameters 11-281
@@ -26589,7 +26589,7 @@ AddPt procedure 1-193
 AddrBlock data type II-281
 Add.ResMenu procedure 1-353
 Add.Resource procedure I-124
-Add.Response function Il-318
+Add.Response function II-318
 address mark II-211
 ALAP See AppleTalk Link Access Protocol
 ALAP frame II-264
@@ -26631,7 +26631,7 @@ assembly language II-312
 Pascal II-287
 application font I-219
 application heap 1-74; II-9
-limit Il-17, 29
+limit II-17, 29
 application parameters II-20
 application space II-20
 application window I-270
@@ -26657,13 +26657,13 @@ ATPAdd.Rsp function II-295
 ATPCloseSocket function II-291
 ATPGetRequest function II-293
 ATPLoad function II-290
-ATPOpenSocket function Il-290
+ATPOpenSocket function II-290
 ATPReqCancel function 11-293
 ATPRequest function II-292
 ATPResponse function II-296
 ATPRspCancel function 11-296
 ATPSnd.Request function II-291
-ATPSnd.Rsp function Il-294
+ATPSnd.Rsp function II-294
 ATPUnload function II-290
 AttachPH function II-308
 auto-key event I-244, 246
@@ -26684,7 +26684,7 @@ background procedure ll-153
 BackPat procedure 1-167
 base line 1-227
 baud rate II-246, 251, 254
-BDSElement data type Il-288
+BDSElement data type II-288
 BDSPt;· data type ll-288
 BDSType data type II-288
 BeginUpdate procedure 1-292
@@ -26711,13 +26711,13 @@ block (file) See allocation block
 block (memory) I-73; II-10
 block contents II-10
 block device II-175
-block header Il-10
+block header II-10
 structure II-24
-block map Il-122
+block map II-122
 BlockMove procedure 11-44
 boot blocks See system startup information
 boundary rectangle I-144
-break Il-246
+break II-246
 bridge II-265
 BringToFront procedure 1-286
 broadcast service II-264
@@ -26741,7 +26741,7 @@ caret I-376, 379
 caret-blink time 1-260; II-371
 CaretTime global variable I-260
 CautionAlert function 1-420
-Chain procedure Il-59
+Chain procedure II-59
 Changed.Resource procedure I-123
 character codes 1-246
 character device 11-175
@@ -26824,7 +26824,7 @@ in a dialog/alert I-404
 control definition function 1-314, 328
 control definition ID I-315, 328
 Control function
-high-level Il-179
+high-level II-179
 low-level 11-186
 control information II-176
 control list I-274, 317
@@ -26883,7 +26883,7 @@ in Texl.Edit I-385
 DABeeper global variable I-411
 DAStrings global array 1-421
 data bits II-245
-data buffer Il-83, 176
+data buffer II-83, 176
 datafork I-105;II-81
 data mark II-211
 datagram 11-265
@@ -27059,7 +27059,7 @@ drive queue II-127
 driver See device driver
 driver VO queue 11-180, 191
 drivername II-176
-driver reference number Il-176
+driver reference number II-176
 DriveStatus function 11-215
 DrvQEl data type 11-127
 DrvQHdr global variable 11-128
@@ -27076,7 +27076,7 @@ high-level II-90
 low-level II-107
 Index
 Elems68K See Transcendental Functions Package
-empty handle I-76; Il-14, 40
+empty handle I-76; II-14, 40
 EmptyHandle procedure II-40
 EmptyRect function 1-176
 EmptyRgn function I-186
@@ -27156,7 +27156,7 @@ File Manager 1-13; II-77
 File Manager routines
 high-level II-88
 low-level II-97
-for queue access Il-125, 126, 128
+for queue access II-125, 126, 128
 File menu 1-55
 file name II-81
 file number II-122
@@ -27265,7 +27265,7 @@ FSRead function
 Device Manager II-178
 File Manager II-92
 FSWrite function
-Device Manager Il-179
+Device Manager II-179
 File Manager II-92
 FTSndRecPtr data type II-227
 FTSoundRec data type II-227
@@ -27437,7 +27437,7 @@ HPurge procedure 11-41
 HU nlock procedure 11-41
 icon I-32
 in a dialog/alert 1-404
-for a file 11-85; IIl-10
+for a file 11-85; III-10
 inamenu 1-347, 359
 utility routines I-473
 icon list III-11
@@ -27595,7 +27595,7 @@ LAPCloseProtocol function II-277
 LAPOpenProtocol function II-277
 LAPRdCancel function II-279
 LAPRead function II-278
-LAPWrite function Il-277
+LAPWrite function II-277
 Launch procedure II-60
 leading I-228
 ligatures 1-501
@@ -27613,7 +27613,7 @@ local ID III-10
 LocalToGlobal procedure I-193
 location table I-231
 lock bit II-25
-locked block I-76; Il-10
+locked block I-76; II-10
 locked file II-84
 locked volume 11-80
 locking a block 1-76; II-41
@@ -27690,7 +27690,7 @@ MenuSelect function 1-355
 meta-characters
 AppleTalk Manager II-266, 320
 Menu Manager 1-346
-MinStack global variable Il-17
+MinStack global variable II-17
 MinusOne global variable I-85
 missing symbol I-152, 220, 230
 modal dialog box 1-67, 400, 415
@@ -27727,7 +27727,7 @@ assembly language 11-319
 Pascal 11-298
 name lookup 11-266
 names directory II-266
-names information socket Il-266
+names information socket II-266
 names table II-266, 321
 NBP See Name-Binding Protocol
 NBP tuple II-266
@@ -27753,7 +27753,7 @@ NewRgn function I-181
 NewString function 1-468
 NewWindow function 1-282
 node 11-263
-node ID Il-263
+node ID II-263
 nonbreaking space 1-246
 nonrelocatable block I-75; 11-10
 allocating 11-36
@@ -27808,7 +27808,7 @@ OpenRgn procedure 1-181
 OpenSkt function II-311
 Operating System I-9
 queues II-372
-Operating System Event Manager 1-13; Il-65
+Operating System Event Manager 1-13; II-65
 routines II-68
 Operating System Utilities 1-13; II-367
 routines 11-374
@@ -27880,7 +27880,7 @@ PBGetEOF function II-112
 PBGetFInfo function 11-115
 PBGetFPos function 11-111
 PBGetVInfo function 11-104
-PBGetVol function Il-104
+PBGetVol function II-104
 PBKillIO function 11-187
 PBMountVol function II-103
 PBOftLine function 11-106
@@ -27891,11 +27891,11 @@ PBOpenRF function 11-109
 PBRead function
 Device Manager II-185
 File Manager 11-110
-PBRename function Il-118
+PBRename function II-118
 PBRstFLock function II-117
 PBSetEOF function 11-112
 PDSetFinfo function II-116
-PBSetFLock function Il-116
+PBSetFLock function II-116
 PBSetFPos function II-111
 PBSetFVers function 11-117
 PBSetVol function ll-105
@@ -27903,7 +27903,7 @@ PBStatus function II-186
 PBUnmountVol function II-106
 PBWrite function
 Device Manager 11-185
-File Manager Il-110
+File Manager II-110
 pen characteristics I-150
 PenMode procedure 1-169
 PenNormalprocedure I-170
@@ -28185,7 +28185,7 @@ ScrapStuff data type 1-457
 Scratch8 global variable 1-85
 Scratch20 global variable 1-85
 ScrDmpEnb global variable 1-258
-screen buffer IIl-18, 19
+screen buffer III-18, 19
 screenBits global variable I-145, 163
 ScreenRes procedure 1-473
 ScrHRes global variable 1-473
@@ -28267,7 +28267,7 @@ SetFPos function
 high-level 11-93
 low-level II-111
 SetGrowZone procedure 11-42
-SetHandleSize procedure Il-34
+SetHandleSize procedure II-34
 Setltem procedure I-357
 Setltemlcon procedure I-359
 SetItemMark procedure I-359
@@ -28299,12 +28299,12 @@ SetResPurge procedure 1-126
 SetSoundVol procedure II-233
 SetStdProcs procedure 1-198
 SetString procedure 1-468
-SetTagBuffer function Il-214
-SetTime procedure Il-380
+SetTagBuffer function II-214
+SetTime procedure II-380
 SetTrapAddress procedure 11-384
 SetUpA5 procedure II-386
 SetVol function
-high-level Il-89
+high-level II-89
 low-level II-105
 SetWindowPic procedure 1-293
 SetWordBreak procedure I-390
@@ -28343,12 +28343,12 @@ socket II-265
 socket client 11-265
 socket listener II-265
 writing your own II-324, 329
-socket number Il-265
+socket number II-265
 socket table 11-265
 software overrun error 11-246
-sound buffer 11-233; IIl-18, 21
+sound buffer 11-233; III-18, 21
 Sound Driver 1-13; II-221
-hardware Il-233
+hardware II-233
 routines II-231
 sound generator 11-223; Ill-20
 sound procedure 1-409, 411, 425
@@ -28441,7 +28441,7 @@ synthesizer buffer II-225
 SysBeep procedure 11-385
 SysEdit function 1-441
 SysError procedure II-362
-SysEvtMask global variable Il-70
+SysEvtMask global variable II-70
 SysMap global variable 1-114
 SysMapHndl global variable I-114
 SysParam global variable 11-369
@@ -28450,16 +28450,16 @@ SysPPtr data type II-370
 SysResName global variable I-114
 system error alert II-357
 system error alert table II-357, 359
-System Error Handler I-13; Il-18, 355
+System Error Handler I-13; II-18, 355
 routine 11-362
-system error ID Il-357
+system error ID II-357
 system event mask 1-254; II-70
 system font I-219
 system font size I-219
 system heap 1-74; 11-9
 system resource I-103
 system resource file 1-103
-system startup information Il-120
+system startup information II-120
 system traps lll-215
 system window I-270, 438
 SystemClick procedure I-441
@@ -28556,7 +28556,7 @@ TPrJob data type 11-151
 TPrPort data type II-147
 TPrStatus data type II-161
 TPrStl data type IJ-152
-TPrXInfo data type Il-1 52
+TPrXInfo data type II-1 52
 track on a disk II-211
 TrackControl function I-323
 TrackGoAway function I-288
@@ -28586,7 +28586,7 @@ unimplemented instruction I-88
 UnionRect procedure I-175
 UnionRgn procedure 1-184
 UniqueID function I-121
-unit number Il-191
+unit number II-191
 unittable 11-191
 Unload.NBP function II-324
 UnloadScrap function 1-458
@@ -28619,7 +28619,7 @@ userltem in a dialog 1-404, 405
 installing 1-421
 UTableBase global variable II-192
 Utilities, Operating System I-13; II-307
-routines Il-374
+routines II-374
 Utilities, Toolbox I-12, 465
 routines I-467
 v
@@ -28630,16 +28630,16 @@ variation code
 control 1-328
 window I-298
 VBL interrupt See vertical blanking interrupt
-VBL task Il-350
+VBL task II-350
 VBLQueue global variable II-352
 VBLTask data type 11-350
-VCB data type Il-125
+VCB data type II-125
 VCBQHdr global variable II-126
 vector 11-196
-vector table Il-196
+vector table II-196
 Versatile Interface Adapter ill-39
 version data III-IO
-version number of a file Il-81
+version number of a file II-81
 vertical blanking interrupt II-349; Ill-18
 vertical blanking interval III-18
 vertical retrace interrupt 1-13; II-349
@@ -28665,13 +28665,13 @@ volume buffer II-79
 volume control block II-125
 volume-control-block queue II-125
 volume index II-102
-volume information Il-121
-volume name Il-79
+volume information II-121
+volume name II-79
 volume reference number 11-79
 VRemove function If-351
 w
 WaitMouseUp function 1-259
-Wave data type Il-227
+Wave data type II-227
 wavefonn 11-223
 waveform description ll-224
 wavelength II-223
@@ -28718,7 +28718,7 @@ Index
 
 Inside Macintosh
 Write function, low-level
-Device Manager Il-185
+Device Manager II-185
 File Manager II-110
 WriteDDP function II-312
 WriteLAP function II-307

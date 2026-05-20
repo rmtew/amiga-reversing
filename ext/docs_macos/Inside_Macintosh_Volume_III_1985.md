@@ -6573,7 +6573,7 @@ FUNCTION GetOSEvent
 BOOLEAN;
 FUNCTION OSEventAvail (eventMask: INTEGER; VAR theEvent: EventRecord)
 BOOLEAN;
-Event Manager, Operating System /Il-9/
+Event Manager, Operating System /II-9/
 
 <!-- source-page: 99 -->
 ## Page 99
@@ -10918,7 +10918,7 @@ TYPE Styleitem
 Style
 (bold,italic, underline,outline,shadow, condense,extend);
 SET OF Styleitem;
-QuickDraw IIl-141
+QuickDraw III-141
 
 <!-- source-page: 149 -->
 ## Page 149
@@ -21209,7 +21209,7 @@ automatic scrolling 1-48
 in TextEdit 1-380
 B
 BackColor procedure 1-174
-background procedure Il-153
+background procedure II-153
 BackPat procedure 1-167
 base line 1-227
 baud rate 11-246, 251, 254
@@ -21323,7 +21323,7 @@ closed device driver 11-176
 closed file 11-83
 CloseDeskAcc procedure 1-440
 CloseDialog procedure 1-413
-CloseDriver function Il-178
+CloseDriver function II-178
 ClosePgon procedure I-190
 ClosePicture procedure 1-189
 ClosePoly procedure I-190
@@ -21481,14 +21481,14 @@ device control entry II-189
 device driver 1-13; II-175
 for a desk accessory 1-443
 structure 11-187
-writing your own Il-193
+writing your own II-193
 device driver event 1-244
 Device Manager I-13; II-173
 Device Manager routines 11-177
-device control entry access Il-190
+device control entry access II-190
 high-level II-178
-low-level Il-180
-for writing drivers Il-194
+low-level II-180
+for writing drivers II-194
 dial 1-312
 dialog box 1-66, 399
 Dialog Manager I-12, 397
@@ -21507,7 +21507,7 @@ DialogTHndl data type 1-424
 DialogTPtr data type 1-424
 DIBadMount function II-396
 DiffRgn procedure I-1 84
-DIFormat function Il-398
+DIFormat function II-398
 
 <!-- source-page: 272 -->
 ## Page 272
@@ -21532,7 +21532,7 @@ disk-inserted event 1-244
 event message I-252
 responding to 1-257
 disk interface ill-33
-disk-switch dialog Il-80
+disk-switch dialog II-80
 DiskEject function 11-214
 dispatch table See trap dispatch table
 display rectangle 1-406
@@ -21595,7 +21595,7 @@ driver name 11-176
 driver reference number 11-176
 DriveStatus function 11-215
 DrvQEl data type 11-127
-DrvQHdr global variable Il-128
+DrvQHdr global variable II-128
 DrvSts data type II-215
 DSAlertRect global variable 11-362
 DSAlertTab global variable 11-359, 362
@@ -21609,7 +21609,7 @@ high-level 11-90
 low-level 11-107
 Elems68K See Transcendental Functions
 Package
-empty handle 1-76; Il-14, 40
+empty handle 1-76; II-14, 40
 Empty Handle procedure 11-40
 EmptyRect function 1-176
 EmptyRgn function 1-186
@@ -21659,7 +21659,7 @@ structure II-70
 event record 1-249
 event types 1-244
 EventAvail function 1-259
-EventQueue global variable Il-71
+EventQueue global variable II-71
 EventRecord data type 1-249
 EvQEl data type 11-71
 exactly-once transaction 11-266
@@ -22326,7 +22326,7 @@ File Manager 11-108
 open permission 11-83
 open routine
 of a desk accessory 1-445
-of a driver Il-187, 193
+of a driver II-187, 193
 OpenA TPSkt function 11-315
 OpenDeskAcc function 1-440
 OpenDriver function II-178
@@ -22342,7 +22342,7 @@ OpenSkt function 11-311
 Operating System 1-9
 queues 11-372
 Operating System Event Manager 1-13; 11-65
-routines Il-68
+routines II-68
 Operating System Utilities 1-13; 11-367
 routines 11-374
 OSErr data type 11-373
@@ -22406,8 +22406,8 @@ pattern transfer mode 1-157
 PBAllocate function 11-113
 PBClose function
 Device Manager 11-184
-File Manager Il-114
-PBControl function Il-186
+File Manager II-114
+PBControl function II-186
 PBCreate function 11-107
 PBDelete function 11-119
 PBEject function 11-107
@@ -22514,12 +22514,12 @@ printing methods 11-153
 low-level IJ-164
 private scraps 1-461
 PrJobDialog function 11-158
-PrJobMerge procedure Il-159
+PrJobMerge procedure II-159
 processor priority 11-196
 ProcPtr data type 1-78
 ///-274
 PrOpen procedure 11-157
-PrOpenDoc function Il-159
+PrOpenDoc function II-159
 PrOpenPage procedure II-159
 proportional font 1-228
 protocol 11-263
@@ -22536,7 +22536,7 @@ PtlnRect function l-175
 PtinRgn function 1-185
 Ptr data type I-78
 PtrAndHand function II-376
-PtrToHand function Il-375
+PtrToHand function II-375
 PtrToXHand function II-375
 PtrZone function 11-38
 PtToAngle procedure I-175
@@ -22591,7 +22591,7 @@ File Manager 11-110
 ReadDateTime function 11-378
 ReadPacket function 11-327
 ReadRest function 11-327
-read/write permission Il-83
+read/write permission II-83
 RealFont function 1-223
 reallocating a block 1-76; 11-14
 ReallocHandle procedure II-35
@@ -22654,7 +22654,7 @@ resource type 1-103
 list 1-107
 response BDS 11-288, 314
 ResrvMem procedure 11-39
-Restart procedure Il-385
+Restart procedure II-385
 RestoreA5 procedure 11-386
 ResType data type 1-107
 result code I-116; 11-27, 374
@@ -23092,7 +23092,7 @@ TPPrPort data type 11-147
 TPrlnfo data type 11-150
 TPrint data type II-149
 TPrJob data type 11-151
-TPrPort data type Il-147
+TPrPort data type II-147
 TPrStatus data type 11-161
 TPrStl data type II-152
 TPrXInfo data type II-152
@@ -23178,8 +23178,8 @@ VBL task II-350
 VBLQueue global variable II-352
 VBLTask data type 11-350
 VCB data type 11-125
-VCBQHdr global variable Il-126
-vector Il-196
+VCBQHdr global variable II-126
+vector II-196
 vector table II-196
 Versatile Interface Adapter III-39
 version data III-10

@@ -69,6 +69,21 @@ def apply_amendments(docs_dir: Path, amendments: list[dict[str, Any]], dry_run: 
             path.write_text(text, encoding="utf-8", newline="\n")
 
 
+def merge_amendments(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for item in [*existing, *new]:
+        key = (item["document"], item["match"], item["replacement"], item["rule"])
+        if key not in merged:
+            merged[key] = item
+            continue
+        current = merged[key]
+        current["pages"] = sorted(set(current.get("pages", [])) | set(item.get("pages", [])))
+        current["audit_lines"] = sorted(set(current.get("audit_lines", [])) | set(item.get("audit_lines", [])))
+        current["occurrences_before"] = current.get("occurrences_before", 0) + item.get("occurrences_before", 0)
+        current["occurrences_replaced"] = current.get("occurrences_replaced", 0) + item.get("occurrences_replaced", 0)
+    return sorted(merged.values(), key=lambda item: (item["document"], item["rule"], item["match"]))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--audit", type=Path, default=Path("ext/docs_macos/macos_text_audit.json"))
@@ -78,8 +93,13 @@ def main() -> int:
     args = parser.parse_args()
 
     audit = json.loads(args.audit.read_text(encoding="utf-8"))
-    amendments = build_amendments(audit)
-    apply_amendments(args.docs, amendments, args.dry_run)
+    new_amendments = build_amendments(audit)
+    apply_amendments(args.docs, new_amendments, args.dry_run)
+    existing_amendments: list[dict[str, Any]] = []
+    if args.output.exists():
+        existing = json.loads(args.output.read_text(encoding="utf-8"))
+        existing_amendments = existing.get("amendments", [])
+    amendments = merge_amendments(existing_amendments, new_amendments)
 
     report = {
         "schema": "macos_doc_text_amendments.v1",
@@ -87,9 +107,12 @@ def main() -> int:
         "docs": str(args.docs).replace("\\", "/"),
         "selection": (
             "Auto-applied only fixed text substitutions listed by the text audit rules. "
-            "Mojibake and ambiguous Roman numeral/page-reference findings stay review-only."
+            "Roman page references are auto-applied for Il-/II- OCR confusion; "
+            "mojibake and ambiguous spacing findings stay review-only."
         ),
         "dry_run": args.dry_run,
+        "new_amendment_count": len(new_amendments),
+        "new_replacement_count": sum(item.get("occurrences_replaced", 0) for item in new_amendments),
         "amendment_count": len(amendments),
         "replacement_count": sum(item.get("occurrences_replaced", 0) for item in amendments),
         "amendments": amendments,
@@ -97,7 +120,9 @@ def main() -> int:
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
         f"{'would write' if args.dry_run else 'wrote'} {args.output} with "
-        f"{len(amendments)} amendment(s), {report['replacement_count']} replacement(s)"
+        f"{report['new_amendment_count']} new amendment(s), "
+        f"{report['new_replacement_count']} new replacement(s), "
+        f"{len(amendments)} total amendment(s)"
     )
     return 0
 

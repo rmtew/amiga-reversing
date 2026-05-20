@@ -44,5 +44,5 @@ matches that differ only by case or OCR-confusable characters.
 
 `macos_text_audit.json` and `macos_text_amendments.json` cover non-symbol OCR
 cleanup. The auto-applied set is limited to explicit substitutions such as
-split booleans, parameter-block OCR, and AppleTalk OCR; ambiguous page-reference
-and spacing findings stay review-only.
+split booleans, parameter-block OCR, AppleTalk OCR, and Roman page-reference OCR;
+ambiguous spacing findings stay review-only.
