@@ -1464,6 +1464,36 @@ Triage by scope:
   duplicate output starts obscuring real seed mismatches.
 * Status: open.
 
+#### D012: RSSET app-slot arrays need byte-array rendering support
+
+* Date/source: 015-031 manual review of remaining raw Pandora A6 fields after
+  `app_nearest_object_ptr` and `app_interaction_object_ptr`.
+* Location: `$0196(a6)` and `$019A(a6)`.
+* Evidence:
+  * both slots are initialized with `move.l d0,$0196(a6)` and
+    `move.l d0,$019A(a6)`, clearing four bytes each,
+  * `s0:000029EA` iterates four byte entries from each slot and expands them
+    through item-offset tables into pointer tables at `abs_0_00013416` and
+    `abs_0_00013442`,
+  * interaction code swaps object/item id byte `$0046(a4)` with indexed bytes
+    from `$0196(a6)` and `$019A(a6)`,
+  * the nearby failure string is `" IS TOO LARGE FOR YOUR POCKETS"`, and
+    `s0:00002778` checks item `$6C` across both arrays.
+* Expected source improvement:
+  * name the two four-byte item-id slot arrays without pretending they are
+    scalar longs,
+  * preserve indexed byte access and four-byte zeroing evidence in the rendered
+    RSSET layout.
+* Missing tool/report/action:
+  * `target.rsset_region.add` can name a size-4 app region, but current RSSET
+    rendering formats any size-4 slot as `RS.L 1`; size 1 would understate the
+    indexed array and leave three anonymous bytes. A byte-array storage kind or
+    explicit element-size/count metadata is needed before this is a clean target
+    mutation.
+* Pull-in condition: app-slot byte arrays become the next best Pandora
+  source-converging action, or typed app-slot array rendering is being changed.
+* Status: blocked for target mutation; no Manual Action Log change was made.
+
 ## Stop Conditions
 
 Stop and report rather than continuing when:
