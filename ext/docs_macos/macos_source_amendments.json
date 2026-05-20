@@ -1,0 +1,40 @@
+{
+  "schema": "macos_doc_source_amendments.v1",
+  "docs": "ext/docs_macos",
+  "selection": "Manual source-review amendments for split Pascal assignments where the surrounding Markdown made the intended assignment clear. More damaged record-layout cases stay in macos_text_audit.json as source_review.",
+  "amendment_count": 4,
+  "amendments": [
+    {
+      "document": "Inside_Macintosh_Volume_I_1985.md",
+      "page": 132,
+      "line": 5633,
+      "before": "myHndl : =",
+      "after": "myHndl :=",
+      "reason": "Split assignment before GetResource(type, ID)."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 366,
+      "line": 18259,
+      "before": ": = 'X' ;",
+      "after": ":= 'X' ;",
+      "reason": "Split assignment following msg [ 1]."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19050,
+      "before": ": = CHR ( i ) ;",
+      "after": ":= CHR ( i ) ;",
+      "reason": "Split assignment following s [ 0]."
+    },
+    {
+      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "page": 383,
+      "line": 19074,
+      "before": ": =",
+      "after": ":=",
+      "reason": "Split assignment following s2 [w]."
+    }
+  ]
+}

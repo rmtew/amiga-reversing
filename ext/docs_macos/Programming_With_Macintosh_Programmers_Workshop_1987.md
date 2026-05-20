@@ -18256,7 +18256,7 @@ The characters of msg can be indexed directly, as if declared as an array. For
 example,
 IF msg[l] = 'x' THEN
 msg [ 1]
-: = 'X' ;
+:= 'X' ;
 would check and modify the first character of the string. This syntax should
 not be used to add characters to the end of the string since the length will not
 be automatically updated.
@@ -19047,7 +19047,7 @@ i : INTEGER;
 BEGIN
 i := ORD ( s [ 0 ] ) + 1 ;
 s [ 0 ]
-: = CHR ( i ) ;
+:= CHR ( i ) ;
 s[i] := c;
 END;(* SWrite *)
 {*-------------------------------------------*
@@ -19071,7 +19071,7 @@ IF d < 10 THEN
 s2[w] := CHR(ORD('O') + d)
 ELSE
 s2 [w]
-: =
+:=
 CHR (ORD ('A') -
 10 + d) ;
 w := w-1;

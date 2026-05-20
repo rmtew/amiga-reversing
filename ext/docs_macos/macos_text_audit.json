@@ -1,33 +1,22 @@
 {
   "schema": "macos_doc_text_audit.v1",
   "docs": "ext/docs_macos",
-  "finding_count": 11,
+  "finding_count": 7,
   "counts_by_rule": {
-    "split_pascal_assignment": 11
+    "split_pascal_assignment": 7
   },
   "counts_by_classification": {
     "manual_review": 4,
-    "source_review": 7
+    "source_review": 3
   },
   "counts_by_document": {
     "Inside_Macintosh_Volume_III_1985.md": 1,
     "Inside_Macintosh_Volume_IV_1986.md": 2,
-    "Inside_Macintosh_Volume_I_1985.md": 2,
+    "Inside_Macintosh_Volume_I_1985.md": 1,
     "MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md": 1,
-    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 5
+    "Programming_With_Macintosh_Programmers_Workshop_1987.md": 2
   },
   "findings": [
-    {
-      "document": "Inside_Macintosh_Volume_I_1985.md",
-      "page": 132,
-      "line": 5633,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "source_review",
-      "description": "Split Pascal assignment operator.",
-      "context": "myHndl : ="
-    },
     {
       "document": "Inside_Macintosh_Volume_I_1985.md",
       "page": 497,
@@ -82,39 +71,6 @@
       "classification": "manual_review",
       "description": "Split Pascal assignment operator.",
       "context": "-y Display : = without surrounding spaces (y + )."
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 366,
-      "line": 18259,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "source_review",
-      "description": "Split Pascal assignment operator.",
-      "context": ": = 'X' ;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 383,
-      "line": 19050,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "source_review",
-      "description": "Split Pascal assignment operator.",
-      "context": ": = CHR ( i ) ;"
-    },
-    {
-      "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",
-      "page": 383,
-      "line": 19074,
-      "rule": "split_pascal_assignment",
-      "match": ": =",
-      "auto_replacement": null,
-      "classification": "source_review",
-      "description": "Split Pascal assignment operator.",
-      "context": ": ="
     },
     {
       "document": "Programming_With_Macintosh_Programmers_Workshop_1987.md",

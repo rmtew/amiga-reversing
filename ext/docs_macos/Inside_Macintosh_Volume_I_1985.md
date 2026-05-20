@@ -5630,7 +5630,7 @@ The given handle will no longer be recognized as a handle to a resource; if the 
 is subsequently called to get the released resource, a new handle will be allocated. Use this
 procedure only after you're completely through with a resource.
 TYPE myHndl: Handle;
-myHndl : =
+myHndl :=
 GetResource(type, ID)
 After
 Re I ea3eRe3ource(myHnd I)

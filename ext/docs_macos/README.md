@@ -47,3 +47,6 @@ cleanup. The auto-applied set is limited to explicit substitutions such as
 split booleans, parameter-block OCR, AppleTalk OCR, and Roman page-reference OCR;
 split Pascal assignment fixes are applied only to exact audited context lines,
 while ambiguous spacing findings stay review-only.
+
+`macos_source_amendments.json` records small manual fixes made from source-review
+findings where the surrounding Markdown made the intended text clear.
