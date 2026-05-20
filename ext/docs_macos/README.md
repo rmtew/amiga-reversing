@@ -53,3 +53,9 @@ audit suppresses so the active audit report stays focused on unresolved issues.
 
 `macos_source_amendments.json` records small manual fixes made from source-review
 findings where the surrounding Markdown made the intended text clear.
+
+Run the final quality gate with:
+
+```powershell
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python src\scripts\verify_macos_docs.py
+```
