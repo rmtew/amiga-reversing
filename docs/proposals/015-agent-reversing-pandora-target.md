@@ -1033,6 +1033,39 @@ the intended location.
   callback slot type, or raw custom-register-looking A5 offsets, which need
   separate supported actions and verifier coverage.
 
+### 015-028: Name input direction app slots
+
+* Candidate: related raw app-state coverage for `$01C6(a6)`, `$01C8(a6)`, and
+  `$01B2(a6)` in the joystick/input path.
+* Evidence: `s0:000007F0` reads `joy1dat(a5)`, inverts it, derives a
+  direction bitmask in `d0`, and derives signed step values in `d2`. It stores
+  the horizontal step to `$01C6(a6)`, the vertical step to `$01C8(a6)`, and the
+  direction mask to `$01B2(a6)`. The movement path at `s0:0000291A` gates on
+  `$01B2(a6)`, applies `$01C6(a6)` to `app_0214(a6)`, multiplies non-zero
+  horizontal input into `app_0226(a6)`, and applies `$01C8(a6)` to
+  `app_0216(a6)` before storing vertical movement in `app_0228(a6)`.
+* Command: executed three `target.rsset_region.add` commands through the target
+  command catalog with app layout and `__amiga_app_base__` base symbol. The
+  grouped fields were `$01C6` size 2 as `app_input_x_step`, `$01C8` size 2 as
+  `app_input_y_step`, and `$01B2` size 2 as `app_input_direction_mask`.
+* Verifier: Manual Action Log count is 29 with head hash
+  `62b9e2037c95141a2d56321949c9c950350304ca715280070198911de9407256`;
+  semantic reload shows all three 2-byte RSSET regions; exact reproduction
+  reran and remained `status: exact`, `stale: false`, rebuilt SHA
+  `70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f`.
+* Timing: the grouped command execution completed under 1s; listing projection
+  regeneration/readback was about 10s; reproduction status after rerun reported
+  ready/exact.
+* Result: rendered source now defines `app_input_x_step RS.W 1`,
+  `app_input_y_step RS.W 1`, and `app_input_direction_mask RS.W 1`. Listing
+  projection shows four rows containing `app_input_x_step`, three containing
+  `app_input_y_step`, and three containing `app_input_direction_mask`.
+* Review: this batch is a coherent same-surface app-state naming improvement,
+  so grouping avoided one report/commit per mechanically similar field while
+  keeping the evidence and verifier scope tight. It does not name adjacent
+  pointer/buffer slots such as `$01D4(a6)`, `$01D8(a6)`, or `$01E0(a6)`, whose
+  lifetimes remain ambiguous.
+
 ## Deferred Work Log
 
 Use this section as the live holding area for worthwhile observations found
@@ -1151,6 +1184,10 @@ Triage by scope:
   * 015-025 resolved `$01B6(a6)` as `app_tilemap_scroll_x` and `$01B8(a6)` as
     `app_tilemap_scroll_y`, both 2-byte RSSET app fields used as pixel-space
     scroll origins for tilemap row/column derivation.
+  * 015-028 resolved `$01C6(a6)` as `app_input_x_step`, `$01C8(a6)` as
+    `app_input_y_step`, and `$01B2(a6)` as `app_input_direction_mask`, all
+    2-byte input-state fields produced from `joy1dat(a5)` and consumed by the
+    movement path.
 * Expected source improvement:
   * report a coherent app/RSSET range candidate for the cluster,
   * bind/refine field names and widths from same-flow/same-displacement
@@ -1170,6 +1207,8 @@ Triage by scope:
 * Status: partly fixed by 015-020 through 015-025 for `$01B6`, `$01B8`,
   `$01BA`, `$01BC`, `$01BE`, `$01C2`, `$01C4`, `$01DC`, and `$01E4`. Adjacent
   raw fields remain open pending stronger names or accepted base/gap evidence.
+  `$01B2`, `$01C6`, and `$01C8` were later fixed by 015-028 as an input-state
+  subgroup.
 
 #### D004: Rendered memory map mixes bootstrapping and runtime facts
 
