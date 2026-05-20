@@ -19,6 +19,7 @@ def render_macos_source_views(project: Mapping[str, object]) -> dict[str, object
         "project_id": project.get("project_id"),
         "routine_views": routine_views,
         "product_views": _product_views(entities),
+        "mac_os_metadata_source": _mapping(project.get("mac_os_metadata_source")),
         "unsupported": _sequence(project.get("unsupported")),
     }
 

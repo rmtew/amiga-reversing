@@ -1,0 +1,1162 @@
+{
+  "calls": [
+    {
+      "family": "Resources",
+      "kind": "opword",
+      "line": 425,
+      "name": "_GetResource",
+      "opword": 43424,
+      "package_word": 0,
+      "parameter_register": null,
+      "prototype": "EXTERN_API( Handle ) GetResource( ResType theType, short theID) ONEWORDINLINE(0xA9A0);",
+      "prototype_line": 396,
+      "prototype_source": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Resources.h",
+      "result_register": null,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Resources.a"
+    },
+    {
+      "family": "Events",
+      "kind": "opword",
+      "line": 475,
+      "name": "_WaitNextEvent",
+      "opword": 43104,
+      "package_word": 0,
+      "parameter_register": null,
+      "prototype": "EXTERN_API( Boolean ) WaitNextEvent( EventMask eventMask, EventRecord * theEvent, UInt32 sleep, RgnHandle mouseRgn) /* can be NULL */ ONEWORDINLINE(0xA860);",
+      "prototype_line": 530,
+      "prototype_source": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Events.h",
+      "result_register": null,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a"
+    },
+    {
+      "family": "SegmentLoader",
+      "kind": "opword",
+      "line": 134,
+      "name": "_UnloadSeg",
+      "opword": 43505,
+      "package_word": 0,
+      "parameter_register": null,
+      "prototype": "EXTERN_API( void ) UnloadSeg(void * routineAddr) ONEWORDINLINE(0xA9F1);",
+      "prototype_line": 163,
+      "prototype_source": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/SegLoad.h",
+      "result_register": null,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/SegLoad.a"
+    },
+    {
+      "family": "FileManager",
+      "kind": "opword",
+      "line": 3671,
+      "name": "_PBHGetVInfoSync",
+      "opword": 41479,
+      "package_word": 0,
+      "parameter_register": "A0",
+      "prototype": "EXTERN_API( OSErr ) PBHGetVInfoSync(HParmBlkPtr paramBlock) ONEWORDINLINE(0xA207);",
+      "prototype_line": 3049,
+      "prototype_source": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Files.h",
+      "result_register": "D0",
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a"
+    },
+    {
+      "family": "NumberFormatting",
+      "kind": "package_macro",
+      "line": 136,
+      "name": "_NumToString",
+      "opword": 0,
+      "package_word": 43502,
+      "parameter_register": null,
+      "prototype": "EXTERN_API( void ) NumToString( long theNum, Str255 theString);",
+      "prototype_line": 170,
+      "prototype_source": "ext/macos_includes/mpw_gm/Interfaces/CIncludes/NumberFormatting.h",
+      "result_register": null,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/NumberFormatting.a"
+    }
+  ],
+  "kind": "mac_os_baseline_runtime",
+  "records": [
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 484,
+          "name": "v",
+          "offset": 0,
+          "record_name": "Point",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 485,
+          "name": "h",
+          "offset": 2,
+          "record_name": "Point",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        }
+      ],
+      "line": 483,
+      "line_end": 487,
+      "name": "Point",
+      "size": 4,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 491,
+          "name": "top",
+          "offset": 0,
+          "record_name": "Rect",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 492,
+          "name": "left",
+          "offset": 2,
+          "record_name": "Rect",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 493,
+          "name": "bottom",
+          "offset": 4,
+          "record_name": "Rect",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 494,
+          "name": "right",
+          "offset": 6,
+          "record_name": "Rect",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "Point",
+          "line": 496,
+          "name": "topLeft",
+          "offset": 0,
+          "record_name": "Rect",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds",
+          "type": "Point"
+        },
+        {
+          "count_or_type": "Point",
+          "line": 497,
+          "name": "botRight",
+          "offset": 4,
+          "record_name": "Rect",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a",
+          "storage": "ds",
+          "type": "Point"
+        }
+      ],
+      "line": 490,
+      "line_end": 499,
+      "name": "Rect",
+      "size": 8,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacTypes.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 132,
+          "name": "what",
+          "offset": 0,
+          "record_name": "EventRecord",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 133,
+          "name": "message",
+          "offset": 2,
+          "record_name": "EventRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 134,
+          "name": "when",
+          "offset": 6,
+          "record_name": "EventRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "Point",
+          "line": 135,
+          "name": "where",
+          "offset": 10,
+          "record_name": "EventRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a",
+          "storage": "ds",
+          "type": "Point"
+        },
+        {
+          "count_or_type": "1",
+          "line": 136,
+          "name": "modifiers",
+          "offset": 14,
+          "record_name": "EventRecord",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a",
+          "storage": "ds.w",
+          "type": "1"
+        }
+      ],
+      "line": 131,
+      "line_end": 138,
+      "name": "EventRecord",
+      "size": 16,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Events.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 842,
+          "name": "qLink",
+          "offset": 0,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 843,
+          "name": "qType",
+          "offset": 4,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 844,
+          "name": "ioTrap",
+          "offset": 6,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 845,
+          "name": "ioCmdAddr",
+          "offset": 8,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 846,
+          "name": "ioCompletion",
+          "offset": 12,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 847,
+          "name": "ioResult",
+          "offset": 16,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 848,
+          "name": "ioNamePtr",
+          "offset": 18,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 849,
+          "name": "ioVRefNum",
+          "offset": 22,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 850,
+          "name": "filler2",
+          "offset": 24,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 851,
+          "name": "ioVolIndex",
+          "offset": 28,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 852,
+          "name": "ioVCrDate",
+          "offset": 30,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 853,
+          "name": "ioVLsMod",
+          "offset": 34,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 854,
+          "name": "ioVAtrb",
+          "offset": 38,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 855,
+          "name": "ioVNmFls",
+          "offset": 40,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 856,
+          "name": "ioVBitMap",
+          "offset": 42,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 857,
+          "name": "ioAllocPtr",
+          "offset": 44,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 858,
+          "name": "ioVNmAlBlks",
+          "offset": 46,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 859,
+          "name": "ioVAlBlkSiz",
+          "offset": 48,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 860,
+          "name": "ioVClpSiz",
+          "offset": 52,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 861,
+          "name": "ioAlBlSt",
+          "offset": 56,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 862,
+          "name": "ioVNxtCNID",
+          "offset": 58,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 863,
+          "name": "ioVFrBlk",
+          "offset": 62,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 864,
+          "name": "ioVSigWord",
+          "offset": 64,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 865,
+          "name": "ioVDrvInfo",
+          "offset": 66,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 866,
+          "name": "ioVDRefNum",
+          "offset": 68,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 867,
+          "name": "ioVFSID",
+          "offset": 70,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 868,
+          "name": "ioVBkUp",
+          "offset": 72,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 869,
+          "name": "ioVSeqNum",
+          "offset": 76,
+          "record_name": "HVolumeParam",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 870,
+          "name": "ioVWrCnt",
+          "offset": 78,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 871,
+          "name": "ioVFilCnt",
+          "offset": 82,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 872,
+          "name": "ioVDirCnt",
+          "offset": 86,
+          "record_name": "HVolumeParam",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "8",
+          "line": 873,
+          "name": "ioVFndrInfo",
+          "offset": 90,
+          "record_name": "HVolumeParam",
+          "size": 32,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a",
+          "storage": "ds.l",
+          "type": "8"
+        }
+      ],
+      "line": 841,
+      "line_end": 875,
+      "name": "HVolumeParam",
+      "size": 122,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Files.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "76",
+          "line": 1308,
+          "name": "privates",
+          "offset": 0,
+          "record_name": "QDGlobals",
+          "size": 76,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds.b",
+          "type": "76"
+        },
+        {
+          "count_or_type": "1",
+          "line": 1309,
+          "name": "randSeed",
+          "offset": 76,
+          "record_name": "QDGlobals",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "BitMap",
+          "line": 1310,
+          "name": "screenBits",
+          "offset": 80,
+          "record_name": "QDGlobals",
+          "size": 14,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "BitMap"
+        },
+        {
+          "count_or_type": "Cursor",
+          "line": 1311,
+          "name": "arrow",
+          "offset": 94,
+          "record_name": "QDGlobals",
+          "size": 68,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Cursor"
+        },
+        {
+          "count_or_type": "Pattern",
+          "line": 1312,
+          "name": "dkGray",
+          "offset": 162,
+          "record_name": "QDGlobals",
+          "size": 8,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Pattern"
+        },
+        {
+          "count_or_type": "Pattern",
+          "line": 1313,
+          "name": "ltGray",
+          "offset": 170,
+          "record_name": "QDGlobals",
+          "size": 8,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Pattern"
+        },
+        {
+          "count_or_type": "Pattern",
+          "line": 1314,
+          "name": "gray",
+          "offset": 178,
+          "record_name": "QDGlobals",
+          "size": 8,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Pattern"
+        },
+        {
+          "count_or_type": "Pattern",
+          "line": 1315,
+          "name": "black",
+          "offset": 186,
+          "record_name": "QDGlobals",
+          "size": 8,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Pattern"
+        },
+        {
+          "count_or_type": "Pattern",
+          "line": 1316,
+          "name": "white",
+          "offset": 194,
+          "record_name": "QDGlobals",
+          "size": 8,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds",
+          "type": "Pattern"
+        },
+        {
+          "count_or_type": "1",
+          "line": 1317,
+          "name": "thePort",
+          "offset": 202,
+          "record_name": "QDGlobals",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a",
+          "storage": "ds.l",
+          "type": "1"
+        }
+      ],
+      "line": 1307,
+      "line_end": 1319,
+      "name": "QDGlobals",
+      "size": 206,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Quickdraw.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "GrafPort",
+          "line": 517,
+          "name": "port",
+          "offset": 0,
+          "record_name": "WindowRecord",
+          "size": 108,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds",
+          "type": "GrafPort"
+        },
+        {
+          "count_or_type": "1",
+          "line": 518,
+          "name": "windowKind",
+          "offset": 108,
+          "record_name": "WindowRecord",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 519,
+          "name": "visible",
+          "offset": 110,
+          "record_name": "WindowRecord",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 520,
+          "name": "hilited",
+          "offset": 111,
+          "record_name": "WindowRecord",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 521,
+          "name": "goAwayFlag",
+          "offset": 112,
+          "record_name": "WindowRecord",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 522,
+          "name": "spareFlag",
+          "offset": 113,
+          "record_name": "WindowRecord",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 523,
+          "name": "strucRgn",
+          "offset": 114,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 524,
+          "name": "contRgn",
+          "offset": 118,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 525,
+          "name": "updateRgn",
+          "offset": 122,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 526,
+          "name": "windowDefProc",
+          "offset": 126,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 527,
+          "name": "dataHandle",
+          "offset": 130,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 528,
+          "name": "titleHandle",
+          "offset": 134,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 529,
+          "name": "titleWidth",
+          "offset": 138,
+          "record_name": "WindowRecord",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 530,
+          "name": "controlList",
+          "offset": 140,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 531,
+          "name": "nextWindow",
+          "offset": 144,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 532,
+          "name": "windowPic",
+          "offset": 148,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 533,
+          "name": "refCon",
+          "offset": 152,
+          "record_name": "WindowRecord",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a",
+          "storage": "ds.l",
+          "type": "1"
+        }
+      ],
+      "line": 516,
+      "line_end": 535,
+      "name": "WindowRecord",
+      "size": 156,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacWindows.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 145,
+          "name": "dCtlDriver",
+          "offset": 0,
+          "record_name": "DCtlEntry",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 146,
+          "name": "dCtlFlags",
+          "offset": 4,
+          "record_name": "DCtlEntry",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "QHdr",
+          "line": 147,
+          "name": "dCtlQHdr",
+          "offset": 6,
+          "record_name": "DCtlEntry",
+          "size": 10,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds",
+          "type": "QHdr"
+        },
+        {
+          "count_or_type": "1",
+          "line": 148,
+          "name": "dCtlPosition",
+          "offset": 16,
+          "record_name": "DCtlEntry",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 149,
+          "name": "dCtlStorage",
+          "offset": 20,
+          "record_name": "DCtlEntry",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 150,
+          "name": "dCtlRefNum",
+          "offset": 24,
+          "record_name": "DCtlEntry",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 151,
+          "name": "dCtlCurTicks",
+          "offset": 26,
+          "record_name": "DCtlEntry",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 152,
+          "name": "dCtlWindow",
+          "offset": 30,
+          "record_name": "DCtlEntry",
+          "size": 4,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.l",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 153,
+          "name": "dCtlDelay",
+          "offset": 34,
+          "record_name": "DCtlEntry",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 154,
+          "name": "dCtlEMask",
+          "offset": 36,
+          "record_name": "DCtlEntry",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 155,
+          "name": "dCtlMenu",
+          "offset": 38,
+          "record_name": "DCtlEntry",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a",
+          "storage": "ds.w",
+          "type": "1"
+        }
+      ],
+      "line": 144,
+      "line_end": 157,
+      "name": "DCtlEntry",
+      "size": 40,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Devices.a"
+    },
+    {
+      "fields": [
+        {
+          "count_or_type": "1",
+          "line": 706,
+          "name": "environsVersion",
+          "offset": 0,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 707,
+          "name": "machineType",
+          "offset": 2,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 708,
+          "name": "systemVersion",
+          "offset": 4,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 709,
+          "name": "processor",
+          "offset": 6,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 710,
+          "name": "hasFPU",
+          "offset": 8,
+          "record_name": "SysEnvRec",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 711,
+          "name": "hasColorQD",
+          "offset": 9,
+          "record_name": "SysEnvRec",
+          "size": 1,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.b",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 712,
+          "name": "keyBoardType",
+          "offset": 10,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 713,
+          "name": "atDrvrVersNum",
+          "offset": 12,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        },
+        {
+          "count_or_type": "1",
+          "line": 714,
+          "name": "sysVRefNum",
+          "offset": 14,
+          "record_name": "SysEnvRec",
+          "size": 2,
+          "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a",
+          "storage": "ds.w",
+          "type": "1"
+        }
+      ],
+      "line": 705,
+      "line_end": 716,
+      "name": "SysEnvRec",
+      "size": 16,
+      "source": "ext/macos_includes/mpw_gm/Interfaces/AIncludes/OSUtils.a"
+    }
+  ],
+  "schema_version": 1
+}

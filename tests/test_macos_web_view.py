@@ -71,13 +71,6 @@ Sample          {MPW_DEPENDENCY}{MPW_DEPENDENCY} Sample.r Sample.h Sample.make
         },
         c_header_text="#define rMenuBar 128\n#define rWindow 128\n",
         asm_include_text=sample_inc,
-        mac_os_metadata={
-            "records": [{"name": "EventRecord", "size": 16, "source": "Events.a", "line": 127}],
-            "calls": [
-                {"name": "_WaitNextEvent", "kind": "opword", "opword": 0xA860},
-                {"name": "_GetResource", "kind": "opword", "opword": 0xA9A0},
-            ],
-        },
     ))
 
 

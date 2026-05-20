@@ -11,6 +11,7 @@ from amiga_reversing.disasm.macos_resource_model import (
     parse_resource_constants,
     parse_rez_source,
 )
+from amiga_reversing.disasm.macos_runtime_metadata import load_generated_mac_os_runtime_metadata
 from amiga_reversing.disasm.macos_source_structure import parse_mpw_source_text
 
 
@@ -45,7 +46,8 @@ def build_macos_source_project(
     source_entities = _source_entities(parsed_sources)
     resource_entities = _resource_entities(parsed_resources)
     build_entities = _build_entities(parsed_builds)
-    annotations = _mac_os_annotations(source_entities, mac_os_metadata or {})
+    runtime_metadata = mac_os_metadata if mac_os_metadata is not None else load_generated_mac_os_runtime_metadata()
+    annotations = _mac_os_annotations(source_entities, runtime_metadata)
 
     return {
         "schema_version": 1,
@@ -70,6 +72,7 @@ def build_macos_source_project(
             **build_entities,
         },
         "mac_os_annotations": annotations,
+        "mac_os_metadata_source": _metadata_source(runtime_metadata),
         "unsupported": [
             "executable CODE resource import",
             "CODE 0 Segment Loader metadata",
@@ -143,6 +146,14 @@ def _mac_os_annotations(
         if isinstance(name, str) and name in records:
             annotations.append({"kind": "mac_os_record", "entity_id": record["id"], "name": name, "fact": records[name]})
     return annotations
+
+
+def _metadata_source(metadata: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "kind": metadata.get("kind"),
+        "schema_version": metadata.get("schema_version"),
+        "generated_path": "src/generated/mac_os_runtime.json",
+    }
 
 
 def _with_entity_ids(

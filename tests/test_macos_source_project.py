@@ -58,17 +58,6 @@ Sample.a.o      {MPW_DEPENDENCY}{MPW_DEPENDENCY} Sample.make Sample.inc1.a Sampl
 SampleMisc.a.o  {MPW_DEPENDENCY}{MPW_DEPENDENCY} Sample.make Sample.inc1.a SampleMisc.a
 """
 
-MAC_OS_METADATA = {
-    "records": [
-        {"name": "EventRecord", "size": 16, "source": "Events.a", "line": 127},
-    ],
-    "calls": [
-        {"name": "_WaitNextEvent", "kind": "opword", "opword": 0xA860, "source": "Events.a", "line": 363},
-        {"name": "_GetResource", "kind": "opword", "opword": 0xA9A0, "source": "Resources.a", "line": 425},
-    ],
-}
-
-
 def _sample_project() -> dict[str, object]:
     return build_macos_source_project(
         project_id="mpw-sample",
@@ -81,7 +70,6 @@ def _sample_project() -> dict[str, object]:
         build_files={"MPW-GM/MPW/Examples/AExamples/Sample.make": SAMPLE_MAKE},
         c_header_text=SAMPLE_H,
         asm_include_text=SAMPLE_INC1,
-        mac_os_metadata=MAC_OS_METADATA,
     )
 
 
@@ -121,6 +109,7 @@ def test_source_project_attaches_generated_mac_os_fact_annotations() -> None:
     assert keyed[("mac_os_call", "_WaitNextEvent")]["fact"]["opword"] == 0xA860
     assert keyed[("mac_os_call", "_GetResource")]["fact"]["opword"] == 0xA9A0
     assert keyed[("mac_os_record", "EventRecord")]["fact"]["size"] == 16
+    assert _sample_project()["mac_os_metadata_source"]["generated_path"] == "src/generated/mac_os_runtime.json"
 
 
 def test_source_project_links_resource_xrefs_without_observed_code_mapping() -> None:

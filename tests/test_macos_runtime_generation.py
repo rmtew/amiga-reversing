@@ -111,3 +111,6 @@ def test_generated_mac_os_runtime_metadata_is_current() -> None:
     assert (ROOT / "src" / "generated" / "mac_os_runtime.c").read_text(encoding="ascii") == (
         generator.render_source(metadata)
     )
+    assert (ROOT / "src" / "generated" / "mac_os_runtime.json").read_text(encoding="ascii") == (
+        generator.render_json(metadata)
+    )

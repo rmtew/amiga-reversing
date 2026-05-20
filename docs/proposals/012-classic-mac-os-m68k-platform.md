@@ -845,7 +845,7 @@ web UI opens through the normal project/listing route. Replace prototype
 `classic_macos` identifiers rather than preserving aliases.
 ```
 
-012-015. Generated Mac metadata consumption - open
+012-015. Generated Mac metadata consumption - implemented
 
 ```text
 Feed source render and analysis from generated Mac OS metadata, not handcrafted
@@ -1093,6 +1093,10 @@ resources documentation coverage tests
   index. Completed `docs/issues/012-*` files remain in place for now because
   the active thread objective still uses them as the per-issue evidence trail;
   deleting them is deferred until this working objective is closed.
+- 012-015 removed the handcrafted Mac OS call/record table from source render
+  tests. The generated runtime now emits `src/generated/mac_os_runtime.json`,
+  source project assembly loads that generated metadata by default, and render
+  payloads record the generated metadata source.
 
 ## Open Questions
 

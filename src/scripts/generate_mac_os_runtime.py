@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -10,6 +11,7 @@ CINCLUDES = INTERFACES / "CIncludes"
 OUTPUT_DIR = ROOT / "src" / "generated"
 HEADER_PATH = OUTPUT_DIR / "mac_os_runtime.h"
 SOURCE_PATH = OUTPUT_DIR / "mac_os_runtime.c"
+JSON_PATH = OUTPUT_DIR / "mac_os_runtime.json"
 
 BASELINE_RECORDS = {
     "Point": "MacTypes.a",
@@ -430,12 +432,23 @@ def write_source(metadata: dict[str, object]) -> str:
     return text
 
 
+def render_json(metadata: dict[str, object]) -> str:
+    return json.dumps(metadata, indent=2, sort_keys=True) + "\n"
+
+
+def write_json(metadata: dict[str, object]) -> str:
+    text = render_json(metadata)
+    JSON_PATH.write_text(text, encoding="ascii")
+    return text
+
+
 def generate() -> dict[str, str]:
     metadata = extract_baseline_metadata()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return {
         "header": write_header(metadata),
         "source": write_source(metadata),
+        "json": write_json(metadata),
     }
 
 

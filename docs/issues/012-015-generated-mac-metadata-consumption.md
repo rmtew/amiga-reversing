@@ -1,4 +1,4 @@
-Status: Open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -27,3 +27,11 @@ Required tests:
 - Drift test showing generated metadata is current.
 - Regression test that `_PBHGetVInfoSync` and `_NumToString` render from the
   generated metadata source.
+
+Resolution:
+- The Mac OS runtime generator now emits `src/generated/mac_os_runtime.json`
+  beside the generated C/H files.
+- `build_macos_source_project` loads the generated metadata by default and the
+  renderer exposes the metadata source in its payload.
+- Source render tests no longer carry a handcrafted call/record table; they
+  assert `_PBHGetVInfoSync` and `_NumToString` facts from the generated source.

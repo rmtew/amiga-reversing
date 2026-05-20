@@ -96,27 +96,6 @@ Memory          {MPW_DEPENDENCY}{MPW_DEPENDENCY} MemorySrc.a.o
     Link -da -t dfil -c movr -rt DRVR=12 -sg Memory MemorySrc.a.o -o Memory
 """
 
-MAC_OS_METADATA = {
-    "records": [
-        {"name": "StackFrame", "size": 8, "source": "Sample.a", "line": 4},
-        {"name": "HVolumeParam", "size": 122, "source": "Files.a", "line": 154},
-    ],
-    "calls": [
-        {"name": "_WaitNextEvent", "kind": "opword", "opword": 0xA860, "family": "Events"},
-        {"name": "_GetResource", "kind": "opword", "opword": 0xA9A0, "family": "Resources"},
-        {
-            "name": "_PBHGetVInfoSync",
-            "kind": "opword",
-            "opword": 0xA207,
-            "family": "Files",
-            "parameter_register": "A0",
-            "result_register": "D0",
-        },
-        {"name": "_NumToString", "kind": "package_macro", "package_word": 0xA9EE, "family": "NumberFormatting"},
-    ],
-}
-
-
 def _views() -> dict[str, object]:
     project = build_macos_source_project(
         project_id="mpw-aexamples",
@@ -130,7 +109,6 @@ def _views() -> dict[str, object]:
         build_files={"MPW-GM/MPW/Examples/AExamples/MakeFile": MAKE},
         c_header_text=SAMPLE_H,
         asm_include_text=SAMPLE_INC,
-        mac_os_metadata=MAC_OS_METADATA,
     )
     return render_macos_source_views(project)
 
@@ -149,6 +127,7 @@ def test_initialize_render_shows_source_context_resources_and_mac_api_fact() -> 
     assert initialize["imports"] == ["_WaitNextEvent"]
     assert initialize["records"] == ["StackFrame"]
     assert initialize["api_calls"][0]["opword"] == 0xA860
+    assert initialize["api_calls"][0]["source"].endswith("Events.a")
     assert initialize["resource_xrefs"][0]["call"] == "_GetNewMBar"
     assert initialize["source_project_only"] is True
 
@@ -172,7 +151,9 @@ def test_memory_render_shows_parameter_block_call_shape_and_intent() -> None:
     assert memory["api_calls"][0]["name"] == "_PBHGetVInfoSync"
     assert memory["api_calls"][0]["parameter_register"] == "A0"
     assert memory["api_calls"][0]["result_register"] == "D0"
+    assert memory["api_calls"][0]["family"] == "FileManager"
     assert memory["record_facts"][0]["name"] == "HVolumeParam"
+    assert memory["record_facts"][0]["source"].endswith("Files.a")
     assert "volume_free_space_query" in memory["intent_hints"]
 
 
@@ -193,5 +174,16 @@ def test_render_exposes_unknowns_without_guessing_missing_facts() -> None:
     count_main = _routine(_views(), "CountMain")
 
     assert count_main["api_calls"][0]["name"] == "_NumToString"
+    assert count_main["api_calls"][0]["package_word"] == 0xA9EE
     assert count_main["unknown_imports"] == []
     assert "byte-for-byte MPW Link/Rez roundtrip" in _views()["unsupported"]
+
+
+def test_render_records_generated_mac_os_metadata_source() -> None:
+    source = _views()["mac_os_metadata_source"]
+
+    assert source == {
+        "kind": "mac_os_baseline_runtime",
+        "schema_version": 1,
+        "generated_path": "src/generated/mac_os_runtime.json",
+    }
