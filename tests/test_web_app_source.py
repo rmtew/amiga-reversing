@@ -407,3 +407,24 @@ def test_web_app_marks_typed_app_slot_refs_without_source_changes() -> None:
     assert "entry.navigable === false" in app_js
     assert "if (await jumpToNavigationEntry(state.project, entry)) {" in app_js
     assert ".listing-app-slot-typed" in styles_css
+
+
+def test_web_app_renders_classic_macos_source_and_container_payloads() -> None:
+    web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
+    app_js = (web_dir / "app.js").read_text(encoding="utf-8")
+    styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
+
+    assert "function renderClassicMacProject(projectData)" in app_js
+    assert "function renderClassicMacSourceView(sourceView)" in app_js
+    assert "function renderClassicMacContainerView(containerView)" in app_js
+    assert "function renderClassicMacBoundary(boundary)" in app_js
+    assert "projectData.classic_macos" in app_js
+    assert 'generation: "classic_macos_starter"' in app_js
+    assert 'data-macos-panel="source"' in app_js
+    assert 'data-macos-panel="container"' in app_js
+    assert 'data-macos-panel="unsupported"' in app_js
+    assert "CODE Resources" in app_js
+    assert "source_segments_map_to_observed_code_resources" in app_js
+    assert ".macos-view" in styles_css
+    assert ".macos-pivot-grid" in styles_css
+    assert ".macos-summary-grid" in styles_css

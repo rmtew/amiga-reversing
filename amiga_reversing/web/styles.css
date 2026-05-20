@@ -219,6 +219,73 @@ body {
   color: #742020;
 }
 
+.macos-view {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.macos-section {
+  border-top: 1px solid #bbb;
+  padding-top: 12px;
+}
+
+.macos-section h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.macos-pivot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.macos-pivot {
+  border: 1px solid #bbb;
+  background: #fff;
+  padding: 10px;
+}
+
+.macos-pivot h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.macos-pivot ul,
+.macos-unsupported {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.macos-pivot li,
+.macos-unsupported li {
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+
+.macos-summary-grid,
+.macos-boundary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.macos-summary-grid div,
+.macos-boundary span {
+  border: 1px solid #bbb;
+  background: #fff;
+  padding: 8px;
+}
+
+.macos-summary-grid span {
+  display: block;
+  color: #555;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
 .project-meta {
   display: grid;
   gap: 2px;

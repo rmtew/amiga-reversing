@@ -556,6 +556,15 @@ function requireArray(value, description) {
 }
 
 function formatProjectDetails(projectData) {
+  if (projectData.classic_macos) {
+    const mac = projectData.classic_macos;
+    const details = [projectData.project.id, "classic_macos"];
+    const sourceKind = mac.source_view?.kind;
+    const containerKind = mac.binary_container_view?.kind;
+    if (sourceKind) details.push(String(sourceKind));
+    if (containerKind) details.push(String(containerKind));
+    return details.join(" | ");
+  }
   if (projectData.project.kind === "disk") {
     const details = [];
     details.push(projectData.project.id);
@@ -623,6 +632,13 @@ function formatProjectOrigin(origin) {
 }
 
 function buildProjectBadges(project, projectData = null) {
+  if (projectData?.classic_macos) {
+    return [
+      {label: "classic mac", title: "Classic Mac OS starter view"},
+      {label: "source", title: "MPW source project pivots"},
+      {label: "container", title: "MPW Asm fork/resource/CODE pivots"},
+    ];
+  }
   const manifest = projectData && projectData.disk_manifest ? projectData.disk_manifest : null;
   const analysis = manifest && manifest.analysis ? manifest.analysis : null;
   const filesystem = analysis && analysis.filesystem ? analysis.filesystem : null;
@@ -10044,6 +10060,92 @@ async function moveToRelativeHunk(delta) {
   return jumpToListingSectionOffset(state.project, target, 0);
 }
 
+function renderClassicMacProject(projectData) {
+  const mac = projectData.classic_macos || {};
+  const viewport = document.getElementById("listing-viewport");
+  viewport.innerHTML = `
+    <div class="macos-view" data-platform="classic_macos">
+      ${renderClassicMacSourceView(mac.source_view || {})}
+      ${renderClassicMacContainerView(mac.binary_container_view || {})}
+      ${renderClassicMacBoundary(mac.source_binary_boundary || {})}
+      ${renderClassicMacUnsupported(mac.unsupported || [])}
+    </div>
+  `;
+}
+
+function renderClassicMacSourceView(sourceView) {
+  const pivots = sourceView.pivots || {};
+  return `
+    <section class="macos-section" data-macos-panel="source">
+      <h2>Source</h2>
+      <div class="macos-pivot-grid">
+        ${renderClassicMacPivotList("Files", pivots.source_files, (item) => item.path || item.file_name || item.id)}
+        ${renderClassicMacPivotList("Segments", pivots.segments, (item) => `${item.name || item.id} ${item.source ? `(${item.source})` : ""}`)}
+        ${renderClassicMacPivotList("Routines", pivots.routines, (item) => `${item.name || item.id} ${item.segment ? `[${item.segment}]` : ""}`)}
+        ${renderClassicMacPivotList("Resources", pivots.resources, (item) => `${item.type || "resource"} ${item.numeric_id ?? item.id_expression ?? ""}`)}
+        ${renderClassicMacPivotList("Build", pivots.build_products, (item) => `${item.target || "product"} ${item.program_kind || ""}`)}
+        ${renderClassicMacPivotList("API Facts", pivots.api_facts, (item) => `${item.name || item.entity_id} ${item.kind || ""}`)}
+      </div>
+    </section>
+  `;
+}
+
+function renderClassicMacContainerView(containerView) {
+  const selected = containerView.selected_code_segment || {};
+  return `
+    <section class="macos-section" data-macos-panel="container">
+      <h2>Binary Container</h2>
+      <div class="macos-summary-grid">
+        <div><span>Finder</span><strong>${escapeHtml(containerView.finder?.type || "")}/${escapeHtml(containerView.finder?.creator || "")}</strong></div>
+        <div><span>CODE 0</span><strong>${escapeHtml(containerView.code0?.metadata?.kind || "")}</strong></div>
+        <div><span>Selected CODE</span><strong>${escapeHtml(selected.name || `CODE ${selected.id ?? ""}`)}</strong></div>
+        <div><span>Code bytes</span><strong>${escapeHtml(formatFileSize(selected.code_bytes_size || 0))}</strong></div>
+      </div>
+      <div class="macos-pivot-grid">
+        ${renderClassicMacPivotList("Forks", containerView.forks, (item) => `${item.name}: ${item.role} ${formatFileSize(item.size || 0)}`)}
+        ${renderClassicMacPivotList("CODE Resources", containerView.code_resources, (item) => `CODE ${item.id} ${item.name || ""} ${formatFileSize(item.size || 0)}`)}
+        ${renderClassicMacPivotList("CODE 1 Preview", selected.listing_preview, (item) => `${formatByteOffset(item.offset)} ${item.directive} ${item.value}`)}
+      </div>
+    </section>
+  `;
+}
+
+function renderClassicMacBoundary(boundary) {
+  return `
+    <section class="macos-section" data-macos-panel="boundary">
+      <h2>Source/Binary Boundary</h2>
+      <div class="macos-boundary">
+        <span>${escapeHtml(boundary.source_project_kind || "")}</span>
+        <span>${boundary.source_segments_map_to_observed_code_resources ? "maps to" : "does not map to"}</span>
+        <span>${escapeHtml(boundary.observed_code_fixture || "")}</span>
+      </div>
+    </section>
+  `;
+}
+
+function renderClassicMacUnsupported(items) {
+  return `
+    <section class="macos-section" data-macos-panel="unsupported">
+      <h2>Unsupported</h2>
+      <ul class="macos-unsupported">
+        ${(Array.isArray(items) ? items : []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    </section>
+  `;
+}
+
+function renderClassicMacPivotList(title, values, labelFor) {
+  const rows = Array.isArray(values) ? values : [];
+  return `
+    <div class="macos-pivot">
+      <h3>${escapeHtml(title)}</h3>
+      <ul>
+        ${rows.map((item) => `<li>${escapeHtml(labelFor(item || {}))}</li>`).join("") || "<li>None</li>"}
+      </ul>
+    </div>
+  `;
+}
+
 async function renderProject(projectId) {
   if (state.homeDropCleanup) {
     state.homeDropCleanup();
@@ -10197,6 +10299,16 @@ async function renderProject(projectId) {
 
     if (projectData.project.kind === "disk") {
       renderDiskProject(projectData);
+      return;
+    }
+
+    if (projectData.classic_macos) {
+      renderClassicMacProject(projectData);
+      dispatchAppEvent("amiga:project-rendered", {
+        projectId,
+        generation: "classic_macos_starter",
+        totalRows: 0,
+      });
       return;
     }
 

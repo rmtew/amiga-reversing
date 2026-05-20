@@ -930,6 +930,13 @@ resources documentation coverage tests
   m68k listing backend. Relocation/fixups, complete Segment Loader behavior,
   source mapping, and byte-for-byte roundtrip remain explicit unsupported
   state.
+- 012-009 added the starter web payload and renderer branch for Classic Mac OS
+  source/container views. The payload exposes source files, segments, routines,
+  resources, build products, API facts, binary forks, `CODE 0`, `CODE 1 Main`,
+  all `CODE` resources, unsupported state, and an explicit boundary that keeps
+  `Sample` source facts separate from observed `MPW/Tools/Asm` binary facts.
+  This is a view slice only; full Mac project creation and roundtrip remain
+  outside the starter branch.
 
 ## Open Questions
 
