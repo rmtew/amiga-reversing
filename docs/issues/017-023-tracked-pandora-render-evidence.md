@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -35,3 +35,12 @@ Acceptance:
 
 Blocked by:
 - 017-022.
+
+Resolution:
+- Added `docs/validation/pandora-017-rerun-2026-05-21.md` as the tracked
+  evidence boundary for 017 source-quality review.
+- Kept timestamp-only `.project.json` churn out of tracked evidence.
+- The tracked `.s` render carries accepted render-safe A5 hardware-reference
+  improvements. Local Manual Action Log state remains required to reproduce all
+  accepted 017 state; the report records the current action count/head hash and
+  exact round-trip status.

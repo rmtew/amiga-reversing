@@ -1,4 +1,4 @@
-Status: proposed
+Status: deferred
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-015 and 017-019 blocked A5 refs
@@ -33,3 +33,13 @@ Acceptance:
 Blocked by:
 - 017-015.
 - 017-019.
+
+Resolution:
+- Rerun `a5-hardware-report` still finds one accepted A5 use blocked by
+  `zero_displacement_a5_operand_requires_address_mode_preserving_rendering`.
+- No source-changing mutation was taken. A zero-displacement `(a5)` operand
+  cannot be replaced with a symbolic displacement form without changing the
+  encoded 68000 address mode; exact symbolic source would need new
+  address-mode-preserving annotation/render support, not an operand rewrite.
+- Existing command/verifier gates remain blocked for this family, so the
+  accepted semantic evidence stays local/manual and non-rendered.

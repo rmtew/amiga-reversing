@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-020 report-only immediate candidates
@@ -30,3 +30,13 @@ Acceptance:
 
 Blocked by:
 - 017-020.
+
+Resolution:
+- Rerun `immediate-ref-report` reports 9 candidates, all `source_offset`, with
+  `safe_to_mutate=false`, `command_candidate_count=0`, and
+  `report_only_candidate_count=9`.
+- Pandora policy remains: source-offset immediate matches are report-only until
+  accepted runtime-address provenance exists. Width-mismatched or ambiguous
+  constants also remain report-only.
+- No immediate-reference command payload or verifier path is exposed for these
+  candidates, so no mutation was performed.

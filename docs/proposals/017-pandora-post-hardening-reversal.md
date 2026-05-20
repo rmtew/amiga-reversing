@@ -1,6 +1,6 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: focused pass complete; rerun follow-up issues proposed.
+Status: closed; no safe 017 mutation remains.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -80,13 +80,15 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The focused post-hardening Pandora pass is exhausted as of 017-022:
+The focused post-hardening Pandora pass is exhausted as of the 017-027 rerun:
 
 ```text
 immediate-ref-report:
   safe_to_mutate=false
+  candidate_count=9
   command_candidate_count=0
   report_only_candidate_count=9
+  remaining source family: source_offset
 
 a5-hardware-report:
   safe_to_mutate=false
@@ -94,6 +96,8 @@ a5-hardware-report:
   existing_manual_state_uses=20
   command_candidate_count=0
   missing_gates: command_candidate
+  remaining render blocker:
+    zero_displacement_a5_operand_requires_address_mode_preserving_rendering
 
 rsset-candidate-report:
   safe_to_mutate=false
@@ -103,12 +107,13 @@ rsset-candidate-report:
 run-one dry run:
   action=null
   planner_message=no supported source-converging command candidate
-  remaining candidates are generic data-symbol styling or low-value literal
-  representation work
+  remaining candidates are 221 generic data-symbol names and 4 low-value
+  literal representation candidates
 ```
 
-Restart 017 only when new durable evidence or new tooling turns one of those
-families into a command-backed, verifier-backed, exact-round-trip mutation.
+017 is closed for this working objective. Restart 017 only when new durable
+evidence or new tooling turns one of those families into a command-backed,
+verifier-backed, exact-round-trip mutation.
 The deferred 017-006 performance issue remains closed for this pass because no
 measured slow phase crossed its investigation threshold.
 
@@ -339,3 +344,21 @@ repeatable work to `docs\issues\017-*`.
   candidates blocked by missing accepted app-base evidence; and remaining
   immediate source-offset candidates need a deliberate policy/verifier path
   before any mutation. These were promoted to `017-023` through `017-027`.
+- 017-023 added `docs/validation/pandora-017-rerun-2026-05-21.md` as the
+  tracked evidence boundary. The tracked `.s` contains the accepted render-safe
+  A5 hardware refs; full 017 local/manual reproduction requires Manual Action
+  Log count 58 with head hash
+  `3cbe93c200fd62d091b67c5b096c7b2221e3b57bf30f222272633a4342deed35`.
+- 017-024 remains deferred. The remaining accepted A5 blocker is a
+  zero-displacement `(a5)` use; replacing it with a symbolic displacement would
+  change the encoded address mode, so exact source improvement requires new
+  annotation/render support rather than a normal operand rewrite.
+- 017-025 remains deferred. The RSSET report still has 125 report-only raw A6
+  candidates and no accepted app-base/source evidence to feed command/verifier
+  gates.
+- 017-026 closes the immediate source-offset policy for Pandora: the 9 remaining
+  source-offset candidates stay report-only until accepted runtime-address
+  provenance exists.
+- 017-027 reran the report surfaces and dry-run planner. All gates agree that no
+  command-backed, verifier-backed, exact-round-trip Pandora source-converging
+  mutation remains.

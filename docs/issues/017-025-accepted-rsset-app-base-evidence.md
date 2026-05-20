@@ -1,4 +1,4 @@
-Status: proposed
+Status: deferred
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-009 report-only RSSET candidates
@@ -32,3 +32,11 @@ Acceptance:
 
 Blocked by:
 - 017-009.
+
+Resolution:
+- Rerun `rsset-candidate-report` still reports 125 candidates with
+  `safe_to_mutate=false` and `mutation_policy=report_only`.
+- No accepted app-base/source evidence exists for the raw A6 candidate groups,
+  so `rsset.binding.*` and `target.rsset_region.*` actions remain blocked.
+- Same-displacement adjacency and generic app-slot names are not durable
+  evidence and were not promoted.
