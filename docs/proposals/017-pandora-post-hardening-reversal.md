@@ -126,3 +126,9 @@ repeatable work to `docs\issues\017-*`.
 - 017-004 found no current Review Items or candidate work from the Review
   dialog source for the Pandora sub-target, so there is no durable Review Item
   to resolve. Review-count reduction is not treated as progress.
+- 017-005 found no accepted RSSET/app-slot candidate in the current Pandora
+  planner surface. A dry run selected `representation.character` after inspect
+  returned no candidate work; no `target.rsset_region.*` or
+  `rsset.binding.*` candidate was available. RSSET command/verifier plumbing
+  exists, but this target currently lacks accepted source evidence for a new
+  binding or field refinement.

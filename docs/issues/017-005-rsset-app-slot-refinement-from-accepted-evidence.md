@@ -1,4 +1,4 @@
-Status: proposed
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 
@@ -30,3 +30,17 @@ Acceptance:
 
 Blocked by:
 - 017-001.
+
+Implementation notes:
+- Current Pandora dry run selected `representation.character`, not an
+  RSSET/app-slot action.
+- `inspect` returned no candidate work, and the dry-run ranked/selected work
+  exposed no `target.rsset_region.*` or `rsset.binding.*` candidate.
+- Existing RSSET command and verifier support is present, but there is no
+  accepted source evidence for a new app-slot field, binding, alias, or typed
+  region in the current target state.
+- No generic A6 adjacency naming was performed.
+
+Verification:
+- `reversing_loop inspect --target ...`
+- `reversing_loop run-one --target ... --dry-run`
