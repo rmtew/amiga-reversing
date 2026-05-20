@@ -55,6 +55,11 @@ measured blocker needed for that improvement.
 4. `017-004`: evidence-led Review Item source-quality pass.
 5. `017-005`: RSSET/app-slot refinement from accepted evidence.
 6. `017-006`: measured loop-performance fixes from Pandora work.
+7. `017-007`: operand-level interpreted immediate-reference command and
+   verifier.
+8. `017-008`: CFG-backed A5 path/lifetime proof report.
+9. `017-009`: RSSET candidate discovery for remaining raw A6 operands.
+10. `017-010`: planner treatment for low-value representation candidates.
 
 ## Recommended Order
 
@@ -64,6 +69,13 @@ data/reference work, `017-004` for review-item/code/data blockers, or `017-005`
 for accepted app-base/RSSET opportunities. Do `017-003` only when A5 hardware
 base proof is the active blocker. Use `017-006` whenever a measured slow phase
 blocks normal iteration.
+
+If the first pass reaches report-only blockers, continue with the follow-up
+unblockers. Prefer `017-007` to unlock the concrete immediate-reference
+candidate from `017-002`, `017-008` to turn A5 listing-state candidates into
+accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
+when the generic planner has no candidate. Use `017-010` if low-value
+representation work repeatedly masks those higher-value blocked families.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
@@ -136,3 +148,7 @@ repeatable work to `docs\issues\017-*`.
   dry-run commands observed during this pass completed in roughly 8-9 seconds,
   below the issue's 30 second investigation threshold, so no speculative
   performance refactor was started.
+- Follow-up unblockers were promoted from the blocked 017 pass:
+  `017-007` for immediate-reference mutation/verifier support, `017-008` for
+  CFG-backed A5 path/lifetime proof, `017-009` for RSSET candidate discovery,
+  and `017-010` for planner handling of low-value representation candidates.
