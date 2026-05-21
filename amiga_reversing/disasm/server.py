@@ -46,6 +46,7 @@ from amiga_reversing.disasm.listing_projection import (
     ListingLocatorError,
     ListingProjectionService,
 )
+from amiga_reversing.disasm.macos_project_payload import build_macos_project_payload
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
     listing_element_action_catalog,
@@ -154,6 +155,7 @@ class AsyncJobPayload(TypedDict):
 class ProjectPayload(TypedDict):
     project: dict[str, object]
     disk_manifest: NotRequired[dict[str, object]]
+    macos: NotRequired[dict[str, object]]
     target_state: NotRequired[dict[str, object]]
     reproduction: NotRequired[dict[str, object]]
     review_warnings: NotRequired[list[dict[str, object]]]
@@ -1751,6 +1753,8 @@ def _project_payload(project_name: str) -> ProjectPayload:
                 payload["target_state"] = {}
     elif project.kind is ProjectKind.BINARY and project.ready:
         payload["reproduction"] = _current_reproduction_payload(project_name)
+    elif project.kind is ProjectKind.MACOS and project.ready:
+        payload["macos"] = build_macos_project_payload(project)
     return payload
 
 

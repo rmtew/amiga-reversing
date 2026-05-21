@@ -1140,8 +1140,12 @@ resources documentation coverage tests
 - 012-014 blocker-removal started by replacing durable prototype payload
   identifiers with `macos` across helper payloads, source/container summaries,
   web rendering, and tests. No `classic_macos` compatibility alias was kept.
-  The normal project/API route is still missing first-class Mac project records
-  and remains the next 012-014 blocker.
+- 012-014 then added first-class `macos` project records and normal
+  `/api/projects/<id>` payload emission from `macos_mpw_fixture` origin
+  metadata. The payload uses the C HFS/CODE summary for the binary container
+  view and carries provenance to the MPW-GM image plus committed source,
+  resource, and build metadata. Selected CODE listing rows and a committed Mac
+  target artifact remain separate 012-016/012-018 work.
 
 ## Open Questions
 

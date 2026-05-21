@@ -112,7 +112,7 @@ def extract_mpw_asm_code_bytes(
     ndif2raw_path: Path = DEFAULT_NDIF2RAW_PATH,
     path: str = MPW_ASM_PATH,
 ) -> bytes:
-    hfs_bytes = _read_hfs_bytes(image_path, ndif2raw_path=ndif2raw_path)
+    hfs_bytes = read_macos_hfs_image_bytes(image_path, ndif2raw_path=ndif2raw_path)
     if resource_id != 0:
         return extract_macos_hfs_code_resource_bytes_with_c_backend(hfs_bytes, path, resource_id)
     volume = HFSVolume(hfs_bytes)
@@ -121,6 +121,10 @@ def extract_mpw_asm_code_bytes(
 
 
 def _read_hfs_bytes(image_path: Path, *, ndif2raw_path: Path) -> bytes:
+    return read_macos_hfs_image_bytes(image_path, ndif2raw_path=ndif2raw_path)
+
+
+def read_macos_hfs_image_bytes(image_path: Path, *, ndif2raw_path: Path = DEFAULT_NDIF2RAW_PATH) -> bytes:
     data = image_path.read_bytes()
     if data[1024:1026] == b"BD":
         return data

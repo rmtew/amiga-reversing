@@ -1,4 +1,4 @@
-Status: in progress
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -43,13 +43,20 @@ Required tests:
 - Required-fixture gate or explicit skip report for environments missing the
   MPW-GM image/provider.
 
-Blocker recorded:
-- The normal project/server model currently has binary and disk project kinds;
-  no first-class Mac project kind or normal API-emitted C-backed Mac project
-  payload exists.
-- The durable helper and web payload identifiers now use `macos` without a
-  compatibility alias, removing the prototype `classic_macos` naming blocker.
-  The payload still requires direct helper construction until the shared
-  project/API model can load Mac fixture metadata through the normal route.
-- This remains blocked by 012-013 and the shared project/schema extension needed
-  to expose source/container/listing state through the normal route.
+Result:
+- Added first-class `ProjectKind.MACOS` records loaded from
+  `macos_mpw_fixture` project origin metadata.
+- The normal `/api/projects/<id>` route now emits `macos` payload data for
+  ready Mac projects; no `classic_macos` compatibility alias is retained.
+- The API payload includes source view, C-backed HFS/CODE binary container
+  view, source/binary boundary, unsupported state, and provenance to the source
+  image and committed source/resource/build metadata.
+- The web renderer opens that payload through the existing project route via
+  `projectData.macos`.
+- Tests cover Mac project record loading, server route emission, web renderer
+  source checks, and a committed MPW-GM fixture smoke through the C summary
+  path.
+
+Remaining follow-up:
+- Actual selected CODE listing rows and a committed illustrative Mac target are
+  still owned by 012-016 and 012-018, not by this API payload slice.

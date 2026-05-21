@@ -127,6 +127,28 @@ def _binary_project(project_name: str, *, ready: bool) -> ProjectRecord:
     )
 
 
+def _macos_project(project_name: str, *, ready: bool = True) -> ProjectRecord:
+    return ProjectRecord(
+        id=project_name,
+        name=project_name,
+        kind=ProjectKind.MACOS,
+        target_dir=f"targets/{project_name}",
+        output_path=None,
+        binary_path="resources/platform_macos/MPW-GM.img.bin" if ready else None,
+        ready=ready,
+        last_opened=None,
+        manifest_path=None,
+        target_count=None,
+        source_path="resources/platform_macos/MPW-GM.img.bin" if ready else None,
+        disk_type="HFS",
+        parent_project_id=None,
+        target_type="macos_hfs_resource_code_file",
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+        origin={"kind": "macos_mpw_fixture", "source_image": "resources/platform_macos/MPW-GM.img.bin"},
+    )
+
+
 def test_ui_preferences_route_persists_project_local_state(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1226,6 +1248,27 @@ def test_route_project_returns_project_and_session(monkeypatch: pytest.MonkeyPat
     assert project["name"] == "bloodwych"
     assert "session" not in data
     assert "disk_manifest" not in data
+
+
+def test_route_project_returns_macos_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    project_record = _macos_project("macos_mpw_sample")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project_record)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_macos_project_payload",
+        lambda project: {"platform": "macos", "kind": "macos_project", "provenance": project.origin},
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/macos_mpw_sample", {})
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
+    macos = cast(dict[str, object], data["macos"])
+
+    assert payload["ok"] is True
+    assert project["kind"] == "macos"
+    assert macos["platform"] == "macos"
+    assert "disk_manifest" not in data
+    assert "reproduction" not in data
 
 
 def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest.MonkeyPatch) -> None:

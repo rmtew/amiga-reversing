@@ -12,6 +12,7 @@ from amiga_reversing.disasm.binary_source import (
     is_internal_target,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.macos_project_origin import is_macos_project_origin
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -45,6 +46,7 @@ DECOMPRESSION_STATUS_NEEDS_REVIEW_BLOCKER = 6
 class ProjectKind(StrEnum):
     BINARY = "binary"
     DISK = "disk"
+    MACOS = "macos"
 
 
 @dataclass(frozen=True, slots=True)
@@ -220,8 +222,14 @@ def _save_state(project_root: Path, state: BrowserState) -> None:
     )
 
 
-def _binary_project_record(project_id: str, target_dir: Path, state: BrowserState, project_root: Path) -> ProjectRecord:
-    metadata = _load_project_metadata(target_dir)
+def _binary_project_record(
+    project_id: str,
+    target_dir: Path,
+    state: BrowserState,
+    project_root: Path,
+    metadata: ProjectMetadata | None = None,
+) -> ProjectRecord:
+    metadata = metadata or _load_project_metadata(target_dir)
     target_metadata = load_target_metadata(target_dir)
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
@@ -467,11 +475,43 @@ def _disk_project_record(disk_dir: Path, state: BrowserState) -> ProjectRecord:
     )
 
 
+def _macos_project_record(
+    project_id: str,
+    target_dir: Path,
+    state: BrowserState,
+    metadata: ProjectMetadata,
+) -> ProjectRecord:
+    source_image = metadata.origin.get("source_image")
+    source_path = source_image if isinstance(source_image, str) else None
+    return ProjectRecord(
+        id=project_id,
+        name=project_id,
+        kind=ProjectKind.MACOS,
+        target_dir=str(target_dir),
+        output_path=None,
+        binary_path=source_path,
+        ready=source_path is not None,
+        last_opened=state.recent_projects.get(project_id),
+        manifest_path=None,
+        target_count=None,
+        source_path=source_path,
+        disk_type="HFS",
+        parent_project_id=None,
+        target_type="macos_hfs_resource_code_file",
+        created_at=metadata.created_at,
+        updated_at=metadata.updated_at,
+        origin=metadata.origin,
+    )
+
+
 def _load_project_record(project_name: str, state: BrowserState, project_root: Path) -> ProjectRecord:
     target_dir = resolve_project_dir(project_name, project_root=project_root)
     if is_disk_project_id(project_name):
         return _disk_project_record(target_dir, state)
-    return _binary_project_record(project_name, target_dir, state, project_root)
+    metadata = _load_project_metadata(target_dir)
+    if is_macos_project_origin(metadata.origin):
+        return _macos_project_record(project_name, target_dir, state, metadata)
+    return _binary_project_record(project_name, target_dir, state, project_root, metadata)
 
 
 def get_project(project_name: str, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
@@ -492,7 +532,11 @@ def list_projects(project_root: Path = PROJECT_ROOT) -> list[ProjectRecord]:
             continue
         if _is_internal_target(target_dir, project_root):
             continue
-        projects.append(_binary_project_record(target_dir.name, target_dir, state, project_root))
+        metadata = _load_project_metadata(target_dir)
+        if is_macos_project_origin(metadata.origin):
+            projects.append(_macos_project_record(target_dir.name, target_dir, state, metadata))
+            continue
+        projects.append(_binary_project_record(target_dir.name, target_dir, state, project_root, metadata))
     projects.sort(key=lambda project: project.id)
     projects.sort(key=lambda project: project.last_opened or "", reverse=True)
     return projects

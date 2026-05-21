@@ -105,6 +105,17 @@ def _disk_manifest_payload() -> dict[str, object]:
     }
 
 
+def _macos_project_origin() -> dict[str, object]:
+    return {
+        "kind": "macos_mpw_fixture",
+        "source_image": "resources/platform_macos/MPW-GM.img.bin",
+        "hfs_path": "MPW-GM/MPW/Tools/Asm",
+        "source_files": ["ext/macos_includes/mpw_gm/Interfaces/AStructMacs/Sample.a"],
+        "resource_files": ["ext/macos_includes/mpw_gm/Interfaces/AStructMacs/Sample.r"],
+        "build_files": ["ext/macos_includes/mpw_gm/Interfaces/AStructMacs/Sample.make"],
+    }
+
+
 def test_load_target_metadata_merges_seeded_metadata_file(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -802,6 +813,26 @@ def test_list_projects_includes_disk_project(tmp_path: Path) -> None:
     assert projects[0].target_count == 2
     assert projects[0].ready is False
     assert projects[0].disk_type == "DOS"
+
+
+def test_list_projects_includes_macos_project_from_origin(tmp_path: Path) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "macos_mpw_sample"
+    target_dir.mkdir(parents=True)
+    payload = _project_metadata_payload()
+    payload["origin"] = _macos_project_origin()
+    (target_dir / ".project.json").write_text(json.dumps(payload))
+
+    projects = list_projects(project_root=project_root)
+
+    assert len(projects) == 1
+    assert projects[0].id == "macos_mpw_sample"
+    assert projects[0].kind == "macos"
+    assert projects[0].ready is True
+    assert projects[0].binary_path == "resources/platform_macos/MPW-GM.img.bin"
+    assert projects[0].source_path == "resources/platform_macos/MPW-GM.img.bin"
+    assert projects[0].disk_type == "HFS"
+    assert projects[0].target_type == "macos_hfs_resource_code_file"
 
 
 def test_disk_manifest_preserves_decompressed_target_relationship(tmp_path: Path) -> None:
