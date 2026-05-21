@@ -1,4 +1,4 @@
-Status: blocked
+Status: in progress; C resource-fork/CODE parser slice implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -58,10 +58,21 @@ Required tests:
 Blocker recorded:
 - 012-015 removed handcrafted Mac runtime metadata from the render path, but the
   durable Mac container/import path is still Python-only research code.
-- `src/` has no C-backed HFS catalog/file/fork parser, Classic Mac resource
-  fork parser, CODE inventory/extraction path, or Mac project metadata serializer
+- `src/` now has a C-backed Classic Mac resource fork parser for resource-map
+  inventory, `CODE 0` metadata, nonzero `CODE` segment metadata, and selected
+  resource payload bounds.
+- `src/` still has no C-backed HFS catalog/file/fork parser, Finder metadata
+  importer, Mac project metadata serializer, or normal API/web project payload
   equivalent to the Amiga/Atari platform backends.
 - Do not promote the Python helper path as the accepted durable implementation.
   The next viable 012 slice is a C platform-file backend extension that owns HFS
-  file lookup, fork/resource metadata, CODE 0/nonzero CODE inventory, and
-  selected CODE byte extraction.
+  file lookup and Finder/fork metadata, then routes resource/CODE inspection
+  through the new C resource parser.
+
+Implemented slice:
+- Added `src/platform_macos_resource.c` and
+  `src/platform_macos_resource.h` as the durable C parser surface for Classic
+  Mac resource forks.
+- Added native C unit coverage for synthetic `CODE 0` jump-table metadata,
+  nonzero `CODE` segment metadata, selected payload bounds, and malformed
+  payload bounds rejection.

@@ -829,12 +829,15 @@ fork, CODE resource, and unsupported state.
 Document optional MPW-GM fixture paths and the Mac platform inventory check.
 ```
 
-012-013. C-backed Mac platform parser/import parity - blocked
+012-013. C-backed Mac platform parser/import parity - in progress
 
 ```text
 Promote durable Mac HFS, fork, resource fork, CODE metadata, and selected CODE
 segment import behavior into C APIs matching the Amiga/Atari platform boundary.
 Keep Python as wrapper/report/editing code only.
+The C resource-fork/CODE parser slice is implemented; HFS file/fork access,
+Finder metadata import, Mac project metadata serialization, and normal API/web
+payload routing remain.
 ```
 
 012-014. Mac project/API/web integration - blocked
@@ -1100,9 +1103,17 @@ resources documentation coverage tests
 - Post-012-015 review found the remaining completion issues all depend on the
   same missing foundation: C-backed Mac HFS/resource/CODE import and a shared
   Mac project/listing schema. The Python helper path remains useful research
-  evidence, but it must not be promoted as the durable implementation. Issues
-  012-013, 012-014, 012-016, 012-017, and 012-018 are therefore blocked rather
-  than open-ended.
+  evidence, but it must not be promoted as the durable implementation. 012-013
+  now owns the C parser/import foundation work; 012-014, 012-016, 012-017, and
+  012-018 remain blocked until that foundation is usable from the normal
+  platform path.
+- 012-013 now has its first C-backed container slice: a native Classic Mac
+  resource-fork parser that inventories resource types, extracts `CODE 0`
+  jump-table metadata, extracts nonzero `CODE` segment metadata, and returns
+  selected resource payload bounds without relying on the Python parser. This
+  does not close the platform backend gap yet; C-backed HFS catalog/file/fork
+  access, Finder metadata import, Mac project serialization, and normal API/web
+  routing remain the next blockers.
 
 ## Open Questions
 
