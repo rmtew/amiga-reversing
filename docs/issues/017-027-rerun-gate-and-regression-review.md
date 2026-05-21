@@ -1,4 +1,4 @@
-Status: implemented
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -34,10 +34,13 @@ Acceptance:
 Blocked by:
 - Any reopened 017 implementation issue.
 
-Resolution:
+Previous rerun:
 - Reran `immediate-ref-report`, `a5-hardware-report`,
   `rsset-candidate-report`, `inspect`, and `run-one --dry-run` for the Pandora
   sub-target.
 - Added the current counts and closeout decision to
   `docs/validation/pandora-017-rerun-2026-05-21.md` and proposal 017.
-- No command-backed, verifier-backed Pandora mutation remains untried.
+- No command-backed, verifier-backed Pandora mutation remained untried at that
+  snapshot.
+- This issue is blocked again until active 017 blocker-removal issues
+  (`017-024`, `017-025`) are implemented or proven non-viable.

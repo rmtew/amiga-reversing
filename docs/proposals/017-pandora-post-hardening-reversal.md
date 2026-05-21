@@ -1,6 +1,7 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: closed; no safe 017 mutation remains.
+Status: active; first rerun gate exhausted current command-backed mutations,
+but blocker-removal work remains in 017.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -80,7 +81,8 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The focused post-hardening Pandora pass is exhausted as of the 017-027 rerun:
+The focused post-hardening Pandora pass exhausted the command-backed mutations
+available at the time of the 017-027 rerun:
 
 ```text
 immediate-ref-report:
@@ -111,11 +113,21 @@ run-one dry run:
   literal representation candidates
 ```
 
-017 is closed for this working objective. Restart 017 only when new durable
-evidence or new tooling turns one of those families into a command-backed,
-verifier-backed, exact-round-trip mutation.
-The deferred 017-006 performance issue remains closed for this pass because no
-measured slow phase crossed its investigation threshold.
+This is not a full 017 closeout. It is a completed gate snapshot showing why
+the next 017 work must remove blockers rather than retry the same reports.
+Continue 017 before 012 by working the active blocker-removal issues:
+
+- `017-024`: implement exact address-mode-preserving A5 symbol-delta rendering
+  or narrow the renderer/verifier blocker with code-level evidence.
+- `017-025`: actively search for accepted RSSET/app-base evidence from flow,
+  xrefs, Manual Action Log state, and target source context; only leave it
+  blocked after documenting the specific proof searched for and not found.
+- `017-027`: rerun the gate only after active 017 blocker-removal work is done
+  or proven non-viable.
+
+The deferred `017-006` performance issue remains conditional; use it only when
+a measured slow phase crosses its investigation threshold during active 017
+work.
 
 ## Recommended Order
 
@@ -133,18 +145,12 @@ accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
 when the generic planner has no candidate. Use `017-010` if low-value
 representation work repeatedly masks those higher-value blocked families.
 
-For a rerun after the focused pass, start with `017-023` so the visible Pandora
-source evidence and reset/replay boundary are explicit. Then choose the first
-remaining evidence family: `017-024` for blocked A5 zero-displacement or
-non-zero custom-base-offset refs, `017-025` for RSSET/A6 candidates, or
-`017-026` for remaining immediate source-offset candidates. Finish with
-`017-027` to rerun the current reports/tests and re-close the proposal only if
-the gates still agree.
-
-Rerun priority: complete `017-023`, then continue through `017-024`,
-`017-025`, and `017-026` unless a blocker is fundamental and recorded with
-exact missing evidence/tooling. Do not stop after resolving the evidence
-artifact boundary. Finish with `017-027`.
+For the current continuation, treat `017-023` and `017-026` as completed
+boundary/policy work. Start with `017-024`; if it proves fundamentally blocked,
+record the exact renderer/verifier missing piece and continue to `017-025`.
+Work `017-025` as an evidence search, not as another report-only rerun. Finish
+with `017-027` only after `017-024` and `017-025` are implemented or blocked
+with concrete, reviewable proof.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are

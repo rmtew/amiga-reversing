@@ -1,4 +1,4 @@
-Status: deferred
+Status: active
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-015 and 017-019 blocked A5 refs
@@ -21,6 +21,9 @@ Required work:
 - Keep command/report gates blocked for these refs until exact render support
   exists.
 - Validate on the known Pandora `s0:0000045C` style case if still present.
+- If exact rendering cannot be implemented cleanly, document the precise
+  renderer, assembler, or verifier limitation and leave a narrower issue-ready
+  blocker. Do not treat the existing rerun report alone as resolution.
 
 Acceptance:
 - The renderer can show the accepted hardware-register semantic without
@@ -30,16 +33,18 @@ Acceptance:
 - Previously blocked A5 symbol-delta candidates either become safe mutations or
   remain explicitly blocked with a narrower reason.
 
-Blocked by:
-- 017-015.
-- 017-019.
+Depends on:
+- 017-015 and 017-019 provide the blocked candidate context. They are not
+  current blockers for this issue.
 
-Resolution:
-- Rerun `a5-hardware-report` still finds one accepted A5 use blocked by
+Current state:
+- Rerun `a5-hardware-report` found one accepted A5 use blocked by
   `zero_displacement_a5_operand_requires_address_mode_preserving_rendering`.
-- No source-changing mutation was taken. A zero-displacement `(a5)` operand
+- No source-changing mutation has been taken. A zero-displacement `(a5)` operand
   cannot be replaced with a symbolic displacement form without changing the
   encoded 68000 address mode; exact symbolic source would need new
   address-mode-preserving annotation/render support, not an operand rewrite.
 - Existing command/verifier gates remain blocked for this family, so the
   accepted semantic evidence stays local/manual and non-rendered.
+- Next action is to inspect the renderer/assembler projection path and decide
+  whether an exact annotation/render form can be implemented.

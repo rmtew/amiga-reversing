@@ -1,4 +1,4 @@
-Status: deferred
+Status: active
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-009 report-only RSSET candidates
@@ -19,6 +19,9 @@ Required work:
   for a raw A6 candidate group.
 - Add or use a report that exposes accepted base evidence, source family,
   path/lifetime scope, conflicts, and ownership/cleanup requirements.
+- Actively inspect xrefs, nearby setup code, existing Manual Action Log state,
+  and target source context for the top RSSET candidate groups instead of only
+  rerunning the report.
 - Allow RSSET bind/refine only when the accepted evidence is present and the
   command/verifier can consume it.
 - Keep adjacency-only or generic app-slot names blocked.
@@ -30,13 +33,18 @@ Acceptance:
   report-only same-displacement evidence.
 - Exact round-trip passes for any output-affecting RSSET mutation.
 
-Blocked by:
-- 017-009.
+Depends on:
+- 017-009 provides the report surface and candidate groups. It is not a current
+  blocker for this issue.
 
-Resolution:
-- Rerun `rsset-candidate-report` still reports 125 candidates with
+Current state:
+- Rerun `rsset-candidate-report` reported 125 candidates with
   `safe_to_mutate=false` and `mutation_policy=report_only`.
-- No accepted app-base/source evidence exists for the raw A6 candidate groups,
-  so `rsset.binding.*` and `target.rsset_region.*` actions remain blocked.
+- No accepted app-base/source evidence was found by the report itself for the
+  raw A6 candidate groups, so `rsset.binding.*` and `target.rsset_region.*`
+  actions remain blocked.
 - Same-displacement adjacency and generic app-slot names are not durable
   evidence and were not promoted.
+- Next action is to investigate whether accepted evidence can be established
+  from flow/xrefs/manual state for the top candidate groups. If not, record the
+  concrete searched locations and missing proof.
