@@ -69,3 +69,22 @@ Result:
 Verification:
 - `cmd /c src\precommit.bat`
 - Focused 017-027 report rerun through the Python report APIs.
+
+Post-review rerun:
+- Reran the focused gates again after `7756d772` tightened `017-025` RSSET
+  selected-use evidence matching.
+- `immediate-ref-report`: 9 candidates, 0 command candidates, all report-only
+  source-offset candidates.
+- `a5-hardware-report`: 20 accepted path/lifetime evidence entries, all 20
+  already present in manual state, 0 fresh command candidates, and 1
+  address-mode-preserving entry-comment render.
+- `rsset-candidate-report`: 125 grouped candidates from 994 A6 uses; 124
+  blocked and 1 already recorded. The top active group remains
+  `rsset-raw-a6:022E`, with `accepted_base_evidence_count=0` and
+  `missing_accepted_base_evidence`.
+- `inspect`: no candidate work, verification paths available, round-trip
+  status `exact`.
+- `run-one --dry-run`: `action=null`, planner status `no_candidate`.
+- The previous closeout decision still holds after the stricter RSSET evidence
+  matcher: no command-backed, verifier-backed, exact-round-trip Pandora
+  source-converging mutation remains.

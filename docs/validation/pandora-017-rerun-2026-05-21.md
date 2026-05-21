@@ -4,8 +4,9 @@ Target:
 `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
 
 This report is the tracked evidence boundary for the 017 rerun closeout. It was
-refreshed after `017-024` and `017-025`. The target-local Manual Action Log
-remains local state; timestamp-only `.project.json` churn is not evidence.
+refreshed after `017-024`, `017-025`, and the post-review `017-025`
+selected-use evidence hardening in `7756d772`. The target-local Manual Action
+Log remains local state; timestamp-only `.project.json` churn is not evidence.
 
 ## Source Evidence Boundary
 
@@ -45,6 +46,9 @@ remains local state; timestamp-only `.project.json` churn is not evidence.
 - status counts: `blocked=124`, `already_recorded=1`
 - top active candidate: `rsset-raw-a6:022E`
 - top active missing gate: `missing_accepted_base_evidence`
+- selected-use hardening: accepted base evidence count for the top active
+  candidate remains `0`; sparse or broader-scope evidence is not consumed as
+  durable mutation proof.
 
 `inspect`:
 

@@ -1,7 +1,8 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: closed after refreshed 017-027 rerun; no command-backed,
-verifier-backed, exact-round-trip Pandora source-converging mutation remains.
+Status: closed after refreshed 017-027 rerun, including the post-review
+017-025 selected-use evidence hardening; no command-backed, verifier-backed,
+exact-round-trip Pandora source-converging mutation remains.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -81,8 +82,9 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The refreshed 017-027 rerun after blocker-removal work exhausted the
-command-backed mutations available in the current Pandora surface:
+The refreshed 017-027 rerun after blocker-removal work and the post-review
+017-025 selected-use evidence hardening exhausted the command-backed mutations
+available in the current Pandora surface:
 
 ```text
 immediate-ref-report:
@@ -108,6 +110,7 @@ rsset-candidate-report:
     already_recorded=1
   top_active_candidate=rsset-raw-a6:022E
   top_active_missing_gates: missing_accepted_base_evidence
+  top_active_accepted_base_evidence_count=0
 
 run-one dry run:
   action=null
@@ -380,3 +383,7 @@ repeatable work to `docs\issues\017-*`.
   groups plus one already-recorded `$01AD` group, with `rsset-raw-a6:022E` as
   the top active missing-evidence group. `inspect` reports no candidate work
   and exact round-trip, and `run-one --dry-run` returns no action.
+- After post-review 017-025 hardening, the 017-027 gate was rerun again with
+  the same mutation result: RSSET `rsset-raw-a6:022E` still has
+  `accepted_base_evidence_count=0`, and stricter selected-use matching did not
+  expose any command-backed Pandora mutation.
