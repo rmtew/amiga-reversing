@@ -105,6 +105,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     code0_metadata = _mapping(code0.get("metadata"))
     selected = _mapping(container.get("selected_code_segment"))
     selected_listing = _mapping(selected.get("listing"))
+    selected_layout = [_mapping(item) for item in _sequence(selected.get("code_layout"))]
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
     non_code_types = [item for item in resource_types if item.get("type") != "CODE"]
@@ -162,9 +163,12 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         f";   name: {_text(selected.get('name'))}",
         f";   fork: {_text(selected_listing.get('fork'))}",
         f";   payload_size: {_text(selected.get('payload_size'))}",
+        f";   code_entry_offset: {_text(selected.get('code_entry_offset'))}",
         f";   code_bytes_size: {_text(selected.get('code_bytes_size'))}",
         f";   payload_sha256: {_text(selected.get('sha256'))}",
         f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
+        ";   classified_layout:",
+        *_code_layout_lines(selected_layout),
         f";   listing_rows: {total_rows}",
         "",
         "; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.",
@@ -224,6 +228,17 @@ def _code_resource_lines(resources: Sequence[Mapping[str, object]], *, selected_
         marker = " selected" if resource.get("id") == selected_id else ""
         lines.append(f";   {_resource_line(resource)}{marker}")
     return lines
+
+
+def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
+    if not ranges:
+        return [";     none"]
+    return [
+        f";     {_text(item.get('kind'))}: start={_text(item.get('start'))} "
+        f"end={_text(item.get('end'))} entrypoint={_text(item.get('entrypoint'))} "
+        f"evidence={_text(item.get('evidence'))}"
+        for item in ranges
+    ]
 
 
 def _resource_line(resource: Mapping[str, object]) -> str:

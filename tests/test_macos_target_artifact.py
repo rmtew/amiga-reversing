@@ -50,8 +50,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "CODE 1 Main:" in asm_text
     assert "; Non-CODE resource placeholders" in asm_text
     assert "; CODE 1 Main listing follows." in asm_text
+    assert ";   code_entry_offset: 40" in asm_text
+    assert ";     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry" in asm_text
+    assert "movea.l (a7)+,a0" in asm_text
     assert "SECTION code,code" in asm_text
-    assert "\tori.b #16,d0" in asm_text
+    assert "\tori.b #16,d0" not in asm_text
 
 
 def test_committed_macos_asm_artifact_matches_renderer() -> None:

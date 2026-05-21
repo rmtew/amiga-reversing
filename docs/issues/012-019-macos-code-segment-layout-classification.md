@@ -1,4 +1,4 @@
-Status: open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -45,3 +45,29 @@ Required tests:
 
 Blocked by:
 None - can start immediately.
+
+Implementation notes:
+- Added a C-backed `PlatformMacosCodeMetadata` layout model with explicit
+  classified ranges and evidence strings.
+- `CODE 0` now reports a metadata-only layout range.
+- Nonzero CODE resources now report the four-byte segment header as metadata,
+  bytes before the first accepted stack-entry pattern as data, and the
+  `movea.l (a7)+,a0` entrypoint range as confirmed code.
+- Selected CODE extraction now refuses resources without a confirmed executable
+  range instead of returning `payload + 4`.
+- The MPW `Asm` CODE 1 fixture now starts extracted/listed code at payload
+  offset 40, not the old metadata/data prefix.
+- Unknown nonzero CODE payloads without entry evidence are reported as deferred
+  ranges and extraction fails with a concrete no-confirmed-range error.
+
+Verification:
+- `cmd /c src\precommit.bat`
+- `uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_asm_container.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py -q`
+- `uv run ruff check amiga_reversing\disasm\macos_asm_container.py amiga_reversing\disasm\macos_project_payload.py amiga_reversing\disasm\macos_target_artifact.py tests\test_macos_c_backend.py tests\test_macos_asm_container.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py`
+
+Follow-up:
+- This establishes the selected-entry boundary and deferred unknown handling,
+  but does not yet solve full Segment Loader relocation/fixup interpretation or
+  complete internal code/data island splitting after the confirmed entrypoint.
+  That remains part of the Mac-style whole-resource rendering work in 012-020
+  and 012-021.

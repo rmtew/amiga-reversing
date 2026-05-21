@@ -68,18 +68,18 @@ def _make_code_resource_fork() -> bytes:
     for offset, value in (
         (0, data_offset),
         (4, map_offset),
-        (8, 30),
+        (8, 38),
         (12, map_length),
         (map_offset, data_offset),
         (map_offset + 4, map_offset),
-        (map_offset + 8, 30),
+        (map_offset + 8, 38),
         (map_offset + 12, map_length),
     ):
         _put(data, offset, _u32(value))
     _put(data, data_offset, _u32(16))
     _put(data, code0_payload, _u32(32) + _u32(64) + _u32(8) + _u32(32))
-    _put(data, code1_record, _u32(6))
-    _put(data, code1_payload, _u16(4) + _u16(2) + b"\x4e\x75")
+    _put(data, code1_record, _u32(14))
+    _put(data, code1_payload, _u16(4) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75")
     _put(data, map_offset + 24, _u16(28))
     _put(data, map_offset + 26, _u16(58))
     _put(data, type_list, _u16(0) + b"CODE" + _u16(1) + _u16(10))
@@ -146,10 +146,69 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["resource_fork"]["resource_count"] == 2
     assert [item["id"] for item in summary["resource_fork"]["code_resources"]] == [0, 1]
     assert summary["selected_code"]["available"] is True
-    assert summary["selected_code"]["payload_size"] == 6
-    assert summary["selected_code"]["code_bytes_size"] == 2
-    assert summary["selected_code"]["code_bytes_sha256"] == hashlib.sha256(b"\x4e\x75").hexdigest()
-    assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x4e\x75"
+    assert summary["selected_code"]["payload_size"] == 14
+    assert summary["selected_code"]["code_bytes_offset"] == summary["selected_code"]["payload_offset"] + 10
+    assert summary["selected_code"]["code_bytes_size"] == 4
+    assert summary["selected_code"]["code_bytes_sha256"] == hashlib.sha256(b"\x20\x5f\x4e\x75").hexdigest()
+    assert summary["selected_code"]["code"]["layout_ranges"] == [
+        {
+            "kind": "metadata",
+            "start": 0,
+            "size": 4,
+            "end": 4,
+            "entrypoint": False,
+            "evidence": "nonzero_code_segment_header",
+        },
+        {
+            "kind": "data",
+            "start": 4,
+            "size": 6,
+            "end": 10,
+            "entrypoint": False,
+            "evidence": "prefix_before_stack_entry",
+        },
+        {
+            "kind": "confirmed_code",
+            "start": 10,
+            "size": 4,
+            "end": 14,
+            "entrypoint": True,
+            "evidence": "m68k_movea_l_stack_to_a0_entry",
+        },
+    ]
+    assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
+
+
+def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
+    require_built_tools()
+    image = bytearray(_make_hfs_image())
+    resource_fork_base = 2048 + 3 * 512
+    code1_payload = 0x118
+    image[resource_fork_base + code1_payload + 10 : resource_fork_base + code1_payload + 12] = b"\x4e\x75"
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(bytes(image), "MPW-GM/Tools/Asm")
+
+    assert summary["selected_code"]["code_bytes_size"] == 0
+    assert summary["selected_code"]["code"]["layout_ranges"] == [
+        {
+            "kind": "metadata",
+            "start": 0,
+            "size": 4,
+            "end": 4,
+            "entrypoint": False,
+            "evidence": "nonzero_code_segment_header",
+        },
+        {
+            "kind": "deferred",
+            "start": 4,
+            "size": 10,
+            "end": 14,
+            "entrypoint": False,
+            "evidence": "missing_m68k_movea_l_stack_to_a0_entry",
+        },
+    ]
+    with pytest.raises(RuntimeError, match="no confirmed executable range"):
+        extract_macos_hfs_code_resource_bytes_with_c_backend(bytes(image), "Tools/Asm", 1)
 
 
 def test_c_macos_code_bytes_feed_shared_listing_artifact(tmp_path: Path) -> None:
@@ -206,4 +265,14 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert code0["code"]["below_a5_size"] == expected_code0["code"]["below_a5_size"]
     assert summary["selected_code"]["payload_size"] == expected_code1["size"]
     assert summary["selected_code"]["payload_sha256"] == expected_code1["sha256"]
-    assert summary["selected_code"]["code_bytes_size"] == expected_code1["size"] - 4
+    assert summary["selected_code"]["code_bytes_offset"] == summary["selected_code"]["payload_offset"] + 40
+    assert summary["selected_code"]["code_bytes_size"] == expected_code1["size"] - 40
+    assert summary["selected_code"]["code"]["layout_ranges"][0]["kind"] == "metadata"
+    assert summary["selected_code"]["code"]["layout_ranges"][1]["kind"] == "data"
+    assert summary["selected_code"]["code"]["layout_ranges"][2]["kind"] == "confirmed_code"
+    assert summary["selected_code"]["code"]["layout_ranges"][2]["start"] == 40
+    assert extract_macos_hfs_code_resource_bytes_with_c_backend(
+        read_macos_hfs_image_bytes(IMAGE_PATH),
+        "MPW-GM/MPW/Tools/Asm",
+        1,
+    ).startswith(b"\x20\x5f")

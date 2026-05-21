@@ -1,5 +1,6 @@
 #include "platform_macos_resource.h"
 
+#include <stdint.h>
 #include <string.h>
 
 static uint16_t read_u16be_at(const unsigned char *data, size_t offset) {
@@ -35,24 +36,117 @@ static int resource_type_matches(const char type[PLATFORM_MACOS_RESOURCE_TYPE_SI
     type[0] == expected[0] && type[1] == expected[1] && type[2] == expected[2] && type[3] == expected[3];
 }
 
+static int append_code_range(PlatformMacosCodeMetadata *code, uint8_t kind, uint8_t evidence,
+    uint32_t start_offset, uint32_t size, uint8_t entrypoint) {
+  PlatformMacosCodeRange *range;
+  if (code == NULL || size == 0U) return 0;
+  if (code->layout_range_count >= PLATFORM_MACOS_CODE_LAYOUT_RANGE_CAPACITY) return -1;
+  range = &code->layout_ranges[code->layout_range_count++];
+  memset(range, 0, sizeof(*range));
+  range->kind = kind;
+  range->evidence = evidence;
+  range->entrypoint = entrypoint;
+  range->start_offset = start_offset;
+  range->size = size;
+  return 0;
+}
+
+static uint32_t find_stack_entry_to_a0_pattern(const unsigned char *payload, uint32_t payload_size,
+    uint32_t start_offset) {
+  uint32_t offset;
+  if (payload == NULL || start_offset >= payload_size) return UINT32_MAX;
+  for (offset = start_offset; offset + 1U < payload_size; offset += 2U) {
+    if (payload[offset] == 0x20U && payload[offset + 1U] == 0x5FU) return offset;
+  }
+  return UINT32_MAX;
+}
+
+int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t payload_size,
+    int16_t resource_id, PlatformMacosCodeMetadata *out_code) {
+  uint32_t entry_offset;
+  if (out_code == NULL) return -1;
+  memset(out_code, 0, sizeof(*out_code));
+  if (resource_id == 0) {
+    out_code->kind = PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT;
+    if (payload_size >= 16U && payload != NULL) {
+      out_code->above_a5_size = read_u32be_at(payload, 0U);
+      out_code->below_a5_size = read_u32be_at(payload, 4U);
+      out_code->jump_table_length = read_u32be_at(payload, 8U);
+      out_code->jump_table_offset_from_a5 = read_u32be_at(payload, 12U);
+    }
+    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_METADATA,
+      PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA, 0U, payload_size, 0U);
+  }
+  out_code->kind = PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT;
+  if (payload_size >= 4U && payload != NULL) {
+    out_code->first_jump_table_entry_offset = read_u16be_at(payload, 0U);
+    out_code->jump_table_entry_count = read_u16be_at(payload, 2U);
+    if (append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_METADATA,
+        PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER, 0U, 4U, 0U) != 0) {
+      return -1;
+    }
+  }
+  if (payload_size <= 4U || payload == NULL) return 0;
+  entry_offset = find_stack_entry_to_a0_pattern(payload, payload_size, 4U);
+  if (entry_offset == UINT32_MAX) {
+    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DEFERRED,
+      PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, 4U, payload_size - 4U, 0U);
+  }
+  if (entry_offset > 4U &&
+      append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DATA,
+        PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, 4U, entry_offset - 4U, 0U) != 0) {
+    return -1;
+  }
+  return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE,
+    PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, entry_offset, payload_size - entry_offset, 1U);
+}
+
+int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadata *code,
+    uint32_t *out_start_offset, uint32_t *out_size) {
+  size_t index;
+  if (out_start_offset != NULL) *out_start_offset = 0U;
+  if (out_size != NULL) *out_size = 0U;
+  if (code == NULL) return -1;
+  for (index = 0U; index < code->layout_range_count; ++index) {
+    const PlatformMacosCodeRange *range = &code->layout_ranges[index];
+    if (range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE && range->entrypoint) {
+      if (out_start_offset != NULL) *out_start_offset = range->start_offset;
+      if (out_size != NULL) *out_size = range->size;
+      return 0;
+    }
+  }
+  return 1;
+}
+
+const char *platform_macos_code_range_kind_name(uint8_t kind) {
+  switch (kind) {
+    case PLATFORM_MACOS_CODE_RANGE_METADATA: return "metadata";
+    case PLATFORM_MACOS_CODE_RANGE_DATA: return "data";
+    case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE: return "candidate_code";
+    case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE: return "confirmed_code";
+    case PLATFORM_MACOS_CODE_RANGE_DEFERRED: return "deferred";
+    default: return "none";
+  }
+}
+
+const char *platform_macos_code_range_evidence_name(uint8_t evidence) {
+  switch (evidence) {
+    case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA: return "code0_jump_table_metadata";
+    case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER: return "nonzero_code_segment_header";
+    case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY: return "prefix_before_stack_entry";
+    case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0: return "m68k_movea_l_stack_to_a0_entry";
+    case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY: return "missing_m68k_movea_l_stack_to_a0_entry";
+    default: return "none";
+  }
+}
+
 static void parse_code_metadata(PlatformMacosResourceInfo *resource, const unsigned char *data) {
   if (resource->type[0] != 'C' || resource->type[1] != 'O' ||
       resource->type[2] != 'D' || resource->type[3] != 'E') {
     return;
   }
-  if (resource->resource_id == 0 && resource->payload_size >= 16U) {
-    resource->code.kind = PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT;
-    resource->code.above_a5_size = read_u32be_at(data, resource->payload_offset);
-    resource->code.below_a5_size = read_u32be_at(data, resource->payload_offset + 4U);
-    resource->code.jump_table_length = read_u32be_at(data, resource->payload_offset + 8U);
-    resource->code.jump_table_offset_from_a5 = read_u32be_at(data, resource->payload_offset + 12U);
-    return;
-  }
-  resource->code.kind = PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT;
-  if (resource->payload_size >= 4U) {
-    resource->code.first_jump_table_entry_offset = read_u16be_at(data, resource->payload_offset);
-    resource->code.jump_table_entry_count = read_u16be_at(data, resource->payload_offset + 2U);
-  }
+  (void)platform_macos_code_metadata_parse(data + resource->payload_offset, resource->payload_size,
+    resource->resource_id, &resource->code);
 }
 
 int platform_macos_resource_fork_parse(const unsigned char *data, size_t size,

@@ -143,6 +143,7 @@ static int macos_append_fork_summary(JsonBuilder *builder, const char *name,
 
 static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosCodeMetadata *code) {
   const char *kind = "none";
+  size_t index;
   if (code == NULL) return -1;
   if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT)
     kind = "jump_table_segment";
@@ -153,13 +154,26 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosC
       json_builder_appendf(builder,
         ",\"above_a5_size\":%u,\"below_a5_size\":%u,\"jump_table_length\":%u,"
         "\"jump_table_offset_from_a5\":%u,\"first_jump_table_entry_offset\":%u,"
-        "\"jump_table_entry_count\":%u}",
+        "\"jump_table_entry_count\":%u,\"layout_ranges\":[",
         (unsigned)code->above_a5_size, (unsigned)code->below_a5_size,
         (unsigned)code->jump_table_length, (unsigned)code->jump_table_offset_from_a5,
         (unsigned)code->first_jump_table_entry_offset, (unsigned)code->jump_table_entry_count) != 0) {
     return -1;
   }
-  return 0;
+  for (index = 0U; index < code->layout_range_count; ++index) {
+    const PlatformMacosCodeRange *range = &code->layout_ranges[index];
+    if (index > 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":") != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_kind_name(range->kind)) != 0 ||
+        json_builder_appendf(builder, ",\"start\":%u,\"size\":%u,\"end\":%u,\"entrypoint\":%s,\"evidence\":",
+          (unsigned)range->start_offset, (unsigned)range->size,
+          (unsigned)(range->start_offset + range->size), range->entrypoint ? "true" : "false") != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_evidence_name(range->evidence)) != 0 ||
+        json_builder_append(builder, "}") != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]}");
 }
 
 static int macos_copy_resource_name(char *buf, size_t buf_size, const PlatformMacosResourceFork *resource_fork_info,
@@ -259,6 +273,7 @@ static int macos_append_selected_code(JsonBuilder *builder, const PlatformMacosR
   const PlatformMacosResourceInfo *selected_resource = macos_find_resource(resources, resource_count, "CODE", 1);
   uint32_t payload_offset = 0U;
   uint32_t payload_size = 0U;
+  uint32_t code_start = 0U;
   uint32_t code_offset = 0U;
   uint32_t code_size = 0U;
   char payload_sha256[65];
@@ -275,9 +290,9 @@ static int macos_append_selected_code(JsonBuilder *builder, const PlatformMacosR
     return -1;
   }
   if (m68k_platform_sha256_hex(resource_fork + payload_offset, payload_size, payload_sha256) != 0) return -1;
-  if (payload_size > 4U) {
-    code_offset = payload_offset + 4U;
-    code_size = payload_size - 4U;
+  if (selected_resource != NULL &&
+      platform_macos_code_metadata_executable_range(&selected_resource->code, &code_start, &code_size) == 0) {
+    code_offset = payload_offset + code_start;
     if (m68k_platform_sha256_hex(resource_fork + code_offset, code_size, code_sha256) != 0) return -1;
   } else {
     code_offset = payload_offset + payload_size;
@@ -294,6 +309,10 @@ static int macos_append_selected_code(JsonBuilder *builder, const PlatformMacosR
       json_builder_appendf(builder, ",\"code_bytes_offset\":%u,\"code_bytes_size\":%u,\"code_bytes_sha256\":",
         (unsigned)code_offset, (unsigned)code_size) != 0 ||
       json_builder_append_json_string(builder, code_sha256) != 0 ||
+      json_builder_append(builder, ",\"code\":") != 0 ||
+      (selected_resource != NULL
+        ? macos_append_code_metadata(builder, &selected_resource->code)
+        : json_builder_append(builder, "null")) != 0 ||
       json_builder_append(builder, "}") != 0) {
     return -1;
   }
@@ -451,7 +470,9 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_resource_bytes_alloc(const un
   char path[PLATFORM_MACOS_HFS_PATH_SIZE];
   uint32_t payload_offset = 0U;
   uint32_t payload_size = 0U;
+  uint32_t code_start = 0U;
   uint32_t code_size = 0U;
+  PlatformMacosCodeMetadata code;
   size_t index;
   int find_status;
   int result = -1;
@@ -509,17 +530,21 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_resource_bytes_alloc(const un
       : "Mac CODE resource payload lookup failed");
     goto cleanup;
   }
-  if (payload_size <= 4U) {
-    *out_error = m68k_platform_dup_string("Mac CODE resource has no code bytes after segment header");
+  if (platform_macos_code_metadata_parse(resource_fork + payload_offset, payload_size,
+      (int16_t)resource_id, &code) != 0) {
+    *out_error = m68k_platform_dup_string("Mac CODE resource layout parse failed");
     goto cleanup;
   }
-  code_size = payload_size - 4U;
+  if (platform_macos_code_metadata_executable_range(&code, &code_start, &code_size) != 0) {
+    *out_error = m68k_platform_dup_string("Mac CODE resource has no confirmed executable range");
+    goto cleanup;
+  }
   code_bytes = (unsigned char *)malloc(code_size);
   if (code_bytes == NULL) {
     *out_error = m68k_platform_dup_string("out of memory");
     goto cleanup;
   }
-  memcpy(code_bytes, resource_fork + payload_offset + 4U, code_size);
+  memcpy(code_bytes, resource_fork + payload_offset + code_start, code_size);
   *out_data = code_bytes;
   *out_size = code_size;
   code_bytes = NULL;

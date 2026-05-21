@@ -78,10 +78,15 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   name: Main
 ;   fork: resource
 ;   payload_size: 29024
-;   code_bytes_size: 29020
+;   code_entry_offset: 40
+;   code_bytes_size: 28984
 ;   payload_sha256: 4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
-;   code_bytes_sha256: 8948bcb8d95230645f871a625e8eeec30e4d4ba1e10fa9181c8bd490e91a1333
-;   listing_rows: 1828
+;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
+;   classified_layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header
+;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry
+;     confirmed_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry
+;   listing_rows: 1819
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
 ; OS compatibility
@@ -89,15 +94,6 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 
     SECTION code,code
 loc_0_00000000:
-	ori.b #16,d0
-	ori.b #114,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
-	ori.b #0,d0
 	movea.l (a7)+,a0
 	move.l a7,d0
 	sub.l $0114.w,d0

@@ -5,12 +5,39 @@
 #include <stdint.h>
 
 #define PLATFORM_MACOS_RESOURCE_TYPE_SIZE 5U
+#define PLATFORM_MACOS_CODE_LAYOUT_RANGE_CAPACITY 8U
 
 typedef enum PlatformMacosCodeResourceKind {
   PLATFORM_MACOS_CODE_RESOURCE_NONE = 0,
   PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT = 1,
   PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT = 2
 } PlatformMacosCodeResourceKind;
+
+typedef enum PlatformMacosCodeRangeKind {
+  PLATFORM_MACOS_CODE_RANGE_NONE = 0,
+  PLATFORM_MACOS_CODE_RANGE_METADATA = 1,
+  PLATFORM_MACOS_CODE_RANGE_DATA = 2,
+  PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE = 3,
+  PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE = 4,
+  PLATFORM_MACOS_CODE_RANGE_DEFERRED = 5
+} PlatformMacosCodeRangeKind;
+
+typedef enum PlatformMacosCodeRangeEvidence {
+  PLATFORM_MACOS_CODE_EVIDENCE_NONE = 0,
+  PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA = 1,
+  PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER = 2,
+  PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY = 3,
+  PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0 = 4,
+  PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY = 5
+} PlatformMacosCodeRangeEvidence;
+
+typedef struct PlatformMacosCodeRange {
+  uint8_t kind;
+  uint8_t evidence;
+  uint8_t entrypoint;
+  uint32_t start_offset;
+  uint32_t size;
+} PlatformMacosCodeRange;
 
 typedef struct PlatformMacosResourceForkHeader {
   uint32_t resource_data_offset;
@@ -27,6 +54,8 @@ typedef struct PlatformMacosCodeMetadata {
   uint32_t jump_table_offset_from_a5;
   uint16_t first_jump_table_entry_offset;
   uint16_t jump_table_entry_count;
+  size_t layout_range_count;
+  PlatformMacosCodeRange layout_ranges[PLATFORM_MACOS_CODE_LAYOUT_RANGE_CAPACITY];
 } PlatformMacosCodeMetadata;
 
 typedef struct PlatformMacosResourceTypeInfo {
@@ -60,5 +89,11 @@ int platform_macos_resource_fork_parse(const unsigned char *data, size_t size,
 int platform_macos_resource_fork_find_payload(const unsigned char *data,
   size_t size, const char *resource_type, int16_t resource_id,
   uint32_t *out_payload_offset, uint32_t *out_payload_size);
+int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t payload_size,
+  int16_t resource_id, PlatformMacosCodeMetadata *out_code);
+int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadata *code,
+  uint32_t *out_start_offset, uint32_t *out_size);
+const char *platform_macos_code_range_kind_name(uint8_t kind);
+const char *platform_macos_code_range_evidence_name(uint8_t evidence);
 
 #endif

@@ -902,7 +902,7 @@ artifact is partial because it inventories all CODE resources but renders only
 CODE 1, and its CODE 1 listing begins by decoding metadata/data as instructions.
 ```
 
-012-019. Mac CODE segment layout and code-island classification - open
+012-019. Mac CODE segment layout and code-island classification - implemented
 
 ```text
 Replace the flat `payload + 4` CODE extraction assumption with a C-backed Mac
@@ -911,6 +911,11 @@ data islands, executable islands, entrypoints, and unresolved areas. If the
 available MPW/Inside Mac context is insufficient, record the deferral with the
 evidence needed to resume; do not decode uncertain bytes as code and call the
 result implemented.
+
+The first implemented classifier now exposes metadata/data/confirmed-code and
+deferred ranges and moves selected CODE 1 extraction to the confirmed
+`movea.l (a7)+,a0` entrypoint at payload offset 40. Complete post-entry island
+splitting remains with 012-021's whole-resource coverage work.
 ```
 
 012-020. Mac OS assembly-style listing backend - open
@@ -1251,6 +1256,15 @@ resources documentation coverage tests
   Corrective issues 012-019 through 012-021 now require CODE layout
   classification, Mac OS assembly-style rendering, and whole-resource target
   coverage before closeout.
+- 012-019 added the first durable C-backed CODE segment layout classifier.
+  `CODE 0` is metadata-only; nonzero CODE resources now expose explicit
+  metadata/data/confirmed-code/deferred ranges with evidence. The MPW `Asm`
+  CODE 1 selected executable range now starts at payload offset 40, where the
+  observed Segment Loader stack-entry pattern renders as `movea.l (a7)+,a0`,
+  and selected extraction refuses resources that have no confirmed executable
+  range. This fixes the false `payload + 4` entry boundary but does not yet
+  interpret relocations/fixups or split every post-entry code/data island; those
+  remain in the Mac-style and whole-resource rendering issues.
 
 ## Open Questions
 
@@ -1282,8 +1296,6 @@ Current state:
 
 Open corrective scope before proposal closeout:
 
-- Parse/classify Mac CODE segment layout instead of treating nonzero CODE as
-  flat code bytes.
 - Render Mac targets through Mac OS style source, not Amiga raw assembly.
 - Cover every `Asm` CODE resource as rendered code or explicitly deferred
   structured placeholder.

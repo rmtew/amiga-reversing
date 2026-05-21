@@ -114,12 +114,39 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
     assert selected["id"] == 1
     assert selected["role"] == "code_segment"
     assert selected["code_header_size"] == 4
-    assert selected["code_bytes_size"] == 29020
+    assert selected["code_entry_offset"] == 40
+    assert selected["code_bytes_size"] == 28984
+    assert selected["code_layout"][:3] == [
+        {
+            "kind": "metadata",
+            "start": 0,
+            "size": 4,
+            "end": 4,
+            "entrypoint": False,
+            "evidence": "nonzero_code_segment_header",
+        },
+        {
+            "kind": "data",
+            "start": 4,
+            "size": 36,
+            "end": 40,
+            "entrypoint": False,
+            "evidence": "prefix_before_stack_entry",
+        },
+        {
+            "kind": "confirmed_code",
+            "start": 40,
+            "size": 28984,
+            "end": 29024,
+            "entrypoint": True,
+            "evidence": "m68k_movea_l_stack_to_a0_entry",
+        },
+    ]
     assert selected["listing_preview"][:4] == [
-        {"offset": 0, "bytes": "00 00", "directive": "dc.w", "value": "$0000"},
-        {"offset": 2, "bytes": "00 10", "directive": "dc.w", "value": "$0010"},
-        {"offset": 4, "bytes": "00 00", "directive": "dc.w", "value": "$0000"},
-        {"offset": 6, "bytes": "00 72", "directive": "dc.w", "value": "$0072"},
+        {"offset": 0, "bytes": "20 5F", "directive": "dc.w", "value": "$205F"},
+        {"offset": 2, "bytes": "20 0F", "directive": "dc.w", "value": "$200F"},
+        {"offset": 4, "bytes": "90 B8", "directive": "dc.w", "value": "$90B8"},
+        {"offset": 6, "bytes": "01 14", "directive": "dc.w", "value": "$0114"},
     ]
     assert container["unsupported"] == [
         "relocation/fixups",
@@ -149,5 +176,5 @@ def test_code1_main_is_decodable_by_existing_m68k_listing_backend(tmp_path: Path
     listing = render_project_source_with_c_backend(source)
 
     assert "SECTION code,code" in listing
-    assert "ori.b #16,d0" in listing
+    assert "ori.b #16,d0" not in listing
     assert "movea.l (a7)+,a0" in listing

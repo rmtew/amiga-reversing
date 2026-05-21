@@ -97,6 +97,9 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
     code_resources = _sequence(resource_summary.get("code_resources"))
     code0 = _code_resource_by_id(code_resources, 0)
     selected = _mapping(c_summary.get("selected_code"))
+    selected_code = _mapping(selected.get("code"))
+    code_bytes_offset = selected.get("code_bytes_offset")
+    payload_offset = selected.get("payload_offset")
     selected_id = selected.get("id", 1)
     selected_resource = _code_resource_by_id(code_resources, selected_id if isinstance(selected_id, int) else 1)
     selected_name = selected_resource.get("name") or selected.get("name")
@@ -127,7 +130,14 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
             "role": "code_segment",
             "available": selected.get("available"),
             "payload_size": selected.get("payload_size"),
+            "code_bytes_offset": code_bytes_offset,
+            "code_entry_offset": (
+                code_bytes_offset - payload_offset
+                if isinstance(code_bytes_offset, int) and isinstance(payload_offset, int)
+                else None
+            ),
             "code_bytes_size": selected.get("code_bytes_size"),
+            "code_layout": _sequence(selected_code.get("layout_ranges")),
             "sha256": selected.get("payload_sha256"),
             "code_bytes_sha256": selected.get("code_bytes_sha256"),
             "resource": selected_resource,

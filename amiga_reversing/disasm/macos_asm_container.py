@@ -10,6 +10,7 @@ from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_bytes_with_c_backend,
+    inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_fork_roles import (
     classify_inventory_item,
@@ -52,7 +53,10 @@ def import_mpw_asm_container(
     ]
     code0 = _single_code_resource(code_resources, 0)
     code1 = _single_code_resource(code_resources, 1)
-    code1_payload = resource_payload(resource_fork, "CODE", 1)
+    c_summary = inspect_macos_hfs_code_summary_with_c_backend(hfs_bytes, path)
+    selected = c_summary["selected_code"]
+    code1_code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(hfs_bytes, path, 1)
+    code_entry_offset = int(selected["code_bytes_offset"]) - int(selected["payload_offset"])
 
     return {
         "platform": "macos",
@@ -97,9 +101,11 @@ def import_mpw_asm_container(
             "role": "code_segment",
             "payload_size": code1.get("size"),
             "code_header_size": 4,
-            "code_bytes_size": max(0, len(code1_payload) - 4),
+            "code_entry_offset": code_entry_offset,
+            "code_bytes_size": selected.get("code_bytes_size"),
+            "code_layout": selected.get("code", {}).get("layout_ranges", []),
             "sha256": code1.get("sha256"),
-            "listing_preview": _code_listing_preview(code1_payload[4:], max_words=8),
+            "listing_preview": _code_listing_preview(code1_code_bytes, max_words=8),
         },
         "unsupported": list(UNSUPPORTED_SEGMENT_LOADER_AREAS),
     }

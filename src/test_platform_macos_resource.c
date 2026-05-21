@@ -48,17 +48,21 @@ static size_t make_two_code_resource_fork(unsigned char *data, size_t data_size)
   size_t ref_list = type_list + 10U;
   if (data_size < map_offset + map_length) return 0U;
   memset(data, 0, data_size);
-  put_resource_header(data, data_offset, map_offset, 30U, map_length);
+  put_resource_header(data, data_offset, map_offset, 38U, map_length);
   put_u32(data, data_offset, 16U);
   put_u32(data, code0_payload, 32U);
   put_u32(data, code0_payload + 4U, 64U);
   put_u32(data, code0_payload + 8U, 8U);
   put_u32(data, code0_payload + 12U, 32U);
-  put_u32(data, code1_record, 6U);
+  put_u32(data, code1_record, 14U);
   put_u16(data, code1_payload, 4U);
   put_u16(data, code1_payload + 2U, 2U);
-  data[code1_payload + 4U] = 0x4E;
-  data[code1_payload + 5U] = 0x75;
+  put_u32(data, code1_payload + 4U, 0x00000010U);
+  put_u16(data, code1_payload + 8U, 0U);
+  data[code1_payload + 10U] = 0x20;
+  data[code1_payload + 11U] = 0x5F;
+  data[code1_payload + 12U] = 0x4E;
+  data[code1_payload + 13U] = 0x75;
 
   put_u16(data, map_offset + 24U, 28U);
   put_u16(data, map_offset + 26U, 58U);
@@ -95,9 +99,24 @@ static int test_resource_fork_parses_code_metadata(void) {
   M68K_C_ASSERT_U32(64U, resources[0].code.below_a5_size);
   M68K_C_ASSERT_U32(8U, resources[0].code.jump_table_length);
   M68K_C_ASSERT_U32(32U, resources[0].code.jump_table_offset_from_a5);
+  M68K_C_ASSERT_U32(1U, resources[0].code.layout_range_count);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_METADATA, resources[0].code.layout_ranges[0].kind);
+  M68K_C_ASSERT_U32(0U, resources[0].code.layout_ranges[0].start_offset);
+  M68K_C_ASSERT_U32(16U, resources[0].code.layout_ranges[0].size);
   M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT, resources[1].code.kind);
   M68K_C_ASSERT_U32(4U, resources[1].code.first_jump_table_entry_offset);
   M68K_C_ASSERT_U32(2U, resources[1].code.jump_table_entry_count);
+  M68K_C_ASSERT_U32(3U, resources[1].code.layout_range_count);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_METADATA, resources[1].code.layout_ranges[0].kind);
+  M68K_C_ASSERT_U32(0U, resources[1].code.layout_ranges[0].start_offset);
+  M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[0].size);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_DATA, resources[1].code.layout_ranges[1].kind);
+  M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[1].start_offset);
+  M68K_C_ASSERT_U32(6U, resources[1].code.layout_ranges[1].size);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE, resources[1].code.layout_ranges[2].kind);
+  M68K_C_ASSERT_U32(10U, resources[1].code.layout_ranges[2].start_offset);
+  M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[2].size);
+  M68K_C_ASSERT_U32(1U, resources[1].code.layout_ranges[2].entrypoint);
   return 0;
 }
 
@@ -110,13 +129,31 @@ static int test_resource_fork_finds_selected_payload_bounds(void) {
   M68K_C_ASSERT_INT(0, platform_macos_resource_fork_find_payload(data, size, "CODE", 1, &payload_offset,
     &payload_size));
   M68K_C_ASSERT_U32(0x118U, payload_offset);
-  M68K_C_ASSERT_U32(6U, payload_size);
+  M68K_C_ASSERT_U32(14U, payload_size);
   M68K_C_ASSERT_U32(0x00, data[payload_offset]);
   M68K_C_ASSERT_U32(0x04, data[payload_offset + 1U]);
-  M68K_C_ASSERT_U32(0x4E, data[payload_offset + 4U]);
-  M68K_C_ASSERT_U32(0x75, data[payload_offset + 5U]);
+  M68K_C_ASSERT_U32(0x20, data[payload_offset + 10U]);
+  M68K_C_ASSERT_U32(0x5F, data[payload_offset + 11U]);
   M68K_C_ASSERT_INT(1, platform_macos_resource_fork_find_payload(data, size, "CODE", 2, &payload_offset,
     &payload_size));
+  return 0;
+}
+
+static int test_code_layout_defers_nonzero_payload_without_entry(void) {
+  unsigned char data[512];
+  PlatformMacosResourceFork fork;
+  PlatformMacosResourceInfo resources[2];
+  size_t size = make_two_code_resource_fork(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  data[0x118U + 10U] = 0x4E;
+  data[0x118U + 11U] = 0x75;
+  M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
+  M68K_C_ASSERT_U32(2U, resources[1].code.layout_range_count);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_METADATA, resources[1].code.layout_ranges[0].kind);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_DEFERRED, resources[1].code.layout_ranges[1].kind);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, resources[1].code.layout_ranges[1].evidence);
+  M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[1].start_offset);
+  M68K_C_ASSERT_U32(10U, resources[1].code.layout_ranges[1].size);
   return 0;
 }
 
@@ -134,6 +171,7 @@ int m68k_c_platform_macos_resource_tests(void) {
   static const M68kCTestCase cases[] = {
     {"resource_fork_parses_code_metadata", test_resource_fork_parses_code_metadata},
     {"resource_fork_finds_selected_payload_bounds", test_resource_fork_finds_selected_payload_bounds},
+    {"code_layout_defers_nonzero_payload_without_entry", test_code_layout_defers_nonzero_payload_without_entry},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
   };
   return m68k_c_test_run_suite("platform_macos_resource", cases, sizeof(cases) / sizeof(cases[0]));

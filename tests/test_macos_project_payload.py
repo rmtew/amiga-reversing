@@ -52,10 +52,32 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "selected_code": {
                 "available": True,
                 "id": 1,
+                "payload_offset": 100,
                 "payload_size": 6,
+                "code_bytes_offset": 104,
                 "code_bytes_size": 2,
                 "payload_sha256": "payload-hash",
                 "code_bytes_sha256": "code-hash",
+                "code": {
+                    "layout_ranges": [
+                        {
+                            "kind": "metadata",
+                            "start": 0,
+                            "size": 4,
+                            "end": 4,
+                            "entrypoint": False,
+                            "evidence": "nonzero_code_segment_header",
+                        },
+                        {
+                            "kind": "confirmed_code",
+                            "start": 4,
+                            "size": 2,
+                            "end": 6,
+                            "entrypoint": True,
+                            "evidence": "m68k_movea_l_stack_to_a0_entry",
+                        },
+                    ]
+                },
             },
             "unsupported": ["segment_loader_relocations"],
         }
@@ -97,6 +119,8 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
     assert container["kind"] == "hfs_resource_code_file"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
+    assert container["selected_code_segment"]["code_entry_offset"] == 4
+    assert container["selected_code_segment"]["code_layout"][1]["kind"] == "confirmed_code"
     assert container["selected_code_segment"]["listing"] == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
@@ -155,5 +179,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28
-    assert container["selected_code_segment"]["code_bytes_size"] == 29020
+    assert container["selected_code_segment"]["code_entry_offset"] == 40
+    assert container["selected_code_segment"]["code_bytes_size"] == 28984
+    assert container["selected_code_segment"]["code_layout"][2]["kind"] == "confirmed_code"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()
