@@ -1,4 +1,4 @@
-Status: implemented
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -34,6 +34,8 @@ Acceptance:
 Blocked by:
 - Resolved by completing and reviewing reopened blocker-removal issues
   `017-024` and `017-025`.
+- Reopened again by review findings `017-028`, `017-029`, and the required
+  Pandora exercise pass `017-030`.
 
 Previous rerun:
 - Reran `immediate-ref-report`, `a5-hardware-report`,
@@ -111,3 +113,7 @@ Reopened verification:
 - Focused RSSET report/API tests for the 017-025 hardening.
 - `cmd /c src\precommit.bat`
 - Compact 017-027 Pandora rerun through the Python report APIs.
+
+Current state:
+- This issue is blocked again. Do not close 017 until `017-028`, `017-029`, and
+  `017-030` are implemented and reviewed, then rerun the same gate set.

@@ -1,8 +1,8 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: closed after reopened 017-025 catalog hardening and refreshed 017-027
-rerun. No command-backed, verifier-backed, exact-round-trip Pandora
-source-converging mutation remains.
+Status: active after review. The refreshed 017-027 rerun found no remaining
+command-backed mutation, but review reopened verifier hardening and a required
+Pandora exercise pass before final closeout.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -79,6 +79,9 @@ measured blocker needed for that improvement.
 25. `017-025`: accepted RSSET app-base evidence for raw A6 candidates.
 26. `017-026`: source-offset immediate-reference policy and verifier path.
 27. `017-027`: rerun gate and independent 017 regression review.
+28. `017-028`: A5 entry-comment source-output verifier hardening.
+29. `017-029`: RSSET accepted-evidence conflict-shape hardening.
+30. `017-030`: Pandora exercise pass over the reopened 017 surfaces.
 
 ## Current Gate State
 
@@ -124,7 +127,7 @@ run-one dry run:
   literal representation candidates
 ```
 
-This is the refreshed 017 closeout gate after the reopened work:
+This is the refreshed 017 gate snapshot after the reopened work:
 
 - `017-024`: implemented exact address-mode-preserving A5 rendering for the
   existing zero-displacement accepted ref by projecting a generated entry
@@ -135,6 +138,19 @@ This is the refreshed 017 closeout gate after the reopened work:
   `rsset_app_base` provenance exists.
 - `017-027`: reran the current gates after the reopened 017-025 fix; no
   command-backed, verifier-backed source-converging mutation remains.
+
+Review reopened the track before final closeout:
+
+- `017-028`: the A5 entry-comment verifier must prove the generated source text
+  contains the generated comment, not pass from listing/UI comment state.
+- `017-029`: accepted RSSET base evidence must require an explicit empty
+  `conflicts` sequence; missing or malformed conflict state is not accepted
+  evidence.
+- `017-030`: after those fixes, do a demonstrable Pandora editing pass over the
+  related source-converging surfaces, not just the new verifier changes. It
+  should use the real target to exercise review/action discovery, candidate
+  reports, command catalog entries, accepted/edit-blocked paths, verification,
+  and source evidence capture before rerunning `017-027`.
 
 The deferred `017-006` performance issue remains conditional; use it only when
 a measured slow phase crosses its investigation threshold during active 017
@@ -156,9 +172,8 @@ accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
 when the generic planner has no candidate. Use `017-010` if low-value
 representation work repeatedly masks those higher-value blocked families.
 
-The current continuation is complete: `017-024` implemented
-address-mode-preserving A5 rendering, `017-025` hardened RSSET base-evidence
-blocking, and `017-027` reran the gates after both.
+For the current reopened continuation, do `017-028`, then `017-029`, then
+`017-030`. Rerun `017-027` only after those are implemented and reviewed.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
