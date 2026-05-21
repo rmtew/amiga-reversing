@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -115,5 +115,27 @@ Reopened verification:
 - Compact 017-027 Pandora rerun through the Python report APIs.
 
 Current state:
-- This issue is blocked again. Do not close 017 until `017-028`, `017-029`, and
-  `017-030` are implemented and reviewed, then rerun the same gate set.
+- Final rerun after `017-028`, `017-029`, and `017-030` is complete.
+- `immediate-ref-report`: 9 candidates, 0 command candidates, all report-only
+  source-offset candidates.
+- `a5-hardware-report`: 20 accepted path/lifetime evidence entries, 0 fresh
+  command candidates, blocked only by missing command candidate after already
+  recorded manual-state refs.
+- `rsset-candidate-report`: 125 candidates from 994 A6 uses; status counts are
+  `blocked=124` and `already_recorded=1`. Top active `rsset-raw-a6:022E`
+  remains blocked with `accepted_base_evidence_count=0` and
+  `catalog_state=report_only_same_displacement_app_slot_not_base_evidence`.
+- `inspect`: no candidate work, verification paths available, and round-trip
+  status `exact`.
+- `run-one --dry-run`: `action=null`, `planner.status=no_candidate`, and
+  `planner.message=no supported source-converging command candidate`.
+- Dry-run ranked candidates are 221 generic class/address data-symbol names and
+  4 low-value literal representation candidates; these remain non-progress
+  under 017 rules.
+- Proposal 017 is closed because no command-backed, verifier-backed,
+  exact-round-trip Pandora source-converging mutation remains.
+
+Final verification:
+- Focused A5 entry-comment verifier tests: 3 passed.
+- Focused RSSET candidate-report tests: 10 passed.
+- `cmd /c src\precommit.bat`: passed.

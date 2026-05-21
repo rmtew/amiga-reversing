@@ -1,8 +1,8 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: active after review. The refreshed 017-027 rerun found no remaining
-command-backed mutation, but review reopened verifier hardening and a required
-Pandora exercise pass before final closeout.
+Status: closed after the final 017-027 rerun. The reopened verifier hardening
+and Pandora exercise pass found no remaining command-backed, verifier-backed,
+exact-round-trip source-converging Pandora mutation.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -85,7 +85,7 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The refreshed 017-027 rerun after reopened 017-025 catalog hardening recorded
+The final 017-027 rerun after `017-028`, `017-029`, and `017-030` recorded
 this Pandora surface:
 
 ```text
@@ -117,17 +117,27 @@ rsset-candidate-report:
 
 inspect:
   candidate_work_count=0
-  review_state=clear
   round_trip_status=exact
 
 run-one dry run:
   action=null
+  planner_status=no_candidate
   planner_message=no supported source-converging command candidate
-  remaining candidates are 221 generic data-symbol names and 4 low-value
-  literal representation candidates
+  ranked_candidates=225
+  remaining candidates are 221 generic class/address data-symbol names and
+  4 low-value literal representation candidates
 ```
 
-This is the refreshed 017 gate snapshot after the reopened work:
+Final verification:
+
+```text
+focused A5 entry-comment tests: 3 passed
+focused RSSET candidate-report tests: 10 passed
+cmd /c src\precommit.bat: passed
+round_trip_status: exact
+```
+
+This is the final 017 gate snapshot after the reopened work:
 
 - `017-024`: implemented exact address-mode-preserving A5 rendering for the
   existing zero-displacement accepted ref by projecting a generated entry
@@ -151,6 +161,10 @@ Review reopened the track before final closeout:
   should use the real target to exercise review/action discovery, candidate
   reports, command catalog entries, accepted/edit-blocked paths, verification,
   and source evidence capture before rerunning `017-027`.
+
+The reopened track is now complete. `017-027` reran the gate set after
+`017-028`, `017-029`, and `017-030`; no source-converging mutation remains
+available without new evidence or new policy/tooling.
 
 The deferred `017-006` performance issue remains conditional; use it only when
 a measured slow phase crosses its investigation threshold during active 017
@@ -433,3 +447,6 @@ repeatable work to `docs\issues\017-*`.
   verifier and exact round-trip, RSSET `s0:000006E4` / `$022E` remains blocked
   by missing accepted app-base evidence, and immediate `s0:000009A6` remains
   report-only source-offset evidence. No new safe mutation was available.
+- Final 017-027 rerun after the reopened work matched the exercise pass:
+  immediate refs, A5 refs, RSSET, inspect, dry-run planner, focused tests, and
+  precommit all agree that no command-backed Pandora mutation remains.
