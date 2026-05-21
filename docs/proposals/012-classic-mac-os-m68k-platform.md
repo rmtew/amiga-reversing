@@ -1,7 +1,8 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: in progress; C-backed Mac project payload and selected CODE listing
-path implemented, committed example target/framework closeout still open.
+Status: in progress; C-backed Mac project payload, selected CODE listing path,
+and framework cleanup are implemented. The committed example target remains
+open.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -869,7 +870,7 @@ Render selected nonzero CODE resources as actual m68k listing rows in the web
 UI, not just a word preview in a container summary.
 ```
 
-012-017. Core platform framework cleanup - blocked
+012-017. Core platform framework cleanup - implemented
 
 ```text
 Remove any Mac-only side paths discovered during implementation by extending
@@ -1158,6 +1159,13 @@ resources documentation coverage tests
   resource/fork/hash/unsupported metadata linked from the container summary.
   The listing is still a selected CODE-segment view, not complete Segment
   Loader reconstruction or full executable roundtrip.
+- 012-017 reviewed the Mac project/listing path for framework cleanup after the
+  C-backed and web/listing slices landed. The remaining stale starter-only web
+  contract expected `generation: "macos_starter"` and the old
+  `renderClassicMacProject(projectData)` signature; tests now assert the normal
+  listing-backed render signature and absence of the starter generation literal.
+  A compatibility-name scan found no remaining `classic_macos` Python/JS/test
+  usage.
 
 ## Open Questions
 

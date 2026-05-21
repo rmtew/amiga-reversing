@@ -430,12 +430,12 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
     styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
 
-    assert "function renderClassicMacProject(projectData)" in app_js
+    assert "function renderClassicMacProject(projectData, listing = null)" in app_js
     assert "function renderClassicMacSourceView(sourceView)" in app_js
     assert "function renderClassicMacContainerView(containerView)" in app_js
     assert "function renderClassicMacBoundary(boundary)" in app_js
     assert "projectData.macos" in app_js
-    assert 'generation: "macos_starter"' in app_js
+    assert 'generation: "macos_starter"' not in app_js
     assert 'data-macos-panel="source"' in app_js
     assert 'data-macos-panel="container"' in app_js
     assert 'data-macos-panel="unsupported"' in app_js

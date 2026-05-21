@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -30,12 +30,20 @@ Required tests:
   framework path.
 - Review checklist confirming no Mac-only workaround path remains.
 
-Blocker recorded:
-- Mac still exposes framework gaps: source projects, HFS file/fork containers,
-  resource-fork metadata, selected CODE listing ranges, and unsupported Segment
-  Loader state do not fit the current binary/disk project split cleanly.
-- The clean path is to extend shared framework types before committing a Mac
-  target/API/listing path. A Mac-only compatibility branch or `classic_macos`
-  alias is explicitly rejected.
-- This issue remains blocked until 012-013 defines the durable C-backed Mac
-  container facts and 012-014 defines their normal project/API shape.
+Result:
+- The earlier blocker was removed by 012-013, 012-014, and 012-016: Mac HFS,
+  fork/resource, CODE metadata, normal project payloads, and selected CODE
+  listing rows now flow through C-backed import/listing support and the normal
+  project/listing API.
+- Review found no remaining `classic_macos` compatibility alias in Python/JS
+  source or tests.
+- Cleaned up the stale web source test contract that still expected
+  `renderClassicMacProject(projectData)` and `generation: "macos_starter"`.
+  The test now follows the normal listing-backed Mac render signature and
+  asserts the old starter generation literal is absent.
+- Remaining Mac-specific code is actual Mac semantics or thin wrappers over
+  C-backed HFS/resource/CODE behavior. The committed example target remains
+  separate 012-018 work.
+
+Verification:
+- `uv run python -m pytest tests\test_web_app_source.py -q`
