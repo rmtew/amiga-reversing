@@ -1,4 +1,4 @@
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: 017-015 and 017-019 blocked A5 refs
@@ -37,14 +37,14 @@ Depends on:
 - 017-015 and 017-019 provide the blocked candidate context. They are not
   current blockers for this issue.
 
-Current state:
-- Rerun `a5-hardware-report` found one accepted A5 use blocked by
-  `zero_displacement_a5_operand_requires_address_mode_preserving_rendering`.
-- No source-changing mutation has been taken. A zero-displacement `(a5)` operand
-  cannot be replaced with a symbolic displacement form without changing the
-  encoded 68000 address mode; exact symbolic source would need new
-  address-mode-preserving annotation/render support, not an operand rewrite.
-- Existing command/verifier gates remain blocked for this family, so the
-  accepted semantic evidence stays local/manual and non-rendered.
-- Next action is to inspect the renderer/assembler projection path and decide
-  whether an exact annotation/render form can be implemented.
+Resolution:
+- Implemented address-mode-preserving A5 rendering as a generated entry comment
+  for accepted hardware refs whose symbolic operand would change encoding.
+- The existing Pandora `s0:0000045C` accepted ref now renders the semantic as
+  `A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)` while the
+  instruction remains `move.w (a5),d0`.
+- The verifier now accepts this render mode only when the generated source
+  contains the entry comment and does not contain a symbolic A5 operand such as
+  `dmaconr(a5)`.
+- Normal render-safe A5 refs still use symbolic operand projection. The report
+  marks address-mode-preserving cases as `render_mode=entry_comment`.

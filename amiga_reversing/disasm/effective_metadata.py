@@ -1498,6 +1498,43 @@ def _a5_hardware_ref_representation(ref: Mapping[str, object]) -> ManualRepresen
     )
 
 
+def _a5_hardware_ref_entry_comment(ref: Mapping[str, object]) -> EntryCommentMetadata | None:
+    symbol = _manual_seed_text(ref, "symbol")
+    hunk = _manual_seed_int(ref, "hunk")
+    addr = _manual_seed_int(ref, "addr")
+    displacement = _manual_seed_int(ref, "displacement")
+    custom_base_offset = _manual_seed_int(ref, "custom_base_offset") or 0
+    hardware_register_offset = _manual_seed_int(ref, "hardware_register_offset")
+    if symbol is None or hunk is None or addr is None or displacement is None or hardware_register_offset is None:
+        return None
+    if displacement != 0 and custom_base_offset == 0:
+        return None
+    return EntryCommentMetadata(
+        addr=addr,
+        hunk=hunk,
+        comment=_a5_hardware_ref_entry_comment_text(symbol, hardware_register_offset, displacement),
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation=_manual_action_citation(dict(ref), "a5_hardware_ref_id"),
+        source_id="manual_action_log",
+        source_locator=str(ref.get("a5_hardware_ref_id") or ""),
+    )
+
+
+def _a5_hardware_ref_entry_comment_text(symbol: str, hardware_register_offset: int, displacement: int) -> str:
+    return (
+        f"A5 hardware ref: {symbol} at _custom+${hardware_register_offset:04X}; "
+        f"operand kept as {_a5_displacement_operand_text(displacement)}"
+    )
+
+
+def _a5_displacement_operand_text(displacement: int) -> str:
+    if displacement == 0:
+        return "(a5)"
+    sign = "-" if displacement < 0 else ""
+    return f"{sign}${abs(displacement):04X}(a5)"
+
+
 def _immediate_interpreted_ref_runtime_address_ref(ref: Mapping[str, object]) -> ManualRuntimeAddressRefMetadata | None:
     hunk = _manual_seed_int(ref, "hunk")
     addr = _manual_seed_int(ref, "addr")
@@ -1888,6 +1925,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         a5_representation = _a5_hardware_ref_representation(ref)
         if a5_representation is not None:
             manual_representations.append(a5_representation)
+        a5_entry_comment = _a5_hardware_ref_entry_comment(ref)
+        if a5_entry_comment is not None:
+            entry_comments.append(a5_entry_comment)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     for struct in custom_struct_projections:
         custom_struct = _manual_custom_struct_to_metadata(struct)

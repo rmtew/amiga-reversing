@@ -3590,7 +3590,7 @@ def test_a5_hardware_ref_verifier_requires_accepted_state_and_symbolic_operand(
     assert report["layers"][2]["layer"] == "rendered_source"
 
 
-def test_a5_hardware_ref_render_verifier_blocks_zero_displacement_projection(
+def test_a5_hardware_ref_render_verifier_accepts_zero_displacement_entry_comment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3635,6 +3635,16 @@ def test_a5_hardware_ref_render_verifier_blocks_zero_displacement_projection(
         ),
     )
 
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            row = _a5_use_row(displacement=0)
+            row["comment_text"] = "A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)"
+            row["text"] = "\tmove.w (a5),d0\n"
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
     verification = reversing_loop._verify_projected_a5_hardware_ref_rendered_source(
         "demo",
         command,
@@ -3642,10 +3652,13 @@ def test_a5_hardware_ref_render_verifier_blocks_zero_displacement_projection(
         project_root=tmp_path,
     )
 
-    assert verification["status"] == "failed"
-    assert verification["rendering_blocked_reason"] == (
+    assert verification["status"] == "passed", verification
+    assert verification["render_mode"] == "entry_comment"
+    assert verification["symbol_operand_blocked_reason"] == (
         "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
     )
+    assert verification["matched_symbol_operand"] is False
+    assert verification["matched_symbol_text"] is False
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(
@@ -7107,12 +7120,14 @@ def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:
     assert cfg_use["custom_base_offset"] == 2
     assert cfg_use["hardware_register_offset"] == 2
     assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000"
-    assert cfg_use["rendering_blocked_reason"] == "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
-    assert "parameters" not in cfg_use
-    assert "suggested_action_kinds" not in cfg_use
-    assert report["cfg_path_lifetime_report"]["safe_to_mutate"] is False
-    assert report["cfg_path_lifetime_report"]["rendering_allowed"] is False
-    assert report["cfg_path_lifetime_report"]["rendering_gate"]["command_support"]["command_candidate_count"] == 0
+    assert cfg_use["symbol_operand_blocked_reason"] == "zero_displacement_a5_operand_requires_address_mode_preserving_rendering"
+    assert cfg_use["render_mode"] == "entry_comment"
+    assert cfg_use["parameters"]["render_mode"] == "entry_comment"
+    assert cfg_use["parameters"]["symbol"] == "dmaconr"
+    assert cfg_use["suggested_action_kinds"] == ["a5_hardware_ref.interpret"]
+    assert report["cfg_path_lifetime_report"]["safe_to_mutate"] is True
+    assert report["cfg_path_lifetime_report"]["rendering_allowed"] is True
+    assert report["cfg_path_lifetime_report"]["rendering_gate"]["command_support"]["command_candidate_count"] == 1
 
 
 def test_a5_hardware_lifetime_report_rejects_out_of_range_effective_offset() -> None:
@@ -7146,8 +7161,10 @@ def test_a5_hardware_lifetime_report_accepts_negative_displacement_with_in_range
     assert cfg_use["hardware_register_candidate"] is True
     assert cfg_use["hardware_register_offset"] == 0
     assert cfg_use["source_evidence_id"] == "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d-0002"
-    assert cfg_use["rendering_blocked_reason"] == "nonzero_a5_custom_base_offset_requires_symbol_delta_rendering"
-    assert "parameters" not in cfg_use
+    assert cfg_use["symbol_operand_blocked_reason"] == "nonzero_a5_custom_base_offset_requires_symbol_delta_rendering"
+    assert cfg_use["render_mode"] == "entry_comment"
+    assert cfg_use["parameters"]["render_mode"] == "entry_comment"
+    assert cfg_use["parameters"]["symbol"] == "bltddat"
 
 
 def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -> None:

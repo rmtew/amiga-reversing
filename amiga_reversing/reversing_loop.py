@@ -19,11 +19,15 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
 from amiga_reversing.disasm.callback_slot_report import callback_slot_report
-from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+from amiga_reversing.disasm.effective_metadata import (
+    effective_metadata_file,
+    effective_target_metadata,
+)
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 from amiga_reversing.disasm.target_metadata import SeededEntityMetadata, TargetMetadata
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
@@ -2170,9 +2174,12 @@ def _a5_cfg_conflicting_status(
 
 def _a5_cfg_accepted_status(use: dict[str, object], definition: dict[str, object]) -> dict[str, object]:
     payload = _a5_cfg_status_payload(use, definition, "accepted_custom_base", [], accepted=True)
-    render_blocker = _a5_hardware_ref_render_blocker(payload)
-    if render_blocker is not None:
-        payload["rendering_blocked_reason"] = render_blocker
+    symbol_operand_blocker = _a5_hardware_ref_symbol_operand_blocker(payload)
+    if symbol_operand_blocker is not None:
+        payload["symbol_operand_blocked_reason"] = symbol_operand_blocker
+        payload["render_mode"] = "entry_comment"
+    else:
+        payload["render_mode"] = "symbol_operand"
     parameters = _a5_hardware_ref_parameters(payload)
     if parameters is not None:
         payload["suggested_action_kinds"] = ["a5_hardware_ref.interpret"]
@@ -2329,14 +2336,6 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         return None
     custom_base_offset = custom_base_offset or 0
     hardware_register_offset = hardware_register_offset if hardware_register_offset is not None else custom_base_offset + displacement
-    if _a5_hardware_ref_render_blocker(
-        {
-            "displacement": displacement,
-            "custom_base_offset": custom_base_offset,
-            "hardware_register_offset": hardware_register_offset,
-        }
-    ):
-        return None
     if hardware_register_offset != custom_base_offset + displacement:
         return None
     symbol = _amiga_custom_register_symbol(hardware_register_offset)
@@ -2357,6 +2356,18 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         "custom_base_offset": custom_base_offset,
         "hardware_register_offset": hardware_register_offset,
         "symbol": symbol,
+        "render_mode": _a5_hardware_ref_render_mode(
+            {
+                "displacement": displacement,
+                "custom_base_offset": custom_base_offset,
+            }
+        ),
+        **_a5_hardware_ref_symbol_operand_blocker_payload(
+            {
+                "displacement": displacement,
+                "custom_base_offset": custom_base_offset,
+            }
+        ),
         "hardware_register_address": _AMIGA_CUSTOM_BASE_ADDRESS + hardware_register_offset,
         "definition_locator": candidate.get("definition_locator"),
         "use_locator": dict(use_locator),
@@ -2366,7 +2377,16 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
     }
 
 
-def _a5_hardware_ref_render_blocker(candidate: Mapping[str, object]) -> str | None:
+def _a5_hardware_ref_render_mode(candidate: Mapping[str, object]) -> str:
+    return "entry_comment" if _a5_hardware_ref_symbol_operand_blocker(candidate) is not None else "symbol_operand"
+
+
+def _a5_hardware_ref_symbol_operand_blocker_payload(candidate: Mapping[str, object]) -> dict[str, object]:
+    blocker = _a5_hardware_ref_symbol_operand_blocker(candidate)
+    return {} if blocker is None else {"symbol_operand_blocked_reason": blocker}
+
+
+def _a5_hardware_ref_symbol_operand_blocker(candidate: Mapping[str, object]) -> str | None:
     displacement = _int_or_none(candidate.get("displacement"))
     custom_base_offset = _int_or_none(candidate.get("custom_base_offset")) or 0
     if displacement == 0:
@@ -6965,15 +6985,6 @@ def _verify_projected_a5_hardware_ref_rendered_source(
     if expected is None:
         return {"layer": "rendered_source", "status": "failed", "message": "missing A5 hardware ref payload"}
     render_expected = _project_a5_hardware_ref_state_match(target_id, expected, project_root=project_root) or expected
-    render_blocker = _a5_hardware_ref_render_blocker(render_expected)
-    if render_blocker is not None:
-        return {
-            "layer": "rendered_source",
-            "status": "failed",
-            "message": "A5 hardware ref cannot be projected as an exact symbolic operand yet",
-            "rendering_blocked_reason": render_blocker,
-            "expected_a5_hardware_ref": render_expected,
-        }
     location = _a5_hardware_ref_location(command, render_expected)
     if location is None:
         return {"layer": "rendered_source", "status": "failed", "message": "A5 hardware ref source location missing"}
@@ -6990,6 +7001,16 @@ def _verify_projected_a5_hardware_ref_rendered_source(
     affected = _listing_row_at_source(rows, section_index, source_offset)
     if affected is None:
         return {"layer": "rendered_source", "status": "failed", "message": "affected listing row missing after reload"}
+    symbol_operand_blocker = _a5_hardware_ref_symbol_operand_blocker(render_expected)
+    if symbol_operand_blocker is not None:
+        return _verify_projected_a5_hardware_ref_entry_comment(
+            target_id,
+            affected,
+            render_expected,
+            symbol_operand_blocker,
+            source_offset,
+            project_root=project_root,
+        )
     symbol = expected.get("symbol")
     operand_index = expected.get("operand_index")
     selected_operands = [
@@ -7020,6 +7041,94 @@ def _verify_projected_a5_hardware_ref_rendered_source(
         "affected_rendered_text": rendered_text,
         "selected_operands": selected_operands,
     }
+
+
+def _verify_projected_a5_hardware_ref_entry_comment(
+    target_id: str,
+    affected: Mapping[str, object],
+    expected: dict[str, object],
+    symbol_operand_blocker: str,
+    source_offset: int,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    expected_comment = _a5_hardware_ref_entry_comment_text(expected)
+    rendered_text = str(affected.get("text") or "")
+    symbol = expected.get("symbol")
+    selected_operands = [
+        part
+        for part in _mapping_sequence(affected.get("operand_parts") or affected.get("operandParts"))
+        if part.get("operand_index") == expected.get("operand_index")
+    ]
+    has_symbol_operand = any(
+        part.get("symbol") == symbol
+        or (isinstance(part.get("metadata"), dict) and part["metadata"].get("symbol") == symbol)
+        for part in selected_operands
+    )
+    has_symbol_text = isinstance(symbol, str) and _rendered_source_contains_token(rendered_text, symbol)
+    source_text = ""
+    source_error: str | None = None
+    try:
+        paths = resolve_project_paths(target_id, project_root=project_root)
+        with effective_metadata_file(paths.target_dir) as metadata_path:
+            source_text = render_project_source_with_c_backend(
+                paths.binary_source,
+                metadata_path=metadata_path,
+                project_root=project_root,
+            )
+    except Exception as exc:
+        source_error = str(exc)
+    row_comment = affected.get("comment_text") or affected.get("commentText")
+    actual_comment_text = (
+        expected_comment
+        if expected_comment and expected_comment in source_text
+        else row_comment
+        if isinstance(row_comment, str)
+        else None
+    )
+    symbol_operand_text = f"{symbol}(a5)" if isinstance(symbol, str) else None
+    has_unsafe_symbol_operand_text = bool(symbol_operand_text and symbol_operand_text in source_text)
+    return {
+        "layer": "rendered_source",
+        "status": "passed"
+        if expected_comment
+        and actual_comment_text == expected_comment
+        and not has_symbol_operand
+        and not has_symbol_text
+        and not has_unsafe_symbol_operand_text
+        else "failed",
+        "source_offset": source_offset,
+        "render_mode": "entry_comment",
+        "symbol_operand_blocked_reason": symbol_operand_blocker,
+        "expected_comment_text": expected_comment,
+        "actual_comment_text": actual_comment_text,
+        "expected_symbol": symbol,
+        "matched_symbol_operand": has_symbol_operand,
+        "matched_symbol_text": has_symbol_text,
+        "matched_unsafe_symbol_operand_text": has_unsafe_symbol_operand_text,
+        "source_render_error": source_error,
+        "affected_rendered_text": rendered_text,
+        "selected_operands": selected_operands,
+    }
+
+
+def _a5_hardware_ref_entry_comment_text(ref: Mapping[str, object]) -> str | None:
+    symbol = ref.get("symbol")
+    hardware_register_offset = _int_or_none(ref.get("hardware_register_offset"))
+    displacement = _int_or_none(ref.get("displacement"))
+    if not isinstance(symbol, str) or hardware_register_offset is None or displacement is None:
+        return None
+    return (
+        f"A5 hardware ref: {symbol} at _custom+${hardware_register_offset:04X}; "
+        f"operand kept as {_a5_displacement_operand_text(displacement)}"
+    )
+
+
+def _a5_displacement_operand_text(displacement: int) -> str:
+    if displacement == 0:
+        return "(a5)"
+    sign = "-" if displacement < 0 else ""
+    return f"{sign}${abs(displacement):04X}(a5)"
 
 
 def _a5_hardware_ref_location(

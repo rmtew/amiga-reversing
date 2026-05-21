@@ -117,8 +117,9 @@ This is not a full 017 closeout. It is a completed gate snapshot showing why
 the next 017 work must remove blockers rather than retry the same reports.
 Continue 017 before 012 by working the active blocker-removal issues:
 
-- `017-024`: implement exact address-mode-preserving A5 symbol-delta rendering
-  or narrow the renderer/verifier blocker with code-level evidence.
+- `017-024`: implemented exact address-mode-preserving A5 rendering for the
+  existing zero-displacement accepted ref by projecting a generated entry
+  comment instead of changing operand syntax.
 - `017-025`: actively search for accepted RSSET/app-base evidence from flow,
   xrefs, Manual Action Log state, and target source context; only leave it
   blocked after documenting the specific proof searched for and not found.
@@ -355,10 +356,11 @@ repeatable work to `docs\issues\017-*`.
   closeout; full 017 local/manual reproduction requires Manual Action Log count
   58 with head hash
   `3cbe93c200fd62d091b67c5b096c7b2221e3b57bf30f222272633a4342deed35`.
-- 017-024 remains deferred. The remaining accepted A5 blocker is a
-  zero-displacement `(a5)` use; replacing it with a symbolic displacement would
-  change the encoded address mode, so exact source improvement requires new
-  annotation/render support rather than a normal operand rewrite.
+- 017-024 implemented the address-mode-preserving annotation/render path for
+  accepted A5 refs that cannot safely become symbolic operands. Pandora
+  `s0:0000045C` now renders an entry comment naming `dmaconr` while preserving
+  `move.w (a5),d0`; the verifier checks that no unsafe `dmaconr(a5)` operand is
+  emitted.
 - 017-025 remains deferred. The RSSET report still has 125 report-only raw A6
   candidates and no accepted app-base/source evidence to feed command/verifier
   gates.

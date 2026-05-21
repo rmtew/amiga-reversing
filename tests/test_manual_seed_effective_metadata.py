@@ -229,7 +229,7 @@ def test_effective_metadata_projects_equate_semantic_hint_to_symbol_representati
     ]
 
 
-def test_effective_metadata_projects_only_exact_a5_hardware_ref_representations(tmp_path: Path) -> None:
+def test_effective_metadata_projects_a5_hardware_refs_without_changing_address_mode(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
@@ -307,6 +307,19 @@ def test_effective_metadata_projects_only_exact_a5_hardware_ref_representations(
             "source_path": None,
             "style": "symbol",
             "symbol": "dmacon",
+        }
+    ]
+    assert payload["entry_comments"] == [
+        {
+            "addr": 0x400,
+            "citation": "manual_action_log:a5-hw:zero",
+            "comment": "A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)",
+            "hunk": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "manual_action_log",
+            "source_locator": "a5-hw:zero",
+            "source_path": None,
         }
     ]
 
