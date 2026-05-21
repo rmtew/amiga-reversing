@@ -15,13 +15,18 @@ The subtarget `macos_file_mpw_tools_asm` represents the HFS file
 `MPW-GM/MPW/Tools/Asm`.
 
 `asm.s` is an illustrative source-quality artifact generated from the durable
-C-backed HFS/resource/CODE summary plus the shared m68k listing renderer. It is
-not an MPW Asm/Link/Rez round-trip contract.
+C-backed HFS/resource/CODE summary plus the Mac CODE listing adapter over the
+shared m68k analysis renderer. It is not an MPW Asm/Link/Rez round-trip
+contract.
 
 The header records Finder type/creator, HFS path, data/resource fork hashes,
 resource type counts, `CODE 0` jump-table metadata, all known `CODE` resources,
-non-CODE resource placeholders, and unsupported Segment Loader/runtime areas.
-The body renders the selected `CODE 1 Main` bytes as real m68k listing rows.
+CODE resource coverage status rows, non-CODE resource placeholders, and
+unsupported Segment Loader/runtime areas. The body renders the selected
+`CODE 1 Main` bytes as Mac-facing m68k listing rows with HFS/resource/range
+provenance. Other CODE resources are explicitly marked metadata-only, partial,
+or deferred with concrete reasons until full per-resource expansion has
+relocation/source-boundary context.
 
 Manual/progress facts should only be committed here when they describe durable
 Mac semantic progress. Timestamp-only project state and cosmetic source churn

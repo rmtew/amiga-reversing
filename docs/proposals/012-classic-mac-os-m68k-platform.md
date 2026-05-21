@@ -1,13 +1,12 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: reopened / in progress. The C-backed Mac project payload and committed
-target artifact are useful foundation, but the visible CODE rendering is not
-starter-quality yet: it currently routes selected CODE bytes through the raw
-Amiga-style listing path, emits `SECTION code,code`, and decodes Mac CODE
-metadata/data islands as instructions before the apparent real code. Proposal
-012 is not complete until Mac CODE resources are parsed, classified, and
-rendered in a Mac OS assembly style with unsupported or unknown areas explicitly
-deferred instead of silently treated as code.
+Status: closed. The starter Classic Mac OS platform slice now has C-backed HFS,
+resource-fork, CODE metadata/layout, selected CODE extraction, normal `macos`
+project/API payloads, Mac CODE listing output, and a committed MPW `Asm` target
+artifact with drift-tested CODE resource coverage. Deeper Segment Loader
+relocation/fixup interpretation, full per-resource CODE expansion, and
+byte-for-byte MPW roundtrip remain future work rather than starter closeout
+requirements.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -932,13 +931,19 @@ HFS/resource/classified-range provenance, attaches that provenance to listing
 rows, and filters the Amiga raw section directive from Mac-facing output.
 ```
 
-012-021. Whole Asm CODE resource coverage in target artifact - open
+012-021. Whole Asm CODE resource coverage in target artifact - implemented
 
 ```text
 Update the committed `Asm` target artifact so every CODE resource is covered by
 rendered Mac-style source or a structured placeholder with a specific reason.
 The artifact must make partial coverage visible and should iterate toward
 rendering all executable CODE islands, including obvious orphaned code islands.
+
+The artifact now includes a drift-tested CODE resource coverage table. CODE 0 is
+metadata-only, CODE 1 is rendered through the Mac listing adapter, resources
+with confirmed entry evidence are marked partial with the deferred
+relocation/source-boundary reason, and resources without entry evidence are
+deferred with classifier evidence.
 ```
 
 ## Artifact Ownership
@@ -1276,6 +1281,12 @@ resources documentation coverage tests
   HFS path, resource fork, CODE resource, and classified range, and no longer
   emits the Amiga raw `SECTION code,code` directive. Whole-resource rendering
   and deeper Segment Loader interpretation remain 012-021 scope.
+- 012-021 made whole CODE-resource coverage explicit in the committed MPW `Asm`
+  artifact. Every CODE resource now has a coverage status and reason:
+  metadata-only, rendered, partial with confirmed entry evidence, or deferred
+  because entry evidence is missing. The artifact no longer implies that name
+  and hash inventory lines are rendered source coverage; full expansion of every
+  confirmed segment remains future relocation/source-boundary work.
 
 ## Open Questions
 
@@ -1296,26 +1307,28 @@ resources documentation coverage tests
 Current state:
 
 - Completed `docs/issues/012-*` remain as the per-issue evidence trail.
+- All active 012 issues are implemented or superseded.
 - The C-backed Mac parser/import API, normal `macos` project/API path,
-  generated metadata consumption, and shared framework cleanup are useful
-  foundation.
-- The selected CODE listing route and committed target artifact are not
-  complete because they currently render a raw selected slice, not classified
-  Mac CODE resources in Mac OS assembly style.
-- `docs/macos-targets.md` explains the current target layout and drift check,
-  but the target artifact itself remains a corrective work item.
+  generated metadata consumption, shared framework cleanup, classified CODE
+  layout, Mac CODE listing adapter, and committed target artifact form the
+  starter closeout.
+- The bad `SECTION code,code` / initial `ori.b` metadata decode is covered by
+  regression tests and no longer appears in the committed Mac target artifact.
+- `docs/macos-targets.md` explains the current target layout and drift check.
 
-Open corrective scope before proposal closeout:
+Closed corrective scope:
 
-- Cover every `Asm` CODE resource as rendered code or explicitly deferred
-  structured placeholder.
-- Identify and handle obvious orphaned code islands inside CODE resources.
-- Update tests so the bad `SECTION code,code` / initial `ori.b` metadata decode
-  cannot be accepted as success.
+- Parse/classify Mac CODE segment layout before selected bytes are executable.
+- Render Mac target source through a Mac CODE listing adapter, not Amiga raw
+  source output.
+- Cover every `Asm` CODE resource as rendered, metadata-only, partial, or
+  deferred material with a concrete reason.
 
 Future scope after starter-quality rendering:
 
 - Complete Segment Loader relocation/fixup interpretation.
+- Full per-resource CODE expansion and internal orphan island splitting after
+  relocation/source-boundary context is represented.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

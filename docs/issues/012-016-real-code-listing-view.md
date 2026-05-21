@@ -1,4 +1,4 @@
-Status: reopened / incomplete
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -57,6 +57,16 @@ Corrective requirement:
 - The previous result is only route plumbing and a raw selected-slice smoke
   path. It must not be treated as completed CODE rendering until 012-019 and
   012-020 remove the metadata-as-code and Amiga-style renderer failures.
+
+Corrective closeout:
+- 012-019 moved selected CODE extraction to the classified CODE 1 entrypoint,
+  so the listing no longer begins by decoding metadata/data prefix bytes.
+- 012-020 added the Mac CODE listing adapter used by the normal listing route,
+  with Mac resource/range provenance on rows and no Amiga `SECTION code,code`
+  directive in Mac-facing output.
+- 012-021 records unexpanded CODE resources and unresolved islands explicitly
+  in the committed artifact coverage table instead of hiding them behind a
+  complete-rendering claim.
 
 Verification:
 - `uv run ruff check amiga_reversing\disasm\c_backend.py amiga_reversing\disasm\macos_listing_source.py amiga_reversing\disasm\macos_project_payload.py amiga_reversing\disasm\server.py tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_disasm_server.py tests\test_web_app_source.py`

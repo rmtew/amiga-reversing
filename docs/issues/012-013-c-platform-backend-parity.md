@@ -1,4 +1,4 @@
-Status: reopened / incomplete
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -128,6 +128,12 @@ Corrective review:
 - 012-019 owns the corrective C-backed CODE segment layout model. This issue
   remains reopened until the durable C API either returns classified executable
   ranges or explicitly defers them with reason/evidence.
+
+Corrective closeout:
+- 012-019 added classified C-backed CODE layout ranges and selected executable
+  extraction now uses confirmed entry evidence instead of `payload + 4`.
+- Unknown nonzero CODE resources now report deferred ranges and selected byte
+  extraction fails without confirmed executable evidence.
 
 Deferred follow-up:
 - Overflow-extent fork materialization remains out of scope until a committed

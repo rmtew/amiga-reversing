@@ -1,4 +1,4 @@
-Status: open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -46,3 +46,27 @@ Required tests:
 Blocked by:
 - 012-019 for CODE layout/range classification.
 - 012-020 for Mac-style listing output.
+
+Implementation notes:
+- The committed `asm.s` now includes a `CODE resource coverage` table with one
+  structured row for every C-summary CODE resource.
+- Coverage statuses are explicit:
+  `metadata-only` for CODE 0, `rendered` for the selected CODE 1 listing,
+  `partial` for resources with confirmed entry evidence but deferred
+  full-resource expansion, and `deferred` for resources where the classifier
+  lacks entry evidence.
+- Partial/deferred rows include classifier layout kinds, entry evidence, and a
+  concrete reason instead of hiding unrendered CODE resources behind name/hash
+  inventory lines.
+- The drift test now compares coverage row count against the C resource summary
+  so a missing CODE resource fails the artifact test.
+
+Verification:
+- `uv run python -m pytest tests\test_macos_target_artifact.py -q`
+- `uv run ruff check --fix tests\test_macos_target_artifact.py`
+
+Follow-up:
+- Full expansion of every confirmed CODE segment remains future work until
+  relocation/source-boundary context is represented per segment. The starter
+  artifact now records that limitation explicitly instead of implying complete
+  rendered coverage.

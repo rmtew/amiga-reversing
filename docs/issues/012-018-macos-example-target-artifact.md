@@ -1,4 +1,4 @@
-Status: reopened / incomplete
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -121,3 +121,12 @@ Corrective requirement:
 - Regenerate and recommit `asm.s` only after 012-019 through 012-021 make the
   rendered source Mac-style, classify CODE layout correctly, and cover all CODE
   resources as rendered or explicitly deferred material.
+
+Corrective closeout:
+- 012-019 regenerated `asm.s` from the classified CODE 1 entrypoint, removing
+  the bogus initial `ori.b` metadata decode.
+- 012-020 regenerated `asm.s` through the Mac CODE listing adapter, removing
+  the Amiga `SECTION code,code` directive from Mac-facing source.
+- 012-021 added a drift-tested CODE resource coverage table so every CODE
+  resource is represented as rendered, metadata-only, partial, or deferred with
+  a concrete reason.

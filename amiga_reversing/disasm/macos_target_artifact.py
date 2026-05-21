@@ -147,6 +147,10 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "; CODE resources",
         *_code_resource_lines(code_resources, selected_id=selected.get("id")),
         "",
+        "; CODE resource coverage",
+        f";   total_code_resources: {len(code_resources)}",
+        *_code_resource_coverage_lines(code_resources, selected_id=selected.get("id")),
+        "",
         "; Non-CODE resource placeholders",
         *(
             _resource_type_placeholder_lines(non_code_types)
@@ -228,6 +232,41 @@ def _code_resource_lines(resources: Sequence[Mapping[str, object]], *, selected_
         marker = " selected" if resource.get("id") == selected_id else ""
         lines.append(f";   {_resource_line(resource)}{marker}")
     return lines
+
+
+def _code_resource_coverage_lines(resources: Sequence[Mapping[str, object]], *, selected_id: object) -> list[str]:
+    return [_code_resource_coverage_line(resource, selected_id=selected_id) for resource in resources]
+
+
+def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id: object) -> str:
+    resource_id = resource.get("id")
+    code = _mapping(resource.get("code"))
+    ranges = [_mapping(item) for item in _sequence(code.get("layout_ranges"))]
+    kinds = ",".join(_text(item.get("kind")) for item in ranges) or "none"
+    confirmed = next((item for item in ranges if item.get("kind") == "confirmed_code"), None)
+    deferred = next((item for item in ranges if item.get("kind") == "deferred"), None)
+    if resource_id == 0:
+        status = "metadata-only"
+        reason = "CODE 0 jump-table/application metadata"
+    elif resource_id == selected_id:
+        status = "rendered"
+        reason = "expanded below through macos-code listing backend"
+    elif confirmed is not None:
+        status = "partial"
+        reason = (
+            f"confirmed entry payload[{_text(confirmed.get('start'))}..{_text(confirmed.get('end'))}); "
+            "full per-resource listing deferred until relocation/source-boundary context is represented"
+        )
+    elif deferred is not None:
+        status = "deferred"
+        reason = f"classifier deferred range: {_text(deferred.get('evidence'))}"
+    else:
+        status = "unsupported"
+        reason = "no classified CODE layout range available"
+    return (
+        f";   CODE {_text(resource_id)} {_text(resource.get('name'))}: "
+        f"status={status} layout={kinds} reason={reason}"
+    )
 
 
 def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:

@@ -1,4 +1,4 @@
-Status: reopened / incomplete
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -52,6 +52,12 @@ Corrective review:
 - The framework cleanup is not complete while the Mac listing path routes
   through raw Amiga-style assembly and emits `SECTION code,code`. 012-020 owns
   the Mac OS listing/backend abstraction needed to close this cleanly.
+
+Corrective closeout:
+- 012-020 added a Mac CODE listing artifact adapter over the shared C listing
+  artifact. Mac project listing source/window output now reports backend
+  `macos-code`, carries HFS/resource/classified-range provenance, and filters
+  the Amiga raw section directive from Mac-facing output.
 
 Verification:
 - `uv run python -m pytest tests\test_web_app_source.py -q`

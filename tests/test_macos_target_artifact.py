@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 
+from amiga_reversing.disasm.c_backend import (
+    inspect_macos_hfs_code_summary_with_c_backend,
+)
+from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_listing_source import (
     build_macos_project_listing_artifact_profile,
 )
@@ -55,6 +59,12 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE 1 Main listing follows." in asm_text
     assert ";   code_entry_offset: 40" in asm_text
     assert ";     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry" in asm_text
+    assert "; CODE resource coverage" in asm_text
+    assert ";   CODE 0 unknown: status=metadata-only" in asm_text
+    assert ";   CODE 1 Main: status=rendered" in asm_text
+    assert ";   CODE 2 FPOpTable: status=partial" in asm_text
+    assert ";   CODE 19 SetupArgV: status=deferred" in asm_text
+    assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert "; Classic Mac OS CODE resource listing" in asm_text
     assert "; resource: CODE 1 Main" in asm_text
     assert "movea.l (a7)+,a0" in asm_text
@@ -72,6 +82,29 @@ def test_committed_macos_asm_artifact_matches_renderer() -> None:
         pytest.skip("committed Mac OS example asm artifact is not available")
 
     assert asm_path.read_text(encoding="utf-8") == render_macos_example_asm()
+
+
+def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
+    if not IMAGE_PATH.exists():
+        pytest.skip("MPW-GM image fixture is not available")
+    if not NDIF2RAW_PATH.exists():
+        pytest.skip("ndif2raw provider is not available")
+    asm_path = Path.cwd() / MACOS_EXAMPLE_ASM_RELPATH
+    if not asm_path.exists():
+        pytest.skip("committed Mac OS example asm artifact is not available")
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(
+        read_macos_hfs_image_bytes(IMAGE_PATH),
+        "MPW-GM/MPW/Tools/Asm",
+    )
+    expected = summary["resource_fork"]["code_resources"]
+    asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
+    coverage_lines = [line for line in asm_lines if line.startswith(";   CODE ") and "status=" in line]
+
+    assert len(coverage_lines) == len(expected)
+    for resource in expected:
+        prefix = f";   CODE {resource['id']} "
+        assert any(line.startswith(prefix) for line in coverage_lines), prefix
 
 
 def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
