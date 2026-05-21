@@ -7360,6 +7360,77 @@ def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
     )
 
 
+_RSSET_CONFLICTS_MISSING = object()
+
+
+def _rsset_selected_use_binding(*, conflicts: object = _RSSET_CONFLICTS_MISSING) -> dict[str, object]:
+    binding: dict[str, object] = {
+        "source_evidence_id": "prov-existing",
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "path_specific",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x60, "operand_index": 0},
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "base_register": "A6",
+        "displacement": 0x22E,
+        "hunk": 0,
+        "addr": 0x60,
+        "operand_index": 0,
+        "owner_action_id": "manual-existing",
+    }
+    if conflicts is not _RSSET_CONFLICTS_MISSING:
+        binding["conflicts"] = conflicts
+    return binding
+
+
+def _rsset_candidate_report_for_selected_use_binding(binding: dict[str, object]) -> dict[str, object]:
+    row = _a6_use_row(row_key="a6-slot", displacement=0x22E, opcode="move.b", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_status_flags",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x22E,
+            "access": "read",
+        }
+    ]
+    return reversing_loop._listing_rsset_candidate_report([row], manual_state={"rsset_use_site_bindings": [binding]})
+
+
+def test_rsset_candidate_report_requires_explicit_conflicts_for_base_evidence() -> None:
+    report = _rsset_candidate_report_for_selected_use_binding(_rsset_selected_use_binding())
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == (
+        "accepted rsset_app_base evidence missing explicit conflicts sequence"
+    )
+
+
+@pytest.mark.parametrize(
+    ("conflicts", "reason"),
+    [
+        ("", "accepted rsset_app_base evidence conflicts must be an explicit sequence"),
+        ({"addr": 0x60}, "accepted rsset_app_base evidence conflicts must be an explicit sequence"),
+        ([{"addr": 0x60}], "accepted rsset_app_base evidence conflicts must be empty"),
+    ],
+)
+def test_rsset_candidate_report_rejects_malformed_conflicts_for_base_evidence(
+    conflicts: object,
+    reason: str,
+) -> None:
+    report = _rsset_candidate_report_for_selected_use_binding(_rsset_selected_use_binding(conflicts=conflicts))
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == reason
+
+
 def test_rsset_candidate_report_rejects_manual_base_evidence_for_different_selected_use() -> None:
     row = _a6_use_row(row_key="a6-slot", displacement=0x22E, opcode="move.b", access="memory_read")
     row["app_slot_refs"] = [

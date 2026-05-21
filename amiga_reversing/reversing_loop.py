@@ -3692,7 +3692,6 @@ def _rsset_candidate_accepted_base_evidence_ref(evidence: Mapping[str, object]) 
     source_family = evidence.get("source_family")
     status = evidence.get("source_evidence_status") or evidence.get("status")
     scope = evidence.get("path_lifetime_scope")
-    conflicts = evidence.get("conflicts")
     base_evidence_id = evidence.get("base_evidence_id")
     if not isinstance(source_evidence_id, str) or not source_evidence_id:
         return None
@@ -3702,10 +3701,12 @@ def _rsset_candidate_accepted_base_evidence_ref(evidence: Mapping[str, object]) 
         return None
     if not isinstance(scope, Mapping) or not scope.get("kind"):
         return None
-    if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) and conflicts:
+    conflict_reason = _rsset_candidate_conflicts_rejection_reason(evidence)
+    if conflict_reason is not None:
         return None
     if not isinstance(base_evidence_id, str) or not base_evidence_id:
         return None
+    conflicts = evidence["conflicts"]
     ref = {
         "source_evidence_id": source_evidence_id,
         "source_family": source_family,
@@ -3717,7 +3718,7 @@ def _rsset_candidate_accepted_base_evidence_ref(evidence: Mapping[str, object]) 
         "hunk": evidence.get("hunk"),
         "addr": evidence.get("addr"),
         "operand_index": evidence.get("operand_index"),
-        "conflicts": list(conflicts) if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) else [],
+        "conflicts": list(conflicts),
     }
     for key in ("owner_action_id", "cleanup_action_id", "parent_evidence_ids", "base_evidence_refs"):
         value = evidence.get(key)
@@ -3781,6 +3782,9 @@ def _rsset_candidate_rejected_evidence_reason(
 ) -> str:
     accepted = _rsset_candidate_accepted_base_evidence_ref(evidence)
     if accepted is None:
+        conflict_reason = _rsset_candidate_conflicts_rejection_reason(evidence)
+        if conflict_reason is not None:
+            return conflict_reason
         if evidence.get("element_kind") == "app_slot":
             return "same-displacement app-slot context is not accepted base/path evidence"
         return "missing accepted rsset_app_base evidence fields"
@@ -3800,6 +3804,24 @@ def _rsset_candidate_rejected_evidence_reason(
     if not _rsset_candidate_evidence_matches_selected_use(accepted, selected_use):
         return "accepted evidence is scoped to a different selected use"
     return "accepted evidence rejected"
+
+
+def _rsset_candidate_conflicts_rejection_reason(evidence: Mapping[str, object]) -> str | None:
+    status = evidence.get("source_evidence_status") or evidence.get("status")
+    if evidence.get("source_family") != "rsset_app_base":
+        return None
+    if not isinstance(evidence.get("source_evidence_id"), str) or not evidence.get("source_evidence_id"):
+        return None
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return None
+    if "conflicts" not in evidence:
+        return "accepted rsset_app_base evidence missing explicit conflicts sequence"
+    conflicts = evidence.get("conflicts")
+    if isinstance(conflicts, str) or not isinstance(conflicts, Sequence):
+        return "accepted rsset_app_base evidence conflicts must be an explicit sequence"
+    if conflicts:
+        return "accepted rsset_app_base evidence conflicts must be empty"
+    return None
 
 
 def _rsset_candidate_selected_use_identity(selected_use: Mapping[str, object]) -> dict[str, object]:

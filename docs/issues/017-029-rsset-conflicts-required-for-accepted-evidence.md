@@ -1,4 +1,4 @@
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: review of 017-025 closeout
@@ -28,3 +28,18 @@ Acceptance:
 - Report output names the conflict-shape reason for rejected evidence where
   applicable.
 - Focused tests pass.
+
+Resolution:
+- RSSET accepted base-evidence classification now requires `conflicts` to be
+  present as an explicit non-string sequence and empty.
+- Rejected evidence now reports distinct conflict-shape reasons for missing,
+  malformed, and non-empty conflict state when the evidence otherwise claims
+  accepted `rsset_app_base` provenance.
+- Focused regression tests cover missing, string, non-sequence, and non-empty
+  conflict state. Pandora `rsset-candidate-report` still reports
+  `rsset-raw-a6:022E` as blocked with `accepted_base_evidence_count=0`.
+
+Verification:
+- `uv run python -m pytest tests\test_reversing_loop.py::test_rsset_candidate_report_groups_raw_a6_operands tests\test_reversing_loop.py::test_rsset_candidate_report_exposes_catalog_path_without_mutating tests\test_reversing_loop.py::test_rsset_candidate_report_requires_explicit_conflicts_for_base_evidence tests\test_reversing_loop.py::test_rsset_candidate_report_rejects_malformed_conflicts_for_base_evidence tests\test_reversing_loop.py::test_rsset_candidate_report_keeps_existing_manual_binding_non_actionable -q`
+- `uv run python -m pytest tests\test_reversing_loop.py -k rsset_candidate_report -q`
+- `uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py`

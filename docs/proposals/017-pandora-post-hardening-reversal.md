@@ -423,3 +423,7 @@ repeatable work to `docs\issues\017-*`.
   source text to contain the expected entry comment. Listing/UI
   `comment_text` alone no longer satisfies the verifier, while unsafe symbolic
   operand text such as `dmaconr(a5)` remains rejected.
+- 017-029 hardened RSSET accepted-evidence classification: `conflicts` must be
+  explicit, sequence-shaped, and empty. Missing or malformed conflict state now
+  remains rejected evidence, and the focused Pandora RSSET report still leaves
+  `rsset-raw-a6:022E` blocked with `accepted_base_evidence_count=0`.
