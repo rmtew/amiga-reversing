@@ -1,12 +1,12 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: closed. The starter Classic Mac OS platform slice now has C-backed HFS,
-resource-fork, CODE metadata/layout, selected CODE extraction, normal `macos`
-project/API payloads, Mac CODE listing output, and a committed MPW `Asm` target
-artifact with drift-tested CODE resource coverage. Deeper Segment Loader
-relocation/fixup interpretation, full per-resource CODE expansion, and
-byte-for-byte MPW roundtrip remain future work rather than starter closeout
-requirements.
+Status: open / blocked. The source/project, HFS/resource, API, web, and target
+artifact work is useful foundation, but executable/CODE correctness is blocked
+on Proposal 018's cited platform executable-format knowledge layer. The current
+Mac CODE entry handling contains heuristic evidence, not accepted Mac OS
+Segment Loader knowledge. Proposal 012 must not close until 018-002 supplies
+cited Mac OS executable/CODE facts and the parser/listing path consumes or
+validates against them.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -34,8 +34,10 @@ m68k executable container without forcing either into Amiga HUNK or Atari PRG
 assumptions. The proof is not complete until the durable platform path follows
 the same C-backed architecture used by Amiga and Atari ST.
 
-Proposal 011 covers Atari ST platform knowledge cleanup. This proposal is the
-Mac counterpart and architecture pressure test.
+Proposal 011 covers Atari ST platform knowledge cleanup. Proposal 018 owns the
+cross-platform executable-format KB model. This proposal is the Mac counterpart
+and architecture pressure test, and is blocked on 018 for CODE/executable
+correctness.
 
 ## Section Index
 
@@ -49,7 +51,7 @@ Mac counterpart and architecture pressure test.
 - Provenance And KB Policy
 - Implementation Quality Policy
 - Implementation Slices
-- Issue Breakdown Seed
+- Consolidated Work Record
 - Artifact Ownership
 - Non-Goals
 - Acceptance Criteria
@@ -765,11 +767,12 @@ memory model assumptions
 startup/runtime conventions
 ```
 
-## Issue Breakdown Seed
+## Consolidated Work Record
 
-The issue split should follow `docs/macos-initial-analysis-research.md` and keep
-source rendering separate from binary container import while covering both in
-the same starter milestone. Local working issues live under `docs/issues/`.
+The old `docs/issues/012-*` files were consolidated here and removed because
+they had drifted into a misleading mix of implemented, reopened, and reclosed
+states. This proposal is the authoritative 012 record until executable-format
+facts from Proposal 018 unblock the remaining Mac CODE work.
 
 1. HFS/fork role inventory - implemented
 
@@ -901,7 +904,7 @@ artifact is partial because it inventories all CODE resources but renders only
 CODE 1, and its CODE 1 listing begins by decoding metadata/data as instructions.
 ```
 
-012-019. Mac CODE segment layout and code-island classification - implemented
+012-019. Mac CODE segment layout and code-island classification - blocked by 018-002
 
 ```text
 Replace the flat `payload + 4` CODE extraction assumption with a C-backed Mac
@@ -911,13 +914,14 @@ available MPW/Inside Mac context is insufficient, record the deferral with the
 evidence needed to resume; do not decode uncertain bytes as code and call the
 result implemented.
 
-The first implemented classifier now exposes metadata/data/confirmed-code and
-deferred ranges and moves selected CODE 1 extraction to the confirmed
-`movea.l (a7)+,a0` entrypoint at payload offset 40. Complete post-entry island
-splitting remains with 012-021's whole-resource coverage work.
+The first classifier exposes metadata/data/confirmed-code and deferred ranges
+and moves selected CODE 1 extraction to the observed `movea.l (a7)+,a0`
+candidate at payload offset 40. This is a useful heuristic but not accepted
+platform knowledge until 018-002 grounds or replaces it with cited Mac OS
+executable facts.
 ```
 
-012-020. Mac OS assembly-style listing backend - implemented
+012-020. Mac OS assembly-style listing backend - blocked by 018-002
 
 ```text
 Render Mac CODE ranges through a Mac OS listing/backend path with Mac-oriented
@@ -925,13 +929,15 @@ directives, labels, comments, and resource/segment provenance. Do not route Mac
 targets through `amiga-raw` output or emit Amiga-specific directives such as
 `SECTION code,code`.
 
-Implemented as a Mac CODE listing artifact adapter over the shared C analysis
+Partially implemented as a Mac CODE listing artifact adapter over the shared C analysis
 artifact. Mac source/window output now reports backend `macos-code`, includes
 HFS/resource/classified-range provenance, attaches that provenance to listing
 rows, and filters the Amiga raw section directive from Mac-facing output.
+It remains blocked for correctness until the classified ranges come from cited
+Mac executable facts rather than heuristic boundaries.
 ```
 
-012-021. Whole Asm CODE resource coverage in target artifact - implemented
+012-021. Whole Asm CODE resource coverage in target artifact - blocked by 018-002
 
 ```text
 Update the committed `Asm` target artifact so every CODE resource is covered by
@@ -944,6 +950,8 @@ metadata-only, CODE 1 is rendered through the Mac listing adapter, resources
 with confirmed entry evidence are marked partial with the deferred
 relocation/source-boundary reason, and resources without entry evidence are
 deferred with classifier evidence.
+This is not final until the coverage statuses are derived from cited Mac
+executable-format facts.
 ```
 
 ## Artifact Ownership
@@ -1008,8 +1016,9 @@ reports own provenance and review visibility
 - Nonzero `CODE` resources are not assumed to be flat code at `payload + 4`.
   Their segment headers, loader metadata, jump-table references, data islands,
   and executable islands are classified before rendering.
-- At least one nonzero `CODE` resource is listed as m68k code from a justified
-  code entrypoint, not from the start of segment metadata.
+- At least one nonzero `CODE` resource is listed as m68k code from a cited or
+  parser-asserted Mac OS entrypoint rule, not from the start of segment metadata
+  and not from an uncited pattern match.
 - Obvious orphaned code islands inside a CODE resource are discovered,
   rendered, or explicitly deferred with the evidence and missing context needed
   to continue later.
@@ -1031,8 +1040,8 @@ reports own provenance and review visibility
   output. The renderer must not emit Amiga-specific directives such as
   `SECTION code,code` for Mac targets.
 - The selected CODE segment is rendered as actual m68k listing rows in the web
-  UI from classified code ranges, with container metadata linked to that
-  listing.
+  UI from cited/validated classified code ranges, with container metadata linked
+  to that listing.
 - Mac support extends shared project/source/container/listing abstractions; any
   framework gap is fixed or explicitly raised, not worked around.
 - No Mac-specific compatibility branch, legacy payload, or duplicate metadata
@@ -1049,7 +1058,8 @@ reports own provenance and review visibility
   CODE resources but renders only `CODE 1` is partial and must say so; it is not
   proposal closeout.
 - The committed target has regeneration/drift checks so `asm.s` does not go
-  stale as rendering improves.
+  stale as rendering improves, and those checks reject heuristic-only accepted
+  executable boundaries.
 - Baseline analysis annotates cited Mac OS calls and call patterns visible in
   documentation or MPW-GM examples.
 - Unsupported Mac platform areas are reported explicitly.
@@ -1176,9 +1186,8 @@ resources documentation coverage tests
   lifecycle creation, Segment Loader fixups, source-to-CODE mapping, and
   byte-for-byte roundtrip remain explicit future work.
 - 012-012 replaced the stale unchecked checkpoint list with a neutral section
-  index. Completed `docs/issues/012-*` files remain in place for now because
-  the active thread objective still uses them as the per-issue evidence trail;
-  deleting them is deferred until this working objective is closed.
+  index. Later cleanup consolidated the 012 issue history into this proposal
+  and removed the stale `docs/issues/012-*` files.
 - 012-015 removed the handcrafted Mac OS call/record table from source render
   tests. The generated runtime now emits `src/generated/mac_os_runtime.json`,
   source project assembly loads that generated metadata by default, and render
@@ -1306,25 +1315,27 @@ resources documentation coverage tests
 
 Current state:
 
-- Completed `docs/issues/012-*` remain as the per-issue evidence trail.
-- All active 012 issues are implemented or superseded.
+- The old `docs/issues/012-*` files were removed after their useful history was
+  consolidated into this proposal. They had become stale and misleading as a
+  working issue tracker.
 - The C-backed Mac parser/import API, normal `macos` project/API path,
   generated metadata consumption, shared framework cleanup, classified CODE
-  layout, Mac CODE listing adapter, and committed target artifact form the
-  starter closeout.
+  layout, Mac CODE listing adapter, and committed target artifact are useful
+  foundation but not closeout.
 - The bad `SECTION code,code` / initial `ori.b` metadata decode is covered by
-  regression tests and no longer appears in the committed Mac target artifact.
+  regression tests and no longer appears in the committed Mac target artifact,
+  but the replacement CODE entry boundary is still heuristic.
 - `docs/macos-targets.md` explains the current target layout and drift check.
 
-Closed corrective scope:
+Blocked corrective scope:
 
-- Parse/classify Mac CODE segment layout before selected bytes are executable.
-- Render Mac target source through a Mac CODE listing adapter, not Amiga raw
-  source output.
-- Cover every `Asm` CODE resource as rendered, metadata-only, partial, or
-  deferred material with a concrete reason.
+- Proposal 018 must define the cited executable-format KB schema.
+- 018-002 must extract cited Mac OS Segment Loader / CODE / A5 / jump-table /
+  relocation / entrypoint facts.
+- Mac CODE parser/listing behavior must consume or validate against those facts.
+- Any remaining heuristic boundary must stay candidate/deferred, not accepted.
 
-Future scope after starter-quality rendering:
+Future scope after cited starter-quality rendering:
 
 - Complete Segment Loader relocation/fixup interpretation.
 - Full per-resource CODE expansion and internal orphan island splitting after
