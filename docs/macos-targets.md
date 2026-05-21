@@ -1,0 +1,33 @@
+# Classic Mac OS Targets
+
+The committed Classic Mac OS example target is:
+
+```text
+targets/macos_hfs_mpw_gm/
+  .project.json
+  targets/macos_file_mpw_tools_asm/
+    .project.json
+    asm.s
+```
+
+`macos_hfs_mpw_gm` represents `resources/platform_macos/MPW-GM.img.bin`.
+The subtarget `macos_file_mpw_tools_asm` represents the HFS file
+`MPW-GM/MPW/Tools/Asm`.
+
+`asm.s` is an illustrative source-quality artifact generated from the durable
+C-backed HFS/resource/CODE summary plus the shared m68k listing renderer. It is
+not an MPW Asm/Link/Rez round-trip contract.
+
+The header records Finder type/creator, HFS path, data/resource fork hashes,
+resource type counts, `CODE 0` jump-table metadata, all known `CODE` resources,
+non-CODE resource placeholders, and unsupported Segment Loader/runtime areas.
+The body renders the selected `CODE 1 Main` bytes as real m68k listing rows.
+
+Manual/progress facts should only be committed here when they describe durable
+Mac semantic progress. Timestamp-only project state and cosmetic source churn
+are not accepted target progress.
+
+Regeneration is checked by `tests/test_macos_target_artifact.py`; if the
+C-backed renderer changes, update `asm.s` through
+`python -m amiga_reversing.disasm.macos_target_artifact --write` and review the
+diff for source-quality changes before committing.

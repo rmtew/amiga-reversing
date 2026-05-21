@@ -1,8 +1,8 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: in progress; C-backed Mac project payload, selected CODE listing path,
-and framework cleanup are implemented. The committed example target remains
-open.
+Status: implemented. The C-backed Mac project payload, selected CODE listing
+path, shared framework cleanup, and committed example target artifact are in
+place.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -194,7 +194,7 @@ starter Classic Mac OS source/container web payload and renderer branch
 optional fixture/resource documentation and Mac source inventory check
 ```
 
-Still required before this proposal is complete:
+Implemented completion path:
 
 ```text
 Mac platform parsing/import logic promoted to C where Amiga/Atari equivalents
@@ -206,6 +206,11 @@ generated Mac OS metadata feeds render/analysis, not handcrafted Python dicts
 selected CODE segment renders as actual m68k listing rows in the web UI
 shared platform abstractions are extended where Mac exposes framework gaps
 committed illustrative Mac OS target/subtarget under `targets/`
+```
+
+Future deeper Mac work:
+
+```text
 complete Segment Loader relocation/fixup interpretation
 byte-for-byte MPW Asm/Link/Rez roundtrip
 complete Toolbox/OS trap/API annotation coverage
@@ -877,7 +882,7 @@ Remove any Mac-only side paths discovered during implementation by extending
 shared platform source/container/project/listing abstractions cleanly.
 ```
 
-012-018. Mac OS example target artifact - blocked
+012-018. Mac OS example target artifact - implemented
 
 ```text
 Commit an illustrative evolving Mac OS target under `targets/macos_hfs_mpw_gm/`
@@ -1113,8 +1118,8 @@ resources documentation coverage tests
   Mac project/listing schema. The Python helper path remains useful research
   evidence, but it must not be promoted as the durable implementation. 012-013
   now owns the C parser/import foundation work; 012-014, 012-016, 012-017, and
-  012-018 remain blocked until that foundation is usable from the normal
-  platform path.
+  012-018 were blocked at that point until the foundation became usable from the
+  normal platform path.
 - 012-013 now has its first C-backed container slice: a native Classic Mac
   resource-fork parser that inventories resource types, extracts `CODE 0`
   jump-table metadata, extracts nonzero `CODE` segment metadata, and returns
@@ -1147,7 +1152,7 @@ resources documentation coverage tests
   metadata. The payload uses the C HFS/CODE summary for the binary container
   view and carries provenance to the MPW-GM image plus committed source,
   resource, and build metadata. Selected CODE listing rows and a committed Mac
-  target artifact remain separate 012-016/012-018 work.
+  target artifact were completed later in 012-016 and 012-018.
 - 012-013 is now closed for the current MPW `Asm` backend scope: a real
   MPW-GM fixture drift gate compares the C HFS/CODE summary against committed
   `asm_code_resources.json` metadata. Overflow extents remain a future backend
@@ -1166,6 +1171,15 @@ resources documentation coverage tests
   listing-backed render signature and absence of the starter generation literal.
   A compatibility-name scan found no remaining `classic_macos` Python/JS/test
   usage.
+- 012-018 commits the illustrative Mac target under
+  `targets/macos_hfs_mpw_gm/` with `MPW/Tools/Asm` represented by
+  `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`. The
+  artifact is generated from the C-backed HFS/resource/CODE summary and shared
+  m68k listing renderer, not the earlier Python-only prototype path. The C
+  summary now exposes resource type counts plus CODE resource names/hashes so
+  `asm.s` can show non-CODE placeholders, named CODE resources, `CODE 0`
+  Segment Loader metadata, and real `CODE 1 Main` listing rows. A drift test
+  compares the committed `asm.s` with current renderer output.
 
 ## Open Questions
 
@@ -1185,31 +1199,19 @@ resources documentation coverage tests
 
 Current state:
 
-- The starter research slice is useful and tested, but it does not yet close
-  this proposal.
-- Completed `docs/issues/012-001` through `012-012` remain as evidence for the
-  prototype/research path.
-- Open completion issues must close the C/API/UI gaps before this proposal can
-  move to implemented.
+- Completed `docs/issues/012-*` remain as the per-issue evidence trail.
+- The C-backed Mac parser/import API, normal `macos` project/API path, selected
+  CODE listing route, generated metadata consumption, shared framework cleanup,
+  and committed target artifact are implemented.
+- `docs/macos-targets.md` explains the committed target layout and drift check.
 
-Full closeout requires:
+Future scope:
 
-- C-backed Mac parser/import APIs for platform behavior that Amiga/Atari already
-  implement in C.
-- A real Mac OS project record and server payload with durable `macos` data
-  emitted through the normal API, replacing the prototype `classic_macos` name.
-- Web UI navigation to the Mac source/container/listing view through the normal
-  project flow.
-- Generated Mac OS metadata consumed by render/analysis paths.
-- A selected CODE segment rendered as actual m68k listing rows.
-- An illustrative committed target/subtarget under `targets/macos_hfs_mpw_gm/`
-  with `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`.
-- `docs/macos-targets.md` explains Mac OS target layout, illustrative committed
-  artifacts, manual/progress facts, and how to read the generated `.s`.
-- Any shared framework limitations resolved in the core abstractions, or
-  recorded as explicit blockers.
-- No Mac-only workaround path kept as accepted design.
-- Optional-fixture skips separated from required completion gates.
+- Complete Segment Loader relocation/fixup interpretation.
+- MPW Asm/Link/Rez byte-for-byte roundtrip.
+- Full non-CODE resource semantics.
+- Overflow extents for later fixtures that need them.
+- Complete source-to-CODE segment mapping.
 
 ## Verification
 

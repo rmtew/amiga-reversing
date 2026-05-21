@@ -8147,6 +8147,10 @@ def test_build_rows_job_can_use_c_backend(monkeypatch: pytest.MonkeyPatch) -> No
     artifact = _FakeCListingArtifact()
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: SimpleNamespace(kind=ProjectKind.BINARY))
+    monkeypatch.setattr(disasm_server, "_prewarm_analysis_review_items", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "_start_reproduction_job_if_needed", lambda project_name: None)
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
         "job_kind": "listing_artifact",
@@ -8183,6 +8187,9 @@ def test_build_rows_job_reports_unsupported_c_backend(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: SimpleNamespace(kind=ProjectKind.BINARY))
+    monkeypatch.setattr(disasm_server, "_prewarm_analysis_review_items", lambda project_name: None)
     disasm_server._ASYNC_JOBS["job-1"] = {
         "job_id": "job-1",
         "job_kind": "listing_artifact",
@@ -8223,6 +8230,10 @@ def test_build_rows_job_stops_if_job_was_cleared() -> None:
 def test_build_rows_job_does_not_cache_after_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
     disasm_server._ASYNC_JOBS.clear()
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: SimpleNamespace(kind=ProjectKind.BINARY))
+    monkeypatch.setattr(disasm_server, "_prewarm_analysis_review_items", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "_start_reproduction_job_if_needed", lambda project_name: None)
     disasm_server._ASYNC_JOBS["job-full"] = {
         "job_id": "job-full",
         "job_kind": "listing_artifact",
@@ -8260,6 +8271,10 @@ def test_listing_artifact_job_keeps_c_artifact_without_full_python_rows(monkeypa
     subscriber: queue.Queue[dict[str, object]] = queue.Queue()
     disasm_server._JOB_EVENT_SUBSCRIBERS["job-full"] = [subscriber]
     artifact = _FakeCListingArtifact()
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: SimpleNamespace(kind=ProjectKind.BINARY))
+    monkeypatch.setattr(disasm_server, "_prewarm_analysis_review_items", lambda project_name: None)
+    monkeypatch.setattr(disasm_server, "_start_reproduction_job_if_needed", lambda project_name: None)
 
     monkeypatch.setattr(
         disasm_server,
@@ -8446,6 +8461,8 @@ def test_listing_artifact_job_queues_reproduction(monkeypatch: pytest.MonkeyPatc
     disasm_server._LISTING_PROJECTION_SERVICE.reset()
     artifact = _FakeCListingArtifact()
     monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "cache")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: SimpleNamespace(kind=ProjectKind.BINARY))
+    monkeypatch.setattr(disasm_server, "_prewarm_analysis_review_items", lambda project_name: None)
     monkeypatch.setattr(
         disasm_server,
         "build_project_listing_artifact_profile",

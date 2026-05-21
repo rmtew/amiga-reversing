@@ -1,0 +1,16 @@
+{
+  "created_at": "2026-05-21T00:00:00+00:00",
+  "origin": {
+    "artifact": "asm.s",
+    "hfs_path": "MPW-GM/MPW/Tools/Asm",
+    "kind": "macos_hfs_resource_code_file",
+    "parent_project_id": "macos_hfs_mpw_gm",
+    "renderer": "amiga_reversing.disasm.macos_target_artifact",
+    "resource_type": "CODE",
+    "selected_code_resource_id": 1,
+    "selected_code_resource_name": "Main",
+    "source_image": "resources/platform_macos/MPW-GM.img.bin"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-21T00:00:00+00:00"
+}

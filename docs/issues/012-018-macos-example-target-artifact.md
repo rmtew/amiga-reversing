@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -78,9 +78,25 @@ Required tests:
 - Regression check that existing Amiga/Atari target rendering still uses the
   shared framework path.
 
-Blocker recorded:
-- Do not commit a Mac target generated only by the current Python prototype.
-- The example target remains blocked until the C-backed Mac container/project
-  path can generate a normal target/subtarget and the shared listing framework
-  can render selected CODE resources as real m68k rows.
-- Timestamp-only or helper-only target state is not accepted as 012 progress.
+Implemented:
+- Added `targets/macos_hfs_mpw_gm/.project.json` as the committed Mac HFS
+  container target for `resources/platform_macos/MPW-GM.img.bin`.
+- Added `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/.project.json`
+  and `asm.s` for `MPW-GM/MPW/Tools/Asm`.
+- `asm.s` is generated from the C-backed HFS/resource/CODE project path and the
+  shared m68k listing renderer. It records Finder metadata, fork hashes,
+  resource type counts, `CODE 0` Segment Loader metadata, all named CODE
+  resources, non-CODE placeholders, unsupported loader/roundtrip scope, and real
+  `CODE 1 Main` listing rows.
+- Added `docs/macos-targets.md` to explain the committed target layout and
+  regeneration policy.
+- Added `tests/test_macos_target_artifact.py` for target loading, subtarget
+  shape, and `asm.s` regeneration drift.
+
+Review notes:
+- The C-backed Mac summary now exposes resource type rows and CODE resource
+  names/hashes so the committed artifact does not depend on the earlier
+  Python-only prototype for visible executable/resource shape.
+- Timestamp-only target state remains out of scope; the committed metadata uses
+  stable origin/provenance fields and the generated `asm.s` carries the visible
+  progress.

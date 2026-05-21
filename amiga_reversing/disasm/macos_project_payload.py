@@ -113,6 +113,11 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
                 "types": resource_summary.get("types"),
             },
         ],
+        "resource_fork": {
+            "type_count": resource_summary.get("type_count"),
+            "resource_count": resource_summary.get("resource_count"),
+            "types": resource_summary.get("types"),
+        },
         "code0": {"resource": code0, "metadata": _mapping(code0.get("code"))},
         "code_resources": code_resources,
         "selected_code_segment": {

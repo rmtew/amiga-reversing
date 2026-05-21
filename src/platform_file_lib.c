@@ -162,20 +162,64 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosC
   return 0;
 }
 
-static int macos_append_code_resources(JsonBuilder *builder, const PlatformMacosResourceInfo *resources,
+static int macos_copy_resource_name(char *buf, size_t buf_size, const PlatformMacosResourceFork *resource_fork_info,
+    const unsigned char *resource_fork, size_t resource_fork_size, const PlatformMacosResourceInfo *resource) {
+  size_t offset;
+  size_t raw_length;
+  size_t length;
+  size_t index;
+  if (buf == NULL || buf_size == 0U || resource == NULL) return -1;
+  buf[0] = '\0';
+  if (resource->name_offset < 0) return 0;
+  if (resource_fork_info == NULL || resource_fork == NULL) return -1;
+  offset = (size_t)resource_fork_info->name_list_offset + (size_t)(uint16_t)resource->name_offset;
+  if (offset >= resource_fork_size) return -1;
+  raw_length = resource_fork[offset];
+  if (offset + 1U > resource_fork_size || raw_length > resource_fork_size - offset - 1U) return -1;
+  length = raw_length;
+  if (length >= buf_size) length = buf_size - 1U;
+  for (index = 0U; index < length; ++index) {
+    unsigned char ch = resource_fork[offset + 1U + index];
+    buf[index] = (ch >= 0x20U && ch < 0x7FU) ? (char)ch : '?';
+  }
+  buf[length] = '\0';
+  return 0;
+}
+
+static int macos_append_resource_name(JsonBuilder *builder, const PlatformMacosResourceFork *resource_fork_info,
+    const unsigned char *resource_fork, size_t resource_fork_size, const PlatformMacosResourceInfo *resource) {
+  char name[256];
+  if (macos_copy_resource_name(name, sizeof(name), resource_fork_info, resource_fork, resource_fork_size, resource) != 0)
+    return -1;
+  if (name[0] == '\0') return json_builder_append(builder, "null");
+  return json_builder_append_json_string(builder, name);
+}
+
+static int macos_append_code_resources(JsonBuilder *builder, const PlatformMacosResourceFork *resource_fork_info,
+    const unsigned char *resource_fork, size_t resource_fork_size, const PlatformMacosResourceInfo *resources,
     size_t resource_count) {
   size_t index;
   int first = 1;
   if (json_builder_append(builder, "\"code_resources\":[") != 0) return -1;
   for (index = 0U; index < resource_count; ++index) {
     const PlatformMacosResourceInfo *resource = &resources[index];
+    char sha256[65];
     if (strcmp(resource->type, "CODE") != 0) continue;
+    if (resource->payload_offset > resource_fork_size ||
+        resource->payload_size > resource_fork_size - resource->payload_offset ||
+        m68k_platform_sha256_hex(resource_fork + resource->payload_offset, resource->payload_size, sha256) != 0)
+      return -1;
     if (!first && json_builder_append(builder, ",") != 0) return -1;
     first = 0;
     if (json_builder_appendf(builder,
-          "{\"id\":%d,\"payload_offset\":%u,\"payload_size\":%u,\"code\":",
-          (int)resource->resource_id, (unsigned)resource->payload_offset,
+          "{\"type\":\"CODE\",\"id\":%d,\"name\":",
+          (int)resource->resource_id) != 0 ||
+        macos_append_resource_name(builder, resource_fork_info, resource_fork, resource_fork_size, resource) != 0 ||
+        json_builder_appendf(builder, ",\"payload_offset\":%u,\"payload_size\":%u,\"sha256\":",
+          (unsigned)resource->payload_offset,
           (unsigned)resource->payload_size) != 0 ||
+        json_builder_append_json_string(builder, sha256) != 0 ||
+        json_builder_append(builder, ",\"code\":") != 0 ||
         macos_append_code_metadata(builder, &resource->code) != 0 ||
         json_builder_append(builder, "}") != 0) {
       return -1;
@@ -184,8 +228,35 @@ static int macos_append_code_resources(JsonBuilder *builder, const PlatformMacos
   return json_builder_append(builder, "]");
 }
 
-static int macos_append_selected_code(JsonBuilder *builder, const unsigned char *resource_fork,
-    size_t resource_fork_size) {
+static int macos_append_resource_types(JsonBuilder *builder, const PlatformMacosResourceTypeInfo *types,
+    size_t type_count) {
+  size_t index;
+  if (json_builder_append(builder, "\"types\":[") != 0) return -1;
+  for (index = 0U; index < type_count; ++index) {
+    if (index > 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"type\":") != 0 ||
+        json_builder_append_json_string(builder, types[index].type) != 0 ||
+        json_builder_appendf(builder, ",\"count\":%u}", (unsigned)types[index].count) != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static const PlatformMacosResourceInfo *macos_find_resource(const PlatformMacosResourceInfo *resources,
+    size_t resource_count, const char *type, int16_t resource_id) {
+  size_t index;
+  for (index = 0U; index < resource_count; ++index) {
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    if (strcmp(resource->type, type) == 0 && resource->resource_id == resource_id) return resource;
+  }
+  return NULL;
+}
+
+static int macos_append_selected_code(JsonBuilder *builder, const PlatformMacosResourceFork *resource_fork_info,
+    const unsigned char *resource_fork, size_t resource_fork_size, const PlatformMacosResourceInfo *resources,
+    size_t resource_count) {
+  const PlatformMacosResourceInfo *selected_resource = macos_find_resource(resources, resource_count, "CODE", 1);
   uint32_t payload_offset = 0U;
   uint32_t payload_size = 0U;
   uint32_t code_offset = 0U;
@@ -213,7 +284,11 @@ static int macos_append_selected_code(JsonBuilder *builder, const unsigned char 
   }
   if (json_builder_appendf(builder,
         "\"selected_code\":{\"type\":\"CODE\",\"id\":1,\"available\":true,"
-        "\"payload_offset\":%u,\"payload_size\":%u,\"payload_sha256\":",
+        "\"name\":") != 0 ||
+      (selected_resource != NULL
+        ? macos_append_resource_name(builder, resource_fork_info, resource_fork, resource_fork_size, selected_resource)
+        : json_builder_append(builder, "null")) != 0 ||
+      json_builder_appendf(builder, ",\"payload_offset\":%u,\"payload_size\":%u,\"payload_sha256\":",
         (unsigned)payload_offset, (unsigned)payload_size) != 0 ||
       json_builder_append_json_string(builder, payload_sha256) != 0 ||
       json_builder_appendf(builder, ",\"code_bytes_offset\":%u,\"code_bytes_size\":%u,\"code_bytes_sha256\":",
@@ -333,9 +408,13 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsi
       json_builder_appendf(&builder,
         "}},\"resource_fork\":{\"type_count\":%u,\"resource_count\":%u,",
         (unsigned)resource_fork_info.type_count, (unsigned)resource_fork_info.resource_count) != 0 ||
-      macos_append_code_resources(&builder, resources, resource_fork_info.resource_count) != 0 ||
+      macos_append_resource_types(&builder, resource_types, resource_fork_info.type_count) != 0 ||
+      json_builder_append(&builder, ",") != 0 ||
+      macos_append_code_resources(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,
+        resources, resource_fork_info.resource_count) != 0 ||
       json_builder_append(&builder, "},") != 0 ||
-      macos_append_selected_code(&builder, resource_fork, selected_file->resource_size) != 0 ||
+      macos_append_selected_code(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,
+        resources, resource_fork_info.resource_count) != 0 ||
       json_builder_append(&builder, ",\"unsupported\":[\"segment_loader_relocations\",\"overflow_extents\"]}") != 0) {
     *out_text = m68k_platform_dup_string("out of memory");
     json_builder_destroy(&builder);
