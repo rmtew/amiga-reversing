@@ -4,6 +4,7 @@ import hashlib
 import struct
 
 from amiga_reversing.disasm.c_backend import (
+    extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from src.tests._build_helpers import require_built_tools
@@ -114,7 +115,8 @@ def _make_hfs_image() -> bytes:
 
 def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     require_built_tools()
-    summary = inspect_macos_hfs_code_summary_with_c_backend(_make_hfs_image(), "MPW-GM/Tools/Asm")
+    image = _make_hfs_image()
+    summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
     assert summary["platform"] == "macos"
     assert summary["container_kind"] == "hfs_resource_code_file"
     assert summary["volume"]["name"] == "MPW-GM"
@@ -130,3 +132,4 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["selected_code"]["payload_size"] == 6
     assert summary["selected_code"]["code_bytes_size"] == 2
     assert summary["selected_code"]["code_bytes_sha256"] == hashlib.sha256(b"\x4e\x75").hexdigest()
+    assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x4e\x75"

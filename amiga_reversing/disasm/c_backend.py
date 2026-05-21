@@ -584,6 +584,22 @@ def inspect_macos_hfs_code_summary_with_c_backend(
     return cast(dict[str, object], json.loads(summary_text))
 
 
+def extract_macos_hfs_code_resource_bytes_with_c_backend(
+    image_data: bytes,
+    hfs_path: str,
+    resource_id: int,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> bytes:
+    return _platform_file_buffer_bytes(
+        "platform_file_macos_hfs_code_resource_bytes_alloc",
+        image_data,
+        hfs_path,
+        resource_id,
+        project_root=project_root,
+    )
+
+
 def effective_policy_project_source_with_c_backend(
     binary_source: BinarySource,
     *,
@@ -858,6 +874,27 @@ def _platform_file_buffer_text(function_name: str, data: bytes, *args: object, p
             dll.platform_file_free_text(out_text)
 
 
+def _platform_file_buffer_bytes(function_name: str, data: bytes, *args: object, project_root: Path) -> bytes:
+    dll = _platform_file_dll(project_root)
+    function = getattr(dll, function_name)
+    out_data = c_void_p()
+    out_size = c_size_t()
+    out_error = c_void_p()
+    data_buffer = create_string_buffer(data)
+    c_args = [arg if isinstance(arg, int) else _c_arg(arg) for arg in args]
+    result = function(data_buffer, len(data), *c_args, byref(out_data), byref(out_size), byref(out_error))
+    try:
+        if result != 0:
+            detail = string_at(out_error.value).decode("utf-8", errors="replace") if out_error.value else ""
+            raise RuntimeError(f"C backend DLL failed: {detail}")
+        return bytes(string_at(out_data.value, out_size.value)) if out_data.value else b""
+    finally:
+        if out_error.value:
+            dll.platform_file_free_text(out_error)
+        if out_data.value:
+            dll.platform_file_free_bytes(out_data)
+
+
 def _platform_file_facts_v2_direct_rebuild_profile(
     function_name: str, *args: object, project_root: Path
 ) -> tuple[bytes, dict[str, object], dict[str, object]]:
@@ -1043,6 +1080,16 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_macos_hfs_code_summary_json_alloc.restype = c_int
+    dll.platform_file_macos_hfs_code_resource_bytes_alloc.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_int,
+        POINTER(c_void_p),
+        POINTER(c_size_t),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_macos_hfs_code_resource_bytes_alloc.restype = c_int
     dll.platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,

@@ -360,6 +360,100 @@ cleanup:
   return result;
 }
 
+PLATFORM_FILE_API int platform_file_macos_hfs_code_resource_bytes_alloc(const unsigned char *data, size_t size,
+    const char *hfs_path, int32_t resource_id, unsigned char **out_data, size_t *out_size, char **out_error) {
+  PlatformMacosHFSCatalog catalog;
+  PlatformMacosHFSDirectoryInfo *directories = NULL;
+  PlatformMacosHFSFileInfo *files = NULL;
+  PlatformMacosHFSFileInfo *selected_file = NULL;
+  unsigned char *resource_fork = NULL;
+  unsigned char *code_bytes = NULL;
+  char *copy_error = NULL;
+  char path[PLATFORM_MACOS_HFS_PATH_SIZE];
+  uint32_t payload_offset = 0U;
+  uint32_t payload_size = 0U;
+  uint32_t code_size = 0U;
+  size_t index;
+  int find_status;
+  int result = -1;
+  if (out_data == NULL || out_size == NULL || out_error == NULL) return -1;
+  *out_data = NULL;
+  *out_size = 0U;
+  *out_error = NULL;
+  memset(&catalog, 0, sizeof(catalog));
+  if (data == NULL || size == 0U || hfs_path == NULL || hfs_path[0] == '\0') {
+    *out_error = m68k_platform_dup_string("invalid Mac HFS CODE extraction input");
+    return -1;
+  }
+  if (resource_id <= 0) {
+    *out_error = m68k_platform_dup_string("CODE 0 is metadata, not extractable code bytes");
+    return -1;
+  }
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) {
+    *out_error = m68k_platform_dup_string("Mac HFS catalog parse failed");
+    return -1;
+  }
+  directories = (PlatformMacosHFSDirectoryInfo *)calloc(catalog.directory_count ? catalog.directory_count : 1U,
+    sizeof(*directories));
+  files = (PlatformMacosHFSFileInfo *)calloc(catalog.file_count ? catalog.file_count : 1U, sizeof(*files));
+  if (directories == NULL || files == NULL) {
+    *out_error = m68k_platform_dup_string("out of memory");
+    goto cleanup;
+  }
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, directories, catalog.directory_count,
+      files, catalog.file_count) != 0) {
+    *out_error = m68k_platform_dup_string("Mac HFS catalog parse failed");
+    goto cleanup;
+  }
+  for (index = 0U; index < catalog.file_count; ++index) {
+    if (platform_macos_hfs_file_path(directories, catalog.directory_count, &files[index], path, sizeof(path)) != 0)
+      continue;
+    if (macos_hfs_path_matches(&catalog.volume, path, hfs_path)) {
+      selected_file = &files[index];
+      break;
+    }
+  }
+  if (selected_file == NULL) {
+    *out_error = m68k_platform_dup_string("Mac HFS file path not found");
+    goto cleanup;
+  }
+  if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->resource_extents,
+      selected_file->resource_size, &resource_fork, &copy_error) != 0) {
+    *out_error = copy_error != NULL ? copy_error : m68k_platform_dup_string("Mac HFS resource fork materialization failed");
+    copy_error = NULL;
+    goto cleanup;
+  }
+  find_status = platform_macos_resource_fork_find_payload(resource_fork, selected_file->resource_size, "CODE",
+    (int16_t)resource_id, &payload_offset, &payload_size);
+  if (find_status != 0) {
+    *out_error = m68k_platform_dup_string(find_status > 0 ? "Mac CODE resource not found"
+      : "Mac CODE resource payload lookup failed");
+    goto cleanup;
+  }
+  if (payload_size <= 4U) {
+    *out_error = m68k_platform_dup_string("Mac CODE resource has no code bytes after segment header");
+    goto cleanup;
+  }
+  code_size = payload_size - 4U;
+  code_bytes = (unsigned char *)malloc(code_size);
+  if (code_bytes == NULL) {
+    *out_error = m68k_platform_dup_string("out of memory");
+    goto cleanup;
+  }
+  memcpy(code_bytes, resource_fork + payload_offset + 4U, code_size);
+  *out_data = code_bytes;
+  *out_size = code_size;
+  code_bytes = NULL;
+  result = 0;
+cleanup:
+  free(copy_error);
+  free(code_bytes);
+  free(resource_fork);
+  free(files);
+  free(directories);
+  return result;
+}
+
 static int parse_u32_arg_local(const char *text, uint32_t *out_value) {
   M68kParseU32Result result;
   if (text == NULL || out_value == NULL) return 0;

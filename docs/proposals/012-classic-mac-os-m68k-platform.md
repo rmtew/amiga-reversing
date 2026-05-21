@@ -842,7 +842,8 @@ The first HFS catalog metadata slice is implemented; catalog-extent fork
 materialization is implemented; overflow extents and normal project/API
 consumption remain. The first exported C platform-file summary API now feeds a
 Python wrapper test for HFS file metadata, Finder type/creator, resource/CODE
-inventory, and selected CODE 1 bytes.
+inventory, selected CODE 1 byte metadata, and actual selected CODE 1 byte
+extraction.
 ```
 
 012-014. Mac project/API/web integration - blocked
@@ -1130,10 +1131,11 @@ resources documentation coverage tests
 - 012-013 now exposes a C-backed Mac HFS/CODE summary through
   `platform_file_lib` and wraps it from Python. The wrapper test proves the
   durable path owns HFS path lookup, Finder metadata, fork sizes, resource-fork
-  parsing, `CODE` inventory, and selected `CODE 1` byte metadata. Remaining
-  work is to connect this summary into normal Mac project/API creation and add
-  a real MPW fixture drift gate once overflow extents or fixture constraints
-  make that safe.
+  parsing, `CODE` inventory, selected `CODE 1` byte metadata, and selected
+  nonzero `CODE` byte extraction for listing/import consumers. Remaining work
+  is to connect this summary into normal Mac project/API creation and add a real
+  MPW fixture drift gate once overflow extents or fixture constraints make that
+  safe.
 
 ## Open Questions
 

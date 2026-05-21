@@ -1,4 +1,4 @@
-Status: in progress; C resource-fork/CODE, HFS metadata, fork materialization, and C-backed Python summary slices implemented
+Status: in progress; C resource-fork/CODE, HFS metadata, fork materialization, C-backed Python summary, and selected CODE byte extraction slices implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -68,6 +68,8 @@ Blocker recorded:
 - `platform_file_lib` now exposes a C-backed Mac HFS/CODE summary API that
   finds an HFS file path, materializes catalog extents, parses its resource
   fork, inventories `CODE` resources, and reports selected `CODE 1` bytes.
+- `platform_file_lib` also exposes selected nonzero `CODE` resource byte
+  extraction for listing/import consumers; `CODE 0` stays metadata-only.
 - `amiga_reversing.disasm.c_backend` now wraps that C API, with Python
   integration coverage using a synthetic HFS/resource-fork fixture.
 - `src/` still has no C-backed overflow-extent fork materializer, real MPW
@@ -98,3 +100,6 @@ Implemented slice:
   C platform-file Mac container summary API, plus a Python wrapper test proving
   Python consumes that C path for HFS file metadata, Finder type/creator, fork
   sizes, resource/CODE inventory, and selected `CODE 1` bytes.
+- Added `platform_file_macos_hfs_code_resource_bytes_alloc` for actual selected
+  nonzero `CODE` segment byte extraction, with the same Python integration test
+  asserting `CODE 1` bytes come from the C path.
