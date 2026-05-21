@@ -81,6 +81,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\test_platform_decompression.c ^
     src\test_m68k_container_metadata.c ^
     src\test_mac_os_runtime.c ^
+    src\test_platform_macos_hfs.c ^
     src\test_platform_macos_resource.c ^
     src\test_m68k_c_main.c ^
     src\m68k_source_ir_render.c ^
@@ -109,6 +110,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\platform_file_platform.c ^
     src\platform_file_json.c ^
     src\platform_file_decompression.c ^
+    src\platform_macos_hfs.c ^
     src\platform_macos_resource.c ^
     src\json_builder.c ^
     src\m68k_object.c ^
@@ -193,6 +195,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\test_platform_decompression.obj ^
     %OUTDIR%\test_m68k_container_metadata.obj ^
     %OUTDIR%\test_mac_os_runtime.obj ^
+    %OUTDIR%\test_platform_macos_hfs.obj ^
     %OUTDIR%\test_platform_macos_resource.obj ^
     %OUTDIR%\test_util_arena.obj ^
     %OUTDIR%\m68k_c_unit_test.obj ^
@@ -236,6 +239,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_decompression.obj ^
+    %OUTDIR%\platform_macos_hfs.obj ^
     %OUTDIR%\platform_macos_resource.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
@@ -329,6 +333,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_decompression.obj ^
+    %OUTDIR%\platform_macos_hfs.obj ^
     %OUTDIR%\platform_macos_resource.obj ^
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_facts_v2.obj ^
@@ -398,6 +403,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_decompression.obj ^
+    %OUTDIR%\platform_macos_hfs.obj ^
     %OUTDIR%\platform_macos_resource.obj ^
     %OUTDIR%\platform_common.obj ^
     %OUTDIR%\platform_facts_v2.obj ^
@@ -467,6 +473,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_decompression.obj ^
+    %OUTDIR%\platform_macos_hfs.obj ^
     %OUTDIR%\platform_macos_resource.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^
@@ -530,6 +537,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\platform_file_platform.obj ^
     %OUTDIR%\platform_file_json.obj ^
     %OUTDIR%\platform_file_decompression.obj ^
+    %OUTDIR%\platform_macos_hfs.obj ^
     %OUTDIR%\platform_macos_resource.obj ^
     %OUTDIR%\json_builder.obj ^
     %OUTDIR%\m68k_source_ir_api_dll.obj ^

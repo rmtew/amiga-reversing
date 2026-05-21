@@ -838,6 +838,8 @@ Keep Python as wrapper/report/editing code only.
 The C resource-fork/CODE parser slice is implemented; HFS file/fork access,
 Finder metadata import, Mac project metadata serialization, and normal API/web
 payload routing remain.
+The first HFS catalog metadata slice is implemented; multi-extent/overflow fork
+materialization and normal project/API consumption remain.
 ```
 
 012-014. Mac project/API/web integration - blocked
@@ -1114,6 +1116,12 @@ resources documentation coverage tests
   does not close the platform backend gap yet; C-backed HFS catalog/file/fork
   access, Finder metadata import, Mac project serialization, and normal API/web
   routing remain the next blockers.
+- 012-013 now also has a read-only C HFS catalog metadata slice. It parses the
+  MDB, catalog directory/file records, Finder type/creator, data/resource fork
+  sizes, first-extent fork bounds, and CNID-derived file paths from synthetic
+  HFS fixtures. Full fork materialization across multiple or overflow extents,
+  real MPW fixture drift checks through this C path, and normal project/API
+  consumption remain out of scope for this slice.
 
 ## Open Questions
 
