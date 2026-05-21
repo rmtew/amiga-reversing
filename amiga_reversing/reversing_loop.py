@@ -7294,20 +7294,15 @@ def _verify_projected_a5_hardware_ref_entry_comment(
             )
     except Exception as exc:
         source_error = str(exc)
-    row_comment = affected.get("comment_text") or affected.get("commentText")
-    actual_comment_text = (
-        expected_comment
-        if expected_comment and expected_comment in source_text
-        else row_comment
-        if isinstance(row_comment, str)
-        else None
-    )
+    source_contains_expected_comment = bool(expected_comment and expected_comment in source_text)
+    actual_comment_text = expected_comment if source_contains_expected_comment else None
     symbol_operand_text = f"{symbol}(a5)" if isinstance(symbol, str) else None
     has_unsafe_symbol_operand_text = bool(symbol_operand_text and symbol_operand_text in source_text)
     return {
         "layer": "rendered_source",
         "status": "passed"
         if expected_comment
+        and source_error is None
         and actual_comment_text == expected_comment
         and not has_symbol_operand
         and not has_symbol_text
@@ -7318,6 +7313,7 @@ def _verify_projected_a5_hardware_ref_entry_comment(
         "symbol_operand_blocked_reason": symbol_operand_blocker,
         "expected_comment_text": expected_comment,
         "actual_comment_text": actual_comment_text,
+        "source_contains_expected_comment": source_contains_expected_comment,
         "expected_symbol": symbol,
         "matched_symbol_operand": has_symbol_operand,
         "matched_symbol_text": has_symbol_text,

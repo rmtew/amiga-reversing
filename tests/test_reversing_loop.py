@@ -6,6 +6,7 @@ import sys
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -3644,6 +3645,19 @@ def test_a5_hardware_ref_render_verifier_accepts_zero_displacement_entry_comment
         raise AssertionError(path)
 
     monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+    monkeypatch.setattr(
+        reversing_loop,
+        "resolve_project_paths",
+        lambda target_id, project_root: SimpleNamespace(target_dir=tmp_path / "targets" / "demo", binary_source=object()),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "render_project_source_with_c_backend",
+        lambda *args, **kwargs: (
+            "A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)\n"
+            "\tmove.w (a5),d0\n"
+        ),
+    )
 
     verification = reversing_loop._verify_projected_a5_hardware_ref_rendered_source(
         "demo",
@@ -3659,6 +3673,85 @@ def test_a5_hardware_ref_render_verifier_accepts_zero_displacement_entry_comment
     )
     assert verification["matched_symbol_operand"] is False
     assert verification["matched_symbol_text"] is False
+    assert verification["source_contains_expected_comment"] is True
+
+
+def test_a5_hardware_ref_entry_comment_verifier_rejects_listing_comment_without_source_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    locator = _listing_locator(row_key="a5-use-zero", start_offset=0x40, end_offset=0x42)
+    ref = {
+        "a5_hardware_ref_id": "a5-hw:a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000",
+        "hunk": 0,
+        "addr": 0x40,
+        "end": 0x42,
+        "operand_index": 0,
+        "base_register": "A5",
+        "displacement": 0,
+        "custom_base_offset": 2,
+        "hardware_register_offset": 2,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_address": 0xDFF002,
+        "reference_kind": "custom_register_displacement",
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "a5-custom-cfg:h0:00000030->00000040:op0:b0002+d0000",
+        "path_lifetime_scope": {
+            "accepted_hardware_base_evidence": True,
+            "kind": "straight_line_cfg_between_definition_and_use",
+        },
+        "symbol": "dmaconr",
+        "conflicts": [],
+    }
+    command = {
+        "kind": "command",
+        "command_id": "a5_hardware_ref.interpret",
+        "context": {"kind": "row", "locator": locator},
+        "parameters": dict(ref),
+        "output_affecting": True,
+    }
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"a5_hardware_refs": [{**ref, "owner_action_id": "manual-1"}]},
+        ),
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            row = _a5_use_row(displacement=0)
+            row["comment_text"] = "A5 hardware ref: dmaconr at _custom+$0002; operand kept as (a5)"
+            row["text"] = "\tmove.w (a5),d0\n"
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+    monkeypatch.setattr(
+        reversing_loop,
+        "resolve_project_paths",
+        lambda target_id, project_root: SimpleNamespace(target_dir=tmp_path / "targets" / "demo", binary_source=object()),
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "render_project_source_with_c_backend",
+        lambda *args, **kwargs: "\tmove.w (a5),d0\n",
+    )
+
+    verification = reversing_loop._verify_projected_a5_hardware_ref_rendered_source(
+        "demo",
+        command,
+        ref,
+        project_root=tmp_path,
+    )
+
+    assert verification["status"] == "failed", verification
+    assert verification["render_mode"] == "entry_comment"
+    assert verification["actual_comment_text"] is None
+    assert verification["source_contains_expected_comment"] is False
 
 
 def test_run_one_rsset_region_executes_with_rsset_state_verifier(

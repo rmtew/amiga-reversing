@@ -1,4 +1,4 @@
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: review of 017-024 closeout
@@ -32,3 +32,15 @@ Acceptance:
 - Generated source contains the expected entry comment and does not contain an
   unsafe symbolic operand rewrite.
 - Focused tests pass.
+
+Resolution:
+- `_verify_projected_a5_hardware_ref_entry_comment` now requires successful
+  generated-source rendering and requires the expected entry comment to appear
+  in that generated source.
+- The verifier no longer falls back to `row.comment_text` / UI listing state
+  when generated source omits the entry comment.
+- Added a regression test where the listing row has the expected comment but
+  generated source only contains `move.w (a5),d0`; the verifier fails with
+  `source_contains_expected_comment=false`.
+- Existing address-mode-preserving checks still reject unsafe symbolic operand
+  text such as `dmaconr(a5)`.

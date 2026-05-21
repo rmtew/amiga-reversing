@@ -418,3 +418,8 @@ repeatable work to `docs\issues\017-*`.
   command candidate, RSSET still has 125 candidates with top
   `rsset-raw-a6:022E` blocked by missing accepted base evidence, inspect is
   clear/exact, and dry run reports `no_candidate`.
+- 017-028 hardened the A5 address-mode-preserving entry-comment verifier: it
+  now requires generated source rendering to succeed and requires the generated
+  source text to contain the expected entry comment. Listing/UI
+  `comment_text` alone no longer satisfies the verifier, while unsafe symbolic
+  operand text such as `dmaconr(a5)` remains rejected.
