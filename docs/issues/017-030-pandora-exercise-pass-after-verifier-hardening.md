@@ -1,4 +1,4 @@
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: review request after 017-024/017-025 closeout
@@ -50,3 +50,26 @@ Acceptance:
   concrete Pandora location/result.
 - Any output-affecting change has exact round-trip verification.
 - Final 017 closeout is deferred to `017-027` after this issue is complete.
+
+Resolution:
+- Added `docs/validation/pandora-017-exercise-2026-05-22.md` as the tracked
+  evidence boundary for the real-target exercise pass.
+- Reproduced current Pandora state with exact round-trip available, no inspect
+  candidate work, and dry-run planner status `no_candidate`.
+- Verified the real Pandora A5 entry-comment action
+  `manual-964aee63919e438880d1f5e7670ef95d` at `s0:0000045C` through
+  manual-log, semantic-reload, generated-source, and round-trip layers.
+- Inspected RSSET `rsset-raw-a6:022E` at `s0:000006E4`; source context and
+  manual state show no accepted `$022E` app-base evidence, so bind remains
+  blocked by `missing_accepted_base_evidence`.
+- Exercised the immediate-reference surface at `s0:000009A6`; the remaining
+  source-offset candidates remain report-only with no command/verifier path.
+
+Verification:
+- `inspect_target(...)`
+- `run_one_iteration(..., dry_run=True)`
+- `inspect_a5_hardware_lifetimes(...)`
+- `_verify_a5_hardware_ref_mutation(...)` for
+  `manual-964aee63919e438880d1f5e7670ef95d`
+- `inspect_rsset_candidates(...)`
+- `inspect_immediate_runtime_refs(...)`

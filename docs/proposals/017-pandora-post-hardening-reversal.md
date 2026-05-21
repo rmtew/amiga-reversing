@@ -427,3 +427,9 @@ repeatable work to `docs\issues\017-*`.
   explicit, sequence-shaped, and empty. Missing or malformed conflict state now
   remains rejected evidence, and the focused Pandora RSSET report still leaves
   `rsset-raw-a6:022E` blocked with `accepted_base_evidence_count=0`.
+- 017-030 tracked a real Pandora exercise pass in
+  `docs/validation/pandora-017-exercise-2026-05-22.md`: the
+  `s0:0000045C` A5 entry-comment action passes the hardened generated-source
+  verifier and exact round-trip, RSSET `s0:000006E4` / `$022E` remains blocked
+  by missing accepted app-base evidence, and immediate `s0:000009A6` remains
+  report-only source-offset evidence. No new safe mutation was available.
