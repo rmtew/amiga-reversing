@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import struct
+from pathlib import Path
+
+import pytest
 
 from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
+from amiga_reversing.disasm.macos_asm_container import (
+    DEFAULT_NDIF2RAW_PATH,
+    read_macos_hfs_image_bytes,
+)
 from src.tests._build_helpers import require_built_tools
+
+IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
+ASM_CODE_RESOURCES_PATH = Path("ext/macos_tools/mpw_gm/asm_code_resources.json")
 
 
 def _u16(value: int) -> bytes:
@@ -133,3 +144,33 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["selected_code"]["code_bytes_size"] == 2
     assert summary["selected_code"]["code_bytes_sha256"] == hashlib.sha256(b"\x4e\x75").hexdigest()
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x4e\x75"
+
+
+def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
+    require_built_tools()
+    if not IMAGE_PATH.exists():
+        pytest.skip("MPW-GM image fixture is not available")
+    if not DEFAULT_NDIF2RAW_PATH.exists():
+        pytest.skip("ndif2raw provider is not available")
+    expected = json.loads(ASM_CODE_RESOURCES_PATH.read_text(encoding="utf-8"))
+    expected_code0 = next(item for item in expected["resources"] if item["type"] == "CODE" and item["id"] == 0)
+    expected_code1 = next(item for item in expected["resources"] if item["type"] == "CODE" and item["id"] == 1)
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(
+        read_macos_hfs_image_bytes(IMAGE_PATH),
+        "MPW-GM/MPW/Tools/Asm",
+    )
+    code_resources = summary["resource_fork"]["code_resources"]
+    code0 = next(item for item in code_resources if item["id"] == 0)
+
+    assert summary["file"]["path"] == "MPW-GM/MPW/Tools/Asm"
+    assert summary["file"]["type"] == "MPST"
+    assert summary["file"]["creator"] == "MPS "
+    assert len(code_resources) == 28
+    assert code0["payload_size"] == expected_code0["size"]
+    assert code0["code"]["kind"] == "jump_table_segment"
+    assert code0["code"]["above_a5_size"] == expected_code0["code"]["above_a5_size"]
+    assert code0["code"]["below_a5_size"] == expected_code0["code"]["below_a5_size"]
+    assert summary["selected_code"]["payload_size"] == expected_code1["size"]
+    assert summary["selected_code"]["payload_sha256"] == expected_code1["sha256"]
+    assert summary["selected_code"]["code_bytes_size"] == expected_code1["size"] - 4

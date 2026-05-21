@@ -1,4 +1,4 @@
-Status: in progress; C resource-fork/CODE, HFS metadata, fork materialization, C-backed Python summary, and selected CODE byte extraction slices implemented
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -55,9 +55,11 @@ Required tests:
   available.
 - `cmd /c src\precommit.bat`.
 
-Blocker recorded:
-- 012-015 removed handcrafted Mac runtime metadata from the render path, but the
-  durable Mac container/import path is still Python-only research code.
+Completed foundation:
+- 012-015 removed handcrafted Mac runtime metadata from the render path, and
+  this issue now replaces the Mac container/import path with C-backed HFS,
+  resource-fork, CODE summary, selected CODE byte extraction, and normal
+  project/API payload consumption.
 - `src/` now has a C-backed Classic Mac resource fork parser for resource-map
   inventory, `CODE 0` metadata, nonzero `CODE` segment metadata, and selected
   resource payload bounds.
@@ -72,14 +74,12 @@ Blocker recorded:
   extraction for listing/import consumers; `CODE 0` stays metadata-only.
 - `amiga_reversing.disasm.c_backend` now wraps that C API, with Python
   integration coverage using a synthetic HFS/resource-fork fixture.
-- `src/` still has no C-backed overflow-extent fork materializer, real MPW
-  fixture drift gate through this API, Mac project metadata serializer, or
-  normal API/web project payload equivalent to the Amiga/Atari platform
-  backends.
-- Do not promote the Python helper path as the accepted durable implementation.
-  The next viable 012 slice is a C platform-file backend extension that owns HFS
-  file lookup and Finder/fork metadata, then routes resource/CODE inspection
-  through the new C resource parser.
+- `src/` still has no C-backed overflow-extent fork materializer. The current
+  MPW `Asm` path does not require it; future HFS fixtures that need overflow
+  extents should promote that as a separate backend issue instead of blocking
+  this slice.
+- Do not promote the remaining Python helper-only views as the accepted durable
+  implementation where C-backed summary/byte APIs now exist.
 
 Implemented slice:
 - Added `src/platform_macos_resource.c` and
@@ -107,3 +107,15 @@ Implemented slice:
   the C-backed byte API so the listing smoke path no longer depends on the
   Python resource parser for selected segment bytes. `CODE 0` remains metadata
   handled by the existing parser path.
+- Added a real MPW-GM fixture drift gate through the C HFS/CODE summary API,
+  comparing Finder metadata, `CODE` count, `CODE 0` jump-table metadata, and
+  selected `CODE 1` size/hash against
+  `ext/macos_tools/mpw_gm/asm_code_resources.json`.
+- Added normal `macos` project/API payload consumption of the C HFS/CODE
+  summary so the durable backend facts are visible through the shared project
+  route.
+
+Deferred follow-up:
+- Overflow-extent fork materialization remains out of scope until a committed
+  Mac fixture needs it.
+- Selected CODE listing rows are owned by 012-016.

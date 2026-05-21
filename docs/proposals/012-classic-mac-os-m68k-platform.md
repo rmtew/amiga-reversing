@@ -1146,6 +1146,11 @@ resources documentation coverage tests
   view and carries provenance to the MPW-GM image plus committed source,
   resource, and build metadata. Selected CODE listing rows and a committed Mac
   target artifact remain separate 012-016/012-018 work.
+- 012-013 is now closed for the current MPW `Asm` backend scope: a real
+  MPW-GM fixture drift gate compares the C HFS/CODE summary against committed
+  `asm_code_resources.json` metadata. Overflow extents remain a future backend
+  extension for fixtures that actually need them, not a blocker for the current
+  Asm path.
 
 ## Open Questions
 
