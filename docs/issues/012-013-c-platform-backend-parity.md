@@ -1,4 +1,4 @@
-Status: in progress; C resource-fork/CODE and HFS metadata slices implemented
+Status: in progress; C resource-fork/CODE, HFS metadata, fork materialization, and C-backed Python summary slices implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -65,9 +65,15 @@ Blocker recorded:
   volume fields, catalog directory/file records, Finder type/creator,
   data/resource fork sizes, first-extent fork bounds, catalog-extent fork
   materialization, and CNID-backed path reconstruction.
-- `src/` still has no C-backed overflow-extent fork materializer, Mac project
-  metadata serializer, or normal API/web project payload equivalent to the
-  Amiga/Atari platform backends.
+- `platform_file_lib` now exposes a C-backed Mac HFS/CODE summary API that
+  finds an HFS file path, materializes catalog extents, parses its resource
+  fork, inventories `CODE` resources, and reports selected `CODE 1` bytes.
+- `amiga_reversing.disasm.c_backend` now wraps that C API, with Python
+  integration coverage using a synthetic HFS/resource-fork fixture.
+- `src/` still has no C-backed overflow-extent fork materializer, real MPW
+  fixture drift gate through this API, Mac project metadata serializer, or
+  normal API/web project payload equivalent to the Amiga/Atari platform
+  backends.
 - Do not promote the Python helper path as the accepted durable implementation.
   The next viable 012 slice is a C platform-file backend extension that owns HFS
   file lookup and Finder/fork metadata, then routes resource/CODE inspection
@@ -88,3 +94,7 @@ Implemented slice:
 - Added catalog-extent fork materialization in C, with native tests for a
   resource fork spread across multiple catalog extents and explicit overflow
   extent-needed reporting.
+- Added `platform_file_macos_hfs_code_summary_json_alloc` as the first exported
+  C platform-file Mac container summary API, plus a Python wrapper test proving
+  Python consumes that C path for HFS file metadata, Finder type/creator, fork
+  sizes, resource/CODE inventory, and selected `CODE 1` bytes.

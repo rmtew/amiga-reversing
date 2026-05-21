@@ -109,6 +109,8 @@ PLATFORM_FILE_API int platform_file_naming_catalog_json_alloc(const char *backen
 PLATFORM_FILE_API int platform_file_os_metadata_catalog_json_alloc(const char *backend_name, char **out_text);
 PLATFORM_FILE_API int platform_file_api_input_struct_json_alloc(const char *backend_name, const char *library_name,
     const char *function_name, const char *input_name, const char *struct_name, char **out_text);
+PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsigned char *data, size_t size,
+    const char *hfs_path, char **out_text);
 PLATFORM_FILE_API int platform_file_decompression_identify_path_range_json_alloc(const char *provider_id,
     const char *provider_path, const char *path, uint32_t offset, uint32_t size, char **out_text);
 PLATFORM_FILE_API int platform_file_decompression_decompress_path_range_json_alloc(const char *provider_id,

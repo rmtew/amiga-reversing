@@ -21,6 +21,8 @@
 #include "platform_atari_st.h"
 #include "platform_common.h"
 #include "platform_file_decompression.h"
+#include "platform_macos_hfs.h"
+#include "platform_macos_resource.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -82,6 +84,280 @@ static int make_temp_output_path(char *path_buf, size_t path_buf_size) {
   strcpy(path_buf, temp_name);
   strcat(path_buf, ".bin");
   return 0;
+}
+
+static int macos_hfs_path_matches(const PlatformMacosHFSVolume *volume, const char *candidate_path,
+    const char *requested_path) {
+  size_t volume_len;
+  if (candidate_path == NULL || requested_path == NULL) return 0;
+  if (strcmp(candidate_path, requested_path) == 0) return 1;
+  if (volume == NULL) return 0;
+  volume_len = strlen(volume->volume_name);
+  if (volume_len == 0U) return 0;
+  if (strncmp(requested_path, volume->volume_name, volume_len) != 0) return 0;
+  if (requested_path[volume_len] != '/' && requested_path[volume_len] != ':') return 0;
+  return strcmp(candidate_path, requested_path + volume_len + 1U) == 0;
+}
+
+static int macos_copy_fork_or_error(const unsigned char *image_data, size_t image_size,
+    const PlatformMacosHFSVolume *volume, const PlatformMacosHFSExtent extents[PLATFORM_MACOS_HFS_EXTENT_COUNT],
+    uint32_t fork_size, unsigned char **out_data, char **out_error) {
+  unsigned char *data;
+  int copy_status;
+  if (out_data == NULL || out_error == NULL) return -1;
+  *out_data = NULL;
+  *out_error = NULL;
+  if (fork_size == 0U) return 0;
+  data = (unsigned char *)malloc(fork_size);
+  if (data == NULL) {
+    *out_error = m68k_platform_dup_string("out of memory");
+    return -1;
+  }
+  copy_status = platform_macos_hfs_copy_fork(image_data, image_size, volume, extents, fork_size, data, fork_size);
+  if (copy_status != 0) {
+    free(data);
+    if (copy_status > 0)
+      *out_error = m68k_platform_dup_string("Mac HFS overflow extents are not supported yet");
+    else
+      *out_error = m68k_platform_dup_string("Mac HFS fork materialization failed");
+    return -1;
+  }
+  *out_data = data;
+  return 0;
+}
+
+static int macos_append_fork_summary(JsonBuilder *builder, const char *name,
+    const unsigned char *fork_data, uint32_t fork_size) {
+  char sha256[65];
+  sha256[0] = '\0';
+  if (fork_data != NULL && fork_size > 0U) {
+    if (m68k_platform_sha256_hex(fork_data, fork_size, sha256) != 0) return -1;
+  }
+  if (json_builder_appendf(builder, "\"%s\":{\"size\":%u,\"sha256\":", name, (unsigned)fork_size) != 0 ||
+      json_builder_append_json_string(builder, sha256) != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosCodeMetadata *code) {
+  const char *kind = "none";
+  if (code == NULL) return -1;
+  if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT)
+    kind = "jump_table_segment";
+  else if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT)
+    kind = "code_segment";
+  if (json_builder_append(builder, "{\"kind\":") != 0 ||
+      json_builder_append_json_string(builder, kind) != 0 ||
+      json_builder_appendf(builder,
+        ",\"above_a5_size\":%u,\"below_a5_size\":%u,\"jump_table_length\":%u,"
+        "\"jump_table_offset_from_a5\":%u,\"first_jump_table_entry_offset\":%u,"
+        "\"jump_table_entry_count\":%u}",
+        (unsigned)code->above_a5_size, (unsigned)code->below_a5_size,
+        (unsigned)code->jump_table_length, (unsigned)code->jump_table_offset_from_a5,
+        (unsigned)code->first_jump_table_entry_offset, (unsigned)code->jump_table_entry_count) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_code_resources(JsonBuilder *builder, const PlatformMacosResourceInfo *resources,
+    size_t resource_count) {
+  size_t index;
+  int first = 1;
+  if (json_builder_append(builder, "\"code_resources\":[") != 0) return -1;
+  for (index = 0U; index < resource_count; ++index) {
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    if (strcmp(resource->type, "CODE") != 0) continue;
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (json_builder_appendf(builder,
+          "{\"id\":%d,\"payload_offset\":%u,\"payload_size\":%u,\"code\":",
+          (int)resource->resource_id, (unsigned)resource->payload_offset,
+          (unsigned)resource->payload_size) != 0 ||
+        macos_append_code_metadata(builder, &resource->code) != 0 ||
+        json_builder_append(builder, "}") != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int macos_append_selected_code(JsonBuilder *builder, const unsigned char *resource_fork,
+    size_t resource_fork_size) {
+  uint32_t payload_offset = 0U;
+  uint32_t payload_size = 0U;
+  uint32_t code_offset = 0U;
+  uint32_t code_size = 0U;
+  char payload_sha256[65];
+  char code_sha256[65];
+  int status;
+  payload_sha256[0] = '\0';
+  code_sha256[0] = '\0';
+  status = platform_macos_resource_fork_find_payload(resource_fork, resource_fork_size, "CODE", 1,
+    &payload_offset, &payload_size);
+  if (status != 0) {
+    if (status > 0) {
+      return json_builder_append(builder, "\"selected_code\":{\"type\":\"CODE\",\"id\":1,\"available\":false}");
+    }
+    return -1;
+  }
+  if (m68k_platform_sha256_hex(resource_fork + payload_offset, payload_size, payload_sha256) != 0) return -1;
+  if (payload_size > 4U) {
+    code_offset = payload_offset + 4U;
+    code_size = payload_size - 4U;
+    if (m68k_platform_sha256_hex(resource_fork + code_offset, code_size, code_sha256) != 0) return -1;
+  } else {
+    code_offset = payload_offset + payload_size;
+  }
+  if (json_builder_appendf(builder,
+        "\"selected_code\":{\"type\":\"CODE\",\"id\":1,\"available\":true,"
+        "\"payload_offset\":%u,\"payload_size\":%u,\"payload_sha256\":",
+        (unsigned)payload_offset, (unsigned)payload_size) != 0 ||
+      json_builder_append_json_string(builder, payload_sha256) != 0 ||
+      json_builder_appendf(builder, ",\"code_bytes_offset\":%u,\"code_bytes_size\":%u,\"code_bytes_sha256\":",
+        (unsigned)code_offset, (unsigned)code_size) != 0 ||
+      json_builder_append_json_string(builder, code_sha256) != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsigned char *data, size_t size,
+    const char *hfs_path, char **out_text) {
+  PlatformMacosHFSCatalog catalog;
+  PlatformMacosHFSDirectoryInfo *directories = NULL;
+  PlatformMacosHFSFileInfo *files = NULL;
+  PlatformMacosResourceFork resource_fork_info;
+  PlatformMacosResourceTypeInfo *resource_types = NULL;
+  PlatformMacosResourceInfo *resources = NULL;
+  PlatformMacosHFSFileInfo *selected_file = NULL;
+  unsigned char *data_fork = NULL;
+  unsigned char *resource_fork = NULL;
+  char *error = NULL;
+  char path[PLATFORM_MACOS_HFS_PATH_SIZE];
+  JsonBuilder builder;
+  size_t index;
+  int result = -1;
+  if (out_text == NULL) return -1;
+  *out_text = NULL;
+  memset(&catalog, 0, sizeof(catalog));
+  memset(&resource_fork_info, 0, sizeof(resource_fork_info));
+  if (data == NULL || size == 0U || hfs_path == NULL || hfs_path[0] == '\0') {
+    *out_text = m68k_platform_dup_string("invalid Mac HFS summary input");
+    return -1;
+  }
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) {
+    *out_text = m68k_platform_dup_string("Mac HFS catalog parse failed");
+    return -1;
+  }
+  directories = (PlatformMacosHFSDirectoryInfo *)calloc(catalog.directory_count ? catalog.directory_count : 1U,
+    sizeof(*directories));
+  files = (PlatformMacosHFSFileInfo *)calloc(catalog.file_count ? catalog.file_count : 1U, sizeof(*files));
+  if (directories == NULL || files == NULL) {
+    *out_text = m68k_platform_dup_string("out of memory");
+    goto cleanup;
+  }
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, directories, catalog.directory_count,
+      files, catalog.file_count) != 0) {
+    *out_text = m68k_platform_dup_string("Mac HFS catalog parse failed");
+    goto cleanup;
+  }
+  for (index = 0U; index < catalog.file_count; ++index) {
+    if (platform_macos_hfs_file_path(directories, catalog.directory_count, &files[index], path, sizeof(path)) != 0)
+      continue;
+    if (macos_hfs_path_matches(&catalog.volume, path, hfs_path)) {
+      selected_file = &files[index];
+      break;
+    }
+  }
+  if (selected_file == NULL) {
+    *out_text = m68k_platform_dup_string("Mac HFS file path not found");
+    goto cleanup;
+  }
+  if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->data_extents,
+      selected_file->data_size, &data_fork, &error) != 0) {
+    *out_text = error != NULL ? error : m68k_platform_dup_string("Mac HFS data fork materialization failed");
+    error = NULL;
+    goto cleanup;
+  }
+  if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->resource_extents,
+      selected_file->resource_size, &resource_fork, &error) != 0) {
+    *out_text = error != NULL ? error : m68k_platform_dup_string("Mac HFS resource fork materialization failed");
+    error = NULL;
+    goto cleanup;
+  }
+  if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
+      NULL, 0U, NULL, 0U) != 0) {
+    *out_text = m68k_platform_dup_string("Mac resource fork parse failed");
+    goto cleanup;
+  }
+  resource_types = (PlatformMacosResourceTypeInfo *)calloc(
+    resource_fork_info.type_count ? resource_fork_info.type_count : 1U, sizeof(*resource_types));
+  resources = (PlatformMacosResourceInfo *)calloc(
+    resource_fork_info.resource_count ? resource_fork_info.resource_count : 1U, sizeof(*resources));
+  if (resource_types == NULL || resources == NULL) {
+    *out_text = m68k_platform_dup_string("out of memory");
+    goto cleanup;
+  }
+  if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
+      resource_types, resource_fork_info.type_count, resources, resource_fork_info.resource_count) != 0) {
+    *out_text = m68k_platform_dup_string("Mac resource fork parse failed");
+    goto cleanup;
+  }
+  if (platform_macos_hfs_file_path(directories, catalog.directory_count, selected_file, path, sizeof(path)) != 0) {
+    *out_text = m68k_platform_dup_string("Mac HFS file path reconstruction failed");
+    goto cleanup;
+  }
+  if (json_builder_create(&builder) != 0) {
+    *out_text = m68k_platform_dup_string("out of memory");
+    goto cleanup;
+  }
+  if (json_builder_append(&builder, "{\"platform\":\"macos\",\"container_kind\":\"hfs_resource_code_file\","
+        "\"volume\":{\"name\":") != 0 ||
+      json_builder_append_json_string(&builder, catalog.volume.volume_name) != 0 ||
+      json_builder_appendf(&builder,
+        ",\"allocation_block_size\":%u,\"allocation_block_count\":%u},\"file\":{\"path\":",
+        (unsigned)catalog.volume.allocation_block_size, (unsigned)catalog.volume.allocation_block_count) != 0 ||
+      json_builder_append_json_string(&builder, path) != 0 ||
+      json_builder_appendf(&builder, ",\"cnid\":%u,\"type\":", (unsigned)selected_file->cnid) != 0 ||
+      json_builder_append_json_string(&builder, selected_file->file_type) != 0 ||
+      json_builder_append(&builder, ",\"creator\":") != 0 ||
+      json_builder_append_json_string(&builder, selected_file->creator) != 0 ||
+      json_builder_append(&builder, ",\"forks\":{") != 0 ||
+      macos_append_fork_summary(&builder, "data", data_fork, selected_file->data_size) != 0 ||
+      json_builder_append(&builder, ",") != 0 ||
+      macos_append_fork_summary(&builder, "resource", resource_fork, selected_file->resource_size) != 0 ||
+      json_builder_appendf(&builder,
+        "}},\"resource_fork\":{\"type_count\":%u,\"resource_count\":%u,",
+        (unsigned)resource_fork_info.type_count, (unsigned)resource_fork_info.resource_count) != 0 ||
+      macos_append_code_resources(&builder, resources, resource_fork_info.resource_count) != 0 ||
+      json_builder_append(&builder, "},") != 0 ||
+      macos_append_selected_code(&builder, resource_fork, selected_file->resource_size) != 0 ||
+      json_builder_append(&builder, ",\"unsupported\":[\"segment_loader_relocations\",\"overflow_extents\"]}") != 0) {
+    *out_text = m68k_platform_dup_string("out of memory");
+    json_builder_destroy(&builder);
+    goto cleanup;
+  }
+  *out_text = json_builder_build(&builder);
+  if (*out_text == NULL) {
+    *out_text = m68k_platform_dup_string("out of memory");
+    json_builder_destroy(&builder);
+    goto cleanup;
+  }
+  json_builder_destroy(&builder);
+  result = 0;
+cleanup:
+  free(error);
+  free(data_fork);
+  free(resource_fork);
+  free(resources);
+  free(resource_types);
+  free(files);
+  free(directories);
+  return result;
 }
 
 static int parse_u32_arg_local(const char *text, uint32_t *out_value) {
