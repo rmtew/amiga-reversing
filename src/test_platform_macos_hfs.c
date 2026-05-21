@@ -109,6 +109,50 @@ static int test_hfs_catalog_reports_file_and_fork_metadata(void) {
   return 0;
 }
 
+static int test_hfs_copy_fork_materializes_multiple_catalog_extents(void) {
+  unsigned char data[8192];
+  unsigned char fork[700];
+  PlatformMacosHFSCatalog catalog;
+  PlatformMacosHFSFileInfo files[4];
+  size_t size = make_hfs_volume(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_hfs_catalog_parse(data, sizeof(data), &catalog, NULL, 0U, files, 4U));
+  files[0].resource_size = sizeof(fork);
+  files[0].resource_extents[0].start_block = 3U;
+  files[0].resource_extents[0].block_count = 1U;
+  files[0].resource_extents[1].start_block = 5U;
+  files[0].resource_extents[1].block_count = 1U;
+  data[2048U + 3U * 512U] = 0xCA;
+  data[2048U + 3U * 512U + 511U] = 0xFE;
+  data[2048U + 5U * 512U] = 0xBA;
+  data[2048U + 5U * 512U + 187U] = 0xBE;
+  M68K_C_ASSERT_INT(0, platform_macos_hfs_copy_fork(data, sizeof(data), &catalog.volume, files[0].resource_extents,
+    files[0].resource_size, fork, sizeof(fork)));
+  M68K_C_ASSERT_U32(0xCA, fork[0]);
+  M68K_C_ASSERT_U32(0xFE, fork[511]);
+  M68K_C_ASSERT_U32(0xBA, fork[512]);
+  M68K_C_ASSERT_U32(0xBE, fork[699]);
+  return 0;
+}
+
+static int test_hfs_copy_fork_reports_overflow_extent_needed(void) {
+  unsigned char data[8192];
+  unsigned char fork[700];
+  PlatformMacosHFSCatalog catalog;
+  PlatformMacosHFSFileInfo files[4];
+  size_t size = make_hfs_volume(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_hfs_catalog_parse(data, sizeof(data), &catalog, NULL, 0U, files, 4U));
+  files[0].resource_size = sizeof(fork);
+  files[0].resource_extents[0].start_block = 3U;
+  files[0].resource_extents[0].block_count = 1U;
+  files[0].resource_extents[1].block_count = 0U;
+  files[0].resource_extents[2].block_count = 0U;
+  M68K_C_ASSERT_INT(1, platform_macos_hfs_copy_fork(data, sizeof(data), &catalog.volume, files[0].resource_extents,
+    files[0].resource_size, fork, sizeof(fork)));
+  return 0;
+}
+
 static int test_hfs_rejects_missing_mdb_signature(void) {
   unsigned char data[4096];
   PlatformMacosHFSCatalog catalog;
@@ -122,6 +166,8 @@ static int test_hfs_rejects_missing_mdb_signature(void) {
 int m68k_c_platform_macos_hfs_tests(void) {
   static const M68kCTestCase cases[] = {
     {"hfs_catalog_reports_file_and_fork_metadata", test_hfs_catalog_reports_file_and_fork_metadata},
+    {"hfs_copy_fork_materializes_multiple_catalog_extents", test_hfs_copy_fork_materializes_multiple_catalog_extents},
+    {"hfs_copy_fork_reports_overflow_extent_needed", test_hfs_copy_fork_reports_overflow_extent_needed},
     {"hfs_rejects_missing_mdb_signature", test_hfs_rejects_missing_mdb_signature},
   };
   return m68k_c_test_run_suite("platform_macos_hfs", cases, sizeof(cases) / sizeof(cases[0]));

@@ -59,5 +59,9 @@ int platform_macos_hfs_file_path(const PlatformMacosHFSDirectoryInfo *directorie
 int platform_macos_hfs_first_fork_extent_bounds(const PlatformMacosHFSVolume *volume,
   const PlatformMacosHFSExtent extents[PLATFORM_MACOS_HFS_EXTENT_COUNT],
   uint32_t fork_size, uint32_t *out_offset, uint32_t *out_size);
+int platform_macos_hfs_copy_fork(const unsigned char *image_data,
+  size_t image_size, const PlatformMacosHFSVolume *volume,
+  const PlatformMacosHFSExtent extents[PLATFORM_MACOS_HFS_EXTENT_COUNT],
+  uint32_t fork_size, unsigned char *out_data, size_t out_capacity);
 
 #endif

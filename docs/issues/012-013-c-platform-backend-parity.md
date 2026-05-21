@@ -63,11 +63,11 @@ Blocker recorded:
   resource payload bounds.
 - `src/` now has a read-only C-backed HFS catalog metadata parser for MDB
   volume fields, catalog directory/file records, Finder type/creator,
-  data/resource fork sizes, first-extent fork bounds, and CNID-backed path
-  reconstruction.
-- `src/` still has no C-backed full fork materializer for multi-extent or
-  overflow extents, Mac project metadata serializer, or normal API/web project
-  payload equivalent to the Amiga/Atari platform backends.
+  data/resource fork sizes, first-extent fork bounds, catalog-extent fork
+  materialization, and CNID-backed path reconstruction.
+- `src/` still has no C-backed overflow-extent fork materializer, Mac project
+  metadata serializer, or normal API/web project payload equivalent to the
+  Amiga/Atari platform backends.
 - Do not promote the Python helper path as the accepted durable implementation.
   The next viable 012 slice is a C platform-file backend extension that owns HFS
   file lookup and Finder/fork metadata, then routes resource/CODE inspection
@@ -85,3 +85,6 @@ Implemented slice:
   fork size/extent metadata, and CNID-derived file paths.
 - Added native C unit coverage for synthetic HFS catalog/file/fork metadata and
   missing MDB signature rejection.
+- Added catalog-extent fork materialization in C, with native tests for a
+  resource fork spread across multiple catalog extents and explicit overflow
+  extent-needed reporting.

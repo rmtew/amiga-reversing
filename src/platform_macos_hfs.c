@@ -235,3 +235,32 @@ int platform_macos_hfs_first_fork_extent_bounds(const PlatformMacosHFSVolume *vo
     uint32_t fork_size, uint32_t *out_offset, uint32_t *out_size) {
   return first_extent_bounds(volume, extents, fork_size, out_offset, out_size);
 }
+
+int platform_macos_hfs_copy_fork(const unsigned char *image_data,
+    size_t image_size, const PlatformMacosHFSVolume *volume,
+    const PlatformMacosHFSExtent extents[PLATFORM_MACOS_HFS_EXTENT_COUNT],
+    uint32_t fork_size, unsigned char *out_data, size_t out_capacity) {
+  size_t index;
+  size_t remaining = fork_size;
+  size_t written = 0U;
+  if (image_data == NULL || volume == NULL || extents == NULL ||
+      (fork_size != 0U && out_data == NULL) || out_capacity < fork_size ||
+      volume->allocation_block_size == 0U) {
+    return -1;
+  }
+  for (index = 0U; index < PLATFORM_MACOS_HFS_EXTENT_COUNT && remaining != 0U; ++index) {
+    size_t extent_offset;
+    size_t extent_size;
+    size_t copy_size;
+    if (extents[index].block_count == 0U) continue;
+    extent_offset = (size_t)volume->allocation_start_offset +
+      (size_t)extents[index].start_block * (size_t)volume->allocation_block_size;
+    extent_size = (size_t)extents[index].block_count * (size_t)volume->allocation_block_size;
+    copy_size = extent_size < remaining ? extent_size : remaining;
+    if (!range_fits(extent_offset, copy_size, image_size)) return -1;
+    memcpy(out_data + written, image_data + extent_offset, copy_size);
+    written += copy_size;
+    remaining -= copy_size;
+  }
+  return remaining == 0U ? 0 : 1;
+}
