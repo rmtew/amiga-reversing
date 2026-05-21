@@ -2534,12 +2534,6 @@ def _rsset_binding_evidence_parameters(context: Mapping[str, object], base_regis
             "base_symbol": base_symbol,
             "base_evidence_id": base_evidence_id.strip(),
         }
-    if context.get("element_kind") == "app_slot":
-        return {
-            "layout_name": layout_name,
-            "base_symbol": base_symbol,
-            "base_evidence_id": f"selected-app-slot:{base_register}:{base_symbol}",
-        }
     return None
 
 

@@ -3568,7 +3568,7 @@ def _rsset_candidate_group_summary(
             "missing_gates": ["missing_accepted_base_evidence"],
         }
         if layout_context is not None and layout_context.get("element_kind") == "app_slot":
-            bind_support["catalog_state"] = "available_from_selected_app_slot"
+            bind_support["catalog_state"] = "report_only_same_displacement_app_slot_not_base_evidence"
     return {
         "candidate_id": f"rsset-raw-a6:{displacement:04X}",
         "kind": "rsset_app_slot_candidate",

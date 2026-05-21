@@ -80,3 +80,19 @@ Post-review hardening:
 - Added regression tests for missing selected-use identity and non-selected-use
   scopes so consumers cannot treat broad or sparse base evidence as durable
   mutation evidence.
+
+Reopened review result:
+- Actively inspected the top Pandora group `rsset-raw-a6:022E` beyond the
+  report summary. Source context shows a byte flag field (`app_022E`) with 66
+  A6 uses, including `bclr.b #1,app_022E(a6)` at `s0:000006E4`, but the Manual
+  Action Log only contains accepted selected-use `rsset_app_base` bindings for
+  `$01AD`, not for `$022E`.
+- Fixed the command-catalog mismatch found during that inspection: selected
+  `app_slot` context no longer synthesizes `selected-app-slot:*` base evidence
+  for `rsset.binding.bind`. App-slot context can still expose reports and
+  layout-region edits, but binding remains hidden until explicit accepted
+  selected-use base provenance exists.
+- Compact Pandora rerun after the fix keeps `candidate_count=125`,
+  `use_count=994`, top candidate `rsset-raw-a6:022E`,
+  `accepted_base_evidence_count=0`, and
+  `catalog_state=report_only_same_displacement_app_slot_not_base_evidence`.

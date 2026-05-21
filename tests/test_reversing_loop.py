@@ -7255,7 +7255,7 @@ def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
         "command_id": "rsset.binding.bind",
         "state": "blocked",
         "missing_gates": ["missing_accepted_base_evidence"],
-        "catalog_state": "available_from_selected_app_slot",
+        "catalog_state": "report_only_same_displacement_app_slot_not_base_evidence",
     }
     assert candidate["field_or_app_slot_context"]["symbol"] == "app_status_flags"
     assert candidate["missing_gates"] == ["missing_accepted_base_evidence"]

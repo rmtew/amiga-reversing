@@ -1,4 +1,4 @@
-Status: implemented
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -32,8 +32,9 @@ Acceptance:
 - No pure timestamp churn is committed.
 
 Blocked by:
-- Resolved by completing the reopened blocker-removal issues `017-024` and
-  `017-025`.
+- Reopened blocker-removal issues `017-024` and `017-025`. The previous rerun
+  remains a snapshot, not a final closeout, until the reopened work is
+  committed and reviewed.
 
 Previous rerun:
 - Reran `immediate-ref-report`, `a5-hardware-report`,
@@ -85,6 +86,6 @@ Post-review rerun:
 - `inspect`: no candidate work, verification paths available, round-trip
   status `exact`.
 - `run-one --dry-run`: `action=null`, planner status `no_candidate`.
-- The previous closeout decision still holds after the stricter RSSET evidence
-  matcher: no command-backed, verifier-backed, exact-round-trip Pandora
-  source-converging mutation remains.
+- This was a snapshot result, not final closeout. Reopened 017-025 review found
+  an app-slot catalog fallback that still needed hardening before 017-027 could
+  rerun as the closeout gate.

@@ -895,6 +895,33 @@ def test_app_slot_remove_command_uses_selected_slot_identity() -> None:
     assert payload == {"rsset_layout_region": {"offset": 0x234}}
 
 
+def test_app_slot_context_does_not_authorize_rsset_binding_without_base_evidence() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x20,
+        "end_offset": 0x24,
+        "stable_key": "app-write",
+        "text": "move.b d0,app_0234(a6)",
+        "opcode": "move.b",
+        "app_slot_refs": [
+            {
+                "symbol": "app_0234",
+                "displacement": 0x234,
+                "base_register": "A6",
+                "operand_index": 1,
+                "access": "write",
+            }
+        ],
+    }
+    selector = {"element_kind": "app_slot", "symbol": "app_0234", "operand_index": 1, "access": "write"}
+
+    actions = listing_element_action_catalog(row, selector)
+
+    assert any(action["action_id"] == "rsset.binding.report" for action in actions)
+    assert not any(action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"} for action in actions)
+
+
 def test_rsset_binding_stays_report_only_for_unaccepted_explicit_provenance() -> None:
     row = {
         "kind": "instruction",
