@@ -103,3 +103,7 @@ Implemented slice:
 - Added `platform_file_macos_hfs_code_resource_bytes_alloc` for actual selected
   nonzero `CODE` segment byte extraction, with the same Python integration test
   asserting `CODE 1` bytes come from the C path.
+- Routed the existing MPW `Asm` nonzero `CODE` byte extraction helper through
+  the C-backed byte API so the listing smoke path no longer depends on the
+  Python resource parser for selected segment bytes. `CODE 0` remains metadata
+  handled by the existing parser path.

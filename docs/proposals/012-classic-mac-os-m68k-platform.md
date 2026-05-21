@@ -1132,10 +1132,11 @@ resources documentation coverage tests
   `platform_file_lib` and wraps it from Python. The wrapper test proves the
   durable path owns HFS path lookup, Finder metadata, fork sizes, resource-fork
   parsing, `CODE` inventory, selected `CODE 1` byte metadata, and selected
-  nonzero `CODE` byte extraction for listing/import consumers. Remaining work
-  is to connect this summary into normal Mac project/API creation and add a real
-  MPW fixture drift gate once overflow extents or fixture constraints make that
-  safe.
+  nonzero `CODE` byte extraction for listing/import consumers. The existing MPW
+  `Asm` code-byte helper now uses that C path for nonzero CODE resources.
+  Remaining work is to connect this summary into normal Mac project/API
+  creation and add a real MPW fixture drift gate once overflow extents or
+  fixture constraints make that safe.
 
 ## Open Questions
 

@@ -8,6 +8,9 @@ import tempfile
 from collections.abc import Iterable
 from pathlib import Path
 
+from amiga_reversing.disasm.c_backend import (
+    extract_macos_hfs_code_resource_bytes_with_c_backend,
+)
 from amiga_reversing.disasm.macos_fork_roles import (
     classify_inventory_item,
     resource_type_counts,
@@ -110,14 +113,11 @@ def extract_mpw_asm_code_bytes(
     path: str = MPW_ASM_PATH,
 ) -> bytes:
     hfs_bytes = _read_hfs_bytes(image_path, ndif2raw_path=ndif2raw_path)
+    if resource_id != 0:
+        return extract_macos_hfs_code_resource_bytes_with_c_backend(hfs_bytes, path, resource_id)
     volume = HFSVolume(hfs_bytes)
     file_record = volume.find_file(path)
-    payload = resource_payload(volume.resource_fork(file_record), "CODE", resource_id)
-    if resource_id == 0:
-        return payload
-    if len(payload) < 4:
-        raise ValueError(f"CODE {resource_id} payload is too short for a code segment header")
-    return payload[4:]
+    return resource_payload(volume.resource_fork(file_record), "CODE", resource_id)
 
 
 def _read_hfs_bytes(image_path: Path, *, ndif2raw_path: Path) -> bytes:
