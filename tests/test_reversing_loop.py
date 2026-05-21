@@ -7305,7 +7305,87 @@ def test_rsset_candidate_report_rejects_manual_base_evidence_for_different_selec
     assert candidate["safe_to_mutate"] is False
     assert candidate["evidence_search"]["accepted_base_evidence"] == []
     assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == (
-        "accepted evidence is scoped to a different selected use"
+        "accepted evidence path/lifetime scope does not cover selected use"
+    )
+
+
+def test_rsset_candidate_report_requires_selected_use_identity_for_base_evidence() -> None:
+    row = _a6_use_row(row_key="a6-slot", displacement=0x22E, opcode="move.b", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_status_flags",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x22E,
+            "access": "read",
+        }
+    ]
+    manual_state = {
+        "rsset_use_site_bindings": [
+            {
+                "source_evidence_id": "prov-existing",
+                "source_family": "rsset_app_base",
+                "source_evidence_status": "path_specific",
+                "path_lifetime_scope": {"kind": "selected_use"},
+                "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                "base_register": "A6",
+                "displacement": 0x22E,
+                "conflicts": [],
+                "owner_action_id": "manual-existing",
+            }
+        ]
+    }
+
+    report = reversing_loop._listing_rsset_candidate_report([row], manual_state=manual_state)
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == (
+        "accepted evidence lacks selected-use identity"
+    )
+
+
+def test_rsset_candidate_report_requires_selected_use_scoped_base_evidence() -> None:
+    row = _a6_use_row(row_key="a6-slot", displacement=0x22E, opcode="move.b", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_status_flags",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x22E,
+            "access": "read",
+        }
+    ]
+    manual_state = {
+        "rsset_use_site_bindings": [
+            {
+                "source_evidence_id": "prov-existing",
+                "source_family": "rsset_app_base",
+                "source_evidence_status": "path_specific",
+                "path_lifetime_scope": {"kind": "function", "hunk": 0, "addr": 0x60, "operand_index": 0},
+                "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                "base_register": "A6",
+                "displacement": 0x22E,
+                "hunk": 0,
+                "addr": 0x60,
+                "operand_index": 0,
+                "conflicts": [],
+                "owner_action_id": "manual-existing",
+            }
+        ]
+    }
+
+    report = reversing_loop._listing_rsset_candidate_report([row], manual_state=manual_state)
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == (
+        "accepted evidence path/lifetime scope is not selected-use scoped"
     )
 
 

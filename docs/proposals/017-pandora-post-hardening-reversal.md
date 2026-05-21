@@ -366,6 +366,10 @@ repeatable work to `docs\issues\017-*`.
   groups plus one already-recorded `$01AD` group; the top active group
   `rsset-raw-a6:022E` still lacks accepted `rsset_app_base` evidence,
   selected-use path/lifetime scope, empty conflicts, and a selected A6 base id.
+- Post-review 017-025 hardening made that blocker stricter: accepted RSSET
+  base evidence must carry selected-use identity and a `selected_use`
+  path/lifetime scope covering the exact A6 use. Sparse or broader evidence is
+  rejected as report evidence, not consumed as durable mutation proof.
 - 017-026 closes the immediate source-offset policy for Pandora: the 9 remaining
   source-offset candidates stay report-only until accepted runtime-address
   provenance exists.

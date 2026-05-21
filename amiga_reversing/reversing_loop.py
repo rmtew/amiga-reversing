@@ -3730,10 +3730,20 @@ def _rsset_candidate_evidence_matches_selected_use(
     evidence: Mapping[str, object],
     selected_use: Mapping[str, object],
 ) -> bool:
-    for key in ("hunk", "addr", "operand_index", "base_register", "displacement"):
-        if key in evidence and key in selected_use and evidence.get(key) != selected_use.get(key):
+    for key in ("addr", "operand_index", "base_register", "displacement"):
+        if key not in evidence or key not in selected_use:
             return False
-    return True
+        if evidence.get(key) != selected_use.get(key):
+            return False
+    if "hunk" in selected_use and evidence.get("hunk") != selected_use.get("hunk"):
+        return False
+    scope = evidence.get("path_lifetime_scope")
+    if not isinstance(scope, Mapping) or scope.get("kind") != "selected_use":
+        return False
+    for key in ("addr", "operand_index"):
+        if scope.get(key) != selected_use.get(key):
+            return False
+    return not ("hunk" in selected_use and scope.get("hunk") != selected_use.get("hunk"))
 
 
 def _rsset_candidate_rejected_evidence_ref(
@@ -3774,6 +3784,19 @@ def _rsset_candidate_rejected_evidence_reason(
         if evidence.get("element_kind") == "app_slot":
             return "same-displacement app-slot context is not accepted base/path evidence"
         return "missing accepted rsset_app_base evidence fields"
+    for key in ("addr", "operand_index", "base_register", "displacement"):
+        if key not in accepted:
+            return "accepted evidence lacks selected-use identity"
+    if "hunk" in selected_use and "hunk" not in accepted:
+        return "accepted evidence lacks selected-use identity"
+    scope = accepted.get("path_lifetime_scope")
+    if not isinstance(scope, Mapping) or scope.get("kind") != "selected_use":
+        return "accepted evidence path/lifetime scope is not selected-use scoped"
+    for key in ("addr", "operand_index"):
+        if scope.get(key) != selected_use.get(key):
+            return "accepted evidence path/lifetime scope does not cover selected use"
+    if "hunk" in selected_use and scope.get("hunk") != selected_use.get("hunk"):
+        return "accepted evidence path/lifetime scope does not cover selected use"
     if not _rsset_candidate_evidence_matches_selected_use(accepted, selected_use):
         return "accepted evidence is scoped to a different selected use"
     return "accepted evidence rejected"

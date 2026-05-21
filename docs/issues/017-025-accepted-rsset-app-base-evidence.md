@@ -71,3 +71,12 @@ Verification:
 - Focused Pandora `rsset-candidate-report` summary:
   `candidate_count=125`, `use_count=994`, status counts
   `blocked=124`, `already_recorded=1`.
+
+Post-review hardening:
+- Tightened accepted RSSET/app-base evidence matching so report candidates only
+  accept manual evidence with selected-use identity (`addr`, `operand_index`,
+  `base_register`, `displacement`, and `hunk` when present) and a
+  `selected_use` path/lifetime scope covering that exact use.
+- Added regression tests for missing selected-use identity and non-selected-use
+  scopes so consumers cannot treat broad or sparse base evidence as durable
+  mutation evidence.
