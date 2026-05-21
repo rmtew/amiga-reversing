@@ -1,4 +1,4 @@
-Status: open
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -39,3 +39,26 @@ Required tests:
 
 Blocked by:
 - 012-019 for classified Mac CODE ranges.
+
+Implementation notes:
+- Added a Mac CODE listing artifact adapter over the shared C analysis artifact.
+  Mac projects keep the normal listing route, but Mac-facing source text and
+  listing windows now use backend `macos-code`.
+- Mac source text now includes HFS path, resource fork, CODE resource identity,
+  and classified range evidence before the decoded rows.
+- The adapter filters the Amiga raw `SECTION code,code` directive from Mac
+  source/window output and attaches Mac resource/range provenance to listing
+  rows.
+- The committed MPW `Asm` target artifact was regenerated with the Mac CODE
+  header and without the Amiga section directive.
+
+Verification:
+- `uv run python -m pytest tests\test_macos_target_artifact.py tests\test_disasm_server.py::test_route_macos_listing_open_uses_macos_listing_builder -q`
+- `uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_asm_container.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_disasm_server.py::test_route_macos_listing_open_uses_macos_listing_builder -q`
+- `uv run ruff check --fix amiga_reversing\disasm\macos_listing_source.py tests\test_macos_target_artifact.py`
+
+Follow-up:
+- The Mac adapter still reuses the shared C analysis artifact for decode and
+  row location. Full C-native Mac source rendering and whole-resource CODE
+  coverage remain in 012-021, where every CODE resource must be rendered or
+  explicitly represented by a structured placeholder.

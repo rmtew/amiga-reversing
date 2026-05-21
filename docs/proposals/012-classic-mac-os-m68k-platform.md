@@ -918,13 +918,18 @@ deferred ranges and moves selected CODE 1 extraction to the confirmed
 splitting remains with 012-021's whole-resource coverage work.
 ```
 
-012-020. Mac OS assembly-style listing backend - open
+012-020. Mac OS assembly-style listing backend - implemented
 
 ```text
 Render Mac CODE ranges through a Mac OS listing/backend path with Mac-oriented
 directives, labels, comments, and resource/segment provenance. Do not route Mac
 targets through `amiga-raw` output or emit Amiga-specific directives such as
 `SECTION code,code`.
+
+Implemented as a Mac CODE listing artifact adapter over the shared C analysis
+artifact. Mac source/window output now reports backend `macos-code`, includes
+HFS/resource/classified-range provenance, attaches that provenance to listing
+rows, and filters the Amiga raw section directive from Mac-facing output.
 ```
 
 012-021. Whole Asm CODE resource coverage in target artifact - open
@@ -1265,6 +1270,12 @@ resources documentation coverage tests
   range. This fixes the false `payload + 4` entry boundary but does not yet
   interpret relocations/fixups or split every post-entry code/data island; those
   remain in the Mac-style and whole-resource rendering issues.
+- 012-020 replaced the Mac project-facing raw source surface with a Mac CODE
+  listing adapter. The adapter still reuses the shared C listing artifact for
+  decode, row windows, and locators, but Mac source/window output now identifies
+  HFS path, resource fork, CODE resource, and classified range, and no longer
+  emits the Amiga raw `SECTION code,code` directive. Whole-resource rendering
+  and deeper Segment Loader interpretation remain 012-021 scope.
 
 ## Open Questions
 
@@ -1296,7 +1307,6 @@ Current state:
 
 Open corrective scope before proposal closeout:
 
-- Render Mac targets through Mac OS style source, not Amiga raw assembly.
 - Cover every `Asm` CODE resource as rendered code or explicitly deferred
   structured placeholder.
 - Identify and handle obvious orphaned code islands inside CODE resources.

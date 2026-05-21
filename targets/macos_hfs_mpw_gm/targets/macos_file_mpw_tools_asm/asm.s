@@ -86,13 +86,18 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header
 ;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry
 ;     confirmed_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry
-;   listing_rows: 1819
+;   listing_rows: 1818
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
+; Classic Mac OS CODE resource listing
+; HFS path: MPW-GM/MPW/Tools/Asm
+; fork: resource
+; resource: CODE 1 Main
+; classified_range: confirmed_code payload[40..29024) evidence=m68k_movea_l_stack_to_a0_entry
+
 ; OS compatibility
 ;   status: no_os_calls
 
-    SECTION code,code
 loc_0_00000000:
 	movea.l (a7)+,a0
 	move.l a7,d0
