@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -32,7 +32,8 @@ Acceptance:
 - No pure timestamp churn is committed.
 
 Blocked by:
-- Any reopened 017 implementation issue.
+- Resolved by completing the reopened blocker-removal issues `017-024` and
+  `017-025`.
 
 Previous rerun:
 - Reran `immediate-ref-report`, `a5-hardware-report`,
@@ -44,3 +45,27 @@ Previous rerun:
   snapshot.
 - This issue is blocked again until active 017 blocker-removal issues
   (`017-024`, `017-025`) are implemented or proven non-viable.
+
+Result:
+- Reran `immediate-ref-report`, `a5-hardware-report`,
+  `rsset-candidate-report`, `inspect`, and `run-one --dry-run` for the Pandora
+  sub-target after `017-024` and `017-025`.
+- `immediate-ref-report`: 9 candidates, 0 command candidates, all report-only
+  source-offset candidates.
+- `a5-hardware-report`: 20 accepted path/lifetime evidence entries, all 20
+  already present in manual state, 0 fresh command candidates, and 1
+  address-mode-preserving entry-comment render.
+- `rsset-candidate-report`: 125 grouped candidates from 994 A6 uses; 124
+  blocked and 1 already recorded. The top active group is
+  `rsset-raw-a6:022E`, blocked by missing accepted app-base evidence.
+- `inspect`: no candidate work, verification paths available, round-trip
+  status `exact`.
+- `run-one --dry-run`: `action=null`, planner status `no_candidate`; remaining
+  ranked candidates are 221 generic class/address data-symbol names and 4
+  low-value literal representations.
+- Proposal 017 was closed because no command-backed, verifier-backed,
+  exact-round-trip Pandora source-converging mutation remains.
+
+Verification:
+- `cmd /c src\precommit.bat`
+- Focused 017-027 report rerun through the Python report APIs.

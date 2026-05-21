@@ -1,7 +1,7 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: active; first rerun gate exhausted current command-backed mutations,
-but blocker-removal work remains in 017.
+Status: closed after refreshed 017-027 rerun; no command-backed,
+verifier-backed, exact-round-trip Pandora source-converging mutation remains.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -81,8 +81,8 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The focused post-hardening Pandora pass exhausted the command-backed mutations
-available at the time of the 017-027 rerun:
+The refreshed 017-027 rerun after blocker-removal work exhausted the
+command-backed mutations available in the current Pandora surface:
 
 ```text
 immediate-ref-report:
@@ -97,14 +97,17 @@ a5-hardware-report:
   accepted_path_lifetime_evidence_count=20
   existing_manual_state_uses=20
   command_candidate_count=0
-  missing_gates: command_candidate
-  remaining render blocker:
-    zero_displacement_a5_operand_requires_address_mode_preserving_rendering
+  entry_comment_uses=1
 
 rsset-candidate-report:
   safe_to_mutate=false
   candidate_count=125
-  mutation_policy=report_only
+  use_count=994
+  status_counts:
+    blocked=124
+    already_recorded=1
+  top_active_candidate=rsset-raw-a6:022E
+  top_active_missing_gates: missing_accepted_base_evidence
 
 run-one dry run:
   action=null
@@ -113,9 +116,8 @@ run-one dry run:
   literal representation candidates
 ```
 
-This is not a full 017 closeout. It is a completed gate snapshot showing why
-the next 017 work must remove blockers rather than retry the same reports.
-Continue 017 before 012 by working the active blocker-removal issues:
+This is the refreshed 017 closeout gate. It records the current blockers and
+why no further Pandora mutation is available without new evidence or policy:
 
 - `017-024`: implemented exact address-mode-preserving A5 rendering for the
   existing zero-displacement accepted ref by projecting a generated entry
@@ -124,8 +126,8 @@ Continue 017 before 012 by working the active blocker-removal issues:
   Current Pandora still has no new RSSET mutation: the only accepted group is
   already recorded, and the top active group remains blocked with exact missing
   proof.
-- `017-027`: rerun the gate only after active 017 blocker-removal work is done
-  or proven non-viable.
+- `017-027`: reran the current gates after `017-024` and `017-025`; no
+  command-backed, verifier-backed source-converging mutation remains.
 
 The deferred `017-006` performance issue remains conditional; use it only when
 a measured slow phase crosses its investigation threshold during active 017
@@ -147,12 +149,9 @@ accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
 when the generic planner has no candidate. Use `017-010` if low-value
 representation work repeatedly masks those higher-value blocked families.
 
-For the current continuation, treat `017-023` and `017-026` as completed
-boundary/policy work. Start with `017-024`; if it proves fundamentally blocked,
-record the exact renderer/verifier missing piece and continue to `017-025`.
-Work `017-025` as an evidence search, not as another report-only rerun. Finish
-with `017-027` only after `017-024` and `017-025` are implemented or blocked
-with concrete, reviewable proof.
+The current continuation is complete: `017-024` implemented
+address-mode-preserving A5 rendering, `017-025` implemented accepted RSSET
+evidence search, and `017-027` reran the gate after both.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
@@ -370,6 +369,10 @@ repeatable work to `docs\issues\017-*`.
 - 017-026 closes the immediate source-offset policy for Pandora: the 9 remaining
   source-offset candidates stay report-only until accepted runtime-address
   provenance exists.
-- 017-027 reran the report surfaces and dry-run planner. All gates agree that no
-  command-backed, verifier-backed, exact-round-trip Pandora source-converging
-  mutation remains.
+- 017-027 reran the report surfaces and dry-run planner after `017-024` and
+  `017-025`. Immediate refs remain 9 report-only source-offset candidates; A5
+  has 20 accepted entries already in manual state, no fresh command candidates,
+  and 1 address-mode-preserving entry-comment render; RSSET has 124 blocked
+  groups plus one already-recorded `$01AD` group, with `rsset-raw-a6:022E` as
+  the top active missing-evidence group. `inspect` reports no candidate work
+  and exact round-trip, and `run-one --dry-run` returns no action.

@@ -3,9 +3,9 @@
 Target:
 `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
 
-This report is the tracked evidence boundary for the 017 rerun closeout. The
-target-local Manual Action Log remains local state; timestamp-only
-`.project.json` churn is not evidence.
+This report is the tracked evidence boundary for the 017 rerun closeout. It was
+refreshed after `017-024` and `017-025`. The target-local Manual Action Log
+remains local state; timestamp-only `.project.json` churn is not evidence.
 
 ## Source Evidence Boundary
 
@@ -35,16 +35,16 @@ target-local Manual Action Log remains local state; timestamp-only
 - `accepted_path_lifetime_evidence_count=20`
 - `existing_manual_state_uses=20`
 - `command_candidate_count=0`
-- missing gate: `command_candidate`
-- remaining render blocker:
-  `zero_displacement_a5_operand_requires_address_mode_preserving_rendering`
+- `entry_comment_uses=1`
 
 `rsset-candidate-report`:
 
 - `safe_to_mutate=false`
 - `candidate_count=125`
-- `mutation_policy=report_only`
-- all candidates blocked by missing accepted app-base evidence.
+- `use_count=994`
+- status counts: `blocked=124`, `already_recorded=1`
+- top active candidate: `rsset-raw-a6:022E`
+- top active missing gate: `missing_accepted_base_evidence`
 
 `inspect`:
 
@@ -61,6 +61,8 @@ target-local Manual Action Log remains local state; timestamp-only
 ## Closeout Decision
 
 No command-backed, verifier-backed, exact-round-trip Pandora source-converging
-mutation remains in the current 017 surface. The remaining A5, RSSET, and
-immediate-reference families are blocked by missing exact rendering support,
-missing accepted app-base evidence, or report-only source-offset policy.
+mutation remains in the current 017 surface. The remaining RSSET and
+immediate-reference families are blocked by missing accepted app-base evidence
+or report-only source-offset policy. The previous A5 address-mode blocker is
+now represented as an address-mode-preserving entry comment, and all accepted
+A5 refs are already in manual state.
