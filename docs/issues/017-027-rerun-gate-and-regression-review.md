@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
 Promoted from: post-closeout review
@@ -32,9 +32,8 @@ Acceptance:
 - No pure timestamp churn is committed.
 
 Blocked by:
-- Reopened blocker-removal issues `017-024` and `017-025`. The previous rerun
-  remains a snapshot, not a final closeout, until the reopened work is
-  committed and reviewed.
+- Resolved by completing and reviewing reopened blocker-removal issues
+  `017-024` and `017-025`.
 
 Previous rerun:
 - Reran `immediate-ref-report`, `a5-hardware-report`,
@@ -89,3 +88,26 @@ Post-review rerun:
 - This was a snapshot result, not final closeout. Reopened 017-025 review found
   an app-slot catalog fallback that still needed hardening before 017-027 could
   rerun as the closeout gate.
+
+Reopened result:
+- Reran the gate after the 017-025 catalog hardening that removed synthetic
+  `selected-app-slot:*` base evidence for RSSET binds.
+- `immediate-ref-report`: 9 candidates, 0 command candidates, all report-only
+  source-offset candidates.
+- `a5-hardware-report`: 20 accepted path/lifetime evidence entries already in
+  manual state, 0 fresh command candidates, and 1 address-mode-preserving
+  entry-comment render.
+- `rsset-candidate-report`: 125 candidates from 994 A6 uses. Top active
+  `rsset-raw-a6:022E` remains blocked with
+  `accepted_base_evidence_count=0` and
+  `catalog_state=report_only_same_displacement_app_slot_not_base_evidence`.
+- `inspect`: Review state is clear, no candidate work is present, and
+  round-trip status is exact.
+- `run-one --dry-run`: `action=null`,
+  `planner.status=no_candidate`, and planner message is
+  `no supported source-converging command candidate`.
+
+Reopened verification:
+- Focused RSSET report/API tests for the 017-025 hardening.
+- `cmd /c src\precommit.bat`
+- Compact 017-027 Pandora rerun through the Python report APIs.

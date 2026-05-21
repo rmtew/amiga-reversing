@@ -1,8 +1,8 @@
 # Proposal 017: Pandora Post-Hardening Reversal
 
-Status: active; the previous 017-027 gate is a snapshot, not final closure.
-017-024 is implemented, 017-025 has active blocker-removal work in progress,
-and 017-027 remains blocked until the reopened work is committed and reviewed.
+Status: closed after reopened 017-025 catalog hardening and refreshed 017-027
+rerun. No command-backed, verifier-backed, exact-round-trip Pandora
+source-converging mutation remains.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -82,8 +82,8 @@ measured blocker needed for that improvement.
 
 ## Current Gate State
 
-The refreshed 017-027 rerun after the first blocker-removal pass recorded this
-snapshot of the Pandora surface:
+The refreshed 017-027 rerun after reopened 017-025 catalog hardening recorded
+this Pandora surface:
 
 ```text
 immediate-ref-report:
@@ -110,6 +110,12 @@ rsset-candidate-report:
   top_active_candidate=rsset-raw-a6:022E
   top_active_missing_gates: missing_accepted_base_evidence
   top_active_accepted_base_evidence_count=0
+  top_active_catalog_state=report_only_same_displacement_app_slot_not_base_evidence
+
+inspect:
+  candidate_work_count=0
+  review_state=clear
+  round_trip_status=exact
 
 run-one dry run:
   action=null
@@ -118,20 +124,17 @@ run-one dry run:
   literal representation candidates
 ```
 
-This is a gate snapshot, not final 017 closure. It records why the prior pass
-found no source-converging mutation without new evidence or policy:
+This is the refreshed 017 closeout gate after the reopened work:
 
 - `017-024`: implemented exact address-mode-preserving A5 rendering for the
   existing zero-displacement accepted ref by projecting a generated entry
   comment instead of changing operand syntax.
-- `017-025`: active follow-up. The report search was not enough by itself:
-  post-review work found that command catalog fallback still treated selected
-  app-slot context as synthetic base evidence. That fallback is being removed
-  so same-displacement/generic app-slot context remains report-only until real
-  selected-use `rsset_app_base` provenance exists.
-- `017-027`: blocked until `017-024` and the reopened `017-025` work are
-  committed and reviewed, then it must rerun the gates instead of inheriting
-  this snapshot.
+- `017-025`: removed the command catalog fallback that treated selected
+  app-slot context as synthetic RSSET base evidence. Same-displacement/generic
+  app-slot context remains report-only until real selected-use
+  `rsset_app_base` provenance exists.
+- `017-027`: reran the current gates after the reopened 017-025 fix; no
+  command-backed, verifier-backed source-converging mutation remains.
 
 The deferred `017-006` performance issue remains conditional; use it only when
 a measured slow phase crosses its investigation threshold during active 017
@@ -153,10 +156,9 @@ accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
 when the generic planner has no candidate. Use `017-010` if low-value
 representation work repeatedly masks those higher-value blocked families.
 
-The current continuation is not complete: `017-024` implemented
-address-mode-preserving A5 rendering, `017-025` is handling stricter RSSET
-base-evidence blocking, and `017-027` must rerun only after that work is
-reviewed.
+The current continuation is complete: `017-024` implemented
+address-mode-preserving A5 rendering, `017-025` hardened RSSET base-evidence
+blocking, and `017-027` reran the gates after both.
 
 After `017-001`, proceed directly into the best safe mutation when durable
 evidence, command support, verifier support, and exact round-trip gates are
@@ -395,3 +397,9 @@ repeatable work to `docs\issues\017-*`.
   `selected-app-slot:*` base evidence. App-slot context now remains report-only
   for `rsset.binding.bind`; focused Pandora rerun keeps `rsset-raw-a6:022E`
   blocked with `accepted_base_evidence_count=0`.
+- Reopened 017-027 rerun after the 017-025 catalog hardening found no supported
+  Pandora mutation: immediate refs are 9 report-only source-offset candidates,
+  A5 has 20 accepted manual-state refs and 1 entry-comment render with no fresh
+  command candidate, RSSET still has 125 candidates with top
+  `rsset-raw-a6:022E` blocked by missing accepted base evidence, inspect is
+  clear/exact, and dry run reports `no_candidate`.
