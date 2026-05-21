@@ -556,9 +556,9 @@ function requireArray(value, description) {
 }
 
 function formatProjectDetails(projectData) {
-  if (projectData.classic_macos) {
-    const mac = projectData.classic_macos;
-    const details = [projectData.project.id, "classic_macos"];
+  if (projectData.macos) {
+    const mac = projectData.macos;
+    const details = [projectData.project.id, "macos"];
     const sourceKind = mac.source_view?.kind;
     const containerKind = mac.binary_container_view?.kind;
     if (sourceKind) details.push(String(sourceKind));
@@ -632,7 +632,7 @@ function formatProjectOrigin(origin) {
 }
 
 function buildProjectBadges(project, projectData = null) {
-  if (projectData?.classic_macos) {
+  if (projectData?.macos) {
     return [
       {label: "classic mac", title: "Classic Mac OS starter view"},
       {label: "source", title: "MPW source project pivots"},
@@ -10061,10 +10061,10 @@ async function moveToRelativeHunk(delta) {
 }
 
 function renderClassicMacProject(projectData) {
-  const mac = projectData.classic_macos || {};
+  const mac = projectData.macos || {};
   const viewport = document.getElementById("listing-viewport");
   viewport.innerHTML = `
-    <div class="macos-view" data-platform="classic_macos">
+    <div class="macos-view" data-platform="macos">
       ${renderClassicMacSourceView(mac.source_view || {})}
       ${renderClassicMacContainerView(mac.binary_container_view || {})}
       ${renderClassicMacBoundary(mac.source_binary_boundary || {})}
@@ -10302,11 +10302,11 @@ async function renderProject(projectId) {
       return;
     }
 
-    if (projectData.classic_macos) {
+    if (projectData.macos) {
       renderClassicMacProject(projectData);
       dispatchAppEvent("amiga:project-rendered", {
         projectId,
-        generation: "classic_macos_starter",
+        generation: "macos_starter",
         totalRows: 0,
       });
       return;

@@ -15,7 +15,7 @@ def render_macos_source_views(project: Mapping[str, object]) -> dict[str, object
     ]
     return {
         "schema_version": 1,
-        "kind": "classic_macos_source_render_smoke",
+        "kind": "macos_source_render_smoke",
         "project_id": project.get("project_id"),
         "routine_views": routine_views,
         "product_views": _product_views(entities),

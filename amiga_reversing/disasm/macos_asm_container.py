@@ -55,7 +55,7 @@ def import_mpw_asm_container(
     code1_payload = resource_payload(resource_fork, "CODE", 1)
 
     return {
-        "platform": "classic_macos",
+        "platform": "macos",
         "container_kind": "hfs_file_with_resource_fork",
         "source_image": image_path.as_posix(),
         "volume": {

@@ -86,7 +86,7 @@ def _payload() -> dict[str, Any]:
 
 def test_macos_web_source_payload_exposes_required_pivots() -> None:
     source_view = _payload()["source_view"]
-    assert source_view["kind"] == "classic_macos_source_project"
+    assert source_view["kind"] == "macos_source_project"
     pivots = source_view["pivots"]
 
     assert [item["file_name"] for item in pivots["source_files"]] == ["Sample.a", "SampleMisc.a"]
@@ -117,7 +117,7 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
 def test_macos_web_payload_keeps_source_and_observed_binary_facts_distinct() -> None:
     boundary = _payload()["source_binary_boundary"]
 
-    assert boundary["source_project_kind"] == "classic_macos_source_project"
+    assert boundary["source_project_kind"] == "macos_source_project"
     assert boundary["binary_container_kind"] == "hfs_file_with_resource_fork"
     assert boundary["source_segments_map_to_observed_code_resources"] is False
     assert boundary["observed_code_fixture"] == "MPW-GM/MPW/Tools/Asm"

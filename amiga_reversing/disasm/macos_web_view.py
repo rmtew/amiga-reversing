@@ -13,8 +13,8 @@ def build_macos_starter_web_payload(
 ) -> dict[str, object]:
     return {
         "schema_version": 1,
-        "kind": "classic_macos_starter_view",
-        "platform": "classic_macos",
+        "kind": "macos_starter_view",
+        "platform": "macos",
         "source_view": _source_view(source_project, source_render),
         "binary_container_view": _binary_container_view(asm_container),
         "source_binary_boundary": {

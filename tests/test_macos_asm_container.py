@@ -46,7 +46,7 @@ def _code_resource(summary: dict[str, Any], resource_id: int) -> dict[str, Any]:
 def test_real_asm_hfs_item_is_recognized_with_fork_roles() -> None:
     container = _imported()
 
-    assert container["platform"] == "classic_macos"
+    assert container["platform"] == "macos"
     assert container["volume"]["name"] == "MPW-GM"
     assert container["file"] == {
         "path": MPW_ASM_PATH,

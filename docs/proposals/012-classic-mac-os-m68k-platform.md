@@ -1137,6 +1137,11 @@ resources documentation coverage tests
   Remaining work is to connect this summary into normal Mac project/API
   creation and add a real MPW fixture drift gate once overflow extents or
   fixture constraints make that safe.
+- 012-014 blocker-removal started by replacing durable prototype payload
+  identifiers with `macos` across helper payloads, source/container summaries,
+  web rendering, and tests. No `classic_macos` compatibility alias was kept.
+  The normal project/API route is still missing first-class Mac project records
+  and remains the next 012-014 blocker.
 
 ## Open Questions
 

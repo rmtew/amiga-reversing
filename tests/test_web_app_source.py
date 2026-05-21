@@ -409,7 +409,7 @@ def test_web_app_marks_typed_app_slot_refs_without_source_changes() -> None:
     assert ".listing-app-slot-typed" in styles_css
 
 
-def test_web_app_renders_classic_macos_source_and_container_payloads() -> None:
+def test_web_app_renders_macos_source_and_container_payloads() -> None:
     web_dir = Path(__file__).resolve().parent.parent / "amiga_reversing" / "web"
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
     styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
@@ -418,8 +418,8 @@ def test_web_app_renders_classic_macos_source_and_container_payloads() -> None:
     assert "function renderClassicMacSourceView(sourceView)" in app_js
     assert "function renderClassicMacContainerView(containerView)" in app_js
     assert "function renderClassicMacBoundary(boundary)" in app_js
-    assert "projectData.classic_macos" in app_js
-    assert 'generation: "classic_macos_starter"' in app_js
+    assert "projectData.macos" in app_js
+    assert 'generation: "macos_starter"' in app_js
     assert 'data-macos-panel="source"' in app_js
     assert 'data-macos-panel="container"' in app_js
     assert 'data-macos-panel="unsupported"' in app_js

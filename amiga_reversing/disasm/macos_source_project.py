@@ -11,7 +11,9 @@ from amiga_reversing.disasm.macos_resource_model import (
     parse_resource_constants,
     parse_rez_source,
 )
-from amiga_reversing.disasm.macos_runtime_metadata import load_generated_mac_os_runtime_metadata
+from amiga_reversing.disasm.macos_runtime_metadata import (
+    load_generated_mac_os_runtime_metadata,
+)
 from amiga_reversing.disasm.macos_source_structure import parse_mpw_source_text
 
 
@@ -51,9 +53,9 @@ def build_macos_source_project(
 
     return {
         "schema_version": 1,
-        "kind": "classic_macos_source_project",
+        "kind": "macos_source_project",
         "project_id": project_id,
-        "platform": "classic_macos",
+        "platform": "macos",
         "project_model": {
             "kind": "source_first",
             "requires_built_binary": False,

@@ -1,4 +1,4 @@
-Status: blocked
+Status: in progress
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -6,10 +6,10 @@ Make Mac OS support reachable through the normal project, server API, and web
 UI flow.
 
 Problem:
-The current web renderer can display a prototype `classic_macos` payload, but
-the normal server project payload does not emit durable Mac OS data. The starter
-view is therefore fixture/helper-tested rather than openable as a real project
-in the application.
+The web renderer can display a helper-built `macos` payload, but the normal
+server project payload does not emit durable Mac OS data. The starter view is
+therefore fixture/helper-tested rather than openable as a real project in the
+application.
 
 This should be solved by extending the shared project/API/listing model. Do not
 add a legacy Mac-only project payload path or a compatibility branch that
@@ -45,9 +45,11 @@ Required tests:
 
 Blocker recorded:
 - The normal project/server model currently has binary and disk project kinds;
-  no first-class Mac project kind or C-backed Mac project payload exists.
-- The prototype web payload still requires direct helper construction. Promoting
-  that path would preserve `classic_macos` compatibility behavior instead of
-  replacing it with the shared `macos` project flow.
+  no first-class Mac project kind or normal API-emitted C-backed Mac project
+  payload exists.
+- The durable helper and web payload identifiers now use `macos` without a
+  compatibility alias, removing the prototype `classic_macos` naming blocker.
+  The payload still requires direct helper construction until the shared
+  project/API model can load Mac fixture metadata through the normal route.
 - This remains blocked by 012-013 and the shared project/schema extension needed
   to expose source/container/listing state through the normal route.

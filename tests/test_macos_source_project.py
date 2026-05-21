@@ -76,8 +76,8 @@ def _sample_project() -> dict[str, object]:
 def test_source_project_model_represents_sample_without_binary_runtime() -> None:
     project = _sample_project()
 
-    assert project["kind"] == "classic_macos_source_project"
-    assert project["platform"] == "classic_macos"
+    assert project["kind"] == "macos_source_project"
+    assert project["platform"] == "macos"
     assert project["project_model"] == {
         "kind": "source_first",
         "requires_built_binary": False,
