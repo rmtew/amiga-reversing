@@ -1,4 +1,4 @@
-Status: implemented
+Status: reopened / incomplete
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -25,6 +25,7 @@ HFS catalog/file/fork access
 Classic Mac resource fork parsing
 CODE 0 metadata and nonzero CODE segment inventory
 selected CODE segment byte extraction for listing
+CODE segment layout classification before byte ranges are treated as executable
 Finder type/creator and fork-role platform metadata
 Mac project metadata serialized for API/web consumers
 ```
@@ -46,6 +47,9 @@ Acceptance criteria:
 - The C path preserves the same metadata currently proven by the Python starter:
   HFS path/CNID, Finder type/creator, fork sizes, resource types, `CODE 0`,
   nonzero `CODE` resources, and selected `CODE 1 Main` bytes.
+- The C path does not expose "code bytes" by blindly returning `payload + 4`
+  for nonzero CODE resources. It must classify CODE segment layout first, or
+  return a clearly deferred/unsupported result with evidence.
 - Amiga and Atari ST platform tests continue to pass.
 
 Required tests:
@@ -115,7 +119,18 @@ Implemented slice:
   summary so the durable backend facts are visible through the shared project
   route.
 
+Corrective review:
+- The implemented C foundation is not enough for closeout. The selected CODE
+  extraction path currently treats nonzero CODE resources as flat `payload + 4`
+  bytes. The committed target then decodes segment metadata/data islands as
+  instructions. That is a platform parser/import bug, not just a renderer
+  presentation issue.
+- 012-019 owns the corrective C-backed CODE segment layout model. This issue
+  remains reopened until the durable C API either returns classified executable
+  ranges or explicitly defers them with reason/evidence.
+
 Deferred follow-up:
 - Overflow-extent fork materialization remains out of scope until a committed
   Mac fixture needs it.
-- Selected CODE listing rows are owned by 012-016.
+- Selected CODE listing rows are owned by 012-016 after 012-019 provides
+  classified code ranges.

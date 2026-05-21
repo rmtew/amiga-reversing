@@ -1,8 +1,13 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: implemented. The C-backed Mac project payload, selected CODE listing
-path, shared framework cleanup, and committed example target artifact are in
-place.
+Status: reopened / in progress. The C-backed Mac project payload and committed
+target artifact are useful foundation, but the visible CODE rendering is not
+starter-quality yet: it currently routes selected CODE bytes through the raw
+Amiga-style listing path, emits `SECTION code,code`, and decodes Mac CODE
+metadata/data islands as instructions before the apparent real code. Proposal
+012 is not complete until Mac CODE resources are parsed, classified, and
+rendered in a Mac OS assembly style with unsupported or unknown areas explicitly
+deferred instead of silently treated as code.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -64,7 +69,8 @@ Semantic source baseline:
 
 Executable container baseline:
   import MPW-GM/MPW/Tools/Asm as a Classic Mac OS target and view its data fork,
-  resource fork, CODE resources, and selected CODE listing in the web UI.
+  resource fork, CODE resources, CODE metadata/data islands, code islands, and
+  Mac-style listing in the web UI.
 ```
 
 Minimum behavior:
@@ -836,7 +842,7 @@ fork, CODE resource, and unsupported state.
 Document optional MPW-GM fixture paths and the Mac platform inventory check.
 ```
 
-012-013. C-backed Mac platform parser/import parity - in progress
+012-013. C-backed Mac platform parser/import parity - reopened / incomplete
 
 ```text
 Promote durable Mac HFS, fork, resource fork, CODE metadata, and selected CODE
@@ -849,11 +855,12 @@ The first HFS catalog metadata slice is implemented; catalog-extent fork
 materialization is implemented; overflow extents and normal project/API
 consumption remain. The first exported C platform-file summary API now feeds a
 Python wrapper test for HFS file metadata, Finder type/creator, resource/CODE
-inventory, selected CODE 1 byte metadata, and actual selected CODE 1 byte
-extraction.
+inventory, selected CODE 1 byte metadata, and selected CODE 1 byte extraction.
+Review found the byte extraction is not semantically complete because it treats
+nonzero CODE payloads as flat `payload + 4` code.
 ```
 
-012-014. Mac project/API/web integration - blocked
+012-014. Mac project/API/web integration - implemented
 
 ```text
 Create a real Mac OS project path whose server payload uses `macos` and whose
@@ -868,27 +875,60 @@ Feed source render and analysis from generated Mac OS metadata, not handcrafted
 Python dictionaries in tests or view assembly.
 ```
 
-012-016. Real CODE listing view - implemented
+012-016. Real CODE listing view - reopened / incomplete
 
 ```text
-Render selected nonzero CODE resources as actual m68k listing rows in the web
-UI, not just a word preview in a container summary.
+Render selected nonzero CODE resources as actual Mac OS m68k listing rows in
+the web UI from classified code ranges, not just a word preview and not a raw
+Amiga-style decode of CODE metadata/data bytes.
 ```
 
-012-017. Core platform framework cleanup - implemented
+012-017. Core platform framework cleanup - reopened / incomplete
 
 ```text
 Remove any Mac-only side paths discovered during implementation by extending
-shared platform source/container/project/listing abstractions cleanly.
+shared platform source/container/project/listing abstractions cleanly. The Mac
+listing path must not be implemented by routing through `amiga-raw`.
 ```
 
-012-018. Mac OS example target artifact - implemented
+012-018. Mac OS example target artifact - reopened / incomplete
 
 ```text
 Commit an illustrative evolving Mac OS target under `targets/macos_hfs_mpw_gm/`
 with `MPW/Tools/Asm` as
 `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`, rendered as
-a whole Mac executable shape rather than a standalone CODE fragment.
+a whole Mac executable shape rather than a standalone CODE fragment. The current
+artifact is partial because it inventories all CODE resources but renders only
+CODE 1, and its CODE 1 listing begins by decoding metadata/data as instructions.
+```
+
+012-019. Mac CODE segment layout and code-island classification - open
+
+```text
+Replace the flat `payload + 4` CODE extraction assumption with a C-backed Mac
+CODE segment layout model. Classify segment headers, loader/jump-table metadata,
+data islands, executable islands, entrypoints, and unresolved areas. If the
+available MPW/Inside Mac context is insufficient, record the deferral with the
+evidence needed to resume; do not decode uncertain bytes as code and call the
+result implemented.
+```
+
+012-020. Mac OS assembly-style listing backend - open
+
+```text
+Render Mac CODE ranges through a Mac OS listing/backend path with Mac-oriented
+directives, labels, comments, and resource/segment provenance. Do not route Mac
+targets through `amiga-raw` output or emit Amiga-specific directives such as
+`SECTION code,code`.
+```
+
+012-021. Whole Asm CODE resource coverage in target artifact - open
+
+```text
+Update the committed `Asm` target artifact so every CODE resource is covered by
+rendered Mac-style source or a structured placeholder with a specific reason.
+The artifact must make partial coverage visible and should iterate toward
+rendering all executable CODE islands, including obvious orphaned code islands.
 ```
 
 ## Artifact Ownership
@@ -950,7 +990,14 @@ reports own provenance and review visibility
 - Finder type/creator metadata is preserved.
 - `Asm` data fork is represented as data/string payload, not executable code.
 - `CODE 0` is represented as jump-table/application metadata.
-- At least one nonzero `CODE` resource is listed as m68k code.
+- Nonzero `CODE` resources are not assumed to be flat code at `payload + 4`.
+  Their segment headers, loader metadata, jump-table references, data islands,
+  and executable islands are classified before rendering.
+- At least one nonzero `CODE` resource is listed as m68k code from a justified
+  code entrypoint, not from the start of segment metadata.
+- Obvious orphaned code islands inside a CODE resource are discovered,
+  rendered, or explicitly deferred with the evidence and missing context needed
+  to continue later.
 - `Sample` source is renderable by file, segment, routine, resources, and build
   recipe.
 - Source segment mapping is distinct from observed binary `CODE` resources.
@@ -965,8 +1012,12 @@ reports own provenance and review visibility
   editing workflow layers over durable C behavior.
 - Source/project rendering consumes generated Mac OS metadata rather than
   handcrafted duplicate dictionaries.
+- CODE resources render as Mac OS assembly/project material, not as Amiga raw
+  output. The renderer must not emit Amiga-specific directives such as
+  `SECTION code,code` for Mac targets.
 - The selected CODE segment is rendered as actual m68k listing rows in the web
-  UI, with container metadata linked to that listing.
+  UI from classified code ranges, with container metadata linked to that
+  listing.
 - Mac support extends shared project/source/container/listing abstractions; any
   framework gap is fixed or explicitly raised, not worked around.
 - No Mac-specific compatibility branch, legacy payload, or duplicate metadata
@@ -976,8 +1027,12 @@ reports own provenance and review visibility
   `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/`.
 - The `Asm` subtarget commits `asm.s`, rendering the whole Mac executable file
   shape in readable period-authentic Mac assembly style: data fork/resource fork
-  context, `CODE 0`, CODE segments, non-CODE resources, placeholders, and
-  unsupported state.
+  context, `CODE 0`, all nonzero CODE resources, classified code/data islands,
+  non-CODE resources, placeholders, and unsupported state.
+- Every CODE resource is either rendered or represented by a structured
+  placeholder with a concrete reason. A target artifact that inventories 26+
+  CODE resources but renders only `CODE 1` is partial and must say so; it is not
+  proposal closeout.
 - The committed target has regeneration/drift checks so `asm.s` does not go
   stale as rendering improves.
 - Baseline analysis annotates cited Mac OS calls and call patterns visible in
@@ -1152,26 +1207,31 @@ resources documentation coverage tests
   metadata. The payload uses the C HFS/CODE summary for the binary container
   view and carries provenance to the MPW-GM image plus committed source,
   resource, and build metadata. Selected CODE listing rows and a committed Mac
-  target artifact were completed later in 012-016 and 012-018.
-- 012-013 is now closed for the current MPW `Asm` backend scope: a real
-  MPW-GM fixture drift gate compares the C HFS/CODE summary against committed
-  `asm_code_resources.json` metadata. Overflow extents remain a future backend
-  extension for fixtures that actually need them, not a blocker for the current
-  Asm path.
-- 012-016 connects the selected `CODE 1 Main` segment to the normal listing
+  target artifact were attempted later in 012-016 and 012-018, but review
+  reopened them as incomplete.
+- 012-013 was previously considered closed for the current MPW `Asm` backend
+  scope because a real MPW-GM fixture drift gate compares the C HFS/CODE summary
+  against committed `asm_code_resources.json` metadata. Review reopened it
+  because the C-selected CODE byte extraction still assumes flat `payload + 4`
+  executable bytes instead of exposing classified Mac CODE ranges. Overflow
+  extents remain a future backend extension for fixtures that actually need
+  them, not a blocker for the current Asm path.
+- 012-016 connected the selected `CODE 1 Main` segment to the normal listing
   flow. Mac projects now open `/listing/open`, build a C listing artifact from
   C-extracted CODE bytes, and render real m68k rows in the web Mac view with
   resource/fork/hash/unsupported metadata linked from the container summary.
-  The listing is still a selected CODE-segment view, not complete Segment
-  Loader reconstruction or full executable roundtrip.
+  Review reopened this issue because route plumbing and raw m68k rows are not
+  enough: the listing must start from classified Mac code ranges and render in
+  Mac OS style, not Amiga raw style.
 - 012-017 reviewed the Mac project/listing path for framework cleanup after the
   C-backed and web/listing slices landed. The remaining stale starter-only web
   contract expected `generation: "macos_starter"` and the old
   `renderClassicMacProject(projectData)` signature; tests now assert the normal
   listing-backed render signature and absence of the starter generation literal.
   A compatibility-name scan found no remaining `classic_macos` Python/JS/test
-  usage.
-- 012-018 commits the illustrative Mac target under
+  usage. Review reopened this issue because the selected listing still routes
+  through raw Amiga-style source instead of a Mac OS listing/backend abstraction.
+- 012-018 committed a partial illustrative Mac target under
   `targets/macos_hfs_mpw_gm/` with `MPW/Tools/Asm` represented by
   `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`. The
   artifact is generated from the C-backed HFS/resource/CODE summary and shared
@@ -1179,7 +1239,18 @@ resources documentation coverage tests
   summary now exposes resource type counts plus CODE resource names/hashes so
   `asm.s` can show non-CODE placeholders, named CODE resources, `CODE 0`
   Segment Loader metadata, and real `CODE 1 Main` listing rows. A drift test
-  compares the committed `asm.s` with current renderer output.
+  compares the committed `asm.s` with current renderer output. Review reopened
+  this issue because the artifact renders only CODE 1 and its CODE 1 listing
+  starts with metadata/data decoded as instructions.
+- Post-closeout review invalidated the 012 implemented claim. The committed
+  `asm.s` starts with Amiga-style `SECTION code,code` and decodes CODE segment
+  metadata/data bytes as `ori.b` instructions before the apparent real
+  `movea.l (a7)+,a0` entry. It also inventories all CODE resources while only
+  rendering CODE 1. The mistake was in the issue/proposal definition: it allowed
+  a raw selected-segment smoke path to be treated as completed Mac rendering.
+  Corrective issues 012-019 through 012-021 now require CODE layout
+  classification, Mac OS assembly-style rendering, and whole-resource target
+  coverage before closeout.
 
 ## Open Questions
 
@@ -1200,12 +1271,27 @@ resources documentation coverage tests
 Current state:
 
 - Completed `docs/issues/012-*` remain as the per-issue evidence trail.
-- The C-backed Mac parser/import API, normal `macos` project/API path, selected
-  CODE listing route, generated metadata consumption, shared framework cleanup,
-  and committed target artifact are implemented.
-- `docs/macos-targets.md` explains the committed target layout and drift check.
+- The C-backed Mac parser/import API, normal `macos` project/API path,
+  generated metadata consumption, and shared framework cleanup are useful
+  foundation.
+- The selected CODE listing route and committed target artifact are not
+  complete because they currently render a raw selected slice, not classified
+  Mac CODE resources in Mac OS assembly style.
+- `docs/macos-targets.md` explains the current target layout and drift check,
+  but the target artifact itself remains a corrective work item.
 
-Future scope:
+Open corrective scope before proposal closeout:
+
+- Parse/classify Mac CODE segment layout instead of treating nonzero CODE as
+  flat code bytes.
+- Render Mac targets through Mac OS style source, not Amiga raw assembly.
+- Cover every `Asm` CODE resource as rendered code or explicitly deferred
+  structured placeholder.
+- Identify and handle obvious orphaned code islands inside CODE resources.
+- Update tests so the bad `SECTION code,code` / initial `ori.b` metadata decode
+  cannot be accepted as success.
+
+Future scope after starter-quality rendering:
 
 - Complete Segment Loader relocation/fixup interpretation.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
