@@ -7230,6 +7230,9 @@ def test_rsset_candidate_report_groups_raw_a6_operands() -> None:
     assert candidate["command_support"]["bind"]["state"] == "blocked"
     assert candidate["missing_gates"] == ["missing_accepted_base_evidence", "missing_field_or_layout_refinement"]
     assert candidate["safe_to_mutate"] is False
+    assert candidate["evidence_search"]["status"] == "missing_accepted_base_evidence"
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert "path_lifetime_scope covering the selected use" in candidate["evidence_search"]["missing_proof"]
 
 
 def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
@@ -7258,6 +7261,91 @@ def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
     assert candidate["missing_gates"] == ["missing_accepted_base_evidence"]
     assert candidate["safe_to_mutate"] is False
     assert candidate["mutation_policy"] == "report_only_requires_separate_verified_command"
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][1]["reason"] == (
+        "same-displacement app-slot context is not accepted base/path evidence"
+    )
+
+
+def test_rsset_candidate_report_rejects_manual_base_evidence_for_different_selected_use() -> None:
+    row = _a6_use_row(row_key="a6-slot", displacement=0x22E, opcode="move.b", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_status_flags",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x22E,
+            "access": "read",
+        }
+    ]
+    manual_state = {
+        "rsset_use_site_bindings": [
+            {
+                "source_evidence_id": "prov-existing",
+                "source_family": "rsset_app_base",
+                "source_evidence_status": "path_specific",
+                "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0xF6A, "operand_index": 1},
+                "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                "base_register": "A6",
+                "displacement": 0x1AD,
+                "hunk": 0,
+                "addr": 0xF6A,
+                "operand_index": 1,
+                "conflicts": [],
+                "owner_action_id": "manual-existing",
+            }
+        ]
+    }
+
+    report = reversing_loop._listing_rsset_candidate_report([row], manual_state=manual_state)
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "blocked"
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["evidence_search"]["accepted_base_evidence"] == []
+    assert candidate["evidence_search"]["rejected_evidence"][-1]["reason"] == (
+        "accepted evidence is scoped to a different selected use"
+    )
+
+
+def test_rsset_candidate_report_keeps_existing_manual_binding_non_actionable() -> None:
+    row = _a6_use_row(row_key="a6-existing", displacement=0x1AD, opcode="move.b", access="memory_read")
+    row["app_slot_refs"] = [
+        {
+            "symbol": "app_frame_counter",
+            "operand_index": 0,
+            "base_register": "A6",
+            "displacement": 0x1AD,
+            "access": "read",
+        }
+    ]
+    manual_state = {
+        "rsset_use_site_bindings": [
+            {
+                "source_evidence_id": "prov-existing",
+                "source_family": "rsset_app_base",
+                "source_evidence_status": "path_specific",
+                "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x60, "operand_index": 0},
+                "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+                "base_register": "A6",
+                "displacement": 0x1AD,
+                "hunk": 0,
+                "addr": 0x60,
+                "operand_index": 0,
+                "conflicts": [],
+                "owner_action_id": "manual-existing",
+            }
+        ]
+    }
+
+    report = reversing_loop._listing_rsset_candidate_report([row], manual_state=manual_state)
+
+    candidate = report["candidates"][0]
+    assert candidate["status"] == "already_recorded"
+    assert candidate["command_support"]["bind"]["state"] == "already_satisfied"
+    assert candidate["safe_to_mutate"] is False
+    assert candidate["evidence_search"]["accepted_base_evidence_count"] == 1
 
 
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:

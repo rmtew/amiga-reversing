@@ -425,6 +425,8 @@ def inspect_rsset_candidates(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    project_payload = _project_state_payload(target_id, project_root)
+    manual_state = project_payload.get("manual_state") if isinstance(project_payload, Mapping) else None
     report: dict[str, object] = {
         "target_id": target_id,
         "hygiene": hygiene.to_dict(),
@@ -437,7 +439,10 @@ def inspect_rsset_candidates(
         report["rsset_candidate_report"] = _empty_rsset_candidate_report()
         return report
     rows = _listing_all_rows(target_id)
-    report["rsset_candidate_report"] = _listing_rsset_candidate_report(rows)
+    report["rsset_candidate_report"] = _listing_rsset_candidate_report(
+        rows,
+        manual_state=manual_state if isinstance(manual_state, Mapping) else None,
+    )
     return report
 
 
@@ -3417,7 +3422,11 @@ def _empty_rsset_candidate_report() -> dict[str, object]:
     }
 
 
-def _listing_rsset_candidate_report(rows: list[object]) -> dict[str, object]:
+def _listing_rsset_candidate_report(
+    rows: list[object],
+    *,
+    manual_state: Mapping[str, object] | None = None,
+) -> dict[str, object]:
     mapping_rows = [row for row in rows if isinstance(row, Mapping)]
     uses: list[dict[str, object]] = []
     for row in mapping_rows:
@@ -3438,12 +3447,14 @@ def _listing_rsset_candidate_report(rows: list[object]) -> dict[str, object]:
             base_register=base_register,
             displacement=displacement,
             uses=group_uses,
+            manual_state=manual_state,
         )
         for (base_register, displacement), group_uses in grouped.items()
     ]
     candidates.sort(
         key=lambda candidate: (
             0 if candidate.get("status") == "actionable" else 1,
+            1 if candidate.get("status") == "already_recorded" else 0,
             -cast(int, candidate.get("same_displacement_use_count") or 0),
             str(candidate.get("candidate_id")),
         )
@@ -3519,19 +3530,36 @@ def _rsset_candidate_group_summary(
     base_register: str,
     displacement: int,
     uses: list[dict[str, object]],
+    manual_state: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     selected_use = _rsset_candidate_selected_use(uses)
     layout_context = _rsset_candidate_layout_context(uses, displacement)
-    has_base_evidence = _rsset_candidate_has_base_evidence(selected_use)
+    evidence_search = _rsset_candidate_evidence_search(
+        selected_use=selected_use,
+        layout_context=layout_context,
+        uses=uses,
+        manual_state=manual_state,
+    )
+    has_base_evidence = bool(evidence_search["accepted_base_evidence"])
+    already_recorded = _rsset_candidate_evidence_search_already_recorded(evidence_search)
     field_available = layout_context is not None
     missing_gates: list[str] = []
     if not has_base_evidence:
         missing_gates.append("missing_accepted_base_evidence")
     if not field_available:
         missing_gates.append("missing_field_or_layout_refinement")
-    status = "actionable" if has_base_evidence and field_available else "blocked"
+    if already_recorded:
+        status = "already_recorded"
+    else:
+        status = "actionable" if has_base_evidence and field_available else "blocked"
     bind_support: dict[str, object]
-    if has_base_evidence:
+    if already_recorded:
+        bind_support = {
+            "command_id": "rsset.binding.bind",
+            "state": "already_satisfied",
+            "existing_manual_state": evidence_search["accepted_base_evidence"][0],
+        }
+    elif has_base_evidence:
         bind_support = {"command_id": "rsset.binding.bind", "state": "available"}
     else:
         bind_support = {
@@ -3555,6 +3583,7 @@ def _rsset_candidate_group_summary(
         "selected_use": selected_use,
         "same_displacement_uses": uses[:10],
         "field_or_app_slot_context": layout_context,
+        "evidence_search": evidence_search,
         "command_support": {
             "report": {"command_id": "rsset.binding.report", "state": "available"},
             "bind": bind_support,
@@ -3596,12 +3625,176 @@ def _rsset_candidate_layout_context(uses: list[dict[str, object]], displacement:
     return dict(nearby[0]) if nearby else None
 
 
-def _rsset_candidate_has_base_evidence(selected_use: dict[str, object]) -> bool:
-    if isinstance(selected_use.get("base_evidence_id"), str):
-        return True
-    if isinstance(selected_use.get("source_evidence_id"), str) and selected_use.get("source_family") == "rsset_app_base":
-        return selected_use.get("source_evidence_status") in _ACCEPTED_PROVENANCE_STATUSES
-    return False
+def _rsset_candidate_evidence_search(
+    *,
+    selected_use: dict[str, object],
+    layout_context: dict[str, object] | None,
+    uses: list[dict[str, object]],
+    manual_state: Mapping[str, object] | None,
+) -> dict[str, object]:
+    accepted_refs: list[dict[str, object]] = []
+    rejected_refs: list[dict[str, object]] = []
+    for source, evidence in _rsset_candidate_search_sources(
+        selected_use=selected_use,
+        layout_context=layout_context,
+        manual_state=manual_state,
+    ):
+        ref = _rsset_candidate_accepted_base_evidence_ref(evidence)
+        if ref is not None and _rsset_candidate_evidence_matches_selected_use(ref, selected_use):
+            accepted_refs.append({"search_source": source, **ref})
+            continue
+        rejected_refs.append(_rsset_candidate_rejected_evidence_ref(source, evidence, selected_use))
+    return {
+        "status": "accepted" if accepted_refs else "missing_accepted_base_evidence",
+        "searched": [
+            "selected_use_source_evidence",
+            "same_displacement_app_slot_context",
+            "manual_rsset_use_site_bindings",
+        ],
+        "selected_use_identity": _rsset_candidate_selected_use_identity(selected_use),
+        "accepted_base_evidence": accepted_refs,
+        "accepted_base_evidence_count": len(accepted_refs),
+        "rejected_evidence": rejected_refs[:8],
+        "rejected_evidence_count": len(rejected_refs),
+        "same_displacement_use_count": len(uses),
+        "missing_proof": [] if accepted_refs else _rsset_candidate_missing_base_proof(),
+        "ownership_requirement": "binding action owner required before generated descendants or cleanup",
+    }
+
+
+def _rsset_candidate_evidence_search_already_recorded(evidence_search: Mapping[str, object]) -> bool:
+    refs = evidence_search.get("accepted_base_evidence")
+    if not isinstance(refs, Sequence) or isinstance(refs, str):
+        return False
+    return any(isinstance(ref, Mapping) and isinstance(ref.get("owner_action_id"), str) for ref in refs)
+
+
+def _rsset_candidate_search_sources(
+    *,
+    selected_use: Mapping[str, object],
+    layout_context: Mapping[str, object] | None,
+    manual_state: Mapping[str, object] | None,
+) -> list[tuple[str, Mapping[str, object]]]:
+    sources: list[tuple[str, Mapping[str, object]]] = [("selected_use", selected_use)]
+    if layout_context is not None and layout_context is not selected_use:
+        sources.append(("same_displacement_app_slot_context", layout_context))
+    if isinstance(manual_state, Mapping):
+        bindings = manual_state.get("rsset_use_site_bindings")
+        if isinstance(bindings, Sequence) and not isinstance(bindings, str):
+            for binding in bindings:
+                if isinstance(binding, Mapping):
+                    sources.append(("manual_rsset_use_site_binding", binding))
+    return sources
+
+
+def _rsset_candidate_accepted_base_evidence_ref(evidence: Mapping[str, object]) -> dict[str, object] | None:
+    source_evidence_id = evidence.get("source_evidence_id")
+    source_family = evidence.get("source_family")
+    status = evidence.get("source_evidence_status") or evidence.get("status")
+    scope = evidence.get("path_lifetime_scope")
+    conflicts = evidence.get("conflicts")
+    base_evidence_id = evidence.get("base_evidence_id")
+    if not isinstance(source_evidence_id, str) or not source_evidence_id:
+        return None
+    if source_family != "rsset_app_base":
+        return None
+    if not isinstance(status, str) or status not in _ACCEPTED_PROVENANCE_STATUSES:
+        return None
+    if not isinstance(scope, Mapping) or not scope.get("kind"):
+        return None
+    if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) and conflicts:
+        return None
+    if not isinstance(base_evidence_id, str) or not base_evidence_id:
+        return None
+    ref = {
+        "source_evidence_id": source_evidence_id,
+        "source_family": source_family,
+        "source_evidence_status": status,
+        "path_lifetime_scope": dict(scope),
+        "base_evidence_id": base_evidence_id,
+        "base_register": evidence.get("base_register"),
+        "displacement": evidence.get("displacement"),
+        "hunk": evidence.get("hunk"),
+        "addr": evidence.get("addr"),
+        "operand_index": evidence.get("operand_index"),
+        "conflicts": list(conflicts) if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) else [],
+    }
+    for key in ("owner_action_id", "cleanup_action_id", "parent_evidence_ids", "base_evidence_refs"):
+        value = evidence.get(key)
+        if value is not None:
+            ref[key] = value
+    return {key: value for key, value in ref.items() if value is not None}
+
+
+def _rsset_candidate_evidence_matches_selected_use(
+    evidence: Mapping[str, object],
+    selected_use: Mapping[str, object],
+) -> bool:
+    for key in ("hunk", "addr", "operand_index", "base_register", "displacement"):
+        if key in evidence and key in selected_use and evidence.get(key) != selected_use.get(key):
+            return False
+    return True
+
+
+def _rsset_candidate_rejected_evidence_ref(
+    source: str,
+    evidence: Mapping[str, object],
+    selected_use: Mapping[str, object],
+) -> dict[str, object]:
+    ref = {
+        "search_source": source,
+        "reason": _rsset_candidate_rejected_evidence_reason(evidence, selected_use),
+    }
+    for key in (
+        "source_evidence_id",
+        "source_family",
+        "source_evidence_status",
+        "status",
+        "base_evidence_id",
+        "base_register",
+        "displacement",
+        "hunk",
+        "addr",
+        "operand_index",
+        "symbol",
+        "element_kind",
+    ):
+        value = evidence.get(key)
+        if value is not None:
+            ref[key] = value
+    return ref
+
+
+def _rsset_candidate_rejected_evidence_reason(
+    evidence: Mapping[str, object],
+    selected_use: Mapping[str, object],
+) -> str:
+    accepted = _rsset_candidate_accepted_base_evidence_ref(evidence)
+    if accepted is None:
+        if evidence.get("element_kind") == "app_slot":
+            return "same-displacement app-slot context is not accepted base/path evidence"
+        return "missing accepted rsset_app_base evidence fields"
+    if not _rsset_candidate_evidence_matches_selected_use(accepted, selected_use):
+        return "accepted evidence is scoped to a different selected use"
+    return "accepted evidence rejected"
+
+
+def _rsset_candidate_selected_use_identity(selected_use: Mapping[str, object]) -> dict[str, object]:
+    return {
+        key: selected_use[key]
+        for key in ("hunk", "addr", "operand_index", "base_register", "displacement", "element_id", "stable_key")
+        if key in selected_use
+    }
+
+
+def _rsset_candidate_missing_base_proof() -> list[str]:
+    return [
+        "source_evidence_id with source_family=rsset_app_base",
+        "accepted source_evidence_status",
+        "path_lifetime_scope covering the selected use",
+        "empty conflicts",
+        "base_evidence_id for the selected A6 app base",
+    ]
 
 
 def _rsset_candidate_value_counts(uses: list[dict[str, object]], key: str) -> dict[str, int]:

@@ -120,9 +120,10 @@ Continue 017 before 012 by working the active blocker-removal issues:
 - `017-024`: implemented exact address-mode-preserving A5 rendering for the
   existing zero-displacement accepted ref by projecting a generated entry
   comment instead of changing operand syntax.
-- `017-025`: actively search for accepted RSSET/app-base evidence from flow,
-  xrefs, Manual Action Log state, and target source context; only leave it
-  blocked after documenting the specific proof searched for and not found.
+- `017-025`: implemented accepted RSSET/app-base evidence search in the report.
+  Current Pandora still has no new RSSET mutation: the only accepted group is
+  already recorded, and the top active group remains blocked with exact missing
+  proof.
 - `017-027`: rerun the gate only after active 017 blocker-removal work is done
   or proven non-viable.
 
@@ -361,9 +362,11 @@ repeatable work to `docs\issues\017-*`.
   `s0:0000045C` now renders an entry comment naming `dmaconr` while preserving
   `move.w (a5),d0`; the verifier checks that no unsafe `dmaconr(a5)` operand is
   emitted.
-- 017-025 remains deferred. The RSSET report still has 125 report-only raw A6
-  candidates and no accepted app-base/source evidence to feed command/verifier
-  gates.
+- 017-025 added selected-use, app-slot-context, and Manual Action Log evidence
+  search to `rsset-candidate-report`. Pandora now reports 124 blocked RSSET
+  groups plus one already-recorded `$01AD` group; the top active group
+  `rsset-raw-a6:022E` still lacks accepted `rsset_app_base` evidence,
+  selected-use path/lifetime scope, empty conflicts, and a selected A6 base id.
 - 017-026 closes the immediate source-offset policy for Pandora: the 9 remaining
   source-offset candidates stay report-only until accepted runtime-address
   provenance exists.
