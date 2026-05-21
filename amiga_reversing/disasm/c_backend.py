@@ -659,22 +659,35 @@ def build_project_listing_artifact_profile(
 ) -> tuple[int, dict[str, object], CListingArtifact]:
     paths = resolve_project_paths(project_name, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
-        metadata_text = _metadata_path_text(metadata_path)
-        with _source_file_for_c_backend(paths.binary_source, project_root=project_root) as source_file:
-            include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
-            artifact = CListingArtifact.create(
-                source_file,
-                metadata_text=metadata_text,
-                include_dir=str(include_dir),
-                project_root=project_root,
-            )
-            try:
-                summary, summary_profile = artifact.summary_payload()
-                total_rows = summary.get("total_rows", 0)
-            except Exception:
-                artifact.close()
-                raise
-            return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
+        return build_listing_artifact_profile_from_binary_source(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=project_root,
+        )
+
+
+def build_listing_artifact_profile_from_binary_source(
+    binary_source: BinarySource,
+    *,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> tuple[int, dict[str, object], CListingArtifact]:
+    metadata_text = _metadata_path_text(metadata_path)
+    with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
+        include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
+        artifact = CListingArtifact.create(
+            source_file,
+            metadata_text=metadata_text,
+            include_dir=str(include_dir),
+            project_root=project_root,
+        )
+        try:
+            summary, summary_profile = artifact.summary_payload()
+            total_rows = summary.get("total_rows", 0)
+        except Exception:
+            artifact.close()
+            raise
+        return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
 
 
 def type_catalog_from_c_backend(

@@ -46,6 +46,10 @@ from amiga_reversing.disasm.listing_projection import (
     ListingLocatorError,
     ListingProjectionService,
 )
+from amiga_reversing.disasm.macos_listing_source import (
+    build_macos_project_listing_artifact_profile,
+    macos_listing_cache_key,
+)
 from amiga_reversing.disasm.macos_project_payload import build_macos_project_payload
 from amiga_reversing.disasm.manual_action_catalog import (
     listing_catalog_manual_payload,
@@ -458,7 +462,7 @@ def _annotate_listing_payload(
 def _target_suppressible_seeded_items(project_name: str) -> list[dict[str, object]]:
     try:
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
-    except FileNotFoundError:
+    except (FileNotFoundError, ValueError):
         return []
     metadata = load_target_seeded_metadata(paths.target_dir)
     if metadata is None:
@@ -1252,6 +1256,15 @@ def _file_cache_stamp(path: Path) -> str:
 
 def _project_listing_cache_key(project_name: str) -> str:
     try:
+        project = get_project(project_name)
+    except FileNotFoundError:
+        project = None
+    if project is not None and project.kind is ProjectKind.MACOS:
+        try:
+            return macos_listing_cache_key(project, project_root=PROJECT_ROOT)
+        except (FileNotFoundError, ValueError):
+            return f"{project_name}|macos|unresolved"
+    try:
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError):
         return f"{project_name}|unresolved"
@@ -1301,7 +1314,14 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             generation="full",
             phase="build_c_artifact",
         )
-        total_rows, _profile, listing_artifact = build_project_listing_artifact_profile(project_name)
+        project = get_project(project_name)
+        if project.kind is ProjectKind.MACOS:
+            total_rows, _profile, listing_artifact = build_macos_project_listing_artifact_profile(
+                project,
+                project_root=PROJECT_ROOT,
+            )
+        else:
+            total_rows, _profile, listing_artifact = build_project_listing_artifact_profile(project_name)
         if not _set_job_phase(job_id, phase_id="cache_artifact", phase_index=2, phase_count=phase_count):
             if listing_artifact is not None:
                 listing_artifact.close()
@@ -3538,7 +3558,7 @@ def route_request(
             }
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
-            if project.kind is not ProjectKind.BINARY:
+            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -3626,7 +3646,7 @@ def route_request(
             and parts[4] == "navigation"
         ):
             project = get_project(project_name)
-            if project.kind is not ProjectKind.BINARY:
+            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -3647,7 +3667,7 @@ def route_request(
             and parts[4] == "open"
         ):
             project = get_project(project_name)
-            if project.kind is not ProjectKind.BINARY:
+            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )

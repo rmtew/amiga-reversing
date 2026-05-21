@@ -1271,6 +1271,64 @@ def test_route_project_returns_macos_payload(monkeypatch: pytest.MonkeyPatch) ->
     assert "reproduction" not in data
 
 
+def test_route_macos_listing_returns_code_rows_from_shared_listing_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _macos_project("macos_mpw_sample")
+    rows = [
+        ListingRow(
+            row_id="code-1-main-rts",
+            kind="instruction",
+            text="rts\n",
+            addr=0,
+            section_index=0,
+            start_offset=0,
+            end_offset=2,
+            bytes=b"\x4e\x75",
+        )
+    ]
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    _seed_c_listing_artifact(
+        monkeypatch,
+        project.id,
+        _RowsCListingArtifact(rows, project_name=project.id),
+    )
+
+    payload = disasm_server.route_request(
+        "GET",
+        f"/api/projects/{project.id}/listing",
+        {"start": ["0"], "count": ["8"]},
+    )
+
+    data = payload["data"]
+    assert data["total_rows"] == 1
+    assert data["rows"][0]["text"] == "rts\n"
+    assert data["rows"][0]["locator"]["target_id"] == project.id
+
+
+def test_route_macos_listing_open_uses_macos_listing_builder(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _macos_project("macos_mpw_sample")
+    artifact = _RowsCListingArtifact(
+        [ListingRow(row_id="code-1-main-rts", kind="instruction", text="rts\n", addr=0)],
+        project_name=project.id,
+    )
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "_project_listing_cache_key", lambda project_name: "macos-cache")
+
+    def fake_builder(project_record: ProjectRecord, *, project_root: Path) -> tuple[int, dict[str, object], object]:
+        calls["project"] = project_record
+        calls["project_root"] = project_root
+        return 1, {"generation": "fake-macos"}, artifact
+
+    monkeypatch.setattr(disasm_server, "build_macos_project_listing_artifact_profile", fake_builder)
+
+    job = disasm_server.route_request("POST", f"/api/projects/{project.id}/listing/open", {})["data"]
+
+    assert job["status"] == "ready"
+    assert job["total_rows"] == 1
+    assert calls["project"] == project
+    assert disasm_server._listing_read_artifact(project.id) is artifact
+
+
 def test_route_project_overlays_cached_analysis_review_state(monkeypatch: pytest.MonkeyPatch) -> None:
     artifact = _FakeCListingArtifact()
     _seed_c_listing_artifact(monkeypatch, "bloodwych", artifact)

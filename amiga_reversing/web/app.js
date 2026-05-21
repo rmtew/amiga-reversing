@@ -10060,13 +10060,14 @@ async function moveToRelativeHunk(delta) {
   return jumpToListingSectionOffset(state.project, target, 0);
 }
 
-function renderClassicMacProject(projectData) {
+function renderClassicMacProject(projectData, listing = null) {
   const mac = projectData.macos || {};
   const viewport = document.getElementById("listing-viewport");
   viewport.innerHTML = `
     <div class="macos-view" data-platform="macos">
       ${renderClassicMacSourceView(mac.source_view || {})}
       ${renderClassicMacContainerView(mac.binary_container_view || {})}
+      ${renderClassicMacListingPanel(mac.binary_container_view || {}, listing)}
       ${renderClassicMacBoundary(mac.source_binary_boundary || {})}
       ${renderClassicMacUnsupported(mac.unsupported || [])}
     </div>
@@ -10104,7 +10105,27 @@ function renderClassicMacContainerView(containerView) {
       <div class="macos-pivot-grid">
         ${renderClassicMacPivotList("Forks", containerView.forks, (item) => `${item.name}: ${item.role} ${formatFileSize(item.size || 0)}`)}
         ${renderClassicMacPivotList("CODE Resources", containerView.code_resources, (item) => `CODE ${item.id} ${item.name || ""} ${formatFileSize(item.size || 0)}`)}
-        ${renderClassicMacPivotList("CODE 1 Preview", selected.listing_preview, (item) => `${formatByteOffset(item.offset)} ${item.directive} ${item.value}`)}
+        ${renderClassicMacPivotList("Selected CODE Listing", selected.listing ? [selected.listing] : [], (item) => `${item.resource_type || "CODE"} ${item.resource_id ?? ""} ${item.resource_name || ""} ${formatFileSize(item.source_range?.size || 0)}`)}
+      </div>
+    </section>
+  `;
+}
+
+function renderClassicMacListingPanel(containerView, listing) {
+  const selected = containerView.selected_code_segment || {};
+  const link = selected.listing || {};
+  const rows = listing && Array.isArray(listing.rows) ? listing.rows : [];
+  return `
+    <section class="macos-section" data-macos-panel="listing">
+      <h2>CODE Listing</h2>
+      <div class="macos-summary-grid">
+        <div><span>Resource</span><strong>${escapeHtml(`${link.resource_type || "CODE"} ${link.resource_id ?? selected.id ?? ""}`)}</strong></div>
+        <div><span>Name</span><strong>${escapeHtml(link.resource_name || selected.name || "")}</strong></div>
+        <div><span>Fork</span><strong>${escapeHtml(link.fork || "resource")}</strong></div>
+        <div><span>Rows</span><strong>${escapeHtml(String(listing?.total_rows ?? rows.length))}</strong></div>
+      </div>
+      <div class="macos-code-listing" data-macos-code-listing="1">
+        ${rows.length ? renderListingRows(rows, listing?.start || 0) : '<div class="empty listing-empty">CODE listing is not loaded.</div>'}
       </div>
     </section>
   `;
@@ -10304,10 +10325,35 @@ async function renderProject(projectId) {
 
     if (projectData.macos) {
       renderClassicMacProject(projectData);
+      const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
+        method: "POST",
+      });
+      if (token !== state.loadingToken) {
+        return;
+      }
+      await waitForAsyncJob(
+        (jobId) => `/api/projects/${encodeURIComponent(projectId)}/listing/status?job_id=${encodeURIComponent(jobId)}`,
+        job,
+        token,
+        (currentJob) => setViewportOverlay(renderProgressOverlay(currentJob)),
+      );
+      await refreshProjectPayload(projectId, token);
+      if (token !== state.loadingToken) {
+        return;
+      }
+      const listing = await loadListingWindow(projectId, null, 0, LISTING_INITIAL_ROW_WINDOW, {
+        start: 0,
+        count: LISTING_INITIAL_ROW_WINDOW,
+        render: false,
+      });
+      if (token !== state.loadingToken) {
+        return;
+      }
+      renderClassicMacProject(state.projectData || projectData, listing);
       dispatchAppEvent("amiga:project-rendered", {
         projectId,
-        generation: "macos_starter",
-        totalRows: 0,
+        generation: listing?.analysis_generation || state.virtualListing.generation || "full",
+        totalRows: listing?.total_rows || state.virtualListing.totalRows || 0,
       });
       return;
     }

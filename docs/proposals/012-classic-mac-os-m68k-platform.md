@@ -1,6 +1,7 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: blocked on C-backed Mac platform path; starter research slice implemented.
+Status: in progress; C-backed Mac project payload and selected CODE listing
+path implemented, committed example target/framework closeout still open.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -861,7 +862,7 @@ Feed source render and analysis from generated Mac OS metadata, not handcrafted
 Python dictionaries in tests or view assembly.
 ```
 
-012-016. Real CODE listing view - blocked
+012-016. Real CODE listing view - implemented
 
 ```text
 Render selected nonzero CODE resources as actual m68k listing rows in the web
@@ -1151,6 +1152,12 @@ resources documentation coverage tests
   `asm_code_resources.json` metadata. Overflow extents remain a future backend
   extension for fixtures that actually need them, not a blocker for the current
   Asm path.
+- 012-016 connects the selected `CODE 1 Main` segment to the normal listing
+  flow. Mac projects now open `/listing/open`, build a C listing artifact from
+  C-extracted CODE bytes, and render real m68k rows in the web Mac view with
+  resource/fork/hash/unsupported metadata linked from the container summary.
+  The listing is still a selected CODE-segment view, not complete Segment
+  Loader reconstruction or full executable roundtrip.
 
 ## Open Questions
 

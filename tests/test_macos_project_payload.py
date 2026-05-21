@@ -97,6 +97,19 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
     assert container["kind"] == "hfs_resource_code_file"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
+    assert container["selected_code_segment"]["listing"] == {
+        "project_id": "macos_mpw_sample",
+        "route": "listing",
+        "source_range": {"section_index": 0, "start_offset": 0, "size": 2},
+        "resource_type": "CODE",
+        "resource_id": 1,
+        "resource_name": None,
+        "fork": "resource",
+        "payload_size": 6,
+        "payload_sha256": "payload-hash",
+        "code_bytes_sha256": "code-hash",
+        "unsupported": ["segment_loader_relocations"],
+    }
     assert payload["source_binary_boundary"]["observed_code_fixture"] == "MPW-GM/MPW/Tools/Asm"
     assert payload["provenance"]["binary_container_source"] == "platform_file_lib.macos_hfs_code_summary"
 

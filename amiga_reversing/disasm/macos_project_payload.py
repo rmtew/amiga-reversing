@@ -44,7 +44,7 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
         "kind": "macos_project",
         "platform": "macos",
         "source_view": _source_view(source_project, source_render),
-        "binary_container_view": _binary_container_view(c_summary),
+        "binary_container_view": _binary_container_view(c_summary, project_id=project_id),
         "source_binary_boundary": {
             "source_project_kind": source_project.get("kind"),
             "binary_container_kind": c_summary.get("container_kind"),
@@ -88,7 +88,7 @@ def _source_view(source_project: Mapping[str, object], source_render: Mapping[st
     }
 
 
-def _binary_container_view(c_summary: Mapping[str, object]) -> dict[str, object]:
+def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) -> dict[str, object]:
     file_info = _mapping(c_summary.get("file"))
     forks = _mapping(file_info.get("forks"))
     data_fork = _mapping(forks.get("data"))
@@ -97,6 +97,9 @@ def _binary_container_view(c_summary: Mapping[str, object]) -> dict[str, object]
     code_resources = _sequence(resource_summary.get("code_resources"))
     code0 = _code_resource_by_id(code_resources, 0)
     selected = _mapping(c_summary.get("selected_code"))
+    selected_id = selected.get("id", 1)
+    selected_resource = _code_resource_by_id(code_resources, selected_id if isinstance(selected_id, int) else 1)
+    selected_name = selected_resource.get("name") or selected.get("name")
     return {
         "kind": c_summary.get("container_kind"),
         "file": file_info,
@@ -114,12 +117,28 @@ def _binary_container_view(c_summary: Mapping[str, object]) -> dict[str, object]
         "code_resources": code_resources,
         "selected_code_segment": {
             "resource_type": "CODE",
-            "id": selected.get("id", 1),
+            "id": selected_id,
+            "name": selected_name,
+            "role": "code_segment",
             "available": selected.get("available"),
             "payload_size": selected.get("payload_size"),
             "code_bytes_size": selected.get("code_bytes_size"),
             "sha256": selected.get("payload_sha256"),
             "code_bytes_sha256": selected.get("code_bytes_sha256"),
+            "resource": selected_resource,
+            "listing": {
+                "project_id": project_id,
+                "route": "listing",
+                "source_range": {"section_index": 0, "start_offset": 0, "size": selected.get("code_bytes_size")},
+                "resource_type": "CODE",
+                "resource_id": selected_id,
+                "resource_name": selected_name,
+                "fork": "resource",
+                "payload_size": selected.get("payload_size"),
+                "payload_sha256": selected.get("payload_sha256"),
+                "code_bytes_sha256": selected.get("code_bytes_sha256"),
+                "unsupported": _sequence(c_summary.get("unsupported")),
+            },
         },
         "unsupported": _sequence(c_summary.get("unsupported")),
         "source_mapping": {

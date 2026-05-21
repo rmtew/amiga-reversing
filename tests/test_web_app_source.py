@@ -207,6 +207,22 @@ def test_web_app_initial_listing_load_requests_virtual_window() -> None:
     assert "await loadListingWindow(projectId, null, 0, 240);" not in app_js
 
 
+def test_web_app_renders_macos_code_listing_from_listing_route() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert 'data-macos-panel="listing"' in app_js
+    assert 'data-macos-code-listing="1"' in app_js
+    assert "renderListingRows(rows, listing?.start || 0)" in app_js
+    assert "renderClassicMacProject(state.projectData || projectData, listing);" in app_js
+    assert "`/api/projects/${encodeURIComponent(projectId)}/listing/open`" in app_js
+    assert 'render: false' in app_js
+    assert "generation: \"macos_starter\"" not in app_js
+
+
 def test_web_app_typed_navigation_uses_data_class_rows() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

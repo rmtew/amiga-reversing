@@ -1,4 +1,4 @@
-Status: blocked
+Status: implemented
 Source proposal: docs/proposals/012-classic-mac-os-m68k-platform.md
 
 Scope:
@@ -27,10 +27,21 @@ Required tests:
 - Web smoke/e2e test showing CODE listing rows and container metadata together.
 - Regression test for existing raw binary listing behavior.
 
-Blocker recorded:
-- The Python container smoke path can extract `CODE 1 Main` bytes, but the
-  shared listing framework does not yet import a Mac CODE resource as a normal
-  project listing source/range.
-- Keeping the current word preview as the accepted UI listing would be a
-  Mac-only side path. This issue remains blocked by the C-backed container path
-  and shared listing/source schema work from 012-013 and 012-014.
+Result:
+- Mac OS projects now expose the normal `/api/projects/<id>/listing/open` and
+  `/api/projects/<id>/listing` routes.
+- The listing builder extracts the selected nonzero `CODE` resource through the
+  C-backed HFS/resource path and feeds those bytes into the shared raw m68k
+  listing artifact path.
+- The Mac project payload links the selected `CODE` segment back to the listing
+  route, resource type/id/name, resource fork, code byte range, hashes, and
+  unsupported Segment Loader state.
+- The web Mac view renders a `CODE Listing` panel with actual listing rows from
+  the shared listing API instead of accepting the old word preview as the
+  listing surface.
+- Relocation/fixups, complete Segment Loader behavior, source mapping, and
+  byte-for-byte roundtrip remain explicit unsupported starter behavior.
+
+Verification:
+- `uv run ruff check amiga_reversing\disasm\c_backend.py amiga_reversing\disasm\macos_listing_source.py amiga_reversing\disasm\macos_project_payload.py amiga_reversing\disasm\server.py tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_disasm_server.py tests\test_web_app_source.py`
+- `uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_disasm_server.py::test_route_macos_listing_returns_code_rows_from_shared_listing_cache tests\test_disasm_server.py::test_route_macos_listing_open_uses_macos_listing_builder tests\test_disasm_server.py::test_route_listing_anchor_code_returns_window_at_non_address_row tests\test_web_app_source.py::test_web_app_renders_macos_code_listing_from_listing_route -q`

@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    RawAddressModel,
+    RawBinarySource,
+)
 from amiga_reversing.disasm.c_backend import (
+    build_listing_artifact_profile_from_binary_source,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
@@ -144,6 +150,33 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["selected_code"]["code_bytes_size"] == 2
     assert summary["selected_code"]["code_bytes_sha256"] == hashlib.sha256(b"\x4e\x75").hexdigest()
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x4e\x75"
+
+
+def test_c_macos_code_bytes_feed_shared_listing_artifact(tmp_path: Path) -> None:
+    require_built_tools()
+    code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(_make_hfs_image(), "MPW-GM/Tools/Asm", 1)
+    code_path = tmp_path / "CODE_1_Main.bin"
+    code_path.write_bytes(code_bytes)
+    source = RawBinarySource(
+        kind=BinarySourceKind.RAW_BINARY,
+        path=code_path,
+        address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0,
+        entrypoint=0,
+        code_start_offset=0,
+        display_path="MPW-GM/Tools/Asm CODE 1 Main",
+        analysis_cache_path=tmp_path / "CODE_1_Main.analysis",
+    )
+
+    total_rows, _profile, artifact = build_listing_artifact_profile_from_binary_source(source)
+    try:
+        listing, _listing_profile = artifact.window_payload(start=0, count=32)
+    finally:
+        artifact.close()
+
+    rendered = "\n".join(str(row.get("text") or "") for row in listing["rows"] if isinstance(row, dict))
+    assert total_rows > 0
+    assert "rts" in rendered
 
 
 def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
