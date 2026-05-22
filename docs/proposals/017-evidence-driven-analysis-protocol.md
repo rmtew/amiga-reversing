@@ -166,9 +166,11 @@ The next Decision Journal path is intentionally sequential:
    mutation blocked.
 5. `017-038` reports the selected RSSET mutation gate/readiness contract while
    keeping mutation disabled.
-6. `017-039` enables the selected RSSET mutation only if durable evidence,
+6. `017-040` records or blocks the real durable Pandora journal accept required
+   to make the selected RSSET gate ready.
+7. `017-039` enables the selected RSSET mutation only if durable evidence,
    command support, render support, verifier support, and exact round-trip gates
-   are all present and `017-038` reports ready.
+   are all present and `017-038` reports ready after `017-040`.
 
 Later issues in this chain are planned, not frozen. Each completed slice must
 refresh the dependent issue checklist if implementation evidence changes the
@@ -1078,3 +1080,6 @@ repeatable work to `docs\issues\017-*`.
   Decision Journal `accept_fact` exists for `rsset-raw-a6:022E` at
   `s0:000006E4:op1`. Exact round-trip is available for the raw subtarget, so the
   current missing gate is `journal_accept`.
+- 017-040 owns the `journal_accept` unblocker: either append a real durable
+  selected-use `accept_fact` with current evidence and prove the 017-038 gate is
+  ready, or keep 017-039 blocked with the missing evidence recorded.

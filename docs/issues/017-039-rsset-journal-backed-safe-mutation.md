@@ -7,9 +7,10 @@ Status: blocked
 - Source proposal: `docs/proposals/017-evidence-driven-analysis-protocol.md`
 - Protocol area: first verifier-backed source mutation from Decision Journal
   evidence
-- Blocked by: `017-038`
-- Current proposal state: `017-038` must provide a complete gate/readiness
-  report while mutation remains disabled.
+- Blocked by: `017-038`, `017-040`
+- Current proposal state: `017-038` provides a complete gate/readiness report
+  while mutation remains disabled. `017-040` must provide a real durable
+  journal accept before this issue can proceed.
 - Desired proposal state after this issue: the selected Pandora RSSET use can
   be mutated through `rsset.binding.bind` only when the `017-038` gate is ready,
   the generated source verifier passes, and exact round-trip passes.
@@ -143,7 +144,7 @@ deleted or deferred.
 017-039 must stop if the 017-038 gate is not `ready_for_039=true` for the real
 selected Pandora use. Current state does not contain a durable active
 `decision_journal.jsonl` accept for `rsset-raw-a6:022E` at `s0:000006E4:op1`,
-so the missing 017-038 gate is `journal_accept`.
+so the missing 017-038 gate is `journal_accept`. `017-040` owns that unblocker.
 
 Trace blocks:
 
@@ -175,8 +176,8 @@ Required unblocker:
 - Add or replay one durable active `accept_fact` with candidate
   `rsset-raw-a6:022E`, fact type `rsset_app_base`, selected identity
   `s0:000006E4:op1`, selected-use scope, and `conflicts: []`; then rerun the
-  017-038 gate and only enable `rsset.binding.bind` if it reports
-  `ready_for_039=true`.
+  017-038 gate and only enable `rsset.binding.bind` in this issue if it reports
+  `ready_for_039=true`. This work is tracked by `017-040`.
 
 Verification:
 
