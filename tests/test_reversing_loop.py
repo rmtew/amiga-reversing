@@ -219,7 +219,21 @@ def test_orphan_code_island_packet_surfaces_deferred_decision_lane() -> None:
     assert packet["safe_to_mutate"] is False
 
 
-def test_query_orphan_code_island_packet_uses_inspect_listing_surface(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_query_orphan_code_island_packet_uses_inspect_listing_surface(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    decision_journal.append_decision_record(
+        target_dir,
+        _decision_journal_record(
+            "defer_fact",
+            decision_id="decision-orphan-query-defer",
+            candidate_id="data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
+            addr=0x10F3,
+            operand_index=0,
+        ),
+    )
     candidate = {
         "candidate_id": "data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
         "kind": "data_symbol_name",
@@ -231,6 +245,7 @@ def test_query_orphan_code_island_packet_uses_inspect_listing_surface(monkeypatc
         "default_verifier": "projected_data_symbol_name",
         "actionable": True,
     }
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
     monkeypatch.setattr(reversing_loop, "inspect_target", lambda target_id, project_root: {"candidate_work": []})
     monkeypatch.setattr(
         reversing_loop,
@@ -245,6 +260,8 @@ def test_query_orphan_code_island_packet_uses_inspect_listing_surface(monkeypatc
 
     assert packet["candidate_family"] == "ambiguous_data_range"
     assert packet["selected_range"]["current_classification"] == "string"
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-orphan-query-defer"
     assert packet["safe_next_actions"][0]["status"] == "blocked"
     assert packet["safe_to_mutate"] is False
 
@@ -540,6 +557,7 @@ def test_inspect_decision_journal_reads_current_verifier_artifact(
                         "decision_id": "decision-accept",
                         "candidate_id": "rsset-raw-a6:022E",
                         "selected_identity": record["selected_identity"],
+                        "source_state_identity": "projection-current",
                         "current": True,
                         "layers": {
                             "generated_source": {"status": "passed", "verifier": "rsset_binding_state"},
@@ -607,6 +625,48 @@ def test_inspect_decision_journal_blocks_stale_verifier_artifact(
 
     assert "verifier_artifact_mismatch" in audit["blockers"]
     assert audit["verifier_layers"][2]["blocker"] == "verifier_artifact_mismatch"
+
+
+def test_inspect_decision_journal_blocks_source_state_mismatched_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "decision_verifier_artifacts.json").write_text(
+        json.dumps(
+            {
+                "artifacts": [
+                    {
+                        "decision_id": "decision-accept",
+                        "candidate_id": "rsset-raw-a6:022E",
+                        "selected_identity": record["selected_identity"],
+                        "source_state_identity": "old-projection",
+                        "current": True,
+                        "layers": {
+                            "generated_source": {"status": "passed"},
+                            "negative_safety": {"status": "passed"},
+                            "exact_round_trip": {"status": "passed"},
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_current_report_for_decision("decision-accept"),
+    )
+
+    report = reversing_loop.inspect_decision_journal("demo", project_root=tmp_path)
+    audit = report["audit"]["records"][0]
+
+    assert "verifier_artifact_stale" in audit["blockers"]
+    assert audit["verifier_layers"][2]["blocker"] == "verifier_artifact_stale"
 
 
 def test_decision_journal_audit_classifies_superseded_deferred_and_rejected() -> None:
@@ -7602,13 +7662,26 @@ def test_source_offset_immediate_packet_surfaces_deferred_decision_lane() -> Non
 
 
 def test_query_source_offset_immediate_packet_uses_public_report_surface(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    target_dir = _target(tmp_path)
     data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x120, end_offset=0x140)
     data_row["runtime_address"] = 0x5C720
     candidates = reversing_loop._listing_immediate_runtime_reference_report(
         [_immediate_address_row(value=0x5C72A), data_row]
     )
+    decision_journal.append_decision_record(
+        target_dir,
+        _decision_journal_record(
+            "defer_fact",
+            decision_id="decision-source-query-defer",
+            candidate_id="immediate-runtime-ref:code-row:0:0005C72A",
+            addr=0x20,
+            operand_index=0,
+        ),
+    )
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
     monkeypatch.setattr(
         reversing_loop,
         "inspect_immediate_runtime_refs",
@@ -7625,6 +7698,8 @@ def test_query_source_offset_immediate_packet_uses_public_report_surface(
     assert packet["command_gate"]["enabled"] is False
     assert packet["command_gate"]["safe_to_mutate"] is False
     assert packet["command_gate"]["missing_gates"] == ["packet_read_only_no_writes"]
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-source-query-defer"
     assert packet["safe_to_mutate"] is False
 
 
@@ -7825,14 +7900,28 @@ def test_a5_path_lifetime_packet_surfaces_deferred_decision_lane() -> None:
 
 
 def test_query_a5_path_lifetime_packet_reports_command_candidate_as_read_only(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    target_dir = _target(tmp_path)
     lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
         [
             _a5_definition_row(custom=True),
             _a5_use_row(displacement=0x96),
         ]
     )
+    use = lifetime_report["cfg_path_lifetime_report"]["uses"][0]
+    decision_journal.append_decision_record(
+        target_dir,
+        _decision_journal_record(
+            "defer_fact",
+            decision_id="decision-a5-query-defer",
+            candidate_id=use["source_evidence_id"],
+            addr=0x40,
+            operand_index=0,
+        ),
+    )
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
     monkeypatch.setattr(
         reversing_loop,
         "inspect_a5_hardware_lifetimes",
@@ -7849,6 +7938,8 @@ def test_query_a5_path_lifetime_packet_reports_command_candidate_as_read_only(
     assert packet["command_gate"]["enabled"] is False
     assert packet["command_gate"]["safe_to_mutate"] is False
     assert packet["command_gate"]["missing_gates"] == ["packet_read_only_no_writes"]
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-a5-query-defer"
     assert packet["safe_to_mutate"] is False
 
 
@@ -13536,6 +13627,7 @@ def _rsset_current_report_for_decision(decision_id: str) -> dict[str, object]:
             "candidates": [
                 {
                     "candidate_id": "rsset-raw-a6:022E",
+                    "selected_use": {"locator": {"projection_hash": "projection-current"}},
                     "journal_decision_evidence": {"accepted": [{"decision_id": decision_id}]},
                     "command_support": {
                         "bind": {

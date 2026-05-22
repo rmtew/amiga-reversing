@@ -503,12 +503,20 @@ def _rsset_source_effect_audit_record(
         updated["verifier_layers"] = [
             {"layer": "decision_journal", "status": "passed"},
             {"layer": "semantic_reload", "status": "passed", "source": "rsset-candidate-report"},
-            *_decision_verifier_artifact_layers(audit_record, verifier_artifacts),
+            *_decision_verifier_artifact_layers(
+                audit_record,
+                verifier_artifacts,
+                current_source_identity=_rsset_candidate_source_state_identity(candidate),
+            ),
         ]
         blockers = [
             blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
         ]
-        for blocker in _decision_verifier_artifact_blockers(audit_record, verifier_artifacts):
+        for blocker in _decision_verifier_artifact_blockers(
+            audit_record,
+            verifier_artifacts,
+            current_source_identity=_rsset_candidate_source_state_identity(candidate),
+        ):
             if blocker not in blockers:
                 blockers.append(blocker)
         updated["blockers"] = blockers
@@ -526,6 +534,13 @@ def _rsset_candidate_has_matching_journal_decision(candidate: Mapping[str, objec
     if not isinstance(accepted, Sequence) or isinstance(accepted, str):
         return False
     return any(isinstance(item, Mapping) and item.get("decision_id") == decision_id for item in accepted)
+
+
+def _rsset_candidate_source_state_identity(candidate: Mapping[str, object]) -> str | None:
+    selected_use = candidate.get("selected_use")
+    locator = selected_use.get("locator") if isinstance(selected_use, Mapping) else None
+    projection_hash = locator.get("projection_hash") if isinstance(locator, Mapping) else None
+    return projection_hash if isinstance(projection_hash, str) and projection_hash else None
 
 
 def _audit_record_with_blocker(record: dict[str, object], blocker: str) -> dict[str, object]:
@@ -549,8 +564,14 @@ def _load_decision_verifier_artifacts(target_dir: Path) -> dict[str, object] | N
 def _decision_verifier_artifact_layers(
     audit_record: Mapping[str, object],
     artifacts: Mapping[str, object] | None,
+    *,
+    current_source_identity: str | None = None,
 ) -> list[dict[str, object]]:
-    artifact, blocker = _matching_decision_verifier_artifact(audit_record, artifacts)
+    artifact, blocker = _matching_decision_verifier_artifact(
+        audit_record,
+        artifacts,
+        current_source_identity=current_source_identity,
+    )
     layers: list[dict[str, object]] = []
     for layer in ("generated_source", "negative_safety", "exact_round_trip"):
         if artifact is None:
@@ -589,8 +610,14 @@ def _decision_verifier_artifact_layers(
 def _decision_verifier_artifact_blockers(
     audit_record: Mapping[str, object],
     artifacts: Mapping[str, object] | None,
+    *,
+    current_source_identity: str | None = None,
 ) -> list[str]:
-    artifact, blocker = _matching_decision_verifier_artifact(audit_record, artifacts)
+    artifact, blocker = _matching_decision_verifier_artifact(
+        audit_record,
+        artifacts,
+        current_source_identity=current_source_identity,
+    )
     if artifact is None:
         if blocker in {"verifier_artifact_stale", "verifier_artifact_mismatch", "verifier_artifact_malformed"}:
             return [blocker]
@@ -608,6 +635,8 @@ def _decision_verifier_artifact_blockers(
 def _matching_decision_verifier_artifact(
     audit_record: Mapping[str, object],
     artifacts: Mapping[str, object] | None,
+    *,
+    current_source_identity: str | None = None,
 ) -> tuple[Mapping[str, object] | None, str]:
     if artifacts is None:
         return None, "verifier_artifact_missing"
@@ -628,8 +657,19 @@ def _matching_decision_verifier_artifact(
             continue
         if raw_entry.get("candidate_id") != audit_record.get("candidate_id"):
             continue
+        selected_identity = audit_record.get("selected_identity")
+        target_id = selected_identity.get("target_id") if isinstance(selected_identity, Mapping) else None
+        if isinstance(raw_entry.get("target_id"), str) and raw_entry.get("target_id") != target_id:
+            return None, "verifier_artifact_mismatch"
         if not _decision_verifier_selected_identity_matches(raw_entry.get("selected_identity"), audit_record.get("selected_identity")):
             return None, "verifier_artifact_mismatch"
+        artifact_source_identity = raw_entry.get("source_state_identity")
+        if (
+            isinstance(artifact_source_identity, str)
+            and current_source_identity is not None
+            and artifact_source_identity != current_source_identity
+        ):
+            return None, "verifier_artifact_stale"
         if raw_entry.get("current") is not True:
             return None, "verifier_artifact_stale"
         return raw_entry, "matched"
