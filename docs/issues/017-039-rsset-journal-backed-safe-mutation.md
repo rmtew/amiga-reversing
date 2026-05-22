@@ -195,4 +195,5 @@ Verification:
   `manual_action_log`, `semantic_reload`, `rendered_source`, and `round_trip`
   all passed for the corrected sequence-60 binding action.
 - Lint:
-  pending final run before commit.
+  `uv run ruff check amiga_reversing\reversing_loop.py amiga_reversing\disasm\manual_action_catalog.py tests\test_reversing_loop.py tests\test_manual_action_catalog.py`
+  passed.

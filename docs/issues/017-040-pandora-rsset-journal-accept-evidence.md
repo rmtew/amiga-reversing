@@ -84,19 +84,19 @@ reason evidence is insufficient.
 
 ## Research Coverage
 
-- [ ] Selected Pandora RSSET packet/report evidence checked.
-- [ ] Existing `decision_journal.jsonl` state checked.
-- [ ] Decision Journal append/hash-chain path checked.
-- [ ] Active projection checked after append or proposed append.
-- [ ] `017-038` gate checked after append or proposed append.
-- [ ] Default planner and command gate checked to prove no mutation.
+- [x] Selected Pandora RSSET packet/report evidence checked.
+- [x] Existing `decision_journal.jsonl` state checked.
+- [x] Decision Journal append/hash-chain path checked.
+- [x] Active projection checked after append or proposed append.
+- [x] `017-038` gate checked after append or proposed append.
+- [x] Default planner and command gate checked to prove no mutation.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Proposal updated if evidence rules change.
-- [ ] `017-039` unblocked only if `ready_for_039=true`; otherwise keep it
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed hooks.
+- [x] Proposal updated if evidence rules change.
+- [x] `017-039` unblocked only if `ready_for_039=true`; otherwise keep it
   blocked with missing gates.
 
 ## Required Sign-Off
