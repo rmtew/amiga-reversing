@@ -164,9 +164,11 @@ The next Decision Journal path is intentionally sequential:
 4. `017-037` lets the selected RSSET packet/report consult that replayed
    projection as a read-only `journal_decision_evidence` lane, while keeping
    mutation blocked.
-5. `017-038` enables the selected RSSET mutation only if durable evidence,
+5. `017-038` reports the selected RSSET mutation gate/readiness contract while
+   keeping mutation disabled.
+6. `017-039` enables the selected RSSET mutation only if durable evidence,
    command support, render support, verifier support, and exact round-trip gates
-   are all present.
+   are all present and `017-038` reports ready.
 
 Later issues in this chain are planned, not frozen. Each completed slice must
 refresh the dependent issue checklist if implementation evidence changes the
@@ -1064,3 +1066,6 @@ repeatable work to `docs\issues\017-*`.
   with exact selected-use checks and reason codes, but legacy
   accepted-base-evidence counts, `rsset.binding.bind`, render/verifier gates,
   mutation, and planner behavior remain unchanged.
+- 017-038 and 017-039 split the risky mutation step. 017-038 owns gate and
+  verifier readiness reporting with `mutation_enabled=false`; 017-039 owns any
+  actual selected RSSET source mutation and must stop if 017-038 is not ready.
