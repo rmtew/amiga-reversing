@@ -1142,3 +1142,11 @@ repeatable work to `docs\issues\017-*`.
   is considered. Same-literal-only evidence remains insufficient; mutation may
   proceed only with scoped command support, generated-source verifier, negative
   safety, exact round-trip, and audit layers backed by current verifier results.
+- The current parallel worker lot is `017-046` through `017-049`:
+  source-offset immediate decision gate, A5 path/lifetime decision gate,
+  orphan/code-island decision lane, and Decision Journal audit verifier artifact
+  ingestion. `017-046`, `017-047`, and `017-048` can proceed independently as
+  selected-packet decision lanes. `017-049` can proceed in parallel, but any
+  mutation issue that wants audit verifier layers marked passed must either
+  depend on `017-049` or implement equivalent current verifier-result evidence
+  in its own slice.
