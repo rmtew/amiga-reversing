@@ -61,6 +61,50 @@ Status: active
 - Tests: no implementation tests required unless narrow inspection tooling is
   added to answer the research.
 
+## Research Completion Standard
+
+Checking a research box requires evidence, not just a summary sentence. Each
+completed coverage item must include a trace block with:
+
+- files and functions inspected;
+- call/data flow summary;
+- current ownership boundary;
+- protocol/v2 implication;
+- reuse/replace classification where relevant;
+- commands or searches used to check for missed hooks;
+- open questions, or `none`.
+
+`Mapped` means the relevant code path is traceable from entrypoint to output or
+explicitly marked out of scope with reason. `Inventoried` means the durable,
+derived, cached, and generated state involved in that subsystem is named and
+classified. `Traced` means the issue records the caller, callee, inputs,
+outputs, and invalidation/replay behavior where applicable.
+
+Pandora report or verifier claims require reproducible evidence:
+
+```text
+Command:
+Commit:
+Target:
+Key output:
+Validation artifact path, or inline result block:
+```
+
+The first implementation slice recommendation must include a comparison matrix
+for RSSET, A5, and immediate-reference candidates:
+
+- current evidence available;
+- missing protocol primitives;
+- C work required;
+- Python/API work required;
+- render/verifier involvement;
+- risk/blast radius;
+- expected source-quality payoff;
+- reason selected or rejected.
+
+The proposal update must carry concrete architecture findings and rewrite-scope
+corrections, not only say that research completed.
+
 ## Research Coverage
 
 - [ ] Target load lifecycle traced, or marked out of scope with reason.
@@ -86,10 +130,15 @@ signed off or explicitly marked out of scope with reason.
 
 ## Research Review
 
-- [ ] Second pass checked file/function coverage.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Findings were checked against Pandora current surfaces.
-- [ ] Proposal updated with model corrections and rewrite-scope findings.
+- [ ] Second pass checked every completed trace block against the named
+  files/functions.
+- [ ] Cross-references searched for missed hooks, with search terms or commands
+  recorded.
+- [ ] Findings were checked against Pandora current surfaces with command output
+  or validation artifact references.
+- [ ] Proposal updated with concrete model corrections and rewrite-scope
+  findings.
+- [ ] First-slice comparison matrix justifies the recommended next issue.
 - [ ] Next issue scope follows from the inventory.
 
 ## Required Sign-Off
@@ -98,7 +147,11 @@ signed off or explicitly marked out of scope with reason.
 - [ ] Protocol delta implemented as described, or proposal updated.
 - [ ] Default behavior impact verified.
 - [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Evidence packet shape tested.
+- [ ] Every checked research item has a trace block satisfying the Research
+  Completion Standard.
+- [ ] Pandora report/verifier claims include reproducible command evidence.
+- [ ] Evidence packet shape tested, or explicitly deferred because this remains
+  research-only.
 - [ ] Decision/replay behavior tested where applicable.
 - [ ] Command gate refuses unsafe mutation.
 - [ ] Render/verifier/round-trip checked where output-affecting.
