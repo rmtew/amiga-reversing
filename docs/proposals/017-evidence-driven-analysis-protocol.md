@@ -151,6 +151,24 @@ report-private candidate schemas, report/catalog gate duplication,
 Python-owned evidence truth, scattered verifier result shapes, and implicit
 derived-state ownership must not become the protocol interface.
 
+The next Decision Journal path is intentionally sequential:
+
+1. `017-034` makes `decision_journal.jsonl` durable and append-only, but still
+   inactive.
+2. `017-035` exposes explicit validation/inspection for humans, LLMs, CLI, and
+   API callers.
+3. `017-036` replays accepted/deferred/rejected/superseded decisions into an
+   in-memory projection without mutating C facts.
+4. `017-037` lets the selected RSSET packet/gate consult that replayed
+   projection as evidence.
+5. `017-038` enables the selected RSSET mutation only if durable evidence,
+   command support, render support, verifier support, and exact round-trip gates
+   are all present.
+
+Later issues in this chain are planned, not frozen. Each completed slice must
+refresh the dependent issue checklist if implementation evidence changes the
+protocol.
+
 Current ownership is split:
 
 - Python owns project path resolution, source descriptors, orchestration,
